@@ -8,52 +8,50 @@ import {
 const MAE_KO_KA = new Set(["กา", "ปลา", "เต่า", "มือ", "ตา", "ปู", "เสือ", "แมว", "หมู", "นา", "ใบไม้", "ขา", "ผีเสื้อ", "ดู", "พ่อ", "แม่", "วัว", "หมี", "งู", "ไก่", "ปลาโลมา", "ม้า", "ลา", "จระเข้"]);
 const COMPARE_WORDS = new Set(["กบ", "นก", "เด็ก", "จาน", "ถ้วย", "เก้าอี้", "บ้าน", "ดิน"]);
 const RHYTHM_CUE_TEMPLATE = Object.freeze([
-  { word: "เต่า", start: 28.0, end: 28.9 },
-  { word: "วัว", start: 28.9, end: 29.8 },
-  { word: "เสือ", start: 29.8, end: 30.7 },
-  { word: "หมี", start: 30.7, end: 31.6 },
-  { word: "งู", start: 31.6, end: 32.5 },
-  { word: "ไก่", start: 32.5, end: 33.4 },
-  { word: "กา", start: 33.4, end: 34.4 },
-  { word: "ปลาโลมา", start: 34.5, end: 36.8 },
-  { word: "ม้า", start: 36.8, end: 38.1 },
-  { word: "ลา", start: 38.1, end: 39.4 },
-  { word: "จระเข้", start: 39.4, end: 41.0 },
-  { word: "เต่า", start: 82.0, end: 82.9 },
-  { word: "วัว", start: 82.9, end: 83.8 },
-  { word: "เสือ", start: 83.8, end: 84.7 },
-  { word: "หมี", start: 84.7, end: 85.6 },
-  { word: "งู", start: 85.6, end: 86.5 },
-  { word: "ไก่", start: 86.5, end: 87.4 },
-  { word: "กา", start: 87.4, end: 88.4 },
-  { word: "ปลาโลมา", start: 88.5, end: 90.8 },
-  { word: "ม้า", start: 90.8, end: 92.1 },
-  { word: "ลา", start: 92.1, end: 93.4 },
-  { word: "จระเข้", start: 93.4, end: 95.0 },
+  { word: "เต่า", start: 38.00, end: 38.55 },
+  { word: "วัว", start: 38.55, end: 39.10 },
+  { word: "เสือ", start: 39.10, end: 39.65 },
+  { word: "หมี", start: 39.65, end: 40.20 },
+  { word: "งู", start: 40.20, end: 40.75 },
+  { word: "ไก่", start: 40.75, end: 41.30 },
+  { word: "กา", start: 41.30, end: 42.00 },
+  { word: "ปลาโลมา", start: 42.00, end: 43.40 },
+  { word: "ม้า", start: 43.40, end: 44.20 },
+  { word: "ลา", start: 44.20, end: 45.00 },
+  { word: "จระเข้", start: 45.00, end: 46.00 },
+  { word: "เต่า", start: 85.00, end: 85.67 },
+  { word: "วัว", start: 85.67, end: 86.34 },
+  { word: "เสือ", start: 86.34, end: 87.00 },
+  { word: "หมี", start: 87.00, end: 87.65 },
+  { word: "งู", start: 87.65, end: 88.30 },
+  { word: "ไก่", start: 88.30, end: 89.00 },
+  { word: "กา", start: 89.00, end: 90.00 },
+  { word: "ปลาโลมา", start: 90.00, end: 91.40 },
+  { word: "ม้า", start: 91.40, end: 92.20 },
+  { word: "ลา", start: 92.20, end: 93.00 },
+  { word: "จระเข้", start: 93.00, end: 94.00 },
 ]);
 const RHYTHM_LYRIC_TEMPLATE = Object.freeze([
-  { text: "เด็กทั้งหลาย ยังจำได้ไหม", start: 4.0, end: 10.4 },
-  { text: "แม่ ก กา ในมาตราไทย", start: 10.4, end: 16.8 },
-  { text: "เป็นคำไทย ไม่มีตัวสะกด", start: 16.8, end: 23.2 },
-  { text: "เราต้องจดจำ", start: 23.2, end: 27.9 },
-  { text: "เต่า วัว เสือ หมี งู ไก่ กา", start: 28.0, end: 34.4 },
-  { text: "ปลาโลมา ม้า ลา จระเข้", start: 34.5, end: 41.0 },
-  { text: "คำเหล่านี้ ไม่มีตัวสะกด", start: 41.1, end: 47.5 },
-  { text: "นั่นคือ แม่ ก กา", start: 47.5, end: 53.9 },
-  { text: "เด็กทั้งหลาย ยังจำได้ไหม", start: 56.0, end: 62.4 },
-  { text: "แม่ ก กา ในมาตราไทย", start: 62.4, end: 68.8 },
-  { text: "เป็นคำไทย ไม่มีตัวสะกด", start: 68.8, end: 75.2 },
-  { text: "เราต้องจดจำ", start: 75.2, end: 81.9 },
-  { text: "เต่า วัว เสือ หมี งู ไก่ กา", start: 82.0, end: 88.4 },
-  { text: "ปลาโลมา ม้า ลา จระเข้", start: 88.5, end: 95.0 },
-  { text: "คำเหล่านี้ ไม่มีตัวสะกด", start: 95.1, end: 101.5 },
-  { text: "นั่นคือ แม่ ก กา", start: 101.5, end: 108.5 },
+  { text: "เด็กทั้งหลาย ยังจำได้ไหม", start: 22, end: 26 },
+  { text: "แม่ ก กา ในมาตราไทย", start: 26, end: 30 },
+  { text: "เป็นคำไทย ไม่มีตัวสะกด", start: 30, end: 34 },
+  { text: "เราต้องจดจำ", start: 34, end: 38 },
+  { text: "เต่า วัว เสือ หมี งู ไก่ กา", start: 38, end: 42 },
+  { text: "ปลาโลมา ม้า ลา จระเข้", start: 42, end: 46 },
+  { text: "คำเหล่านี้ ไม่มีตัวสะกด", start: 46, end: 49 },
+  { text: "นั่นคือ แม่ ก กา", start: 49, end: 51 },
+  { text: "เด็กทั้งหลาย ยังจำได้ไหม", start: 70, end: 74 },
+  { text: "แม่ ก กา ในมาตราไทย", start: 74, end: 78 },
+  { text: "เป็นคำไทย ไม่มีตัวสะกด", start: 78, end: 82 },
+  { text: "เราต้องจดจำ", start: 82, end: 85 },
+  { text: "เต่า วัว เสือ", start: 85, end: 87 },
+  { text: "หมี งู ไก่ กา", start: 87, end: 90 },
+  { text: "ปลาโลมา ม้า ลา จระเข้", start: 90, end: 94 },
+  { text: "คำเหล่านี้ ไม่มีตัวสะกด", start: 94, end: 98 },
+  { text: "นั่นคือ แม่ ก กา", start: 98, end: 100 },
 ]);
 const RHYTHM_WORDS = Object.freeze(RHYTHM_CUE_TEMPLATE.map(cue => cue.word));
 const RHYTHM_REFERENCE_DURATION = 112.01;
-const RHYTHM_CONTENT_START = 22;
-const RHYTHM_TEMPLATE_START = 4;
-const RHYTHM_TEMPLATE_END = 108.5;
 const GAME_ZOOM_LEVELS = Object.freeze([.75, .9, 1, 1.15, 1.3]);
 
 const state = {
@@ -520,25 +518,21 @@ function showResult(title, score, maxScore, result, replay) {
   $("#replayButton")?.addEventListener("click", replay);
 }
 
-function alignRhythmTime(time, duration) {
-  const contentStart = RHYTHM_CONTENT_START * (duration / RHYTHM_REFERENCE_DURATION);
-  const progress = (time - RHYTHM_TEMPLATE_START) / (RHYTHM_TEMPLATE_END - RHYTHM_TEMPLATE_START);
-  return contentStart + (progress * (duration - contentStart));
-}
-
 function buildRhythmCues(duration) {
+  const scale = duration / RHYTHM_REFERENCE_DURATION;
   return RHYTHM_CUE_TEMPLATE.map(cue => ({
     word: cue.word,
-    start: alignRhythmTime(cue.start, duration),
-    end: alignRhythmTime(cue.end, duration),
+    start: cue.start * scale,
+    end: cue.end * scale,
   }));
 }
 
 function buildRhythmLyrics(duration) {
+  const scale = duration / RHYTHM_REFERENCE_DURATION;
   return RHYTHM_LYRIC_TEMPLATE.map(line => ({
     text: line.text,
-    start: alignRhythmTime(line.start, duration),
-    end: alignRhythmTime(line.end, duration),
+    start: line.start * scale,
+    end: line.end * scale,
   }));
 }
 
