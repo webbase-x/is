@@ -48,6 +48,8 @@ function classContext(classroom = selectedClassroom()) {
 function setTeacherFlowStep(step) {
   if (!FLOW_STEPS.includes(step)) return;
   state.flowStep = step;
+  show($("#teacherFlowProgress"));
+  hide($("#resumeSessionView"));
   $$("[data-flow-step]").forEach(panel => panel.classList.toggle("hidden", panel.dataset.flowStep !== step));
   $$("[data-progress-step]").forEach((item, index) => {
     const targetIndex = FLOW_STEPS.indexOf(step);
@@ -252,11 +254,32 @@ async function restoreActiveSession() {
   if (!data) return;
   state.session = data;
   state.selectedPlanId = data.plan_id;
-  await showLiveSession(data.status === "active" || data.status === "paused" ? "live" : "qr");
+  showResumeSession();
+}
+
+function showResumeSession() {
+  const classroom = selectedClassroom();
+  const activity = ACTIVITIES.find(item => item.key === state.session.current_activity_key);
+  const statusLabels = { lobby: "กำลังรับนักเรียน", active: "กำลังเล่นเกม", paused: "พักเกมชั่วคราว" };
+  state.flowStep = "resume";
+  hide($("#teacherFlowProgress"));
+  hide($("#sessionSetup"));
+  hide($("#liveSession"));
+  $$("[data-flow-step]").forEach(hide);
+  show($("#resumeSessionView"));
+  $("#flowStepTitle").textContent = "เลือกสิ่งที่ต้องการทำกับคาบเดิม";
+  $("#flowContext").textContent = classContext(classroom);
+  $("#resumeClassContext").textContent = classContext(classroom);
+  $("#resumeRoomCode").textContent = state.session.room_code;
+  $("#resumeStatus").textContent = statusLabels[state.session.status] || state.session.status;
+  $("#resumeActivity").textContent = activity?.title || "ยังไม่เริ่มเกม";
+  $("#resumeSessionButton").textContent = state.session.status === "lobby" ? "กลับไปหน้า QR →" : "กลับไปผลสด →";
+  $("#resumeSummaryButton").classList.toggle("hidden", state.session.status === "lobby");
 }
 
 async function showLiveSession(step = "qr") {
   hide($("#sessionSetup"));
+  hide($("#resumeSessionView"));
   show($("#liveSession"));
   $("#liveRoomCode").textContent = state.session.room_code;
   $("#qrClassContext").textContent = classContext();
@@ -272,6 +295,7 @@ async function showLiveSession(step = "qr") {
   subscribeDisplay();
   await refreshSessionData();
   setTeacherFlowStep(step);
+  if (step === "summary") renderSummary();
 }
 
 function studentJoinUrl() {
@@ -562,7 +586,9 @@ async function removePlayer(playerId) {
 
 async function closeSession() {
   if (!confirm("ปิดคาบเรียนและลบรูปเซลฟี่ทั้งหมดใช่หรือไม่?")) return;
-  const paths = state.players.map(player => player.selfie_path).filter(Boolean);
+  const { data: storedPlayers, error: playerError } = await supabase.from("session_players").select("selfie_path").eq("session_id", state.session.id);
+  if (playerError) return toast(`ตรวจรายการรูปไม่สำเร็จ: ${playerError.message}`, "error");
+  const paths = (storedPlayers || []).map(player => player.selfie_path).filter(Boolean);
   if (paths.length) {
     const { error: storageError } = await supabase.storage.from(APP_CONFIG.selfieBucket).remove(paths);
     if (storageError) return toast(`ยังลบรูปไม่สำเร็จ: ${storageError.message}`, "error");
@@ -579,6 +605,7 @@ async function closeSession() {
   state.attempts = [];
   state.leaderboard = [];
   hide($("#liveSession"));
+  hide($("#resumeSessionView"));
   show($("#sessionSetup"));
   setTeacherFlowStep("class");
   toast("ปิดคาบและลบรูปเรียบร้อย", "success");
@@ -761,6 +788,9 @@ $("#nextActivityButton").addEventListener("click", goToNextActivity);
 $("#showSummaryButton").addEventListener("click", showSessionSummary);
 $("#summaryBackButton").addEventListener("click", () => setTeacherFlowStep("live"));
 $("#summaryExportButton").addEventListener("click", exportCurrentReport);
+$("#resumeSessionButton").addEventListener("click", () => showLiveSession(state.session.status === "lobby" ? "qr" : "live"));
+$("#resumeSummaryButton").addEventListener("click", () => showLiveSession("summary"));
+$("#restartSessionButton").addEventListener("click", closeSession);
 $("#copyRoomCode").addEventListener("click", async () => { await navigator.clipboard.writeText(state.session.room_code); toast("คัดลอกรหัสห้องแล้ว", "success"); });
 $("#copyStudentLink").addEventListener("click", async () => { await navigator.clipboard.writeText(studentJoinUrl()); toast("คัดลอกลิงก์นักเรียนแล้ว", "success"); });
 $("#returnForm").addEventListener("submit", returnPlayer);

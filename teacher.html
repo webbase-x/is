@@ -73,6 +73,24 @@
               <div class="flow-footer end"><button class="button button-primary button-large" type="submit">สร้างห้องและแสดง QR →</button></div>
             </form>
 
+            <section id="resumeSessionView" class="teacher-flow-step teacher-resume-step hidden">
+              <div class="resume-session-icon">↩️</div>
+              <span class="eyebrow">ป้องกันคาบเรียนสูญหาย</span>
+              <h2>พบคาบที่ยังไม่จบ</h2>
+              <p class="flow-lead">ระบบจะไม่ข้ามหน้าให้อัตโนมัติ คุณครูเลือกได้ว่าจะกลับไปสอนต่อ ดูสรุป หรือปิดคาบเดิม</p>
+              <div class="resume-session-card">
+                <div><small>โรงเรียนและห้องเรียน</small><strong id="resumeClassContext">—</strong></div>
+                <div><small>รหัสห้อง</small><strong id="resumeRoomCode" class="resume-room-code">------</strong></div>
+                <div><small>สถานะ</small><strong id="resumeStatus">—</strong></div>
+                <div><small>เกมปัจจุบัน</small><strong id="resumeActivity">—</strong></div>
+              </div>
+              <div class="resume-session-actions">
+                <button id="resumeSessionButton" type="button" class="button button-primary button-large">กลับไปคาบเดิม →</button>
+                <button id="resumeSummaryButton" type="button" class="button button-secondary button-large">ดูสรุปผล</button>
+                <button id="restartSessionButton" type="button" class="button button-danger">ปิดคาบเดิมและเริ่มใหม่</button>
+              </div>
+            </section>
+
             <div id="liveSession" class="hidden">
               <section class="teacher-flow-step hidden" data-flow-step="qr">
                 <div class="flow-qr-layout">

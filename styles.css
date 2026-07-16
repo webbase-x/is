@@ -269,6 +269,16 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .flow-choice-form label { margin: 0; font-size: 15px; }
 .flow-choice-form select { min-height: 58px; font-size: 17px; }
 .flow-info-card { width: min(760px, 100%); margin-top: 17px; padding: 14px 18px; border: 1px solid #dce3f0; border-radius: 15px; color: #536078; background: #f7f9fd; text-align: left; line-height: 1.5; }
+.teacher-resume-step { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: radial-gradient(circle at 50% 10%, rgba(245,185,63,.14), transparent 38%), white; }
+.resume-session-icon { width: 88px; height: 88px; display: grid; place-items: center; margin-bottom: 15px; border-radius: 27px; background: var(--amber-soft); font-size: 46px; }
+.resume-session-card { width: min(900px, 100%); display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 5px; text-align: left; }
+.resume-session-card > div { min-height: 90px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 17px; background: #fafaff; }
+.resume-session-card small, .resume-session-card strong { display: block; }
+.resume-session-card small { margin-bottom: 5px; color: var(--muted); }
+.resume-session-card strong { font-size: 18px; }
+.resume-session-card .resume-room-code { color: var(--purple); font-size: 28px; letter-spacing: .14em; }
+.resume-session-actions { width: min(900px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+.resume-session-actions #restartSessionButton { grid-column: 1 / -1; justify-self: center; }
 .flow-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
 .flow-footer.end { width: min(760px, 100%); justify-content: flex-end; }
 .flow-footer .button-large { min-width: min(330px, 100%); }
@@ -571,6 +581,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .teacher-flow-progress li::before { top: 14px; }
   .teacher-flow-step { min-height: calc(100vh - 250px); padding: 24px 16px; border-radius: 22px; }
   .flow-choice-form { grid-template-columns: 1fr; }
+  .resume-session-card, .resume-session-actions { grid-template-columns: 1fr; }
+  .resume-session-actions #restartSessionButton { grid-column: auto; justify-self: stretch; }
   .flow-qr-layout { grid-template-columns: 1fr; text-align: center; }
   .flow-qr-card { order: -1; }
   .flow-room-code { justify-content: center; margin-left: auto; margin-right: auto; }
