@@ -52,6 +52,31 @@ const RHYTHM_LYRIC_TEMPLATE = Object.freeze([
 ]);
 const RHYTHM_WORDS = Object.freeze(RHYTHM_CUE_TEMPLATE.map(cue => cue.word));
 const RHYTHM_REFERENCE_DURATION = 112.01;
+const RHYTHM_PRACTICE_COUNT = 11;
+const RHYTHM_PHASE_TEMPLATE = Object.freeze({
+  introEnd: 22,
+  practiceStart: 38,
+  breakStart: 51,
+  secondRoundStart: 70,
+  challengeStart: 85,
+  lyricEnd: 100,
+});
+const RHYTHM_BREAK_CARDS = Object.freeze([
+  { word: "เต่า", target: true }, { word: "หมี", target: true },
+  { word: "กา", target: true }, { word: "ม้า", target: true },
+  { word: "กบ", target: false }, { word: "นก", target: false },
+  { word: "บ้าน", target: false }, { word: "จาน", target: false },
+]);
+const RHYTHM_CHALLENGE_TEMPLATE = Object.freeze([
+  { start: 85, end: 87, prompt: "เต่า วัว ___", answer: "เสือ", options: ["เสือ", "นก", "จาน"] },
+  { start: 87, end: 90, prompt: "หมี งู ___", answer: "ไก่", options: ["ไก่", "กบ", "บ้าน"] },
+  { start: 90, end: 94, prompt: "ปลาโลมา ม้า ลา ___", answer: "จระเข้", options: ["จระเข้", "เด็ก", "ดิน"] },
+]);
+const RHYTHM_EMOJI = Object.freeze({
+  "เต่า": "🐢", "วัว": "🐄", "เสือ": "🐯", "หมี": "🐻", "งู": "🐍", "ไก่": "🐔",
+  "กา": "🐦", "ปลาโลมา": "🐬", "ม้า": "🐴", "ลา": "🫏", "จระเข้": "🐊",
+  "กบ": "🐸", "นก": "🐦", "บ้าน": "🏠", "จาน": "🍽️", "เด็ก": "🧒", "ดิน": "🟫",
+});
 const GAME_ZOOM_LEVELS = Object.freeze([.75, .9, 1, 1.15, 1.3]);
 
 const state = {
@@ -536,6 +561,26 @@ function buildRhythmLyrics(duration) {
   }));
 }
 
+function buildRhythmTimeline(duration) {
+  const scale = duration / RHYTHM_REFERENCE_DURATION;
+  return Object.fromEntries(Object.entries(RHYTHM_PHASE_TEMPLATE).map(([key, time]) => [key, time * scale]));
+}
+
+function buildRhythmChallenges(duration) {
+  const scale = duration / RHYTHM_REFERENCE_DURATION;
+  return RHYTHM_CHALLENGE_TEMPLATE.map(challenge => ({
+    ...challenge,
+    start: challenge.start * scale,
+    end: challenge.end * scale,
+    options: shuffle(challenge.options),
+  }));
+}
+
+function rhythmClock(seconds) {
+  const safeSeconds = Math.max(0, Math.floor(seconds || 0));
+  return `${String(Math.floor(safeSeconds / 60)).padStart(2, "0")}:${String(safeSeconds % 60).padStart(2, "0")}`;
+}
+
 function playFallbackBeat(run, index) {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return;
@@ -555,17 +600,32 @@ function playFallbackBeat(run, index) {
 
 function renderRhythm() {
   const sparkles = Array.from({ length: 28 }, (_, index) => `<i style="--spark-x:${(index * 37) % 96}%;--spark-y:${(index * 53) % 92}%;--spark-delay:${(index % 7) * -.38}s;--spark-size:${12 + (index % 5) * 5}px">✦</i>`).join("");
-  const wordButtons = RHYTHM_WORDS.map((word, index) => `<button class="karaoke-word" type="button" data-index="${index}">${escapeHtml(word)}</button>`).join("");
+  const breakTargetCount = RHYTHM_BREAK_CARDS.filter(card => card.target).length;
+  const maxScore = (RHYTHM_PRACTICE_COUNT * 15) + (breakTargetCount * 10) + (RHYTHM_CHALLENGE_TEMPLATE.length * 20);
   gameShell(
-    "แท็ปจังหวะ แม่ ก กา",
-    "คำตัวอย่างเรียงตามเพลง แตะคำที่เปล่งแสงให้ทันจังหวะ",
+    "จับคำแม่ ก กาให้ทันเพลง",
+    "ร้องตาม แตะคำตามจังหวะ คัดคำช่วงดนตรี และเติมคำที่หายไป",
     `<section class="rhythm-karaoke">
-      <div class="game-status-row rhythm-status-row"><span class="mini-score" id="rhythmScore">คะแนน 0</span><div class="rhythm-start-tools"><span id="rhythmAudioStatus">กำลังตรวจเพลง…</span><button id="startRhythm" class="button button-primary" type="button">▶ เริ่มเพลง</button></div></div>
+      <div class="game-status-row rhythm-status-row">
+        <div class="rhythm-scoreboard">
+          <span class="mini-score">⭐ <strong id="rhythmScore">0</strong> / ${maxScore}</span>
+          <span class="rhythm-streak" id="rhythmStreak">🔥 ต่อเนื่อง 0</span>
+          <span class="rhythm-phase" id="rhythmPhase">เตรียมพร้อม</span>
+        </div>
+        <div class="rhythm-start-tools"><span id="rhythmAudioStatus">กำลังตรวจเพลง…</span><button id="startRhythm" class="button button-primary" type="button">▶ เริ่มเพลง</button></div>
+      </div>
+      <div class="rhythm-control-row">
+        <label>ความเร็ว <select id="rhythmSpeed"><option value="0.8">0.8× ฝึกช้า</option><option value="1" selected>1× ปกติ</option></select></label>
+        <div class="rhythm-timing-control" aria-label="ปรับเวลาเนื้อเพลง">
+          <span>ปรับคำ</span><button id="rhythmTimingDown" type="button" title="ให้คำช้าลง">−0.5</button><output id="rhythmTimingLabel">ตรงเวลา</output><button id="rhythmTimingUp" type="button" title="ให้คำเร็วขึ้น">+0.5</button>
+        </div>
+        <span class="rhythm-clock" id="rhythmClock">00:00 / 01:52</span>
+      </div>
       <div class="karaoke-stage" id="karaokeStage">
         <div class="grammar-sparkles" aria-hidden="true">${sparkles}</div>
         <div class="karaoke-now"><small>คำที่กำลังร้อง</small><strong id="karaokeCurrentWord">พร้อม!</strong><div class="karaoke-progress"><i id="karaokeProgressBar"></i></div></div>
-        <div class="karaoke-word-grid" id="karaokeWords">${wordButtons}</div>
-        <p class="rhythm-feedback" id="rhythmFeedback">ร้องตามเพลง แล้วแตะคำแม่ ก กา เมื่อคำนั้นเปล่งแสง</p>
+        <div class="rhythm-interaction" id="rhythmInteraction"><div class="rhythm-guide-panel"><span>🎤</span><strong>คาราโอเกะเริ่มที่วินาที 22</strong><small>กดเริ่มเพลง แล้วร้องตามได้เลย</small></div></div>
+        <p class="rhythm-feedback" id="rhythmFeedback" aria-live="polite">รอบแรกมีแสงช่วย รอบสองฟังแล้วเลือกเอง</p>
       </div>
       <audio id="rhythmAudio" class="rhythm-audio" src="sounds/01-01.mp3" preload="metadata" controls></audio>
     </section>`,
@@ -577,69 +637,231 @@ function renderRhythm() {
   const feedback = $("#rhythmFeedback");
   const currentWord = $("#karaokeCurrentWord");
   const progressBar = $("#karaokeProgressBar");
-  const buttons = [...$("#karaokeWords").querySelectorAll("button")];
-  const maxScore = RHYTHM_WORDS.length;
+  const interaction = $("#rhythmInteraction");
+  const stage = $("#karaokeStage");
+  const scoreLabel = $("#rhythmScore");
+  const streakLabel = $("#rhythmStreak");
+  const phaseLabel = $("#rhythmPhase");
+  const clockLabel = $("#rhythmClock");
+  const speedSelect = $("#rhythmSpeed");
+  const timingDown = $("#rhythmTimingDown");
+  const timingUp = $("#rhythmTimingUp");
+  const timingLabel = $("#rhythmTimingLabel");
   const run = {
     audio,
     audioContext: null,
     answers: [],
-    settled: new Set(),
-    activeIndex: -1,
+    practiceResults: new Map(),
+    breakResults: new Map(),
+    challengeResults: new Map(),
+    breakCards: shuffle(RHYTHM_BREAK_CARDS),
+    breakFinished: false,
+    activeCueIndex: -2,
+    activeChallengeIndex: -2,
+    phase: null,
     score: 0,
+    streak: 0,
+    bestStreak: 0,
     frame: null,
     cancelled: false,
     finished: false,
     started: false,
     useFallback: false,
-    duration: 36,
+    duration: RHYTHM_REFERENCE_DURATION,
     startedAt: 0,
+    fallbackBaseTime: 0,
+    speed: 1,
+    timingOffset: 0,
     cues: [],
     lyrics: [],
-    lyricIndex: -2,
-    lyricCueIndex: -2,
+    timeline: {},
+    challenges: [],
+    lyricRenderKey: "",
   };
   state.rhythmRun = run;
 
   audio.addEventListener("loadedmetadata", () => {
-    if (Number.isFinite(audio.duration) && audio.duration > 0) status.textContent = `เพลงพร้อม · คำเรียงตามเพลง · ${Math.ceil(audio.duration)} วินาที`;
+    if (Number.isFinite(audio.duration) && audio.duration > 0) {
+      status.textContent = `เพลงพร้อม · ${Math.ceil(audio.duration)} วินาที`;
+      clockLabel.textContent = `00:00 / ${rhythmClock(audio.duration)}`;
+    }
   });
   audio.addEventListener("error", () => {
     status.textContent = "ไฟล์เพลงยังไม่มีข้อมูล · ใช้เสียงจังหวะสำรองได้";
     audio.classList.add("rhythm-audio-error");
   });
 
-  function settleCue(index) {
-    if (index < 0 || run.settled.has(index)) return;
-    const word = RHYTHM_WORDS[index];
-    run.settled.add(index);
-    run.answers.push({ word, tapped: false, correct: false });
-    buttons[index].classList.remove("singing");
-    buttons[index].classList.add("missed");
+  function updateScoreboard() {
+    scoreLabel.textContent = run.score;
+    streakLabel.textContent = `🔥 ต่อเนื่อง ${run.streak}`;
+    streakLabel.classList.toggle("hot", run.streak >= 3);
   }
 
-  function activateCue(index) {
-    if (run.activeIndex === index) return;
-    settleCue(run.activeIndex);
-    run.activeIndex = index;
-    if (index < 0) return;
-    const word = RHYTHM_WORDS[index];
-    buttons[index].classList.add("singing");
-    buttons[index].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-    if (run.useFallback) {
-      playFallbackBeat(run, index);
+  function reward(points, message, onBeat = false) {
+    run.score += points;
+    run.streak += 1;
+    run.bestStreak = Math.max(run.bestStreak, run.streak);
+    updateScoreboard();
+    feedback.textContent = `${message}${onBeat ? " · ตรงจังหวะ! +5" : ""}`;
+    stage.classList.remove("score-pop");
+    requestAnimationFrame(() => stage.classList.add("score-pop"));
+  }
+
+  function resetStreak() {
+    if (!run.streak) return;
+    run.streak = 0;
+    updateScoreboard();
+  }
+
+  function getPlaybackTime() {
+    if (!run.useFallback) return audio.currentTime || 0;
+    if (!run.started) return 0;
+    return run.fallbackBaseTime + (((performance.now() - run.startedAt) / 1000) * run.speed);
+  }
+
+  function getGameTime() {
+    return Math.min(run.duration, Math.max(0, getPlaybackTime() + run.timingOffset));
+  }
+
+  function phaseForTime(time) {
+    if (time < run.timeline.introEnd) return "intro";
+    if (time < run.timeline.practiceStart) return "sing-one";
+    if (time < run.timeline.breakStart) return "practice";
+    if (time < run.timeline.secondRoundStart) return "break";
+    if (time < run.timeline.challengeStart) return "sing-two";
+    if (time < run.timeline.lyricEnd) return "challenge";
+    return "outro";
+  }
+
+  function phaseTitle(phase) {
+    return ({
+      intro: "เตรียมพร้อม",
+      "sing-one": "ร้องตามรอบแรก",
+      practice: "รอบฝึก · แตะตามแสง",
+      break: "ช่วงดนตรี · คัดคำ",
+      "sing-two": "ร้องตามรอบสอง",
+      challenge: "รอบท้าทาย · เติมคำ",
+      outro: "ร้องจบแล้ว",
+    })[phase];
+  }
+
+  function emojiFor(word) {
+    return RHYTHM_EMOJI[word] || "🔤";
+  }
+
+  function practiceCardsHtml() {
+    return run.cues.slice(0, RHYTHM_PRACTICE_COUNT).map((cue, index) => {
+      const result = run.practiceResults.get(index) || "";
+      return `<button class="rhythm-picture-card ${result}" type="button" data-practice-index="${index}"><span>${emojiFor(cue.word)}</span><strong>${escapeHtml(cue.word)}</strong></button>`;
+    }).join("");
+  }
+
+  function breakCardsHtml() {
+    return run.breakCards.map(card => {
+      const result = run.breakResults.get(card.word) || "";
+      return `<button class="rhythm-picture-card rhythm-sort-card ${result}" type="button" data-break-word="${escapeHtml(card.word)}" ${result ? "disabled" : ""}><span>${emojiFor(card.word)}</span><strong>${escapeHtml(card.word)}</strong></button>`;
+    }).join("");
+  }
+
+  function challengeHtml(index) {
+    const challenge = run.challenges[index];
+    if (!challenge) return `<div class="rhythm-guide-panel"><span>👂</span><strong>ฟังให้ดี คำถามกำลังมา</strong><small>เลือกคำที่หายไปจาก 3 ตัวเลือก</small></div>`;
+    const result = run.challengeResults.get(index);
+    return `<div class="rhythm-challenge-panel"><small>ฟังเสียงแล้วเติมคำที่หายไป</small><div class="rhythm-choice-grid">${challenge.options.map(option => {
+      const stateClass = result ? (option === challenge.answer ? "correct" : option === result.chosen ? "wrong" : "") : "";
+      return `<button type="button" class="rhythm-choice ${stateClass}" data-challenge-index="${index}" data-answer="${escapeHtml(option)}" ${result ? "disabled" : ""}><span>${emojiFor(option)}</span><strong>${escapeHtml(option)}</strong></button>`;
+    }).join("")}</div></div>`;
+  }
+
+  function renderPhase(phase) {
+    if (run.phase === phase) return;
+    run.phase = phase;
+    run.activeChallengeIndex = -2;
+    stage.dataset.phase = phase;
+    phaseLabel.textContent = phaseTitle(phase);
+    if (phase === "intro") interaction.innerHTML = `<div class="rhythm-guide-panel"><span>🎤</span><strong>เตรียมร้องคาราโอเกะ</strong><small>เนื้อเพลงเริ่มที่วินาที 22</small></div>`;
+    if (phase === "sing-one") interaction.innerHTML = `<div class="rhythm-guide-panel"><span>🎶</span><strong>ร้องตามให้เต็มเสียง</strong><small>อีกสักครู่การ์ดคำจะปรากฏ</small></div>`;
+    if (phase === "practice") interaction.innerHTML = `<div class="rhythm-mode-heading"><strong>รอบฝึก</strong><span>แตะการ์ดที่เปล่งแสง · ตรงจังหวะได้โบนัส</span></div><div class="rhythm-picture-grid">${practiceCardsHtml()}</div>`;
+    if (phase === "break") interaction.innerHTML = `<div class="rhythm-mode-heading"><strong>ช่วงดนตรี</strong><span>แตะเฉพาะคำแม่ ก กาให้ครบ 4 คำ</span></div><div class="rhythm-picture-grid rhythm-sort-grid">${breakCardsHtml()}</div>`;
+    if (phase === "sing-two") interaction.innerHTML = `<div class="rhythm-guide-panel"><span>🎧</span><strong>รอบสองกำลังเริ่ม</strong><small>ครั้งนี้ต้องฟังแล้วเลือกคำเอง</small></div>`;
+    if (phase === "challenge") interaction.innerHTML = challengeHtml(-1);
+    if (phase === "outro") interaction.innerHTML = `<div class="rhythm-guide-panel"><span>🌟</span><strong>ยอดเยี่ยม! ร้องจบแล้ว</strong><small>รอฟังดนตรีท้ายเพลงและสรุปคะแนน</small></div>`;
+  }
+
+  function settlePractice(time, force = false) {
+    const grace = .7 * (run.duration / RHYTHM_REFERENCE_DURATION);
+    run.cues.slice(0, RHYTHM_PRACTICE_COUNT).forEach((cue, index) => {
+      if (run.practiceResults.has(index) || (!force && time <= cue.end + grace)) return;
+      run.practiceResults.set(index, "missed");
+      run.answers.push({ mode: "practice", word: cue.word, tapped: false, correct: false, points: 0 });
+      interaction.querySelector(`[data-practice-index="${index}"]`)?.classList.add("missed");
+      resetStreak();
+    });
+  }
+
+  function finishBreak(force = false) {
+    if (run.breakFinished || (!force && getGameTime() < run.timeline.secondRoundStart)) return;
+    run.breakFinished = true;
+    RHYTHM_BREAK_CARDS.filter(card => card.target && !run.breakResults.has(card.word)).forEach(card => {
+      run.breakResults.set(card.word, "missed");
+      run.answers.push({ mode: "break", word: card.word, tapped: false, correct: false, points: 0 });
+    });
+  }
+
+  function settleChallenges(time, force = false) {
+    run.challenges.forEach((challenge, index) => {
+      if (run.challengeResults.has(index) || (!force && time < challenge.end)) return;
+      run.challengeResults.set(index, { chosen: "", correct: false });
+      run.answers.push({ mode: "challenge", prompt: challenge.prompt, chosen: "", correct: false, points: 0 });
+      resetStreak();
+    });
+  }
+
+  function updateCue(cueIndex) {
+    if (run.activeCueIndex === cueIndex) return;
+    run.activeCueIndex = cueIndex;
+    if (cueIndex >= 0 && run.useFallback) {
+      playFallbackBeat(run, cueIndex);
       if ("speechSynthesis" in window) speechSynthesis.cancel();
-      speakThai(word);
+      speakThai(RHYTHM_WORDS[cueIndex]);
     }
   }
 
-  function renderLyric(time, cueIndex) {
+  function updatePracticeGlow(cueIndex) {
+    if (run.phase !== "practice") return;
+    interaction.querySelectorAll("[data-practice-index]").forEach(card => card.classList.remove("singing"));
+    if (cueIndex >= 0 && cueIndex < RHYTHM_PRACTICE_COUNT && !run.practiceResults.has(cueIndex)) {
+      interaction.querySelector(`[data-practice-index="${cueIndex}"]`)?.classList.add("singing");
+    }
+  }
+
+  function updateChallenge(index) {
+    if (run.phase !== "challenge" || run.activeChallengeIndex === index) return;
+    run.activeChallengeIndex = index;
+    interaction.innerHTML = challengeHtml(index);
+  }
+
+  function renderLyric(time, cueIndex, challengeIndex) {
+    if (run.phase === "challenge" && challengeIndex >= 0) {
+      const challenge = run.challenges[challengeIndex];
+      const key = `challenge-${challengeIndex}`;
+      if (run.lyricRenderKey === key) return;
+      run.lyricRenderKey = key;
+      currentWord.classList.add("lyric-line");
+      currentWord.innerHTML = challenge.prompt.split(" ").map(word => word === "___" ? "<mark>___</mark>" : escapeHtml(word)).join(" ");
+      return;
+    }
     const lyricIndex = run.lyrics.findIndex(line => time >= line.start && time < line.end);
-    if (lyricIndex === run.lyricIndex && cueIndex === run.lyricCueIndex) return;
-    run.lyricIndex = lyricIndex;
-    run.lyricCueIndex = cueIndex;
+    const introCount = run.phase === "intro" ? Math.max(0, Math.ceil(run.timeline.introEnd - time)) : -1;
+    const key = `${run.phase}-${lyricIndex}-${cueIndex}-${introCount}`;
+    if (run.lyricRenderKey === key) return;
+    run.lyricRenderKey = key;
     currentWord.classList.toggle("lyric-line", lyricIndex >= 0);
     if (lyricIndex < 0) {
-      currentWord.textContent = time < (run.lyrics[0]?.start ?? 0) ? "เตรียมร้อง…" : "ดนตรี…";
+      if (run.phase === "intro") currentWord.textContent = introCount > 0 ? `เริ่มร้องใน ${introCount}` : "เตรียมร้อง…";
+      else if (run.phase === "break") currentWord.textContent = "ดนตรี · เลือกคำแม่ ก กา!";
+      else if (run.phase === "outro") currentWord.textContent = "จบคำร้องแล้ว 🌟";
+      else currentWord.textContent = "ดนตรี…";
       return;
     }
     const line = run.lyrics[lyricIndex];
@@ -655,10 +877,13 @@ function renderRhythm() {
 
   async function finishRhythm() {
     if (run.finished || run.cancelled) return;
-    settleCue(run.activeIndex);
+    settlePractice(run.duration, true);
+    finishBreak(true);
+    settleChallenges(run.duration, true);
     run.finished = true;
     audio.pause();
     startButton.textContent = "กำลังสรุปคะแนน…";
+    run.answers.push({ mode: "summary", bestStreak: run.bestStreak, timingOffset: run.timingOffset, speed: run.speed });
     const result = await submitAttempt("rhythm", run.score, maxScore, run.answers);
     if (run.cancelled || state.renderedActivity !== "rhythm") return;
     if (result) showResult("จบเพลงแล้ว!", run.score, maxScore, result, renderRhythm);
@@ -667,37 +892,110 @@ function renderRhythm() {
 
   function tick() {
     if (run.cancelled || run.finished || state.renderedActivity !== "rhythm") return;
-    const time = run.useFallback ? (performance.now() - run.startedAt) / 1000 : audio.currentTime;
+    const playbackTime = getPlaybackTime();
+    const time = getGameTime();
+    const phase = phaseForTime(time);
+    settlePractice(time);
+    finishBreak();
+    settleChallenges(time);
+    renderPhase(phase);
     const cueIndex = run.cues.findIndex(cue => time >= cue.start && time < cue.end);
-    activateCue(cueIndex);
-    renderLyric(time, cueIndex);
-    progressBar.style.width = `${Math.min(100, Math.max(0, (time / run.duration) * 100))}%`;
-    if (time >= run.duration || (!run.useFallback && audio.ended)) return finishRhythm();
+    const challengeIndex = run.challenges.findIndex(challenge => time >= challenge.start && time < challenge.end);
+    updateCue(cueIndex);
+    updatePracticeGlow(cueIndex);
+    updateChallenge(challengeIndex);
+    renderLyric(time, cueIndex, challengeIndex);
+    progressBar.style.width = `${Math.min(100, Math.max(0, (playbackTime / run.duration) * 100))}%`;
+    clockLabel.textContent = `${rhythmClock(playbackTime)} / ${rhythmClock(run.duration)}`;
+    if (playbackTime >= run.duration || (!run.useFallback && audio.ended)) return finishRhythm();
     run.frame = requestAnimationFrame(tick);
   }
 
-  buttons.forEach(button => button.addEventListener("click", () => {
-    const index = Number(button.dataset.index);
-    if (!run.started) return feedback.textContent = "กดเริ่มเพลงก่อน แล้วรอให้คำเปล่งแสง";
-    if (index !== run.activeIndex) return feedback.textContent = "รอให้คำนี้เปล่งแสงก่อนนะ";
-    if (run.settled.has(index)) return;
-    const word = RHYTHM_WORDS[index];
-    const correct = true;
-    run.settled.add(index);
-    run.answers.push({ word, tapped: true, correct });
-    button.classList.remove("singing");
-    button.classList.add(correct ? "correct" : "wrong");
-    if (correct) {
-      run.score += 1;
-      $("#rhythmScore").textContent = `คะแนน ${run.score}`;
-      feedback.textContent = `เก่งมาก! “${word}” เป็นคำแม่ ก กา`;
+  interaction.addEventListener("click", event => {
+    const button = event.target.closest("button");
+    if (!button || !run.started) return;
+    if (button.dataset.practiceIndex !== undefined) {
+      const index = Number(button.dataset.practiceIndex);
+      if (run.practiceResults.has(index)) return;
+      const cue = run.cues[index];
+      const time = getGameTime();
+      const scale = run.duration / RHYTHM_REFERENCE_DURATION;
+      if (time < cue.start - (.45 * scale) || time > cue.end + (.7 * scale)) {
+        feedback.textContent = `รอให้ “${cue.word}” เปล่งแสงก่อนนะ`;
+        return;
+      }
+      const onBeat = Math.abs(time - ((cue.start + cue.end) / 2)) <= (.34 * scale);
+      const points = onBeat ? 15 : 10;
+      run.practiceResults.set(index, "correct");
+      run.answers.push({ mode: "practice", word: cue.word, tapped: true, correct: true, onBeat, points });
+      button.classList.remove("singing");
+      button.classList.add("correct");
+      reward(points, `เก่งมาก! “${cue.word}”`, onBeat);
+      return;
     }
+    if (button.dataset.breakWord !== undefined) {
+      const word = button.dataset.breakWord;
+      if (run.breakResults.has(word)) return;
+      const card = RHYTHM_BREAK_CARDS.find(item => item.word === word);
+      const correct = Boolean(card?.target);
+      run.breakResults.set(word, correct ? "correct" : "wrong");
+      run.answers.push({ mode: "break", word, tapped: true, correct, points: correct ? 10 : 0 });
+      button.classList.add(correct ? "correct" : "wrong");
+      button.disabled = true;
+      if (correct) reward(10, `ถูกต้อง “${word}” เป็นคำแม่ ก กา`);
+      else {
+        resetStreak();
+        feedback.textContent = `“${word}” มีตัวสะกด ลองเลือกคำอื่นนะ`;
+      }
+      return;
+    }
+    if (button.dataset.challengeIndex !== undefined) {
+      const index = Number(button.dataset.challengeIndex);
+      if (run.challengeResults.has(index)) return;
+      const challenge = run.challenges[index];
+      const chosen = button.dataset.answer;
+      const correct = chosen === challenge.answer;
+      const scale = run.duration / RHYTHM_REFERENCE_DURATION;
+      const onBeat = correct && (getGameTime() - challenge.start <= (1 * scale));
+      const points = correct ? (onBeat ? 20 : 15) : 0;
+      run.challengeResults.set(index, { chosen, correct });
+      run.answers.push({ mode: "challenge", prompt: challenge.prompt, chosen, correct, onBeat, points });
+      interaction.querySelectorAll("[data-challenge-index]").forEach(choice => {
+        choice.disabled = true;
+        if (choice.dataset.answer === challenge.answer) choice.classList.add("correct");
+        else if (choice === button) choice.classList.add("wrong");
+      });
+      if (correct) reward(points, `ถูกต้อง! คำที่หายไปคือ “${challenge.answer}”`, onBeat);
+      else {
+        resetStreak();
+        feedback.textContent = `คำตอบคือ “${challenge.answer}” ฟังคำต่อไปนะ`;
+      }
+    }
+  });
+
+  function setSpeed(value) {
+    const nextSpeed = Number(value) || 1;
+    if (run.useFallback && run.started) {
+      run.fallbackBaseTime = getPlaybackTime();
+      run.startedAt = performance.now();
+    }
+    run.speed = nextSpeed;
+    audio.playbackRate = nextSpeed;
+    status.textContent = nextSpeed < 1 ? "กำลังเล่นแบบฝึกช้า 0.8×" : "กำลังเล่นความเร็วปกติ";
+  }
+
+  speedSelect.addEventListener("change", () => setSpeed(speedSelect.value));
+  [timingDown, timingUp].forEach((button, direction) => button.addEventListener("click", () => {
+    run.timingOffset = Math.max(-2, Math.min(2, run.timingOffset + (direction ? .5 : -.5)));
+    timingLabel.textContent = run.timingOffset === 0 ? "ตรงเวลา" : run.timingOffset > 0 ? `คำเร็ว +${run.timingOffset.toFixed(1)} วิ` : `คำช้า ${Math.abs(run.timingOffset).toFixed(1)} วิ`;
+    run.lyricRenderKey = "";
   }));
 
   startButton.addEventListener("click", async () => {
     if (run.started) return;
     run.started = true;
     startButton.disabled = true;
+    startButton.textContent = "♫ กำลังเล่น";
     currentWord.textContent = "เตรียมฟัง…";
     let audioStarted = false;
     try {
@@ -715,10 +1013,15 @@ function renderRhythm() {
       audio.pause();
       status.textContent = "กำลังใช้เสียงคำและจังหวะสำรอง";
     }
-    run.duration = validAudio ? audio.duration : 36;
+    run.duration = validAudio ? audio.duration : 60;
     run.cues = buildRhythmCues(run.duration);
     run.lyrics = buildRhythmLyrics(run.duration);
+    run.timeline = buildRhythmTimeline(run.duration);
+    run.challenges = buildRhythmChallenges(run.duration);
+    run.fallbackBaseTime = 0;
     run.startedAt = performance.now();
+    setSpeed(speedSelect.value);
+    updateScoreboard();
     tick();
   });
 }

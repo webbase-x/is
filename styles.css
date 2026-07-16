@@ -579,9 +579,24 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 @keyframes fall { to { transform: translateY(430px); } }
 .rhythm-karaoke { width: 100%; max-width: 1500px; flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; }
 .rhythm-status-row { width: 100%; max-width: 1280px; }
+.rhythm-scoreboard { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rhythm-streak, .rhythm-phase { padding: 8px 12px; border-radius: 12px; font-size: 13px; font-weight: 900; }
+.rhythm-streak { color: #a14a18; background: #fff1df; }
+.rhythm-streak.hot { color: #fff; background: linear-gradient(135deg,#ff973d,#ef476f); box-shadow: 0 0 18px rgba(239,71,111,.35); }
+.rhythm-phase { color: #4e42a4; background: #eeeaff; }
 .rhythm-start-tools { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .rhythm-start-tools > span { color: var(--muted); font-size: 12px; font-weight: 800; }
+.rhythm-control-row { width: min(1280px,100%); display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 9px; margin: -7px 0 12px; }
+.rhythm-control-row label, .rhythm-timing-control, .rhythm-clock { min-height: 38px; display: flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); background: white; font-size: 12px; font-weight: 900; }
+.rhythm-control-row select { border: 0; outline: 0; color: var(--ink); background: transparent; font: inherit; cursor: pointer; }
+.rhythm-timing-control button { min-width: 46px; min-height: 28px; border: 0; border-radius: 8px; color: #5145ba; background: #eeeaff; font-weight: 900; cursor: pointer; }
+.rhythm-timing-control output { min-width: 82px; color: var(--ink); text-align: center; }
+.rhythm-clock { color: #4f5a7a; font-variant-numeric: tabular-nums; }
 .karaoke-stage { position: relative; isolation: isolate; width: 100%; min-height: 410px; flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(18px,3vh,34px); padding: clamp(24px,4vw,54px); overflow: hidden; border: 1px solid rgba(255,255,255,.24); border-radius: 28px; color: white; background: radial-gradient(circle at 18% 22%, rgba(255,91,185,.58), transparent 28%), radial-gradient(circle at 82% 20%, rgba(52,214,255,.55), transparent 27%), radial-gradient(circle at 52% 88%, rgba(255,211,67,.45), transparent 32%), linear-gradient(135deg, #21134f 0%, #4422a2 48%, #0f6592 100%); box-shadow: inset 0 0 80px rgba(255,255,255,.08), 0 20px 45px rgba(38,25,105,.28); animation: karaokeBackdrop 8s ease-in-out infinite alternate; }
+.karaoke-stage[data-phase="break"] { background: radial-gradient(circle at 22% 18%, rgba(72,255,198,.5), transparent 30%), radial-gradient(circle at 85% 70%, rgba(255,231,86,.42), transparent 34%), linear-gradient(135deg,#123c5c,#285f7d 48%,#3e3b92); }
+.karaoke-stage[data-phase="challenge"] { background: radial-gradient(circle at 20% 24%, rgba(255,190,60,.48), transparent 30%), radial-gradient(circle at 82% 18%, rgba(255,95,177,.45), transparent 32%), linear-gradient(135deg,#331250,#6c297d 52%,#194b75); }
+.karaoke-stage.score-pop { animation: karaokeBackdrop 8s ease-in-out infinite alternate, rhythmScorePop .42s ease-out; }
+@keyframes rhythmScorePop { 50% { box-shadow: inset 0 0 90px rgba(255,255,255,.2), 0 0 0 8px rgba(255,244,118,.35), 0 20px 50px rgba(38,25,105,.35); } }
 .karaoke-stage::before { content: "ก  กา  แม่ ก กา  ✦  คำไทย  ✧"; position: absolute; inset: auto -8% 5%; z-index: -1; color: rgba(255,255,255,.07); font-size: clamp(42px,7vw,110px); font-weight: 900; letter-spacing: .06em; white-space: nowrap; transform: rotate(-6deg); }
 @keyframes karaokeBackdrop { to { filter: hue-rotate(24deg) saturate(1.16); background-position: 8% 4%, 92% 6%, 48% 94%, 0 0; } }
 .grammar-sparkles { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
@@ -598,6 +613,33 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 @keyframes karaokeWordPulse { to { transform: scale(1.035); text-shadow: 0 0 22px #fff, 0 0 48px #ff7ed9, 0 10px 30px rgba(18,9,62,.55); } }
 .karaoke-progress { height: 9px; margin-top: 12px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.18); }
 .karaoke-progress i { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#fff27b,#ff70d1,#6de8ff); box-shadow: 0 0 14px rgba(255,255,255,.8); transition: width .12s linear; }
+.rhythm-interaction { position: relative; z-index: 2; width: min(1120px,100%); min-height: 150px; display: grid; place-items: center; }
+.rhythm-guide-panel { min-width: min(520px,100%); display: grid; justify-items: center; gap: 4px; padding: 18px 24px; border: 1px solid rgba(255,255,255,.26); border-radius: 22px; background: rgba(21,13,70,.36); box-shadow: inset 0 1px rgba(255,255,255,.2); text-align: center; backdrop-filter: blur(9px); }
+.rhythm-guide-panel > span { font-size: 42px; }
+.rhythm-guide-panel strong { color: white; font-size: clamp(21px,3vw,31px); }
+.rhythm-guide-panel small { color: #e0ddff; font-size: 15px; font-weight: 800; }
+.rhythm-mode-heading { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; color: white; }
+.rhythm-mode-heading strong { font-size: clamp(20px,3vw,30px); }
+.rhythm-mode-heading span { color: #e6e1ff; font-weight: 800; }
+.rhythm-picture-grid { width: 100%; display: grid; grid-template-columns: repeat(auto-fit,minmax(100px,1fr)); gap: 10px; }
+.rhythm-picture-card { min-height: 94px; display: grid; place-items: center; align-content: center; gap: 3px; padding: 8px; border: 2px solid rgba(255,255,255,.34); border-radius: 18px; color: #26204a; background: rgba(255,255,255,.92); box-shadow: 0 9px 22px rgba(15,8,58,.2); cursor: pointer; transition: transform .18s, box-shadow .18s, opacity .18s, background .18s; }
+.rhythm-picture-card > span { font-size: clamp(28px,3.8vw,43px); line-height: 1; }
+.rhythm-picture-card > strong { font-size: clamp(16px,2vw,23px); }
+.rhythm-picture-card:hover:not(:disabled) { transform: translateY(-3px); }
+.rhythm-picture-card.singing { border-color: #fff47c; background: #fffbd2; box-shadow: 0 0 0 6px rgba(255,244,117,.27), 0 0 35px #ff86d8; animation: singingWord .45s ease-in-out infinite alternate; }
+.rhythm-picture-card.correct { color: #126c4e; border-color: #72e7b7; background: #d9fff0; box-shadow: 0 0 27px rgba(71,255,184,.55); }
+.rhythm-picture-card.wrong { color: #9c2949; border-color: #ff8da3; background: #ffe0e8; animation: wrongWord .3s ease-in-out 2; }
+.rhythm-picture-card.missed { color: #fff; border-style: dashed; background: rgba(33,24,82,.62); opacity: .55; }
+.rhythm-sort-grid { grid-template-columns: repeat(4,minmax(90px,1fr)); }
+.rhythm-challenge-panel { width: min(760px,100%); text-align: center; }
+.rhythm-challenge-panel > small { display: block; margin-bottom: 10px; color: #eee9ff; font-size: 15px; font-weight: 900; }
+.rhythm-choice-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.rhythm-choice { min-height: 105px; display: grid; place-items: center; align-content: center; gap: 4px; border: 2px solid rgba(255,255,255,.36); border-radius: 20px; color: #29204e; background: white; box-shadow: 0 10px 25px rgba(15,8,58,.22); cursor: pointer; transition: transform .18s, box-shadow .18s; }
+.rhythm-choice:hover:not(:disabled) { transform: translateY(-4px) scale(1.02); box-shadow: 0 15px 30px rgba(15,8,58,.3); }
+.rhythm-choice span { font-size: clamp(34px,5vw,54px); }
+.rhythm-choice strong { font-size: clamp(19px,2.5vw,29px); }
+.rhythm-choice.correct { color: #126c4e; border-color: #6fe1b2; background: #d8fff0; }
+.rhythm-choice.wrong { color: #9e2e4d; border-color: #ff8fa4; background: #ffe2e9; }
 .karaoke-word-grid { position: relative; z-index: 2; width: min(1180px,100%); display: grid; grid-template-columns: repeat(auto-fit,minmax(88px,1fr)); gap: 10px; }
 .karaoke-word { min-height: 62px; padding: 9px 12px; border: 2px solid rgba(255,255,255,.3); border-radius: 17px; color: #25204c; background: rgba(255,255,255,.9); box-shadow: 0 8px 20px rgba(17,9,62,.18); cursor: pointer; font-size: clamp(18px,2.3vw,28px); font-weight: 900; transition: transform .18s, box-shadow .18s, opacity .18s, background .18s; }
 .karaoke-word:hover { transform: translateY(-2px); }
@@ -708,8 +750,15 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .game-focus-mode .game-canvas { min-height: 0; }
   .game-inner { padding: 18px 12px; }
   .rhythm-status-row, .rhythm-start-tools { align-items: stretch; flex-direction: column; gap: 8px; }
+  .rhythm-scoreboard { justify-content: center; }
   .rhythm-start-tools > span { text-align: center; }
+  .rhythm-control-row { justify-content: center; margin-top: 0; }
+  .rhythm-mode-heading { align-items: center; flex-direction: column; text-align: center; }
   .karaoke-stage { min-height: 390px; padding: 22px 12px; border-radius: 20px; }
+  .rhythm-interaction { min-height: 190px; }
+  .rhythm-picture-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+  .rhythm-sort-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .rhythm-picture-card { min-height: 78px; border-radius: 14px; }
   .karaoke-word-grid { grid-template-columns: repeat(auto-fit,minmax(72px,1fr)); gap: 7px; }
   .karaoke-word { min-height: 54px; border-radius: 13px; }
   .dashboard-shell { grid-template-columns: 1fr; }
@@ -784,6 +833,12 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .game-view-controls { display: grid; grid-template-columns: 40px minmax(48px,1fr) 40px 1fr 1fr; }
   .game-view-controls button { min-width: 0; padding-left: 7px; padding-right: 7px; font-size: 12px; }
   .karaoke-now strong { font-size: clamp(46px,18vw,76px); }
+  .rhythm-control-row label, .rhythm-timing-control, .rhythm-clock { flex: 1 1 auto; justify-content: center; }
+  .rhythm-sort-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .rhythm-choice-grid { gap: 6px; }
+  .rhythm-choice { min-height: 90px; border-radius: 15px; }
+  .rhythm-choice span { font-size: 34px; }
+  .rhythm-choice strong { font-size: 18px; }
   .karaoke-word-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .teacher-flow-step[data-flow-step="lobby"] .session-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
   .teacher-flow-step[data-flow-step="lobby"] .metric-card { min-height: 74px; padding: 8px; gap: 6px; }
