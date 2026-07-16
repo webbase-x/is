@@ -42,63 +42,120 @@
 
       <div class="dashboard-main">
         <section id="sessionPanel" class="dashboard-panel active">
-          <div class="dashboard-heading"><div><span class="eyebrow">คาบเรียนปัจจุบัน</span><h1>ศูนย์ควบคุมห้องเรียน</h1></div><button id="newSessionButton" class="button button-primary">+ เปิดคาบใหม่</button></div>
+          <div class="teacher-flow-shell">
+            <header class="teacher-flow-header">
+              <div>
+                <span class="eyebrow">คาบเรียนปัจจุบัน</span>
+                <h1 id="flowStepTitle">เลือกห้องเรียน</h1>
+                <p id="flowContext">เริ่มจากโรงเรียนและห้องที่คุณครูรับผิดชอบ</p>
+              </div>
+              <button id="newSessionButton" class="button button-ghost hidden">+ เปิดคาบใหม่</button>
+            </header>
+            <ol id="teacherFlowProgress" class="teacher-flow-progress" aria-label="ขั้นตอนเปิดคาบ">
+              <li data-progress-step="class" class="active"><span>1</span><small>เลือกห้อง</small></li>
+              <li data-progress-step="qr"><span>2</span><small>QR</small></li>
+              <li data-progress-step="lobby"><span>3</span><small>รับนักเรียน</small></li>
+              <li data-progress-step="plan"><span>4</span><small>เลือกแผน</small></li>
+              <li data-progress-step="live"><span>5</span><small>ผลสด</small></li>
+              <li data-progress-step="summary"><span>6</span><small>สรุปผล</small></li>
+            </ol>
 
-          <form id="sessionSetup" class="panel session-setup">
-            <div class="panel-heading"><div><h2>ตั้งค่าคาบเรียน</h2><p>เปลี่ยนได้ทุกครั้งก่อนเปิดห้อง</p></div></div>
-            <div class="form-grid four">
-              <label>ห้องเรียน<select id="classSelect" required><option value="">เลือกห้อง</option></select></label>
-              <label>แผนการเรียนรู้<select id="planSelect" required></select></label>
-              <label>ประเภทการเล่น<select id="playMode"><option value="practice">รอบฝึก</option><option value="test">รอบทดสอบ</option><option value="real">รอบจริง</option></select></label>
-              <label>จำนวนครั้ง<select id="attemptMode"><option value="single">รอบเดียว</option><option value="limited">ซ้ำได้ตามจำนวน</option><option value="unlimited">ซ้ำได้ไม่จำกัด</option></select></label>
-              <label>จำนวนรอบสูงสุด<input id="maxAttempts" type="number" min="1" max="10" value="2"></label>
-              <label>เก็บคะแนน<select id="scorePolicy"><option value="first_and_best">ครั้งแรกและดีที่สุด</option><option value="first">ครั้งแรกเท่านั้น</option><option value="best">ดีที่สุดเท่านั้น</option><option value="latest">ครั้งล่าสุด</option></select></label>
-              <label>จอกระดานคะแนน<select id="leaderboardMode"><option value="nickname_avatar">ชื่อเล่นและอวตาร</option><option value="real_name">ชื่อจริง</option><option value="student_code">รหัสนักเรียน</option><option value="hidden">ไม่แสดงรายชื่อ</option></select></label>
-              <label>เกณฑ์ผ่าน<input id="passPercent" type="number" min="0" max="100" value="80"></label>
-            </div>
-            <button class="button button-primary" type="submit">สร้างรหัสห้องเรียน</button>
-          </form>
+            <form id="sessionSetup" class="teacher-flow-step" data-flow-step="class">
+              <div class="flow-hero-icon">🏫</div>
+              <span class="eyebrow">ขั้นที่ 1 จาก 6</span>
+              <h2>วันนี้สอนโรงเรียนและห้องใด?</h2>
+              <p class="flow-lead">ระบบจะแสดงเฉพาะห้องที่บัญชีคุณครูได้รับมอบหมาย</p>
+              <div class="flow-choice-form">
+                <label>โรงเรียน<select id="schoolSelect" required><option value="">เลือกโรงเรียน</option></select></label>
+                <label>ห้องเรียน<select id="classSelect" required disabled><option value="">เลือกห้องเรียน</option></select></label>
+              </div>
+              <div id="classOwnershipNote" class="flow-info-card">🔒 รหัสห้องจะผูกกับโรงเรียน ห้องเรียน และบัญชีครูนี้โดยอัตโนมัติ</div>
+              <div class="flow-footer end"><button class="button button-primary button-large" type="submit">สร้างห้องและแสดง QR →</button></div>
+            </form>
 
-          <div id="liveSession" class="hidden">
-            <section class="panel session-access-panel">
-              <div class="session-access-copy">
-                <span class="eyebrow">ให้นักเรียนเข้าห้อง</span>
-                <h2>สแกน QR หรือกรอกรหัส</h2>
-                <p>โรงเรียน ชั้น ห้อง และแผนการสอนถูกกำหนดจากคาบนี้แล้ว นักเรียนเลือกเพียงชื่อและถ่ายภาพสด</p>
-                <div class="teacher-room-code"><small>รหัสห้องเรียน</small><strong id="liveRoomCode">------</strong></div>
-                <div class="button-row session-access-actions">
-                  <button id="copyRoomCode" class="button button-primary">คัดลอกรหัส</button>
-                  <button id="copyStudentLink" class="button button-ghost">คัดลอกลิงก์นักเรียน</button>
-                  <a id="openStudentJoinButton" href="student.html" target="_blank" rel="noopener" class="button button-secondary">เปิดหน้าสำหรับนักเรียน</a>
+            <div id="liveSession" class="hidden">
+              <section class="teacher-flow-step hidden" data-flow-step="qr">
+                <div class="flow-qr-layout">
+                  <div class="flow-qr-copy">
+                    <span class="eyebrow">ขั้นที่ 2 จาก 6</span>
+                    <h2>ให้นักเรียนสแกน QR</h2>
+                    <p id="qrClassContext" class="flow-class-context">—</p>
+                    <div class="teacher-room-code flow-room-code"><small>รหัสห้องเรียน</small><strong id="liveRoomCode">------</strong></div>
+                    <p class="flow-security-note">รหัสนี้ไม่ซ้ำกับคาบอื่น และฐานข้อมูลรู้ทันทีว่าเป็นโรงเรียน ห้อง และครูคนใด</p>
+                    <div class="button-row session-access-actions">
+                      <button id="copyRoomCode" class="button button-primary">คัดลอกรหัส</button>
+                      <button id="copyStudentLink" class="button button-ghost">คัดลอกลิงก์</button>
+                      <a id="openStudentJoinButton" href="student.html" target="_blank" rel="noopener" class="button button-secondary">เปิดหน้านักเรียน</a>
+                    </div>
+                  </div>
+                  <div class="session-qr-card flow-qr-card">
+                    <div class="session-qr-frame"><img id="studentJoinQr" alt="QR Code สำหรับนักเรียนเข้าห้อง"></div>
+                    <strong>สแกนเพื่อเข้าห้องนี้</strong>
+                    <small>นักเรียนไม่ต้องกรอกรหัสเอง</small>
+                  </div>
                 </div>
-              </div>
-              <div class="session-qr-card">
-                <div class="session-qr-frame"><img id="studentJoinQr" alt="QR Code สำหรับนักเรียนเข้าห้อง"></div>
-                <strong>ให้นักเรียนสแกนตรงนี้</strong>
-                <small>สแกนแล้วข้ามหน้ากรอกรหัสทันที</small>
-              </div>
-            </section>
-
-            <div class="session-summary-grid">
-              <div class="panel metric-card"><span>👥</span><div><small>นักเรียนออนไลน์</small><strong id="onlineCount">0</strong></div></div>
-              <div class="panel metric-card"><span>✅</span><div><small>อนุมัติแล้ว</small><strong id="approvedCount">0</strong></div></div>
-              <div class="panel metric-card"><span>⭐</span><div><small>คะแนนเฉลี่ย</small><strong id="averageScore">0%</strong></div></div>
-            </div>
-
-            <div class="teacher-grid">
-              <section class="panel lobby-panel">
-                <div class="panel-heading"><div><h2>ห้องรอ</h2><p id="lobbySummary">ยังไม่มีนักเรียน</p></div><div class="button-row"><button id="approveAllButton" class="button button-small button-success">อนุมัติทั้งหมด</button></div></div>
-                <div id="playerList" class="player-list"></div>
+                <div class="flow-footer"><button id="qrCloseButton" class="button button-danger" type="button">ยกเลิกห้องนี้</button><button id="qrNextButton" class="button button-primary button-large" type="button">ต่อไป: ดูนักเรียนเข้าห้อง →</button></div>
               </section>
 
-              <section class="panel control-panel">
-                <div class="panel-heading"><div><h2>ไทม์ไลน์แผนที่ 1</h2><p id="currentActivityLabel">ยังไม่เริ่มกิจกรรม</p></div></div>
-                <div id="activityControls" class="activity-controls"></div>
-                <div class="session-actions">
-                  <button id="pauseSessionButton" class="button button-secondary">พักเกม</button>
-                  <a id="openDisplayButton" href="display.html" target="_blank" class="button button-ghost">เปิดจอฉาย</a>
-                  <button id="closeSessionButton" class="button button-danger">ปิดคาบและลบรูป</button>
+              <section class="teacher-flow-step hidden" data-flow-step="lobby">
+                <div class="flow-section-heading"><div><span class="eyebrow">ขั้นที่ 3 จาก 6</span><h2>ตรวจและอนุมัตินักเรียน</h2><p id="lobbySummary">ยังไม่มีนักเรียน</p></div><button id="approveAllButton" class="button button-success">✓ อนุมัติทั้งหมด</button></div>
+                <div class="session-summary-grid flow-metrics">
+                  <div class="panel metric-card"><span>👥</span><div><small>ออนไลน์</small><strong id="onlineCount">0</strong></div></div>
+                  <div class="panel metric-card"><span>⏳</span><div><small>รอตรวจ</small><strong id="waitingCount">0</strong></div></div>
+                  <div class="panel metric-card"><span>✅</span><div><small>อนุมัติแล้ว</small><strong id="approvedCount">0</strong></div></div>
                 </div>
+                <div id="playerList" class="player-list flow-player-list"></div>
+                <div class="flow-footer"><button id="lobbyBackButton" class="button button-ghost" type="button">← กลับไปหน้า QR</button><button id="lobbyNextButton" class="button button-primary button-large" type="button">ต่อไป: เลือกแผนการสอน →</button></div>
+              </section>
+
+              <section class="teacher-flow-step hidden" data-flow-step="plan">
+                <div class="flow-section-heading"><div><span class="eyebrow">ขั้นที่ 4 จาก 6</span><h2>เลือกแผนการสอน</h2><p>แตะแผนเพื่อดูเกมทั้งหมดก่อนเริ่ม</p></div></div>
+                <input id="planSelect" type="hidden">
+                <div id="planChoices" class="flow-plan-grid"></div>
+                <section class="panel flow-activity-preview">
+                  <div><span class="eyebrow">เกมในแผน</span><h3 id="selectedPlanTitle">กรุณาเลือกแผน</h3></div>
+                  <div id="activityPreview" class="flow-game-list"></div>
+                </section>
+                <details class="panel flow-settings">
+                  <summary>⚙️ ตั้งค่ารอบ คะแนน และกระดานคะแนน</summary>
+                  <div class="form-grid four">
+                    <label>ประเภทการเล่น<select id="playMode"><option value="practice">รอบฝึก</option><option value="test">รอบทดสอบ</option><option value="real">รอบจริง</option></select></label>
+                    <label>จำนวนครั้ง<select id="attemptMode"><option value="single">รอบเดียว</option><option value="limited" selected>ซ้ำได้ตามจำนวน</option><option value="unlimited">ซ้ำได้ไม่จำกัด</option></select></label>
+                    <label>จำนวนรอบสูงสุด<input id="maxAttempts" type="number" min="1" max="10" value="2"></label>
+                    <label>เก็บคะแนน<select id="scorePolicy"><option value="first_and_best">ครั้งแรกและดีที่สุด</option><option value="first">ครั้งแรกเท่านั้น</option><option value="best">ดีที่สุดเท่านั้น</option><option value="latest">ครั้งล่าสุด</option></select></label>
+                    <label>จอกระดานคะแนน<select id="leaderboardMode"><option value="nickname_avatar">ชื่อเล่นและอวตาร</option><option value="real_name">ชื่อจริง</option><option value="student_code">รหัสนักเรียน</option><option value="hidden">ไม่แสดงรายชื่อ</option></select></label>
+                    <label>เกณฑ์ผ่าน<input id="passPercent" type="number" min="0" max="100" value="80"></label>
+                  </div>
+                </details>
+                <div class="flow-footer"><button id="planBackButton" class="button button-ghost" type="button">← กลับไปห้องรอ</button><button id="startPlanButton" class="button button-primary button-large" type="button">▶ เริ่มเกมแรก</button></div>
+              </section>
+
+              <section class="teacher-flow-step hidden" data-flow-step="live">
+                <div class="flow-live-header">
+                  <div><span class="eyebrow">ขั้นที่ 5 จาก 6 · ผลแบบเรียลไทม์</span><h2 id="currentActivityLabel">ยังไม่เริ่มกิจกรรม</h2><p id="liveClassContext">—</p></div>
+                  <a id="openDisplayButton" href="display.html" target="_blank" class="button button-dark">▣ เปิดจอฉาย</a>
+                </div>
+                <div class="session-summary-grid flow-metrics">
+                  <div class="panel metric-card"><span>👥</span><div><small>นักเรียน</small><strong id="liveApprovedCount">0</strong></div></div>
+                  <div class="panel metric-card"><span>⭐</span><div><small>คะแนนเฉลี่ย</small><strong id="averageScore">0%</strong></div></div>
+                  <div class="panel metric-card"><span>🎮</span><div><small>ส่งคำตอบแล้ว</small><strong id="completedAttemptCount">0</strong></div></div>
+                </div>
+                <div class="flow-live-grid">
+                  <section class="panel control-panel"><div id="activityControls" class="activity-controls flow-activity-controls"></div></section>
+                  <section class="panel flow-live-results"><div class="panel-heading"><div><h3>ผลของนักเรียน</h3><p>อัปเดตอัตโนมัติเมื่อส่งคำตอบ</p></div></div><div id="liveResults"></div></section>
+                </div>
+                <div class="flow-footer live-actions"><button id="pauseSessionButton" class="button button-secondary" type="button">พักเกม</button><button id="showSummaryButton" class="button button-ghost" type="button">ดูสรุปผล</button><button id="nextActivityButton" class="button button-primary button-large" type="button">เกมถัดไป →</button></div>
+              </section>
+
+              <section class="teacher-flow-step hidden" data-flow-step="summary">
+                <div class="flow-summary-heading"><span>🏆</span><div><span class="eyebrow">ขั้นที่ 6 จาก 6</span><h2>สรุปผลคาบเรียน</h2><p id="summaryClassContext">—</p></div></div>
+                <div class="session-summary-grid flow-metrics summary-metrics">
+                  <div class="panel metric-card"><span>✅</span><div><small>นักเรียนที่ร่วม</small><strong id="summaryApproved">0</strong></div></div>
+                  <div class="panel metric-card"><span>⭐</span><div><small>คะแนนเฉลี่ย</small><strong id="summaryAverage">0%</strong></div></div>
+                  <div class="panel metric-card"><span>🎯</span><div><small>กิจกรรมที่มีผล</small><strong id="summaryCompleted">0</strong></div></div>
+                </div>
+                <section class="panel flow-summary-table"><div id="summaryContent"></div></section>
+                <div class="flow-footer summary-actions"><button id="summaryBackButton" class="button button-ghost" type="button">← กลับไปควบคุมเกม</button><button id="summaryExportButton" class="button button-secondary" type="button">ดาวน์โหลด CSV</button><button id="closeSessionButton" class="button button-danger button-large" type="button">จบคาบและลบรูปทั้งหมด</button></div>
               </section>
             </div>
           </div>
