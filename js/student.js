@@ -5,12 +5,52 @@ import {
   setView, show, shuffle, toast, updateConnectionBadge,
 } from "./common.js";
 
-const MAE_KO_KA = new Set(["กา", "ปลา", "เต่า", "มือ", "ตา", "ปู", "เสือ", "แมว", "หมู", "นา", "ใบไม้", "ขา", "ผีเสื้อ", "ดู", "พ่อ", "แม่"]);
+const MAE_KO_KA = new Set(["กา", "ปลา", "เต่า", "มือ", "ตา", "ปู", "เสือ", "แมว", "หมู", "นา", "ใบไม้", "ขา", "ผีเสื้อ", "ดู", "พ่อ", "แม่", "วัว", "หมี", "งู", "ไก่", "ปลาโลมา", "ม้า", "ลา", "จระเข้"]);
 const COMPARE_WORDS = new Set(["กบ", "นก", "เด็ก", "จาน", "ถ้วย", "เก้าอี้", "บ้าน", "ดิน"]);
-const RHYTHM_WORDS = Object.freeze([
-  "กา", "กบ", "ปลา", "นก", "เต่า", "มือ", "เด็ก", "ปู", "จาน", "เสือ", "นา", "ถ้วย", "ตา", "บ้าน", "หมู", "ดิน", "ขา", "แมว",
-  "แม่", "จาน", "พ่อ", "นก", "ดู", "บ้าน", "ปู", "เด็ก", "นา", "กบ", "เสือ", "ดิน", "มือ", "จาน", "ปลา", "นก", "ตา", "ถ้วย",
+const RHYTHM_CUE_TEMPLATE = Object.freeze([
+  { word: "เต่า", start: 28.0, end: 28.9 },
+  { word: "วัว", start: 28.9, end: 29.8 },
+  { word: "เสือ", start: 29.8, end: 30.7 },
+  { word: "หมี", start: 30.7, end: 31.6 },
+  { word: "งู", start: 31.6, end: 32.5 },
+  { word: "ไก่", start: 32.5, end: 33.4 },
+  { word: "กา", start: 33.4, end: 34.4 },
+  { word: "ปลาโลมา", start: 34.5, end: 36.8 },
+  { word: "ม้า", start: 36.8, end: 38.1 },
+  { word: "ลา", start: 38.1, end: 39.4 },
+  { word: "จระเข้", start: 39.4, end: 41.0 },
+  { word: "เต่า", start: 82.0, end: 82.9 },
+  { word: "วัว", start: 82.9, end: 83.8 },
+  { word: "เสือ", start: 83.8, end: 84.7 },
+  { word: "หมี", start: 84.7, end: 85.6 },
+  { word: "งู", start: 85.6, end: 86.5 },
+  { word: "ไก่", start: 86.5, end: 87.4 },
+  { word: "กา", start: 87.4, end: 88.4 },
+  { word: "ปลาโลมา", start: 88.5, end: 90.8 },
+  { word: "ม้า", start: 90.8, end: 92.1 },
+  { word: "ลา", start: 92.1, end: 93.4 },
+  { word: "จระเข้", start: 93.4, end: 95.0 },
 ]);
+const RHYTHM_LYRIC_TEMPLATE = Object.freeze([
+  { text: "เด็กทั้งหลาย ยังจำได้ไหม", start: 4.0, end: 10.4 },
+  { text: "แม่ ก กา ในมาตราไทย", start: 10.4, end: 16.8 },
+  { text: "เป็นคำไทย ไม่มีตัวสะกด", start: 16.8, end: 23.2 },
+  { text: "เราต้องจดจำ", start: 23.2, end: 27.9 },
+  { text: "เต่า วัว เสือ หมี งู ไก่ กา", start: 28.0, end: 34.4 },
+  { text: "ปลาโลมา ม้า ลา จระเข้", start: 34.5, end: 41.0 },
+  { text: "คำเหล่านี้ ไม่มีตัวสะกด", start: 41.1, end: 47.5 },
+  { text: "นั่นคือ แม่ ก กา", start: 47.5, end: 53.9 },
+  { text: "เด็กทั้งหลาย ยังจำได้ไหม", start: 56.0, end: 62.4 },
+  { text: "แม่ ก กา ในมาตราไทย", start: 62.4, end: 68.8 },
+  { text: "เป็นคำไทย ไม่มีตัวสะกด", start: 68.8, end: 75.2 },
+  { text: "เราต้องจดจำ", start: 75.2, end: 81.9 },
+  { text: "เต่า วัว เสือ หมี งู ไก่ กา", start: 82.0, end: 88.4 },
+  { text: "ปลาโลมา ม้า ลา จระเข้", start: 88.5, end: 95.0 },
+  { text: "คำเหล่านี้ ไม่มีตัวสะกด", start: 95.1, end: 101.5 },
+  { text: "นั่นคือ แม่ ก กา", start: 101.5, end: 108.5 },
+]);
+const RHYTHM_WORDS = Object.freeze(RHYTHM_CUE_TEMPLATE.map(cue => cue.word));
+const RHYTHM_REFERENCE_DURATION = 112.01;
 const GAME_ZOOM_LEVELS = Object.freeze([.75, .9, 1, 1.15, 1.3]);
 
 const state = {
@@ -478,10 +518,21 @@ function showResult(title, score, maxScore, result, replay) {
 }
 
 function buildRhythmCues(duration) {
-  const lead = Math.min(1.8, duration * .06);
-  const tail = Math.min(1.8, duration * .06);
-  const slot = Math.max((duration - lead - tail) / RHYTHM_WORDS.length, .65);
-  return RHYTHM_WORDS.map((word, index) => ({ word, start: lead + (index * slot), end: lead + ((index + 1) * slot) - .06 }));
+  const scale = duration / RHYTHM_REFERENCE_DURATION;
+  return RHYTHM_CUE_TEMPLATE.map(cue => ({
+    word: cue.word,
+    start: cue.start * scale,
+    end: cue.end * scale,
+  }));
+}
+
+function buildRhythmLyrics(duration) {
+  const scale = duration / RHYTHM_REFERENCE_DURATION;
+  return RHYTHM_LYRIC_TEMPLATE.map(line => ({
+    text: line.text,
+    start: line.start * scale,
+    end: line.end * scale,
+  }));
 }
 
 function playFallbackBeat(run, index) {
@@ -506,14 +557,14 @@ function renderRhythm() {
   const wordButtons = RHYTHM_WORDS.map((word, index) => `<button class="karaoke-word" type="button" data-index="${index}">${escapeHtml(word)}</button>`).join("");
   gameShell(
     "แท็ปจังหวะ แม่ ก กา",
-    "ฟังเพลง ดูคำที่เปล่งแสง แล้วแตะเฉพาะคำที่ไม่มีตัวสะกด",
+    "คำตัวอย่างเรียงตามเพลง แตะคำที่เปล่งแสงให้ทันจังหวะ",
     `<section class="rhythm-karaoke">
       <div class="game-status-row rhythm-status-row"><span class="mini-score" id="rhythmScore">คะแนน 0</span><div class="rhythm-start-tools"><span id="rhythmAudioStatus">กำลังตรวจเพลง…</span><button id="startRhythm" class="button button-primary" type="button">▶ เริ่มเพลง</button></div></div>
       <div class="karaoke-stage" id="karaokeStage">
         <div class="grammar-sparkles" aria-hidden="true">${sparkles}</div>
         <div class="karaoke-now"><small>คำที่กำลังร้อง</small><strong id="karaokeCurrentWord">พร้อม!</strong><div class="karaoke-progress"><i id="karaokeProgressBar"></i></div></div>
         <div class="karaoke-word-grid" id="karaokeWords">${wordButtons}</div>
-        <p class="rhythm-feedback" id="rhythmFeedback">แตะคำแม่ ก กา เมื่อคำนั้นเปล่งแสง</p>
+        <p class="rhythm-feedback" id="rhythmFeedback">ร้องตามเพลง แล้วแตะคำแม่ ก กา เมื่อคำนั้นเปล่งแสง</p>
       </div>
       <audio id="rhythmAudio" class="rhythm-audio" src="sounds/01-01.mp3" preload="metadata" controls></audio>
     </section>`,
@@ -526,7 +577,7 @@ function renderRhythm() {
   const currentWord = $("#karaokeCurrentWord");
   const progressBar = $("#karaokeProgressBar");
   const buttons = [...$("#karaokeWords").querySelectorAll("button")];
-  const maxScore = RHYTHM_WORDS.filter(word => MAE_KO_KA.has(word)).length;
+  const maxScore = RHYTHM_WORDS.length;
   const run = {
     audio,
     audioContext: null,
@@ -542,11 +593,14 @@ function renderRhythm() {
     duration: 36,
     startedAt: 0,
     cues: [],
+    lyrics: [],
+    lyricIndex: -2,
+    lyricCueIndex: -2,
   };
   state.rhythmRun = run;
 
   audio.addEventListener("loadedmetadata", () => {
-    if (Number.isFinite(audio.duration) && audio.duration > 0) status.textContent = `เพลงพร้อม · ${Math.ceil(audio.duration)} วินาที`;
+    if (Number.isFinite(audio.duration) && audio.duration > 0) status.textContent = `เพลงพร้อม · คำเรียงตามเพลง · ${Math.ceil(audio.duration)} วินาที`;
   });
   audio.addEventListener("error", () => {
     status.textContent = "ไฟล์เพลงยังไม่มีข้อมูล · ใช้เสียงจังหวะสำรองได้";
@@ -556,23 +610,18 @@ function renderRhythm() {
   function settleCue(index) {
     if (index < 0 || run.settled.has(index)) return;
     const word = RHYTHM_WORDS[index];
-    const isTarget = MAE_KO_KA.has(word);
     run.settled.add(index);
-    run.answers.push({ word, tapped: false, correct: !isTarget });
+    run.answers.push({ word, tapped: false, correct: false });
     buttons[index].classList.remove("singing");
-    buttons[index].classList.add(isTarget ? "missed" : "skipped");
+    buttons[index].classList.add("missed");
   }
 
   function activateCue(index) {
     if (run.activeIndex === index) return;
     settleCue(run.activeIndex);
     run.activeIndex = index;
-    if (index < 0) {
-      currentWord.textContent = "ฟังจังหวะ…";
-      return;
-    }
+    if (index < 0) return;
     const word = RHYTHM_WORDS[index];
-    currentWord.textContent = word;
     buttons[index].classList.add("singing");
     buttons[index].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
     if (run.useFallback) {
@@ -580,6 +629,27 @@ function renderRhythm() {
       if ("speechSynthesis" in window) speechSynthesis.cancel();
       speakThai(word);
     }
+  }
+
+  function renderLyric(time, cueIndex) {
+    const lyricIndex = run.lyrics.findIndex(line => time >= line.start && time < line.end);
+    if (lyricIndex === run.lyricIndex && cueIndex === run.lyricCueIndex) return;
+    run.lyricIndex = lyricIndex;
+    run.lyricCueIndex = cueIndex;
+    currentWord.classList.toggle("lyric-line", lyricIndex >= 0);
+    if (lyricIndex < 0) {
+      currentWord.textContent = time < (run.lyrics[0]?.start ?? 0) ? "เตรียมร้อง…" : "ดนตรี…";
+      return;
+    }
+    const line = run.lyrics[lyricIndex];
+    if (cueIndex < 0) {
+      currentWord.textContent = line.text;
+      return;
+    }
+    const activeWord = RHYTHM_WORDS[cueIndex];
+    currentWord.innerHTML = line.text.split(" ").map(word => (
+      word === activeWord ? `<mark>${escapeHtml(word)}</mark>` : escapeHtml(word)
+    )).join(" ");
   }
 
   async function finishRhythm() {
@@ -599,6 +669,7 @@ function renderRhythm() {
     const time = run.useFallback ? (performance.now() - run.startedAt) / 1000 : audio.currentTime;
     const cueIndex = run.cues.findIndex(cue => time >= cue.start && time < cue.end);
     activateCue(cueIndex);
+    renderLyric(time, cueIndex);
     progressBar.style.width = `${Math.min(100, Math.max(0, (time / run.duration) * 100))}%`;
     if (time >= run.duration || (!run.useFallback && audio.ended)) return finishRhythm();
     run.frame = requestAnimationFrame(tick);
@@ -610,7 +681,7 @@ function renderRhythm() {
     if (index !== run.activeIndex) return feedback.textContent = "รอให้คำนี้เปล่งแสงก่อนนะ";
     if (run.settled.has(index)) return;
     const word = RHYTHM_WORDS[index];
-    const correct = MAE_KO_KA.has(word);
+    const correct = true;
     run.settled.add(index);
     run.answers.push({ word, tapped: true, correct });
     button.classList.remove("singing");
@@ -619,7 +690,7 @@ function renderRhythm() {
       run.score += 1;
       $("#rhythmScore").textContent = `คะแนน ${run.score}`;
       feedback.textContent = `เก่งมาก! “${word}” เป็นคำแม่ ก กา`;
-    } else feedback.textContent = `“${word}” มีตัวสะกด รอฟังคำต่อไปนะ`;
+    }
   }));
 
   startButton.addEventListener("click", async () => {
@@ -645,6 +716,7 @@ function renderRhythm() {
     }
     run.duration = validAudio ? audio.duration : 36;
     run.cues = buildRhythmCues(run.duration);
+    run.lyrics = buildRhythmLyrics(run.duration);
     run.startedAt = performance.now();
     tick();
   });

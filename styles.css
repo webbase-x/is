@@ -593,6 +593,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .karaoke-now { position: relative; z-index: 2; width: min(850px,100%); text-align: center; }
 .karaoke-now small { display: block; margin-bottom: 5px; color: #d9d3ff; font-weight: 800; }
 .karaoke-now strong { display: block; min-height: 1.35em; color: white; font-size: clamp(52px,9vw,112px); line-height: 1.1; text-shadow: 0 0 14px rgba(255,255,255,.9), 0 8px 28px rgba(18,9,62,.55); animation: karaokeWordPulse .7s ease-in-out infinite alternate; }
+.karaoke-now strong.lyric-line { font-size: clamp(30px,5.4vw,68px); line-height: 1.25; }
+.karaoke-now strong mark { display: inline-block; padding: 0 .18em; border-radius: .3em; color: #33165f; background: #fff7a9; box-shadow: 0 0 0 5px rgba(255,246,151,.2), 0 0 34px #ff8ddd; }
 @keyframes karaokeWordPulse { to { transform: scale(1.035); text-shadow: 0 0 22px #fff, 0 0 48px #ff7ed9, 0 10px 30px rgba(18,9,62,.55); } }
 .karaoke-progress { height: 9px; margin-top: 12px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.18); }
 .karaoke-progress i { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#fff27b,#ff70d1,#6de8ff); box-shadow: 0 0 14px rgba(255,255,255,.8); transition: width .12s linear; }
