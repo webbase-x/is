@@ -41,13 +41,16 @@
           <label>รูปยืนยันตัวตนในคาบนี้</label>
           <p class="field-help">รูปนี้มีไว้ให้ครูตรวจสอบ และจะถูกลบเมื่อปิดคาบ</p>
           <div class="camera-frame">
-            <video id="cameraVideo" autoplay playsinline muted></video>
+            <video id="cameraVideo" class="hidden" autoplay playsinline muted></video>
             <canvas id="cameraCanvas" hidden></canvas>
             <img id="selfiePreview" alt="รูปเซลฟี่ที่ถ่าย" class="hidden">
             <div id="cameraPlaceholder" class="camera-placeholder"><span>📷</span><p>กดเปิดกล้องเพื่อถ่ายรูป</p></div>
           </div>
+          <p id="cameraHelp" class="field-help camera-help">หากกล้องสดเปิดไม่ได้ สามารถกด “ถ่าย/เลือกรูปแทน” ได้</p>
+          <input id="cameraFileInput" type="file" accept="image/*" capture="user" hidden>
           <div class="camera-actions">
-            <button type="button" id="openCameraButton" class="button button-ghost">เปิดกล้อง</button>
+            <button type="button" id="openCameraButton" class="button button-ghost">เปิดกล้องสด</button>
+            <button type="button" id="photoFallbackButton" class="button button-ghost">ถ่าย/เลือกรูปแทน</button>
             <button type="button" id="captureButton" class="button button-secondary hidden">ถ่ายรูป</button>
             <button type="button" id="retakeButton" class="button button-ghost hidden">ถ่ายใหม่</button>
           </div>

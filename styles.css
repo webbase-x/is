@@ -139,6 +139,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .camera-frame video { transform: scaleX(-1); }
 .camera-placeholder { text-align: center; color: var(--muted); }
 .camera-placeholder span { font-size: 50px; }
+.camera-help { min-height: 20px; text-align: center; }
 .camera-actions { justify-content: center; margin: 14px 0; }
 .centered-view { min-height: calc(100vh - 78px); padding: 30px; display: grid; place-items: center; }
 .waiting-card { position: relative; width: min(520px, 100%); padding: 50px 38px 40px; text-align: center; overflow: hidden; }

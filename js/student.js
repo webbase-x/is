@@ -74,21 +74,47 @@ async function findRoom() {
 }
 
 async function openCamera() {
+  const video = $("#cameraVideo");
+  const unsupportedMessage = "เบราว์เซอร์นี้ไม่รองรับกล้องสด กรุณากด ‘ถ่าย/เลือกรูปแทน’";
+
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+    $("#cameraHelp").textContent = unsupportedMessage;
+    return toast(unsupportedMessage, "warning");
+  }
+
   try {
     stopCamera();
     state.stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user", width: { ideal: 960 }, height: { ideal: 720 } },
       audio: false,
     });
-    $("#cameraVideo").srcObject = state.stream;
-    show($("#cameraVideo"));
+    video.srcObject = state.stream;
+    await video.play();
+    state.selfieBlob = null;
+    state.selfieDataUrl = "";
+    updateJoinAvailability();
+    show(video);
     hide($("#cameraPlaceholder"));
     hide($("#selfiePreview"));
     hide($("#openCameraButton"));
     show($("#captureButton"));
     hide($("#retakeButton"));
-  } catch {
-    toast("เปิดกล้องไม่ได้ กรุณาอนุญาตการใช้กล้องแล้วลองใหม่", "error");
+    $("#cameraHelp").textContent = "กล้องพร้อมแล้ว มองหน้าจอและกดถ่ายรูป";
+  } catch (error) {
+    stopCamera();
+    hide(video);
+    show($("#cameraPlaceholder"));
+    show($("#openCameraButton"));
+    hide($("#captureButton"));
+    const messages = {
+      NotAllowedError: "ยังไม่ได้อนุญาตใช้กล้อง กรุณาเปิดสิทธิ์กล้อง หรือกด ‘ถ่าย/เลือกรูปแทน’",
+      NotFoundError: "ไม่พบกล้องในเครื่องนี้ กรุณากด ‘ถ่าย/เลือกรูปแทน’",
+      NotReadableError: "กล้องกำลังถูกแอปอื่นใช้งาน กรุณาปิดแอปนั้น หรือกด ‘ถ่าย/เลือกรูปแทน’",
+      OverconstrainedError: "กล้องไม่รองรับการตั้งค่านี้ กรุณากด ‘ถ่าย/เลือกรูปแทน’",
+    };
+    const message = messages[error?.name] || "เปิดกล้องสดไม่ได้ กรุณากด ‘ถ่าย/เลือกรูปแทน’";
+    $("#cameraHelp").textContent = message;
+    toast(message, "warning");
   }
 }
 
@@ -98,7 +124,28 @@ function stopCamera() {
   $("#cameraVideo").srcObject = null;
 }
 
-function captureSelfie() {
+function canvasToBlob(canvas) {
+  return new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", APP_CONFIG.selfieQuality));
+}
+
+async function useCanvasSelfie(canvas) {
+  const blob = await canvasToBlob(canvas);
+  if (!blob) throw new Error("สร้างรูปไม่สำเร็จ");
+  state.selfieBlob = blob;
+  state.selfieDataUrl = canvas.toDataURL("image/jpeg", APP_CONFIG.selfieQuality);
+  $("#selfiePreview").src = state.selfieDataUrl;
+  show($("#selfiePreview"));
+  hide($("#cameraVideo"));
+  hide($("#cameraPlaceholder"));
+  hide($("#captureButton"));
+  hide($("#openCameraButton"));
+  show($("#retakeButton"));
+  $("#cameraHelp").textContent = "ได้รูปแล้ว หากยังไม่พอใจสามารถกดถ่ายใหม่ได้";
+  stopCamera();
+  updateJoinAvailability();
+}
+
+async function captureSelfie() {
   const video = $("#cameraVideo");
   const canvas = $("#cameraCanvas");
   if (!video.videoWidth) return toast("กล้องยังไม่พร้อม กรุณารอสักครู่", "warning");
@@ -112,18 +159,54 @@ function captureSelfie() {
   context.scale(-1, 1);
   context.drawImage(video, 0, 0, canvas.width, canvas.height);
   context.restore();
-  state.selfieDataUrl = canvas.toDataURL("image/jpeg", APP_CONFIG.selfieQuality);
-  canvas.toBlob(blob => {
-    state.selfieBlob = blob;
-    updateJoinAvailability();
-  }, "image/jpeg", APP_CONFIG.selfieQuality);
+  try {
+    await useCanvasSelfie(canvas);
+  } catch {
+    toast("บันทึกรูปไม่สำเร็จ กรุณาถ่ายใหม่", "error");
+  }
+}
 
-  $("#selfiePreview").src = state.selfieDataUrl;
-  show($("#selfiePreview"));
-  hide(video);
-  hide($("#captureButton"));
-  show($("#retakeButton"));
-  stopCamera();
+function loadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("อ่านไฟล์รูปไม่สำเร็จ"));
+    };
+    image.src = objectUrl;
+  });
+}
+
+async function usePhotoFile(event) {
+  const input = event.target;
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    input.value = "";
+    return toast("กรุณาเลือกไฟล์รูปภาพ", "warning");
+  }
+
+  try {
+    stopCamera();
+    const image = await loadImageFile(file);
+    const canvas = $("#cameraCanvas");
+    const ratio = Math.min(1, APP_CONFIG.selfieMaxWidth / image.naturalWidth);
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
+    const context = canvas.getContext("2d");
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    await useCanvasSelfie(canvas);
+    toast("รับรูปเรียบร้อยแล้ว", "success");
+  } catch {
+    toast("อ่านรูปไม่สำเร็จ กรุณาถ่ายหรือเลือกรูปใหม่", "error");
+  } finally {
+    input.value = "";
+  }
 }
 
 function updateJoinAvailability() {
@@ -548,13 +631,18 @@ function renderExit() {
 }
 
 function retryJoin() {
+  stopCamera();
   state.selfieBlob = null;
   state.selfieDataUrl = "";
   state.selfiePath = "";
   hide($("#selfiePreview"));
+  hide($("#cameraVideo"));
+  hide($("#captureButton"));
   show($("#cameraPlaceholder"));
   show($("#openCameraButton"));
   hide($("#retakeButton"));
+  $("#cameraFileInput").value = "";
+  $("#cameraHelp").textContent = "หากกล้องสดเปิดไม่ได้ สามารถกด ‘ถ่าย/เลือกรูปแทน’ ได้";
   $("#joinButton").disabled = true;
   setView(views.login, views.waiting, views.game);
 }
@@ -598,6 +686,8 @@ $("#studentSelect").addEventListener("change", updateJoinAvailability);
 $("#openCameraButton").addEventListener("click", openCamera);
 $("#captureButton").addEventListener("click", captureSelfie);
 $("#retakeButton").addEventListener("click", openCamera);
+$("#photoFallbackButton").addEventListener("click", () => $("#cameraFileInput").click());
+$("#cameraFileInput").addEventListener("change", usePhotoFile);
 $("#joinForm").addEventListener("submit", submitJoin);
 $("#retryJoinButton").addEventListener("click", retryJoin);
 window.addEventListener("online", connectionUpdate);
