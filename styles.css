@@ -269,6 +269,8 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .flow-choice-form label { margin: 0; font-size: 15px; }
 .flow-choice-form select { min-height: 58px; font-size: 17px; }
 .flow-info-card { width: min(760px, 100%); margin-top: 17px; padding: 14px 18px; border: 1px solid #dce3f0; border-radius: 15px; color: #536078; background: #f7f9fd; text-align: left; line-height: 1.5; }
+.flow-info-card.warning { color: #8b4c1e; border-color: #f0c28f; background: #fff8ef; }
+.flow-info-card.success { color: #24795e; border-color: #9bdcc4; background: var(--mint-soft); }
 .teacher-resume-step { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: radial-gradient(circle at 50% 10%, rgba(245,185,63,.14), transparent 38%), white; }
 .resume-session-icon { width: 88px; height: 88px; display: grid; place-items: center; margin-bottom: 15px; border-radius: 27px; background: var(--amber-soft); font-size: 46px; }
 .resume-session-card { width: min(900px, 100%); display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 5px; text-align: left; }

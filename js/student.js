@@ -112,7 +112,7 @@ async function loadRoster(roomCode) {
   await ensureAnonymousAuth();
   const { data, error } = await supabase.rpc("get_open_session_roster", { p_room_code: code });
   if (error) throw error;
-  if (!data?.length) throw new Error("ครูยังไม่เปิดรับนักเรียน หรือห้องนี้ไม่มีรายชื่อ");
+  if (!data?.length) throw new Error("ห้องนี้ยังไม่มีรายชื่อ หรือครูปิดห้องแล้ว กรุณาแจ้งคุณครูตรวจห้องเรียน");
   if (data[0].session_status !== "lobby") throw new Error("ครูปิดรับนักเรียนแล้ว กรุณาแจ้งคุณครู");
   state.roomCode = code;
   state.roster = data;

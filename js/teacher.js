@@ -18,6 +18,7 @@ const state = {
   presenceChannel: null,
   displayChannel: null,
   importRows: [],
+  rosterCounts: new Map(),
   flowStep: "class",
   selectedPlanId: null,
 };
@@ -162,6 +163,26 @@ function renderClassOptions(schoolId) {
   const classrooms = state.classes.filter(item => item.school?.id === schoolId);
   $("#classSelect").innerHTML = `<option value="">เลือกห้องเรียน</option>${classrooms.map(item => `<option value="${item.id}">${escapeHtml(item.label)} · ปี ${item.academic_year}</option>`).join("")}`;
   $("#classSelect").disabled = !classrooms.length;
+  updateSelectedClassRosterNote();
+}
+
+function updateSelectedClassRosterNote() {
+  const note = $("#classOwnershipNote");
+  const classId = $("#classSelect").value;
+  const classroom = state.classes.find(item => item.id === classId);
+  if (!classroom) {
+    note.textContent = state.classes.length
+      ? `🔒 บัญชีนี้รับผิดชอบ ${state.classes.length} ห้อง เลือกห้องเพื่อดูจำนวนรายชื่อ`
+      : "ยังไม่มีห้องเรียนที่มอบหมายให้บัญชีนี้ กรุณาให้ผู้ดูแลกำหนดห้องก่อน";
+    note.classList.remove("warning", "success");
+    return;
+  }
+  const count = state.rosterCounts.get(classId) || 0;
+  note.textContent = count
+    ? `✅ ${classroom.school?.name} · ${classroom.label} มีรายชื่อนักเรียนที่ใช้งาน ${count} คน พร้อมสร้าง QR`
+    : `⚠️ ${classroom.school?.name} · ${classroom.label} ยังไม่มีรายชื่อนักเรียน กรุณาเพิ่มหรือนำเข้ารายชื่อก่อนสร้าง QR`;
+  note.classList.toggle("warning", count === 0);
+  note.classList.toggle("success", count > 0);
 }
 
 function renderPlanChoices() {
@@ -212,7 +233,9 @@ async function createSession(event) {
   event.preventDefault();
   const button = event.submitter;
   if (state.session && state.session.status !== "closed") return toast("กรุณาปิดคาบเดิมก่อนเปิดคาบใหม่", "warning");
-  if (!$("#classSelect").value) return toast("กรุณาเลือกห้องเรียน", "warning");
+  const classId = $("#classSelect").value;
+  if (!classId) return toast("กรุณาเลือกห้องเรียน", "warning");
+  if (!(state.rosterCounts.get(classId) > 0)) return toast("ห้องนี้ยังไม่มีรายชื่อนักเรียน กรุณาเพิ่มหรือนำเข้ารายชื่อก่อนสร้าง QR", "warning");
   const firstPlan = state.plans.find(plan => plan.published);
   if (!firstPlan) return toast("ยังไม่มีแผนการสอนที่เปิดใช้งาน", "warning");
   button.disabled = true;
@@ -221,7 +244,7 @@ async function createSession(event) {
     const attemptMode = $("#attemptMode").value;
     const maxAttempts = attemptMode === "single" ? 1 : Number($("#maxAttempts").value);
     const { data, error } = await supabase.rpc("create_class_session", {
-      p_class_id: $("#classSelect").value,
+      p_class_id: classId,
       p_plan_id: Number(firstPlan.id),
       p_play_mode: $("#playMode").value,
       p_attempt_mode: attemptMode,
@@ -634,13 +657,19 @@ async function loadRoster() {
   if (!state.profile) return;
   const classIds = state.classes.map(item => item.id);
   if (!classIds.length) {
+    state.rosterCounts = new Map();
     $("#rosterCount").textContent = "0 คน";
     $("#rosterTableBody").innerHTML = `<tr><td colspan="5">ยังไม่มีห้องเรียนที่ได้รับมอบหมาย</td></tr>`;
     return;
   }
   const { data, error } = await supabase.from("students").select("*, classroom:classes(*, school:schools(name))").in("class_id", classIds).order("student_code");
-  if (error) return;
+  if (error) return toast(`โหลดรายชื่อนักเรียนไม่สำเร็จ: ${error.message}`, "error");
   const rows = data || [];
+  state.rosterCounts = rows.filter(student => student.active).reduce((counts, student) => {
+    counts.set(student.class_id, (counts.get(student.class_id) || 0) + 1);
+    return counts;
+  }, new Map());
+  updateSelectedClassRosterNote();
   $("#rosterCount").textContent = `${rows.length} คน`;
   $("#rosterTableBody").innerHTML = rows.length ? rows.map(student => `<tr><td>${escapeHtml(student.classroom?.label || "—")}</td><td>${escapeHtml(student.student_code)}</td><td>${escapeHtml(student.full_name)}</td><td>${escapeHtml(student.nickname)}</td><td>${student.active ? "ใช้งาน" : "พักใช้"}</td></tr>`).join("") : `<tr><td colspan="5">ยังไม่มีรายชื่อนักเรียน</td></tr>`;
 }
@@ -772,6 +801,7 @@ $("#teacherLoginForm").addEventListener("submit", signIn);
 $("#signOutButton").addEventListener("click", signOut);
 $("#sessionSetup").addEventListener("submit", createSession);
 $("#schoolSelect").addEventListener("change", event => renderClassOptions(event.target.value));
+$("#classSelect").addEventListener("change", updateSelectedClassRosterNote);
 $("#schoolSetupForm").addEventListener("submit", setupSchool);
 $("#manualStudentForm").addEventListener("submit", addStudent);
 $("#csvFile").addEventListener("change", handleImportFile);

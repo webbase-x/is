@@ -6,6 +6,16 @@
   <meta name="theme-color" content="#17203b">
   <title>จอครู | คำไทยผจญภัย</title>
   <link rel="stylesheet" href="styles.css">
+  <script>
+    (() => {
+      const url = new URL(location.href);
+      if (url.searchParams.has("email") || url.searchParams.has("password")) {
+        url.searchParams.delete("email");
+        url.searchParams.delete("password");
+        history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      }
+    })();
+  </script>
 </head>
 <body class="teacher-page">
   <header class="app-header teacher-header">
@@ -15,14 +25,14 @@
 
   <main>
     <section id="teacherLoginView" class="teacher-login view">
-      <form id="teacherLoginForm" class="panel auth-panel teacher-login-card">
+      <form id="teacherLoginForm" class="panel auth-panel teacher-login-card" method="post" action="teacher.html">
         <span class="big-icon">🧑‍🏫</span>
         <span class="eyebrow">สำหรับครูผู้สอน</span>
         <h1>เข้าสู่จอควบคุม</h1>
         <label for="teacherEmail">อีเมล</label>
-        <input id="teacherEmail" name="email" type="email" autocomplete="username" required>
+        <input id="teacherEmail" type="email" autocomplete="username" required>
         <label for="teacherPassword">รหัสผ่าน</label>
-        <input id="teacherPassword" name="password" type="password" autocomplete="current-password" required>
+        <input id="teacherPassword" type="password" autocomplete="current-password" required>
         <button class="button button-primary button-large full" type="submit">เข้าสู่ระบบ</button>
         <a class="forgot-password-link" href="reset-password.html">ลืมรหัสผ่าน?</a>
         <p class="field-help">บัญชีครูต้องได้รับสิทธิ์จากผู้ดูแลระบบก่อน</p>
