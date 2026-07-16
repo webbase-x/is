@@ -51,6 +51,9 @@ const RHYTHM_LYRIC_TEMPLATE = Object.freeze([
 ]);
 const RHYTHM_WORDS = Object.freeze(RHYTHM_CUE_TEMPLATE.map(cue => cue.word));
 const RHYTHM_REFERENCE_DURATION = 112.01;
+const RHYTHM_CONTENT_START = 22;
+const RHYTHM_TEMPLATE_START = 4;
+const RHYTHM_TEMPLATE_END = 108.5;
 const GAME_ZOOM_LEVELS = Object.freeze([.75, .9, 1, 1.15, 1.3]);
 
 const state = {
@@ -517,21 +520,25 @@ function showResult(title, score, maxScore, result, replay) {
   $("#replayButton")?.addEventListener("click", replay);
 }
 
+function alignRhythmTime(time, duration) {
+  const contentStart = RHYTHM_CONTENT_START * (duration / RHYTHM_REFERENCE_DURATION);
+  const progress = (time - RHYTHM_TEMPLATE_START) / (RHYTHM_TEMPLATE_END - RHYTHM_TEMPLATE_START);
+  return contentStart + (progress * (duration - contentStart));
+}
+
 function buildRhythmCues(duration) {
-  const scale = duration / RHYTHM_REFERENCE_DURATION;
   return RHYTHM_CUE_TEMPLATE.map(cue => ({
     word: cue.word,
-    start: cue.start * scale,
-    end: cue.end * scale,
+    start: alignRhythmTime(cue.start, duration),
+    end: alignRhythmTime(cue.end, duration),
   }));
 }
 
 function buildRhythmLyrics(duration) {
-  const scale = duration / RHYTHM_REFERENCE_DURATION;
   return RHYTHM_LYRIC_TEMPLATE.map(line => ({
     text: line.text,
-    start: line.start * scale,
-    end: line.end * scale,
+    start: alignRhythmTime(line.start, duration),
+    end: alignRhythmTime(line.end, duration),
   }));
 }
 
