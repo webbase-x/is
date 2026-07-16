@@ -60,8 +60,26 @@
           </form>
 
           <div id="liveSession" class="hidden">
+            <section class="panel session-access-panel">
+              <div class="session-access-copy">
+                <span class="eyebrow">ให้นักเรียนเข้าห้อง</span>
+                <h2>สแกน QR หรือกรอกรหัส</h2>
+                <p>โรงเรียน ชั้น ห้อง และแผนการสอนถูกกำหนดจากคาบนี้แล้ว นักเรียนเลือกเพียงชื่อและถ่ายภาพสด</p>
+                <div class="teacher-room-code"><small>รหัสห้องเรียน</small><strong id="liveRoomCode">------</strong></div>
+                <div class="button-row session-access-actions">
+                  <button id="copyRoomCode" class="button button-primary">คัดลอกรหัส</button>
+                  <button id="copyStudentLink" class="button button-ghost">คัดลอกลิงก์นักเรียน</button>
+                  <a id="openStudentJoinButton" href="student.html" target="_blank" rel="noopener" class="button button-secondary">เปิดหน้าสำหรับนักเรียน</a>
+                </div>
+              </div>
+              <div class="session-qr-card">
+                <div class="session-qr-frame"><img id="studentJoinQr" alt="QR Code สำหรับนักเรียนเข้าห้อง"></div>
+                <strong>ให้นักเรียนสแกนตรงนี้</strong>
+                <small>สแกนแล้วข้ามหน้ากรอกรหัสทันที</small>
+              </div>
+            </section>
+
             <div class="session-summary-grid">
-              <div class="panel room-code-card"><small>รหัสห้องเรียน</small><strong id="liveRoomCode">------</strong><button id="copyRoomCode" class="icon-button" aria-label="คัดลอกรหัส">⧉</button></div>
               <div class="panel metric-card"><span>👥</span><div><small>นักเรียนออนไลน์</small><strong id="onlineCount">0</strong></div></div>
               <div class="panel metric-card"><span>✅</span><div><small>อนุมัติแล้ว</small><strong id="approvedCount">0</strong></div></div>
               <div class="panel metric-card"><span>⭐</span><div><small>คะแนนเฉลี่ย</small><strong id="averageScore">0%</strong></div></div>

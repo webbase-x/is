@@ -9,6 +9,8 @@ const MAE_KO_KA = new Set(["กา", "ปลา", "เต่า", "มือ", "
 const COMPARE_WORDS = new Set(["กบ", "นก", "เด็ก", "จาน", "ถ้วย", "เก้าอี้", "บ้าน", "ดิน"]);
 
 const state = {
+  joinStep: "code",
+  joinBusy: false,
   roomCode: "",
   sessionInfo: null,
   roster: [],
@@ -36,84 +38,177 @@ function connectionUpdate() {
   updateConnectionBadge($("#connectionStatus"), navigator.onLine, navigator.onLine ? "เชื่อมต่อแล้ว" : "ไม่มีอินเทอร์เน็ต");
 }
 
+const JOIN_STEPS = {
+  code: { number: 1, label: "ใส่รหัสห้อง" },
+  name: { number: 2, label: "เลือกชื่อของหนู" },
+  camera: { number: 3, label: "ถ่ายรูปสดแล้วส่ง" },
+};
+let roomLookupTimer;
+
 function normalizeRoomCode(value) {
   return String(value || "").replace(/\D/g, "").slice(0, 6);
 }
 
+function setJoinStep(step) {
+  const details = JOIN_STEPS[step];
+  if (!details) return;
+  if (state.joinStep === "camera" && step !== "camera") stopCamera();
+  state.joinStep = step;
+  document.querySelectorAll(".join-step").forEach(panel => panel.classList.toggle("hidden", panel.dataset.step !== step));
+  $("#joinStepNumber").textContent = details.number;
+  $("#joinStepLabel").textContent = details.label;
+  $("#joinProgressBar").style.width = `${Math.round((details.number / 3) * 100)}%`;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function setStepStatus(element, message, tone = "default") {
+  element.textContent = message;
+  element.dataset.tone = tone;
+  element.classList.toggle("hidden", !message);
+}
+
+function createChoiceButton(title, subtitle, className = "") {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `student-choice-button ${className}`.trim();
+  const strong = document.createElement("strong");
+  strong.textContent = title;
+  button.append(strong);
+  if (subtitle) {
+    const small = document.createElement("small");
+    small.textContent = subtitle;
+    button.append(small);
+  }
+  return button;
+}
+
+function studentDisplayName(student) {
+  return String(student.full_name || student.nickname || "นักเรียน").trim().replace(/\s+/g, " ");
+}
+
+function renderStudentChoices() {
+  const container = $("#studentChoices");
+  const students = [...state.roster].sort((a, b) => studentDisplayName(a).localeCompare(studentDisplayName(b), "th"));
+  const nameCounts = students.reduce((counts, student) => {
+    const name = studentDisplayName(student).toLocaleLowerCase("th");
+    counts.set(name, (counts.get(name) || 0) + 1);
+    return counts;
+  }, new Map());
+  container.innerHTML = "";
+  students.forEach(student => {
+    const name = studentDisplayName(student);
+    const duplicated = nameCounts.get(name.toLocaleLowerCase("th")) > 1;
+    const extra = duplicated ? (student.nickname ? `ชื่อเล่น ${student.nickname}` : `เลขประจำตัว ${student.student_code}`) : "";
+    const button = createChoiceButton(name, extra, "student-name-button");
+    button.addEventListener("click", () => selectStudent(student));
+    container.append(button);
+  });
+  setStepStatus($("#nameStatus"), students.length ? "" : "ห้องนี้ยังไม่มีรายชื่อนักเรียน", students.length ? "default" : "warning");
+}
+
+async function loadRoster(roomCode) {
+  const code = normalizeRoomCode(roomCode);
+  if (code.length !== 6) throw new Error("รหัสห้องไม่ถูกต้อง");
+  await ensureAnonymousAuth();
+  const { data, error } = await supabase.rpc("get_open_session_roster", { p_room_code: code });
+  if (error) throw error;
+  if (!data?.length) throw new Error("ครูยังไม่เปิดรับนักเรียน หรือห้องนี้ไม่มีรายชื่อ");
+  if (data[0].session_status !== "lobby") throw new Error("ครูปิดรับนักเรียนแล้ว กรุณาแจ้งคุณครู");
+  state.roomCode = code;
+  state.roster = data;
+  state.sessionInfo = data[0];
+  state.student = null;
+  $("#selectedClassName").textContent = `${data[0].school_name} · ${data[0].class_label}`;
+  renderStudentChoices();
+}
+
 async function findRoom() {
   const button = $("#findRoomButton");
+  if (button.disabled) return;
+  clearTimeout(roomLookupTimer);
   const code = normalizeRoomCode($("#roomCode").value);
   $("#roomCode").value = code;
-  if (code.length !== 6) return toast("กรุณากรอกรหัสห้องให้ครบ 6 ตัว", "warning");
-
+  if (code.length !== 6) {
+    setStepStatus($("#codeStatus"), "กรอกรหัสให้ครบ 6 ตัวก่อนนะ", "warning");
+    return;
+  }
   button.disabled = true;
-  button.textContent = "กำลังค้นหา...";
+  button.textContent = "กำลังเปิดห้อง...";
+  setStepStatus($("#codeStatus"), "กำลังค้นหาห้องเรียน...", "loading");
   try {
-    await ensureAnonymousAuth();
-    const { data, error } = await supabase.rpc("get_open_session_roster", { p_room_code: code });
-    if (error) throw error;
-    if (!data?.length) throw new Error("ไม่พบห้องเรียน หรือครูยังไม่เปิดรับนักเรียน");
-
-    state.roomCode = code;
-    state.roster = data;
-    state.sessionInfo = data[0];
-    $("#roomFound").textContent = `พบห้อง ${data[0].class_label} · แผนที่ ${data[0].plan_id}`;
-    $("#schoolSelect").innerHTML = `<option>${escapeHtml(data[0].school_name)}</option>`;
-    $("#studentSelect").innerHTML = `<option value="">เลือกชื่อของฉัน</option>${data.map(student => `
-      <option value="${student.student_id}">${escapeHtml(student.student_code)} · ${escapeHtml(student.full_name)} (${escapeHtml(student.nickname)})</option>
-    `).join("")}`;
-    show($("#rosterFields"));
-    show($("#cameraFields"));
-    toast("พบห้องเรียนแล้ว เลือกชื่อและถ่ายรูปได้เลย", "success");
+    await loadRoster(code);
+    setStepStatus($("#codeStatus"), "");
+    setJoinStep("name");
   } catch (error) {
-    toast(error.message || "ค้นหาห้องเรียนไม่สำเร็จ", "error");
+    setStepStatus($("#codeStatus"), error.message || "ไม่พบห้องนี้ ตรวจรหัสแล้วลองใหม่", "error");
+    $("#roomCode").focus();
+    $("#roomCode").select();
   } finally {
     button.disabled = false;
-    button.textContent = "ค้นหาห้องเรียน";
+    button.textContent = "ไปต่อ";
   }
 }
 
+function selectStudent(student) {
+  state.student = student;
+  state.selfieBlob = null;
+  state.selfieDataUrl = "";
+  $("#cameraStudentName").textContent = studentDisplayName(student);
+  $("#cameraClassName").textContent = state.sessionInfo?.class_label || "—";
+  setJoinStep("camera");
+  window.setTimeout(openCamera, 180);
+}
+
 async function openCamera() {
+  if (state.joinBusy) return;
   const video = $("#cameraVideo");
-  const unsupportedMessage = "เบราว์เซอร์นี้ไม่รองรับกล้องสด กรุณากด ‘ถ่าย/เลือกรูปแทน’";
+  const placeholder = $("#cameraPlaceholder");
+  stopCamera();
+  hide(video);
+  hide($("#captureAndSendButton"));
+  hide($("#retryCameraButton"));
+  show(placeholder);
+  placeholder.querySelector("p").textContent = "กำลังเปิดกล้องสด...";
+  $("#cameraHelp").textContent = "กดอนุญาตใช้กล้อง แล้วรอสักครู่นะ";
+  state.selfieBlob = null;
+  state.selfieDataUrl = "";
 
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-    $("#cameraHelp").textContent = unsupportedMessage;
-    return toast(unsupportedMessage, "warning");
+    const message = "อุปกรณ์นี้เปิดกล้องสดไม่ได้ กรุณาใช้โทรศัพท์หรือแท็บเล็ตที่มีกล้อง";
+    placeholder.querySelector("p").textContent = "เปิดกล้องสดไม่ได้";
+    $("#cameraHelp").textContent = message;
+    show($("#retryCameraButton"));
+    return;
   }
 
   try {
-    stopCamera();
     state.stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user", width: { ideal: 960 }, height: { ideal: 720 } },
       audio: false,
     });
     video.srcObject = state.stream;
     await video.play();
-    state.selfieBlob = null;
-    state.selfieDataUrl = "";
-    updateJoinAvailability();
     show(video);
-    hide($("#cameraPlaceholder"));
-    hide($("#selfiePreview"));
-    hide($("#openCameraButton"));
-    show($("#captureButton"));
-    hide($("#retakeButton"));
-    $("#cameraHelp").textContent = "กล้องพร้อมแล้ว มองหน้าจอและกดถ่ายรูป";
+    hide(placeholder);
+    const button = $("#captureAndSendButton");
+    button.disabled = false;
+    button.textContent = "📸 ถ่ายรูปและส่งเลย";
+    show(button);
+    $("#cameraHelp").textContent = "เห็นหน้าหนูแล้ว กดปุ่มสีม่วงเพียงครั้งเดียว";
   } catch (error) {
     stopCamera();
     hide(video);
-    show($("#cameraPlaceholder"));
-    show($("#openCameraButton"));
-    hide($("#captureButton"));
+    show(placeholder);
+    placeholder.querySelector("p").textContent = "เปิดกล้องสดไม่ได้";
     const messages = {
-      NotAllowedError: "ยังไม่ได้อนุญาตใช้กล้อง กรุณาเปิดสิทธิ์กล้อง หรือกด ‘ถ่าย/เลือกรูปแทน’",
-      NotFoundError: "ไม่พบกล้องในเครื่องนี้ กรุณากด ‘ถ่าย/เลือกรูปแทน’",
-      NotReadableError: "กล้องกำลังถูกแอปอื่นใช้งาน กรุณาปิดแอปนั้น หรือกด ‘ถ่าย/เลือกรูปแทน’",
-      OverconstrainedError: "กล้องไม่รองรับการตั้งค่านี้ กรุณากด ‘ถ่าย/เลือกรูปแทน’",
+      NotAllowedError: "ยังไม่ได้อนุญาตกล้อง แตะสัญลักษณ์กล้องด้านบนแล้วเลือก ‘อนุญาต’ จากนั้นกดลองใหม่",
+      NotFoundError: "ไม่พบกล้อง กรุณาใช้โทรศัพท์หรือแท็บเล็ตที่มีกล้อง",
+      NotReadableError: "กล้องกำลังถูกแอปอื่นใช้ ปิดแอปนั้นแล้วกดลองใหม่",
+      OverconstrainedError: "กล้องนี้ยังไม่พร้อม กดลองเปิดกล้องอีกครั้ง",
     };
-    const message = messages[error?.name] || "เปิดกล้องสดไม่ได้ กรุณากด ‘ถ่าย/เลือกรูปแทน’";
+    const message = messages[error?.name] || "เปิดกล้องสดไม่ได้ กดลองอีกครั้งหรือเปลี่ยนอุปกรณ์";
     $("#cameraHelp").textContent = message;
+    show($("#retryCameraButton"));
     toast(message, "warning");
   }
 }
@@ -128,28 +223,14 @@ function canvasToBlob(canvas) {
   return new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", APP_CONFIG.selfieQuality));
 }
 
-async function useCanvasSelfie(canvas) {
-  const blob = await canvasToBlob(canvas);
-  if (!blob) throw new Error("สร้างรูปไม่สำเร็จ");
-  state.selfieBlob = blob;
-  state.selfieDataUrl = canvas.toDataURL("image/jpeg", APP_CONFIG.selfieQuality);
-  $("#selfiePreview").src = state.selfieDataUrl;
-  show($("#selfiePreview"));
-  hide($("#cameraVideo"));
-  hide($("#cameraPlaceholder"));
-  hide($("#captureButton"));
-  hide($("#openCameraButton"));
-  show($("#retakeButton"));
-  $("#cameraHelp").textContent = "ได้รูปแล้ว หากยังไม่พอใจสามารถกดถ่ายใหม่ได้";
-  stopCamera();
-  updateJoinAvailability();
-}
-
-async function captureSelfie() {
+async function captureAndSend() {
+  if (state.joinBusy) return;
   const video = $("#cameraVideo");
   const canvas = $("#cameraCanvas");
   if (!video.videoWidth) return toast("กล้องยังไม่พร้อม กรุณารอสักครู่", "warning");
-
+  const button = $("#captureAndSendButton");
+  button.disabled = true;
+  button.textContent = "กำลังส่งให้ครู...";
   const ratio = Math.min(1, APP_CONFIG.selfieMaxWidth / video.videoWidth);
   canvas.width = Math.round(video.videoWidth * ratio);
   canvas.height = Math.round(video.videoHeight * ratio);
@@ -160,58 +241,18 @@ async function captureSelfie() {
   context.drawImage(video, 0, 0, canvas.width, canvas.height);
   context.restore();
   try {
-    await useCanvasSelfie(canvas);
-  } catch {
-    toast("บันทึกรูปไม่สำเร็จ กรุณาถ่ายใหม่", "error");
-  }
-}
-
-function loadImageFile(file) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    image.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(image);
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("อ่านไฟล์รูปไม่สำเร็จ"));
-    };
-    image.src = objectUrl;
-  });
-}
-
-async function usePhotoFile(event) {
-  const input = event.target;
-  const file = input.files?.[0];
-  if (!file) return;
-  if (!file.type.startsWith("image/")) {
-    input.value = "";
-    return toast("กรุณาเลือกไฟล์รูปภาพ", "warning");
-  }
-
-  try {
+    const blob = await canvasToBlob(canvas);
+    if (!blob) throw new Error("สร้างรูปไม่สำเร็จ");
+    state.selfieBlob = blob;
+    state.selfieDataUrl = canvas.toDataURL("image/jpeg", APP_CONFIG.selfieQuality);
     stopCamera();
-    const image = await loadImageFile(file);
-    const canvas = $("#cameraCanvas");
-    const ratio = Math.min(1, APP_CONFIG.selfieMaxWidth / image.naturalWidth);
-    canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
-    canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
-    const context = canvas.getContext("2d");
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    await useCanvasSelfie(canvas);
-    toast("รับรูปเรียบร้อยแล้ว", "success");
-  } catch {
-    toast("อ่านรูปไม่สำเร็จ กรุณาถ่ายหรือเลือกรูปใหม่", "error");
-  } finally {
-    input.value = "";
+    const sent = await submitJoin();
+    if (!sent) await openCamera();
+  } catch (error) {
+    toast(error.message || "บันทึกรูปไม่สำเร็จ กรุณาลองใหม่", "error");
+    button.disabled = false;
+    button.textContent = "📸 ถ่ายรูปและส่งเลย";
   }
-}
-
-function updateJoinAvailability() {
-  const studentId = $("#studentSelect").value;
-  $("#joinButton").disabled = !(studentId && state.selfieBlob);
 }
 
 async function uploadSelfie(sessionId, userId) {
@@ -224,16 +265,10 @@ async function uploadSelfie(sessionId, userId) {
   return path;
 }
 
-async function submitJoin(event) {
-  event.preventDefault();
-  const button = $("#joinButton");
-  const studentId = $("#studentSelect").value;
-  if (!studentId || !state.selfieBlob) return;
-  state.student = state.roster.find(item => item.student_id === studentId);
-  if (!state.student) return toast("กรุณาเลือกชื่อใหม่", "error");
-
-  button.disabled = true;
-  button.textContent = "กำลังส่งให้ครู...";
+async function submitJoin() {
+  const studentId = state.student?.student_id;
+  if (!studentId || !state.selfieBlob || !state.sessionInfo) return false;
+  state.joinBusy = true;
   try {
     const session = await ensureAnonymousAuth();
     state.selfiePath = await uploadSelfie(state.sessionInfo.session_id, session.user.id);
@@ -251,17 +286,19 @@ async function submitJoin(event) {
       roomCode: state.roomCode,
       playerId,
       student: state.student,
+      sessionInfo: state.sessionInfo,
       selfieDataUrl: state.selfieDataUrl,
     }));
     showWaiting();
     subscribeToPlayer();
+    return true;
   } catch (error) {
     if (state.selfiePath) await supabase.storage.from(APP_CONFIG.selfieBucket).remove([state.selfiePath]);
     state.selfiePath = "";
     toast(error.message || "ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่", "error");
+    return false;
   } finally {
-    button.disabled = false;
-    button.textContent = "ส่งให้ครูตรวจสอบ";
+    state.joinBusy = false;
   }
 }
 
@@ -635,16 +672,15 @@ function retryJoin() {
   state.selfieBlob = null;
   state.selfieDataUrl = "";
   state.selfiePath = "";
-  hide($("#selfiePreview"));
-  hide($("#cameraVideo"));
-  hide($("#captureButton"));
-  show($("#cameraPlaceholder"));
-  show($("#openCameraButton"));
-  hide($("#retakeButton"));
-  $("#cameraFileInput").value = "";
-  $("#cameraHelp").textContent = "หากกล้องสดเปิดไม่ได้ สามารถกด ‘ถ่าย/เลือกรูปแทน’ ได้";
-  $("#joinButton").disabled = true;
+  state.playerChannel?.unsubscribe();
+  state.playerChannel = null;
   setView(views.login, views.waiting, views.game);
+  if (state.roster.length) {
+    renderStudentChoices();
+    setJoinStep("name");
+  } else {
+    initializeJoinFlow();
+  }
 }
 
 function resetJoin(message) {
@@ -653,45 +689,75 @@ function resetJoin(message) {
   state.playerChannel?.unsubscribe();
   state.sessionChannel?.unsubscribe();
   state.presenceChannel?.unsubscribe();
-  Object.assign(state, { player: null, session: null, renderedActivity: null, attempts: [] });
-  retryJoin();
+  stopCamera();
+  Object.assign(state, {
+    joinStep: "code", joinBusy: false,
+    roomCode: "", roster: [], sessionInfo: null, student: null,
+    selfieBlob: null, selfieDataUrl: "", selfiePath: "",
+    player: null, session: null, playerChannel: null, sessionChannel: null,
+    presenceChannel: null, renderedActivity: null, attempts: [],
+  });
+  setView(views.login, views.waiting, views.game);
+  initializeJoinFlow();
 }
 
 async function restoreSession() {
   const savedText = sessionStorage.getItem("thaiGameJoin");
-  if (!savedText) return;
+  if (!savedText) return false;
   try {
     const saved = JSON.parse(savedText);
     const { data: auth } = await supabase.auth.getSession();
-    if (!auth.session) return;
+    if (!auth.session) return false;
     const { data: player } = await supabase.from("session_players").select("*").eq("id", saved.playerId).maybeSingle();
-    if (!player) return;
+    if (!player) return false;
     const { data: roster } = await supabase.rpc("get_open_session_roster", { p_room_code: saved.roomCode });
     state.roomCode = saved.roomCode;
     state.player = player;
     state.roster = roster || [];
-    state.sessionInfo = state.roster[0] || null;
+    state.sessionInfo = state.roster[0] || saved.sessionInfo || null;
     state.student = state.roster.find(item => item.student_id === player.student_id) || saved.student;
     state.selfieDataUrl = saved.selfieDataUrl || "";
     subscribeToPlayer();
+    return true;
   } catch {
     sessionStorage.removeItem("thaiGameJoin");
+    return false;
   }
 }
 
-$("#roomCode").value = roomCodeFromUrl();
+$("#joinForm").addEventListener("submit", event => { event.preventDefault(); findRoom(); });
 $("#findRoomButton").addEventListener("click", findRoom);
-$("#roomCode").addEventListener("input", event => { event.target.value = normalizeRoomCode(event.target.value); });
-$("#studentSelect").addEventListener("change", updateJoinAvailability);
-$("#openCameraButton").addEventListener("click", openCamera);
-$("#captureButton").addEventListener("click", captureSelfie);
-$("#retakeButton").addEventListener("click", openCamera);
-$("#photoFallbackButton").addEventListener("click", () => $("#cameraFileInput").click());
-$("#cameraFileInput").addEventListener("change", usePhotoFile);
-$("#joinForm").addEventListener("submit", submitJoin);
+$("#roomCode").addEventListener("input", event => {
+  event.target.value = normalizeRoomCode(event.target.value);
+  setStepStatus($("#codeStatus"), "");
+  clearTimeout(roomLookupTimer);
+  if (event.target.value.length === 6) roomLookupTimer = window.setTimeout(findRoom, 350);
+});
+$("#backToCodeButton").addEventListener("click", () => {
+  setJoinStep("code");
+  window.setTimeout(() => $("#roomCode").focus(), 100);
+});
+$("#backToNamesButton").addEventListener("click", () => setJoinStep("name"));
+$("#retryCameraButton").addEventListener("click", openCamera);
+$("#captureAndSendButton").addEventListener("click", captureAndSend);
 $("#retryJoinButton").addEventListener("click", retryJoin);
 window.addEventListener("online", connectionUpdate);
 window.addEventListener("offline", connectionUpdate);
 window.addEventListener("beforeunload", stopCamera);
-connectionUpdate();
-restoreSession();
+
+async function initializeStudentPage() {
+  connectionUpdate();
+  const restored = await restoreSession();
+  if (!restored) await initializeJoinFlow();
+}
+
+async function initializeJoinFlow() {
+  setJoinStep("code");
+  const code = normalizeRoomCode(roomCodeFromUrl());
+  $("#roomCode").value = code;
+  setStepStatus($("#codeStatus"), "");
+  if (code.length === 6) await findRoom();
+  else window.setTimeout(() => $("#roomCode").focus(), 100);
+}
+
+initializeStudentPage();

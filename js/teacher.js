@@ -160,6 +160,7 @@ async function showLiveSession() {
   hide($("#sessionSetup"));
   show($("#liveSession"));
   $("#liveRoomCode").textContent = state.session.room_code;
+  await renderStudentAccess();
   $("#openDisplayButton").href = `display.html?room=${state.session.room_code}`;
   $("#pauseSessionButton").textContent = state.session.status === "paused" ? "เล่นต่อ" : "พักเกม";
   renderActivityControls();
@@ -167,6 +168,34 @@ async function showLiveSession() {
   subscribePresence();
   subscribeDisplay();
   await refreshSessionData();
+}
+
+function studentJoinUrl() {
+  const url = new URL("student.html", location.href);
+  url.searchParams.set("room", state.session.room_code);
+  return url.href;
+}
+
+async function renderStudentAccess() {
+  const url = studentJoinUrl();
+  $("#openStudentJoinButton").href = url;
+  const image = $("#studentJoinQr");
+  const frame = image.closest(".session-qr-frame");
+  frame.dataset.state = "loading";
+  image.removeAttribute("src");
+  try {
+    const { default: QRCode } = await import("https://cdn.jsdelivr.net/npm/qrcode@1.5.4/+esm");
+    image.src = await QRCode.toDataURL(url, {
+      errorCorrectionLevel: "M",
+      width: 320,
+      margin: 1,
+      color: { dark: "#17203b", light: "#ffffff" },
+    });
+    frame.dataset.state = "ready";
+  } catch {
+    frame.dataset.state = "error";
+    toast("สร้าง QR ไม่สำเร็จ ยังใช้รหัสห้องหรือลิงก์ได้ตามปกติ", "warning");
+  }
 }
 
 function renderActivityControls() {
@@ -508,6 +537,7 @@ $("#approveAllButton").addEventListener("click", approveAll);
 $("#pauseSessionButton").addEventListener("click", togglePause);
 $("#closeSessionButton").addEventListener("click", closeSession);
 $("#copyRoomCode").addEventListener("click", async () => { await navigator.clipboard.writeText(state.session.room_code); toast("คัดลอกรหัสห้องแล้ว", "success"); });
+$("#copyStudentLink").addEventListener("click", async () => { await navigator.clipboard.writeText(studentJoinUrl()); toast("คัดลอกลิงก์นักเรียนแล้ว", "success"); });
 $("#returnForm").addEventListener("submit", returnPlayer);
 $("#cancelReturn").addEventListener("click", () => hide($("#returnDialog")));
 $("#exportCsvButton").addEventListener("click", exportCurrentReport);

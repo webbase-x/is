@@ -141,6 +141,53 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .camera-placeholder span { font-size: 50px; }
 .camera-help { min-height: 20px; text-align: center; }
 .camera-actions { justify-content: center; margin: 14px 0; }
+
+/* ขั้นตอนเข้าห้องสำหรับเด็กประถมต้น */
+.student-page { background: radial-gradient(circle at 12% 14%, rgba(75,183,233,.14), transparent 28%), radial-gradient(circle at 88% 80%, rgba(91,75,219,.12), transparent 30%), var(--canvas); }
+.student-onboarding { width: min(820px, 100%); margin: 0 auto; padding: 32px 20px 70px; }
+.student-progress { margin-bottom: 15px; padding: 16px 20px; border-radius: 20px; background: white; border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(33,40,83,.05); }
+.student-progress-copy { display: flex; align-items: center; gap: 13px; }
+.student-progress-copy > span { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; border-radius: 16px; color: white; background: var(--purple); font-size: 24px; font-weight: 900; }
+.student-progress-copy small, .student-progress-copy strong { display: block; }
+.student-progress-copy small { color: var(--muted); font-size: 12px; margin-bottom: 1px; }
+.student-progress-copy strong { font-size: 19px; }
+.student-progress-track { height: 8px; margin-top: 13px; overflow: hidden; border-radius: 99px; background: #ebeaf4; }
+.student-progress-track i { display: block; width: 33.333%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--sky), var(--purple)); transition: width .3s ease; }
+.student-step-card { padding: clamp(22px, 5vw, 42px); overflow: hidden; }
+.join-step { min-height: 480px; animation: student-step-in .22s ease both; }
+@keyframes student-step-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+.student-step-heading { max-width: 600px; margin: 5px auto 26px; text-align: center; }
+.student-step-heading > span { display: block; font-size: 57px; line-height: 1; margin-bottom: 12px; }
+.student-step-heading h1 { margin-bottom: 6px; font-size: clamp(29px, 6vw, 40px); line-height: 1.25; }
+.student-step-heading p { margin-bottom: 0; color: var(--muted); font-size: 17px; }
+.student-choice-grid, .student-name-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.student-choice-grid-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.student-choice-button { min-height: 92px; padding: 16px 18px; border: 2px solid #dedfed; border-radius: 20px; color: var(--ink); background: white; cursor: pointer; box-shadow: 0 6px 15px rgba(38,43,79,.04); transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease; }
+.student-choice-button:hover { transform: translateY(-2px); border-color: var(--purple); background: var(--purple-soft); box-shadow: 0 10px 22px rgba(91,75,219,.12); }
+.student-choice-button:active { transform: scale(.98); }
+.student-choice-button strong, .student-choice-button small { display: block; }
+.student-choice-button strong { font-size: 21px; line-height: 1.35; }
+.student-choice-button small { margin-top: 5px; color: var(--muted); font-size: 13px; }
+.student-choice-short { min-height: 105px; }
+.student-choice-short strong { font-size: 30px; }
+.student-name-button { min-height: 78px; }
+.student-name-button strong { font-size: 20px; }
+.student-code-label { margin: 0 0 9px; text-align: center; font-size: 15px; }
+.student-room-code { width: min(520px, 100%); min-height: 88px; margin: 0 auto 14px; display: block; border: 3px solid #d9d7ef; border-radius: 22px; background: #fbfbff; font-size: clamp(34px, 8vw, 48px); letter-spacing: .34em; box-shadow: inset 0 2px 6px rgba(33,40,83,.04); }
+.student-room-code:focus { border-color: var(--purple); background: white; box-shadow: 0 0 0 6px rgba(91,75,219,.11); }
+.student-next-button { min-height: 68px; width: min(520px, 100%); margin: 0 auto; border-radius: 20px; font-size: 21px; }
+.student-scan-hint { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 22px 0 0; color: var(--muted); text-align: center; font-size: 13px; }
+.student-scan-hint span { color: var(--purple); font-size: 22px; font-weight: 900; }
+.student-back-button { min-height: 42px; margin: -7px 0 14px; padding: 8px 12px; border: 0; border-radius: 12px; color: #4f48a8; background: var(--purple-soft); cursor: pointer; font-weight: 800; }
+.student-step-status { margin: 20px 0 0; padding: 15px; border-radius: 14px; color: var(--muted); background: var(--canvas); text-align: center; font-weight: 700; }
+.student-step-status[data-tone="loading"] { color: #356d8a; background: #e8f7ff; }
+.student-step-status[data-tone="warning"] { color: #8a631e; background: var(--amber-soft); }
+.student-step-status[data-tone="error"] { color: #a44343; background: var(--coral-soft); }
+.camera-step-heading { margin-bottom: 18px; }
+.camera-step-heading > span { font-size: 46px; }
+.student-live-camera { max-height: none; margin: 0 auto; border: 4px solid white; box-shadow: 0 12px 30px rgba(33,40,83,.12); }
+.student-capture-button { min-height: 72px; margin-top: 12px; border-radius: 20px; font-size: 22px; }
+.student-privacy-note { margin: 14px 0 0; color: var(--muted); text-align: center; font-size: 12px; line-height: 1.55; }
 .centered-view { min-height: calc(100vh - 78px); padding: 30px; display: grid; place-items: center; }
 .waiting-card { position: relative; width: min(520px, 100%); padding: 50px 38px 40px; text-align: center; overflow: hidden; }
 .selfie-badge { position: relative; width: 125px; height: 125px; margin: 0 auto 22px; }
@@ -179,7 +226,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .empty-stage h2 { font-size: 30px; margin: 16px 0 5px; }
 .empty-stage p { color: var(--muted); }
 
-.teacher-header { position: relative; background: #17203b; border: 0; }
+.teacher-header { position: sticky; background: #17203b; border: 0; }
 .teacher-login { min-height: calc(100vh - 78px); display: grid; place-items: center; padding: 35px; background: radial-gradient(circle at 20% 10%, rgba(91,75,219,.16), transparent 35%), var(--canvas); }
 .teacher-login-card { width: min(460px, 100%); }
 .teacher-login-card .big-icon { display: block; font-size: 52px; margin-bottom: 15px; }
@@ -188,7 +235,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .forgot-password-link:hover { text-decoration: underline; }
 .reset-intro { color: var(--muted); line-height: 1.65; text-align: center; }
 .dashboard-shell { min-height: calc(100vh - 78px); display: grid; grid-template-columns: 240px 1fr; }
-.dashboard-sidebar { background: #202a4b; color: white; padding: 24px 16px; }
+.dashboard-sidebar { position: sticky; top: 78px; align-self: start; height: calc(100vh - 78px); background: #202a4b; color: white; padding: 24px 16px; }
 .teacher-profile { display: flex; align-items: center; gap: 10px; padding: 12px; margin-bottom: 25px; }
 .teacher-profile > span { width: 43px; height: 43px; display: grid; place-items: center; border-radius: 13px; background: #6757e6; font-weight: 900; }
 .teacher-profile small { display: block; color: #adb6d5; }
@@ -197,7 +244,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .dashboard-sidebar nav button.active { color: white; background: rgba(255,255,255,.10); }
 .dashboard-sidebar nav button span { margin-right: 8px; }
 .dashboard-main { min-width: 0; padding: 34px clamp(20px,3.5vw,52px) 60px; }
-.dashboard-panel { display: none; }
+.dashboard-panel { display: none; max-width: 1500px; margin: 0 auto; }
 .dashboard-panel.active { display: block; }
 .dashboard-heading, .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .dashboard-heading { margin-bottom: 24px; }
@@ -210,7 +257,22 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .form-grid.four { grid-template-columns: repeat(4, 1fr); }
 .form-grid.two { grid-template-columns: repeat(2, 1fr); }
 .session-setup > .button { margin-top: 18px; }
-.session-summary-grid { display: grid; grid-template-columns: 1.3fr repeat(3, 1fr); gap: 13px; margin-bottom: 18px; }
+.session-access-panel { display: grid; grid-template-columns: minmax(0, 1fr) 290px; align-items: center; gap: clamp(22px, 4vw, 48px); margin-bottom: 18px; padding: clamp(24px, 4vw, 38px); background: linear-gradient(135deg, #ffffff 0%, #f7f5ff 100%); border-color: #dedaf7; box-shadow: 0 16px 40px rgba(57,48,135,.10); }
+.session-access-copy h2 { margin: 0 0 8px; font-size: clamp(26px, 3vw, 38px); }
+.session-access-copy > p { max-width: 720px; margin-bottom: 22px; color: var(--muted); line-height: 1.65; }
+.teacher-room-code { display: inline-flex; align-items: baseline; gap: 18px; min-width: min(390px, 100%); margin-bottom: 18px; padding: 15px 20px; border-radius: 18px; color: white; background: #202a4b; box-shadow: 0 10px 25px rgba(32,42,75,.18); }
+.teacher-room-code small { color: #c6cce0; font-weight: 700; }
+.teacher-room-code strong { font-size: clamp(30px, 4vw, 44px); letter-spacing: .18em; line-height: 1; }
+.session-access-actions { align-items: stretch; }
+.session-qr-card { text-align: center; }
+.session-qr-card > strong, .session-qr-card > small { display: block; }
+.session-qr-card > strong { margin-top: 12px; font-size: 17px; }
+.session-qr-card > small { margin-top: 3px; color: var(--muted); }
+.session-qr-frame { position: relative; width: min(260px, 100%); aspect-ratio: 1; margin: 0 auto; padding: 10px; border-radius: 24px; background: white; border: 1px solid var(--line); box-shadow: 0 16px 32px rgba(33,40,83,.12); }
+.session-qr-frame img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 14px; }
+.session-qr-frame[data-state="loading"]::before { content: "กำลังสร้าง QR..."; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-weight: 800; }
+.session-qr-frame[data-state="error"]::before { content: "ใช้รหัสห้องแทนได้"; position: absolute; inset: 10px; display: grid; place-items: center; border-radius: 15px; color: #9a4a4a; background: var(--coral-soft); font-weight: 800; }
+.session-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; margin-bottom: 18px; }
 .room-code-card, .metric-card { min-height: 98px; padding: 18px; display: flex; align-items: center; gap: 13px; }
 .room-code-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
 .room-code-card small, .metric-card small { color: var(--muted); display: block; }
@@ -352,7 +414,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .role-grid { grid-template-columns: 1fr; max-width: 650px; }
   .role-card { min-height: 210px; }
   .form-grid.four { grid-template-columns: repeat(2,1fr); }
-  .session-summary-grid { grid-template-columns: repeat(2,1fr); }
+  .session-access-panel { grid-template-columns: minmax(0,1fr) 240px; }
+  .session-summary-grid { grid-template-columns: repeat(3,1fr); }
   .teacher-grid { grid-template-columns: 1fr; }
   .plan-timeline { grid-template-columns: repeat(2,1fr); }
   .display-board { grid-template-columns: 1fr 320px; }
@@ -374,6 +437,24 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .auth-intro h1 { font-size: 35px; }
   .step-dots { margin-left: auto; margin-right: auto; }
   .auth-panel { padding: 22px; }
+  .student-onboarding { padding: 16px 11px 45px; }
+  .student-progress { padding: 12px 14px; border-radius: 16px; }
+  .student-progress-copy > span { width: 42px; height: 42px; flex-basis: 42px; border-radius: 13px; font-size: 21px; }
+  .student-progress-copy strong { font-size: 17px; }
+  .student-step-card { padding: 20px 15px 26px; border-radius: 20px; }
+  .join-step { min-height: 430px; }
+  .student-step-heading { margin-bottom: 20px; }
+  .student-step-heading > span { font-size: 48px; }
+  .student-step-heading h1 { font-size: 29px; }
+  .student-step-heading p { font-size: 15px; }
+  .student-choice-grid, .student-name-grid { grid-template-columns: 1fr; gap: 10px; }
+  .student-choice-grid-compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .student-choice-button { min-height: 76px; padding: 13px; border-radius: 17px; }
+  .student-choice-button strong { font-size: 19px; }
+  .student-choice-short { min-height: 88px; }
+  .student-choice-short strong { font-size: 27px; }
+  .student-live-camera { border-radius: 16px; }
+  .student-capture-button { min-height: 68px; font-size: 20px; }
   .game-view { grid-template-columns: 1fr; }
   .journey-panel { padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .journey-panel nav { grid-column: 1 / -1; }
@@ -388,13 +469,22 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .game-canvas, .empty-stage { min-height: 500px; }
   .dashboard-shell { grid-template-columns: 1fr; }
   .dashboard-sidebar { padding: 8px; position: sticky; top: 68px; z-index: 20; }
+  .dashboard-sidebar { height: auto; }
   .teacher-profile { display: none; }
   .dashboard-sidebar nav { display: flex; overflow-x: auto; }
   .dashboard-sidebar nav button { white-space: nowrap; }
   .dashboard-main { padding: 24px 13px 50px; }
   .dashboard-heading { align-items: stretch; flex-direction: column; }
   .dashboard-heading h1 { font-size: 29px; }
-  .form-grid.four, .form-grid.two, .session-summary-grid, .teacher-grid.equal { grid-template-columns: 1fr; }
+  .session-access-panel { grid-template-columns: 1fr; text-align: center; padding: 22px 16px; }
+  .session-access-copy > p { margin-left: auto; margin-right: auto; }
+  .teacher-room-code { justify-content: center; }
+  .session-access-actions { justify-content: center; }
+  .session-access-actions .button { flex: 1 1 190px; }
+  .session-qr-card { order: -1; }
+  .session-qr-frame { width: min(220px, 70vw); }
+  .form-grid.four, .form-grid.two, .teacher-grid.equal { grid-template-columns: 1fr; }
+  .session-summary-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .plan-timeline { grid-template-columns: 1fr; }
   .player-row { grid-template-columns: 45px 1fr; }
   .player-row-actions { grid-column: 1 / -1; justify-content: flex-end; }
@@ -406,6 +496,36 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .leaderboard-panel { border: 0; }
   .choice-grid, .sort-area { grid-template-columns: 1fr; }
   .word-bank { grid-column: 1; }
+}
+
+@media (max-width: 520px) {
+  .session-summary-grid { grid-template-columns: 1fr; }
+  .metric-card { min-height: 82px; }
+  .teacher-room-code { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .teacher-room-code strong { letter-spacing: .12em; }
+  .student-room-code { min-height: 76px; border-radius: 18px; letter-spacing: .25em; }
+}
+
+@media (max-height: 620px) and (orientation: landscape) {
+  .student-page .app-header { min-height: 52px; padding-top: 5px; padding-bottom: 5px; }
+  .student-page .brand-mark { width: 36px; height: 36px; font-size: 19px; }
+  .student-onboarding { padding-top: 7px; padding-bottom: 18px; }
+  .student-progress { margin-bottom: 7px; padding: 7px 12px; }
+  .student-progress-copy > span { width: 34px; height: 34px; flex-basis: 34px; font-size: 18px; }
+  .student-progress-copy small { display: none; }
+  .student-progress-track { height: 5px; margin-top: 6px; }
+  .student-step-card { padding: 10px 24px 14px; }
+  .join-step { min-height: 0; }
+  .student-step-heading { margin-bottom: 8px; }
+  .student-step-heading > span { display: none; }
+  .student-step-heading h1 { margin-bottom: 2px; font-size: 25px; }
+  .student-step-heading p { font-size: 13px; }
+  .student-code-label { display: none; }
+  .student-room-code { min-height: 58px; margin-bottom: 8px; font-size: 32px; }
+  .student-next-button { min-height: 50px; font-size: 18px; }
+  .student-scan-hint { margin-top: 8px; }
+  .student-live-camera { width: min(62vh, 520px); }
+  .student-capture-button { width: min(520px,100%); margin-left: auto; margin-right: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

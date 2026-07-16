@@ -14,48 +14,45 @@
   </header>
 
   <main class="app-shell student-shell">
-    <section id="loginView" class="view auth-view">
-      <div class="auth-intro">
-        <span class="eyebrow">เตรียมตัวออกเดินทาง</span>
-        <h1>สวัสดีนักผจญภัยตัวน้อย!</h1>
-        <p>กรอกรหัสห้อง แล้วเลือกชื่อของตนเองให้ถูกต้อง</p>
-        <div class="step-dots" aria-label="ขั้นตอนเข้าสู่เกม"><span class="active">1</span><i></i><span>2</span><i></i><span>3</span></div>
+    <section id="loginView" class="view student-onboarding">
+      <div class="student-progress" aria-live="polite">
+        <div class="student-progress-copy">
+          <span id="joinStepNumber">1</span>
+          <div><small>ทำทีละขั้นนะ</small><strong id="joinStepLabel">ใส่รหัสห้อง</strong></div>
+        </div>
+        <div class="student-progress-track" aria-hidden="true"><i id="joinProgressBar"></i></div>
       </div>
 
-      <form id="joinForm" class="panel auth-panel">
-        <div class="form-section">
-          <label for="roomCode">รหัสห้องเรียน 6 ตัว</label>
-          <input id="roomCode" name="roomCode" class="room-code-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" required>
-          <button type="button" id="findRoomButton" class="button button-secondary full">ค้นหาห้องเรียน</button>
-        </div>
+      <form id="joinForm" class="panel student-step-card">
+        <section id="codeStep" class="join-step" data-step="code">
+          <div class="student-step-heading"><span>🔐</span><h1>ใส่รหัสห้องเรียน</h1><p>ดูเลข 6 ตัวจากจอของคุณครู</p></div>
+          <label class="student-code-label" for="roomCode">รหัสห้องเรียน 6 ตัว</label>
+          <input id="roomCode" name="roomCode" class="room-code-input student-room-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" required>
+          <button type="button" id="findRoomButton" class="button button-primary student-next-button full">ไปต่อ</button>
+          <p id="codeStatus" class="student-step-status hidden" aria-live="polite"></p>
+          <p class="student-scan-hint"><span>▦</span> ถ้าสแกน QR จากจอครู หน้านี้จะข้ามให้อัตโนมัติ</p>
+        </section>
 
-        <div id="rosterFields" class="form-section hidden">
-          <div class="room-found" id="roomFound"></div>
-          <label for="schoolSelect">โรงเรียน</label>
-          <select id="schoolSelect" disabled><option>กำลังโหลด...</option></select>
-          <label for="studentSelect">ชื่อของฉัน</label>
-          <select id="studentSelect" required><option value="">เลือกชื่อ</option></select>
-        </div>
+        <section id="nameStep" class="join-step hidden" data-step="name">
+          <button type="button" id="backToCodeButton" class="student-back-button">← ใส่รหัสใหม่</button>
+          <div class="student-step-heading"><span>🙋</span><h1>ชื่อของหนูคือชื่อไหน?</h1><p id="selectedClassName">แตะชื่อของหนูเพียงครั้งเดียว</p></div>
+          <div id="studentChoices" class="student-name-grid"></div>
+          <p id="nameStatus" class="student-step-status hidden"></p>
+        </section>
 
-        <div id="cameraFields" class="form-section hidden">
-          <label>รูปยืนยันตัวตนในคาบนี้</label>
-          <p class="field-help">รูปนี้มีไว้ให้ครูตรวจสอบ และจะถูกลบเมื่อปิดคาบ</p>
-          <div class="camera-frame">
+        <section id="cameraStep" class="join-step hidden" data-step="camera">
+          <button type="button" id="backToNamesButton" class="student-back-button">← เลือกชื่อใหม่</button>
+          <div class="student-step-heading camera-step-heading"><span>📷</span><h1>มองกล้องแล้วยิ้ม</h1><p><strong id="cameraStudentName">—</strong> ห้อง <span id="cameraClassName">—</span></p></div>
+          <div class="camera-frame student-live-camera">
             <video id="cameraVideo" class="hidden" autoplay playsinline muted></video>
             <canvas id="cameraCanvas" hidden></canvas>
-            <img id="selfiePreview" alt="รูปเซลฟี่ที่ถ่าย" class="hidden">
-            <div id="cameraPlaceholder" class="camera-placeholder"><span>📷</span><p>กดเปิดกล้องเพื่อถ่ายรูป</p></div>
+            <div id="cameraPlaceholder" class="camera-placeholder"><span>📷</span><p>กำลังเปิดกล้องสด...</p></div>
           </div>
-          <p id="cameraHelp" class="field-help camera-help">หากกล้องสดเปิดไม่ได้ สามารถกด “ถ่าย/เลือกรูปแทน” ได้</p>
-          <input id="cameraFileInput" type="file" accept="image/*" capture="user" hidden>
-          <div class="camera-actions">
-            <button type="button" id="openCameraButton" class="button button-ghost">เปิดกล้องสด</button>
-            <button type="button" id="photoFallbackButton" class="button button-ghost">ถ่าย/เลือกรูปแทน</button>
-            <button type="button" id="captureButton" class="button button-secondary hidden">ถ่ายรูป</button>
-            <button type="button" id="retakeButton" class="button button-ghost hidden">ถ่ายใหม่</button>
-          </div>
-          <button type="submit" id="joinButton" class="button button-primary button-large full" disabled>ส่งให้ครูตรวจสอบ</button>
-        </div>
+          <p id="cameraHelp" class="field-help camera-help">เมื่อเห็นหน้าของหนูแล้ว กดปุ่มสีม่วงเพียงครั้งเดียว</p>
+          <button type="button" id="retryCameraButton" class="button button-ghost button-large full hidden">ลองเปิดกล้องอีกครั้ง</button>
+          <button type="button" id="captureAndSendButton" class="button button-primary student-capture-button full hidden">📸 ถ่ายรูปและส่งเลย</button>
+          <p class="student-privacy-note">รูปสดนี้ให้ครูตรวจสอบเท่านั้น และจะลบเมื่อจบคาบ</p>
+        </section>
       </form>
     </section>
 
