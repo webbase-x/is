@@ -30,6 +30,13 @@ select public.grant_teacher(
 
 บัญชีครูคนแรกควรเป็น `admin` เพื่อสร้างโรงเรียนและห้อง ป.1/1–ป.6/4 ได้ หลังจากนั้นสามารถสร้างบัญชีครูแบบ `teacher` และกำหนดห้องรับผิดชอบในตาราง `teacher_class_assignments`
 
+## ตั้งค่าการกู้รหัสผ่านครู
+
+1. ไปที่ **Authentication → URL Configuration** ใน Supabase Dashboard
+2. ตั้ง **Site URL** เป็น `https://webbase-x.github.io/is/`
+3. เพิ่ม **Redirect URL** เป็น `https://webbase-x.github.io/is/reset-password.html`
+4. ครูสามารถกด **ลืมรหัสผ่าน?** ที่หน้าเข้าสู่ระบบ เพื่อรับอีเมลและตั้งรหัสใหม่ได้
+
 ## เตรียมรายชื่อนักเรียน
 
 ครูเพิ่มรายชื่อทีละคน หรือนำเข้าไฟล์ Excel/CSV ได้ โดยใช้หัวคอลัมน์ต่อไปนี้:

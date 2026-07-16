@@ -183,6 +183,9 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .teacher-login-card { width: min(460px, 100%); }
 .teacher-login-card .big-icon { display: block; font-size: 52px; margin-bottom: 15px; }
 .teacher-login-card h1 { font-size: 34px; }
+.forgot-password-link { display: block; width: fit-content; margin: 14px auto 0; color: var(--purple); font-weight: 800; text-decoration: none; }
+.forgot-password-link:hover { text-decoration: underline; }
+.reset-intro { color: var(--muted); line-height: 1.65; text-align: center; }
 .dashboard-shell { min-height: calc(100vh - 78px); display: grid; grid-template-columns: 240px 1fr; }
 .dashboard-sidebar { background: #202a4b; color: white; padding: 24px 16px; }
 .teacher-profile { display: flex; align-items: center; gap: 10px; padding: 12px; margin-bottom: 25px; }
