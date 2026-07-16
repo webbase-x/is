@@ -126,13 +126,27 @@
               </section>
 
               <section class="teacher-flow-step hidden" data-flow-step="lobby">
-                <div class="flow-section-heading"><div><span class="eyebrow">ขั้นที่ 3 จาก 6</span><h2>ตรวจและอนุมัตินักเรียน</h2><p id="lobbySummary">ยังไม่มีนักเรียน</p></div><button id="approveAllButton" class="button button-success">✓ อนุมัติทั้งหมด</button></div>
+                <div class="flow-section-heading lobby-heading"><div><span class="eyebrow">ขั้นที่ 3 จาก 6</span><h2>ตรวจและอนุมัตินักเรียน</h2><p id="lobbySummary">ยังไม่มีนักเรียน</p></div><button id="approveAllButton" class="button button-success" type="button">✓ อนุมัติทั้งหมดในหน้านี้</button></div>
                 <div class="session-summary-grid flow-metrics">
                   <div class="panel metric-card"><span>👥</span><div><small>ออนไลน์</small><strong id="onlineCount">0</strong></div></div>
                   <div class="panel metric-card"><span>⏳</span><div><small>รอตรวจ</small><strong id="waitingCount">0</strong></div></div>
                   <div class="panel metric-card"><span>✅</span><div><small>อนุมัติแล้ว</small><strong id="approvedCount">0</strong></div></div>
                 </div>
-                <div id="playerList" class="player-list flow-player-list"></div>
+                <div class="lobby-view-toolbar">
+                  <div class="lobby-size-control" role="group" aria-label="ปรับขนาดรูปและข้อมูลนักเรียน">
+                    <span>ขนาดรูป/ข้อมูล</span>
+                    <button id="lobbyZoomOutButton" class="lobby-tool-button" type="button" aria-label="ย่อขนาดรูปและข้อมูล" title="ย่อขนาด">−</button>
+                    <output id="lobbyZoomLabel" aria-live="polite">พอดีอัตโนมัติ</output>
+                    <button id="lobbyZoomInButton" class="lobby-tool-button" type="button" aria-label="ขยายขนาดรูปและข้อมูล" title="ขยายขนาด">+</button>
+                  </div>
+                  <div id="lobbyPageSummary" class="lobby-page-summary" role="status" aria-live="polite">หน้า 1/1</div>
+                </div>
+                <div id="playerList" class="player-list flow-player-list" data-size="normal"></div>
+                <nav id="lobbyPagination" class="lobby-pagination hidden" aria-label="เปลี่ยนหน้ารายชื่อนักเรียน">
+                  <button id="lobbyPrevPageButton" class="button button-ghost" type="button">← หน้าก่อน</button>
+                  <strong id="lobbyPageIndicator">หน้า 1 จาก 1</strong>
+                  <button id="lobbyNextPageButton" class="button button-ghost" type="button">หน้าถัดไป →</button>
+                </nav>
                 <div class="flow-footer"><button id="lobbyBackButton" class="button button-ghost" type="button">← กลับไปหน้า QR</button><button id="lobbyNextButton" class="button button-primary button-large" type="button">ต่อไป: เลือกแผนการสอน →</button></div>
               </section>
 

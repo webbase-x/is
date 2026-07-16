@@ -21,6 +21,9 @@ const state = {
   rosterCounts: new Map(),
   flowStep: "class",
   selectedPlanId: null,
+  playerSelfieUrls: new Map(),
+  lobbyPage: 1,
+  lobbyZoomStep: 0,
 };
 
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
@@ -32,6 +35,14 @@ const FLOW_TITLES = {
   live: "ควบคุมเกมและผลแบบเรียลไทม์",
   summary: "สรุปผลคาบเรียน",
 };
+
+const LOBBY_LAYOUTS = [
+  { key: "overview", label: "ภาพรวม", minWidth: 108, rowHeight: 76 },
+  { key: "compact", label: "กะทัดรัด", minWidth: 160, rowHeight: 92 },
+  { key: "normal", label: "มาตรฐาน", minWidth: 250, rowHeight: 112 },
+  { key: "large", label: "ใหญ่", minWidth: 330, rowHeight: 138 },
+  { key: "xlarge", label: "ใหญ่มาก", minWidth: 420, rowHeight: 170 },
+];
 
 function connectionUpdate() {
   updateConnectionBadge($("#teacherConnection"), navigator.onLine, navigator.onLine ? "เชื่อมต่อแล้ว" : "ไม่มีอินเทอร์เน็ต");
@@ -59,6 +70,7 @@ function setTeacherFlowStep(step) {
   });
   $("#flowStepTitle").textContent = FLOW_TITLES[step];
   $("#flowContext").textContent = step === "class" ? "เริ่มจากโรงเรียนและห้องที่คุณครูรับผิดชอบ" : classContext();
+  if (step === "lobby") requestAnimationFrame(renderPlayerPage);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -503,23 +515,104 @@ async function selfieUrl(path) {
 }
 
 async function renderPlayers() {
+  const urls = await Promise.all(state.players.map(player => selfieUrl(player.selfie_path)));
+  state.playerSelfieUrls = new Map(state.players.map((player, index) => [player.id, urls[index]]));
+  renderPlayerPage();
+}
+
+function lobbyViewportMetrics() {
   const list = $("#playerList");
-  $("#lobbySummary").textContent = state.players.length ? `${state.players.length} คนเข้าห้องแล้ว` : "ยังไม่มีนักเรียน";
+  const pageWidth = document.documentElement.clientWidth || window.innerWidth || 1200;
+  const fallbackWidth = pageWidth > 760 ? pageWidth - 360 : pageWidth - 26;
+  return {
+    width: Math.max(list.clientWidth || fallbackWidth, 260),
+    height: Math.min(650, Math.max(320, (window.innerHeight || 800) * .48)),
+    gap: 10,
+  };
+}
+
+function lobbyCapacity(levelIndex) {
+  const layout = LOBBY_LAYOUTS[levelIndex];
+  const { width, height, gap } = lobbyViewportMetrics();
+  const columns = Math.max(1, Math.floor((width + gap) / (layout.minWidth + gap)));
+  const rows = Math.max(1, Math.floor((height + gap) / (layout.rowHeight + gap)));
+  return { columns, rows, pageSize: columns * rows };
+}
+
+function autoLobbyLevel() {
+  if (!state.players.length) return 2;
+  for (let index = LOBBY_LAYOUTS.length - 2; index >= 0; index -= 1) {
+    if (lobbyCapacity(index).pageSize >= state.players.length) return index;
+  }
+  return 0;
+}
+
+function lobbyView() {
+  const baseLevel = autoLobbyLevel();
+  const levelIndex = Math.min(baseLevel + state.lobbyZoomStep, LOBBY_LAYOUTS.length - 1);
+  const capacity = lobbyCapacity(levelIndex);
+  const isAutoFit = state.lobbyZoomStep === 0;
+  const pageSize = isAutoFit ? Math.max(state.players.length, 1) : capacity.pageSize;
+  const pageCount = Math.max(1, Math.ceil(state.players.length / pageSize));
+  state.lobbyPage = Math.min(Math.max(state.lobbyPage, 1), pageCount);
+  const start = (state.lobbyPage - 1) * pageSize;
+  return {
+    ...capacity,
+    baseLevel,
+    levelIndex,
+    layout: LOBBY_LAYOUTS[levelIndex],
+    isAutoFit,
+    pageSize,
+    pageCount,
+    start,
+    players: state.players.slice(start, start + pageSize),
+  };
+}
+
+function renderPlayerPage() {
+  const list = $("#playerList");
+  if (!list) return;
+  const view = lobbyView();
+  const end = Math.min(view.start + view.players.length, state.players.length);
+  const rangeText = state.players.length ? `แสดง ${view.start + 1}–${end} จาก ${state.players.length} คน` : "ยังไม่มีนักเรียน";
+
+  $("#lobbySummary").textContent = state.players.length ? `${state.players.length} คนเข้าห้องแล้ว · ${rangeText}` : "ยังไม่มีนักเรียน";
+  $("#lobbyZoomLabel").textContent = view.isAutoFit ? `${view.layout.label} · พอดีอัตโนมัติ` : view.layout.label;
+  $("#lobbyPageSummary").textContent = `${rangeText} · หน้า ${state.lobbyPage}/${view.pageCount}`;
+  $("#lobbyPageIndicator").textContent = `หน้า ${state.lobbyPage} จาก ${view.pageCount}`;
+  $("#lobbyZoomOutButton").disabled = state.lobbyZoomStep === 0;
+  $("#lobbyZoomInButton").disabled = view.levelIndex >= LOBBY_LAYOUTS.length - 1;
+  $("#lobbyPrevPageButton").disabled = state.lobbyPage <= 1;
+  $("#lobbyNextPageButton").disabled = state.lobbyPage >= view.pageCount;
+  $("#lobbyPagination").classList.toggle("hidden", view.pageCount <= 1);
+  list.dataset.size = view.layout.key;
+  list.dataset.allOnPage = String(view.isAutoFit && lobbyCapacity(view.levelIndex).pageSize < state.players.length);
+  list.style.setProperty("--lobby-columns", view.columns);
+  list.style.setProperty("--lobby-rows", view.rows);
+  list.style.setProperty("--lobby-row-height", `${view.layout.rowHeight}px`);
+
+  const pendingOnPage = view.players.filter(player => ["waiting", "returned"].includes(player.status));
+  const approveButton = $("#approveAllButton");
+  approveButton.disabled = pendingOnPage.length === 0;
+  approveButton.textContent = pendingOnPage.length ? `✓ อนุมัติ ${pendingOnPage.length} คนในหน้านี้` : "✓ หน้านี้อนุมัติครบแล้ว";
+
   if (!state.players.length) {
-    list.innerHTML = `<div class="empty-report" style="min-height:230px"><span>👋</span><h2>รอนักเรียนเข้าห้อง</h2><p>แสดงรหัส ${state.session.room_code} บนจอหน้าชั้น</p></div>`;
+    list.innerHTML = `<div class="empty-report"><span>👋</span><h2>รอนักเรียนเข้าห้อง</h2><p>แสดงรหัส ${state.session.room_code} บนจอหน้าชั้น</p></div>`;
     return;
   }
-  const urls = await Promise.all(state.players.map(player => selfieUrl(player.selfie_path)));
-  list.innerHTML = state.players.map((player, index) => {
+
+  list.innerHTML = view.players.map(player => {
     const student = player.student || {};
     const statusClass = `status-${player.status}`;
+    const fullName = escapeHtml(student.full_name || "ไม่พบชื่อ");
+    const selfie = state.playerSelfieUrls.get(player.id);
     return `<article class="player-row" data-player-id="${player.id}">
-      ${urls[index] ? `<img src="${urls[index]}" alt="รูปยืนยันตัวตนของ ${escapeHtml(student.full_name)}">` : `<span class="avatar-fallback">${escapeHtml(student.avatar || randomAvatar(student.nickname))}</span>`}
-      <div><strong>${escapeHtml(student.full_name || "ไม่พบชื่อ")}</strong><small>${escapeHtml(student.nickname || "")} · ${escapeHtml(student.student_code || "")}</small><span class="player-status ${statusClass}">${escapeHtml(playerStatusLabel(player.status))}</span>${player.return_reason ? `<small>${escapeHtml(player.return_reason)}</small>` : ""}</div>
+      ${selfie ? `<img src="${selfie}" alt="รูปยืนยันตัวตนของ ${fullName}">` : `<span class="avatar-fallback">${escapeHtml(student.avatar || randomAvatar(student.nickname))}</span>`}
+      <div class="player-info"><strong title="${fullName}">${fullName}</strong><small class="player-meta">${escapeHtml(student.nickname || "")} · ${escapeHtml(student.student_code || "")}</small><span class="player-status ${statusClass}">${escapeHtml(playerStatusLabel(player.status))}</span>${player.return_reason ? `<small class="player-return-reason">${escapeHtml(player.return_reason)}</small>` : ""}</div>
       <div class="player-row-actions">
-        ${player.status !== "approved" ? `<button class="button button-small button-success" data-action="approve">อนุมัติ</button>` : ""}
-        <button class="button button-small button-ghost" data-action="return">ส่งคืน</button>
-        <button class="button button-small button-danger" data-action="remove">นำออก</button>
+        ${player.status !== "approved" ? `<button class="button button-small button-success" data-action="approve" aria-label="อนุมัติ ${fullName}" title="อนุมัติ"><span aria-hidden="true">✓</span><span class="player-action-label">อนุมัติ</span></button>` : ""}
+        <button class="button button-small button-ghost" data-action="return" aria-label="ส่งคืน ${fullName}" title="ส่งคืน"><span aria-hidden="true">↩</span><span class="player-action-label">ส่งคืน</span></button>
+        <button class="button button-small button-danger" data-action="remove" aria-label="นำ ${fullName} ออกจากห้อง" title="นำออก"><span aria-hidden="true">×</span><span class="player-action-label">นำออก</span></button>
       </div>
     </article>`;
   }).join("");
@@ -585,9 +678,19 @@ async function approvePlayer(playerId) {
 }
 
 async function approveAll() {
-  const { error } = await supabase.from("session_players").update({ status: "approved", approved_at: new Date().toISOString(), return_reason: null }).eq("session_id", state.session.id).in("status", ["waiting", "returned"]);
-  if (error) toast(error.message, "error");
-  else toast("อนุมัตินักเรียนทั้งหมดแล้ว", "success");
+  const playerIds = lobbyView().players.filter(player => ["waiting", "returned"].includes(player.status)).map(player => player.id);
+  if (!playerIds.length) return toast("นักเรียนในหน้านี้ได้รับการอนุมัติครบแล้ว", "warning");
+  const button = $("#approveAllButton");
+  button.disabled = true;
+  const { error } = await supabase.from("session_players").update({ status: "approved", approved_at: new Date().toISOString(), return_reason: null }).eq("session_id", state.session.id).in("id", playerIds).in("status", ["waiting", "returned"]);
+  if (error) {
+    button.disabled = false;
+    toast(error.message, "error");
+  }
+  else {
+    toast(`อนุมัตินักเรียน ${playerIds.length} คนในหน้านี้แล้ว`, "success");
+    await refreshSessionData();
+  }
 }
 
 function openReturnDialog(playerId) {
@@ -627,6 +730,9 @@ async function closeSession() {
   state.players = [];
   state.attempts = [];
   state.leaderboard = [];
+  state.playerSelfieUrls = new Map();
+  state.lobbyPage = 1;
+  state.lobbyZoomStep = 0;
   hide($("#liveSession"));
   hide($("#resumeSessionView"));
   show($("#sessionSetup"));
@@ -806,6 +912,29 @@ $("#schoolSetupForm").addEventListener("submit", setupSchool);
 $("#manualStudentForm").addEventListener("submit", addStudent);
 $("#csvFile").addEventListener("change", handleImportFile);
 $("#approveAllButton").addEventListener("click", approveAll);
+$("#lobbyZoomOutButton").addEventListener("click", () => {
+  if (state.lobbyZoomStep <= 0) return;
+  state.lobbyZoomStep -= 1;
+  state.lobbyPage = 1;
+  renderPlayerPage();
+});
+$("#lobbyZoomInButton").addEventListener("click", () => {
+  const view = lobbyView();
+  if (view.levelIndex >= LOBBY_LAYOUTS.length - 1) return;
+  state.lobbyZoomStep += 1;
+  state.lobbyPage = 1;
+  renderPlayerPage();
+});
+$("#lobbyPrevPageButton").addEventListener("click", () => {
+  state.lobbyPage = Math.max(1, state.lobbyPage - 1);
+  renderPlayerPage();
+  $("#playerList").scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+$("#lobbyNextPageButton").addEventListener("click", () => {
+  state.lobbyPage = Math.min(lobbyView().pageCount, state.lobbyPage + 1);
+  renderPlayerPage();
+  $("#playerList").scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
 $("#pauseSessionButton").addEventListener("click", togglePause);
 $("#closeSessionButton").addEventListener("click", closeSession);
 $("#qrCloseButton").addEventListener("click", closeSession);
@@ -831,4 +960,11 @@ $("#attemptMode").addEventListener("change", event => { $("#maxAttempts").disabl
 $$('#dashboardNav button').forEach(button => button.addEventListener("click", () => switchPanel(button.dataset.panel)));
 window.addEventListener("online", connectionUpdate);
 window.addEventListener("offline", connectionUpdate);
+let lobbyResizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(lobbyResizeTimer);
+  lobbyResizeTimer = setTimeout(() => {
+    if (state.flowStep === "lobby") renderPlayerPage();
+  }, 120);
+});
 bootstrap();
