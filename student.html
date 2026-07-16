@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#5b4bdb">
+  <title>จอนักเรียน | คำไทยผจญภัย</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="student-page">
+  <header class="app-header">
+    <a class="brand compact" href="index.html"><span class="brand-mark">ก</span><span><strong>คำไทยผจญภัย</strong><small>จอนักเรียน</small></span></a>
+    <span class="status-pill" id="connectionStatus"><i></i> กำลังเชื่อมต่อ</span>
+  </header>
+
+  <main class="app-shell student-shell">
+    <section id="loginView" class="view auth-view">
+      <div class="auth-intro">
+        <span class="eyebrow">เตรียมตัวออกเดินทาง</span>
+        <h1>สวัสดีนักผจญภัยตัวน้อย!</h1>
+        <p>กรอกรหัสห้อง แล้วเลือกชื่อของตนเองให้ถูกต้อง</p>
+        <div class="step-dots" aria-label="ขั้นตอนเข้าสู่เกม"><span class="active">1</span><i></i><span>2</span><i></i><span>3</span></div>
+      </div>
+
+      <form id="joinForm" class="panel auth-panel">
+        <div class="form-section">
+          <label for="roomCode">รหัสห้องเรียน 6 ตัว</label>
+          <input id="roomCode" name="roomCode" class="room-code-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" required>
+          <button type="button" id="findRoomButton" class="button button-secondary full">ค้นหาห้องเรียน</button>
+        </div>
+
+        <div id="rosterFields" class="form-section hidden">
+          <div class="room-found" id="roomFound"></div>
+          <label for="schoolSelect">โรงเรียน</label>
+          <select id="schoolSelect" disabled><option>กำลังโหลด...</option></select>
+          <label for="studentSelect">ชื่อของฉัน</label>
+          <select id="studentSelect" required><option value="">เลือกชื่อ</option></select>
+        </div>
+
+        <div id="cameraFields" class="form-section hidden">
+          <label>รูปยืนยันตัวตนในคาบนี้</label>
+          <p class="field-help">รูปนี้มีไว้ให้ครูตรวจสอบ และจะถูกลบเมื่อปิดคาบ</p>
+          <div class="camera-frame">
+            <video id="cameraVideo" autoplay playsinline muted></video>
+            <canvas id="cameraCanvas" hidden></canvas>
+            <img id="selfiePreview" alt="รูปเซลฟี่ที่ถ่าย" class="hidden">
+            <div id="cameraPlaceholder" class="camera-placeholder"><span>📷</span><p>กดเปิดกล้องเพื่อถ่ายรูป</p></div>
+          </div>
+          <div class="camera-actions">
+            <button type="button" id="openCameraButton" class="button button-ghost">เปิดกล้อง</button>
+            <button type="button" id="captureButton" class="button button-secondary hidden">ถ่ายรูป</button>
+            <button type="button" id="retakeButton" class="button button-ghost hidden">ถ่ายใหม่</button>
+          </div>
+          <button type="submit" id="joinButton" class="button button-primary button-large full" disabled>ส่งให้ครูตรวจสอบ</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="waitingView" class="view centered-view hidden" aria-live="polite">
+      <div class="panel waiting-card">
+        <div class="selfie-badge"><img id="waitingSelfie" alt="รูปของนักเรียน"><span id="waitingAvatar">⭐</span></div>
+        <span class="waiting-pulse" aria-hidden="true"></span>
+        <h1 id="waitingTitle">รอครูอนุมัติ</h1>
+        <p id="waitingMessage">ครูเห็นชื่อและรูปของหนูแล้ว กรุณารอสักครู่นะ</p>
+        <div class="waiting-facts">
+          <span><small>ชื่อ</small><strong id="waitingName">—</strong></span>
+          <span><small>ห้อง</small><strong id="waitingClass">—</strong></span>
+        </div>
+        <button id="retryJoinButton" class="button button-secondary hidden">แก้ไขข้อมูลแล้วส่งใหม่</button>
+      </div>
+    </section>
+
+    <section id="gameView" class="view game-view hidden">
+      <aside class="journey-panel">
+        <div class="player-chip"><span id="playerAvatar">⭐</span><div><small>นักผจญภัย</small><strong id="playerName">—</strong></div></div>
+        <div class="score-chip"><span>★</span><div><small>คะแนนสะสม</small><strong id="playerScore">0</strong></div></div>
+        <nav aria-label="เส้นทางแผนที่ 1">
+          <h2>เส้นทางวันนี้</h2>
+          <ol id="activityTimeline" class="activity-timeline"></ol>
+        </nav>
+      </aside>
+      <section class="game-stage">
+        <div class="stage-topbar">
+          <div><span class="eyebrow" id="stageStep">ภารกิจ</span><h1 id="stageTitle">รอครูเริ่มกิจกรรม</h1></div>
+          <div class="stage-meta"><span id="attemptBadge">รอบฝึก</span><span id="timerBadge">--:--</span></div>
+        </div>
+        <div id="gameCanvas" class="game-canvas" aria-live="polite">
+          <div class="empty-stage"><span>🗺️</span><h2>เตรียมพร้อม!</h2><p>เมื่อครูเปิดภารกิจ เกมจะปรากฏตรงนี้</p></div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="js/student.js"></script>
+</body>
+</html>

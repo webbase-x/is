@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17203b">
+  <title>จอครู | คำไทยผจญภัย</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="teacher-page">
+  <header class="app-header teacher-header">
+    <a class="brand compact light" href="index.html"><span class="brand-mark">ก</span><span><strong>คำไทยผจญภัย</strong><small>จอควบคุมครู</small></span></a>
+    <div class="header-actions"><span class="status-pill dark" id="teacherConnection"><i></i> กำลังเชื่อมต่อ</span><button id="signOutButton" class="button button-small button-dark hidden">ออกจากระบบ</button></div>
+  </header>
+
+  <main>
+    <section id="teacherLoginView" class="teacher-login view">
+      <form id="teacherLoginForm" class="panel auth-panel teacher-login-card">
+        <span class="big-icon">🧑‍🏫</span>
+        <span class="eyebrow">สำหรับครูผู้สอน</span>
+        <h1>เข้าสู่จอควบคุม</h1>
+        <label for="teacherEmail">อีเมล</label>
+        <input id="teacherEmail" name="email" type="email" autocomplete="username" required>
+        <label for="teacherPassword">รหัสผ่าน</label>
+        <input id="teacherPassword" name="password" type="password" autocomplete="current-password" required>
+        <button class="button button-primary button-large full" type="submit">เข้าสู่ระบบ</button>
+        <p class="field-help">บัญชีครูต้องได้รับสิทธิ์จากผู้ดูแลระบบก่อน</p>
+      </form>
+    </section>
+
+    <section id="teacherDashboard" class="dashboard-shell hidden">
+      <aside class="dashboard-sidebar">
+        <div class="teacher-profile"><span>ค</span><div><small>ครูผู้สอน</small><strong id="teacherName">—</strong></div></div>
+        <nav id="dashboardNav">
+          <button class="active" data-panel="sessionPanel"><span>🎛️</span> ควบคุมคาบ</button>
+          <button data-panel="rosterPanel"><span>👥</span> รายชื่อนักเรียน</button>
+          <button data-panel="reportsPanel"><span>📊</span> คะแนนและรายงาน</button>
+          <button data-panel="plansPanel"><span>🗺️</span> แผนการเรียนรู้</button>
+        </nav>
+      </aside>
+
+      <div class="dashboard-main">
+        <section id="sessionPanel" class="dashboard-panel active">
+          <div class="dashboard-heading"><div><span class="eyebrow">คาบเรียนปัจจุบัน</span><h1>ศูนย์ควบคุมห้องเรียน</h1></div><button id="newSessionButton" class="button button-primary">+ เปิดคาบใหม่</button></div>
+
+          <form id="sessionSetup" class="panel session-setup">
+            <div class="panel-heading"><div><h2>ตั้งค่าคาบเรียน</h2><p>เปลี่ยนได้ทุกครั้งก่อนเปิดห้อง</p></div></div>
+            <div class="form-grid four">
+              <label>ห้องเรียน<select id="classSelect" required><option value="">เลือกห้อง</option></select></label>
+              <label>แผนการเรียนรู้<select id="planSelect" required></select></label>
+              <label>ประเภทการเล่น<select id="playMode"><option value="practice">รอบฝึก</option><option value="test">รอบทดสอบ</option><option value="real">รอบจริง</option></select></label>
+              <label>จำนวนครั้ง<select id="attemptMode"><option value="single">รอบเดียว</option><option value="limited">ซ้ำได้ตามจำนวน</option><option value="unlimited">ซ้ำได้ไม่จำกัด</option></select></label>
+              <label>จำนวนรอบสูงสุด<input id="maxAttempts" type="number" min="1" max="10" value="2"></label>
+              <label>เก็บคะแนน<select id="scorePolicy"><option value="first_and_best">ครั้งแรกและดีที่สุด</option><option value="first">ครั้งแรกเท่านั้น</option><option value="best">ดีที่สุดเท่านั้น</option><option value="latest">ครั้งล่าสุด</option></select></label>
+              <label>จอกระดานคะแนน<select id="leaderboardMode"><option value="nickname_avatar">ชื่อเล่นและอวตาร</option><option value="real_name">ชื่อจริง</option><option value="student_code">รหัสนักเรียน</option><option value="hidden">ไม่แสดงรายชื่อ</option></select></label>
+              <label>เกณฑ์ผ่าน<input id="passPercent" type="number" min="0" max="100" value="80"></label>
+            </div>
+            <button class="button button-primary" type="submit">สร้างรหัสห้องเรียน</button>
+          </form>
+
+          <div id="liveSession" class="hidden">
+            <div class="session-summary-grid">
+              <div class="panel room-code-card"><small>รหัสห้องเรียน</small><strong id="liveRoomCode">------</strong><button id="copyRoomCode" class="icon-button" aria-label="คัดลอกรหัส">⧉</button></div>
+              <div class="panel metric-card"><span>👥</span><div><small>นักเรียนออนไลน์</small><strong id="onlineCount">0</strong></div></div>
+              <div class="panel metric-card"><span>✅</span><div><small>อนุมัติแล้ว</small><strong id="approvedCount">0</strong></div></div>
+              <div class="panel metric-card"><span>⭐</span><div><small>คะแนนเฉลี่ย</small><strong id="averageScore">0%</strong></div></div>
+            </div>
+
+            <div class="teacher-grid">
+              <section class="panel lobby-panel">
+                <div class="panel-heading"><div><h2>ห้องรอ</h2><p id="lobbySummary">ยังไม่มีนักเรียน</p></div><div class="button-row"><button id="approveAllButton" class="button button-small button-success">อนุมัติทั้งหมด</button></div></div>
+                <div id="playerList" class="player-list"></div>
+              </section>
+
+              <section class="panel control-panel">
+                <div class="panel-heading"><div><h2>ไทม์ไลน์แผนที่ 1</h2><p id="currentActivityLabel">ยังไม่เริ่มกิจกรรม</p></div></div>
+                <div id="activityControls" class="activity-controls"></div>
+                <div class="session-actions">
+                  <button id="pauseSessionButton" class="button button-secondary">พักเกม</button>
+                  <a id="openDisplayButton" href="display.html" target="_blank" class="button button-ghost">เปิดจอฉาย</a>
+                  <button id="closeSessionButton" class="button button-danger">ปิดคาบและลบรูป</button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section id="rosterPanel" class="dashboard-panel">
+          <div class="dashboard-heading"><div><span class="eyebrow">โรงเรียนและห้องเรียน</span><h1>จัดการรายชื่อนักเรียน</h1></div></div>
+          <form id="schoolSetupForm" class="panel school-setup-panel">
+            <div class="panel-heading"><div><h2>ตั้งค่าโรงเรียน</h2><p>ระบบจะสร้างห้อง ป.1/1 ถึง ป.6/4 ให้อัตโนมัติ</p></div></div>
+            <div class="form-grid four">
+              <label>ชื่อโรงเรียน<input id="schoolName" required placeholder="ชื่อโรงเรียน"></label>
+              <label>รหัสย่อโรงเรียน<input id="schoolCode" required maxlength="20" placeholder="เช่น SCHOOL01"></label>
+              <label>ปีการศึกษา<input id="academicYear" type="number" min="2500" max="2700" value="2569" required></label>
+              <label>&nbsp;<button class="button button-secondary full" type="submit">สร้างโครงสร้าง 24 ห้อง</button></label>
+            </div>
+          </form>
+          <div class="teacher-grid equal">
+            <form id="manualStudentForm" class="panel">
+              <div class="panel-heading"><h2>เพิ่มรายชื่อด้วยตนเอง</h2></div>
+              <label>ห้องเรียน<select id="rosterClassSelect" required></select></label>
+              <div class="form-grid two"><label>เลขประจำตัว<input id="studentCode" required></label><label>ชื่อเล่น<input id="studentNickname" required></label></div>
+              <label>ชื่อ–นามสกุล<input id="studentFullName" required></label>
+              <button class="button button-primary" type="submit">เพิ่มนักเรียน</button>
+            </form>
+            <div class="panel import-panel">
+              <div class="panel-heading"><div><h2>นำเข้าจาก Excel/CSV</h2><p>รองรับไฟล์ CSV ที่ส่งออกจาก Excel</p></div></div>
+              <label class="file-drop" for="csvFile"><span>📄</span><strong>เลือกไฟล์ Excel หรือ CSV</strong><small>คอลัมน์: class, student_code, full_name, nickname</small></label>
+              <input id="csvFile" type="file" accept=".xlsx,.xls,.csv,text/csv" hidden>
+              <div id="importPreview" class="import-preview"></div>
+            </div>
+          </div>
+          <section class="panel roster-table-panel"><div class="panel-heading"><div><h2>รายชื่อในระบบ</h2><p id="rosterCount">0 คน</p></div></div><div class="table-wrap"><table><thead><tr><th>ห้อง</th><th>เลขประจำตัว</th><th>ชื่อ–นามสกุล</th><th>ชื่อเล่น</th><th>สถานะ</th></tr></thead><tbody id="rosterTableBody"></tbody></table></div></section>
+        </section>
+
+        <section id="reportsPanel" class="dashboard-panel">
+          <div class="dashboard-heading"><div><span class="eyebrow">ผลการเรียนรู้</span><h1>คะแนนและรายงาน</h1></div><button id="exportCsvButton" class="button button-secondary">ส่งออก CSV</button></div>
+          <div class="panel empty-report" id="reportContent"><span>📊</span><h2>เลือกคาบเรียนเพื่อดูรายงาน</h2><p>ระบบจะเก็บคะแนนครั้งแรก คะแนนดีที่สุด จำนวนครั้ง และผลรายกิจกรรม</p></div>
+        </section>
+
+        <section id="plansPanel" class="dashboard-panel">
+          <div class="dashboard-heading"><div><span class="eyebrow">หน่วยมาตราตัวสะกด</span><h1>ไทม์ไลน์ 8 แผน</h1></div></div>
+          <div id="planTimeline" class="plan-timeline"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <div id="returnDialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="returnDialogTitle"><form id="returnForm" class="modal-card"><h2 id="returnDialogTitle">ส่งข้อมูลกลับให้นักเรียนแก้ไข</h2><input id="returnPlayerId" type="hidden"><label>เหตุผล<select id="returnReason"><option>เลือกชื่อไม่ถูกต้อง</option><option>รูปไม่ชัด กรุณาถ่ายใหม่</option><option>นักเรียนไม่อยู่ในห้องนี้</option><option>ข้อมูลไม่ครบถ้วน</option></select></label><div class="button-row"><button type="button" id="cancelReturn" class="button button-ghost">ยกเลิก</button><button class="button button-danger" type="submit">ส่งคืน</button></div></form></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="js/teacher.js"></script>
+</body>
+</html>

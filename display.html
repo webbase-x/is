@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17203b">
+  <title>จอหน้าชั้น | คำไทยผจญภัย</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="display-page">
+  <header class="display-header">
+    <div class="brand light"><span class="brand-mark">ก</span><span><strong>คำไทยผจญภัย</strong><small id="displayClassName">จอหน้าชั้นเรียน</small></span></div>
+    <div class="display-room"><small>รหัสเข้าห้อง</small><strong id="displayRoomCode">------</strong></div>
+    <div class="display-clock" id="displayClock">00:00</div>
+  </header>
+  <main>
+    <section id="displayJoinView" class="centered-view">
+      <form id="displayJoinForm" class="panel display-join-card">
+        <span class="big-icon">📺</span><h1>เชื่อมต่อจอหน้าชั้น</h1><p>กรอกรหัสห้องจากจอครู</p>
+        <input id="displayRoomInput" class="room-code-input" maxlength="6" inputmode="numeric" placeholder="000000" required>
+        <button class="button button-primary button-large full">เชื่อมต่อ</button>
+      </form>
+    </section>
+    <section id="displayBoard" class="display-board hidden">
+      <div class="display-main">
+        <span class="eyebrow" id="displayStageStep">แผนที่ 1</span>
+        <h1 id="displayStageTitle">รอนักเรียนเข้าห้อง</h1>
+        <p id="displayStageMessage">เมื่อครูเริ่มกิจกรรม ข้อมูลจะปรากฏบนจอนี้โดยอัตโนมัติ</p>
+        <div id="displayActivityVisual" class="display-activity-visual"><span>🗺️</span></div>
+        <div class="class-progress"><div><span id="displayApproved">0</span> คนพร้อมแล้ว</div><div class="progress-track"><i id="displayProgressBar"></i></div></div>
+      </div>
+      <aside class="leaderboard-panel">
+        <div class="leaderboard-heading"><span>🏆</span><div><small>กระดานคะแนน</small><h2 id="leaderboardTitle">นักผจญภัยดาวเด่น</h2></div></div>
+        <ol id="leaderboardList" class="leaderboard-list"><li class="empty-leaderboard">ยังไม่มีคะแนน</li></ol>
+        <div class="privacy-caption" id="leaderboardModeCaption">แสดงตามรูปแบบที่ครูกำหนด</div>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="js/display.js"></script>
+</body>
+</html>
