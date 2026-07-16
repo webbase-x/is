@@ -40,8 +40,9 @@ const LOBBY_LAYOUTS = [
   { key: "overview", label: "ภาพรวม", minWidth: 108, rowHeight: 76 },
   { key: "compact", label: "กะทัดรัด", minWidth: 160, rowHeight: 92 },
   { key: "normal", label: "มาตรฐาน", minWidth: 250, rowHeight: 112 },
-  { key: "large", label: "ใหญ่", minWidth: 330, rowHeight: 138 },
-  { key: "xlarge", label: "ใหญ่มาก", minWidth: 420, rowHeight: 170 },
+  { key: "large", label: "ใหญ่", minWidth: 350, rowHeight: 170 },
+  { key: "xlarge", label: "ใหญ่มาก", minWidth: 480, rowHeight: 240 },
+  { key: "inspect", label: "ตรวจใบหน้า", minWidth: 680, rowHeight: 310 },
 ];
 
 function connectionUpdate() {
@@ -524,9 +525,11 @@ function lobbyViewportMetrics() {
   const list = $("#playerList");
   const pageWidth = document.documentElement.clientWidth || window.innerWidth || 1200;
   const fallbackWidth = pageWidth > 760 ? pageWidth - 360 : pageWidth - 26;
+  const fallbackHeight = Math.min(760, Math.max(360, (window.innerHeight || 800) - 430));
+  const measuredHeight = list.dataset.allOnPage === "true" ? 0 : list.clientHeight;
   return {
     width: Math.max(list.clientWidth || fallbackWidth, 260),
-    height: Math.min(650, Math.max(320, (window.innerHeight || 800) * .48)),
+    height: Math.max(measuredHeight || fallbackHeight, 320),
     gap: 10,
   };
 }
@@ -587,8 +590,10 @@ function renderPlayerPage() {
   $("#lobbyPagination").classList.toggle("hidden", view.pageCount <= 1);
   list.dataset.size = view.layout.key;
   list.dataset.allOnPage = String(view.isAutoFit && lobbyCapacity(view.levelIndex).pageSize < state.players.length);
-  list.style.setProperty("--lobby-columns", view.columns);
-  list.style.setProperty("--lobby-rows", view.rows);
+  const displayColumns = view.isAutoFit ? Math.min(view.columns, Math.max(view.players.length, 1)) : view.columns;
+  const displayRows = view.isAutoFit ? Math.max(1, Math.ceil(view.players.length / displayColumns)) : view.rows;
+  list.style.setProperty("--lobby-columns", displayColumns);
+  list.style.setProperty("--lobby-rows", displayRows);
   list.style.setProperty("--lobby-row-height", `${view.layout.rowHeight}px`);
 
   const pendingOnPage = view.players.filter(player => ["waiting", "returned"].includes(player.status));
