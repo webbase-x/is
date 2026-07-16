@@ -70,7 +70,7 @@
       </div>
     </section>
 
-    <section id="gameView" class="view game-view hidden">
+    <section id="gameView" class="view game-view game-focus-mode hidden">
       <aside class="journey-panel">
         <div class="player-chip"><span id="playerAvatar">⭐</span><div><small>นักผจญภัย</small><strong id="playerName">—</strong></div></div>
         <div class="score-chip"><span>★</span><div><small>คะแนนสะสม</small><strong id="playerScore">0</strong></div></div>
@@ -82,7 +82,16 @@
       <section class="game-stage">
         <div class="stage-topbar">
           <div><span class="eyebrow" id="stageStep">ภารกิจ</span><h1 id="stageTitle">รอครูเริ่มกิจกรรม</h1></div>
-          <div class="stage-meta"><span id="attemptBadge">รอบฝึก</span><span id="timerBadge">--:--</span></div>
+          <div class="stage-tools">
+            <div class="stage-meta"><span id="attemptBadge">รอบฝึก</span><span id="timerBadge">--:--</span></div>
+            <div class="game-view-controls" role="group" aria-label="ปรับพื้นที่และขนาดเกม">
+              <button id="gameZoomOutButton" type="button" aria-label="ย่อเกม" title="ย่อเกม">−</button>
+              <output id="gameZoomLabel" aria-live="polite">100%</output>
+              <button id="gameZoomInButton" type="button" aria-label="ขยายเกม" title="ขยายเกม">+</button>
+              <button id="gameZoomResetButton" type="button">พอดีจอ</button>
+              <button id="gameFocusToggleButton" type="button">แสดงเส้นทาง</button>
+            </div>
+          </div>
         </div>
         <div id="gameCanvas" class="game-canvas" aria-live="polite">
           <div class="empty-stage"><span>🗺️</span><h2>เตรียมพร้อม!</h2><p>เมื่อครูเปิดภารกิจ เกมจะปรากฏตรงนี้</p></div>

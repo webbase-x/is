@@ -7,6 +7,11 @@ import {
 
 const MAE_KO_KA = new Set(["กา", "ปลา", "เต่า", "มือ", "ตา", "ปู", "เสือ", "แมว", "หมู", "นา", "ใบไม้", "ขา", "ผีเสื้อ", "ดู", "พ่อ", "แม่"]);
 const COMPARE_WORDS = new Set(["กบ", "นก", "เด็ก", "จาน", "ถ้วย", "เก้าอี้", "บ้าน", "ดิน"]);
+const RHYTHM_WORDS = Object.freeze([
+  "กา", "กบ", "ปลา", "นก", "เต่า", "มือ", "เด็ก", "ปู", "จาน", "เสือ", "นา", "ถ้วย", "ตา", "บ้าน", "หมู", "ดิน", "ขา", "แมว",
+  "แม่", "จาน", "พ่อ", "นก", "ดู", "บ้าน", "ปู", "เด็ก", "นา", "กบ", "เสือ", "ดิน", "มือ", "จาน", "ปลา", "นก", "ตา", "ถ้วย",
+]);
+const GAME_ZOOM_LEVELS = Object.freeze([.75, .9, 1, 1.15, 1.3]);
 
 const state = {
   joinStep: "code",
@@ -26,6 +31,8 @@ const state = {
   presenceChannel: null,
   renderedActivity: null,
   attempts: [],
+  gameZoomIndex: 2,
+  rhythmRun: null,
 };
 
 const views = {
@@ -36,6 +43,31 @@ const views = {
 
 function connectionUpdate() {
   updateConnectionBadge($("#connectionStatus"), navigator.onLine, navigator.onLine ? "เชื่อมต่อแล้ว" : "ไม่มีอินเทอร์เน็ต");
+}
+
+function applyGameZoom(index = state.gameZoomIndex) {
+  state.gameZoomIndex = Math.min(Math.max(index, 0), GAME_ZOOM_LEVELS.length - 1);
+  const zoom = GAME_ZOOM_LEVELS[state.gameZoomIndex];
+  $("#gameCanvas").style.setProperty("--game-zoom", zoom);
+  $("#gameZoomLabel").textContent = `${Math.round(zoom * 100)}%`;
+  $("#gameZoomOutButton").disabled = state.gameZoomIndex === 0;
+  $("#gameZoomInButton").disabled = state.gameZoomIndex === GAME_ZOOM_LEVELS.length - 1;
+}
+
+function setGameFocus(enabled) {
+  views.game.classList.toggle("game-focus-mode", enabled);
+  $("#gameFocusToggleButton").textContent = enabled ? "แสดงเส้นทาง" : "เต็มพื้นที่";
+}
+
+function cleanupRhythm() {
+  const run = state.rhythmRun;
+  if (!run) return;
+  run.cancelled = true;
+  if (run.frame) cancelAnimationFrame(run.frame);
+  run.audio?.pause();
+  run.audioContext?.close().catch(() => {});
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  state.rhythmRun = null;
 }
 
 const JOIN_STEPS = {
@@ -397,8 +429,12 @@ function applySessionState() {
   $("#attemptBadge").textContent = modeLabel(state.session.play_mode);
   ACTIVITIES.forEach(item => $(`[data-activity="${item.key}"]`, $("#activityTimeline"))?.classList.toggle("active", item.key === activity?.key));
 
-  if (state.session.status === "closed") return resetJoin("คาบเรียนจบแล้ว ขอบคุณที่ร่วมผจญภัย!");
+  if (state.session.status === "closed") {
+    cleanupRhythm();
+    return resetJoin("คาบเรียนจบแล้ว ขอบคุณที่ร่วมผจญภัย!");
+  }
   if (state.session.status !== "active" || !activity) {
+    cleanupRhythm();
     state.renderedActivity = null;
     $("#gameCanvas").innerHTML = `<div class="empty-stage"><span>${state.session.status === "paused" ? "⏸️" : "🗺️"}</span><h2>${state.session.status === "paused" ? "พักเกมสักครู่" : "เตรียมพร้อม!"}</h2><p>เมื่อครูเปิดภารกิจ เกมจะปรากฏตรงนี้</p></div>`;
     return;
@@ -409,6 +445,7 @@ function applySessionState() {
 }
 
 function renderActivity(key) {
+  cleanupRhythm();
   const renderers = { rhythm: renderRhythm, wheel: renderWheel, sound: renderSound, sort: renderSort, train: renderTrain, vote: renderVote, exit: renderExit };
   renderers[key]?.();
 }
@@ -434,60 +471,182 @@ async function submitAttempt(activityKey, score, maxScore, answers) {
 }
 
 function showResult(title, score, maxScore, result, replay) {
+  cleanupRhythm();
   const percent = result?.percent ?? Math.round((score / maxScore) * 100);
   $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2><p>ได้ <strong>${score} / ${maxScore}</strong> คะแนน (${percent}%)</p><p>${result?.passed ? "ผ่านด่านแล้ว เก่งมาก!" : "ลองทบทวนแล้วพยายามใหม่นะ"}</p><button id="replayButton" class="button button-primary">เล่นอีกครั้ง</button></div></div>`;
   $("#replayButton")?.addEventListener("click", replay);
 }
 
+function buildRhythmCues(duration) {
+  const lead = Math.min(1.8, duration * .06);
+  const tail = Math.min(1.8, duration * .06);
+  const slot = Math.max((duration - lead - tail) / RHYTHM_WORDS.length, .65);
+  return RHYTHM_WORDS.map((word, index) => ({ word, start: lead + (index * slot), end: lead + ((index + 1) * slot) - .06 }));
+}
+
+function playFallbackBeat(run, index) {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  run.audioContext ||= new AudioContextClass();
+  if (run.audioContext.state === "suspended") run.audioContext.resume().catch(() => {});
+  const oscillator = run.audioContext.createOscillator();
+  const gain = run.audioContext.createGain();
+  oscillator.frequency.value = [392, 440, 523, 659][index % 4];
+  oscillator.type = "sine";
+  gain.gain.setValueAtTime(.0001, run.audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(.14, run.audioContext.currentTime + .02);
+  gain.gain.exponentialRampToValueAtTime(.0001, run.audioContext.currentTime + .32);
+  oscillator.connect(gain).connect(run.audioContext.destination);
+  oscillator.start();
+  oscillator.stop(run.audioContext.currentTime + .34);
+}
+
 function renderRhythm() {
-  gameShell("แท็ปจังหวะ แม่ ก กา", "แตะเฉพาะคำที่ไม่มีตัวสะกด เมื่อพร้อมแล้วกดเริ่ม", `<div class="game-status-row"><span class="mini-score" id="rhythmScore">คะแนน 0</span><button id="startRhythm" class="button button-primary">เริ่มเกม</button></div><div class="word-rain-stage" id="wordRain"><div class="empty-stage" style="min-height:350px;color:white"><span>🎵</span><p style="color:#dbe0f2">คำจะร่วงลงมาจากด้านบน</p></div></div>`);
-  $("#startRhythm").addEventListener("click", () => {
-    $("#startRhythm").disabled = true;
-    const words = shuffle(["กา", "กบ", "ปลา", "นก", "เต่า", "มือ", "เด็ก", "ปู", "จาน", "เสือ", "นา", "ถ้วย"]);
-    const maxScore = words.filter(word => MAE_KO_KA.has(word)).length;
-    const answers = [];
-    let score = 0;
-    let completed = 0;
-    $("#wordRain").innerHTML = "";
-    words.forEach((word, index) => {
-      setTimeout(() => {
-        if (state.renderedActivity !== "rhythm") return;
-        const button = document.createElement("button");
-        button.className = "falling-word";
-        button.textContent = word;
-        button.style.left = `${5 + Math.random() * 78}%`;
-        button.style.animationDuration = `${4.4 + Math.random() * 1.2}s`;
-        let tapped = false;
-        let settled = false;
-        const settle = () => {
-          if (settled) return;
-          settled = true;
-          completed += 1;
-          if (completed === words.length) finish();
-        };
-        button.addEventListener("click", () => {
-          if (tapped) return;
-          tapped = true;
-          const correct = MAE_KO_KA.has(word);
-          if (correct) score += 1;
-          answers.push({ word, tapped: true, correct });
-          button.classList.add(correct ? "correct" : "wrong");
-          button.remove();
-          $("#rhythmScore").textContent = `คะแนน ${score}`;
-          settle();
-        });
-        button.addEventListener("animationend", () => {
-          if (!tapped) answers.push({ word, tapped: false, correct: !MAE_KO_KA.has(word) });
-          button.remove();
-          settle();
-        }, { once: true });
-        $("#wordRain").append(button);
-      }, index * 720);
-    });
-    async function finish() {
-      const result = await submitAttempt("rhythm", score, maxScore, answers);
-      if (result) showResult("จบเพลงแล้ว!", score, maxScore, result, renderRhythm);
+  const sparkles = Array.from({ length: 28 }, (_, index) => `<i style="--spark-x:${(index * 37) % 96}%;--spark-y:${(index * 53) % 92}%;--spark-delay:${(index % 7) * -.38}s;--spark-size:${12 + (index % 5) * 5}px">✦</i>`).join("");
+  const wordButtons = RHYTHM_WORDS.map((word, index) => `<button class="karaoke-word" type="button" data-index="${index}">${escapeHtml(word)}</button>`).join("");
+  gameShell(
+    "แท็ปจังหวะ แม่ ก กา",
+    "ฟังเพลง ดูคำที่เปล่งแสง แล้วแตะเฉพาะคำที่ไม่มีตัวสะกด",
+    `<section class="rhythm-karaoke">
+      <div class="game-status-row rhythm-status-row"><span class="mini-score" id="rhythmScore">คะแนน 0</span><div class="rhythm-start-tools"><span id="rhythmAudioStatus">กำลังตรวจเพลง…</span><button id="startRhythm" class="button button-primary" type="button">▶ เริ่มเพลง</button></div></div>
+      <div class="karaoke-stage" id="karaokeStage">
+        <div class="grammar-sparkles" aria-hidden="true">${sparkles}</div>
+        <div class="karaoke-now"><small>คำที่กำลังร้อง</small><strong id="karaokeCurrentWord">พร้อม!</strong><div class="karaoke-progress"><i id="karaokeProgressBar"></i></div></div>
+        <div class="karaoke-word-grid" id="karaokeWords">${wordButtons}</div>
+        <p class="rhythm-feedback" id="rhythmFeedback">แตะคำแม่ ก กา เมื่อคำนั้นเปล่งแสง</p>
+      </div>
+      <audio id="rhythmAudio" class="rhythm-audio" src="sounds/01-01.mp3" preload="metadata" controls></audio>
+    </section>`,
+  );
+
+  const audio = $("#rhythmAudio");
+  const startButton = $("#startRhythm");
+  const status = $("#rhythmAudioStatus");
+  const feedback = $("#rhythmFeedback");
+  const currentWord = $("#karaokeCurrentWord");
+  const progressBar = $("#karaokeProgressBar");
+  const buttons = [...$("#karaokeWords").querySelectorAll("button")];
+  const maxScore = RHYTHM_WORDS.filter(word => MAE_KO_KA.has(word)).length;
+  const run = {
+    audio,
+    audioContext: null,
+    answers: [],
+    settled: new Set(),
+    activeIndex: -1,
+    score: 0,
+    frame: null,
+    cancelled: false,
+    finished: false,
+    started: false,
+    useFallback: false,
+    duration: 36,
+    startedAt: 0,
+    cues: [],
+  };
+  state.rhythmRun = run;
+
+  audio.addEventListener("loadedmetadata", () => {
+    if (Number.isFinite(audio.duration) && audio.duration > 0) status.textContent = `เพลงพร้อม · ${Math.ceil(audio.duration)} วินาที`;
+  });
+  audio.addEventListener("error", () => {
+    status.textContent = "ไฟล์เพลงยังไม่มีข้อมูล · ใช้เสียงจังหวะสำรองได้";
+    audio.classList.add("rhythm-audio-error");
+  });
+
+  function settleCue(index) {
+    if (index < 0 || run.settled.has(index)) return;
+    const word = RHYTHM_WORDS[index];
+    const isTarget = MAE_KO_KA.has(word);
+    run.settled.add(index);
+    run.answers.push({ word, tapped: false, correct: !isTarget });
+    buttons[index].classList.remove("singing");
+    buttons[index].classList.add(isTarget ? "missed" : "skipped");
+  }
+
+  function activateCue(index) {
+    if (run.activeIndex === index) return;
+    settleCue(run.activeIndex);
+    run.activeIndex = index;
+    if (index < 0) {
+      currentWord.textContent = "ฟังจังหวะ…";
+      return;
     }
+    const word = RHYTHM_WORDS[index];
+    currentWord.textContent = word;
+    buttons[index].classList.add("singing");
+    buttons[index].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    if (run.useFallback) {
+      playFallbackBeat(run, index);
+      if ("speechSynthesis" in window) speechSynthesis.cancel();
+      speakThai(word);
+    }
+  }
+
+  async function finishRhythm() {
+    if (run.finished || run.cancelled) return;
+    settleCue(run.activeIndex);
+    run.finished = true;
+    audio.pause();
+    startButton.textContent = "กำลังสรุปคะแนน…";
+    const result = await submitAttempt("rhythm", run.score, maxScore, run.answers);
+    if (run.cancelled || state.renderedActivity !== "rhythm") return;
+    if (result) showResult("จบเพลงแล้ว!", run.score, maxScore, result, renderRhythm);
+    else renderRhythm();
+  }
+
+  function tick() {
+    if (run.cancelled || run.finished || state.renderedActivity !== "rhythm") return;
+    const time = run.useFallback ? (performance.now() - run.startedAt) / 1000 : audio.currentTime;
+    const cueIndex = run.cues.findIndex(cue => time >= cue.start && time < cue.end);
+    activateCue(cueIndex);
+    progressBar.style.width = `${Math.min(100, Math.max(0, (time / run.duration) * 100))}%`;
+    if (time >= run.duration || (!run.useFallback && audio.ended)) return finishRhythm();
+    run.frame = requestAnimationFrame(tick);
+  }
+
+  buttons.forEach(button => button.addEventListener("click", () => {
+    const index = Number(button.dataset.index);
+    if (!run.started) return feedback.textContent = "กดเริ่มเพลงก่อน แล้วรอให้คำเปล่งแสง";
+    if (index !== run.activeIndex) return feedback.textContent = "รอให้คำนี้เปล่งแสงก่อนนะ";
+    if (run.settled.has(index)) return;
+    const word = RHYTHM_WORDS[index];
+    const correct = MAE_KO_KA.has(word);
+    run.settled.add(index);
+    run.answers.push({ word, tapped: true, correct });
+    button.classList.remove("singing");
+    button.classList.add(correct ? "correct" : "wrong");
+    if (correct) {
+      run.score += 1;
+      $("#rhythmScore").textContent = `คะแนน ${run.score}`;
+      feedback.textContent = `เก่งมาก! “${word}” เป็นคำแม่ ก กา`;
+    } else feedback.textContent = `“${word}” มีตัวสะกด รอฟังคำต่อไปนะ`;
+  }));
+
+  startButton.addEventListener("click", async () => {
+    if (run.started) return;
+    run.started = true;
+    startButton.disabled = true;
+    currentWord.textContent = "เตรียมฟัง…";
+    let audioStarted = false;
+    try {
+      audio.currentTime = 0;
+      await audio.play();
+      audioStarted = true;
+    } catch {
+      run.useFallback = true;
+      status.textContent = "กำลังใช้เสียงคำและจังหวะสำรอง";
+      toast("ไฟล์เพลงยังไม่มีเสียง ระบบใช้จังหวะสำรองแทน", "warning");
+    }
+    const validAudio = audioStarted && Number.isFinite(audio.duration) && audio.duration > 5;
+    if (!validAudio) {
+      run.useFallback = true;
+      audio.pause();
+      status.textContent = "กำลังใช้เสียงคำและจังหวะสำรอง";
+    }
+    run.duration = validAudio ? audio.duration : 36;
+    run.cues = buildRhythmCues(run.duration);
+    run.startedAt = performance.now();
+    tick();
   });
 }
 
@@ -685,6 +844,7 @@ function retryJoin() {
 
 function resetJoin(message) {
   toast(message, "default");
+  cleanupRhythm();
   sessionStorage.removeItem("thaiGameJoin");
   state.playerChannel?.unsubscribe();
   state.sessionChannel?.unsubscribe();
@@ -695,7 +855,7 @@ function resetJoin(message) {
     roomCode: "", roster: [], sessionInfo: null, student: null,
     selfieBlob: null, selfieDataUrl: "", selfiePath: "",
     player: null, session: null, playerChannel: null, sessionChannel: null,
-    presenceChannel: null, renderedActivity: null, attempts: [],
+    presenceChannel: null, renderedActivity: null, attempts: [], gameZoomIndex: 2, rhythmRun: null,
   });
   setView(views.login, views.waiting, views.game);
   initializeJoinFlow();
@@ -741,12 +901,19 @@ $("#backToNamesButton").addEventListener("click", () => setJoinStep("name"));
 $("#retryCameraButton").addEventListener("click", openCamera);
 $("#captureAndSendButton").addEventListener("click", captureAndSend);
 $("#retryJoinButton").addEventListener("click", retryJoin);
+$("#gameZoomOutButton").addEventListener("click", () => applyGameZoom(state.gameZoomIndex - 1));
+$("#gameZoomInButton").addEventListener("click", () => applyGameZoom(state.gameZoomIndex + 1));
+$("#gameZoomResetButton").addEventListener("click", () => applyGameZoom(2));
+$("#gameFocusToggleButton").addEventListener("click", () => setGameFocus(!views.game.classList.contains("game-focus-mode")));
 window.addEventListener("online", connectionUpdate);
 window.addEventListener("offline", connectionUpdate);
 window.addEventListener("beforeunload", stopCamera);
+window.addEventListener("beforeunload", cleanupRhythm);
 
 async function initializeStudentPage() {
   connectionUpdate();
+  applyGameZoom();
+  setGameFocus(true);
   const restored = await restoreSession();
   if (!restored) await initializeJoinFlow();
 }
