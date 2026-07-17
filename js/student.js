@@ -414,7 +414,7 @@ function showWaiting() {
   $("#waitingName").textContent = state.student?.full_name || "—";
   $("#waitingClass").textContent = state.sessionInfo?.class_label || "—";
   $("#waitingTitle").textContent = state.player?.status === "returned" ? "ครูส่งข้อมูลกลับมา" : "รอครูอนุมัติ";
-  $("#waitingMessage").textContent = state.player?.return_reason || "ครูเห็นชื่อและรูปของหนูแล้ว กรุณารอสักครู่นะ";
+  $("#waitingMessage").textContent = state.player?.return_reason || "ส่งชื่อและรูปใหม่ให้ครูแล้ว กรุณารอคุณครูกดอนุมัติอีกครั้งนะ";
   $("#retryJoinButton").classList.toggle("hidden", state.player?.status !== "returned");
   setView(views.waiting, views.login, views.game);
 }

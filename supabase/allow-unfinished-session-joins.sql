@@ -48,6 +48,7 @@ begin
         status = 'waiting',
         selfie_path = excluded.selfie_path,
         return_reason = null,
+        approved_at = null,
         joined_at = now(),
         last_seen_at = now()
   returning id into player_id;

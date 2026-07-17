@@ -190,6 +190,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .student-live-camera { max-height: none; margin: 0 auto; border: 4px solid white; box-shadow: 0 12px 30px rgba(33,40,83,.12); }
 .student-capture-button { min-height: 72px; margin-top: 12px; border-radius: 20px; font-size: 22px; }
 .student-privacy-note { margin: 14px 0 0; color: var(--muted); text-align: center; font-size: 12px; line-height: 1.55; }
+.student-rejoin-note { margin: 13px 0 0; padding: 11px 13px; border-radius: 13px; color: #286f5a; background: var(--mint-soft); text-align: center; font-size: 13px; font-weight: 800; line-height: 1.5; }
 .centered-view { min-height: calc(100vh - 78px); padding: 30px; display: grid; place-items: center; }
 .waiting-card { position: relative; width: min(520px, 100%); padding: 50px 38px 40px; text-align: center; overflow: hidden; }
 .selfie-badge { position: relative; width: 125px; height: 125px; margin: 0 auto 22px; }

@@ -700,7 +700,15 @@ async function handleLobbyNext() {
 function subscribeToSession() {
   state.sessionChannel?.unsubscribe();
   state.sessionChannel = supabase.channel(`teacher-session-${state.session.id}`)
-    .on("postgres_changes", { event: "*", schema: "public", table: "session_players", filter: `session_id=eq.${state.session.id}` }, refreshSessionData)
+    .on("postgres_changes", { event: "*", schema: "public", table: "session_players", filter: `session_id=eq.${state.session.id}` }, async payload => {
+      const needsApproval = payload.new?.status === "waiting" && payload.old?.status !== "waiting";
+      await refreshSessionData();
+      if (needsApproval) {
+        const player = state.players.find(item => item.id === payload.new.id);
+        const name = player?.student?.full_name || "นักเรียน";
+        toast(`🔔 ${name} ส่งรูปใหม่ รอคุณครูอนุมัติ`, "success");
+      }
+    })
     .on("postgres_changes", { event: "*", schema: "public", table: "game_attempts" }, payload => {
       const playerIds = new Set(state.players.map(player => player.id));
       if (playerIds.has(payload.new?.session_player_id || payload.old?.session_player_id)) refreshSessionData();

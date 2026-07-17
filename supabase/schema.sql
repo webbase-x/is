@@ -329,7 +329,7 @@ begin
   values (target_session.id, p_student_id, auth.uid(), 'waiting', nullif(p_selfie_path, ''), null, now(), now())
   on conflict (session_id, student_id) do update
     set auth_user_id = auth.uid(), status = 'waiting', selfie_path = excluded.selfie_path,
-        return_reason = null, joined_at = now(), last_seen_at = now()
+        return_reason = null, approved_at = null, joined_at = now(), last_seen_at = now()
   returning id into player_id;
 
   return player_id;
