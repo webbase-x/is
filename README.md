@@ -43,6 +43,8 @@ select public.grant_teacher(
 
 จากนั้นรัน `supabase/empty-class-guard.sql` หนึ่งครั้ง เพื่อป้องกันการเปิดคาบสำหรับห้องที่ยังไม่มีรายชื่อนักเรียน
 
+รัน `supabase/allow-unfinished-session-joins.sql` หนึ่งครั้ง เพื่อให้นักเรียนที่มาช้าหรือเปิดหน้าใหม่สามารถเข้าคาบเดิมได้ระหว่างห้องรอ กำลังเล่น หรือพักเกม โดยจะหยุดรับเมื่อครูจบคาบแล้วเท่านั้น
+
 ## ตั้งค่าการกู้รหัสผ่านครู
 
 1. ไปที่ **Authentication → URL Configuration** ใน Supabase Dashboard

@@ -314,10 +314,10 @@ begin
   select * into target_session
   from public.class_sessions
   where room_code = lpad(regexp_replace(p_room_code, '\D', '', 'g'), 6, '0')
-    and status = 'lobby'
+    and status in ('lobby', 'active', 'paused')
   limit 1;
 
-  if target_session.id is null then raise exception 'ห้องนี้ปิดรับนักเรียนแล้ว'; end if;
+  if target_session.id is null then raise exception 'คาบนี้จบแล้วหรือไม่พบรหัสห้อง'; end if;
   if not exists (select 1 from public.students where id = p_student_id and class_id = target_session.class_id and active) then
     raise exception 'ไม่พบรายชื่อนักเรียนในห้องนี้';
   end if;

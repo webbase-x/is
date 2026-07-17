@@ -220,7 +220,6 @@ async function loadRoster(roomCode) {
   const { data, error } = response;
   if (error) throw error;
   if (!data?.length) throw new Error("ไม่พบห้องที่เปิดรับด้วยรหัสนี้ รหัสคาบเดิมอาจปิดแล้ว กรุณาดูรหัสใหม่จากหน้า QR ของคุณครู");
-  if (data[0].session_status !== "lobby") throw new Error("ครูปิดรับนักเรียนแล้ว กรุณาแจ้งคุณครู");
   state.roomCode = code;
   state.roster = data;
   state.sessionInfo = data[0];
