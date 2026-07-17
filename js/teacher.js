@@ -24,6 +24,8 @@ const state = {
   playerSelfieUrls: new Map(),
   lobbyPage: 1,
   lobbyZoomStep: 0,
+  celebrationActivityKey: null,
+  competitionSoundEnabled: true,
 };
 
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
@@ -32,7 +34,7 @@ const FLOW_TITLES = {
   qr: "QR และรหัสเข้าห้อง",
   lobby: "ตรวจนักเรียนเข้าห้อง",
   plan: "เลือกแผนการสอน",
-  live: "ควบคุมเกมและผลแบบเรียลไทม์",
+  live: "ควบคุมเกมและผลการแข่งขัน",
   summary: "สรุปผลคาบเรียน",
 };
 
@@ -409,6 +411,7 @@ async function startSelectedPlan() {
 }
 
 async function startActivity(activityKey) {
+  state.celebrationActivityKey = null;
   const updates = { status: "active", current_activity_key: activityKey };
   if (!state.session.started_at) updates.started_at = new Date().toISOString();
   const { data, error } = await supabase.from("class_sessions").update(updates).eq("id", state.session.id).select().single();
@@ -418,6 +421,7 @@ async function startActivity(activityKey) {
   }
   state.session = data;
   renderActivityControls();
+  renderLiveResults();
   $("#pauseSessionButton").textContent = "พักเกม";
   broadcastDisplay();
   toast(`เริ่ม ${ACTIVITIES.find(item => item.key === activityKey)?.title}`, "success");
@@ -447,7 +451,9 @@ async function togglePause() {
   const { data, error } = await supabase.from("class_sessions").update({ status }).eq("id", state.session.id).select().single();
   if (error) return toast(error.message, "error");
   state.session = data;
+  if (status === "active") state.celebrationActivityKey = null;
   $("#pauseSessionButton").textContent = status === "paused" ? "เล่นต่อ" : "พักเกม";
+  renderLiveResults();
   broadcastDisplay();
 }
 
@@ -460,8 +466,11 @@ function subscribeToSession() {
       if (playerIds.has(payload.new?.session_player_id || payload.old?.session_player_id)) refreshSessionData();
     })
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "class_sessions", filter: `id=eq.${state.session.id}` }, payload => {
+      const activityChanged = state.session?.current_activity_key !== payload.new.current_activity_key;
       state.session = payload.new;
+      if (activityChanged) state.celebrationActivityKey = null;
       renderActivityControls();
+      renderLiveResults();
     })
     .subscribe();
 }
@@ -641,22 +650,181 @@ function renderMetrics() {
   $("#completedAttemptCount").textContent = currentPlayerIds.size;
 }
 
+function currentCompetitionEntries() {
+  const policy = state.session?.score_policy || "best";
+  return state.players.filter(player => player.status === "approved").map(player => {
+    const current = state.attempts
+      .filter(item => item.session_player_id === player.id && item.activity_key === state.session.current_activity_key)
+      .sort((a, b) => Number(a.attempt_no) - Number(b.attempt_no));
+    let selected = null;
+    if (current.length) {
+      if (policy === "first") selected = current[0];
+      else if (policy === "latest") selected = current[current.length - 1];
+      else selected = current.reduce((best, attempt) => Number(attempt.percent) > Number(best.percent) ? attempt : best, current[0]);
+    }
+    const student = player.student || {};
+    return {
+      player,
+      name: student.full_name || student.nickname || "นักเรียน",
+      avatar: student.avatar || randomAvatar(student.nickname),
+      percent: selected ? Number(selected.percent || 0) : null,
+      completedAt: selected?.completed_at || "",
+      attemptCount: current.length,
+    };
+  }).sort((a, b) => {
+    if (a.percent === null && b.percent !== null) return 1;
+    if (a.percent !== null && b.percent === null) return -1;
+    if (a.percent !== b.percent) return Number(b.percent || 0) - Number(a.percent || 0);
+    if (a.completedAt !== b.completedAt) return String(a.completedAt).localeCompare(String(b.completedAt));
+    return a.name.localeCompare(b.name, "th");
+  });
+}
+
+function rankMedal(rank) {
+  return ["🥇", "🥈", "🥉"][rank - 1] || rank;
+}
+
+function renderLiveRanking(entries) {
+  return `<ol class="competition-ranking-list">${entries.map((entry, index) => {
+    const rank = entry.percent === null ? "—" : index + 1;
+    return `<li class="competition-rank-row ${entry.percent === null ? "is-waiting" : "has-result"}" style="--rank-index:${index}">
+      <span class="competition-rank">${entry.percent === null ? "⏳" : rankMedal(rank)}</span>
+      <span class="competition-avatar">${escapeHtml(entry.avatar)}</span>
+      <span class="competition-student"><strong>${escapeHtml(entry.name)}</strong><small>${entry.percent === null ? "กำลังทำเกม" : `ส่งแล้ว ${entry.attemptCount} รอบ`}</small></span>
+      <strong class="competition-score">${entry.percent === null ? "รอผล" : `${Math.round(entry.percent)}%`}</strong>
+    </li>`;
+  }).join("")}</ol>`;
+}
+
+function celebrationConfetti() {
+  const colors = ["#ffd65a", "#ff7185", "#6c5ce7", "#41c7a2", "#53b9f1", "#ffffff"];
+  return Array.from({ length: 48 }, (_, index) => {
+    const x = (index * 37) % 101;
+    const delay = ((index * 13) % 28) / 20;
+    const duration = 2.8 + ((index * 17) % 18) / 10;
+    const drift = ((index * 29) % 180) - 90;
+    return `<i style="--confetti-x:${x}%;--confetti-delay:${delay}s;--confetti-duration:${duration}s;--confetti-drift:${drift}px;--confetti-color:${colors[index % colors.length]}"></i>`;
+  }).join("");
+}
+
+function renderPodiumPlace(entry, rank) {
+  const labels = ["ชนะเลิศ", "รองชนะเลิศอันดับ 1", "รองชนะเลิศอันดับ 2"];
+  if (!entry) return `<article class="podium-place podium-place-${rank} is-empty"><div class="podium-person"><span>⭐</span><strong>รอผู้เข้าแข่งขัน</strong></div><div class="podium-block"><strong>${rank}</strong><small>อันดับ</small></div></article>`;
+  return `<article class="podium-place podium-place-${rank}">
+    <div class="podium-person"><span class="podium-medal">${rankMedal(rank)}</span><span class="podium-avatar">${escapeHtml(entry.avatar)}</span><strong>${escapeHtml(entry.name)}</strong><em>${Math.round(entry.percent)}%</em><small>${labels[rank - 1]}</small></div>
+    <div class="podium-block"><strong>${rank}</strong><small>อันดับ</small></div>
+  </article>`;
+}
+
+function renderCelebration(entries) {
+  const ranked = entries.filter(entry => entry.percent !== null);
+  const waiting = entries.filter(entry => entry.percent === null);
+  const podiumOrder = [[ranked[1], 2], [ranked[0], 1], [ranked[2], 3]];
+  const runnersUp = ranked.slice(3);
+  return `<div class="competition-celebration" aria-hidden="true">${celebrationConfetti()}</div>
+    <div class="celebration-title"><span>✨ ประกาศผลการแข่งขัน ✨</span><h4>${escapeHtml(ACTIVITIES.find(item => item.key === state.session.current_activity_key)?.title || "เกมนี้")}</h4><p>ขอเสียงปรบมือให้ผู้เข้าแข่งขันทุกคน</p></div>
+    <div class="competition-finale">
+      <section class="podium-stage" aria-label="แท่นรับรางวัลอันดับ 1 ถึง 3">
+        <div class="podium-list">${podiumOrder.map(([entry, rank]) => renderPodiumPlace(entry, rank)).join("")}</div>
+      </section>
+      <aside class="runnerup-board">
+        <h5>อันดับ 4 เป็นต้นไป</h5>
+        ${runnersUp.length ? `<ol start="4">${runnersUp.map((entry, index) => `<li style="--rank-index:${index}"><span>${index + 4}</span><span>${escapeHtml(entry.avatar)}</span><strong>${escapeHtml(entry.name)}</strong><em>${Math.round(entry.percent)}%</em></li>`).join("")}</ol>` : `<p class="runnerup-empty">ยังไม่มีอันดับเพิ่มเติม</p>`}
+        ${waiting.length ? `<div class="competition-waiting"><strong>กำลังทำเกม ${waiting.length} คน</strong><span>${waiting.map(entry => escapeHtml(entry.name)).join(" · ")}</span></div>` : ""}
+      </aside>
+    </div>`;
+}
+
 function renderLiveResults() {
   const container = $("#liveResults");
-  if (!container) return;
-  const approved = state.players.filter(player => player.status === "approved");
-  if (!approved.length) {
+  const arena = $("#competitionArena");
+  const status = $("#competitionStatus");
+  const finishButton = $("#finishActivityButton");
+  if (!container || !state.session) return;
+  const entries = currentCompetitionEntries();
+  const resultCount = entries.filter(entry => entry.percent !== null).length;
+  const isCelebrating = state.celebrationActivityKey === state.session.current_activity_key;
+  arena?.classList.toggle("is-celebrating", isCelebrating);
+  if (finishButton) {
+    finishButton.disabled = resultCount === 0 || isCelebrating;
+    finishButton.textContent = isCelebrating ? "✓ ประกาศผลแล้ว" : "🏆 จบเกมและประกาศผล";
+  }
+  if (status) status.textContent = isCelebrating
+    ? `ประกาศผลแล้ว ${resultCount} คน · พร้อมไปเกมถัดไป`
+    : `ส่งคำตอบแล้ว ${resultCount}/${entries.length} คน · อันดับอัปเดตอัตโนมัติ`;
+  if (!entries.length) {
     container.innerHTML = `<div class="flow-empty-state"><span>👥</span><strong>ยังไม่มีนักเรียนที่อนุมัติ</strong><small>กลับไปห้องรอเพื่อตรวจรายชื่อได้</small></div>`;
     return;
   }
-  container.innerHTML = `<div class="flow-result-list">${approved.map(player => {
-    const student = player.student || {};
-    const attempts = state.attempts.filter(item => item.session_player_id === player.id);
-    const current = attempts.filter(item => item.activity_key === state.session.current_activity_key);
-    const best = current.length ? Math.max(...current.map(item => Number(item.percent || 0))) : null;
-    const completed = new Set(attempts.map(item => item.activity_key)).size;
-    return `<article><span>${escapeHtml(student.avatar || randomAvatar(student.nickname))}</span><div><strong>${escapeHtml(student.full_name || "นักเรียน")}</strong><small>ทำแล้ว ${completed}/${ACTIVITIES.length} เกม</small></div><em class="${best === null ? "waiting" : best >= state.session.pass_percent ? "passed" : "needs-work"}">${best === null ? "กำลังทำ" : `${Math.round(best)}%`}</em></article>`;
-  }).join("")}</div>`;
+  container.innerHTML = isCelebrating ? renderCelebration(entries) : renderLiveRanking(entries);
+}
+
+let victoryAudioContext;
+function prepareVictoryAudio() {
+  if (!state.competitionSoundEnabled) return;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  victoryAudioContext ||= new AudioContextClass();
+  if (victoryAudioContext.state === "suspended") victoryAudioContext.resume().catch(() => {});
+  return victoryAudioContext;
+}
+
+function playVictorySound() {
+  const context = prepareVictoryAudio();
+  if (!context) return;
+  const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+  const now = context.currentTime;
+  notes.forEach((frequency, index) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = index < 3 ? "triangle" : "sine";
+    oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.0001, now + index * .16);
+    gain.gain.exponentialRampToValueAtTime(.16, now + index * .16 + .025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + index * .16 + .3);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(now + index * .16);
+    oscillator.stop(now + index * .16 + .32);
+  });
+}
+
+async function finishActivity() {
+  if (!state.session?.current_activity_key) return;
+  const resultCount = currentCompetitionEntries().filter(entry => entry.percent !== null).length;
+  if (!resultCount) return toast("รอให้นักเรียนส่งคำตอบอย่างน้อย 1 คนก่อนประกาศผล", "warning");
+  prepareVictoryAudio();
+  const button = $("#finishActivityButton");
+  button.disabled = true;
+  const { data, error } = await supabase.from("class_sessions").update({ status: "paused" }).eq("id", state.session.id).select().single();
+  if (error) {
+    button.disabled = false;
+    return toast(error.message, "error");
+  }
+  state.session = data;
+  state.celebrationActivityKey = state.session.current_activity_key;
+  $("#pauseSessionButton").textContent = "เล่นรอบนี้ต่อ";
+  renderLiveResults();
+  playVictorySound();
+  broadcastDisplay();
+  $("#competitionArena").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function toggleCompetitionExpanded() {
+  const arena = $("#competitionArena");
+  const button = $("#competitionFullscreenButton");
+  const expanded = !arena.classList.contains("competition-expanded");
+  arena.classList.toggle("competition-expanded", expanded);
+  document.body.classList.toggle("competition-overlay-open", expanded);
+  button.setAttribute("aria-pressed", String(expanded));
+  button.innerHTML = expanded ? "✕ <span>ปิดเต็มจอ</span>" : "⛶ <span>เต็มจอ</span>";
+}
+
+function toggleCompetitionSound() {
+  state.competitionSoundEnabled = !state.competitionSoundEnabled;
+  const button = $("#competitionSoundButton");
+  button.setAttribute("aria-pressed", String(state.competitionSoundEnabled));
+  button.innerHTML = state.competitionSoundEnabled ? "🔊 <span>เสียง</span>" : "🔇 <span>ปิดเสียง</span>";
+  toast(state.competitionSoundEnabled ? "เปิดเสียงประกาศผลแล้ว" : "ปิดเสียงประกาศผลแล้ว", "success");
 }
 
 function renderSummary() {
@@ -738,6 +906,9 @@ async function closeSession() {
   state.playerSelfieUrls = new Map();
   state.lobbyPage = 1;
   state.lobbyZoomStep = 0;
+  state.celebrationActivityKey = null;
+  $("#competitionArena")?.classList.remove("competition-expanded", "is-celebrating");
+  document.body.classList.remove("competition-overlay-open");
   hide($("#liveSession"));
   hide($("#resumeSessionView"));
   show($("#sessionSetup"));
@@ -948,7 +1119,10 @@ $("#lobbyBackButton").addEventListener("click", () => setTeacherFlowStep("qr"));
 $("#lobbyNextButton").addEventListener("click", () => { renderPlanChoices(); setTeacherFlowStep("plan"); });
 $("#planBackButton").addEventListener("click", () => setTeacherFlowStep("lobby"));
 $("#startPlanButton").addEventListener("click", startSelectedPlan);
+$("#finishActivityButton").addEventListener("click", finishActivity);
 $("#nextActivityButton").addEventListener("click", goToNextActivity);
+$("#competitionFullscreenButton").addEventListener("click", toggleCompetitionExpanded);
+$("#competitionSoundButton").addEventListener("click", toggleCompetitionSound);
 $("#showSummaryButton").addEventListener("click", showSessionSummary);
 $("#summaryBackButton").addEventListener("click", () => setTeacherFlowStep("live"));
 $("#summaryExportButton").addEventListener("click", exportCurrentReport);
@@ -965,6 +1139,9 @@ $("#attemptMode").addEventListener("change", event => { $("#maxAttempts").disabl
 $$('#dashboardNav button').forEach(button => button.addEventListener("click", () => switchPanel(button.dataset.panel)));
 window.addEventListener("online", connectionUpdate);
 window.addEventListener("offline", connectionUpdate);
+window.addEventListener("keydown", event => {
+  if (event.key === "Escape" && $("#competitionArena")?.classList.contains("competition-expanded")) toggleCompetitionExpanded();
+});
 let lobbyResizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(lobbyResizeTimer);
