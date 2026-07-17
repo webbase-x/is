@@ -99,6 +99,11 @@ const state = {
   attempts: [],
   gameZoomIndex: 2,
   rhythmRun: null,
+  presenceReady: false,
+  screenPresenceTimer: null,
+  screenPresencePublishing: false,
+  screenPresencePending: false,
+  presenceOnlineAt: null,
 };
 
 const views = {
@@ -478,12 +483,78 @@ function subscribeToSession() {
     .subscribe();
 }
 
+function studentScreenPresencePayload() {
+  const activity = ACTIVITIES.find(item => item.key === state.session?.current_activity_key);
+  const resultVisible = Boolean($("#gameCanvas .result-card"));
+  const completedActivities = new Set(state.attempts.map(attempt => attempt.activity_key)).size;
+  const currentAttempts = state.attempts.filter(attempt => attempt.activity_key === activity?.key).length;
+  let screenState = "ready";
+  let screenLabel = "รอครูเริ่มเกม";
+  if (state.session?.status === "paused") { screenState = "paused"; screenLabel = "พักเกม"; }
+  else if (resultVisible) { screenState = "result"; screenLabel = "ส่งผลแล้ว"; }
+  else if (state.session?.status === "active" && activity) { screenState = "playing"; screenLabel = "กำลังเล่นเกม"; }
+  const detailElement = $("#rhythmFeedback") || $("#gameCanvas .result-card p") || $("#gameCanvas .game-instruction p") || $("#gameCanvas .empty-stage p");
+  const detail = (detailElement?.textContent || "กำลังทำกิจกรรม").trim().slice(0, 120);
+  const score = Number($("#playerScore")?.textContent || 0);
+  const progressPercent = resultVisible || currentAttempts ? 100 : activity ? 30 : 0;
+  return {
+    role: "student",
+    player_id: state.player?.id,
+    student_id: state.player?.student_id,
+    screen_state: screenState,
+    screen_label: screenLabel,
+    activity_key: activity?.key || null,
+    activity_title: activity?.title || "รอครูเริ่มกิจกรรม",
+    detail,
+    mode: state.session?.play_mode || "practice",
+    score,
+    progress_percent: progressPercent,
+    progress_text: `ทำแล้ว ${completedActivities}/${ACTIVITIES.length} เกม`,
+    updated_at: new Date().toISOString(),
+    online_at: state.presenceOnlineAt || new Date().toISOString(),
+  };
+}
+
+async function publishStudentScreenPresence() {
+  if (!state.presenceReady || !state.presenceChannel || !state.player || !state.session) return;
+  if (state.screenPresencePublishing) {
+    state.screenPresencePending = true;
+    return;
+  }
+  state.screenPresencePublishing = true;
+  try { await state.presenceChannel.track(studentScreenPresencePayload()); }
+  catch { /* Realtime will publish the latest screen again after reconnecting. */ }
+  finally {
+    state.screenPresencePublishing = false;
+    if (state.screenPresencePending) {
+      state.screenPresencePending = false;
+      scheduleStudentScreenPresence();
+    }
+  }
+}
+
+function scheduleStudentScreenPresence(immediate = false) {
+  if (state.screenPresenceTimer) return;
+  state.screenPresenceTimer = setTimeout(() => {
+    state.screenPresenceTimer = null;
+    void publishStudentScreenPresence();
+  }, immediate ? 0 : 1200);
+}
+
+function observeStudentScreenChanges() {
+  const observer = new MutationObserver(() => scheduleStudentScreenPresence());
+  [$("#gameCanvas"), $("#stageTitle"), $("#attemptBadge"), $("#playerScore")].filter(Boolean).forEach(element => observer.observe(element, { childList: true, subtree: true, characterData: true, attributes: true }));
+}
+
 function subscribePresence() {
   state.presenceChannel?.unsubscribe();
+  state.presenceReady = false;
   state.presenceChannel = supabase.channel(`classroom-${state.session.id}`, { config: { presence: { key: state.player.id } } });
   state.presenceChannel.subscribe(status => {
     if (status === "SUBSCRIBED") {
-      state.presenceChannel.track({ role: "student", player_id: state.player.id, student_id: state.player.student_id, online_at: new Date().toISOString() });
+      state.presenceReady = true;
+      state.presenceOnlineAt = new Date().toISOString();
+      scheduleStudentScreenPresence(true);
     }
   });
 }
@@ -1225,6 +1296,7 @@ function resetJoin(message) {
   state.playerChannel?.unsubscribe();
   state.sessionChannel?.unsubscribe();
   state.presenceChannel?.unsubscribe();
+  clearTimeout(state.screenPresenceTimer);
   stopCamera();
   Object.assign(state, {
     joinStep: "code", joinBusy: false,
@@ -1232,6 +1304,8 @@ function resetJoin(message) {
     selfieBlob: null, selfieDataUrl: "", selfiePath: "",
     player: null, session: null, playerChannel: null, sessionChannel: null,
     presenceChannel: null, renderedActivity: null, attempts: [], gameZoomIndex: 2, rhythmRun: null,
+    presenceReady: false, screenPresenceTimer: null, screenPresencePublishing: false,
+    screenPresencePending: false, presenceOnlineAt: null,
   });
   setView(views.login, views.waiting, views.game);
   initializeJoinFlow();
@@ -1285,11 +1359,13 @@ window.addEventListener("online", connectionUpdate);
 window.addEventListener("offline", connectionUpdate);
 window.addEventListener("beforeunload", stopCamera);
 window.addEventListener("beforeunload", cleanupRhythm);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) scheduleStudentScreenPresence(true); });
 
 async function initializeStudentPage() {
   connectionUpdate();
   applyGameZoom();
   setGameFocus(true);
+  observeStudentScreenChanges();
   const restored = await restoreSession();
   if (!restored) await initializeJoinFlow();
 }

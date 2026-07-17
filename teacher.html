@@ -44,6 +44,7 @@
         <div class="teacher-profile"><span>ค</span><div><small>ครูผู้สอน</small><strong id="teacherName">—</strong></div></div>
         <nav id="dashboardNav">
           <button class="active" data-panel="sessionPanel"><span>🎛️</span> ควบคุมคาบ</button>
+          <button data-panel="studentScreensPanel"><span>📱</span> แสดงผลจอ นร. <small id="studentScreensOnlineBadge" class="nav-count-badge">0</small></button>
           <button data-panel="rosterPanel"><span>👥</span> รายชื่อนักเรียน</button>
           <button data-panel="reportsPanel"><span>📊</span> คะแนนและรายงาน</button>
           <button data-panel="plansPanel"><span>🗺️</span> แผนการเรียนรู้</button>
@@ -175,7 +176,15 @@
               <section class="teacher-flow-step hidden" data-flow-step="live">
                 <div class="flow-live-header">
                   <div><span class="eyebrow">ขั้นที่ 5 จาก 6 · ผลการแข่งขัน</span><h2 id="currentActivityLabel">ยังไม่เริ่มกิจกรรม</h2><p id="liveClassContext">—</p></div>
-                  <a id="openDisplayButton" href="display.html" target="_blank" class="button button-dark">▣ เปิดจอฉาย</a>
+                  <div class="flow-live-header-actions">
+                    <div class="live-mode-switch" role="group" aria-label="เปลี่ยนโหมดเกม">
+                      <small>โหมดเกม</small>
+                      <button type="button" data-live-mode="practice">ทดลอง</button>
+                      <button type="button" data-live-mode="test">ทดสอบ</button>
+                      <button type="button" data-live-mode="real">จริง</button>
+                    </div>
+                    <a id="openDisplayButton" href="display.html" target="_blank" class="button button-dark">▣ เปิดจอฉาย</a>
+                  </div>
                 </div>
                 <div class="session-summary-grid flow-metrics live-competition-metrics">
                   <div class="panel metric-card"><span>👥</span><div><small>นักเรียน</small><strong id="liveApprovedCount">0</strong></div></div>
@@ -215,6 +224,29 @@
               </section>
             </div>
           </div>
+        </section>
+
+        <section id="studentScreensPanel" class="dashboard-panel">
+          <div class="dashboard-heading student-screens-heading">
+            <div><span class="eyebrow">ติดตามการเรียนแบบเรียลไทม์</span><h1>จอนักเรียน</h1><p id="studentScreensContext">เปิดคาบเรียนก่อนเพื่อดูจอนักเรียน</p></div>
+            <button id="backToSessionButton" class="button button-primary" type="button">← กลับไปควบคุมคาบ</button>
+          </div>
+          <section class="panel student-screens-toolbar">
+            <div class="student-screen-live-status"><i></i><span><small>เชื่อมต่อสด</small><strong id="studentScreensOnlineSummary">ออนไลน์ 0 คน</strong></span></div>
+            <div class="student-screen-view-switch" role="group" aria-label="เลือกรูปแบบการแสดงจอนักเรียน">
+              <button id="studentScreensGridButton" class="active" type="button">▦ หลายคน</button>
+              <button id="studentScreensFocusButton" type="button" disabled>▯ รายคน</button>
+            </div>
+          </section>
+          <div id="studentScreensEmpty" class="panel empty-report student-screens-empty"><span>📱</span><h2>ยังไม่มีจอนักเรียนออนไลน์</h2><p>เมื่อนักเรียนได้รับอนุมัติและเข้าหน้าเกม จอจะปรากฏที่นี่อัตโนมัติ</p></div>
+          <div id="studentScreensGrid" class="student-screen-grid hidden" aria-live="polite"></div>
+          <section id="studentScreenFocus" class="student-screen-focus hidden">
+            <div class="student-screen-focus-nav">
+              <button id="studentScreenBackToGrid" class="button button-ghost" type="button">← ดูหลายคน</button>
+              <div><button id="studentScreenPrevious" class="student-screen-arrow" type="button" aria-label="นักเรียนคนก่อน">‹</button><button id="studentScreenNext" class="student-screen-arrow" type="button" aria-label="นักเรียนคนถัดไป">›</button></div>
+            </div>
+            <div id="studentScreenFocusContent"></div>
+          </section>
         </section>
 
         <section id="rosterPanel" class="dashboard-panel">

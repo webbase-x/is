@@ -32,6 +32,9 @@ const state = {
   activityTimerLastTickAt: null,
   activityStartedAt: null,
   finishingActivity: false,
+  studentScreens: new Map(),
+  studentScreenView: "grid",
+  selectedStudentScreenId: null,
 };
 
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
@@ -332,6 +335,7 @@ async function showLiveSession(step = "qr") {
   await renderStudentAccess();
   $("#openDisplayButton").href = `display.html?room=${state.session.room_code}`;
   $("#pauseSessionButton").textContent = state.session.status === "paused" ? "เล่นต่อ" : "พักเกม";
+  renderLiveModeSwitch();
   selectPlan(Number(state.session.plan_id || state.selectedPlanId), false);
   renderActivityControls();
   subscribeToSession();
@@ -383,6 +387,29 @@ function renderActivityControls() {
   updateNextActivityButton();
 }
 
+function renderLiveModeSwitch() {
+  $$('[data-live-mode]').forEach(button => {
+    const active = button.dataset.liveMode === state.session?.play_mode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+async function setLivePlayMode(mode) {
+  if (!state.session || !["practice", "test", "real"].includes(mode) || state.session.play_mode === mode) return;
+  const buttons = $$('[data-live-mode]');
+  buttons.forEach(button => { button.disabled = true; });
+  const { data, error } = await supabase.from("class_sessions").update({ play_mode: mode }).eq("id", state.session.id).select().single();
+  buttons.forEach(button => { button.disabled = false; });
+  if (error) return toast(error.message, "error");
+  state.session = data;
+  $("#playMode").value = mode;
+  renderLiveModeSwitch();
+  broadcastDisplay();
+  const labels = { practice: "โหมดทดลอง", test: "โหมดทดสอบ", real: "โหมดจริง" };
+  toast(`เปลี่ยนเป็น${labels[mode]}แล้ว`, "success");
+}
+
 async function savePlanSettings() {
   const attemptMode = $("#attemptMode").value;
   const updates = {
@@ -397,6 +424,7 @@ async function savePlanSettings() {
   const { data, error } = await supabase.from("class_sessions").update(updates).eq("id", state.session.id).select().single();
   if (error) throw error;
   state.session = data;
+  renderLiveModeSwitch();
 }
 
 function activityTimerStorageKey() {
@@ -542,6 +570,7 @@ async function startActivity(activityKey) {
   state.session = data;
   startActivityTimer(activityKey, true);
   renderActivityControls();
+  renderLiveModeSwitch();
   renderLiveResults();
   $("#pauseSessionButton").textContent = "พักเกม";
   broadcastDisplay();
@@ -607,6 +636,7 @@ function subscribeToSession() {
         restoreActivityTimer();
       }
       renderActivityControls();
+      renderLiveModeSwitch();
       renderLiveResults();
     })
     .subscribe();
@@ -618,11 +648,134 @@ function subscribePresence() {
     .on("presence", { event: "sync" }, () => {
       const presence = state.presenceChannel.presenceState();
       const students = Object.values(presence).flat().filter(item => item.role === "student");
-      $("#onlineCount").textContent = new Set(students.map(item => item.player_id)).size;
+      const latestScreens = new Map();
+      students.forEach(screen => {
+        if (!screen.player_id) return;
+        const previous = latestScreens.get(screen.player_id);
+        if (!previous || String(screen.updated_at || screen.online_at || "") >= String(previous.updated_at || previous.online_at || "")) latestScreens.set(screen.player_id, screen);
+      });
+      state.studentScreens = latestScreens;
+      $("#onlineCount").textContent = latestScreens.size;
+      renderStudentScreens();
     })
     .subscribe(status => {
       if (status === "SUBSCRIBED") state.presenceChannel.track({ role: "teacher", online_at: new Date().toISOString() });
     });
+}
+
+function studentScreenEntries() {
+  return state.players.filter(player => player.status === "approved").map(player => ({
+    player,
+    student: player.student || {},
+    screen: state.studentScreens.get(player.id) || null,
+    online: state.studentScreens.has(player.id),
+  }));
+}
+
+function studentScreenModeLabel(mode) {
+  return ({ practice: "ทดลอง", test: "ทดสอบ", real: "จริง" })[mode] || "ทดลอง";
+}
+
+function studentScreenIcon(entry) {
+  if (!entry.online) return "💤";
+  return ({ result: "🏆", paused: "⏸️", playing: "🎮", ready: "🗺️", waiting: "⏳" })[entry.screen?.screen_state] || "📱";
+}
+
+function studentMirrorHtml(entry, large = false) {
+  const screen = entry.screen || {};
+  const activity = ACTIVITIES.find(item => item.key === screen.activity_key);
+  const title = screen.activity_title || activity?.title || (entry.online ? "กำลังเชื่อมต่อจอ" : "ไม่ได้ออนไลน์");
+  const label = entry.online ? (screen.screen_label || "อยู่หน้าเกม") : "ออฟไลน์";
+  const detail = screen.detail || (entry.online ? "กำลังทำกิจกรรม" : "เมื่อนักเรียนกลับเข้าเกม จอจะเชื่อมต่อใหม่");
+  const rawProgress = Number(screen.progress_percent || 0);
+  const rawScore = Number(screen.score || 0);
+  const progress = Number.isFinite(rawProgress) ? Math.min(100, Math.max(0, rawProgress)) : 0;
+  const score = Number.isFinite(rawScore) ? rawScore : 0;
+  return `<div class="student-device ${large ? "student-device-large" : ""} ${entry.online ? "is-online" : "is-offline"}">
+    <div class="student-device-top"><span>${entry.online ? "● สด" : "○ ออฟไลน์"}</span><small>${escapeHtml(studentScreenModeLabel(screen.mode || state.session?.play_mode))}</small></div>
+    <div class="student-device-stage" data-screen-state="${escapeHtml(screen.screen_state || "offline")}">
+      <span class="student-device-icon">${studentScreenIcon(entry)}</span>
+      <small>${escapeHtml(label)}</small>
+      <strong>${escapeHtml(title)}</strong>
+      <p>${escapeHtml(detail)}</p>
+      <div class="student-device-progress"><i style="width:${progress}%"></i></div>
+    </div>
+    <div class="student-device-bottom"><span>⭐ ${score}</span><span>${escapeHtml(screen.progress_text || "รอข้อมูลความคืบหน้า")}</span></div>
+  </div>`;
+}
+
+function renderStudentScreenFocus(entries) {
+  const selected = entries.find(entry => entry.player.id === state.selectedStudentScreenId) || entries[0];
+  if (!selected) return;
+  state.selectedStudentScreenId = selected.player.id;
+  const index = entries.findIndex(entry => entry.player.id === selected.player.id);
+  const screen = selected.screen || {};
+  const rawScore = Number(screen.score || 0);
+  const score = Number.isFinite(rawScore) ? rawScore : 0;
+  const updatedAt = screen.updated_at ? new Date(screen.updated_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
+  $("#studentScreenFocusContent").innerHTML = `<div class="student-screen-focus-layout">
+    <div class="student-screen-focus-device">${studentMirrorHtml(selected, true)}</div>
+    <aside class="panel student-screen-focus-info">
+      <span class="eyebrow">นักเรียนคนที่ ${index + 1} จาก ${entries.length}</span>
+      <div class="student-screen-person"><span>${escapeHtml(selected.student.avatar || randomAvatar(selected.student.nickname))}</span><div><h2>${escapeHtml(selected.student.full_name || "นักเรียน")}</h2><p>${escapeHtml(selected.student.nickname || "")} · ${escapeHtml(selected.student.student_code || "")}</p></div></div>
+      <dl><div><dt>สถานะ</dt><dd>${escapeHtml(selected.online ? (screen.screen_label || "ออนไลน์") : "ออฟไลน์")}</dd></div><div><dt>กิจกรรม</dt><dd>${escapeHtml(screen.activity_title || "—")}</dd></div><div><dt>โหมด</dt><dd>${escapeHtml(studentScreenModeLabel(screen.mode || state.session?.play_mode))}</dd></div><div><dt>คะแนนสะสม</dt><dd>${score}</dd></div><div><dt>อัปเดตล่าสุด</dt><dd>${escapeHtml(updatedAt)}</dd></div></dl>
+    </aside>
+  </div>`;
+  $("#studentScreenPrevious").disabled = entries.length < 2;
+  $("#studentScreenNext").disabled = entries.length < 2;
+}
+
+function renderStudentScreens() {
+  const entries = state.session ? studentScreenEntries() : [];
+  const onlineCount = entries.filter(entry => entry.online).length;
+  $("#studentScreensOnlineBadge").textContent = onlineCount;
+  $("#studentScreensOnlineSummary").textContent = `ออนไลน์ ${onlineCount} จาก ${entries.length} คน`;
+  $("#studentScreensContext").textContent = state.session ? `${classContext()} · รหัสห้อง ${state.session.room_code}` : "เปิดคาบเรียนก่อนเพื่อดูจอนักเรียน";
+  $("#studentScreensGridButton").classList.toggle("active", state.studentScreenView === "grid");
+  $("#studentScreensFocusButton").classList.toggle("active", state.studentScreenView === "focus");
+  $("#studentScreensGridButton").setAttribute("aria-pressed", String(state.studentScreenView === "grid"));
+  $("#studentScreensFocusButton").setAttribute("aria-pressed", String(state.studentScreenView === "focus"));
+  if (!entries.length) {
+    show($("#studentScreensEmpty"));
+    hide($("#studentScreensGrid"));
+    hide($("#studentScreenFocus"));
+    $("#studentScreensFocusButton").disabled = true;
+    return;
+  }
+  hide($("#studentScreensEmpty"));
+  if (!state.selectedStudentScreenId || !entries.some(entry => entry.player.id === state.selectedStudentScreenId)) state.selectedStudentScreenId = entries.find(entry => entry.online)?.player.id || entries[0].player.id;
+  $("#studentScreensFocusButton").disabled = false;
+  if (state.studentScreenView === "focus") {
+    hide($("#studentScreensGrid"));
+    show($("#studentScreenFocus"));
+    renderStudentScreenFocus(entries);
+    return;
+  }
+  hide($("#studentScreenFocus"));
+  show($("#studentScreensGrid"));
+  $("#studentScreensGrid").innerHTML = entries.map(entry => `<button class="student-screen-card ${entry.online ? "is-online" : "is-offline"}" type="button" data-screen-player="${entry.player.id}">
+    ${studentMirrorHtml(entry)}
+    <span class="student-screen-card-name"><strong>${escapeHtml(entry.student.full_name || "นักเรียน")}</strong><small>${entry.online ? "แตะเพื่อดูจอรายคน" : "ออฟไลน์"}</small></span>
+  </button>`).join("");
+  $("#studentScreensGrid").querySelectorAll("[data-screen-player]").forEach(button => button.addEventListener("click", () => {
+    state.selectedStudentScreenId = button.dataset.screenPlayer;
+    state.studentScreenView = "focus";
+    renderStudentScreens();
+  }));
+}
+
+function setStudentScreenView(view) {
+  if (!state.session) return toast("กรุณาเปิดคาบเรียนก่อน", "warning");
+  state.studentScreenView = view === "focus" ? "focus" : "grid";
+  renderStudentScreens();
+}
+
+function moveStudentScreen(direction) {
+  const entries = studentScreenEntries();
+  if (!entries.length) return;
+  const currentIndex = Math.max(0, entries.findIndex(entry => entry.player.id === state.selectedStudentScreenId));
+  state.selectedStudentScreenId = entries[(currentIndex + direction + entries.length) % entries.length].player.id;
+  renderStudentScreens();
 }
 
 function subscribeDisplay() {
@@ -650,6 +803,7 @@ async function refreshSessionData() {
   await renderPlayers();
   renderMetrics();
   renderLiveResults();
+  renderStudentScreens();
   renderReport();
   if (state.flowStep === "summary") renderSummary();
   void finishWhenEveryoneSubmitted();
@@ -1061,6 +1215,9 @@ async function closeSession() {
   state.attempts = [];
   state.leaderboard = [];
   state.playerSelfieUrls = new Map();
+  state.studentScreens = new Map();
+  state.studentScreenView = "grid";
+  state.selectedStudentScreenId = null;
   state.lobbyPage = 1;
   state.lobbyZoomStep = 0;
   state.celebrationActivityKey = null;
@@ -1068,6 +1225,7 @@ async function closeSession() {
   state.activityRemainingMs = 0;
   state.activityStartedAt = null;
   state.finishingActivity = false;
+  renderStudentScreens();
   $("#competitionArena")?.classList.remove("competition-expanded", "is-celebrating");
   document.body.classList.remove("competition-overlay-open");
   hide($("#liveSession"));
@@ -1238,6 +1396,7 @@ function exportCurrentReport() {
 function switchPanel(panelId) {
   $$("#dashboardNav button").forEach(button => button.classList.toggle("active", button.dataset.panel === panelId));
   $$(".dashboard-panel").forEach(panel => panel.classList.toggle("active", panel.id === panelId));
+  if (panelId === "studentScreensPanel") renderStudentScreens();
 }
 
 $("#teacherLoginForm").addEventListener("submit", signIn);
@@ -1284,6 +1443,7 @@ $("#finishActivityButton").addEventListener("click", () => finishActivity("manua
 $("#nextActivityButton").addEventListener("click", goToNextActivity);
 $("#competitionFullscreenButton").addEventListener("click", toggleCompetitionExpanded);
 $("#competitionSoundButton").addEventListener("click", toggleCompetitionSound);
+$$('[data-live-mode]').forEach(button => button.addEventListener("click", () => setLivePlayMode(button.dataset.liveMode)));
 $("#showSummaryButton").addEventListener("click", showSessionSummary);
 $("#summaryBackButton").addEventListener("click", () => setTeacherFlowStep("live"));
 $("#summaryExportButton").addEventListener("click", exportCurrentReport);
@@ -1295,6 +1455,12 @@ $("#copyStudentLink").addEventListener("click", async () => { await navigator.cl
 $("#returnForm").addEventListener("submit", returnPlayer);
 $("#cancelReturn").addEventListener("click", () => hide($("#returnDialog")));
 $("#exportCsvButton").addEventListener("click", exportCurrentReport);
+$("#backToSessionButton").addEventListener("click", () => switchPanel("sessionPanel"));
+$("#studentScreensGridButton").addEventListener("click", () => setStudentScreenView("grid"));
+$("#studentScreensFocusButton").addEventListener("click", () => setStudentScreenView("focus"));
+$("#studentScreenBackToGrid").addEventListener("click", () => setStudentScreenView("grid"));
+$("#studentScreenPrevious").addEventListener("click", () => moveStudentScreen(-1));
+$("#studentScreenNext").addEventListener("click", () => moveStudentScreen(1));
 $("#newSessionButton").addEventListener("click", () => { if (state.session) toast("ปิดคาบปัจจุบันก่อนเปิดคาบใหม่", "warning"); else { show($("#sessionSetup")); $("#sessionSetup").scrollIntoView({ behavior: "smooth" }); } });
 $("#attemptMode").addEventListener("change", event => { $("#maxAttempts").disabled = event.target.value !== "limited"; if (event.target.value === "single") $("#maxAttempts").value = 1; });
 $$('#dashboardNav button').forEach(button => button.addEventListener("click", () => switchPanel(button.dataset.panel)));
