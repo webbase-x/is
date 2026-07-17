@@ -146,8 +146,6 @@ const JOIN_STEPS = {
   name: { number: 2, label: "เลือกชื่อของหนู" },
   camera: { number: 3, label: "ถ่ายรูปสดแล้วส่ง" },
 };
-let roomLookupTimer;
-
 function normalizeRoomCode(value) {
   return String(value || "").replace(/\D/g, "").slice(0, 6);
 }
@@ -213,9 +211,15 @@ async function loadRoster(roomCode) {
   const code = normalizeRoomCode(roomCode);
   if (code.length !== 6) throw new Error("รหัสห้องไม่ถูกต้อง");
   await ensureAnonymousAuth();
-  const { data, error } = await supabase.rpc("get_open_session_roster", { p_room_code: code });
+  const lookup = supabase.rpc("get_open_session_roster", { p_room_code: code });
+  let lookupTimer;
+  const timeout = new Promise((_, reject) => { lookupTimer = window.setTimeout(() => reject(new Error("ตรวจห้องเรียนนานเกินไป กรุณาตรวจอินเทอร์เน็ตแล้วกดไปต่ออีกครั้ง")), 12000); });
+  let response;
+  try { response = await Promise.race([lookup, timeout]); }
+  finally { window.clearTimeout(lookupTimer); }
+  const { data, error } = response;
   if (error) throw error;
-  if (!data?.length) throw new Error("ห้องนี้ยังไม่มีรายชื่อ หรือครูปิดห้องแล้ว กรุณาแจ้งคุณครูตรวจห้องเรียน");
+  if (!data?.length) throw new Error("ไม่พบห้องที่เปิดรับด้วยรหัสนี้ รหัสคาบเดิมอาจปิดแล้ว กรุณาดูรหัสใหม่จากหน้า QR ของคุณครู");
   if (data[0].session_status !== "lobby") throw new Error("ครูปิดรับนักเรียนแล้ว กรุณาแจ้งคุณครู");
   state.roomCode = code;
   state.roster = data;
@@ -228,7 +232,6 @@ async function loadRoster(roomCode) {
 async function findRoom() {
   const button = $("#findRoomButton");
   if (button.disabled) return;
-  clearTimeout(roomLookupTimer);
   const code = normalizeRoomCode($("#roomCode").value);
   $("#roomCode").value = code;
   if (code.length !== 6) {
@@ -1340,8 +1343,6 @@ $("#findRoomButton").addEventListener("click", findRoom);
 $("#roomCode").addEventListener("input", event => {
   event.target.value = normalizeRoomCode(event.target.value);
   setStepStatus($("#codeStatus"), "");
-  clearTimeout(roomLookupTimer);
-  if (event.target.value.length === 6) roomLookupTimer = window.setTimeout(findRoom, 350);
 });
 $("#backToCodeButton").addEventListener("click", () => {
   setJoinStep("code");
