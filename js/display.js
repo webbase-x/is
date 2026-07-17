@@ -124,6 +124,47 @@ function screenIdentity(screen, index) {
   };
 }
 
+const mirrorTags = new Set(["SECTION", "DIV", "SPAN", "SMALL", "STRONG", "H1", "H2", "H3", "H4", "P", "BUTTON", "UL", "OL", "LI", "MARK", "I", "B", "LABEL", "OUTPUT"]);
+const mirrorStyleProperties = ["width", "height", "transform", "text-align", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "left", "top", "opacity", "animation-duration", "--spark-x", "--spark-y", "--spark-delay", "--spark-size"];
+const mirrorClassPrefixes = ["game-", "rhythm-", "karaoke-", "grammar-", "choice-", "word-", "falling-", "sort-", "train-", "vote-", "sentence-", "result-", "treasure-", "house-", "mini-", "sound-", "field-"];
+const mirrorClassNames = new Set(["wheel", "treasure", "button", "button-primary", "button-ghost", "button-row", "good", "bad", "hidden", "done", "active", "hot", "score-pop", "missed", "singing", "lyric-line", "correct", "wrong", "open", "empty-stage"]);
+
+function sanitizeMirrorStyle(element, rawStyle) {
+  const probe = document.createElement("span");
+  probe.style.cssText = String(rawStyle || "").slice(0, 700);
+  element.removeAttribute("style");
+  mirrorStyleProperties.forEach(property => {
+    const value = probe.style.getPropertyValue(property).trim();
+    if (value && value.length <= 90 && !/url\s*\(|expression\s*\(/i.test(value)) element.style.setProperty(property, value);
+  });
+}
+
+function sanitizeGameMarkup(markup) {
+  if (typeof markup !== "string" || !markup || markup.length > 48000) return "";
+  const template = document.createElement("template");
+  template.innerHTML = markup;
+  [...template.content.querySelectorAll("*")].forEach(element => {
+    if (!mirrorTags.has(element.tagName)) {
+      element.remove();
+      return;
+    }
+    const rawStyle = element.getAttribute("style");
+    [...element.attributes].forEach(attribute => {
+      const name = attribute.name.toLowerCase();
+      const keep = name === "class" || name === "style" || name === "disabled" || name === "hidden" || name === "aria-hidden" || /^data-[a-z0-9-]{1,40}$/.test(name);
+      if (!keep) element.removeAttribute(attribute.name);
+    });
+    if (element.hasAttribute("class")) {
+      const safeClasses = element.className.split(/\s+/).filter(name => /^[a-zA-Z0-9_-]{1,60}$/.test(name) && (mirrorClassNames.has(name) || mirrorClassPrefixes.some(prefix => name.startsWith(prefix)))).slice(0, 20);
+      if (safeClasses.length) element.className = safeClasses.join(" ");
+      else element.removeAttribute("class");
+    }
+    if (rawStyle) sanitizeMirrorStyle(element, rawStyle);
+    if (element.matches("button")) element.setAttribute("disabled", "");
+  });
+  return template.innerHTML;
+}
+
 function renderStudentScreens() {
   const grid = $("#displayStudentScreens");
   if (!grid) return;
@@ -132,6 +173,10 @@ function renderStudentScreens() {
     return nameCompare || String(a.player_id).localeCompare(String(b.player_id));
   });
   $("#displayOnlineCount").textContent = screens.length;
+  const sanitizedMarkups = screens.map(screen => sanitizeGameMarkup(screen.game_markup));
+  grid.classList.toggle("is-single", screens.length === 1);
+  grid.classList.toggle("has-live-mirrors", sanitizedMarkups.some(Boolean));
+  $("#displayScreensView").classList.toggle("is-single-screen", screens.length === 1 && Boolean(sanitizedMarkups[0]));
   if (!screens.length) {
     grid.innerHTML = `<div class="display-students-empty"><span>📡</span><h2>กำลังรอนักเรียนออนไลน์</h2><p>เมื่อนักเรียนได้รับอนุมัติและเปิดหน้าเกม จอจะปรากฏที่นี่ทันที</p></div>`;
     return;
@@ -143,18 +188,18 @@ function renderStudentScreens() {
     const activity = ACTIVITIES.find(item => item.key === screen.activity_key);
     const percent = Math.max(0, Math.min(100, Number(screen.progress_percent) || 0));
     const score = Math.max(0, Number(screen.score) || 0);
-    return `<article class="display-student-card" data-screen-state="${screenState}">
+    const gameMarkup = sanitizedMarkups[index];
+    const gameZoom = Math.max(.75, Math.min(1.3, Number(screen.game_zoom) || 1));
+    const screenContent = gameMarkup
+      ? `<div class="display-student-mirror"><div class="display-student-mirror-canvas game-canvas" style="--game-zoom:${gameZoom}">${gameMarkup}</div></div>`
+      : `<div class="display-student-stage"><span class="display-student-icon">${activity?.icon || meta.icon}</span><small>${escapeHtml(screen.screen_label || meta.label)}</small><h2>${escapeHtml(screen.activity_title || activity?.title || "รอครูเริ่มกิจกรรม")}</h2><p>${escapeHtml(screen.detail || "กำลังเตรียมพร้อม")}</p></div>`;
+    return `<article class="display-student-card${gameMarkup ? " has-live-mirror" : ""}" data-screen-state="${screenState}">
       <header>
         <span class="display-student-avatar">${escapeHtml(identity.avatar)}</span>
-        <div><strong>${escapeHtml(identity.name)}</strong><small><i></i> ออนไลน์</small></div>
+        <div><strong>${escapeHtml(identity.name)}</strong><small><i></i> หน้าจอสด</small></div>
         <span class="display-student-score">${score} ★</span>
       </header>
-      <div class="display-student-stage">
-        <span class="display-student-icon">${activity?.icon || meta.icon}</span>
-        <small>${escapeHtml(screen.screen_label || meta.label)}</small>
-        <h2>${escapeHtml(screen.activity_title || activity?.title || "รอครูเริ่มกิจกรรม")}</h2>
-        <p>${escapeHtml(screen.detail || "กำลังเตรียมพร้อม")}</p>
-      </div>
+      ${screenContent}
       <footer>
         <div class="display-student-progress"><i style="width:${percent}%"></i></div>
         <span>${escapeHtml(screen.progress_text || `${Math.round(percent)}%`)}</span>
@@ -169,10 +214,18 @@ function syncStudentPresence() {
   const latest = new Map();
   Object.values(state.presenceChannel.presenceState()).flat().forEach(screen => {
     if (screen.role !== "student" || !screen.player_id) return;
-    const current = latest.get(screen.player_id);
-    if (!current || String(screen.updated_at || "") >= String(current.updated_at || "")) latest.set(screen.player_id, screen);
+    const current = latest.get(screen.player_id) || state.studentScreens.get(screen.player_id);
+    latest.set(screen.player_id, !current || String(screen.updated_at || "") > String(current.updated_at || "") ? screen : current);
   });
   state.studentScreens = latest;
+  renderStudentScreens();
+}
+
+function receiveStudentScreen(message) {
+  const screen = message?.payload || message;
+  if (screen?.role !== "student" || !screen.player_id) return;
+  const current = state.studentScreens.get(screen.player_id);
+  if (!current || String(screen.updated_at || "") >= String(current.updated_at || "")) state.studentScreens.set(screen.player_id, screen);
   renderStudentScreens();
 }
 
@@ -190,6 +243,7 @@ function subscribePresence() {
   state.presenceChannel = supabase.channel(`classroom-${state.snapshot.session_id}`, {
     config: { presence: { key: state.presenceKey } },
   })
+    .on("broadcast", { event: "student-screen" }, receiveStudentScreen)
     .on("presence", { event: "sync" }, syncStudentPresence)
     .on("presence", { event: "join" }, syncStudentPresence)
     .on("presence", { event: "leave" }, syncStudentPresence)

@@ -100,6 +100,7 @@ const state = {
   gameZoomIndex: 2,
   rhythmRun: null,
   presenceReady: false,
+  presenceTracked: false,
   screenPresenceTimer: null,
   screenPresencePublishing: false,
   screenPresencePending: false,
@@ -496,6 +497,32 @@ function studentPresenceIdentity() {
   };
 }
 
+function studentGameMirrorMarkup() {
+  const source = $("#gameCanvas");
+  if (!source) return "";
+  const clone = source.cloneNode(true);
+  clone.querySelectorAll("audio, video, source, script, iframe, object, embed, select, option, input, textarea").forEach(element => element.remove());
+  clone.querySelectorAll("*").forEach(element => {
+    element.removeAttribute("id");
+    element.removeAttribute("name");
+    element.removeAttribute("for");
+    element.removeAttribute("aria-live");
+    [...element.attributes].forEach(attribute => {
+      if (attribute.name.toLowerCase().startsWith("on")) element.removeAttribute(attribute.name);
+    });
+    if (element.matches("button")) {
+      element.setAttribute("disabled", "");
+      element.setAttribute("tabindex", "-1");
+    }
+  });
+  let markup = clone.innerHTML.replace(/>\s+</g, "><").trim();
+  if (markup.length > 48000) {
+    clone.querySelectorAll(".grammar-sparkles, .rhythm-audio, .rhythm-control-row").forEach(element => element.remove());
+    markup = clone.innerHTML.replace(/>\s+</g, "><").trim();
+  }
+  return markup.length <= 48000 ? markup : "";
+}
+
 function studentScreenPresencePayload() {
   const activity = ACTIVITIES.find(item => item.key === state.session?.current_activity_key);
   const identity = studentPresenceIdentity();
@@ -526,6 +553,8 @@ function studentScreenPresencePayload() {
     score,
     progress_percent: progressPercent,
     progress_text: `ทำแล้ว ${completedActivities}/${ACTIVITIES.length} เกม`,
+    game_markup: studentGameMirrorMarkup(),
+    game_zoom: Math.max(.75, Math.min(1.3, Number($("#gameCanvas")?.style.getPropertyValue("--game-zoom")) || 1)),
     updated_at: new Date().toISOString(),
     online_at: state.presenceOnlineAt || new Date().toISOString(),
   };
@@ -538,7 +567,17 @@ async function publishStudentScreenPresence() {
     return;
   }
   state.screenPresencePublishing = true;
-  try { await state.presenceChannel.track(studentScreenPresencePayload()); }
+  try {
+    const payload = studentScreenPresencePayload();
+    if (!state.presenceTracked) {
+      const { game_markup: gameMarkup, ...presencePayload } = payload;
+      await state.presenceChannel.track(presencePayload);
+      state.presenceTracked = true;
+      if (gameMarkup) await state.presenceChannel.send({ type: "broadcast", event: "student-screen", payload });
+    } else {
+      await state.presenceChannel.send({ type: "broadcast", event: "student-screen", payload });
+    }
+  }
   catch { /* Realtime will publish the latest screen again after reconnecting. */ }
   finally {
     state.screenPresencePublishing = false;
@@ -554,7 +593,7 @@ function scheduleStudentScreenPresence(immediate = false) {
   state.screenPresenceTimer = setTimeout(() => {
     state.screenPresenceTimer = null;
     void publishStudentScreenPresence();
-  }, immediate ? 0 : 1200);
+  }, immediate ? 0 : 2500);
 }
 
 function observeStudentScreenChanges() {
@@ -565,6 +604,7 @@ function observeStudentScreenChanges() {
 function subscribePresence() {
   state.presenceChannel?.unsubscribe();
   state.presenceReady = false;
+  state.presenceTracked = false;
   state.presenceChannel = supabase.channel(`classroom-${state.session.id}`, { config: { presence: { key: state.player.id } } });
   state.presenceChannel.subscribe(status => {
     if (status === "SUBSCRIBED") {
@@ -1320,7 +1360,7 @@ function resetJoin(message) {
     selfieBlob: null, selfieDataUrl: "", selfiePath: "",
     player: null, session: null, playerChannel: null, sessionChannel: null,
     presenceChannel: null, renderedActivity: null, attempts: [], gameZoomIndex: 2, rhythmRun: null,
-    presenceReady: false, screenPresenceTimer: null, screenPresencePublishing: false,
+    presenceReady: false, presenceTracked: false, screenPresenceTimer: null, screenPresencePublishing: false,
     screenPresencePending: false, presenceOnlineAt: null,
   });
   setView(views.login, views.waiting, views.game);

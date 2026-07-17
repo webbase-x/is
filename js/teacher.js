@@ -733,14 +733,22 @@ function subscribeToSession() {
 function subscribePresence() {
   state.presenceChannel?.unsubscribe();
   state.presenceChannel = supabase.channel(`classroom-${state.session.id}`, { config: { presence: { key: `teacher-${state.user.id}` } } })
+    .on("broadcast", { event: "student-screen" }, message => {
+      const screen = message?.payload || message;
+      if (screen?.role !== "student" || !screen.player_id) return;
+      const previous = state.studentScreens.get(screen.player_id);
+      if (!previous || String(screen.updated_at || "") >= String(previous.updated_at || "")) state.studentScreens.set(screen.player_id, screen);
+      $("#onlineCount").textContent = state.studentScreens.size;
+      renderStudentScreens();
+    })
     .on("presence", { event: "sync" }, () => {
       const presence = state.presenceChannel.presenceState();
       const students = Object.values(presence).flat().filter(item => item.role === "student");
       const latestScreens = new Map();
       students.forEach(screen => {
         if (!screen.player_id) return;
-        const previous = latestScreens.get(screen.player_id);
-        if (!previous || String(screen.updated_at || screen.online_at || "") >= String(previous.updated_at || previous.online_at || "")) latestScreens.set(screen.player_id, screen);
+        const previous = latestScreens.get(screen.player_id) || state.studentScreens.get(screen.player_id);
+        latestScreens.set(screen.player_id, !previous || String(screen.updated_at || screen.online_at || "") > String(previous.updated_at || previous.online_at || "") ? screen : previous);
       });
       state.studentScreens = latestScreens;
       $("#onlineCount").textContent = latestScreens.size;

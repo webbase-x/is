@@ -769,6 +769,20 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .display-student-stage > small { margin-top: 6px; color: #a99fff; font-size: 11px; font-weight: 900; }
 .display-student-stage h2 { width: 100%; margin: 3px 0; overflow: hidden; color: white; font-size: clamp(17px,1.5vw,22px); line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .display-student-stage p { min-height: 36px; display: -webkit-box; margin: 0; overflow: hidden; color: #aeb7d2; font-size: 12px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.display-student-card.has-live-mirror { background: #f6f7fc; }
+.display-student-card.has-live-mirror > header, .display-student-card.has-live-mirror > footer { background: #1d2748; }
+.display-student-mirror { flex: 1 1 auto; min-height: 0; overflow: hidden; background: #f6f7fc; }
+.display-student-mirror-canvas { width: 100%; min-height: 100%; border: 0; border-radius: 0; color: var(--ink); background: white; box-shadow: none; pointer-events: none; }
+.display-student-mirror-canvas * { pointer-events: none !important; }
+.display-student-grid.has-live-mirrors:not(.is-single) .display-student-card.has-live-mirror { min-height: 395px; }
+.display-student-grid.has-live-mirrors:not(.is-single) .display-student-mirror { height: 270px; flex: 0 0 270px; }
+.display-student-grid.has-live-mirrors:not(.is-single) .display-student-mirror-canvas { width: 277.777%; min-height: 720px; transform: scale(.36); transform-origin: top left; }
+.display-screens-view.is-single-screen { padding: 12px 18px 18px; }
+.display-screens-view.is-single-screen .display-screens-heading { display: none; }
+.display-screens-view.is-single-screen .display-student-grid { height: 100%; max-width: none; }
+.display-student-grid.is-single.has-live-mirrors .display-student-card.has-live-mirror { min-height: 100%; grid-column: 1 / -1; }
+.display-student-grid.is-single.has-live-mirrors .display-student-mirror { overflow: auto; }
+.display-student-grid.is-single.has-live-mirrors .display-student-mirror-canvas { min-height: 100%; }
 .display-student-card > footer { min-height: 58px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 5px 10px; padding: 9px 13px; border-top: 1px solid rgba(255,255,255,.09); }
 .display-student-progress { height: 7px; grid-column: 1 / -1; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.1); }
 .display-student-progress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#6d5bea,#42c9a0); transition: width .4s ease; }
@@ -1098,6 +1112,9 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .display-student-card > footer { min-height: 46px; gap: 4px 6px; padding: 7px; }
   .display-student-progress { height: 5px; }
   .display-student-card footer > span, .display-student-card footer > b { font-size: 8px; }
+  .display-screens-view.is-single-screen { padding: 7px; }
+  .display-student-grid.has-live-mirrors:not(.is-single) .display-student-mirror { height: 235px; flex-basis: 235px; }
+  .display-student-grid.has-live-mirrors:not(.is-single) .display-student-mirror-canvas { width: 333.333%; min-height: 760px; transform: scale(.3); }
   .display-students-empty { min-height: 280px; padding: 20px; }
   .display-students-empty > span { font-size: 48px; }
   .display-students-empty h2 { font-size: 21px; }
@@ -1192,6 +1209,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .display-student-card { min-height: 225px; }
   .display-student-stage { min-height: 115px; padding-top: 8px; padding-bottom: 8px; }
   .display-student-icon { font-size: 35px; }
+  .display-screens-view.is-single-screen { padding: 6px 10px; }
+  .display-student-grid.has-live-mirrors:not(.is-single) .display-student-mirror { height: 215px; flex-basis: 215px; }
   .teacher-page .teacher-header { min-height: 52px; }
   .teacher-page .dashboard-sidebar { top: 52px; height: calc(100vh - 52px); }
   .teacher-page .dashboard-main { padding-top: 14px; }
