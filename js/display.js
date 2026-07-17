@@ -1,7 +1,16 @@
 import { supabase, ensureAnonymousAuth } from "./supabase.js";
 import { $, ACTIVITIES, escapeHtml, hide, roomCodeFromUrl, show, toast } from "./common.js";
 
-const state = { roomCode: "", snapshot: null, channel: null, pollTimer: null };
+const state = {
+  roomCode: "",
+  snapshot: null,
+  broadcastChannel: null,
+  presenceChannel: null,
+  presenceKey: `display-${crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`}`,
+  studentScreens: new Map(),
+  view: "screens",
+  pollTimer: null,
+};
 
 const activityMessages = {
   rhythm: "แตะเฉพาะคำแม่ ก กา ให้ตรงจังหวะ",
@@ -12,6 +21,26 @@ const activityMessages = {
   vote: "ช่วยกันสร้างประโยคและมอบหัวใจให้เพื่อน",
   exit: "ตอบให้ถูกอย่างน้อย 2 ใน 3 ข้อ เพื่อเปิดหีบสมบัติ",
 };
+
+const screenStateMeta = {
+  ready: { icon: "🗺️", label: "รอเริ่มเกม" },
+  paused: { icon: "⏸️", label: "พักเกม" },
+  result: { icon: "🏁", label: "ส่งผลแล้ว" },
+  playing: { icon: "🎮", label: "กำลังเล่น" },
+};
+
+function modeLabel(mode) {
+  return ({ practice: "ทดลอง", real: "รอบจริง", retry: "ทำซ้ำ", single: "รอบเดียว" })[mode] || "ทดลอง";
+}
+
+function setDisplayView(view) {
+  state.view = view === "activity" ? "activity" : "screens";
+  $("#displayViewSwitch")?.querySelectorAll("[data-display-view]").forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.displayView === state.view));
+  });
+  $("#displayActivityView").classList.toggle("hidden", state.view !== "activity");
+  $("#displayScreensView").classList.toggle("hidden", state.view !== "screens");
+}
 
 async function connectDisplay(event) {
   event?.preventDefault();
@@ -25,9 +54,12 @@ async function connectDisplay(event) {
     localStorage.setItem("thaiGameDisplayRoom", code);
     hide($("#displayJoinView"));
     show($("#displayBoard"));
+    show($("#displayViewSwitch"));
+    setDisplayView("screens");
     subscribeBroadcast();
+    subscribePresence();
     clearInterval(state.pollTimer);
-    state.pollTimer = setInterval(refreshBoard, 4000);
+    state.pollTimer = setInterval(() => void refreshBoard(), 4000);
   } catch (error) {
     toast(error.message || "เชื่อมต่อจอไม่สำเร็จ", "error");
   }
@@ -35,6 +67,7 @@ async function connectDisplay(event) {
 
 async function refreshBoard() {
   if (!state.roomCode) return false;
+  const previousSessionId = state.snapshot?.session_id;
   const [{ data: snapshots, error }, { data: leaderboard }] = await Promise.all([
     supabase.rpc("get_display_snapshot", { p_room_code: state.roomCode }),
     supabase.rpc("get_display_leaderboard", { p_room_code: state.roomCode }),
@@ -45,6 +78,10 @@ async function refreshBoard() {
   }
   state.snapshot = snapshots[0];
   renderSnapshot(leaderboard || []);
+  if (previousSessionId && previousSessionId !== state.snapshot.session_id) {
+    subscribeBroadcast();
+    subscribePresence();
+  }
   return true;
 }
 
@@ -61,6 +98,7 @@ function renderSnapshot(leaderboard) {
   const progress = snapshot.total_students ? Math.min(100, (snapshot.approved_count / snapshot.total_students) * 100) : 0;
   $("#displayProgressBar").style.width = `${progress}%`;
   renderLeaderboard(leaderboard, snapshot.leaderboard_mode);
+  renderStudentScreens();
 }
 
 function renderLeaderboard(items, mode) {
@@ -73,19 +111,101 @@ function renderLeaderboard(items, mode) {
   }
   $("#leaderboardTitle").textContent = "นักผจญภัยดาวเด่น";
   $("#leaderboardModeCaption").textContent = ({ nickname_avatar: "แสดงชื่อเล่นและอวตาร", real_name: "แสดงชื่อจริง", student_code: "แสดงรหัสนักเรียน" })[mode] || "";
-  list.innerHTML = items.length ? items.map((item, index) => `<li><span class="rank">${index + 1}</span><strong>${escapeHtml(item.avatar || "⭐")} ${escapeHtml(item.display_name)}</strong><span class="score">${item.total_score} ★</span></li>`).join("") : `<li class="empty-leaderboard">ยังไม่มีคะแนน</li>`;
+  list.innerHTML = items.length
+    ? items.map((item, index) => `<li><span class="rank">${index + 1}</span><strong>${escapeHtml(item.avatar || "⭐")} ${escapeHtml(item.display_name)}</strong><span class="score">${Number(item.total_score) || 0} ★</span></li>`).join("")
+    : `<li class="empty-leaderboard">ยังไม่มีคะแนน</li>`;
+}
+
+function screenIdentity(screen, index) {
+  if (state.snapshot?.leaderboard_mode === "hidden") return { name: `นักผจญภัย ${index + 1}`, avatar: "⭐" };
+  return {
+    name: String(screen.display_name || `นักเรียน ${index + 1}`).slice(0, 60),
+    avatar: String(screen.avatar || "🙂").slice(0, 8),
+  };
+}
+
+function renderStudentScreens() {
+  const grid = $("#displayStudentScreens");
+  if (!grid) return;
+  const screens = [...state.studentScreens.values()].sort((a, b) => {
+    const nameCompare = String(a.display_name || "").localeCompare(String(b.display_name || ""), "th");
+    return nameCompare || String(a.player_id).localeCompare(String(b.player_id));
+  });
+  $("#displayOnlineCount").textContent = screens.length;
+  if (!screens.length) {
+    grid.innerHTML = `<div class="display-students-empty"><span>📡</span><h2>กำลังรอนักเรียนออนไลน์</h2><p>เมื่อนักเรียนได้รับอนุมัติและเปิดหน้าเกม จอจะปรากฏที่นี่ทันที</p></div>`;
+    return;
+  }
+  grid.innerHTML = screens.map((screen, index) => {
+    const identity = screenIdentity(screen, index);
+    const screenState = screenStateMeta[screen.screen_state] ? screen.screen_state : "ready";
+    const meta = screenStateMeta[screenState];
+    const activity = ACTIVITIES.find(item => item.key === screen.activity_key);
+    const percent = Math.max(0, Math.min(100, Number(screen.progress_percent) || 0));
+    const score = Math.max(0, Number(screen.score) || 0);
+    return `<article class="display-student-card" data-screen-state="${screenState}">
+      <header>
+        <span class="display-student-avatar">${escapeHtml(identity.avatar)}</span>
+        <div><strong>${escapeHtml(identity.name)}</strong><small><i></i> ออนไลน์</small></div>
+        <span class="display-student-score">${score} ★</span>
+      </header>
+      <div class="display-student-stage">
+        <span class="display-student-icon">${activity?.icon || meta.icon}</span>
+        <small>${escapeHtml(screen.screen_label || meta.label)}</small>
+        <h2>${escapeHtml(screen.activity_title || activity?.title || "รอครูเริ่มกิจกรรม")}</h2>
+        <p>${escapeHtml(screen.detail || "กำลังเตรียมพร้อม")}</p>
+      </div>
+      <footer>
+        <div class="display-student-progress"><i style="width:${percent}%"></i></div>
+        <span>${escapeHtml(screen.progress_text || `${Math.round(percent)}%`)}</span>
+        <b>${escapeHtml(modeLabel(screen.mode))}</b>
+      </footer>
+    </article>`;
+  }).join("");
+}
+
+function syncStudentPresence() {
+  if (!state.presenceChannel) return;
+  const latest = new Map();
+  Object.values(state.presenceChannel.presenceState()).flat().forEach(screen => {
+    if (screen.role !== "student" || !screen.player_id) return;
+    const current = latest.get(screen.player_id);
+    if (!current || String(screen.updated_at || "") >= String(current.updated_at || "")) latest.set(screen.player_id, screen);
+  });
+  state.studentScreens = latest;
+  renderStudentScreens();
 }
 
 function subscribeBroadcast() {
-  state.channel?.unsubscribe();
-  state.channel = supabase.channel(`display-${state.snapshot.session_id}`)
-    .on("broadcast", { event: "state-change" }, refreshBoard)
+  state.broadcastChannel?.unsubscribe();
+  state.broadcastChannel = supabase.channel(`display-${state.snapshot.session_id}`)
+    .on("broadcast", { event: "state-change" }, () => void refreshBoard())
     .subscribe();
+}
+
+function subscribePresence() {
+  state.presenceChannel?.unsubscribe();
+  state.studentScreens.clear();
+  renderStudentScreens();
+  state.presenceChannel = supabase.channel(`classroom-${state.snapshot.session_id}`, {
+    config: { presence: { key: state.presenceKey } },
+  })
+    .on("presence", { event: "sync" }, syncStudentPresence)
+    .on("presence", { event: "join" }, syncStudentPresence)
+    .on("presence", { event: "leave" }, syncStudentPresence)
+    .subscribe(status => {
+      if (status === "SUBSCRIBED") {
+        void state.presenceChannel.track({ role: "display", room_code: state.roomCode, online_at: new Date().toISOString() });
+      }
+    });
 }
 
 function showClosed() {
   clearInterval(state.pollTimer);
-  state.channel?.unsubscribe();
+  state.broadcastChannel?.unsubscribe();
+  state.presenceChannel?.unsubscribe();
+  state.studentScreens.clear();
+  renderStudentScreens();
   $("#displayStageTitle").textContent = "จบคาบเรียนแล้ว";
   $("#displayStageMessage").textContent = "ขอบคุณนักผจญภัยทุกคน แล้วพบกันในแผนถัดไป";
   $("#displayActivityVisual").innerHTML = `<span>🎉</span>`;
@@ -97,8 +217,12 @@ function updateClock() {
 
 $("#displayJoinForm").addEventListener("submit", connectDisplay);
 $("#displayRoomInput").addEventListener("input", event => { event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6); });
+$("#displayViewSwitch").addEventListener("click", event => {
+  const button = event.target.closest("[data-display-view]");
+  if (button) setDisplayView(button.dataset.displayView);
+});
 const initialRoom = roomCodeFromUrl() || localStorage.getItem("thaiGameDisplayRoom") || "";
 $("#displayRoomInput").value = initialRoom;
-if (initialRoom) connectDisplay();
+if (initialRoom) void connectDisplay();
 setInterval(updateClock, 1000);
 updateClock();

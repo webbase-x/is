@@ -485,8 +485,20 @@ function subscribeToSession() {
     .subscribe();
 }
 
+function studentPresenceIdentity() {
+  const mode = state.session?.leaderboard_mode || "nickname_avatar";
+  if (mode === "hidden") return { displayName: "นักผจญภัย", avatar: "⭐" };
+  if (mode === "real_name") return { displayName: state.student?.full_name || "นักเรียน", avatar: state.student?.avatar || "🙂" };
+  if (mode === "student_code") return { displayName: state.student?.student_code || "ไม่ระบุรหัส", avatar: state.student?.avatar || "🙂" };
+  return {
+    displayName: state.student?.nickname || state.student?.full_name || "นักเรียน",
+    avatar: state.student?.avatar || randomAvatar(state.student?.nickname),
+  };
+}
+
 function studentScreenPresencePayload() {
   const activity = ACTIVITIES.find(item => item.key === state.session?.current_activity_key);
+  const identity = studentPresenceIdentity();
   const resultVisible = Boolean($("#gameCanvas .result-card"));
   const completedActivities = new Set(state.attempts.map(attempt => attempt.activity_key)).size;
   const currentAttempts = state.attempts.filter(attempt => attempt.activity_key === activity?.key).length;
@@ -503,6 +515,8 @@ function studentScreenPresencePayload() {
     role: "student",
     player_id: state.player?.id,
     student_id: state.player?.student_id,
+    display_name: identity.displayName,
+    avatar: identity.avatar,
     screen_state: screenState,
     screen_label: screenLabel,
     activity_key: activity?.key || null,
