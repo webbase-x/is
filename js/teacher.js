@@ -25,7 +25,13 @@ const state = {
   lobbyPage: 1,
   lobbyZoomStep: 0,
   celebrationActivityKey: null,
+  celebrationReason: null,
   competitionSoundEnabled: true,
+  activityTimerId: null,
+  activityRemainingMs: 0,
+  activityTimerLastTickAt: null,
+  activityStartedAt: null,
+  finishingActivity: false,
 };
 
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
@@ -332,6 +338,7 @@ async function showLiveSession(step = "qr") {
   subscribePresence();
   subscribeDisplay();
   await refreshSessionData();
+  restoreActivityTimer();
   setTeacherFlowStep(step);
   if (step === "summary") renderSummary();
 }
@@ -392,6 +399,117 @@ async function savePlanSettings() {
   state.session = data;
 }
 
+function activityTimerStorageKey() {
+  return state.session?.id ? `thai-game-activity-timer-${state.session.id}` : "";
+}
+
+function activityDurationMs(activityKey = state.session?.current_activity_key) {
+  return (ACTIVITIES.find(item => item.key === activityKey)?.minutes || 10) * 60 * 1000;
+}
+
+function updateActivityCountdown(label) {
+  const output = $("#activityCountdown");
+  const card = $("#activityTimerCard");
+  if (!output || !card) return;
+  card.classList.remove("is-urgent", "is-paused", "is-finished");
+  if (label) {
+    output.textContent = label;
+    if (label === "พักอยู่") card.classList.add("is-paused");
+    if (label === "จบเกม") card.classList.add("is-finished");
+    return;
+  }
+  const seconds = Math.max(0, Math.ceil(state.activityRemainingMs / 1000));
+  output.textContent = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+  card.classList.toggle("is-urgent", seconds > 0 && seconds <= 60);
+}
+
+function saveActivityTimer(running = state.session?.status === "active") {
+  const key = activityTimerStorageKey();
+  if (!key || !state.session?.current_activity_key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify({
+      activityKey: state.session.current_activity_key,
+      remainingMs: Math.max(0, state.activityRemainingMs),
+      startedAt: state.activityStartedAt,
+      savedAt: Date.now(),
+      running,
+    }));
+  } catch { /* The countdown still works if storage is unavailable. */ }
+}
+
+function removeSavedActivityTimer() {
+  const key = activityTimerStorageKey();
+  if (!key) return;
+  try { localStorage.removeItem(key); } catch { /* Ignore unavailable storage. */ }
+}
+
+function stopActivityTimer({ clearSaved = false, label = "" } = {}) {
+  clearInterval(state.activityTimerId);
+  state.activityTimerId = null;
+  state.activityTimerLastTickAt = null;
+  if (clearSaved) removeSavedActivityTimer();
+  updateActivityCountdown(label);
+}
+
+function tickActivityTimer() {
+  if (!state.session?.current_activity_key || state.celebrationActivityKey) return;
+  if (state.session.status !== "active") {
+    state.activityTimerLastTickAt = null;
+    updateActivityCountdown("พักอยู่");
+    saveActivityTimer(false);
+    return;
+  }
+  const now = Date.now();
+  if (state.activityTimerLastTickAt) state.activityRemainingMs -= now - state.activityTimerLastTickAt;
+  state.activityTimerLastTickAt = now;
+  updateActivityCountdown();
+  saveActivityTimer(true);
+  if (state.activityRemainingMs > 0) return;
+  state.activityRemainingMs = 0;
+  stopActivityTimer({ clearSaved: true });
+  void finishActivity("time_up");
+}
+
+function startActivityTimer(activityKey, reset = true) {
+  clearInterval(state.activityTimerId);
+  if (reset) {
+    state.activityRemainingMs = activityDurationMs(activityKey);
+    state.activityStartedAt = new Date().toISOString();
+  }
+  state.activityTimerLastTickAt = Date.now();
+  updateActivityCountdown();
+  saveActivityTimer(true);
+  state.activityTimerId = setInterval(tickActivityTimer, 1000);
+}
+
+function restoreActivityTimer() {
+  if (!state.session?.current_activity_key || state.celebrationActivityKey) {
+    updateActivityCountdown("--:--");
+    return;
+  }
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(activityTimerStorageKey()) || "null"); } catch { saved = null; }
+  if (saved?.activityKey === state.session.current_activity_key) {
+    const elapsed = saved.running && state.session.status === "active" ? Date.now() - Number(saved.savedAt || Date.now()) : 0;
+    state.activityRemainingMs = Math.max(0, Number(saved.remainingMs || 0) - elapsed);
+    state.activityStartedAt = saved.startedAt || null;
+  } else {
+    state.activityRemainingMs = activityDurationMs();
+    state.activityStartedAt = new Date().toISOString();
+  }
+  if (state.session.status !== "active") {
+    updateActivityCountdown("พักอยู่");
+    saveActivityTimer(false);
+    return;
+  }
+  if (state.activityRemainingMs <= 0) {
+    updateActivityCountdown("00:00");
+    void finishActivity("time_up");
+    return;
+  }
+  startActivityTimer(state.session.current_activity_key, false);
+}
+
 async function startSelectedPlan() {
   if (!state.selectedPlanId) return toast("กรุณาเลือกแผนการสอน", "warning");
   const button = $("#startPlanButton");
@@ -411,7 +529,9 @@ async function startSelectedPlan() {
 }
 
 async function startActivity(activityKey) {
+  prepareVictoryAudio();
   state.celebrationActivityKey = null;
+  state.celebrationReason = null;
   const updates = { status: "active", current_activity_key: activityKey };
   if (!state.session.started_at) updates.started_at = new Date().toISOString();
   const { data, error } = await supabase.from("class_sessions").update(updates).eq("id", state.session.id).select().single();
@@ -420,6 +540,7 @@ async function startActivity(activityKey) {
     return false;
   }
   state.session = data;
+  startActivityTimer(activityKey, true);
   renderActivityControls();
   renderLiveResults();
   $("#pauseSessionButton").textContent = "พักเกม";
@@ -447,11 +568,23 @@ function showSessionSummary() {
 }
 
 async function togglePause() {
+  const wasCelebrating = state.celebrationActivityKey === state.session.current_activity_key;
+  if (state.session.status === "active") tickActivityTimer();
+  if (state.finishingActivity) return;
   const status = state.session.status === "paused" ? "active" : "paused";
   const { data, error } = await supabase.from("class_sessions").update({ status }).eq("id", state.session.id).select().single();
   if (error) return toast(error.message, "error");
   state.session = data;
-  if (status === "active") state.celebrationActivityKey = null;
+  if (status === "active") {
+    state.celebrationActivityKey = null;
+    state.celebrationReason = null;
+    if (wasCelebrating || state.activityRemainingMs <= 0) startActivityTimer(state.session.current_activity_key, true);
+    else startActivityTimer(state.session.current_activity_key, false);
+  } else {
+    state.activityTimerLastTickAt = null;
+    updateActivityCountdown("พักอยู่");
+    saveActivityTimer(false);
+  }
   $("#pauseSessionButton").textContent = status === "paused" ? "เล่นต่อ" : "พักเกม";
   renderLiveResults();
   broadcastDisplay();
@@ -468,7 +601,11 @@ function subscribeToSession() {
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "class_sessions", filter: `id=eq.${state.session.id}` }, payload => {
       const activityChanged = state.session?.current_activity_key !== payload.new.current_activity_key;
       state.session = payload.new;
-      if (activityChanged) state.celebrationActivityKey = null;
+      if (activityChanged) {
+        state.celebrationActivityKey = null;
+        state.celebrationReason = null;
+        restoreActivityTimer();
+      }
       renderActivityControls();
       renderLiveResults();
     })
@@ -515,6 +652,7 @@ async function refreshSessionData() {
   renderLiveResults();
   renderReport();
   if (state.flowStep === "summary") renderSummary();
+  void finishWhenEveryoneSubmitted();
   broadcastDisplay();
 }
 
@@ -650,6 +788,17 @@ function renderMetrics() {
   $("#completedAttemptCount").textContent = currentPlayerIds.size;
 }
 
+async function finishWhenEveryoneSubmitted() {
+  if (!state.session?.current_activity_key || state.session.status !== "active" || state.finishingActivity || state.celebrationActivityKey) return;
+  const approvedIds = state.players.filter(player => player.status === "approved").map(player => player.id);
+  if (!approvedIds.length) return;
+  const roundStartedAt = state.activityStartedAt ? new Date(state.activityStartedAt).getTime() - 1000 : 0;
+  const submittedIds = new Set(state.attempts
+    .filter(attempt => attempt.activity_key === state.session.current_activity_key && new Date(attempt.completed_at).getTime() >= roundStartedAt)
+    .map(attempt => attempt.session_player_id));
+  if (approvedIds.every(playerId => submittedIds.has(playerId))) await finishActivity("all_submitted");
+}
+
 function currentCompetitionEntries() {
   const policy = state.session?.score_policy || "best";
   return state.players.filter(player => player.status === "approved").map(player => {
@@ -721,8 +870,9 @@ function renderCelebration(entries) {
   const waiting = entries.filter(entry => entry.percent === null);
   const podiumOrder = [[ranked[1], 2], [ranked[0], 1], [ranked[2], 3]];
   const runnersUp = ranked.slice(3);
+  const reasonLabel = ({ all_submitted: "นักเรียนส่งครบทุกคน", time_up: "หมดเวลา", manual: "คุณครูจบเกม" })[state.celebrationReason] || "จบเกม";
   return `<div class="competition-celebration" aria-hidden="true">${celebrationConfetti()}</div>
-    <div class="celebration-title"><span>✨ ประกาศผลการแข่งขัน ✨</span><h4>${escapeHtml(ACTIVITIES.find(item => item.key === state.session.current_activity_key)?.title || "เกมนี้")}</h4><p>ขอเสียงปรบมือให้ผู้เข้าแข่งขันทุกคน</p></div>
+    <div class="celebration-title"><span>✨ ${reasonLabel} · ประกาศผลการแข่งขัน ✨</span><h4>${escapeHtml(ACTIVITIES.find(item => item.key === state.session.current_activity_key)?.title || "เกมนี้")}</h4><p>ขอเสียงปรบมือให้ผู้เข้าแข่งขันทุกคน</p></div>
     <div class="competition-finale">
       <section class="podium-stage" aria-label="แท่นรับรางวัลอันดับ 1 ถึง 3">
         <div class="podium-list">${podiumOrder.map(([entry, rank]) => renderPodiumPlace(entry, rank)).join("")}</div>
@@ -746,12 +896,14 @@ function renderLiveResults() {
   const isCelebrating = state.celebrationActivityKey === state.session.current_activity_key;
   arena?.classList.toggle("is-celebrating", isCelebrating);
   if (finishButton) {
-    finishButton.disabled = resultCount === 0 || isCelebrating;
-    finishButton.textContent = isCelebrating ? "✓ ประกาศผลแล้ว" : "🏆 จบเกมและประกาศผล";
+    finishButton.disabled = isCelebrating || state.finishingActivity || !state.session.current_activity_key;
+    finishButton.textContent = state.finishingActivity ? "กำลังจบเกม..." : isCelebrating ? "✓ จบเกมแล้ว" : "⏹ จบเกม";
   }
   if (status) status.textContent = isCelebrating
     ? `ประกาศผลแล้ว ${resultCount} คน · พร้อมไปเกมถัดไป`
-    : `ส่งคำตอบแล้ว ${resultCount}/${entries.length} คน · อันดับอัปเดตอัตโนมัติ`;
+    : state.session.status === "paused"
+      ? `พักเกมอยู่ · ส่งคำตอบแล้ว ${resultCount}/${entries.length} คน`
+      : `ส่งคำตอบแล้ว ${resultCount}/${entries.length} คน · จบอัตโนมัติเมื่อส่งครบหรือเวลาหมด`;
   if (!entries.length) {
     container.innerHTML = `<div class="flow-empty-state"><span>👥</span><strong>ยังไม่มีนักเรียนที่อนุมัติ</strong><small>กลับไปห้องรอเพื่อตรวจรายชื่อได้</small></div>`;
     return;
@@ -788,25 +940,29 @@ function playVictorySound() {
   });
 }
 
-async function finishActivity() {
-  if (!state.session?.current_activity_key) return;
-  const resultCount = currentCompetitionEntries().filter(entry => entry.percent !== null).length;
-  if (!resultCount) return toast("รอให้นักเรียนส่งคำตอบอย่างน้อย 1 คนก่อนประกาศผล", "warning");
+async function finishActivity(reason = "manual") {
+  if (!state.session?.current_activity_key || state.finishingActivity || state.celebrationActivityKey) return;
   prepareVictoryAudio();
-  const button = $("#finishActivityButton");
-  button.disabled = true;
+  state.finishingActivity = true;
+  renderLiveResults();
   const { data, error } = await supabase.from("class_sessions").update({ status: "paused" }).eq("id", state.session.id).select().single();
   if (error) {
-    button.disabled = false;
+    state.finishingActivity = false;
+    renderLiveResults();
     return toast(error.message, "error");
   }
   state.session = data;
   state.celebrationActivityKey = state.session.current_activity_key;
+  state.celebrationReason = reason;
+  state.finishingActivity = false;
+  stopActivityTimer({ clearSaved: true, label: "จบเกม" });
   $("#pauseSessionButton").textContent = "เล่นรอบนี้ต่อ";
   renderLiveResults();
   playVictorySound();
   broadcastDisplay();
-  $("#competitionArena").scrollIntoView({ behavior: "smooth", block: "start" });
+  const message = ({ all_submitted: "นักเรียนส่งครบทุกคน จบเกมอัตโนมัติแล้ว", time_up: "หมดเวลา จบเกมอัตโนมัติแล้ว", manual: "จบเกมและประกาศผลแล้ว" })[reason] || "จบเกมแล้ว";
+  toast(message, "success");
+  if (state.flowStep === "live") $("#competitionArena").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function toggleCompetitionExpanded() {
@@ -899,6 +1055,7 @@ async function closeSession() {
   state.sessionChannel?.unsubscribe();
   state.presenceChannel?.unsubscribe();
   state.displayChannel?.unsubscribe();
+  stopActivityTimer({ clearSaved: true, label: "--:--" });
   state.session = null;
   state.players = [];
   state.attempts = [];
@@ -907,6 +1064,10 @@ async function closeSession() {
   state.lobbyPage = 1;
   state.lobbyZoomStep = 0;
   state.celebrationActivityKey = null;
+  state.celebrationReason = null;
+  state.activityRemainingMs = 0;
+  state.activityStartedAt = null;
+  state.finishingActivity = false;
   $("#competitionArena")?.classList.remove("competition-expanded", "is-celebrating");
   document.body.classList.remove("competition-overlay-open");
   hide($("#liveSession"));
@@ -1119,7 +1280,7 @@ $("#lobbyBackButton").addEventListener("click", () => setTeacherFlowStep("qr"));
 $("#lobbyNextButton").addEventListener("click", () => { renderPlanChoices(); setTeacherFlowStep("plan"); });
 $("#planBackButton").addEventListener("click", () => setTeacherFlowStep("lobby"));
 $("#startPlanButton").addEventListener("click", startSelectedPlan);
-$("#finishActivityButton").addEventListener("click", finishActivity);
+$("#finishActivityButton").addEventListener("click", () => finishActivity("manual"));
 $("#nextActivityButton").addEventListener("click", goToNextActivity);
 $("#competitionFullscreenButton").addEventListener("click", toggleCompetitionExpanded);
 $("#competitionSoundButton").addEventListener("click", toggleCompetitionSound);

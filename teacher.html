@@ -177,10 +177,11 @@
                   <div><span class="eyebrow">ขั้นที่ 5 จาก 6 · ผลการแข่งขัน</span><h2 id="currentActivityLabel">ยังไม่เริ่มกิจกรรม</h2><p id="liveClassContext">—</p></div>
                   <a id="openDisplayButton" href="display.html" target="_blank" class="button button-dark">▣ เปิดจอฉาย</a>
                 </div>
-                <div class="session-summary-grid flow-metrics">
+                <div class="session-summary-grid flow-metrics live-competition-metrics">
                   <div class="panel metric-card"><span>👥</span><div><small>นักเรียน</small><strong id="liveApprovedCount">0</strong></div></div>
                   <div class="panel metric-card"><span>⭐</span><div><small>คะแนนเฉลี่ย</small><strong id="averageScore">0%</strong></div></div>
                   <div class="panel metric-card"><span>🎮</span><div><small>ส่งคำตอบแล้ว</small><strong id="completedAttemptCount">0</strong></div></div>
+                  <div id="activityTimerCard" class="panel metric-card competition-timer-card"><span>⏱️</span><div><small>เวลาเหลือ</small><strong id="activityCountdown">--:--</strong></div></div>
                 </div>
                 <div class="flow-live-stack">
                   <details id="liveGamePanel" class="panel flow-live-game-panel flow-collapsible">
@@ -191,6 +192,7 @@
                     <div class="panel-heading competition-heading">
                       <div><span class="eyebrow">อัปเดตแบบเรียลไทม์</span><h3>ผลการแข่งขัน</h3><p id="competitionStatus">จัดอันดับเมื่อส่งคำตอบ และเปิดเวทีรางวัลเมื่อจบเกม</p></div>
                       <div class="competition-view-actions">
+                        <button id="finishActivityButton" class="competition-tool-button competition-finish-button" type="button">⏹ จบเกม</button>
                         <button id="competitionSoundButton" class="competition-tool-button" type="button" aria-pressed="true" title="เปิดหรือปิดเสียงประกาศผล">🔊 <span>เสียง</span></button>
                         <button id="competitionFullscreenButton" class="competition-tool-button" type="button" aria-pressed="false">⛶ <span>เต็มจอ</span></button>
                       </div>
@@ -198,7 +200,7 @@
                     <div id="liveResults" aria-live="polite"></div>
                   </section>
                 </div>
-                <div class="flow-footer live-actions"><button id="pauseSessionButton" class="button button-secondary" type="button">พักเกม</button><button id="showSummaryButton" class="button button-ghost" type="button">ดูสรุปผล</button><button id="finishActivityButton" class="button button-celebrate button-large" type="button">🏆 จบเกมและประกาศผล</button><button id="nextActivityButton" class="button button-primary button-large" type="button">เกมถัดไป →</button></div>
+                <div class="flow-footer live-actions"><button id="pauseSessionButton" class="button button-secondary" type="button">พักเกม</button><button id="showSummaryButton" class="button button-ghost" type="button">ดูสรุปผล</button><button id="nextActivityButton" class="button button-primary button-large" type="button">เกมถัดไป →</button></div>
               </section>
 
               <section class="teacher-flow-step hidden" data-flow-step="summary">
