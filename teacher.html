@@ -128,6 +128,7 @@
 
               <section class="teacher-flow-step hidden" data-flow-step="lobby">
                 <div class="flow-section-heading lobby-heading"><div><span class="eyebrow">ขั้นที่ 3 จาก 6</span><h2>ตรวจและอนุมัตินักเรียน</h2><p id="lobbySummary">ยังไม่มีนักเรียน</p></div><button id="approveAllButton" class="button button-success" type="button">✓ อนุมัติทั้งหมดในหน้านี้</button></div>
+                <div id="lateJoinNotice" class="flow-info-card hidden">🚪 เปิดรับนักเรียนเพิ่มแล้ว · ใช้รหัสเดิม <strong id="lateJoinRoomCode">------</strong></div>
                 <div class="session-summary-grid flow-metrics">
                   <div class="panel metric-card"><span>👥</span><div><small>ออนไลน์</small><strong id="onlineCount">0</strong></div></div>
                   <div class="panel metric-card"><span>⏳</span><div><small>รอตรวจ</small><strong id="waitingCount">0</strong></div></div>
@@ -209,7 +210,7 @@
                     <div id="liveResults" aria-live="polite"></div>
                   </section>
                 </div>
-                <div class="flow-footer live-actions"><button id="pauseSessionButton" class="button button-secondary" type="button">พักเกม</button><button id="showSummaryButton" class="button button-ghost" type="button">ดูสรุปผล</button><button id="nextActivityButton" class="button button-primary button-large" type="button">เกมถัดไป →</button></div>
+                <div class="flow-footer live-actions"><button id="pauseSessionButton" class="button button-secondary" type="button">พักเกม</button><button id="openLateJoinButton" class="button button-success" type="button">➕ รับนักเรียนเพิ่ม</button><button id="showSummaryButton" class="button button-ghost" type="button">ดูสรุปผล</button><button id="nextActivityButton" class="button button-primary button-large" type="button">เกมถัดไป →</button></div>
               </section>
 
               <section class="teacher-flow-step hidden" data-flow-step="summary">

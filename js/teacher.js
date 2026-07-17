@@ -35,6 +35,8 @@ const state = {
   studentScreens: new Map(),
   studentScreenView: "grid",
   selectedStudentScreenId: null,
+  lateJoinMode: false,
+  lateJoinResumeStatus: "paused",
 };
 
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
@@ -82,8 +84,20 @@ function setTeacherFlowStep(step) {
   });
   $("#flowStepTitle").textContent = FLOW_TITLES[step];
   $("#flowContext").textContent = step === "class" ? "เริ่มจากโรงเรียนและห้องที่คุณครูรับผิดชอบ" : classContext();
-  if (step === "lobby") requestAnimationFrame(renderPlayerPage);
+  if (step === "lobby") {
+    syncLateJoinControls();
+    requestAnimationFrame(renderPlayerPage);
+  }
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function syncLateJoinControls() {
+  const active = Boolean(state.lateJoinMode || (state.session?.status === "lobby" && state.session?.current_activity_key));
+  if (active) state.lateJoinMode = true;
+  $("#lobbyBackButton").textContent = active ? "← ปิดรับและกลับไปเกม" : "← กลับไปหน้า QR";
+  $("#lobbyNextButton").textContent = active ? "ปิดรับและกลับไปเกม →" : "ต่อไป: เลือกแผนการสอน →";
+  $("#lateJoinRoomCode").textContent = state.session?.room_code || "------";
+  $("#lateJoinNotice").classList.toggle("hidden", !active);
 }
 
 async function bootstrap() {
@@ -335,6 +349,9 @@ async function showLiveSession(step = "qr") {
   await renderStudentAccess();
   $("#openDisplayButton").href = `display.html?room=${state.session.room_code}`;
   $("#pauseSessionButton").textContent = state.session.status === "paused" ? "เล่นต่อ" : "พักเกม";
+  state.lateJoinMode = state.session.status === "lobby" && Boolean(state.session.current_activity_key);
+  if (state.lateJoinMode) state.lateJoinResumeStatus = "paused";
+  syncLateJoinControls();
   renderLiveModeSwitch();
   selectPlan(Number(state.session.plan_id || state.selectedPlanId), false);
   renderActivityControls();
@@ -619,6 +636,67 @@ async function togglePause() {
   broadcastDisplay();
 }
 
+async function openLateJoin() {
+  if (!state.session?.current_activity_key || state.finishingActivity) return;
+  if (state.session.status === "lobby") {
+    state.lateJoinMode = true;
+    syncLateJoinControls();
+    setTeacherFlowStep("lobby");
+    return;
+  }
+  if (state.session.status === "active") tickActivityTimer();
+  if (state.finishingActivity) return;
+  state.lateJoinResumeStatus = state.session.status === "active" ? "active" : "paused";
+  const { data, error } = await supabase.from("class_sessions").update({ status: "lobby" }).eq("id", state.session.id).select().single();
+  if (error) return toast(error.message, "error");
+  state.session = data;
+  state.lateJoinMode = true;
+  state.activityTimerLastTickAt = null;
+  updateActivityCountdown("รับนักเรียน");
+  saveActivityTimer(false);
+  syncLateJoinControls();
+  renderLiveResults();
+  broadcastDisplay();
+  setTeacherFlowStep("lobby");
+  toast("เปิดรับนักเรียนเพิ่มแล้ว ใช้รหัสห้องเดิมได้เลย", "success");
+}
+
+async function closeLateJoin() {
+  if (!state.lateJoinMode) return false;
+  const resumeStatus = state.lateJoinResumeStatus === "active" ? "active" : "paused";
+  const { data, error } = await supabase.from("class_sessions").update({ status: resumeStatus }).eq("id", state.session.id).select().single();
+  if (error) {
+    toast(error.message, "error");
+    return true;
+  }
+  state.session = data;
+  state.lateJoinMode = false;
+  if (resumeStatus === "active" && state.activityRemainingMs > 0) startActivityTimer(state.session.current_activity_key, false);
+  else {
+    state.activityTimerLastTickAt = null;
+    updateActivityCountdown("พักอยู่");
+    saveActivityTimer(false);
+  }
+  $("#pauseSessionButton").textContent = resumeStatus === "active" ? "พักเกม" : "เล่นต่อ";
+  syncLateJoinControls();
+  renderLiveResults();
+  broadcastDisplay();
+  setTeacherFlowStep("live");
+  toast(resumeStatus === "active" ? "ปิดรับและกลับมาเล่นเกมแล้ว" : "ปิดรับแล้ว กดเล่นต่อเมื่อพร้อม", "success");
+  return true;
+}
+
+async function handleLobbyBack() {
+  if (await closeLateJoin()) return;
+  setTeacherFlowStep("qr");
+}
+
+async function handleLobbyNext() {
+  if (await closeLateJoin()) return;
+  renderPlanChoices();
+  setTeacherFlowStep("plan");
+}
+
 function subscribeToSession() {
   state.sessionChannel?.unsubscribe();
   state.sessionChannel = supabase.channel(`teacher-session-${state.session.id}`)
@@ -630,12 +708,14 @@ function subscribeToSession() {
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "class_sessions", filter: `id=eq.${state.session.id}` }, payload => {
       const activityChanged = state.session?.current_activity_key !== payload.new.current_activity_key;
       state.session = payload.new;
+      if (state.session.status !== "lobby") state.lateJoinMode = false;
       if (activityChanged) {
         state.celebrationActivityKey = null;
         state.celebrationReason = null;
         restoreActivityTimer();
       }
       renderActivityControls();
+      syncLateJoinControls();
       renderLiveModeSwitch();
       renderLiveResults();
     })
@@ -1218,6 +1298,8 @@ async function closeSession() {
   state.studentScreens = new Map();
   state.studentScreenView = "grid";
   state.selectedStudentScreenId = null;
+  state.lateJoinMode = false;
+  state.lateJoinResumeStatus = "paused";
   state.lobbyPage = 1;
   state.lobbyZoomStep = 0;
   state.celebrationActivityKey = null;
@@ -1432,11 +1514,12 @@ $("#lobbyNextPageButton").addEventListener("click", () => {
   $("#playerList").scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
 $("#pauseSessionButton").addEventListener("click", togglePause);
+$("#openLateJoinButton").addEventListener("click", openLateJoin);
 $("#closeSessionButton").addEventListener("click", closeSession);
 $("#qrCloseButton").addEventListener("click", closeSession);
 $("#qrNextButton").addEventListener("click", () => setTeacherFlowStep("lobby"));
-$("#lobbyBackButton").addEventListener("click", () => setTeacherFlowStep("qr"));
-$("#lobbyNextButton").addEventListener("click", () => { renderPlanChoices(); setTeacherFlowStep("plan"); });
+$("#lobbyBackButton").addEventListener("click", handleLobbyBack);
+$("#lobbyNextButton").addEventListener("click", handleLobbyNext);
 $("#planBackButton").addEventListener("click", () => setTeacherFlowStep("lobby"));
 $("#startPlanButton").addEventListener("click", startSelectedPlan);
 $("#finishActivityButton").addEventListener("click", () => finishActivity("manual"));
@@ -1447,7 +1530,7 @@ $$('[data-live-mode]').forEach(button => button.addEventListener("click", () => 
 $("#showSummaryButton").addEventListener("click", showSessionSummary);
 $("#summaryBackButton").addEventListener("click", () => setTeacherFlowStep("live"));
 $("#summaryExportButton").addEventListener("click", exportCurrentReport);
-$("#resumeSessionButton").addEventListener("click", () => showLiveSession(state.session.status === "lobby" ? "qr" : "live"));
+$("#resumeSessionButton").addEventListener("click", () => showLiveSession(state.session.status === "lobby" ? (state.session.current_activity_key ? "lobby" : "qr") : "live"));
 $("#resumeSummaryButton").addEventListener("click", () => showLiveSession("summary"));
 $("#restartSessionButton").addEventListener("click", closeSession);
 $("#copyRoomCode").addEventListener("click", async () => { await navigator.clipboard.writeText(state.session.room_code); toast("คัดลอกรหัสห้องแล้ว", "success"); });
