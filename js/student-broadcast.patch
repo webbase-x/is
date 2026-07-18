@@ -1,0 +1,95 @@
+import { APP_CONFIG } from "./config.js";
+import { supabase, ensureAnonymousAuth } from "./supabase.js";
+import {
+  $, ACTIVITIES, escapeHtml, hide, modeLabel, randomAvatar, roomCodeFromUrl,
+  setView, show, shuffle, toast, updateConnectionBadge,
+} from "./common.js";
+
+// [... คงไว้โค้ดเดิมจนถึง line 599 ...]
+
+// เพิ่มไว้หลัง subscribePresence() function (ประมาณบรรทัด 576)
+function broadcastGameScreen() {
+  if (!state.presenceReady || !state.presenceChannel || !state.player || !state.session) return;
+  
+  const gameCanvasHtml = $("#gameCanvas")?.innerHTML || "";
+  const gameCanvasInnerHtml = $("#gameCanvas .game-inner")?.innerHTML || "";
+  
+  try {
+    state.presenceChannel.send({
+      type: "broadcast",
+      event: "game-screen-update",
+      payload: {
+        player_id: state.player.id,
+        student_id: state.player.student_id,
+        activity_key: state.session.current_activity_key,
+        game_html: gameCanvasInnerHtml || gameCanvasHtml,
+        timestamp: Date.now(),
+      },
+    });
+  } catch (error) {
+    // Ignore broadcast errors
+  }
+}
+
+function scheduleGameScreenBroadcast(immediate = false) {
+  if (state.gameScreenBroadcastTimer) return;
+  state.gameScreenBroadcastTimer = setTimeout(() => {
+    state.gameScreenBroadcastTimer = null;
+    void broadcastGameScreen();
+  }, immediate ? 0 : 800); // ส่งทุก 800ms เพื่อความลื่นไหล
+}
+
+function observeGameScreenChanges() {
+  const observer = new MutationObserver(() => scheduleGameScreenBroadcast());
+  const gameCanvas = $("#gameCanvas");
+  if (gameCanvas) {
+    observer.observe(gameCanvas, { childList: true, subtree: true, characterData: true, attributes: true });
+  }
+}
+
+// แก้ไข applySessionState() เพิ่มการ broadcast
+function applySessionState() {
+  const activity = ACTIVITIES.find(item => item.key === state.session.current_activity_key);
+  $("#stageStep").textContent = activity ? `ภารกิจ ${ACTIVITIES.indexOf(activity) + 1} จาก ${ACTIVITIES.length}` : "เตรียมพร้อม";
+  $("#stageTitle").textContent = activity?.title || "รอครูเริ่มกิจกรรม";
+  $("#attemptBadge").textContent = modeLabel(state.session.play_mode);
+  ACTIVITIES.forEach(item => $(`[data-activity="${item.key}"]`, $("#activityTimeline"))?.classList.toggle("active", item.key === activity?.key));
+
+  if (state.session.status === "closed") {
+    cleanupRhythm();
+    return resetJoin("คาบเรียนจบแล้ว ขอบคุณที่ร่วมผจญภัย!");
+  }
+  if (state.session.status !== "active" || !activity) {
+    cleanupRhythm();
+    state.renderedActivity = null;
+    $("#gameCanvas").innerHTML = `<div class="empty-stage"><span>${state.session.status === "paused" ? "⏸️" : "🗺️"}</span><h2>${state.session.status === "paused" ? "พักเกม" : "รอครูเริ่มเกม"}</h2><p>${state.session.status === "paused" ? "คุณครูพักเกมชั่วคราว" : "เมื่อครูเปิดเกม จอนี้จะปรากฏเนื้อหา"}</p></div>`;
+    scheduleGameScreenBroadcast(true); // ส่งหน้าจอว่างไป
+    return;
+  }
+  if (state.renderedActivity === activity.key) return;
+  state.renderedActivity = activity.key;
+  renderActivity(activity.key);
+  scheduleGameScreenBroadcast(true); // ส่งหน้าจอเกมใหม่ทันที
+}
+
+// แก้ไข subscribePresence() เพิ่มการสังเกตการณ์การเปลี่ยนแปลง
+function subscribePresence() {
+  state.presenceChannel?.unsubscribe();
+  state.presenceReady = false;
+  state.presenceChannel = supabase.channel(`classroom-${state.session.id}`, { config: { presence: { key: state.player.id } } });
+  state.presenceChannel.subscribe(status => {
+    if (status === "SUBSCRIBED") {
+      state.presenceReady = true;
+      state.presenceOnlineAt = new Date().toISOString();
+      scheduleStudentScreenPresence(true);
+      scheduleGameScreenBroadcast(true); // ส่งหน้าจอเกมเมื่อเชื่อมต่อ
+      observeGameScreenChanges(); // เริ่มสังเกตการณ์การเปลี่ยนแปลง
+    }
+  });
+}
+
+// เพิ่มในส่วน state object ประมาณบรรทัด 82-107
+// state = {
+//   ...อื่น ๆ
+//   gameScreenBroadcastTimer: null,
+// };
