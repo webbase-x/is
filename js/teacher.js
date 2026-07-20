@@ -2,7 +2,8 @@ import { APP_CONFIG } from "./config.js";
 import { supabase } from "./supabase.js";
 import {
   $, $$, ACTIVITIES, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
-  randomAvatar, renderPlanTimeline, show, toast, updateConnectionBadge,
+  GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
+  renderPlanTimeline, show, toast, updateConnectionBadge,
 } from "./common.js";
 
 const state = {
@@ -357,7 +358,7 @@ async function showLiveSession(step = "qr") {
   renderActivityControls();
   subscribeToSession();
   subscribePresence();
-  subscribeDisplay();
+  await subscribeDisplay();
   await refreshSessionData();
   restoreActivityTimer();
   setTeacherFlowStep(step);
@@ -422,7 +423,7 @@ async function setLivePlayMode(mode) {
   state.session = data;
   $("#playMode").value = mode;
   renderLiveModeSwitch();
-  broadcastDisplay();
+  await broadcastDisplay("play-mode-changed");
   const labels = { practice: "โหมดทดลอง", test: "โหมดทดสอบ", real: "โหมดจริง" };
   toast(`เปลี่ยนเป็น${labels[mode]}แล้ว`, "success");
 }
@@ -590,7 +591,7 @@ async function startActivity(activityKey) {
   renderLiveModeSwitch();
   renderLiveResults();
   $("#pauseSessionButton").textContent = "พักเกม";
-  broadcastDisplay();
+  await broadcastDisplay("activity-started");
   toast(`เริ่ม ${ACTIVITIES.find(item => item.key === activityKey)?.title}`, "success");
   return true;
 }
@@ -876,11 +877,34 @@ function moveStudentScreen(direction) {
 
 function subscribeDisplay() {
   state.displayChannel?.unsubscribe();
-  state.displayChannel = supabase.channel(`display-${state.session.id}`).subscribe();
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = ready => {
+      if (settled) return;
+      settled = true;
+      resolve(ready);
+    };
+    state.displayChannel = supabase.channel(gameStateChannelName(state.session.id), {
+      config: { broadcast: { ack: true } },
+    }).subscribe(status => {
+      if (status === "SUBSCRIBED") finish(true);
+      if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) finish(false);
+    });
+    setTimeout(() => finish(false), 5000);
+  });
 }
 
-function broadcastDisplay() {
-  state.displayChannel?.send({ type: "broadcast", event: "state-change", payload: { at: Date.now() } });
+async function broadcastDisplay(reason = "state-change") {
+  if (!state.displayChannel || !state.session) return;
+  try {
+    await state.displayChannel.send({
+      type: "broadcast",
+      event: GAME_STATE_EVENT,
+      payload: gameStatePayload(state.session, reason),
+    });
+  } catch {
+    // The durable database state remains the reconnect fallback.
+  }
 }
 
 async function refreshSessionData() {

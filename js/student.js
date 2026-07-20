@@ -1,8 +1,9 @@
 import { APP_CONFIG } from "./config.js";
 import { supabase, ensureAnonymousAuth } from "./supabase.js";
 import {
-  $, ACTIVITIES, escapeHtml, hide, modeLabel, randomAvatar, roomCodeFromUrl,
-  setView, show, shuffle, toast, updateConnectionBadge,
+  $, ACTIVITIES, escapeHtml, GAME_STATE_EVENT, gameStateChannelName, hide,
+  modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
+  updateConnectionBadge,
 } from "./common.js";
 
 const MAE_KO_KA = new Set(["กา", "ปลา", "เต่า", "มือ", "ตา", "ปู", "เสือ", "แมว", "หมู", "นา", "ใบไม้", "ขา", "ผีเสื้อ", "ดู", "พ่อ", "แม่", "วัว", "หมี", "งู", "ไก่", "ปลาโลมา", "ม้า", "ลา", "จระเข้"]);
@@ -95,6 +96,7 @@ const state = {
   playerChannel: null,
   sessionChannel: null,
   presenceChannel: null,
+  lastGameStateEventId: null,
   renderedActivity: null,
   attempts: [],
   gameZoomIndex: 2,
@@ -478,8 +480,17 @@ async function loadAttempts() {
 
 function subscribeToSession() {
   state.sessionChannel?.unsubscribe();
-  state.sessionChannel = supabase.channel(`session-state-${state.session.id}`)
+  state.sessionChannel = supabase.channel(gameStateChannelName(state.session.id))
+    .on("broadcast", { event: GAME_STATE_EVENT }, message => {
+      const update = message?.payload || message;
+      if (!update?.session || update.session.id !== state.session.id) return;
+      if (update.event_id && update.event_id === state.lastGameStateEventId) return;
+      state.lastGameStateEventId = update.event_id || null;
+      state.session = update.session;
+      applySessionState();
+    })
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "class_sessions", filter: `id=eq.${state.session.id}` }, payload => {
+      // Durable fallback for reconnects; Broadcast is the immediate render path.
       state.session = payload.new;
       applySessionState();
     })
@@ -1361,7 +1372,7 @@ function resetJoin(message) {
     player: null, session: null, playerChannel: null, sessionChannel: null,
     presenceChannel: null, renderedActivity: null, attempts: [], gameZoomIndex: 2, rhythmRun: null,
     presenceReady: false, presenceTracked: false, screenPresenceTimer: null, screenPresencePublishing: false,
-    screenPresencePending: false, presenceOnlineAt: null,
+    screenPresencePending: false, presenceOnlineAt: null, lastGameStateEventId: null,
   });
   setView(views.login, views.waiting, views.game);
   initializeJoinFlow();

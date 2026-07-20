@@ -1,5 +1,8 @@
 import { supabase, ensureAnonymousAuth } from "./supabase.js";
-import { $, ACTIVITIES, escapeHtml, hide, roomCodeFromUrl, show, toast } from "./common.js";
+import {
+  $, ACTIVITIES, escapeHtml, GAME_STATE_EVENT, gameStateChannelName, hide,
+  roomCodeFromUrl, show, toast,
+} from "./common.js";
 
 const state = {
   roomCode: "",
@@ -8,8 +11,8 @@ const state = {
   presenceChannel: null,
   presenceKey: `display-${crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`}`,
   studentScreens: new Map(),
+  leaderboard: [],
   view: "screens",
-  pollTimer: null,
 };
 
 const activityMessages = {
@@ -58,8 +61,6 @@ async function connectDisplay(event) {
     setDisplayView("screens");
     subscribeBroadcast();
     subscribePresence();
-    clearInterval(state.pollTimer);
-    state.pollTimer = setInterval(() => void refreshBoard(), 4000);
   } catch (error) {
     toast(error.message || "เชื่อมต่อจอไม่สำเร็จ", "error");
   }
@@ -77,7 +78,8 @@ async function refreshBoard() {
     return false;
   }
   state.snapshot = snapshots[0];
-  renderSnapshot(leaderboard || []);
+  state.leaderboard = leaderboard || [];
+  renderSnapshot(state.leaderboard);
   if (previousSessionId && previousSessionId !== state.snapshot.session_id) {
     subscribeBroadcast();
     subscribePresence();
@@ -231,9 +233,25 @@ function receiveStudentScreen(message) {
 
 function subscribeBroadcast() {
   state.broadcastChannel?.unsubscribe();
-  state.broadcastChannel = supabase.channel(`display-${state.snapshot.session_id}`)
-    .on("broadcast", { event: "state-change" }, () => void refreshBoard())
-    .subscribe();
+  state.broadcastChannel = supabase.channel(gameStateChannelName(state.snapshot.session_id))
+    .on("broadcast", { event: GAME_STATE_EVENT }, message => {
+      const update = message?.payload || message;
+      const session = update?.session;
+      if (!session || session.id !== state.snapshot?.session_id) return;
+      state.snapshot = {
+        ...state.snapshot,
+        session_status: session.status,
+        current_activity_key: session.current_activity_key,
+        plan_id: session.plan_id,
+        leaderboard_mode: session.leaderboard_mode,
+      };
+      // Render the command immediately; refresh scores in the background.
+      renderSnapshot(state.leaderboard);
+      void refreshBoard();
+    })
+    .subscribe(status => {
+      if (["SUBSCRIBED", "CHANNEL_ERROR", "TIMED_OUT"].includes(status)) void refreshBoard();
+    });
 }
 
 function subscribePresence() {
@@ -255,7 +273,6 @@ function subscribePresence() {
 }
 
 function showClosed() {
-  clearInterval(state.pollTimer);
   state.broadcastChannel?.unsubscribe();
   state.presenceChannel?.unsubscribe();
   state.studentScreens.clear();

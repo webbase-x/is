@@ -21,6 +21,21 @@ export const PLAN_TITLES = Object.freeze([
 
 export const AVATARS = ["⭐", "🦉", "🐯", "🐳", "🐰", "🦊", "🐼", "🦁", "🐸", "🐙", "🦋", "🚀"];
 
+export const GAME_STATE_EVENT = "game-state";
+
+export function gameStateChannelName(sessionId) {
+  return `game-session-${sessionId}`;
+}
+
+export function gameStatePayload(session, reason = "state-change") {
+  return {
+    event_id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+    issued_at: Date.now(),
+    reason,
+    session,
+  };
+}
+
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
