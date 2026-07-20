@@ -127,8 +127,12 @@ function renderChoices() {
   const distractors = shuffleItems(shadowVocabulary.filter((_, index) => index !== currentShadow)).slice(0, 2).map(item => item[0]);
   const container = document.querySelector('#answerChoices');
   container.innerHTML = '';
-  shuffleItems([answer, ...distractors]).forEach(word => {
+  const colorThemes = shuffleItems([
+    ['#fff0f3','#e43f68','#9d1538'],['#eef8ff','#3182ce','#164e86'],['#ecfff5','#1ca97d','#08644b'],['#fff8dc','#e4a20b','#795400'],['#f5efff','#8457d9','#4b2994'],['#fff0e8','#ee7548','#9a3514'],['#eafcff','#159ab0','#086072'],['#f3fae8','#6b9f24','#3f6610']
+  ]).slice(0, 3);
+  shuffleItems([answer, ...distractors]).forEach((word, index) => {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'answer-card'; button.textContent = word;
+    button.style.setProperty('--choice-bg', colorThemes[index][0]); button.style.setProperty('--choice-border', colorThemes[index][1]); button.style.setProperty('--choice-ink', colorThemes[index][2]);
     button.addEventListener('click', () => answerShadow(button, word === answer)); container.append(button);
   });
 }
@@ -318,28 +322,91 @@ document.querySelector('#previousBingoExample').addEventListener('click', () => 
 document.querySelector('#nextBingoExample').addEventListener('click', () => renderBingoExample(currentBingoExample + 1));
 document.querySelector('#closeBingoExample').addEventListener('click', () => document.querySelector('#bingoExampleDialog').close());
 
+let savedSentenceWords = [];
+try { savedSentenceWords = JSON.parse(localStorage.getItem('p1TrainSentences') || '[]'); } catch { savedSentenceWords = []; }
 const challenges = [
-  {picture:'👨 🔎 👦',clue:'พ่อกำลังตามหาภูผา',words:['พ่อ','หา','ภูผา']},
-  {picture:'👦 ❤️ 🐘',clue:'ภูผารักใบโบก',words:['ภูผา','รัก','ใบโบก']},
-  {picture:'👩 🎁 🐘',clue:'แม่ยื่นของให้ใบโบก',words:['แม่','ให้','ใบโบก']},
-  {picture:'👴 🤲 🐘',clue:'ตาดูแลใบบัว',words:['ตา','ดูแล','ใบบัว']},
-  {picture:'👦 😄 🐘',clue:'ภูผาดีใจที่ได้ดูแลใบบัว',words:['ภูผา','ดีใจ','ได้','ดูแล','ใบบัว']}
+  {words:['พ่อ','หา','ภูผา']},{words:['ภูผา','รัก','ใบโบก']},{words:['แม่','ให้','ใบโบก']},{words:['ตา','ดูแล','ใบบัว']},{words:['ภูผา','ดีใจ','ได้','ดูแล','ใบบัว']},
+  ...savedSentenceWords.filter(words => Array.isArray(words) && words.length > 1).map(words => ({words}))
 ];
 let currentChallenge = 0;
+let currentTrainTiles = [];
+let placedTrainTiles = [];
 const groupStars = [0,0,0,0,0];
 function renderScores() { document.querySelector('#groupScores').innerHTML = groupStars.map((score,i) => `<div class="group-row"><span>กลุ่ม ${i+1}</span><strong>${'★'.repeat(score) || '–'}</strong></div>`).join(''); }
+function makeTrainTile(tile, slotIndex = -1) {
+  const button = document.createElement('button'); button.type = 'button'; button.className = 'word-tile'; button.textContent = tile.word; button.dataset.tileId = tile.id; button.dataset.slotIndex = slotIndex;
+  button.style.setProperty('--tilt', `${-5 + Math.random() * 10}deg`);
+  let ghost = null; let moved = false;
+  button.addEventListener('pointerdown', event => {
+    if (event.button !== 0) return; event.preventDefault(); moved = false; button.setPointerCapture(event.pointerId);
+    ghost = button.cloneNode(true); ghost.classList.add('drag-ghost'); ghost.style.left = `${event.clientX}px`; ghost.style.top = `${event.clientY}px`; document.body.append(ghost); button.classList.add('drag-source');
+  });
+  button.addEventListener('pointermove', event => { if (!ghost) return; moved = true; ghost.style.left = `${event.clientX}px`; ghost.style.top = `${event.clientY}px`; });
+  button.addEventListener('pointerup', event => {
+    if (!ghost) return; const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.train-slot'); ghost.remove(); ghost = null; button.classList.remove('drag-source');
+    if (target) moveTrainTile(Number(tile.id), Number(target.dataset.slotIndex));
+    button.dataset.suppressClick = moved ? '1' : '0'; setTimeout(() => { button.dataset.suppressClick = '0'; }, 80);
+  });
+  button.addEventListener('click', () => {
+    if (button.dataset.suppressClick === '1') return;
+    if (slotIndex >= 0) moveTrainTile(tile.id, -1); else { const empty = placedTrainTiles.indexOf(null); if (empty >= 0) moveTrainTile(tile.id, empty); }
+  });
+  return button;
+}
+function moveTrainTile(tileId, targetSlot) {
+  const sourceSlot = placedTrainTiles.indexOf(tileId); if (sourceSlot >= 0) placedTrainTiles[sourceSlot] = null;
+  if (targetSlot >= 0) placedTrainTiles[targetSlot] = tileId;
+  document.querySelector('.challenge').classList.remove('train-correct','train-wrong'); renderTrainGame();
+}
+function renderTrainGame() {
+  const bank = document.querySelector('#wordBank'); const train = document.querySelector('#trainCars'); bank.replaceChildren(); train.replaceChildren();
+  currentTrainTiles.filter(tile => !placedTrainTiles.includes(tile.id)).forEach(tile => bank.append(makeTrainTile(tile)));
+  placedTrainTiles.forEach((tileId, index) => { const slot = document.createElement('span'); slot.className = 'train-slot'; slot.dataset.slotIndex = index; if (tileId !== null) slot.append(makeTrainTile(currentTrainTiles.find(tile => tile.id === tileId), index)); else slot.textContent = `${index + 1}`; train.append(slot); });
+}
 function showChallenge(index) {
   currentChallenge = (index + challenges.length) % challenges.length;
   const challenge = challenges[currentChallenge];
   document.querySelector('#challengeNumber').textContent = `โจทย์ที่ ${currentChallenge + 1} จาก ${challenges.length}`;
-  document.querySelector('#challengePicture').textContent = challenge.picture;
-  document.querySelector('#challengeClue').textContent = challenge.clue;
-  document.querySelector('#trainCars').innerHTML = challenge.words.map(word => `<span>${word}</span>`).join('');
-  document.querySelector('#trainCars').classList.add('covered');
-  document.querySelector('#revealSentence').textContent = 'เปิดเฉลยขบวนรถไฟ';
+  document.querySelector('#challengeClue').textContent = 'ลากบัตรคำที่วางสลับกัน มาเรียงบนรถไฟให้เป็นประโยคที่อ่านรู้เรื่อง';
+  currentTrainTiles = shuffleItems(challenge.words.map((word, id) => ({word,id}))); placedTrainTiles = Array(challenge.words.length).fill(null);
+  document.querySelector('.challenge').classList.remove('train-correct','train-wrong'); renderTrainGame();
 }
 document.querySelector('#previousChallenge').addEventListener('click', () => showChallenge(currentChallenge - 1));
 document.querySelector('#nextChallenge').addEventListener('click', () => showChallenge(currentChallenge + 1));
-document.querySelector('#revealSentence').addEventListener('click', event => { const covered = document.querySelector('#trainCars').classList.toggle('covered'); event.currentTarget.textContent = covered ? 'เปิดเฉลยขบวนรถไฟ' : 'ซ่อนเฉลย'; });
+document.querySelector('#checkSentence').addEventListener('click', () => {
+  const correct = placedTrainTiles.every((tileId, index) => tileId === index); document.querySelector('.challenge').classList.remove('train-correct','train-wrong'); void document.querySelector('.challenge').offsetWidth; document.querySelector('.challenge').classList.add(correct ? 'train-correct' : 'train-wrong');
+  document.querySelector('#challengeClue').textContent = correct ? 'เก่งมาก! เรียงประโยคถูกต้องแล้ว' : 'ยังไม่ถูก ลองสลับตำแหน่งคำแล้วตรวจอีกครั้ง'; playFeedback(correct);
+});
+document.querySelector('#revealSentence').addEventListener('click', () => { placedTrainTiles = challenges[currentChallenge].words.map((_, index) => index); document.querySelector('.challenge').classList.remove('train-wrong'); document.querySelector('.challenge').classList.add('train-correct'); document.querySelector('#challengeClue').textContent = 'อ่านประโยคบนขบวนรถไฟพร้อมกัน'; renderTrainGame(); });
 document.querySelector('#awardStar').addEventListener('click', () => { const index = Number(document.querySelector('#groupSelect').value); groupStars[index] += 1; renderScores(); });
+document.querySelector('#addSentence').addEventListener('click', () => document.querySelector('#sentenceDialog').showModal());
+document.querySelector('#cancelSentence').addEventListener('click', () => document.querySelector('#sentenceDialog').close());
+document.querySelector('#sentenceForm').addEventListener('submit', event => {
+  event.preventDefault(); const added = document.querySelector('#newSentences').value.split(',').map(sentence => sentence.trim().split(/\s+/).filter(Boolean)).filter(words => words.length > 1);
+  if (!added.length) return; added.forEach(words => challenges.push({words})); savedSentenceWords.push(...added); localStorage.setItem('p1TrainSentences', JSON.stringify(savedSentenceWords)); document.querySelector('#newSentences').value = ''; document.querySelector('#sentenceDialog').close(); showChallenge(challenges.length - added.length);
+});
 renderScores(); showChallenge(0); renderCalledWords();
+
+const drawingCanvas = document.querySelector('#drawingCanvas'); const laserCanvas = document.querySelector('#laserCanvas'); const drawingContext = drawingCanvas.getContext('2d'); const laserContext = laserCanvas.getContext('2d');
+let drawingMode = 'pointer'; let drawingActive = false; let laserClearTimer = null;
+function resizeDrawingCanvases() {
+  const ratio = window.devicePixelRatio || 1;
+  [drawingCanvas, laserCanvas].forEach((canvas, index) => { const context = index ? laserContext : drawingContext; canvas.width = Math.round(innerWidth * ratio); canvas.height = Math.round(innerHeight * ratio); canvas.style.width = `${innerWidth}px`; canvas.style.height = `${innerHeight}px`; context.setTransform(ratio,0,0,ratio,0,0); context.lineCap = 'round'; context.lineJoin = 'round'; });
+}
+function setDrawingMode(mode) {
+  drawingMode = mode; document.querySelectorAll('[data-draw-mode]').forEach(button => button.classList.toggle('active', button.dataset.drawMode === mode));
+  const draws = ['laser','pen','eraser'].includes(mode); drawingCanvas.classList.toggle('drawing-enabled', draws); document.querySelector('#screenPointer').classList.toggle('active', mode === 'pointer');
+}
+function drawingPoint(event) { return {x:event.clientX,y:event.clientY}; }
+function beginDrawing(event) {
+  if (!['laser','pen','eraser'].includes(drawingMode)) return; drawingActive = true; event.preventDefault(); drawingCanvas.setPointerCapture(event.pointerId); const point = drawingPoint(event); const context = drawingMode === 'laser' ? laserContext : drawingContext;
+  context.beginPath(); context.moveTo(point.x, point.y); context.lineWidth = Number(document.querySelector('#drawSize').value); context.strokeStyle = document.querySelector('#drawColor').value; context.globalCompositeOperation = drawingMode === 'eraser' ? 'destination-out' : 'source-over';
+}
+function continueDrawing(event) { if (!drawingActive) return; const context = drawingMode === 'laser' ? laserContext : drawingContext; const point = drawingPoint(event); context.lineTo(point.x,point.y); context.stroke(); }
+function endDrawing() { if (!drawingActive) return; drawingActive = false; if (drawingMode === 'laser') { clearTimeout(laserClearTimer); laserClearTimer = setTimeout(() => laserContext.clearRect(0,0,laserCanvas.width,laserCanvas.height),1000); } }
+drawingCanvas.addEventListener('pointerdown', beginDrawing); drawingCanvas.addEventListener('pointermove', continueDrawing); drawingCanvas.addEventListener('pointerup', endDrawing); drawingCanvas.addEventListener('pointercancel', endDrawing);
+document.querySelectorAll('[data-draw-mode]').forEach(button => button.addEventListener('click', () => setDrawingMode(button.dataset.drawMode)));
+document.querySelector('#clearDrawing').addEventListener('click', () => { drawingContext.clearRect(0,0,drawingCanvas.width,drawingCanvas.height); laserContext.clearRect(0,0,laserCanvas.width,laserCanvas.height); });
+document.querySelector('#toggleAnnotation').addEventListener('click', () => document.querySelector('#annotationToolbar').classList.toggle('collapsed'));
+window.addEventListener('pointermove', event => { if (drawingMode !== 'pointer') return; const pointer = document.querySelector('#screenPointer'); pointer.style.left = `${event.clientX}px`; pointer.style.top = `${event.clientY}px`; });
+window.addEventListener('resize', resizeDrawingCanvases); resizeDrawingCanvases(); setDrawingMode('pointer');
