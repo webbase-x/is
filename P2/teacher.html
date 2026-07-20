@@ -44,6 +44,7 @@
         <div class="teacher-profile"><span>ค</span><div><small>ครูผู้สอน</small><strong id="teacherName">—</strong></div></div>
         <nav id="dashboardNav">
           <button class="active" data-panel="sessionPanel"><span>🎛️</span> ควบคุมคาบ</button>
+          <button data-panel="studentScreensPanel"><span>📱</span> แสดงผลจอ นร. <small id="studentScreensOnlineBadge" class="nav-count-badge">0</small></button>
           <button data-panel="rosterPanel"><span>👥</span> รายชื่อนักเรียน</button>
           <button data-panel="reportsPanel"><span>📊</span> คะแนนและรายงาน</button>
           <button data-panel="plansPanel"><span>🗺️</span> แผนการเรียนรู้</button>
@@ -66,7 +67,7 @@
               <li data-progress-step="qr"><span>2</span><small>QR</small></li>
               <li data-progress-step="lobby"><span>3</span><small>รับนักเรียน</small></li>
               <li data-progress-step="plan"><span>4</span><small>เลือกแผน</small></li>
-              <li data-progress-step="live"><span>5</span><small>ผลสด</small></li>
+              <li data-progress-step="live"><span>5</span><small>แข่งขัน</small></li>
               <li data-progress-step="summary"><span>6</span><small>สรุปผล</small></li>
             </ol>
 
@@ -127,6 +128,7 @@
 
               <section class="teacher-flow-step hidden" data-flow-step="lobby">
                 <div class="flow-section-heading lobby-heading"><div><span class="eyebrow">ขั้นที่ 3 จาก 6</span><h2>ตรวจและอนุมัตินักเรียน</h2><p id="lobbySummary">ยังไม่มีนักเรียน</p></div><button id="approveAllButton" class="button button-success" type="button">✓ อนุมัติทั้งหมดในหน้านี้</button></div>
+                <div id="lateJoinNotice" class="flow-info-card hidden">🚪 เปิดรับนักเรียนเพิ่มแล้ว · ใช้รหัสเดิม <strong id="lateJoinRoomCode">------</strong></div>
                 <div class="session-summary-grid flow-metrics">
                   <div class="panel metric-card"><span>👥</span><div><small>ออนไลน์</small><strong id="onlineCount">0</strong></div></div>
                   <div class="panel metric-card"><span>⏳</span><div><small>รอตรวจ</small><strong id="waitingCount">0</strong></div></div>
@@ -154,10 +156,10 @@
                 <div class="flow-section-heading"><div><span class="eyebrow">ขั้นที่ 4 จาก 6</span><h2>เลือกแผนการสอน</h2><p>แตะแผนเพื่อดูเกมทั้งหมดก่อนเริ่ม</p></div></div>
                 <input id="planSelect" type="hidden">
                 <div id="planChoices" class="flow-plan-grid"></div>
-                <section class="panel flow-activity-preview">
-                  <div><span class="eyebrow">เกมในแผน</span><h3 id="selectedPlanTitle">กรุณาเลือกแผน</h3></div>
+                <details class="panel flow-activity-preview flow-collapsible" open>
+                  <summary><span><span class="eyebrow">เกมในแผน</span><strong id="selectedPlanTitle">กรุณาเลือกแผน</strong></span><span class="flow-collapsible-label" aria-hidden="true"></span></summary>
                   <div id="activityPreview" class="flow-game-list"></div>
-                </section>
+                </details>
                 <details class="panel flow-settings">
                   <summary>⚙️ ตั้งค่ารอบ คะแนน และกระดานคะแนน</summary>
                   <div class="form-grid four">
@@ -174,19 +176,41 @@
 
               <section class="teacher-flow-step hidden" data-flow-step="live">
                 <div class="flow-live-header">
-                  <div><span class="eyebrow">ขั้นที่ 5 จาก 6 · ผลแบบเรียลไทม์</span><h2 id="currentActivityLabel">ยังไม่เริ่มกิจกรรม</h2><p id="liveClassContext">—</p></div>
-                  <a id="openDisplayButton" href="display.html" target="_blank" class="button button-dark">▣ เปิดจอฉาย</a>
+                  <div><span class="eyebrow">ขั้นที่ 5 จาก 6 · ผลการแข่งขัน</span><h2 id="currentActivityLabel">ยังไม่เริ่มกิจกรรม</h2><p id="liveClassContext">—</p></div>
+                  <div class="flow-live-header-actions">
+                    <div class="live-mode-switch" role="group" aria-label="เปลี่ยนโหมดเกม">
+                      <small>โหมดเกม</small>
+                      <button type="button" data-live-mode="practice">ทดลอง</button>
+                      <button type="button" data-live-mode="test">ทดสอบ</button>
+                      <button type="button" data-live-mode="real">จริง</button>
+                    </div>
+                    <a id="openDisplayButton" href="display.html" target="_blank" class="button button-dark">▣ เปิดจอฉาย</a>
+                  </div>
                 </div>
-                <div class="session-summary-grid flow-metrics">
+                <div class="session-summary-grid flow-metrics live-competition-metrics">
                   <div class="panel metric-card"><span>👥</span><div><small>นักเรียน</small><strong id="liveApprovedCount">0</strong></div></div>
                   <div class="panel metric-card"><span>⭐</span><div><small>คะแนนเฉลี่ย</small><strong id="averageScore">0%</strong></div></div>
                   <div class="panel metric-card"><span>🎮</span><div><small>ส่งคำตอบแล้ว</small><strong id="completedAttemptCount">0</strong></div></div>
+                  <div id="activityTimerCard" class="panel metric-card competition-timer-card"><span>⏱️</span><div><small>เวลาเหลือ</small><strong id="activityCountdown">--:--</strong></div></div>
                 </div>
-                <div class="flow-live-grid">
-                  <section class="panel control-panel"><div id="activityControls" class="activity-controls flow-activity-controls"></div></section>
-                  <section class="panel flow-live-results"><div class="panel-heading"><div><h3>ผลของนักเรียน</h3><p>อัปเดตอัตโนมัติเมื่อส่งคำตอบ</p></div></div><div id="liveResults"></div></section>
+                <div class="flow-live-stack">
+                  <details id="liveGamePanel" class="panel flow-live-game-panel flow-collapsible">
+                    <summary><span><span class="eyebrow">ควบคุมกิจกรรม</span><strong>รายการเกมในแผน</strong></span><span class="flow-collapsible-label" aria-hidden="true"></span></summary>
+                    <div id="activityControls" class="activity-controls flow-activity-controls"></div>
+                  </details>
+                  <section id="competitionArena" class="panel flow-live-results competition-arena">
+                    <div class="panel-heading competition-heading">
+                      <div><span class="eyebrow">อัปเดตแบบเรียลไทม์</span><h3>ผลการแข่งขัน</h3><p id="competitionStatus">จัดอันดับเมื่อส่งคำตอบ และเปิดเวทีรางวัลเมื่อจบเกม</p></div>
+                      <div class="competition-view-actions">
+                        <button id="finishActivityButton" class="competition-tool-button competition-finish-button" type="button">⏹ จบเกม</button>
+                        <button id="competitionSoundButton" class="competition-tool-button" type="button" aria-pressed="true" title="เปิดหรือปิดเสียงประกาศผล">🔊 <span>เสียง</span></button>
+                        <button id="competitionFullscreenButton" class="competition-tool-button" type="button" aria-pressed="false">⛶ <span>เต็มจอ</span></button>
+                      </div>
+                    </div>
+                    <div id="liveResults" aria-live="polite"></div>
+                  </section>
                 </div>
-                <div class="flow-footer live-actions"><button id="pauseSessionButton" class="button button-secondary" type="button">พักเกม</button><button id="showSummaryButton" class="button button-ghost" type="button">ดูสรุปผล</button><button id="nextActivityButton" class="button button-primary button-large" type="button">เกมถัดไป →</button></div>
+                <div class="flow-footer live-actions"><button id="pauseSessionButton" class="button button-secondary" type="button">พักเกม</button><button id="openLateJoinButton" class="button button-success" type="button">➕ รับนักเรียนเพิ่ม</button><button id="showSummaryButton" class="button button-ghost" type="button">ดูสรุปผล</button><button id="nextActivityButton" class="button button-primary button-large" type="button">เกมถัดไป →</button></div>
               </section>
 
               <section class="teacher-flow-step hidden" data-flow-step="summary">
@@ -201,6 +225,29 @@
               </section>
             </div>
           </div>
+        </section>
+
+        <section id="studentScreensPanel" class="dashboard-panel">
+          <div class="dashboard-heading student-screens-heading">
+            <div><span class="eyebrow">ติดตามการเรียนแบบเรียลไทม์</span><h1>จอนักเรียน</h1><p id="studentScreensContext">เปิดคาบเรียนก่อนเพื่อดูจอนักเรียน</p></div>
+            <button id="backToSessionButton" class="button button-primary" type="button">← กลับไปควบคุมคาบ</button>
+          </div>
+          <section class="panel student-screens-toolbar">
+            <div class="student-screen-live-status"><i></i><span><small>เชื่อมต่อสด</small><strong id="studentScreensOnlineSummary">ออนไลน์ 0 คน</strong></span></div>
+            <div class="student-screen-view-switch" role="group" aria-label="เลือกรูปแบบการแสดงจอนักเรียน">
+              <button id="studentScreensGridButton" class="active" type="button">▦ กริด</button>
+              <button id="studentScreensFocusButton" type="button" disabled>🔴 ถ่ายทอดสดรายคน</button>
+            </div>
+          </section>
+          <div id="studentScreensEmpty" class="panel empty-report student-screens-empty"><span>📱</span><h2>ยังไม่มีจอนักเรียนออนไลน์</h2><p>เมื่อนักเรียนได้รับอนุมัติและเข้าหน้าเกม จอจะปรากฏที่นี่อัตโนมัติ</p></div>
+          <div id="studentScreensGrid" class="student-screen-grid hidden" aria-live="polite"></div>
+          <section id="studentScreenFocus" class="student-screen-focus hidden">
+            <div class="student-screen-focus-nav">
+              <button id="studentScreenBackToGrid" class="button button-ghost" type="button">← ดูหลายคน</button>
+              <div><button id="studentScreenPrevious" class="student-screen-arrow" type="button" aria-label="นักเรียนคนก่อน">‹</button><button id="studentScreenNext" class="student-screen-arrow" type="button" aria-label="นักเรียนคนถัดไป">›</button><button id="studentScreenFullscreen" class="button button-primary" type="button">⛶ เต็มจอ</button></div>
+            </div>
+            <div id="studentScreenFocusContent"></div>
+          </section>
         </section>
 
         <section id="rosterPanel" class="dashboard-panel">

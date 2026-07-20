@@ -21,6 +21,62 @@ export const PLAN_TITLES = Object.freeze([
 
 export const AVATARS = ["⭐", "🦉", "🐯", "🐳", "🐰", "🦊", "🐼", "🦁", "🐸", "🐙", "🦋", "🚀"];
 
+export const GAME_STATE_EVENT = "game-state";
+
+export function gameStateChannelName(sessionId) {
+  return `game-session-${sessionId}`;
+}
+
+export function gameStatePayload(session, reason = "state-change") {
+  return {
+    event_id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+    issued_at: Date.now(),
+    reason,
+    session,
+  };
+}
+
+const MIRROR_TAGS = new Set(["SECTION", "DIV", "SPAN", "SMALL", "STRONG", "H1", "H2", "H3", "H4", "P", "BUTTON", "UL", "OL", "LI", "MARK", "I", "B", "LABEL", "OUTPUT"]);
+const MIRROR_STYLE_PROPERTIES = ["width", "height", "transform", "text-align", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "left", "top", "opacity", "animation-duration", "--spark-x", "--spark-y", "--spark-delay", "--spark-size"];
+const MIRROR_CLASS_PREFIXES = ["game-", "rhythm-", "karaoke-", "grammar-", "choice-", "word-", "falling-", "sort-", "train-", "vote-", "sentence-", "result-", "treasure-", "house-", "mini-", "sound-", "field-"];
+const MIRROR_CLASS_NAMES = new Set(["wheel", "treasure", "button", "button-primary", "button-ghost", "button-row", "good", "bad", "hidden", "done", "active", "hot", "score-pop", "missed", "singing", "lyric-line", "correct", "wrong", "open", "empty-stage"]);
+
+function sanitizeMirrorStyle(element, rawStyle) {
+  const probe = document.createElement("span");
+  probe.style.cssText = String(rawStyle || "").slice(0, 700);
+  element.removeAttribute("style");
+  MIRROR_STYLE_PROPERTIES.forEach(property => {
+    const value = probe.style.getPropertyValue(property).trim();
+    if (value && value.length <= 90 && !/url\s*\(|expression\s*\(/i.test(value)) element.style.setProperty(property, value);
+  });
+}
+
+export function sanitizeGameMarkup(markup) {
+  if (typeof markup !== "string" || !markup || markup.length > 48000) return "";
+  const template = document.createElement("template");
+  template.innerHTML = markup;
+  [...template.content.querySelectorAll("*")].forEach(element => {
+    if (!MIRROR_TAGS.has(element.tagName)) {
+      element.remove();
+      return;
+    }
+    const rawStyle = element.getAttribute("style");
+    [...element.attributes].forEach(attribute => {
+      const name = attribute.name.toLowerCase();
+      const keep = name === "class" || name === "style" || name === "disabled" || name === "hidden" || name === "aria-hidden" || /^data-[a-z0-9-]{1,40}$/.test(name);
+      if (!keep) element.removeAttribute(attribute.name);
+    });
+    if (element.hasAttribute("class")) {
+      const safeClasses = element.className.split(/\s+/).filter(name => /^[a-zA-Z0-9_-]{1,60}$/.test(name) && (MIRROR_CLASS_NAMES.has(name) || MIRROR_CLASS_PREFIXES.some(prefix => name.startsWith(prefix)))).slice(0, 20);
+      if (safeClasses.length) element.className = safeClasses.join(" ");
+      else element.removeAttribute("class");
+    }
+    if (rawStyle) sanitizeMirrorStyle(element, rawStyle);
+    if (element.matches("button")) element.setAttribute("disabled", "");
+  });
+  return template.innerHTML;
+}
+
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 

@@ -51,6 +51,7 @@
           <p id="cameraHelp" class="field-help camera-help">เมื่อเห็นหน้าของหนูแล้ว กดปุ่มสีม่วงเพียงครั้งเดียว</p>
           <button type="button" id="retryCameraButton" class="button button-ghost button-large full hidden">ลองเปิดกล้องอีกครั้ง</button>
           <button type="button" id="captureAndSendButton" class="button button-primary student-capture-button full hidden">📸 ถ่ายรูปและส่งเลย</button>
+          <p class="student-rejoin-note">🔔 ถ้าเคยเข้าแล้วหรือหลุดจากเกม ส่งรูปใหม่ได้ คุณครูจะได้รับคำขออนุมัติใหม่ทันที</p>
           <p class="student-privacy-note">รูปสดนี้ให้ครูตรวจสอบเท่านั้น และจะลบเมื่อจบคาบ</p>
         </section>
       </form>
@@ -72,7 +73,7 @@
 
     <section id="gameView" class="view game-view game-focus-mode hidden">
       <aside class="journey-panel">
-        <div class="player-chip"><span id="playerAvatar">⭐</span><div><small>นักผจญภัย</small><strong id="playerName">—</strong></div></div>
+        <div class="player-chip player-profile-chip"><span class="player-profile-visual"><img id="playerProfilePhoto" class="hidden" alt="รูปโปรไฟล์นักเรียน"><span id="playerAvatar">⭐</span></span><div><small>นักผจญภัย</small><strong id="playerName">—</strong></div></div>
         <div class="score-chip"><span>★</span><div><small>คะแนนสะสม</small><strong id="playerScore">0</strong></div></div>
         <nav aria-label="เส้นทางแผนที่ 1">
           <h2>เส้นทางวันนี้</h2>
@@ -93,6 +94,7 @@
             </div>
           </div>
         </div>
+        <span id="studentBroadcastBadge" class="student-broadcast-badge student-game-live-badge hidden"><i></i> กำลังถ่ายทอดสด</span>
         <div id="gameCanvas" class="game-canvas" aria-live="polite">
           <div class="empty-stage"><span>🗺️</span><h2>เตรียมพร้อม!</h2><p>เมื่อครูเปิดภารกิจ เกมจะปรากฏตรงนี้</p></div>
         </div>

@@ -1,12 +1,17 @@
 import { APP_CONFIG } from "./config.js";
 import { supabase, ensureAnonymousAuth } from "./supabase.js";
 import {
-  $, ACTIVITIES, escapeHtml, hide, modeLabel, randomAvatar, roomCodeFromUrl,
-  setView, show, shuffle, toast, updateConnectionBadge,
+  $, ACTIVITIES, escapeHtml, GAME_STATE_EVENT, gameStateChannelName, hide,
+  modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
+  updateConnectionBadge,
 } from "./common.js";
 
 const MAE_KO_KA = new Set(["กา", "ปลา", "เต่า", "มือ", "ตา", "ปู", "เสือ", "แมว", "หมู", "นา", "ใบไม้", "ขา", "ผีเสื้อ", "ดู", "พ่อ", "แม่", "วัว", "หมี", "งู", "ไก่", "ปลาโลมา", "ม้า", "ลา", "จระเข้"]);
 const COMPARE_WORDS = new Set(["กบ", "นก", "เด็ก", "จาน", "ถ้วย", "เก้าอี้", "บ้าน", "ดิน"]);
+const WHEEL_WORDS = Object.freeze({
+  none: ["กา", "ปู", "มือ", "งา", "ชา", "แพ", "รู", "นา", "วัว", "เสือ", "ม้า", "ไผ่"],
+  has: ["กบ", "นก", "เด็ก", "จาน", "บ้าน", "ดิน", "มด", "เข็ม", "ลิง", "กลอง", "ขนม", "ดอกไม้"],
+});
 const RHYTHM_CUE_TEMPLATE = Object.freeze([
   { word: "เต่า", start: 38.00, end: 38.55 },
   { word: "วัว", start: 38.55, end: 39.10 },
@@ -95,10 +100,19 @@ const state = {
   playerChannel: null,
   sessionChannel: null,
   presenceChannel: null,
+  lastGameStateEventId: null,
   renderedActivity: null,
   attempts: [],
   gameZoomIndex: 2,
   rhythmRun: null,
+  presenceReady: false,
+  presenceTracked: false,
+  screenPresenceTimer: null,
+  screenPresencePublishing: false,
+  screenPresencePending: false,
+  presenceOnlineAt: null,
+  screenWatchUntil: 0,
+  screenWatchInterval: null,
 };
 
 const views = {
@@ -141,8 +155,6 @@ const JOIN_STEPS = {
   name: { number: 2, label: "เลือกชื่อของหนู" },
   camera: { number: 3, label: "ถ่ายรูปสดแล้วส่ง" },
 };
-let roomLookupTimer;
-
 function normalizeRoomCode(value) {
   return String(value || "").replace(/\D/g, "").slice(0, 6);
 }
@@ -208,10 +220,15 @@ async function loadRoster(roomCode) {
   const code = normalizeRoomCode(roomCode);
   if (code.length !== 6) throw new Error("รหัสห้องไม่ถูกต้อง");
   await ensureAnonymousAuth();
-  const { data, error } = await supabase.rpc("get_open_session_roster", { p_room_code: code });
+  const lookup = supabase.rpc("get_open_session_roster", { p_room_code: code });
+  let lookupTimer;
+  const timeout = new Promise((_, reject) => { lookupTimer = window.setTimeout(() => reject(new Error("ตรวจห้องเรียนนานเกินไป กรุณาตรวจอินเทอร์เน็ตแล้วกดไปต่ออีกครั้ง")), 12000); });
+  let response;
+  try { response = await Promise.race([lookup, timeout]); }
+  finally { window.clearTimeout(lookupTimer); }
+  const { data, error } = response;
   if (error) throw error;
-  if (!data?.length) throw new Error("ห้องนี้ยังไม่มีรายชื่อ หรือครูปิดห้องแล้ว กรุณาแจ้งคุณครูตรวจห้องเรียน");
-  if (data[0].session_status !== "lobby") throw new Error("ครูปิดรับนักเรียนแล้ว กรุณาแจ้งคุณครู");
+  if (!data?.length) throw new Error("ไม่พบห้องที่เปิดรับด้วยรหัสนี้ รหัสคาบเดิมอาจปิดแล้ว กรุณาดูรหัสใหม่จากหน้า QR ของคุณครู");
   state.roomCode = code;
   state.roster = data;
   state.sessionInfo = data[0];
@@ -223,7 +240,6 @@ async function loadRoster(roomCode) {
 async function findRoom() {
   const button = $("#findRoomButton");
   if (button.disabled) return;
-  clearTimeout(roomLookupTimer);
   const code = normalizeRoomCode($("#roomCode").value);
   $("#roomCode").value = code;
   if (code.length !== 6) {
@@ -407,7 +423,7 @@ function showWaiting() {
   $("#waitingName").textContent = state.student?.full_name || "—";
   $("#waitingClass").textContent = state.sessionInfo?.class_label || "—";
   $("#waitingTitle").textContent = state.player?.status === "returned" ? "ครูส่งข้อมูลกลับมา" : "รอครูอนุมัติ";
-  $("#waitingMessage").textContent = state.player?.return_reason || "ครูเห็นชื่อและรูปของหนูแล้ว กรุณารอสักครู่นะ";
+  $("#waitingMessage").textContent = state.player?.return_reason || "ส่งชื่อและรูปใหม่ให้ครูแล้ว กรุณารอคุณครูกดอนุมัติอีกครั้งนะ";
   $("#retryJoinButton").classList.toggle("hidden", state.player?.status !== "returned");
   setView(views.waiting, views.login, views.game);
 }
@@ -437,6 +453,10 @@ async function enterGame() {
   state.session = session;
   $("#playerAvatar").textContent = state.student?.avatar || randomAvatar(state.student?.nickname);
   $("#playerName").textContent = state.student?.nickname || state.student?.full_name || "นักเรียน";
+  const profilePhoto = $("#playerProfilePhoto");
+  profilePhoto.src = state.selfieDataUrl || "";
+  profilePhoto.classList.toggle("hidden", !state.selfieDataUrl);
+  $("#playerAvatar").classList.toggle("hidden", Boolean(state.selfieDataUrl));
   $("#attemptBadge").textContent = modeLabel(session.play_mode);
   renderTimeline();
   setView(views.game, views.login, views.waiting);
@@ -470,26 +490,191 @@ async function loadAttempts() {
 
 function subscribeToSession() {
   state.sessionChannel?.unsubscribe();
-  state.sessionChannel = supabase.channel(`session-state-${state.session.id}`)
+  state.sessionChannel = supabase.channel(gameStateChannelName(state.session.id))
+    .on("broadcast", { event: GAME_STATE_EVENT }, message => {
+      const update = message?.payload || message;
+      if (!update?.session || update.session.id !== state.session.id) return;
+      if (update.event_id && update.event_id === state.lastGameStateEventId) return;
+      state.lastGameStateEventId = update.event_id || null;
+      state.session = update.session;
+      applySessionState();
+    })
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "class_sessions", filter: `id=eq.${state.session.id}` }, payload => {
+      // Durable fallback for reconnects; Broadcast is the immediate render path.
       state.session = payload.new;
       applySessionState();
     })
     .subscribe();
 }
 
+function studentPresenceIdentity() {
+  const mode = state.session?.leaderboard_mode || "nickname_avatar";
+  if (mode === "hidden") return { displayName: "นักผจญภัย", avatar: "⭐" };
+  if (mode === "real_name") return { displayName: state.student?.full_name || "นักเรียน", avatar: state.student?.avatar || "🙂" };
+  if (mode === "student_code") return { displayName: state.student?.student_code || "ไม่ระบุรหัส", avatar: state.student?.avatar || "🙂" };
+  return {
+    displayName: state.student?.nickname || state.student?.full_name || "นักเรียน",
+    avatar: state.student?.avatar || randomAvatar(state.student?.nickname),
+  };
+}
+
+function studentGameMirrorMarkup() {
+  const source = $("#gameCanvas");
+  if (!source) return "";
+  const clone = source.cloneNode(true);
+  clone.querySelectorAll("audio, video, source, script, iframe, object, embed, select, option, input, textarea").forEach(element => element.remove());
+  clone.querySelectorAll("*").forEach(element => {
+    element.removeAttribute("id");
+    element.removeAttribute("name");
+    element.removeAttribute("for");
+    element.removeAttribute("aria-live");
+    [...element.attributes].forEach(attribute => {
+      if (attribute.name.toLowerCase().startsWith("on")) element.removeAttribute(attribute.name);
+    });
+    if (element.matches("button")) {
+      element.setAttribute("disabled", "");
+      element.setAttribute("tabindex", "-1");
+    }
+  });
+  let markup = clone.innerHTML.replace(/>\s+</g, "><").trim();
+  if (markup.length > 48000) {
+    clone.querySelectorAll(".grammar-sparkles, .rhythm-audio, .rhythm-control-row").forEach(element => element.remove());
+    markup = clone.innerHTML.replace(/>\s+</g, "><").trim();
+  }
+  return markup.length <= 48000 ? markup : "";
+}
+
+function studentScreenPresencePayload() {
+  const activity = ACTIVITIES.find(item => item.key === state.session?.current_activity_key);
+  const identity = studentPresenceIdentity();
+  const resultVisible = Boolean($("#gameCanvas .result-card"));
+  const completedActivities = new Set(state.attempts.map(attempt => attempt.activity_key)).size;
+  const currentAttempts = state.attempts.filter(attempt => attempt.activity_key === activity?.key).length;
+  let screenState = "ready";
+  let screenLabel = "รอครูเริ่มเกม";
+  if (state.session?.status === "paused") { screenState = "paused"; screenLabel = "พักเกม"; }
+  else if (resultVisible) { screenState = "result"; screenLabel = "ส่งผลแล้ว"; }
+  else if (state.session?.status === "active" && activity) { screenState = "playing"; screenLabel = "กำลังเล่นเกม"; }
+  const detailElement = $("#rhythmFeedback") || $("#gameCanvas .result-card p") || $("#gameCanvas .game-instruction p") || $("#gameCanvas .empty-stage p");
+  const detail = (detailElement?.textContent || "กำลังทำกิจกรรม").trim().slice(0, 120);
+  const score = Number($("#playerScore")?.textContent || 0);
+  const progressPercent = resultVisible || currentAttempts ? 100 : activity ? 30 : 0;
+  return {
+    role: "student",
+    player_id: state.player?.id,
+    student_id: state.player?.student_id,
+    display_name: identity.displayName,
+    avatar: identity.avatar,
+    screen_state: screenState,
+    screen_label: screenLabel,
+    activity_key: activity?.key || null,
+    activity_title: activity?.title || "รอครูเริ่มกิจกรรม",
+    detail,
+    mode: state.session?.play_mode || "practice",
+    score,
+    progress_percent: progressPercent,
+    progress_text: `ทำแล้ว ${completedActivities}/${ACTIVITIES.length} เกม`,
+    game_markup: studentGameMirrorMarkup(),
+    game_zoom: Math.max(.75, Math.min(1.3, Number($("#gameCanvas")?.style.getPropertyValue("--game-zoom")) || 1)),
+    updated_at: new Date().toISOString(),
+    online_at: state.presenceOnlineAt || new Date().toISOString(),
+  };
+}
+
+async function publishStudentScreenPresence() {
+  if (!state.presenceReady || !state.presenceChannel || !state.player || !state.session) return;
+  if (state.screenPresencePublishing) {
+    state.screenPresencePending = true;
+    return;
+  }
+  state.screenPresencePublishing = true;
+  try {
+    const payload = studentScreenPresencePayload();
+    if (!state.presenceTracked) {
+      const { game_markup: gameMarkup, ...presencePayload } = payload;
+      await state.presenceChannel.track(presencePayload);
+      state.presenceTracked = true;
+      if (gameMarkup) await state.presenceChannel.send({ type: "broadcast", event: "student-screen", payload });
+    } else {
+      await state.presenceChannel.send({ type: "broadcast", event: "student-screen", payload });
+    }
+  }
+  catch { /* Realtime will publish the latest screen again after reconnecting. */ }
+  finally {
+    state.screenPresencePublishing = false;
+    if (state.screenPresencePending) {
+      state.screenPresencePending = false;
+      scheduleStudentScreenPresence();
+    }
+  }
+}
+
+function scheduleStudentScreenPresence(immediate = false) {
+  if (state.screenPresenceTimer) return;
+  const streaming = state.screenWatchUntil > Date.now();
+  state.screenPresenceTimer = setTimeout(() => {
+    state.screenPresenceTimer = null;
+    void publishStudentScreenPresence();
+  }, immediate ? 0 : streaming ? 350 : 2500);
+}
+
+function observeStudentScreenChanges() {
+  const observer = new MutationObserver(() => scheduleStudentScreenPresence());
+  [$("#gameCanvas"), $("#stageTitle"), $("#attemptBadge"), $("#playerScore")].filter(Boolean).forEach(element => observer.observe(element, { childList: true, subtree: true, characterData: true, attributes: true }));
+}
+
 function subscribePresence() {
   state.presenceChannel?.unsubscribe();
-  state.presenceChannel = supabase.channel(`classroom-${state.session.id}`, { config: { presence: { key: state.player.id } } });
+  state.presenceReady = false;
+  state.presenceTracked = false;
+  state.presenceChannel = supabase.channel(`classroom-${state.session.id}`, { config: { presence: { key: state.player.id } } })
+    .on("broadcast", { event: "screen-stream-control" }, message => {
+      const control = message?.payload || message;
+      if (control?.role !== "teacher" || control.player_id !== state.player.id) return;
+      if (control.active === false) {
+        state.screenWatchUntil = 0;
+        clearInterval(state.screenWatchInterval);
+        state.screenWatchInterval = null;
+        setStudentBroadcasting(false);
+        return;
+      }
+      // Streaming starts automatically. The student never sees an approval prompt.
+      state.screenWatchUntil = Math.max(Date.now(), Number(control.expires_at) || 0);
+      setStudentBroadcasting(true);
+      clearTimeout(state.screenPresenceTimer);
+      state.screenPresenceTimer = null;
+      scheduleStudentScreenPresence(true);
+      if (!state.screenWatchInterval) {
+        state.screenWatchInterval = setInterval(() => {
+          if (state.screenWatchUntil <= Date.now()) {
+            clearInterval(state.screenWatchInterval);
+            state.screenWatchInterval = null;
+            setStudentBroadcasting(false);
+            return;
+          }
+          void publishStudentScreenPresence();
+        }, 500);
+      }
+    });
   state.presenceChannel.subscribe(status => {
     if (status === "SUBSCRIBED") {
-      state.presenceChannel.track({ role: "student", player_id: state.player.id, student_id: state.player.student_id, online_at: new Date().toISOString() });
+      state.presenceReady = true;
+      state.presenceOnlineAt = new Date().toISOString();
+      scheduleStudentScreenPresence(true);
     }
   });
 }
 
+function setStudentBroadcasting(active) {
+  $("#studentBroadcastBadge")?.classList.toggle("hidden", !active);
+  document.body.classList.toggle("student-is-broadcasting", active);
+}
+
 function applySessionState() {
   const activity = ACTIVITIES.find(item => item.key === state.session.current_activity_key);
+  const gameIsLive = state.session.status === "active" && Boolean(activity);
+  document.body.classList.toggle("student-game-live", gameIsLive);
+  if (gameIsLive) setGameFocus(true);
   $("#stageStep").textContent = activity ? `ภารกิจ ${ACTIVITIES.indexOf(activity) + 1} จาก ${ACTIVITIES.length}` : "เตรียมพร้อม";
   $("#stageTitle").textContent = activity?.title || "รอครูเริ่มกิจกรรม";
   $("#attemptBadge").textContent = modeLabel(state.session.play_mode);
@@ -517,7 +702,8 @@ function renderActivity(key) {
 }
 
 function gameShell(title, instruction, content) {
-  $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="game-instruction"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(instruction)}</p></div>${content}</div>`;
+  const gameKey = state.renderedActivity || "game";
+  $("#gameCanvas").innerHTML = `<div class="game-inner game-layout" data-game="${escapeHtml(gameKey)}"><header class="game-instruction"><div><small>เกมภาษาไทย</small><h2>${escapeHtml(title)}</h2></div><p>${escapeHtml(instruction)}</p></header><div class="game-play-area">${content}</div></div>`;
 }
 
 async function submitAttempt(activityKey, score, maxScore, answers) {
@@ -612,7 +798,7 @@ function renderRhythm() {
           <span class="rhythm-streak" id="rhythmStreak">🔥 ต่อเนื่อง 0</span>
           <span class="rhythm-phase" id="rhythmPhase">เตรียมพร้อม</span>
         </div>
-        <div class="rhythm-start-tools"><span id="rhythmAudioStatus">กำลังตรวจเพลง…</span><button id="startRhythm" class="button button-primary" type="button">▶ เริ่มเพลง</button></div>
+        <div class="rhythm-start-tools"><span id="rhythmAudioStatus">เกมจะเริ่มอัตโนมัติ…</span><button id="startRhythm" class="button button-primary" type="button" disabled>⏳ กำลังเริ่มพร้อมกัน</button></div>
       </div>
       <div class="rhythm-control-row">
         <label>ความเร็ว <select id="rhythmSpeed"><option value="0.8">0.8× ฝึกช้า</option><option value="1" selected>1× ปกติ</option></select></label>
@@ -624,7 +810,7 @@ function renderRhythm() {
       <div class="karaoke-stage" id="karaokeStage">
         <div class="grammar-sparkles" aria-hidden="true">${sparkles}</div>
         <div class="karaoke-now"><small>คำที่กำลังร้อง</small><strong id="karaokeCurrentWord">พร้อม!</strong><div class="karaoke-progress"><i id="karaokeProgressBar"></i></div></div>
-        <div class="rhythm-interaction" id="rhythmInteraction"><div class="rhythm-guide-panel"><span>🎤</span><strong>คาราโอเกะเริ่มที่วินาที 22</strong><small>กดเริ่มเพลง แล้วร้องตามได้เลย</small></div></div>
+        <div class="rhythm-interaction" id="rhythmInteraction"><div class="rhythm-guide-panel"><span>🎤</span><strong>คาราโอเกะเริ่มที่วินาที 22</strong><small>ครูกดเริ่มแล้ว เกมของทุกคนจะเดินพร้อมกันอัตโนมัติ</small></div></div>
         <p class="rhythm-feedback" id="rhythmFeedback" aria-live="polite">รอบแรกมีแสงช่วย รอบสองฟังแล้วเลือกเอง</p>
       </div>
       <audio id="rhythmAudio" class="rhythm-audio" src="sounds/01-01.mp3" preload="metadata" controls></audio>
@@ -991,11 +1177,11 @@ function renderRhythm() {
     run.lyricRenderKey = "";
   }));
 
-  startButton.addEventListener("click", async () => {
+  async function startRhythmAutomatically() {
     if (run.started) return;
     run.started = true;
     startButton.disabled = true;
-    startButton.textContent = "♫ กำลังเล่น";
+    startButton.textContent = "♫ เกมเริ่มแล้ว";
     currentWord.textContent = "เตรียมฟัง…";
     let audioStarted = false;
     try {
@@ -1004,8 +1190,7 @@ function renderRhythm() {
       audioStarted = true;
     } catch {
       run.useFallback = true;
-      status.textContent = "กำลังใช้เสียงคำและจังหวะสำรอง";
-      toast("ไฟล์เพลงยังไม่มีเสียง ระบบใช้จังหวะสำรองแทน", "warning");
+      status.textContent = "เกมกำลังเดินด้วยจังหวะสำรอง";
     }
     const validAudio = audioStarted && Number.isFinite(audio.duration) && audio.duration > 5;
     if (!validAudio) {
@@ -1023,7 +1208,11 @@ function renderRhythm() {
     setSpeed(speedSelect.value);
     updateScoreboard();
     tick();
-  });
+  }
+
+  // The teacher's Realtime Broadcast renders this activity on every student
+  // device. Start immediately after rendering; no per-student start click.
+  queueMicrotask(() => void startRhythmAutomatically());
 }
 
 function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay }) {
@@ -1056,14 +1245,70 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
 }
 
 function renderWheel() {
-  const questions = shuffle([...MAE_KO_KA].slice(0, 5).concat([...COMPARE_WORDS].slice(0, 3))).map(word => ({ word, answer: MAE_KO_KA.has(word) ? "none" : "has" }));
-  runQuestionGame({
-    key: "wheel", title: "วงล้อเสี่ยงทาย", instruction: "คำนี้มีตัวสะกดหรือไม่",
-    questions,
-    renderPrompt(question, container) { container.innerHTML = `<div class="wheel" style="transform:rotate(${Math.random() * 540 + 360}deg)"><span style="transform:rotate(-${Math.random() * 20}deg)">${escapeHtml(question.word)}</span></div>`; },
-    choices: () => [{ value: "none", label: "ไม่มีตัวสะกด" }, { value: "has", label: "มีตัวสะกด" }],
-    replay: renderWheel,
-  });
+  const questions = shuffle([
+    ...shuffle(WHEEL_WORDS.none).slice(0, 5).map(word => ({ word, answer: "none" })),
+    ...shuffle(WHEEL_WORDS.has).slice(0, 5).map(word => ({ word, answer: "has" })),
+  ]);
+  let index = 0;
+  let score = 0;
+  let streak = 0;
+  const answers = [];
+
+  const renderQuestion = () => {
+    const question = questions[index];
+    const sparkles = Array.from({ length: 18 }, (_, item) => `<i style="--x:${(item * 47) % 97}%;--y:${(item * 31) % 91}%;--delay:${(item % 6) * -.32}s">✦</i>`).join("");
+    gameShell("วงล้อคำมหัศจรรย์", "หมุนแล้วสังเกตคำให้ดี คำนี้มีตัวสะกดหรือไม่", `
+      <section class="premium-wheel-game">
+        <div class="wheel-sparkles" aria-hidden="true">${sparkles}</div>
+        <div class="wheel-hud"><span>ด่าน <b>${index + 1}</b> / ${questions.length}</span><span>⭐ ${score}</span><span>🔥 ${streak}</span></div>
+        <div class="wheel-machine">
+          <div class="wheel-pointer" aria-hidden="true">▼</div>
+          <div class="premium-wheel-disc" style="--wheel-turn:${720 + Math.round(Math.random() * 360)}deg" aria-hidden="true">
+            <span>🌟</span><span>🎈</span><span>🦋</span><span>🍭</span><span>🚀</span><span>🌈</span><span>🐘</span><span>🎁</span>
+          </div>
+          <div class="wheel-word"><small>คำที่ได้</small><strong>${escapeHtml(question.word)}</strong><button id="wheelSpeak" type="button" aria-label="ฟังเสียงคำว่า ${escapeHtml(question.word)}">🔊 ฟังคำ</button></div>
+        </div>
+        <p id="wheelFeedback" class="wheel-feedback">วงล้อกำลังเลือกคำ...</p>
+        <div id="wheelChoices" class="wheel-answer-grid">
+          <button type="button" data-value="none" disabled><span>☀️</span><strong>ไม่มีตัวสะกด</strong><small>แม่ ก กา</small></button>
+          <button type="button" data-value="has" disabled><span>🔤</span><strong>มีตัวสะกด</strong><small>มีเสียงพยัญชนะท้าย</small></button>
+        </div>
+      </section>
+    `);
+    const disc = $(".premium-wheel-disc");
+    const choiceButtons = [...$("#wheelChoices").children];
+    $("#wheelSpeak").addEventListener("click", () => speakThai(question.word));
+    requestAnimationFrame(() => disc.classList.add("is-spinning"));
+    setTimeout(() => {
+      if (state.renderedActivity !== "wheel") return;
+      choiceButtons.forEach(button => { button.disabled = false; });
+      $("#wheelFeedback").textContent = "เลือกคำตอบได้เลย!";
+      speakThai(question.word);
+    }, 1250);
+    choiceButtons.forEach(button => button.addEventListener("click", () => {
+      const chosen = button.dataset.value;
+      const correct = chosen === question.answer;
+      if (correct) { score += 1; streak += 1; } else streak = 0;
+      answers.push({ prompt: question.word, chosen, correct });
+      choiceButtons.forEach(item => {
+        item.disabled = true;
+        if (item.dataset.value === question.answer) item.classList.add("correct");
+      });
+      if (!correct) button.classList.add("wrong");
+      $("#wheelFeedback").textContent = correct ? "ยอดเยี่ยม! ตอบถูกแล้ว ⭐" : `คำตอบคือ ${question.answer === "none" ? "ไม่มีตัวสะกด" : "มีตัวสะกด"} ลองจำไว้นะ`;
+      $(".premium-wheel-game").classList.add(correct ? "answer-correct" : "answer-wrong");
+      setTimeout(async () => {
+        if (state.renderedActivity !== "wheel") return;
+        index += 1;
+        if (index < questions.length) renderQuestion();
+        else {
+          const result = await submitAttempt("wheel", score, questions.length, answers);
+          if (result) showResult("พิชิตวงล้อคำมหัศจรรย์", score, questions.length, result, renderWheel);
+        }
+      }, 1050);
+    }));
+  };
+  renderQuestion();
 }
 
 function speakThai(word) {
@@ -1225,6 +1470,10 @@ function resetJoin(message) {
   state.playerChannel?.unsubscribe();
   state.sessionChannel?.unsubscribe();
   state.presenceChannel?.unsubscribe();
+  clearTimeout(state.screenPresenceTimer);
+  clearInterval(state.screenWatchInterval);
+  setStudentBroadcasting(false);
+  document.body.classList.remove("student-game-live");
   stopCamera();
   Object.assign(state, {
     joinStep: "code", joinBusy: false,
@@ -1232,6 +1481,9 @@ function resetJoin(message) {
     selfieBlob: null, selfieDataUrl: "", selfiePath: "",
     player: null, session: null, playerChannel: null, sessionChannel: null,
     presenceChannel: null, renderedActivity: null, attempts: [], gameZoomIndex: 2, rhythmRun: null,
+    presenceReady: false, presenceTracked: false, screenPresenceTimer: null, screenPresencePublishing: false,
+    screenPresencePending: false, presenceOnlineAt: null, lastGameStateEventId: null,
+    screenWatchUntil: 0, screenWatchInterval: null,
   });
   setView(views.login, views.waiting, views.game);
   initializeJoinFlow();
@@ -1266,8 +1518,6 @@ $("#findRoomButton").addEventListener("click", findRoom);
 $("#roomCode").addEventListener("input", event => {
   event.target.value = normalizeRoomCode(event.target.value);
   setStepStatus($("#codeStatus"), "");
-  clearTimeout(roomLookupTimer);
-  if (event.target.value.length === 6) roomLookupTimer = window.setTimeout(findRoom, 350);
 });
 $("#backToCodeButton").addEventListener("click", () => {
   setJoinStep("code");
@@ -1285,11 +1535,13 @@ window.addEventListener("online", connectionUpdate);
 window.addEventListener("offline", connectionUpdate);
 window.addEventListener("beforeunload", stopCamera);
 window.addEventListener("beforeunload", cleanupRhythm);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) scheduleStudentScreenPresence(true); });
 
 async function initializeStudentPage() {
   connectionUpdate();
   applyGameZoom();
   setGameFocus(true);
+  observeStudentScreenChanges();
   const restored = await restoreSession();
   if (!restored) await initializeJoinFlow();
 }

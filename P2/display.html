@@ -10,6 +10,10 @@
 <body class="display-page">
   <header class="display-header">
     <div class="brand light"><span class="brand-mark">ก</span><span><strong>คำไทยผจญภัย</strong><small id="displayClassName">จอหน้าชั้นเรียน</small></span></div>
+    <nav id="displayViewSwitch" class="display-view-switch hidden" aria-label="เลือกรูปแบบจอหน้าชั้น">
+      <button type="button" data-display-view="screens" aria-pressed="true"><span>📱</span> จอนักเรียนสด</button>
+      <button type="button" data-display-view="activity" aria-pressed="false"><span>🎯</span> กิจกรรม</button>
+    </nav>
     <div class="display-room"><small>รหัสเข้าห้อง</small><strong id="displayRoomCode">------</strong></div>
     <div class="display-clock" id="displayClock">00:00</div>
   </header>
@@ -21,19 +25,36 @@
         <button class="button button-primary button-large full">เชื่อมต่อ</button>
       </form>
     </section>
-    <section id="displayBoard" class="display-board hidden">
-      <div class="display-main">
-        <span class="eyebrow" id="displayStageStep">แผนที่ 1</span>
-        <h1 id="displayStageTitle">รอนักเรียนเข้าห้อง</h1>
-        <p id="displayStageMessage">เมื่อครูเริ่มกิจกรรม ข้อมูลจะปรากฏบนจอนี้โดยอัตโนมัติ</p>
-        <div id="displayActivityVisual" class="display-activity-visual"><span>🗺️</span></div>
-        <div class="class-progress"><div><span id="displayApproved">0</span> คนพร้อมแล้ว</div><div class="progress-track"><i id="displayProgressBar"></i></div></div>
-      </div>
-      <aside class="leaderboard-panel">
-        <div class="leaderboard-heading"><span>🏆</span><div><small>กระดานคะแนน</small><h2 id="leaderboardTitle">นักผจญภัยดาวเด่น</h2></div></div>
-        <ol id="leaderboardList" class="leaderboard-list"><li class="empty-leaderboard">ยังไม่มีคะแนน</li></ol>
-        <div class="privacy-caption" id="leaderboardModeCaption">แสดงตามรูปแบบที่ครูกำหนด</div>
-      </aside>
+    <section id="displayBoard" class="display-shell hidden">
+      <section id="displayActivityView" class="display-board hidden" aria-label="กิจกรรมและคะแนน">
+        <div class="display-main">
+          <span class="eyebrow" id="displayStageStep">แผนที่ 1</span>
+          <h1 id="displayStageTitle">รอนักเรียนเข้าห้อง</h1>
+          <p id="displayStageMessage">เมื่อครูเริ่มกิจกรรม ข้อมูลจะปรากฏบนจอนี้โดยอัตโนมัติ</p>
+          <div id="displayActivityVisual" class="display-activity-visual"><span>🗺️</span></div>
+          <div class="class-progress"><div><span id="displayApproved">0</span> คนพร้อมแล้ว</div><div class="progress-track"><i id="displayProgressBar"></i></div></div>
+        </div>
+        <aside class="leaderboard-panel">
+          <div class="leaderboard-heading"><span>🏆</span><div><small>กระดานคะแนน</small><h2 id="leaderboardTitle">นักผจญภัยดาวเด่น</h2></div></div>
+          <ol id="leaderboardList" class="leaderboard-list"><li class="empty-leaderboard">ยังไม่มีคะแนน</li></ol>
+          <div class="privacy-caption" id="leaderboardModeCaption">แสดงตามรูปแบบที่ครูกำหนด</div>
+        </aside>
+      </section>
+      <section id="displayScreensView" class="display-screens-view" aria-label="จอนักเรียนแบบเรียลไทม์">
+        <header class="display-screens-heading">
+          <div>
+            <span class="display-live-label"><i></i> เรียลไทม์</span>
+            <h1>จอนักเรียนสด</h1>
+            <p>แสดงหน้ากิจกรรมเดียวกับที่นักเรียนกำลังเห็น</p>
+          </div>
+          <div class="display-online-summary"><strong id="displayOnlineCount" aria-live="polite">0</strong><span>คนออนไลน์</span></div>
+        </header>
+        <div id="displayStudentScreens" class="display-student-grid">
+          <div class="display-students-empty">
+            <span>📡</span><h2>กำลังรอนักเรียนออนไลน์</h2><p>เมื่อนักเรียนได้รับอนุมัติและเปิดหน้าเกม จอจะปรากฏที่นี่ทันที</p>
+          </div>
+        </div>
+      </section>
     </section>
   </main>
   <script type="module" src="js/display.js"></script>
