@@ -750,7 +750,7 @@ function renderRhythm() {
           <span class="rhythm-streak" id="rhythmStreak">🔥 ต่อเนื่อง 0</span>
           <span class="rhythm-phase" id="rhythmPhase">เตรียมพร้อม</span>
         </div>
-        <div class="rhythm-start-tools"><span id="rhythmAudioStatus">กำลังตรวจเพลง…</span><button id="startRhythm" class="button button-primary" type="button">▶ เริ่มเพลง</button></div>
+        <div class="rhythm-start-tools"><span id="rhythmAudioStatus">เกมจะเริ่มอัตโนมัติ…</span><button id="startRhythm" class="button button-primary" type="button" disabled>⏳ กำลังเริ่มพร้อมกัน</button></div>
       </div>
       <div class="rhythm-control-row">
         <label>ความเร็ว <select id="rhythmSpeed"><option value="0.8">0.8× ฝึกช้า</option><option value="1" selected>1× ปกติ</option></select></label>
@@ -762,7 +762,7 @@ function renderRhythm() {
       <div class="karaoke-stage" id="karaokeStage">
         <div class="grammar-sparkles" aria-hidden="true">${sparkles}</div>
         <div class="karaoke-now"><small>คำที่กำลังร้อง</small><strong id="karaokeCurrentWord">พร้อม!</strong><div class="karaoke-progress"><i id="karaokeProgressBar"></i></div></div>
-        <div class="rhythm-interaction" id="rhythmInteraction"><div class="rhythm-guide-panel"><span>🎤</span><strong>คาราโอเกะเริ่มที่วินาที 22</strong><small>กดเริ่มเพลง แล้วร้องตามได้เลย</small></div></div>
+        <div class="rhythm-interaction" id="rhythmInteraction"><div class="rhythm-guide-panel"><span>🎤</span><strong>คาราโอเกะเริ่มที่วินาที 22</strong><small>ครูกดเริ่มแล้ว เกมของทุกคนจะเดินพร้อมกันอัตโนมัติ</small></div></div>
         <p class="rhythm-feedback" id="rhythmFeedback" aria-live="polite">รอบแรกมีแสงช่วย รอบสองฟังแล้วเลือกเอง</p>
       </div>
       <audio id="rhythmAudio" class="rhythm-audio" src="sounds/01-01.mp3" preload="metadata" controls></audio>
@@ -1129,11 +1129,11 @@ function renderRhythm() {
     run.lyricRenderKey = "";
   }));
 
-  startButton.addEventListener("click", async () => {
+  async function startRhythmAutomatically() {
     if (run.started) return;
     run.started = true;
     startButton.disabled = true;
-    startButton.textContent = "♫ กำลังเล่น";
+    startButton.textContent = "♫ เกมเริ่มแล้ว";
     currentWord.textContent = "เตรียมฟัง…";
     let audioStarted = false;
     try {
@@ -1142,8 +1142,7 @@ function renderRhythm() {
       audioStarted = true;
     } catch {
       run.useFallback = true;
-      status.textContent = "กำลังใช้เสียงคำและจังหวะสำรอง";
-      toast("ไฟล์เพลงยังไม่มีเสียง ระบบใช้จังหวะสำรองแทน", "warning");
+      status.textContent = "เกมกำลังเดินด้วยจังหวะสำรอง";
     }
     const validAudio = audioStarted && Number.isFinite(audio.duration) && audio.duration > 5;
     if (!validAudio) {
@@ -1161,7 +1160,11 @@ function renderRhythm() {
     setSpeed(speedSelect.value);
     updateScoreboard();
     tick();
-  });
+  }
+
+  // The teacher's Realtime Broadcast renders this activity on every student
+  // device. Start immediately after rendering; no per-student start click.
+  queueMicrotask(() => void startRhythmAutomatically());
 }
 
 function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay }) {
