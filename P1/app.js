@@ -222,7 +222,7 @@ document.querySelector('#randomStudent').addEventListener('click', () => {
   }, 75));
   rememberShadowTimer(setTimeout(() => {
     clearInterval(nameInterval); selectedStudent = studentNames[Math.floor(Math.random() * studentNames.length)];
-    result.textContent = selectedStudent; result.classList.remove('name-tick'); result.classList.add('name-pop'); shadowGame.classList.remove('name-drawing'); button.disabled = false;
+    result.textContent = selectedStudent; result.classList.remove('name-tick'); result.classList.add('name-pop'); shadowGame.classList.remove('name-drawing', 'awaiting-answer'); button.disabled = false;
   }, 1200));
 });
 document.querySelector('#editStudents').addEventListener('click', openStudentDialog);
