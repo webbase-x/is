@@ -17,12 +17,14 @@ function stopRunningActivities() {
   (window.p1AudioContexts || []).forEach(context => context.close().catch(() => {}));
   window.p1AudioContexts = [];
   window.p1ShadowRun = (window.p1ShadowRun || 0) + 1;
-  document.querySelector('#shadowGame')?.classList.remove('is-correct', 'is-wrong', 'is-shuffling', 'is-revealed', 'awaiting-answer');
+  document.querySelector('#shadowGame')?.classList.remove('is-correct', 'is-wrong', 'is-shuffling', 'is-revealed', 'awaiting-answer', 'name-drawing');
   document.querySelector('#studentResult')?.classList.remove('student-success');
   const flowerRain = document.querySelector('#flowerRain');
   if (flowerRain) flowerRain.innerHTML = '';
   const shuffleButton = document.querySelector('#shuffleShadow');
   if (shuffleButton) shuffleButton.disabled = false;
+  const randomStudentButton = document.querySelector('#randomStudent');
+  if (randomStudentButton) randomStudentButton.disabled = false;
   document.querySelector('#wheel')?.classList.remove('spinning');
   const spinButton = document.querySelector('#spinWheel');
   if (spinButton) spinButton.disabled = false;
@@ -136,7 +138,7 @@ function rainFlowers() {
   rememberShadowTimer(setTimeout(() => { rain.innerHTML = ''; }, 2600));
 }
 function answerShadow(button, correct) {
-  if (shadowGame.classList.contains('is-correct') || shadowGame.classList.contains('is-shuffling')) return;
+  if (shadowGame.classList.contains('is-correct') || shadowGame.classList.contains('is-shuffling') || shadowGame.classList.contains('name-drawing')) return;
   shadowGame.classList.remove('is-wrong'); void shadowGame.offsetWidth;
   shadowGame.classList.add(correct ? 'is-correct' : 'is-wrong'); button.classList.add(correct ? 'correct' : 'wrong');
   shadowGame.classList.remove('awaiting-answer');
@@ -204,16 +206,24 @@ const studentNamesInput = document.querySelector('#studentNames');
 let studentNames = JSON.parse(localStorage.getItem('p1StudentNames') || '[]');
 let selectedStudent = '';
 function parseStudentNames(value) {
-  return [...new Set(value.split(',').map(item => item.trim().replace(/^"(.*)"$/, '$1').trim()).filter(Boolean))];
+  const parts = value.includes(',') ? value.split(',') : value.trim().split(/\s+/);
+  return [...new Set(parts.map(item => item.trim().replace(/^"(.*)"$/, '$1').trim()).filter(Boolean))];
 }
 function updateStudentButtons() { document.querySelector('#editStudents').hidden = !studentNames.length; }
 function openStudentDialog() { studentNamesInput.value = studentNames.map(name => name.includes(' ') ? `"${name}"` : name).join(', '); studentDialog.showModal(); studentNamesInput.focus(); }
 document.querySelector('#randomStudent').addEventListener('click', () => {
   if (!studentNames.length) { openStudentDialog(); return; }
-  const result = document.querySelector('#studentResult'); result.classList.remove('name-pop'); void result.offsetWidth;
-  selectedStudent = studentNames[Math.floor(Math.random() * studentNames.length)];
-  result.textContent = selectedStudent; result.classList.remove('student-success'); result.classList.add('name-pop');
-  shadowGame.classList.add('awaiting-answer');
+  const result = document.querySelector('#studentResult'); const button = document.querySelector('#randomStudent');
+  result.classList.remove('name-pop', 'student-success'); button.disabled = true;
+  shadowGame.classList.add('awaiting-answer', 'name-drawing');
+  const nameInterval = rememberShadowTimer(setInterval(() => {
+    result.textContent = studentNames[Math.floor(Math.random() * studentNames.length)];
+    result.classList.toggle('name-tick');
+  }, 75));
+  rememberShadowTimer(setTimeout(() => {
+    clearInterval(nameInterval); selectedStudent = studentNames[Math.floor(Math.random() * studentNames.length)];
+    result.textContent = selectedStudent; result.classList.remove('name-tick'); result.classList.add('name-pop'); shadowGame.classList.remove('name-drawing'); button.disabled = false;
+  }, 1200));
 });
 document.querySelector('#editStudents').addEventListener('click', openStudentDialog);
 document.querySelector('#cancelStudents').addEventListener('click', () => studentDialog.close());
