@@ -18,7 +18,7 @@ function stopRunningActivities() {
   window.p1AudioContexts = [];
   window.p1ShadowRun = (window.p1ShadowRun || 0) + 1;
   document.querySelector('#shadowGame')?.classList.remove('is-correct', 'is-wrong', 'is-shuffling', 'is-revealed', 'awaiting-answer', 'name-drawing');
-  document.querySelector('#studentResult')?.classList.remove('student-success');
+  document.querySelector('#studentResult')?.classList.remove('student-success', 'student-minimized');
   const minimizeStudent = document.querySelector('#minimizeStudent');
   if (minimizeStudent) minimizeStudent.hidden = true;
   const flowerRain = document.querySelector('#flowerRain');
@@ -199,7 +199,7 @@ document.querySelector('#revealShadow').addEventListener('click', event => {
 });
 document.querySelector('#resetShadow').addEventListener('click', () => {
   remainingShadows = shadowVocabulary.map((_, index) => index); selectedStudent = '';
-  const studentResult = document.querySelector('#studentResult'); studentResult.classList.remove('student-success'); studentResult.textContent = 'กด “สุ่มชื่อ” เพื่อเลือกผู้ตอบ';
+  const studentResult = document.querySelector('#studentResult'); studentResult.classList.remove('student-success', 'student-minimized'); studentResult.textContent = 'กด “สุ่มชื่อ” เพื่อเลือกผู้ตอบ';
   document.querySelector('#randomStudent').disabled = false; document.querySelector('#minimizeStudent').hidden = true; shuffleShadow();
 });
 shadowVocabulary.forEach(([, file]) => { const image = new Image(); image.src = `img/${encodeURIComponent(file)}`; });
@@ -218,7 +218,7 @@ function openStudentDialog() { studentNamesInput.value = studentNames.map(name =
 document.querySelector('#randomStudent').addEventListener('click', () => {
   if (!studentNames.length) { openStudentDialog(); return; }
   const result = document.querySelector('#studentResult'); const button = document.querySelector('#randomStudent');
-  result.classList.remove('name-pop', 'student-success'); button.disabled = true; document.querySelector('#minimizeStudent').hidden = true;
+  result.classList.remove('name-pop', 'student-success', 'student-minimized'); button.disabled = true; document.querySelector('#minimizeStudent').hidden = true;
   shadowGame.classList.add('awaiting-answer', 'name-drawing');
   const nameInterval = rememberShadowTimer(setInterval(() => {
     result.textContent = studentNames[Math.floor(Math.random() * studentNames.length)];
@@ -229,7 +229,7 @@ document.querySelector('#randomStudent').addEventListener('click', () => {
     result.textContent = selectedStudent; result.classList.remove('name-tick'); result.classList.add('name-pop'); shadowGame.classList.remove('name-drawing'); document.querySelector('#minimizeStudent').hidden = false; button.disabled = false;
   }, 1200));
 });
-document.querySelector('#minimizeStudent').addEventListener('click', event => { shadowGame.classList.remove('awaiting-answer'); event.currentTarget.hidden = true; });
+document.querySelector('#minimizeStudent').addEventListener('click', event => { shadowGame.classList.remove('awaiting-answer'); document.querySelector('#studentResult').classList.add('student-minimized'); event.currentTarget.hidden = true; });
 document.querySelector('#editStudents').addEventListener('click', openStudentDialog);
 document.querySelector('#cancelStudents').addEventListener('click', () => studentDialog.close());
 document.querySelector('#studentForm').addEventListener('submit', event => {
