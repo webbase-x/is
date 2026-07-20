@@ -1,23 +1,75 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#e67858">
-  <meta name="description" content="พื้นที่เรียนรู้ภาษาไทย ชั้นประถมศึกษาปีที่ 1 โดยครูไพรัช อินควรชุม">
-  <title>เพลินภาษา ป.1 | พื้นฐานภาษาไทย</title><link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="theme-color" content="#5a48d6"><meta name="description" content="สื่อการสอนภาษาไทย ป.1 เรื่อง รู้จักคำ นำเรื่อง เพื่อนภูผา">
+  <title>รู้จักคำ นำเรื่อง | เพลินภาษา ป.1</title><link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header><a class="back" href="../index.html">← กลับหน้ารวมบทเรียน</a><div class="brand"><span>ก</span><strong>เพลินภาษา <em>ป.1</em></strong></div></header>
-  <main>
-    <section class="hero">
-      <div class="copy"><span class="eyebrow">ภาษาไทย ชั้นประถมศึกษาปีที่ 1</span><h1>เริ่มต้นอ่านเขียน<br><em>อย่างมั่นใจ</em></h1><p>พื้นที่สำหรับพัฒนาทักษะพื้นฐานทางภาษาไทย ตั้งแต่รู้จักพยัญชนะและสระ ไปจนถึงการอ่านและเขียนคำง่าย ๆ ผ่านกิจกรรมที่เหมาะกับเด็ก ป.1</p><div class="author"><span>ค</span><div><small>ครูผู้สอน</small><strong>ครูไพรัช อินควรชุม</strong><p>โรงเรียนเทศบาล ๑ (ถนนนครนอก)</p></div></div></div>
-      <div class="letters" aria-hidden="true"><span>ก</span><span>า</span><strong>กา</strong><i>★</i></div>
-    </section>
-    <section class="path" aria-labelledby="pathTitle">
-      <div class="heading"><span>เส้นทางการเรียนรู้</span><h2 id="pathTitle">พื้นฐานสำคัญของเด็ก ป.1</h2><p>โครงสร้างพร้อมเพิ่มบทเรียน เกม แบบฝึกหัด และการประเมินได้อย่างต่อเนื่อง</p></div>
-      <div class="cards"><article><b>01</b><span>พยัญชนะ</span><h3>รู้จัก ก–ฮ</h3><p>เรียนรู้รูปและเสียงของพยัญชนะไทย</p></article><article><b>02</b><span>สระ</span><h3>สนุกกับสระ</h3><p>ฝึกอ่านและประสมสระพื้นฐาน</p></article><article><b>03</b><span>คำพื้นฐาน</span><h3>อ่านคำง่าย</h3><p>ประสมพยัญชนะและสระเป็นคำที่คุ้นเคย</p></article><article><b>04</b><span>การเขียน</span><h3>คัดคล่อง เขียนสวย</h3><p>ฝึกลากเส้นและเขียนอักษรอย่างถูกทิศทาง</p></article></div>
-      <div class="notice"><span>✦</span><div><strong>พื้นที่บทเรียน ป.1 พร้อมสำหรับการพัฒนา</strong><p>เพิ่มบทเรียนรายหน่วย สื่อเสียง เกม และแบบประเมินได้ โดยไม่กระทบระบบ ป.2 ที่อยู่ในโฟลเดอร์ P2</p></div></div>
-    </section>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span>ก</span><div><strong>เพลินภาษา</strong><small>ป.1 · เพื่อนภูผา</small></div></a>
+    <div class="lesson-meta"><small>แผนการเรียนรู้ 60 นาที</small><strong>รู้จักคำ นำเรื่อง</strong></div>
+    <button id="fullscreenButton" class="icon-button" type="button" aria-label="แสดงเต็มหน้าจอ">⛶</button>
+  </header>
+
+  <main class="lesson-shell">
+    <nav class="progress" aria-label="ลำดับกิจกรรม">
+      <button data-go="0" class="active"><span>1</span><strong>คาราโอเกะ</strong><small>5 นาที</small></button>
+      <button data-go="1"><span>2</span><strong>ทายเงา</strong><small>15 นาที</small></button>
+      <button data-go="2"><span>3</span><strong>บิงโกและวงล้อ</strong><small>15 นาที</small></button>
+      <button data-go="3"><span>4</span><strong>รถไฟประโยค</strong><small>20 นาที</small></button>
+    </nav>
+
+    <div class="activity-stage">
+      <section class="activity active" data-activity="0" aria-labelledby="karaokeTitle">
+        <div class="activity-heading"><div><span class="eyebrow">กิจกรรมที่ 1 · กระตุ้นความสนใจ</span><h1 id="karaokeTitle">ร้องเพลงเพื่อนภูผา</h1><p>ร้องพร้อมกันและทำท่าทางประกอบจังหวะ</p></div><span class="time-badge">♪ 5 นาที</span></div>
+        <div class="karaoke-layout">
+          <div class="karaoke-visual" aria-hidden="true"><div class="mountain">⛰️</div><div class="elephant blue">🐘<small>ใบโบก</small></div><div class="elephant orange">🐘<small>ใบบัว</small></div><div class="music-notes">♪ ♫ ♪</div></div>
+          <div class="karaoke-panel">
+            <div id="lyrics" class="lyrics" aria-live="polite"><button data-line="0" class="active">ภูผา ดูแล ใบโบก</button><button data-line="1">ภูผา ดูแล ใบบัว</button><button data-line="2">ภูผา มีเพื่อน ข้างตัว</button><button data-line="3">ชื่อใบโบก ชื่อใบบัว</button></div>
+            <audio id="song" preload="metadata" src="sounds/02%20เพื่อนภูผา.mp3"></audio>
+            <div class="player"><button id="restartSong" type="button" aria-label="เริ่มเพลงใหม่">↺</button><button id="playSong" class="play" type="button" aria-label="เล่นเพลง">▶</button><div class="track"><div><span id="songProgress"></span></div><small><output id="songTime">0:00</output> / <output id="songDuration">–:––</output></small></div><button id="muteSong" type="button" aria-label="เปิดหรือปิดเสียง">🔊</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="activity" data-activity="1" aria-labelledby="shadowTitle" hidden>
+        <div class="activity-heading"><div><span class="eyebrow">กิจกรรมที่ 2 · นำเสนอเนื้อหา</span><h1 id="shadowTitle">แผ่นป้าย ทายเงา</h1><p>ฟังคำใบ้ ทายคำ แล้วเปิดภาพและคำศัพท์</p></div><span class="time-badge">◐ 15 นาที</span></div>
+        <div class="shadow-game">
+          <aside class="word-list" id="wordList" aria-label="รายการคำศัพท์"></aside>
+          <div class="shadow-card">
+            <div class="word-counter"><span id="shadowCount">คำที่ 1 จาก 17</span><div><button id="previousWord" type="button">‹</button><button id="nextWord" type="button">›</button></div></div>
+            <div id="shadowPicture" class="shadow-picture hidden-picture"><span>👦</span></div>
+            <p id="wordClue" class="clue">เด็กผู้ชายผู้เป็นเพื่อนของใบโบกและใบบัว</p>
+            <div id="answerArea" class="answer-area hidden-answer"><strong id="wordAnswer">ภูผา</strong><small id="wordSpelling">ภู – ผา</small></div>
+            <button id="revealWord" class="primary-action" type="button">เปิดภาพและเฉลย</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="activity" data-activity="2" aria-labelledby="bingoTitle" hidden>
+        <div class="activity-heading"><div><span class="eyebrow">กิจกรรมที่ 3 · ฝึกฝน</span><h1 id="bingoTitle">บิงโก มหัศจรรย์วงล้อ</h1><p>หมุนวงล้อ อ่านคำพร้อมกัน แล้ววางเบี้ยบนกระดาน</p></div><span class="time-badge">◎ 15 นาที</span></div>
+        <div class="bingo-layout">
+          <div class="wheel-panel">
+            <div id="wheel" class="wheel"><span id="wheelWord">พร้อม!</span></div>
+            <button id="spinWheel" class="primary-action spin" type="button">หมุนวงล้อ</button>
+            <p id="spinHint">คำที่ออกแล้วจะไม่ซ้ำจนกว่าจะเริ่มรอบใหม่</p>
+          </div>
+          <div class="called-panel"><div class="called-heading"><div><small>คำที่ออกแล้ว</small><strong><output id="calledCount">0</output> / 16 คำ</strong></div><button id="resetWheel" type="button">เริ่มรอบใหม่</button></div><div id="calledWords" class="called-words"><p>กด “หมุนวงล้อ” เพื่อเริ่มกิจกรรม</p></div><div class="bingo-call">ได้ 4 ช่องเรียงกันแล้วตะโกน<br><strong>“บิงโก ช้างมาแล้ว!”</strong></div></div>
+        </div>
+      </section>
+
+      <section class="activity" data-activity="3" aria-labelledby="trainTitle" hidden>
+        <div class="activity-heading"><div><span class="eyebrow">กิจกรรมที่ 4 · นำไปใช้</span><h1 id="trainTitle">ขบวนรถไฟประโยคหรรษา</h1><p>เรียงบัตรคำให้เป็นประโยค แล้วอ่านพร้อมกันทั้งห้อง</p></div><span class="time-badge">🚂 20 นาที</span></div>
+        <div class="train-game">
+          <div class="group-score"><span>ดาวสะสมแต่ละกลุ่ม</span><div id="groupScores"></div></div>
+          <div class="challenge"><div class="challenge-top"><span id="challengeNumber">โจทย์ที่ 1 จาก 5</span><div><button id="previousChallenge" type="button">‹</button><button id="nextChallenge" type="button">›</button></div></div><div id="challengePicture" class="challenge-picture">👨 🔎 👦</div><p id="challengeClue">พ่อกำลังตามหาภูผา</p><div id="trainCars" class="train-cars"></div><button id="revealSentence" class="primary-action" type="button">เปิดเฉลยขบวนรถไฟ</button></div>
+          <div class="train-actions"><button id="awardStar" type="button">★ ให้ดาวกลุ่มที่เลือก</button><select id="groupSelect" aria-label="เลือกกลุ่ม"><option value="0">กลุ่ม 1</option><option value="1">กลุ่ม 2</option><option value="2">กลุ่ม 3</option><option value="3">กลุ่ม 4</option><option value="4">กลุ่ม 5</option></select></div>
+        </div>
+      </section>
+    </div>
+
+    <nav class="activity-navigation" aria-label="เปลี่ยนกิจกรรม"><button id="previousActivity" type="button" disabled><span>‹</span><div><small>ย้อนกลับ</small><strong>กิจกรรมก่อนหน้า</strong></div></button><div class="activity-position"><span id="activityPosition">1 / 4</span><div><i class="active"></i><i></i><i></i><i></i></div></div><button id="nextActivity" type="button"><div><small>ไปต่อ</small><strong>กิจกรรมถัดไป</strong></div><span>›</span></button></nav>
   </main>
-  <footer>เพลินภาษา ป.1 · ครูไพรัช อินควรชุม · โรงเรียนเทศบาล ๑ (ถนนนครนอก)</footer>
+  <script src="app.js"></script>
 </body></html>
