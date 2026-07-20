@@ -3,81 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#5b4bdb">
-  <meta name="description" content="เพลินภาษา สื่อการเรียนรู้ภาษาไทย ป.2 เรื่องมาตราตัวสะกด โดยครูไพรัช อินควรชุม โรงเรียนเทศบาล ๑ (ถนนนครนอก)">
-  <title>เพลินภาษา | มาตราตัวสะกด ป.2</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#5a48d6">
+  <meta name="description" content="เพลินภาษา ศูนย์รวมสื่อการเรียนรู้ภาษาไทย ป.1–2 โดยครูไพรัช อินควรชุม โรงเรียนเทศบาล ๑ (ถนนนครนอก)">
+  <title>เพลินภาษา | สื่อการเรียนรู้ภาษาไทย ป.1–2</title>
+  <link rel="stylesheet" href="site.css">
 </head>
-<body class="home-page">
-  <header class="site-header">
-    <a class="brand" href="index.html" aria-label="กลับหน้าหลัก">
-      <span class="brand-mark" aria-hidden="true">ก</span>
-      <span><strong>เพลินภาษา</strong><small>มาตราตัวสะกด ภาษาไทย ป.2</small></span>
-    </a>
-    <span class="status-pill" id="systemStatus"><i></i> กำลังตรวจระบบ</span>
+<body>
+  <header class="nav">
+    <a class="brand" href="index.html" aria-label="หน้าหลักเพลินภาษา"><span>ก</span><strong>เพลินภาษา</strong></a>
+    <a class="school-link" href="#about">โรงเรียนเทศบาล ๑ (ถนนนครนอก)</a>
   </header>
 
   <main>
     <section class="hero">
       <div class="hero-copy">
-        <span class="eyebrow">สื่อการเรียนรู้ภาษาไทย ชั้นประถมศึกษาปีที่ 2</span>
-        <h1>เรียนภาษาไทย<br><span>ให้สนุกทุกคำ</span></h1>
-        <p>เรียนรู้เรื่องมาตราตัวสะกดผ่านเกมและภารกิจ ช่วยให้เด็ก ๆ ฝึกอ่าน เขียน จำแนกคำ และใช้คำได้อย่างเป็นขั้นตอน พร้อมสะสมดาวไปกับเพื่อนในชั้นเรียน</p>
-        <div class="hero-meta" aria-label="ข้อมูลผู้จัดทำ">
-          <span>ครูผู้สอน <strong>ครูไพรัช อินควรชุม</strong></span>
-          <span>โรงเรียนเทศบาล ๑ (ถนนนครนอก)</span>
-        </div>
-        <div class="hero-actions">
-          <a class="button button-primary button-large" href="student.html">นักเรียน เข้าเล่นเกม <span aria-hidden="true">→</span></a>
-          <a class="button button-ghost button-large" href="teacher.html">ครู เปิดจอควบคุม</a>
+        <span class="eyebrow">พื้นที่เรียนรู้ภาษาไทยสำหรับเด็กประถมต้น</span>
+        <h1>เรียนรู้ทุกคำ<br><em>อย่างเพลิดเพลิน</em></h1>
+        <p>ศูนย์รวมบทเรียน เกม และกิจกรรมภาษาไทยสำหรับนักเรียนชั้นประถมศึกษาปีที่ 1–2 ออกแบบให้เข้าใจง่าย สนุก และเรียนรู้ได้อย่างเป็นขั้นตอน</p>
+        <div class="teacher-card" id="about">
+          <span class="teacher-avatar">ค</span>
+          <div><small>ครูผู้สอนและผู้จัดทำ</small><strong>ครูไพรัช อินควรชุม</strong><p>โรงเรียนเทศบาล ๑ (ถนนนครนอก)</p></div>
         </div>
       </div>
-      <div class="hero-visual" aria-label="ตัวอย่างเส้นทางการเรียนรู้">
-        <div class="orbit orbit-one"></div>
-        <div class="orbit orbit-two"></div>
-        <div class="mascot-card">
-          <span class="mascot" aria-hidden="true">🦉</span>
-          <strong>น้องเพลิน</strong>
-          <small>พร้อมเรียนรู้ไปด้วยกัน!</small>
-        </div>
-        <div class="floating-word word-a">กา</div>
-        <div class="floating-word word-b">ปลา</div>
-        <div class="floating-word word-c">เต่า</div>
-        <div class="star-burst">★</div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="book"><span>ก</span><span>ข</span><span>ค</span></div>
+        <div class="word word-one">อ่าน</div><div class="word word-two">เขียน</div><div class="word word-three">เรียนรู้</div>
       </div>
     </section>
 
-    <section class="role-section" aria-labelledby="chooseRole">
-      <div class="section-heading">
-        <span class="eyebrow">เลือกหน้าจอให้ตรงกับการใช้งาน</span>
-        <h2 id="chooseRole">หนึ่งห้องเรียน ทำงานร่วมกันทุกจอ</h2>
-      </div>
-      <div class="role-grid">
-        <a class="role-card student-role" href="student.html">
-          <span class="role-icon" aria-hidden="true">🎮</span>
-          <div><small>จอส่วนตัว</small><h3>นักเรียน</h3><p>เข้าห้อง ถ่ายรูปยืนยันตัวตน และทำภารกิจตามจังหวะของตนเอง</p></div>
-          <span class="role-arrow" aria-hidden="true">→</span>
-        </a>
-        <a class="role-card teacher-role" href="teacher.html">
-          <span class="role-icon" aria-hidden="true">🧑‍🏫</span>
-          <div><small>จอควบคุม</small><h3>ครูผู้สอน</h3><p>เปิดคาบ อนุมัตินักเรียน ควบคุมเกม และติดตามผลรายบุคคล</p></div>
-          <span class="role-arrow" aria-hidden="true">→</span>
-        </a>
-        <a class="role-card display-role" href="display.html">
-          <span class="role-icon" aria-hidden="true">📺</span>
-          <div><small>จอหน้าชั้น</small><h3>จอฉาย</h3><p>แสดงรหัสห้อง เวลา ภารกิจ และกระดานคะแนนตามที่ครูกำหนด</p></div>
-          <span class="role-arrow" aria-hidden="true">→</span>
-        </a>
+    <section class="lessons" aria-labelledby="lessonTitle">
+      <div class="section-heading"><span class="eyebrow">คลังบทเรียน</span><h2 id="lessonTitle">เลือกชั้นเรียนของเรา</h2><p>เริ่มจากบทเรียนที่เปิดใช้งานแล้ว และเพิ่มเติมเนื้อหาใหม่ได้ในอนาคต</p></div>
+      <div class="lesson-grid">
+        <article class="lesson-card upcoming">
+          <div class="level">ป.1</div><span class="status">เตรียมเปิดบทเรียน</span>
+          <h3>พื้นฐานภาษาไทย</h3><p>พื้นที่สำหรับบทเรียนอ่านออกเขียนได้ พยัญชนะ สระ และคำพื้นฐาน</p>
+          <span class="disabled-button">เร็ว ๆ นี้</span>
+        </article>
+        <article class="lesson-card active">
+          <div class="level">ป.2</div><span class="status">พร้อมเรียนรู้</span>
+          <h3>มาตราตัวสะกด</h3><p>เรียนรู้และฝึกจำแนกมาตราตัวสะกดผ่านเกม ภารกิจ และกิจกรรมในชั้นเรียน</p>
+          <a class="primary-button" href="P2/index.html">เข้าสู่บทเรียน ป.2 <span>→</span></a>
+        </article>
       </div>
     </section>
 
-    <section class="privacy-note">
-      <span aria-hidden="true">🛡️</span>
-      <div><strong>ออกแบบโดยคำนึงถึงข้อมูลของนักเรียน</strong><p>รูปยืนยันตัวตนใช้เฉพาะในคาบเรียนและลบเมื่อครูปิดคาบ คะแนนและรายงานจะแสดงตามสิทธิ์ของแต่ละหน้าจอ</p></div>
+    <section class="features">
+      <div><span>✦</span><strong>เรียนผ่านเกม</strong><p>กิจกรรมเหมาะกับวัยและมีเป้าหมายชัดเจน</p></div>
+      <div><span>◎</span><strong>ใช้ได้ทุกหน้าจอ</strong><p>รองรับมือถือ แท็บเล็ต คอมพิวเตอร์ และจอหน้าชั้น</p></div>
+      <div><span>↗</span><strong>พร้อมเติบโต</strong><p>เพิ่มบทเรียน แบบฝึกหัด และระดับชั้นได้ในอนาคต</p></div>
     </section>
   </main>
-
-  <footer class="site-footer"><strong>เพลินภาษา</strong> · จัดทำโดยครูไพรัช อินควรชุม · โรงเรียนเทศบาล ๑ (ถนนนครนอก)</footer>
-  <script type="module" src="js/index.js"></script>
+  <footer><strong>เพลินภาษา</strong><span>สื่อการเรียนรู้ภาษาไทย ป.1–2</span><span>© 2569 ครูไพรัช อินควรชุม</span></footer>
 </body>
 </html>
