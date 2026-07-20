@@ -12,6 +12,7 @@ function stopRunningActivities() {
     clearTimeout(window.p1SpinTimer);
     window.p1SpinTimer = null;
   }
+  if (window.p1SpinInterval) { clearInterval(window.p1SpinInterval); window.p1SpinInterval = null; }
   (window.p1ShadowTimers || []).forEach(timer => { clearTimeout(timer); clearInterval(timer); });
   window.p1ShadowTimers = [];
   (window.p1AudioContexts || []).forEach(context => context.close().catch(() => {}));
@@ -267,16 +268,37 @@ document.querySelector('#spinWheel').addEventListener('click', () => {
   const wheel = document.querySelector('#wheel');
   wheel.classList.remove('spinning'); void wheel.offsetWidth; wheel.classList.add('spinning');
   document.querySelector('#spinWheel').disabled = true;
+  document.querySelector('#spinHint').textContent = 'กำลังหมุนวงล้อ…';
+  const AudioContext = window.AudioContext || window.webkitAudioContext; const wheelAudio = AudioContext ? new AudioContext() : null;
+  window.p1WheelAudio = wheelAudio; if (wheelAudio) window.p1AudioContexts.push(wheelAudio);
+  const wheelTone = (frequency, duration = .055, volume = .045) => {
+    if (!wheelAudio || wheelAudio.state === 'closed') return;
+    const oscillator = wheelAudio.createOscillator(); const gain = wheelAudio.createGain(); oscillator.type = 'square'; oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(volume, wheelAudio.currentTime); gain.gain.exponentialRampToValueAtTime(.0001, wheelAudio.currentTime + duration); oscillator.connect(gain).connect(wheelAudio.destination); oscillator.start(); oscillator.stop(wheelAudio.currentTime + duration);
+  };
+  let previewIndex = 0;
+  window.p1SpinInterval = setInterval(() => { previewIndex = (previewIndex + 1) % remainingWords.length; document.querySelector('#wheelWord').textContent = remainingWords[previewIndex]; wheelTone(320 + (previewIndex % 4) * 55); }, 75);
   window.p1SpinTimer = setTimeout(() => {
+    clearInterval(window.p1SpinInterval); window.p1SpinInterval = null;
     const index = Math.floor(Math.random() * remainingWords.length);
     const word = remainingWords.splice(index, 1)[0]; calledWords.push(word);
     document.querySelector('#wheelWord').textContent = word; renderCalledWords();
+    wheelTone(660, .18, .12); setTimeout(() => wheelTone(880, .26, .12), 140);
     document.querySelector('#spinWheel').disabled = false;
     document.querySelector('#spinHint').textContent = remainingWords.length ? `เหลืออีก ${remainingWords.length} คำ` : 'ครบทุกคำแล้ว!';
     window.p1SpinTimer = null;
-  }, 760);
+    setTimeout(() => { if (wheelAudio && wheelAudio.state !== 'closed') wheelAudio.close(); window.p1AudioContexts = window.p1AudioContexts.filter(context => context !== wheelAudio); if (window.p1WheelAudio === wheelAudio) window.p1WheelAudio = null; }, 700);
+  }, 3000);
 });
-document.querySelector('#resetWheel').addEventListener('click', () => { remainingWords = [...bingoWords]; calledWords = []; document.querySelector('#wheelWord').textContent = 'พร้อม!'; document.querySelector('#spinHint').textContent = 'คำที่ออกแล้วจะไม่ซ้ำจนกว่าจะเริ่มรอบใหม่'; renderCalledWords(); });
+document.querySelector('#resetWheel').addEventListener('click', () => {
+  if (window.p1SpinTimer) { clearTimeout(window.p1SpinTimer); window.p1SpinTimer = null; }
+  if (window.p1SpinInterval) { clearInterval(window.p1SpinInterval); window.p1SpinInterval = null; }
+  if (window.p1WheelAudio && window.p1WheelAudio.state !== 'closed') window.p1WheelAudio.close(); window.p1AudioContexts = window.p1AudioContexts.filter(context => context !== window.p1WheelAudio); window.p1WheelAudio = null;
+  document.querySelector('#wheel').classList.remove('spinning'); document.querySelector('#spinWheel').disabled = false;
+  remainingWords = [...bingoWords]; calledWords = []; document.querySelector('#wheelWord').textContent = 'พร้อม!'; document.querySelector('#spinHint').textContent = 'คำที่ออกแล้วจะไม่ซ้ำจนกว่าจะเริ่มรอบใหม่'; renderCalledWords();
+});
+document.querySelector('#showBingoExample').addEventListener('click', () => document.querySelector('#bingoExampleDialog').showModal());
+document.querySelector('#closeBingoExample').addEventListener('click', () => document.querySelector('#bingoExampleDialog').close());
 
 const challenges = [
   {picture:'👨 🔎 👦',clue:'พ่อกำลังตามหาภูผา',words:['พ่อ','หา','ภูผา']},
