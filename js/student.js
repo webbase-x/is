@@ -702,7 +702,8 @@ function renderActivity(key) {
 }
 
 function gameShell(title, instruction, content) {
-  $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="game-instruction"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(instruction)}</p></div>${content}</div>`;
+  const gameKey = state.renderedActivity || "game";
+  $("#gameCanvas").innerHTML = `<div class="game-inner game-layout" data-game="${escapeHtml(gameKey)}"><header class="game-instruction"><div><small>เกมภาษาไทย</small><h2>${escapeHtml(title)}</h2></div><p>${escapeHtml(instruction)}</p></header><div class="game-play-area">${content}</div></div>`;
 }
 
 async function submitAttempt(activityKey, score, maxScore, answers) {
