@@ -617,29 +617,33 @@ body.competition-overlay-open { overflow: hidden; }
 .student-screen-focus-info dl > div { display: grid; grid-template-columns: 125px minmax(0,1fr); gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .student-screen-focus-info dt { color: var(--muted); }
 .student-screen-focus-info dd { margin: 0; font-weight: 900; }
-.student-focus-stream { min-height: calc(100vh - 250px); display: grid; grid-template-rows: auto minmax(0,1fr); overflow: hidden; border-radius: 28px; background: #11182c; box-shadow: var(--shadow); }
-.student-focus-stream-header { display: grid; grid-template-columns: minmax(210px,1fr) minmax(260px,1.5fr) auto; align-items: center; gap: 20px; padding: 14px 20px; color: white; background: linear-gradient(120deg,#202a4b,#30285f); }
-.student-focus-profile { min-width: 0; display: flex; align-items: center; gap: 12px; }
-.student-focus-profile > img, .student-focus-profile > span { width: 58px; height: 58px; flex: 0 0 58px; display: grid; place-items: center; border: 3px solid rgba(255,255,255,.75); border-radius: 18px; background: white; object-fit: cover; font-size: 31px; }
-.student-focus-profile small, .student-focus-profile strong, .student-focus-game-title small { display: block; }
-.student-focus-profile small, .student-focus-game-title small, .student-focus-live-meta small { color: rgba(255,255,255,.72); }
-.student-focus-profile strong { overflow: hidden; font-size: clamp(17px,2vw,25px); text-overflow: ellipsis; white-space: nowrap; }
-.student-focus-game-title { min-width: 0; text-align: center; }
-.student-focus-game-title h2 { margin: 2px 0 0; overflow: hidden; font-size: clamp(19px,2.5vw,32px); text-overflow: ellipsis; white-space: nowrap; }
-.student-focus-live-meta { display: grid; justify-items: end; gap: 3px; }
-.student-focus-game-window { min-height: 0; display: grid; overflow: auto; background: white; }
-.student-focus-game-canvas { width: 100%; min-height: 100%; border: 0; border-radius: 0; box-shadow: none; pointer-events: none; }
+.student-focus-stream { min-height: calc(100vh - 250px); display: grid; grid-template-rows: minmax(0,1fr); overflow: hidden; border-radius: 28px; background: white; box-shadow: var(--shadow); }
+.student-focus-game-window { width: 100%; height: 100%; min-height: 0; display: grid; overflow: hidden; background: white; }
+.student-focus-game-canvas { width: 100%; height: 100%; min-height: 100%; overflow: auto; border: 0; border-radius: 0; box-shadow: none; pointer-events: none; }
 .student-focus-game-canvas * { pointer-events: none !important; }
+.student-focus-game-canvas > .game-inner { width: 100%; min-height: 100%; padding: clamp(12px,2vw,28px); }
+.student-focus-game-canvas .game-instruction { display: none; }
+.student-focus-game-canvas .rhythm-karaoke { max-width: none; }
 .student-focus-waiting { min-height: 55vh; display: grid; place-items: center; align-content: center; gap: 8px; padding: 30px; text-align: center; }
 .student-focus-waiting > span { font-size: clamp(60px,12vw,130px); }
 .student-focus-waiting h2, .student-focus-waiting p { margin: 0; }
-.student-screen-focus.student-screen-full-window, .student-screen-focus:fullscreen { width: 100vw; height: 100dvh; min-height: 100dvh; display: grid !important; grid-template-rows: auto minmax(0,1fr); padding: 12px; overflow: hidden; background: #0b1020; }
-.student-screen-focus.student-screen-full-window .student-screen-focus-nav, .student-screen-focus:fullscreen .student-screen-focus-nav { margin-bottom: 10px; }
+.student-screen-focus.student-screen-full-window, .student-screen-focus:fullscreen { width: 100vw; height: 100dvh; min-height: 100dvh; display: grid !important; grid-template-rows: minmax(0,1fr); padding: 0; overflow: hidden; background: white; }
 .student-screen-focus.student-screen-full-window #studentScreenFocusContent, .student-screen-focus:fullscreen #studentScreenFocusContent, .student-screen-focus.student-screen-full-window .student-focus-stream, .student-screen-focus:fullscreen .student-focus-stream { min-height: 0; height: 100%; }
+.student-screen-focus.student-screen-full-window .student-screen-focus-nav, .student-screen-focus:fullscreen .student-screen-focus-nav { display: none; }
+.student-screen-focus.student-screen-full-window .student-focus-stream, .student-screen-focus:fullscreen .student-focus-stream { border-radius: 0; box-shadow: none; }
 .player-profile-visual { position: relative; width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; }
 .player-profile-visual img, .player-profile-visual > span { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; object-fit: cover; }
 .student-broadcast-badge { width: max-content; display: inline-flex; align-items: center; gap: 7px; margin-top: 5px; padding: 5px 10px; border-radius: 999px; color: white; background: #e43f5a; box-shadow: 0 6px 18px rgba(228,63,90,.28); font-size: 11px; font-weight: 900; }
 .student-broadcast-badge i { width: 8px; height: 8px; border-radius: 50%; background: white; animation: screen-live-pulse 1.2s ease-in-out infinite; }
+.student-game-live-badge { position: fixed; z-index: 30; top: max(10px,env(safe-area-inset-top)); right: max(10px,env(safe-area-inset-right)); margin: 0; }
+.student-page.student-game-live { overflow: hidden; background: white; }
+.student-page.student-game-live > .app-header { display: none; }
+.student-page.student-game-live .student-shell { width: 100%; max-width: none; min-height: 100dvh; margin: 0; padding: 0; }
+.student-page.student-game-live #gameView { position: fixed; z-index: 20; inset: 0; width: 100vw; height: 100dvh; min-height: 100dvh; overflow: hidden; background: white; }
+.student-page.student-game-live .journey-panel, .student-page.student-game-live .stage-topbar { display: none; }
+.student-page.student-game-live .game-stage { width: 100%; height: 100dvh; padding: 0; }
+.student-page.student-game-live #gameCanvas { width: 100%; height: 100%; min-height: 0; overflow: auto; border: 0; border-radius: 0; box-shadow: none; }
+.student-page.student-game-live #gameCanvas > .game-inner { width: 100%; min-height: 100%; padding: clamp(12px,2vw,28px); }
 @keyframes screen-live-pulse { 50% { transform: scale(.8); opacity: .65; } }
 .dashboard-heading, .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .dashboard-heading { margin-bottom: 24px; }
@@ -1268,32 +1272,15 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .student-capture-button { width: min(520px,100%); margin-left: auto; margin-right: auto; }
 }
 
-@media (max-width: 900px) {
-  .student-focus-stream-header { grid-template-columns: minmax(0,1fr) auto; gap: 10px; }
-  .student-focus-game-title { grid-column: 1 / -1; grid-row: 2; text-align: left; }
-  .student-focus-live-meta { grid-column: 2; grid-row: 1; }
-}
-
 @media (orientation: portrait) and (max-width: 700px) {
-  .student-screen-focus.student-screen-full-window, .student-screen-focus:fullscreen { padding: 6px; }
+  .student-screen-focus.student-screen-full-window, .student-screen-focus:fullscreen { padding: 0; }
   .student-screen-focus.student-screen-full-window .student-screen-focus-nav, .student-screen-focus:fullscreen .student-screen-focus-nav { margin-bottom: 6px; }
   .student-focus-stream { border-radius: 17px; }
-  .student-focus-stream-header { padding: 9px 11px; }
-  .student-focus-profile > img, .student-focus-profile > span { width: 44px; height: 44px; flex-basis: 44px; border-radius: 13px; }
-  .student-focus-profile strong { font-size: 16px; }
-  .student-focus-game-title h2 { font-size: 18px; white-space: normal; }
-  .student-focus-live-meta small { display: none; }
 }
 
 @media (orientation: landscape) and (max-height: 650px) {
-  .student-screen-focus.student-screen-full-window, .student-screen-focus:fullscreen { padding: 5px; }
+  .student-screen-focus.student-screen-full-window, .student-screen-focus:fullscreen { padding: 0; }
   .student-screen-focus.student-screen-full-window .student-screen-focus-nav, .student-screen-focus:fullscreen .student-screen-focus-nav { margin-bottom: 4px; }
-  .student-focus-stream-header { grid-template-columns: minmax(190px,1fr) minmax(240px,1.5fr) auto; padding: 7px 12px; }
-  .student-focus-profile > img, .student-focus-profile > span { width: 42px; height: 42px; flex-basis: 42px; border-radius: 12px; }
-  .student-focus-game-title { grid-column: auto; grid-row: auto; text-align: center; }
-  .student-focus-game-title h2 { font-size: 19px; }
-  .student-focus-live-meta { grid-column: auto; grid-row: auto; }
-  .student-focus-live-meta small { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

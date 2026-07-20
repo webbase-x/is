@@ -668,6 +668,9 @@ function setStudentBroadcasting(active) {
 
 function applySessionState() {
   const activity = ACTIVITIES.find(item => item.key === state.session.current_activity_key);
+  const gameIsLive = state.session.status === "active" && Boolean(activity);
+  document.body.classList.toggle("student-game-live", gameIsLive);
+  if (gameIsLive) setGameFocus(true);
   $("#stageStep").textContent = activity ? `ภารกิจ ${ACTIVITIES.indexOf(activity) + 1} จาก ${ACTIVITIES.length}` : "เตรียมพร้อม";
   $("#stageTitle").textContent = activity?.title || "รอครูเริ่มกิจกรรม";
   $("#attemptBadge").textContent = modeLabel(state.session.play_mode);
@@ -1409,6 +1412,7 @@ function resetJoin(message) {
   clearTimeout(state.screenPresenceTimer);
   clearInterval(state.screenWatchInterval);
   setStudentBroadcasting(false);
+  document.body.classList.remove("student-game-live");
   stopCamera();
   Object.assign(state, {
     joinStep: "code", joinBusy: false,
