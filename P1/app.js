@@ -19,6 +19,8 @@ function stopRunningActivities() {
   window.p1ShadowRun = (window.p1ShadowRun || 0) + 1;
   document.querySelector('#shadowGame')?.classList.remove('is-correct', 'is-wrong', 'is-shuffling', 'is-revealed', 'awaiting-answer', 'name-drawing');
   document.querySelector('#studentResult')?.classList.remove('student-success');
+  const minimizeStudent = document.querySelector('#minimizeStudent');
+  if (minimizeStudent) minimizeStudent.hidden = true;
   const flowerRain = document.querySelector('#flowerRain');
   if (flowerRain) flowerRain.innerHTML = '';
   const shuffleButton = document.querySelector('#shuffleShadow');
@@ -142,6 +144,7 @@ function answerShadow(button, correct) {
   shadowGame.classList.remove('is-wrong'); void shadowGame.offsetWidth;
   shadowGame.classList.add(correct ? 'is-correct' : 'is-wrong'); button.classList.add(correct ? 'correct' : 'wrong');
   shadowGame.classList.remove('awaiting-answer');
+  document.querySelector('#minimizeStudent').hidden = true;
   [...document.querySelectorAll('.answer-card')].forEach(choice => choice.disabled = true);
   playFeedback(correct);
   if (correct) {
@@ -183,6 +186,7 @@ function shuffleShadow() {
   (window.p1ShadowTimers || []).forEach(timer => { clearTimeout(timer); clearInterval(timer); }); window.p1ShadowTimers = [];
   const run = window.p1ShadowRun = (window.p1ShadowRun || 0) + 1;
   shadowGame.classList.remove('is-correct', 'is-wrong', 'is-revealed', 'awaiting-answer'); shadowGame.classList.add('is-shuffling');
+  document.querySelector('#minimizeStudent').hidden = true;
   document.querySelector('#shuffleShadow').disabled = true; document.querySelector('#answerChoices').innerHTML = '';
   document.querySelector('#shadowPrompt').textContent = 'กำลังสุ่มภาพ…';
   const interval = rememberShadowTimer(setInterval(() => renderShadowImage(remainingShadows[Math.floor(Math.random() * remainingShadows.length)]), 75));
@@ -196,7 +200,7 @@ document.querySelector('#revealShadow').addEventListener('click', event => {
 document.querySelector('#resetShadow').addEventListener('click', () => {
   remainingShadows = shadowVocabulary.map((_, index) => index); selectedStudent = '';
   const studentResult = document.querySelector('#studentResult'); studentResult.classList.remove('student-success'); studentResult.textContent = 'กด “สุ่มชื่อ” เพื่อเลือกผู้ตอบ';
-  document.querySelector('#randomStudent').disabled = false; shuffleShadow();
+  document.querySelector('#randomStudent').disabled = false; document.querySelector('#minimizeStudent').hidden = true; shuffleShadow();
 });
 shadowVocabulary.forEach(([, file]) => { const image = new Image(); image.src = `img/${encodeURIComponent(file)}`; });
 settleShadow(0);
@@ -214,7 +218,7 @@ function openStudentDialog() { studentNamesInput.value = studentNames.map(name =
 document.querySelector('#randomStudent').addEventListener('click', () => {
   if (!studentNames.length) { openStudentDialog(); return; }
   const result = document.querySelector('#studentResult'); const button = document.querySelector('#randomStudent');
-  result.classList.remove('name-pop', 'student-success'); button.disabled = true;
+  result.classList.remove('name-pop', 'student-success'); button.disabled = true; document.querySelector('#minimizeStudent').hidden = true;
   shadowGame.classList.add('awaiting-answer', 'name-drawing');
   const nameInterval = rememberShadowTimer(setInterval(() => {
     result.textContent = studentNames[Math.floor(Math.random() * studentNames.length)];
@@ -222,9 +226,10 @@ document.querySelector('#randomStudent').addEventListener('click', () => {
   }, 75));
   rememberShadowTimer(setTimeout(() => {
     clearInterval(nameInterval); selectedStudent = studentNames[Math.floor(Math.random() * studentNames.length)];
-    result.textContent = selectedStudent; result.classList.remove('name-tick'); result.classList.add('name-pop'); shadowGame.classList.remove('name-drawing', 'awaiting-answer'); button.disabled = false;
+    result.textContent = selectedStudent; result.classList.remove('name-tick'); result.classList.add('name-pop'); shadowGame.classList.remove('name-drawing'); document.querySelector('#minimizeStudent').hidden = false; button.disabled = false;
   }, 1200));
 });
+document.querySelector('#minimizeStudent').addEventListener('click', event => { shadowGame.classList.remove('awaiting-answer'); event.currentTarget.hidden = true; });
 document.querySelector('#editStudents').addEventListener('click', openStudentDialog);
 document.querySelector('#cancelStudents').addEventListener('click', () => studentDialog.close());
 document.querySelector('#studentForm').addEventListener('submit', event => {
