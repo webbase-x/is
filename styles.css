@@ -604,6 +604,8 @@ body.competition-overlay-open { overflow: hidden; }
 .student-device-large .student-device-stage > p { min-height: 48px; font-size: 15px; }
 .student-device-large .student-device-progress { height: 10px; }
 .student-device-large .student-device-bottom { min-height: 57px; padding: 10px 17px; font-size: 14px; }
+.student-device-stream { flex: 1 1 auto; min-height: 360px; overflow: auto; background: white; }
+.student-device-stream .display-student-mirror-canvas { min-height: 100%; }
 .student-screen-focus-info { padding: clamp(22px, 3vw, 34px); }
 .student-screen-person { display: flex; align-items: center; gap: 15px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
 .student-screen-person > span { width: 66px; height: 66px; display: grid; place-items: center; border-radius: 20px; background: var(--purple-soft); font-size: 37px; }

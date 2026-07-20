@@ -107,6 +107,8 @@ const state = {
   screenPresencePublishing: false,
   screenPresencePending: false,
   presenceOnlineAt: null,
+  screenWatchUntil: 0,
+  screenWatchInterval: null,
 };
 
 const views = {
@@ -601,10 +603,11 @@ async function publishStudentScreenPresence() {
 
 function scheduleStudentScreenPresence(immediate = false) {
   if (state.screenPresenceTimer) return;
+  const streaming = state.screenWatchUntil > Date.now();
   state.screenPresenceTimer = setTimeout(() => {
     state.screenPresenceTimer = null;
     void publishStudentScreenPresence();
-  }, immediate ? 0 : 2500);
+  }, immediate ? 0 : streaming ? 350 : 2500);
 }
 
 function observeStudentScreenChanges() {
@@ -616,7 +619,31 @@ function subscribePresence() {
   state.presenceChannel?.unsubscribe();
   state.presenceReady = false;
   state.presenceTracked = false;
-  state.presenceChannel = supabase.channel(`classroom-${state.session.id}`, { config: { presence: { key: state.player.id } } });
+  state.presenceChannel = supabase.channel(`classroom-${state.session.id}`, { config: { presence: { key: state.player.id } } })
+    .on("broadcast", { event: "screen-watch" }, message => {
+      const request = message?.payload || message;
+      if (request?.role !== "teacher" || request.player_id !== state.player.id) return;
+      if (request.active === false) {
+        state.screenWatchUntil = 0;
+        clearInterval(state.screenWatchInterval);
+        state.screenWatchInterval = null;
+        return;
+      }
+      state.screenWatchUntil = Math.max(Date.now(), Number(request.expires_at) || 0);
+      clearTimeout(state.screenPresenceTimer);
+      state.screenPresenceTimer = null;
+      scheduleStudentScreenPresence(true);
+      if (!state.screenWatchInterval) {
+        state.screenWatchInterval = setInterval(() => {
+          if (state.screenWatchUntil <= Date.now()) {
+            clearInterval(state.screenWatchInterval);
+            state.screenWatchInterval = null;
+            return;
+          }
+          void publishStudentScreenPresence();
+        }, 500);
+      }
+    });
   state.presenceChannel.subscribe(status => {
     if (status === "SUBSCRIBED") {
       state.presenceReady = true;
@@ -1367,6 +1394,7 @@ function resetJoin(message) {
   state.sessionChannel?.unsubscribe();
   state.presenceChannel?.unsubscribe();
   clearTimeout(state.screenPresenceTimer);
+  clearInterval(state.screenWatchInterval);
   stopCamera();
   Object.assign(state, {
     joinStep: "code", joinBusy: false,
@@ -1376,6 +1404,7 @@ function resetJoin(message) {
     presenceChannel: null, renderedActivity: null, attempts: [], gameZoomIndex: 2, rhythmRun: null,
     presenceReady: false, presenceTracked: false, screenPresenceTimer: null, screenPresencePublishing: false,
     screenPresencePending: false, presenceOnlineAt: null, lastGameStateEventId: null,
+    screenWatchUntil: 0, screenWatchInterval: null,
   });
   setView(views.login, views.waiting, views.game);
   initializeJoinFlow();

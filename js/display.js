@@ -1,7 +1,7 @@
 import { supabase, ensureAnonymousAuth } from "./supabase.js";
 import {
   $, ACTIVITIES, escapeHtml, GAME_STATE_EVENT, gameStateChannelName, hide,
-  roomCodeFromUrl, show, toast,
+  roomCodeFromUrl, sanitizeGameMarkup, show, toast,
 } from "./common.js";
 
 const state = {
@@ -124,47 +124,6 @@ function screenIdentity(screen, index) {
     name: String(screen.display_name || `นักเรียน ${index + 1}`).slice(0, 60),
     avatar: String(screen.avatar || "🙂").slice(0, 8),
   };
-}
-
-const mirrorTags = new Set(["SECTION", "DIV", "SPAN", "SMALL", "STRONG", "H1", "H2", "H3", "H4", "P", "BUTTON", "UL", "OL", "LI", "MARK", "I", "B", "LABEL", "OUTPUT"]);
-const mirrorStyleProperties = ["width", "height", "transform", "text-align", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "left", "top", "opacity", "animation-duration", "--spark-x", "--spark-y", "--spark-delay", "--spark-size"];
-const mirrorClassPrefixes = ["game-", "rhythm-", "karaoke-", "grammar-", "choice-", "word-", "falling-", "sort-", "train-", "vote-", "sentence-", "result-", "treasure-", "house-", "mini-", "sound-", "field-"];
-const mirrorClassNames = new Set(["wheel", "treasure", "button", "button-primary", "button-ghost", "button-row", "good", "bad", "hidden", "done", "active", "hot", "score-pop", "missed", "singing", "lyric-line", "correct", "wrong", "open", "empty-stage"]);
-
-function sanitizeMirrorStyle(element, rawStyle) {
-  const probe = document.createElement("span");
-  probe.style.cssText = String(rawStyle || "").slice(0, 700);
-  element.removeAttribute("style");
-  mirrorStyleProperties.forEach(property => {
-    const value = probe.style.getPropertyValue(property).trim();
-    if (value && value.length <= 90 && !/url\s*\(|expression\s*\(/i.test(value)) element.style.setProperty(property, value);
-  });
-}
-
-function sanitizeGameMarkup(markup) {
-  if (typeof markup !== "string" || !markup || markup.length > 48000) return "";
-  const template = document.createElement("template");
-  template.innerHTML = markup;
-  [...template.content.querySelectorAll("*")].forEach(element => {
-    if (!mirrorTags.has(element.tagName)) {
-      element.remove();
-      return;
-    }
-    const rawStyle = element.getAttribute("style");
-    [...element.attributes].forEach(attribute => {
-      const name = attribute.name.toLowerCase();
-      const keep = name === "class" || name === "style" || name === "disabled" || name === "hidden" || name === "aria-hidden" || /^data-[a-z0-9-]{1,40}$/.test(name);
-      if (!keep) element.removeAttribute(attribute.name);
-    });
-    if (element.hasAttribute("class")) {
-      const safeClasses = element.className.split(/\s+/).filter(name => /^[a-zA-Z0-9_-]{1,60}$/.test(name) && (mirrorClassNames.has(name) || mirrorClassPrefixes.some(prefix => name.startsWith(prefix)))).slice(0, 20);
-      if (safeClasses.length) element.className = safeClasses.join(" ");
-      else element.removeAttribute("class");
-    }
-    if (rawStyle) sanitizeMirrorStyle(element, rawStyle);
-    if (element.matches("button")) element.setAttribute("disabled", "");
-  });
-  return template.innerHTML;
 }
 
 function renderStudentScreens() {

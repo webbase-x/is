@@ -3,7 +3,7 @@ import { supabase } from "./supabase.js";
 import {
   $, $$, ACTIVITIES, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
-  renderPlanTimeline, show, toast, updateConnectionBadge,
+  renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
 } from "./common.js";
 
 const state = {
@@ -36,6 +36,8 @@ const state = {
   studentScreens: new Map(),
   studentScreenView: "grid",
   selectedStudentScreenId: null,
+  watchedStudentScreenId: null,
+  studentScreenWatchTimer: null,
   lateJoinMode: false,
   lateJoinResumeStatus: "paused",
 };
@@ -732,6 +734,7 @@ function subscribeToSession() {
 }
 
 function subscribePresence() {
+  stopStudentScreenWatch();
   state.presenceChannel?.unsubscribe();
   state.presenceChannel = supabase.channel(`classroom-${state.session.id}`, { config: { presence: { key: `teacher-${state.user.id}` } } })
     .on("broadcast", { event: "student-screen" }, message => {
@@ -788,23 +791,56 @@ function studentMirrorHtml(entry, large = false) {
   const rawScore = Number(screen.score || 0);
   const progress = Number.isFinite(rawProgress) ? Math.min(100, Math.max(0, rawProgress)) : 0;
   const score = Number.isFinite(rawScore) ? rawScore : 0;
-  return `<div class="student-device ${large ? "student-device-large" : ""} ${entry.online ? "is-online" : "is-offline"}">
-    <div class="student-device-top"><span>${entry.online ? "● สด" : "○ ออฟไลน์"}</span><small>${escapeHtml(studentScreenModeLabel(screen.mode || state.session?.play_mode))}</small></div>
-    <div class="student-device-stage" data-screen-state="${escapeHtml(screen.screen_state || "offline")}">
+  const streamMarkup = large ? sanitizeGameMarkup(screen.game_markup) : "";
+  const screenContent = streamMarkup
+    ? `<div class="student-device-stream"><div class="display-student-mirror-canvas game-canvas" style="--game-zoom:${Math.max(.75, Math.min(1.3, Number(screen.game_zoom) || 1))}">${streamMarkup}</div></div>`
+    : `<div class="student-device-stage" data-screen-state="${escapeHtml(screen.screen_state || "offline")}">
       <span class="student-device-icon">${studentScreenIcon(entry)}</span>
       <small>${escapeHtml(label)}</small>
       <strong>${escapeHtml(title)}</strong>
       <p>${escapeHtml(detail)}</p>
       <div class="student-device-progress"><i style="width:${progress}%"></i></div>
-    </div>
+    </div>`;
+  return `<div class="student-device ${large ? "student-device-large" : ""} ${entry.online ? "is-online" : "is-offline"}">
+    <div class="student-device-top"><span>${entry.online ? "● สด" : "○ ออฟไลน์"}</span><small>${escapeHtml(studentScreenModeLabel(screen.mode || state.session?.play_mode))}</small></div>
+    ${screenContent}
     <div class="student-device-bottom"><span>⭐ ${score}</span><span>${escapeHtml(screen.progress_text || "รอข้อมูลความคืบหน้า")}</span></div>
   </div>`;
+}
+
+function stopStudentScreenWatch() {
+  clearInterval(state.studentScreenWatchTimer);
+  state.studentScreenWatchTimer = null;
+  const playerId = state.watchedStudentScreenId;
+  state.watchedStudentScreenId = null;
+  if (playerId && state.presenceChannel) {
+    void state.presenceChannel.send({
+      type: "broadcast",
+      event: "screen-watch",
+      payload: { role: "teacher", player_id: playerId, active: false },
+    });
+  }
+}
+
+function watchStudentScreen(playerId) {
+  if (!playerId || !state.presenceChannel) return;
+  if (state.watchedStudentScreenId === playerId && state.studentScreenWatchTimer) return;
+  stopStudentScreenWatch();
+  state.watchedStudentScreenId = playerId;
+  const requestStream = () => void state.presenceChannel?.send({
+    type: "broadcast",
+    event: "screen-watch",
+    payload: { role: "teacher", player_id: playerId, active: true, expires_at: Date.now() + 6500 },
+  });
+  requestStream();
+  state.studentScreenWatchTimer = setInterval(requestStream, 4000);
 }
 
 function renderStudentScreenFocus(entries) {
   const selected = entries.find(entry => entry.player.id === state.selectedStudentScreenId) || entries[0];
   if (!selected) return;
   state.selectedStudentScreenId = selected.player.id;
+  watchStudentScreen(selected.player.id);
   const index = entries.findIndex(entry => entry.player.id === selected.player.id);
   const screen = selected.screen || {};
   const rawScore = Number(screen.score || 0);
@@ -864,6 +900,7 @@ function renderStudentScreens() {
 function setStudentScreenView(view) {
   if (!state.session) return toast("กรุณาเปิดคาบเรียนก่อน", "warning");
   state.studentScreenView = view === "focus" ? "focus" : "grid";
+  if (state.studentScreenView === "grid") stopStudentScreenWatch();
   renderStudentScreens();
 }
 
@@ -1326,6 +1363,7 @@ async function closeSession() {
   const { error } = await supabase.from("class_sessions").update({ status: "closed", ended_at: new Date().toISOString() }).eq("id", state.session.id);
   if (error) return toast(error.message, "error");
   broadcastDisplay();
+  stopStudentScreenWatch();
   state.sessionChannel?.unsubscribe();
   state.presenceChannel?.unsubscribe();
   state.displayChannel?.unsubscribe();
@@ -1518,7 +1556,11 @@ function exportCurrentReport() {
 function switchPanel(panelId) {
   $$("#dashboardNav button").forEach(button => button.classList.toggle("active", button.dataset.panel === panelId));
   $$(".dashboard-panel").forEach(panel => panel.classList.toggle("active", panel.id === panelId));
-  if (panelId === "studentScreensPanel") renderStudentScreens();
+  if (panelId === "studentScreensPanel") {
+    state.studentScreenView = "grid";
+    stopStudentScreenWatch();
+    renderStudentScreens();
+  } else stopStudentScreenWatch();
 }
 
 $("#teacherLoginForm").addEventListener("submit", signIn);
