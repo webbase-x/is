@@ -335,6 +335,9 @@ const groupStars = [0,0,0,0,0];
 function renderScores() { document.querySelector('#groupScores').innerHTML = groupStars.map((score,i) => `<div class="group-row"><span>กลุ่ม ${i+1}</span><strong>${'★'.repeat(score) || '–'}</strong></div>`).join(''); }
 function makeTrainTile(tile, slotIndex = -1) {
   const button = document.createElement('button'); button.type = 'button'; button.className = 'word-tile'; button.textContent = tile.word; button.dataset.tileId = tile.id; button.dataset.slotIndex = slotIndex;
+  button.draggable = true;
+  button.addEventListener('dragstart', event => { event.dataTransfer.setData('text/plain', String(tile.id)); event.dataTransfer.effectAllowed = 'move'; button.classList.add('drag-source'); });
+  button.addEventListener('dragend', () => button.classList.remove('drag-source'));
   button.style.setProperty('--tilt', `${-5 + Math.random() * 10}deg`);
   let ghost = null; let moved = false;
   button.addEventListener('pointerdown', event => {
@@ -361,7 +364,7 @@ function moveTrainTile(tileId, targetSlot) {
 function renderTrainGame() {
   const bank = document.querySelector('#wordBank'); const train = document.querySelector('#trainCars'); bank.replaceChildren(); train.replaceChildren();
   currentTrainTiles.filter(tile => !placedTrainTiles.includes(tile.id)).forEach(tile => bank.append(makeTrainTile(tile)));
-  placedTrainTiles.forEach((tileId, index) => { const slot = document.createElement('span'); slot.className = 'train-slot'; slot.dataset.slotIndex = index; if (tileId !== null) slot.append(makeTrainTile(currentTrainTiles.find(tile => tile.id === tileId), index)); else slot.textContent = `${index + 1}`; train.append(slot); });
+  placedTrainTiles.forEach((tileId, index) => { const slot = document.createElement('span'); slot.className = 'train-slot'; slot.dataset.slotIndex = index; slot.addEventListener('dragover', event => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; slot.classList.add('drag-over'); }); slot.addEventListener('dragleave', () => slot.classList.remove('drag-over')); slot.addEventListener('drop', event => { event.preventDefault(); slot.classList.remove('drag-over'); const draggedId = Number(event.dataTransfer.getData('text/plain')); if (Number.isFinite(draggedId)) moveTrainTile(draggedId, index); }); if (tileId !== null) slot.append(makeTrainTile(currentTrainTiles.find(tile => tile.id === tileId), index)); else slot.textContent = `${index + 1}`; train.append(slot); });
 }
 function showChallenge(index) {
   currentChallenge = (index + challenges.length) % challenges.length;
