@@ -861,13 +861,23 @@ function renderStudentScreenFocus(entries) {
   state.selectedStudentScreenId = selected.player.id;
   watchStudentScreen(selected.player.id);
   const screen = selected.screen || {};
+  const profileUrl = state.playerSelfieUrls.get(selected.player.id) || "";
+  const profileVisual = profileUrl
+    ? `<img src="${escapeHtml(profileUrl)}" alt="รูปโปรไฟล์ ${escapeHtml(selected.student.full_name || "นักเรียน")}">`
+    : `<span>${escapeHtml(selected.student.avatar || randomAvatar(selected.student.nickname))}</span>`;
+  const playerName = selected.student.full_name || selected.student.nickname || "นักเรียน";
   const streamMarkup = sanitizeGameMarkup(screen.game_markup);
   const gameContent = streamMarkup
     ? `<div class="student-focus-game-canvas game-canvas" style="--game-zoom:1">${streamMarkup}</div>`
     : `<div class="student-focus-waiting"><span>${studentScreenIcon(selected)}</span><h2>${escapeHtml(screen.activity_title || "กำลังรอภาพเกม")}</h2><p>${escapeHtml(screen.detail || "ภาพเกมจะปรากฏอัตโนมัติ")}</p></div>`;
   $("#studentScreenFocusContent").innerHTML = `<div class="student-focus-stream">
+    <div class="student-focus-overlay">
+      <button class="student-focus-back" type="button" aria-label="กลับไปดูนักเรียนทั้งหมด">‹</button>
+      <div class="student-focus-player">${profileVisual}<strong>${escapeHtml(playerName)}</strong><i aria-label="ถ่ายทอดสด"></i></div>
+    </div>
     <main class="student-focus-game-window">${gameContent}</main>
   </div>`;
+  $(".student-focus-back", $("#studentScreenFocusContent"))?.addEventListener("click", () => setStudentScreenView("grid"));
   $("#studentScreenPrevious").disabled = entries.length < 2;
   $("#studentScreenNext").disabled = entries.length < 2;
 }
@@ -1650,7 +1660,10 @@ $("#cancelReturn").addEventListener("click", () => hide($("#returnDialog")));
 $("#exportCsvButton").addEventListener("click", exportCurrentReport);
 $("#backToSessionButton").addEventListener("click", () => switchPanel("sessionPanel"));
 $("#studentScreensGridButton").addEventListener("click", () => setStudentScreenView("grid"));
-$("#studentScreensFocusButton").addEventListener("click", () => setStudentScreenView("focus"));
+$("#studentScreensFocusButton").addEventListener("click", () => {
+  setStudentScreenView("focus");
+  requestAnimationFrame(openStudentScreenFullscreen);
+});
 $("#studentScreenBackToGrid").addEventListener("click", () => setStudentScreenView("grid"));
 $("#studentScreenPrevious").addEventListener("click", () => moveStudentScreen(-1));
 $("#studentScreenNext").addEventListener("click", () => moveStudentScreen(1));

@@ -617,7 +617,14 @@ body.competition-overlay-open { overflow: hidden; }
 .student-screen-focus-info dl > div { display: grid; grid-template-columns: 125px minmax(0,1fr); gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .student-screen-focus-info dt { color: var(--muted); }
 .student-screen-focus-info dd { margin: 0; font-weight: 900; }
-.student-focus-stream { min-height: calc(100vh - 250px); display: grid; grid-template-rows: minmax(0,1fr); overflow: hidden; border-radius: 28px; background: white; box-shadow: var(--shadow); }
+.student-focus-stream { min-height: calc(100vh - 250px); position: relative; display: grid; grid-template-rows: minmax(0,1fr); overflow: hidden; border-radius: 28px; background: white; box-shadow: var(--shadow); }
+.student-focus-overlay { position: absolute; z-index: 5; top: max(12px,env(safe-area-inset-top)); left: max(12px,env(safe-area-inset-left)); display: flex; align-items: center; gap: 8px; }
+.student-focus-back { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.75); border-radius: 15px; color: white; background: rgba(20,26,48,.84); box-shadow: 0 8px 24px rgba(16,22,42,.22); cursor: pointer; font-size: 34px; line-height: 1; backdrop-filter: blur(12px); }
+.student-focus-player { min-width: 0; display: flex; align-items: center; gap: 9px; padding: 5px 11px 5px 5px; border: 1px solid rgba(255,255,255,.75); border-radius: 17px; color: white; background: rgba(20,26,48,.84); box-shadow: 0 8px 24px rgba(16,22,42,.22); backdrop-filter: blur(12px); }
+.student-focus-player > img, .student-focus-player > span { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border: 2px solid white; border-radius: 12px; background: white; object-fit: cover; font-size: 23px; }
+.student-focus-player strong { max-width: min(42vw,360px); overflow: hidden; font-size: clamp(14px,1.6vw,19px); text-overflow: ellipsis; white-space: nowrap; }
+.student-focus-player > i { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; background: #ff4964; box-shadow: 0 0 0 4px rgba(255,73,100,.2); animation: screen-live-pulse 1.2s ease-in-out infinite; }
+.student-screen-focus-nav { display: none; }
 .student-focus-game-window { width: 100%; height: 100%; min-height: 0; display: grid; overflow: hidden; background: white; }
 .student-focus-game-canvas { width: 100%; height: 100%; min-height: 100%; overflow: auto; border: 0; border-radius: 0; box-shadow: none; pointer-events: none; }
 .student-focus-game-canvas * { pointer-events: none !important; }
@@ -1276,6 +1283,10 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .student-screen-focus.student-screen-full-window, .student-screen-focus:fullscreen { padding: 0; }
   .student-screen-focus.student-screen-full-window .student-screen-focus-nav, .student-screen-focus:fullscreen .student-screen-focus-nav { margin-bottom: 6px; }
   .student-focus-stream { border-radius: 17px; }
+  .student-focus-overlay { top: max(7px,env(safe-area-inset-top)); left: max(7px,env(safe-area-inset-left)); gap: 5px; }
+  .student-focus-back { width: 42px; height: 42px; border-radius: 13px; }
+  .student-focus-player { padding: 3px 8px 3px 3px; }
+  .student-focus-player > img, .student-focus-player > span { width: 34px; height: 34px; flex-basis: 34px; border-radius: 10px; }
 }
 
 @media (orientation: landscape) and (max-height: 650px) {
