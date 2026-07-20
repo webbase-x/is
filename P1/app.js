@@ -3,8 +3,24 @@ const progressButtons = [...document.querySelectorAll('[data-go]')];
 const navDots = [...document.querySelectorAll('.activity-position i')];
 let currentActivity = Number(sessionStorage.getItem('p1Activity') || 0);
 
+function stopRunningActivities() {
+  document.querySelectorAll('audio, video').forEach(media => {
+    media.pause();
+    media.currentTime = 0;
+  });
+  if (window.p1SpinTimer) {
+    clearTimeout(window.p1SpinTimer);
+    window.p1SpinTimer = null;
+  }
+  document.querySelector('#wheel')?.classList.remove('spinning');
+  const spinButton = document.querySelector('#spinWheel');
+  if (spinButton) spinButton.disabled = false;
+}
+
 function showActivity(index) {
-  currentActivity = Math.max(0, Math.min(activities.length - 1, index));
+  const nextActivity = Math.max(0, Math.min(activities.length - 1, index));
+  if (nextActivity !== currentActivity) stopRunningActivities();
+  currentActivity = nextActivity;
   activities.forEach((activity, i) => { activity.hidden = i !== currentActivity; activity.classList.toggle('active', i === currentActivity); });
   progressButtons.forEach((button, i) => button.classList.toggle('active', i === currentActivity));
   navDots.forEach((dot, i) => dot.classList.toggle('active', i === currentActivity));
@@ -86,12 +102,13 @@ document.querySelector('#spinWheel').addEventListener('click', () => {
   const wheel = document.querySelector('#wheel');
   wheel.classList.remove('spinning'); void wheel.offsetWidth; wheel.classList.add('spinning');
   document.querySelector('#spinWheel').disabled = true;
-  setTimeout(() => {
+  window.p1SpinTimer = setTimeout(() => {
     const index = Math.floor(Math.random() * remainingWords.length);
     const word = remainingWords.splice(index, 1)[0]; calledWords.push(word);
     document.querySelector('#wheelWord').textContent = word; renderCalledWords();
     document.querySelector('#spinWheel').disabled = false;
     document.querySelector('#spinHint').textContent = remainingWords.length ? `เหลืออีก ${remainingWords.length} คำ` : 'ครบทุกคำแล้ว!';
+    window.p1SpinTimer = null;
   }, 760);
 });
 document.querySelector('#resetWheel').addEventListener('click', () => { remainingWords = [...bingoWords]; calledWords = []; document.querySelector('#wheelWord').textContent = 'พร้อม!'; document.querySelector('#spinHint').textContent = 'คำที่ออกแล้วจะไม่ซ้ำจนกว่าจะเริ่มรอบใหม่'; renderCalledWords(); });
