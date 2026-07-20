@@ -449,6 +449,10 @@ async function enterGame() {
   state.session = session;
   $("#playerAvatar").textContent = state.student?.avatar || randomAvatar(state.student?.nickname);
   $("#playerName").textContent = state.student?.nickname || state.student?.full_name || "นักเรียน";
+  const profilePhoto = $("#playerProfilePhoto");
+  profilePhoto.src = state.selfieDataUrl || "";
+  profilePhoto.classList.toggle("hidden", !state.selfieDataUrl);
+  $("#playerAvatar").classList.toggle("hidden", Boolean(state.selfieDataUrl));
   $("#attemptBadge").textContent = modeLabel(session.play_mode);
   renderTimeline();
   setView(views.game, views.login, views.waiting);
@@ -627,10 +631,12 @@ function subscribePresence() {
         state.screenWatchUntil = 0;
         clearInterval(state.screenWatchInterval);
         state.screenWatchInterval = null;
+        setStudentBroadcasting(false);
         return;
       }
       // Streaming starts automatically. The student never sees an approval prompt.
       state.screenWatchUntil = Math.max(Date.now(), Number(control.expires_at) || 0);
+      setStudentBroadcasting(true);
       clearTimeout(state.screenPresenceTimer);
       state.screenPresenceTimer = null;
       scheduleStudentScreenPresence(true);
@@ -639,6 +645,7 @@ function subscribePresence() {
           if (state.screenWatchUntil <= Date.now()) {
             clearInterval(state.screenWatchInterval);
             state.screenWatchInterval = null;
+            setStudentBroadcasting(false);
             return;
           }
           void publishStudentScreenPresence();
@@ -652,6 +659,11 @@ function subscribePresence() {
       scheduleStudentScreenPresence(true);
     }
   });
+}
+
+function setStudentBroadcasting(active) {
+  $("#studentBroadcastBadge")?.classList.toggle("hidden", !active);
+  document.body.classList.toggle("student-is-broadcasting", active);
 }
 
 function applySessionState() {
@@ -1396,6 +1408,7 @@ function resetJoin(message) {
   state.presenceChannel?.unsubscribe();
   clearTimeout(state.screenPresenceTimer);
   clearInterval(state.screenWatchInterval);
+  setStudentBroadcasting(false);
   stopCamera();
   Object.assign(state, {
     joinStep: "code", joinBusy: false,

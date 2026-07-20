@@ -862,19 +862,36 @@ function renderStudentScreenFocus(entries) {
   watchStudentScreen(selected.player.id);
   const index = entries.findIndex(entry => entry.player.id === selected.player.id);
   const screen = selected.screen || {};
-  const rawScore = Number(screen.score || 0);
-  const score = Number.isFinite(rawScore) ? rawScore : 0;
-  const updatedAt = screen.updated_at ? new Date(screen.updated_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
-  $("#studentScreenFocusContent").innerHTML = `<div class="student-screen-focus-layout">
-    <div class="student-screen-focus-device"><div class="student-streaming-badge"><i></i> ถ่ายทอดสด</div>${studentMirrorHtml(selected, true)}</div>
-    <aside class="panel student-screen-focus-info">
-      <span class="eyebrow">นักเรียนคนที่ ${index + 1} จาก ${entries.length}</span>
-      <div class="student-screen-person"><span>${escapeHtml(selected.student.avatar || randomAvatar(selected.student.nickname))}</span><div><h2>${escapeHtml(selected.student.full_name || "นักเรียน")}</h2><p>${escapeHtml(selected.student.nickname || "")} · ${escapeHtml(selected.student.student_code || "")}</p></div></div>
-      <dl><div><dt>สถานะ</dt><dd>${escapeHtml(selected.online ? (screen.screen_label || "ออนไลน์") : "ออฟไลน์")}</dd></div><div><dt>กิจกรรม</dt><dd>${escapeHtml(screen.activity_title || "—")}</dd></div><div><dt>โหมด</dt><dd>${escapeHtml(studentScreenModeLabel(screen.mode || state.session?.play_mode))}</dd></div><div><dt>คะแนนสะสม</dt><dd>${score}</dd></div><div><dt>อัปเดตล่าสุด</dt><dd>${escapeHtml(updatedAt)}</dd></div></dl>
-    </aside>
+  const profileUrl = state.playerSelfieUrls.get(selected.player.id) || "";
+  const profile = profileUrl
+    ? `<img src="${escapeHtml(profileUrl)}" alt="รูปโปรไฟล์ ${escapeHtml(selected.student.full_name || "นักเรียน")}">`
+    : `<span>${escapeHtml(selected.student.avatar || randomAvatar(selected.student.nickname))}</span>`;
+  const streamMarkup = sanitizeGameMarkup(screen.game_markup);
+  const gameContent = streamMarkup
+    ? `<div class="student-focus-game-canvas game-canvas" style="--game-zoom:${Math.max(.75, Math.min(1.3, Number(screen.game_zoom) || 1))}">${streamMarkup}</div>`
+    : `<div class="student-focus-waiting"><span>${studentScreenIcon(selected)}</span><h2>${escapeHtml(screen.activity_title || "กำลังรอภาพเกม")}</h2><p>${escapeHtml(screen.detail || "ภาพเกมจะปรากฏอัตโนมัติ")}</p></div>`;
+  $("#studentScreenFocusContent").innerHTML = `<div class="student-focus-stream">
+    <header class="student-focus-stream-header">
+      <div class="student-focus-profile">${profile}<div><small>นักเรียนคนที่ ${index + 1} จาก ${entries.length}</small><strong>${escapeHtml(selected.student.full_name || selected.student.nickname || "นักเรียน")}</strong></div></div>
+      <div class="student-focus-game-title"><small>เกมที่กำลังเล่น</small><h2>${escapeHtml(screen.activity_title || "รอครูเริ่มเกม")}</h2></div>
+      <div class="student-focus-live-meta"><span class="student-streaming-badge"><i></i> ถ่ายทอดสด</span></div>
+    </header>
+    <main class="student-focus-game-window">${gameContent}</main>
   </div>`;
   $("#studentScreenPrevious").disabled = entries.length < 2;
   $("#studentScreenNext").disabled = entries.length < 2;
+}
+
+function openStudentScreenFullscreen() {
+  const focus = $("#studentScreenFocus");
+  if (!focus) return;
+  focus.classList.add("student-screen-full-window");
+  if (!document.fullscreenElement) focus.requestFullscreen?.().catch(() => {});
+}
+
+function closeStudentScreenFullscreen() {
+  $("#studentScreenFocus")?.classList.remove("student-screen-full-window");
+  if (document.fullscreenElement?.id === "studentScreenFocus") document.exitFullscreen?.().catch(() => {});
 }
 
 function renderStudentScreens() {
@@ -913,6 +930,7 @@ function renderStudentScreens() {
     state.selectedStudentScreenId = button.dataset.screenPlayer;
     state.studentScreenView = "focus";
     renderStudentScreens();
+    requestAnimationFrame(openStudentScreenFullscreen);
   }));
 }
 
@@ -920,6 +938,7 @@ function setStudentScreenView(view) {
   if (!state.session) return toast("กรุณาเปิดคาบเรียนก่อน", "warning");
   state.studentScreenView = view === "focus" ? "focus" : "grid";
   if (state.studentScreenView === "grid") stopStudentScreenWatch();
+  if (state.studentScreenView === "grid") closeStudentScreenFullscreen();
   renderStudentScreens();
 }
 
@@ -1645,6 +1664,10 @@ $("#studentScreensFocusButton").addEventListener("click", () => setStudentScreen
 $("#studentScreenBackToGrid").addEventListener("click", () => setStudentScreenView("grid"));
 $("#studentScreenPrevious").addEventListener("click", () => moveStudentScreen(-1));
 $("#studentScreenNext").addEventListener("click", () => moveStudentScreen(1));
+$("#studentScreenFullscreen").addEventListener("click", openStudentScreenFullscreen);
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) $("#studentScreenFocus")?.classList.remove("student-screen-full-window");
+});
 $("#newSessionButton").addEventListener("click", () => { if (state.session) toast("ปิดคาบปัจจุบันก่อนเปิดคาบใหม่", "warning"); else { show($("#sessionSetup")); $("#sessionSetup").scrollIntoView({ behavior: "smooth" }); } });
 $("#attemptMode").addEventListener("change", event => { $("#maxAttempts").disabled = event.target.value !== "limited"; if (event.target.value === "single") $("#maxAttempts").value = 1; });
 $$('#dashboardNav button').forEach(button => button.addEventListener("click", () => switchPanel(button.dataset.panel)));
