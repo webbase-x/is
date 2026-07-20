@@ -92,6 +92,7 @@ const shadowVocabulary = [
 ];
 let currentShadow = 0;
 let remainingShadows = shadowVocabulary.map((_, index) => index);
+const studentScores = new Map();
 window.p1ShadowTimers = [];
 window.p1AudioContexts = [];
 const shadowGame = document.querySelector('#shadowGame');
@@ -152,9 +153,9 @@ function answerShadow(button, correct) {
     [...document.querySelectorAll('.answer-card')].forEach(choice => choice.classList.toggle('dismissed', choice !== button));
     if (selectedStudent) {
       const studentResult = document.querySelector('#studentResult');
-      studentResult.textContent = `${selectedStudent}  ⭐ ⭐ ⭐ ⭐`;
+      studentResult.textContent = `${selectedStudent}  ⭐ ⭐ ⭐ ⭐ ⭐`;
       studentResult.classList.add('student-success');
-      document.querySelector('#randomStudent').disabled = true;
+      studentScores.set(selectedStudent, (studentScores.get(selectedStudent) || 0) + 5); updateScoreBoard();
     }
     remainingShadows = remainingShadows.filter(index => index !== currentShadow);
     document.querySelector('#shadowCount').textContent = remainingShadows.length ? `เหลือ ${remainingShadows.length} ภาพ` : 'ตอบครบทั้ง 16 ภาพแล้ว!';
@@ -199,6 +200,7 @@ document.querySelector('#revealShadow').addEventListener('click', event => {
 });
 document.querySelector('#resetShadow').addEventListener('click', () => {
   remainingShadows = shadowVocabulary.map((_, index) => index); selectedStudent = '';
+  studentScores.clear(); updateScoreBoard();
   const studentResult = document.querySelector('#studentResult'); studentResult.classList.remove('student-success', 'student-minimized'); studentResult.textContent = 'กด “สุ่มชื่อ” เพื่อเลือกผู้ตอบ';
   document.querySelector('#randomStudent').disabled = false; document.querySelector('#minimizeStudent').hidden = true; shuffleShadow();
 });
@@ -237,6 +239,19 @@ document.querySelector('#studentForm').addEventListener('submit', event => {
   document.querySelector('#studentResult').textContent = studentNames.length ? `บันทึกแล้ว ${studentNames.length} คน · กด “สุ่มชื่อ”` : 'ยังไม่มีรายชื่อ กด “สุ่มชื่อ” เพื่อเพิ่มรายชื่อ';
 });
 updateStudentButtons();
+
+function updateScoreBoard() {
+  document.querySelector('#scoreTotal').textContent = studentScores.size ? `${studentScores.size} คนได้คะแนน` : 'ยังไม่มีผู้ได้คะแนน';
+  const scoreNames = document.querySelector('#scoreNames'); scoreNames.replaceChildren();
+  if (!studentScores.size) { const empty = document.createElement('p'); empty.textContent = 'ยังไม่มีผู้ได้คะแนน'; scoreNames.append(empty); return; }
+  studentScores.forEach((score, name) => {
+    const row = document.createElement('div'); const student = document.createElement('strong'); const stars = document.createElement('span'); const points = document.createElement('small');
+    student.textContent = name; stars.textContent = `${'★'.repeat(Math.min(5, score))} `; points.textContent = `${score} คะแนน`; stars.append(points); row.append(student, stars); scoreNames.append(row);
+  });
+}
+document.querySelector('#scoreBadge').addEventListener('click', () => { updateScoreBoard(); document.querySelector('#scoreDialog').showModal(); });
+document.querySelector('#closeScores').addEventListener('click', () => document.querySelector('#scoreDialog').close());
+updateScoreBoard();
 
 const bingoWords = vocabulary.filter(item => item[0] !== 'รัก').map(item => item[0]);
 let remainingWords = [...bingoWords];
