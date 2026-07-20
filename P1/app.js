@@ -24,7 +24,7 @@ const song = document.querySelector('#song');
 const lyricButtons = [...document.querySelectorAll('#lyrics button')];
 const lyricWords = [...document.querySelectorAll('#lyrics [data-cue]')];
 const songSeek = document.querySelector('#songSeek');
-const karaokeCues = [[14,0],[17,1],[18,2],[20,3],[21,4],[23,5],[25,6],[27,7],[28,8],[31,9],[32,10],[51,0],[53,1],[54,2],[56,3],[57,4],[58,5],[60,6],[62,7],[64,8],[66,9],[68,10]];
+const karaokeCues = [[14,0],[17,1],[18,2],[20,3],[21,4],[23,5],[25,6],[27,7],[28,8],[30,9],[32,10],[35,-1],[51,0],[53,1],[54,2],[56,3],[57,4],[58,5],[60,6],[62,7],[63,8],[65,9],[67,10]];
 const formatTime = value => Number.isFinite(value) ? `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}` : '–:––';
 function updateSong() {
   const ratio = song.duration ? song.currentTime / song.duration : 0;
