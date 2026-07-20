@@ -86,6 +86,7 @@ const shadowVocabulary = [
   ['ให้–ได้','ให้-ได้.png'],['ดีใจ','ดีใจ.png'],['ดูแล','ดูแล.png'],['รัก','รัก.png']
 ];
 let currentShadow = 0;
+let remainingShadows = shadowVocabulary.map((_, index) => index);
 window.p1ShadowTimers = [];
 window.p1AudioContexts = [];
 const shadowGame = document.querySelector('#shadowGame');
@@ -141,7 +142,12 @@ function answerShadow(button, correct) {
   playFeedback(correct);
   if (correct) {
     document.querySelector('#shadowPrompt').textContent = 'เก่งมาก! ตอบถูกแล้ว'; rainFlowers();
-    rememberShadowTimer(setTimeout(() => shuffleShadow(), 1700));
+    remainingShadows = remainingShadows.filter(index => index !== currentShadow);
+    document.querySelector('#shadowCount').textContent = remainingShadows.length ? `เหลือ ${remainingShadows.length} ภาพ` : 'ตอบครบทั้ง 16 ภาพแล้ว!';
+    rememberShadowTimer(setTimeout(() => {
+      if (remainingShadows.length) shuffleShadow();
+      else finishShadowRound();
+    }, 1700));
   } else {
     document.querySelector('#shadowPrompt').textContent = 'ลองอีกครั้ง เลือกคำใหม่ให้ตรงกับภาพ';
     rememberShadowTimer(setTimeout(() => { shadowGame.classList.remove('is-wrong'); renderChoices(); }, 700));
@@ -150,23 +156,61 @@ function answerShadow(button, correct) {
 function settleShadow(index) {
   currentShadow = index;
   renderShadowImage(currentShadow);
-  document.querySelector('#shadowCount').textContent = `ภาพที่ ${currentShadow + 1} จาก ${shadowVocabulary.length}`;
-  document.querySelector('#shadowPrompt').textContent = 'คำใดตรงกับภาพนี้?';
+  document.querySelector('#shadowCount').textContent = `เหลือ ${remainingShadows.length} ภาพ`;
+  document.querySelector('#shadowPrompt').textContent = 'ดูเงาแล้วลองทายว่าคือภาพอะไร';
+  shadowGame.classList.remove('is-revealed');
   shadowGame.classList.remove('is-shuffling', 'is-correct', 'is-wrong'); renderChoices();
+  document.querySelector('#answerChoices').hidden = true;
+  document.querySelector('#revealShadow').hidden = false;
   document.querySelector('#shuffleShadow').disabled = false;
 }
+function finishShadowRound() {
+  shadowGame.classList.remove('is-correct');
+  document.querySelector('#shadowPrompt').textContent = 'ยอดเยี่ยม! ตอบครบทุกภาพแล้ว กด “เริ่มใหม่” เพื่อเล่นอีกครั้ง';
+  document.querySelector('#answerChoices').hidden = true; document.querySelector('#revealShadow').hidden = true;
+  document.querySelector('#shuffleShadow').disabled = true;
+}
 function shuffleShadow() {
+  if (!remainingShadows.length) { finishShadowRound(); return; }
   (window.p1ShadowTimers || []).forEach(timer => { clearTimeout(timer); clearInterval(timer); }); window.p1ShadowTimers = [];
   const run = window.p1ShadowRun = (window.p1ShadowRun || 0) + 1;
   shadowGame.classList.remove('is-correct', 'is-wrong'); shadowGame.classList.add('is-shuffling');
   document.querySelector('#shuffleShadow').disabled = true; document.querySelector('#answerChoices').innerHTML = '';
   document.querySelector('#shadowPrompt').textContent = 'กำลังสุ่มภาพ…';
-  const interval = rememberShadowTimer(setInterval(() => renderShadowImage(Math.floor(Math.random() * shadowVocabulary.length)), 75));
-  rememberShadowTimer(setTimeout(() => { clearInterval(interval); if (run === window.p1ShadowRun) settleShadow(Math.floor(Math.random() * shadowVocabulary.length)); }, 1050));
+  const interval = rememberShadowTimer(setInterval(() => renderShadowImage(remainingShadows[Math.floor(Math.random() * remainingShadows.length)]), 75));
+  rememberShadowTimer(setTimeout(() => { clearInterval(interval); if (run === window.p1ShadowRun) settleShadow(remainingShadows[Math.floor(Math.random() * remainingShadows.length)]); }, 1050));
 }
 document.querySelector('#shuffleShadow').addEventListener('click', shuffleShadow);
+document.querySelector('#revealShadow').addEventListener('click', event => {
+  shadowGame.classList.add('is-revealed'); event.currentTarget.hidden = true;
+  document.querySelector('#answerChoices').hidden = false; document.querySelector('#shadowPrompt').textContent = 'คำใดตรงกับภาพนี้?';
+});
+document.querySelector('#resetShadow').addEventListener('click', () => { remainingShadows = shadowVocabulary.map((_, index) => index); shuffleShadow(); });
 shadowVocabulary.forEach(([, file]) => { const image = new Image(); image.src = `img/${encodeURIComponent(file)}`; });
 settleShadow(0);
+
+const studentDialog = document.querySelector('#studentDialog');
+const studentNamesInput = document.querySelector('#studentNames');
+let studentNames = JSON.parse(localStorage.getItem('p1StudentNames') || '[]');
+function parseStudentNames(value) {
+  const names = []; const pattern = /"([^"]+)"|([^,\s]+)/g; let match;
+  while ((match = pattern.exec(value))) { const name = (match[1] || match[2]).trim(); if (name && !names.includes(name)) names.push(name); }
+  return names;
+}
+function updateStudentButtons() { document.querySelector('#editStudents').hidden = !studentNames.length; }
+function openStudentDialog() { studentNamesInput.value = studentNames.map(name => name.includes(' ') ? `"${name}"` : name).join(', '); studentDialog.showModal(); studentNamesInput.focus(); }
+document.querySelector('#randomStudent').addEventListener('click', () => {
+  if (!studentNames.length) { openStudentDialog(); return; }
+  const result = document.querySelector('#studentResult'); result.classList.remove('name-pop'); void result.offsetWidth;
+  result.textContent = studentNames[Math.floor(Math.random() * studentNames.length)]; result.classList.add('name-pop');
+});
+document.querySelector('#editStudents').addEventListener('click', openStudentDialog);
+document.querySelector('#cancelStudents').addEventListener('click', () => studentDialog.close());
+document.querySelector('#studentForm').addEventListener('submit', event => {
+  event.preventDefault(); studentNames = parseStudentNames(studentNamesInput.value); localStorage.setItem('p1StudentNames', JSON.stringify(studentNames)); updateStudentButtons(); studentDialog.close();
+  document.querySelector('#studentResult').textContent = studentNames.length ? `บันทึกแล้ว ${studentNames.length} คน · กด “สุ่มชื่อ”` : 'ยังไม่มีรายชื่อ กด “สุ่มชื่อ” เพื่อเพิ่มรายชื่อ';
+});
+updateStudentButtons();
 
 const bingoWords = vocabulary.filter(item => item[0] !== 'รัก').map(item => item[0]);
 let remainingWords = [...bingoWords];

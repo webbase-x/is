@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <meta name="theme-color" content="#5a48d6"><meta name="description" content="สื่อการสอนภาษาไทย ป.1 เรื่อง รู้จักคำ นำเรื่อง เพื่อนภูผา">
-  <title>รู้จักคำ นำเรื่อง | เพลินภาษา ป.1</title><link rel="stylesheet" href="styles.css?v=20260721-3">
+  <title>รู้จักคำ นำเรื่อง | เพลินภาษา ป.1</title><link rel="stylesheet" href="styles.css?v=20260721-4">
 </head>
 <body>
   <header class="topbar">
@@ -42,16 +42,27 @@
         <div id="shadowGame" class="shadow-game" aria-live="polite">
           <div class="shadow-sparkles" aria-hidden="true">ก ◌า ะ คำ</div>
           <div class="shadow-card">
-            <div class="shadow-toolbar"><span id="shadowCount">ภาพที่ 1 จาก 16</span><button id="shuffleShadow" class="primary-action" type="button">สุ่มภาพใหม่</button></div>
+            <div class="shadow-toolbar"><span id="shadowCount">เหลือ 16 ภาพ</span><div class="shadow-toolbar-actions"><button id="randomStudent" class="student-button" type="button">👥 สุ่มชื่อ</button><button id="editStudents" class="student-button" type="button" hidden>แก้ไขรายชื่อ</button><button id="resetShadow" class="student-button" type="button">เริ่มใหม่</button><button id="shuffleShadow" class="primary-action" type="button">สุ่มภาพ</button></div></div>
+            <div id="studentResult" class="student-result" aria-live="polite">กด “สุ่มชื่อ” เพื่อเลือกผู้ตอบ</div>
             <div id="shadowPicture" class="shadow-picture" aria-label="ภาพสำหรับทายคำ">
               <img id="shadowImage" src="img/ภูผา.png" alt="ภาพครึ่งเงาและครึ่งภาพจริงสำหรับทายคำ">
+              <div class="real-cover" aria-hidden="true"><span>?</span><small>กดเฉลยเพื่อเปิดภาพจริง</small></div>
               <span class="half-label label-shadow">เงา</span><span class="half-label label-real">ภาพจริง</span>
             </div>
-            <p id="shadowPrompt" class="shadow-prompt">คำใดตรงกับภาพนี้?</p>
-            <div id="answerChoices" class="answer-choices" role="group" aria-label="เลือกคำตอบ 1 คำจาก 3 คำ"></div>
+            <p id="shadowPrompt" class="shadow-prompt">ดูเงาแล้วลองทายว่าคือภาพอะไร</p>
+            <button id="revealShadow" class="reveal-shadow primary-action" type="button">เฉลยภาพจริง</button>
+            <div id="answerChoices" class="answer-choices" role="group" aria-label="เลือกคำตอบ 1 คำจาก 3 คำ" hidden></div>
           </div>
           <div id="flowerRain" class="flower-rain" aria-hidden="true"></div>
         </div>
+        <dialog id="studentDialog" class="student-dialog">
+          <form id="studentForm" method="dialog">
+            <h2>รายชื่อนักเรียน</h2>
+            <p>คั่นแต่ละชื่อด้วยเครื่องหมายจุลภาคหรือเว้นวรรค หากมีชื่อ–นามสกุล ให้ใส่เครื่องหมายคำพูดคร่อม เช่น <strong>สมชาย, "สมหญิง ใจดี", มานะ</strong></p>
+            <textarea id="studentNames" rows="6" placeholder='สมชาย, "สมหญิง ใจดี", มานะ' aria-label="รายชื่อนักเรียน"></textarea>
+            <div class="dialog-actions"><button id="cancelStudents" type="button">ยกเลิก</button><button class="primary-action" type="submit">บันทึกรายชื่อ</button></div>
+          </form>
+        </dialog>
       </section>
 
       <section class="activity" data-activity="2" aria-labelledby="bingoTitle" hidden>
@@ -78,5 +89,5 @@
 
     <nav class="activity-navigation" aria-label="เปลี่ยนกิจกรรม"><button id="previousActivity" type="button" disabled><span>‹</span><div><small>ย้อนกลับ</small><strong>กิจกรรมก่อนหน้า</strong></div></button><div class="activity-position"><span id="activityPosition">1 / 4</span><div><i class="active"></i><i></i><i></i><i></i></div></div><button id="nextActivity" type="button"><div><small>ไปต่อ</small><strong>กิจกรรมถัดไป</strong></div><span>›</span></button></nav>
   </main>
-  <script src="app.js?v=20260721-2"></script>
+  <script src="app.js?v=20260721-4"></script>
 </body></html>
