@@ -153,9 +153,9 @@ function answerShadow(button, correct) {
     [...document.querySelectorAll('.answer-card')].forEach(choice => choice.classList.toggle('dismissed', choice !== button));
     if (selectedStudent) {
       const studentResult = document.querySelector('#studentResult');
-      studentResult.textContent = `${selectedStudent}  ⭐ ⭐ ⭐ ⭐ ⭐`;
-      studentResult.classList.add('student-success');
       studentScores.set(selectedStudent, (studentScores.get(selectedStudent) || 0) + 5); updateScoreBoard();
+      studentResult.classList.remove('student-success', 'student-minimized'); studentResult.hidden = true;
+      document.querySelector('#minimizeStudent').hidden = true; selectedStudent = '';
     }
     remainingShadows = remainingShadows.filter(index => index !== currentShadow);
     document.querySelector('#shadowCount').textContent = remainingShadows.length ? `เหลือ ${remainingShadows.length} ภาพ` : 'ตอบครบทั้ง 16 ภาพแล้ว!';
@@ -202,6 +202,7 @@ document.querySelector('#resetShadow').addEventListener('click', () => {
   remainingShadows = shadowVocabulary.map((_, index) => index); selectedStudent = '';
   studentScores.clear(); updateScoreBoard();
   const studentResult = document.querySelector('#studentResult'); studentResult.classList.remove('student-success', 'student-minimized'); studentResult.textContent = 'กด “สุ่มชื่อ” เพื่อเลือกผู้ตอบ';
+  studentResult.hidden = false;
   document.querySelector('#randomStudent').disabled = false; document.querySelector('#minimizeStudent').hidden = true; shuffleShadow();
 });
 shadowVocabulary.forEach(([, file]) => { const image = new Image(); image.src = `img/${encodeURIComponent(file)}`; });
@@ -220,7 +221,7 @@ function openStudentDialog() { studentNamesInput.value = studentNames.map(name =
 document.querySelector('#randomStudent').addEventListener('click', () => {
   if (!studentNames.length) { openStudentDialog(); return; }
   const result = document.querySelector('#studentResult'); const button = document.querySelector('#randomStudent');
-  result.classList.remove('name-pop', 'student-success', 'student-minimized'); button.disabled = true; document.querySelector('#minimizeStudent').hidden = true;
+  result.hidden = false; result.classList.remove('name-pop', 'student-success', 'student-minimized'); button.disabled = true; document.querySelector('#minimizeStudent').hidden = true;
   shadowGame.classList.add('awaiting-answer', 'name-drawing');
   const nameInterval = rememberShadowTimer(setInterval(() => {
     result.textContent = studentNames[Math.floor(Math.random() * studentNames.length)];
