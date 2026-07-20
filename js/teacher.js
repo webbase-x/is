@@ -764,12 +764,31 @@ function subscribePresence() {
 }
 
 function studentScreenEntries() {
-  return state.players.filter(player => player.status === "approved").map(player => ({
+  const entries = state.players.filter(player => player.status === "approved").map(player => ({
     player,
     student: player.student || {},
     screen: state.studentScreens.get(player.id) || null,
     online: state.studentScreens.has(player.id),
   }));
+  const knownPlayerIds = new Set(entries.map(entry => entry.player.id));
+  state.studentScreens.forEach((screen, playerId) => {
+    if (knownPlayerIds.has(playerId)) return;
+    entries.push({
+      player: { id: playerId, student_id: screen.student_id, status: "approved" },
+      student: {
+        id: screen.student_id,
+        full_name: screen.display_name || "นักเรียนออนไลน์",
+        nickname: screen.display_name || "",
+        avatar: screen.avatar || "🙂",
+      },
+      screen,
+      online: true,
+    });
+  });
+  return entries.sort((a, b) => {
+    if (a.online !== b.online) return a.online ? -1 : 1;
+    return String(a.student.full_name || a.student.nickname || "").localeCompare(String(b.student.full_name || b.student.nickname || ""), "th");
+  });
 }
 
 function studentScreenModeLabel(mode) {
