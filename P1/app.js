@@ -433,18 +433,24 @@ function resizeDrawingCanvases() {
 }
 function setDrawingMode(mode) {
   drawingMode = mode; document.querySelectorAll('[data-draw-mode]').forEach(button => button.classList.toggle('active', button.dataset.drawMode === mode));
-  const draws = ['laser','pen','eraser'].includes(mode); drawingCanvas.classList.toggle('drawing-enabled', draws); document.querySelector('#screenPointer').classList.toggle('active', mode === 'pointer');
+  const draws = ['laser','pen','eraser'].includes(mode); drawingCanvas.classList.toggle('drawing-enabled', draws); document.body.classList.toggle('annotation-drawing', draws); document.querySelector('#screenPointer').classList.toggle('active', mode === 'pointer');
 }
 function drawingPoint(event) { return {x:event.clientX,y:event.clientY}; }
 function beginDrawing(event) {
-  if (!['laser','pen','eraser'].includes(drawingMode)) return; drawingActive = true; event.preventDefault(); drawingCanvas.setPointerCapture(event.pointerId); const point = drawingPoint(event); const context = drawingMode === 'laser' ? laserContext : drawingContext;
+  if (!['laser','pen','eraser'].includes(drawingMode)) return;
+  if (event.target instanceof Element && event.target.closest('button,input,textarea,select,a,label,audio,dialog,[role="button"],.annotation-toolbar')) return;
+  drawingActive = true; event.preventDefault(); const point = drawingPoint(event); const context = drawingMode === 'laser' ? laserContext : drawingContext;
   context.beginPath(); context.moveTo(point.x, point.y); context.lineWidth = Number(document.querySelector('#drawSize').value); context.strokeStyle = document.querySelector('#drawColor').value; context.globalCompositeOperation = drawingMode === 'eraser' ? 'destination-out' : 'source-over';
 }
 function continueDrawing(event) { if (!drawingActive) return; const context = drawingMode === 'laser' ? laserContext : drawingContext; const point = drawingPoint(event); context.lineTo(point.x,point.y); context.stroke(); }
 function endDrawing() { if (!drawingActive) return; drawingActive = false; if (drawingMode === 'laser') { clearTimeout(laserClearTimer); laserClearTimer = setTimeout(() => laserContext.clearRect(0,0,laserCanvas.width,laserCanvas.height),1000); } }
-drawingCanvas.addEventListener('pointerdown', beginDrawing); drawingCanvas.addEventListener('pointermove', continueDrawing); drawingCanvas.addEventListener('pointerup', endDrawing); drawingCanvas.addEventListener('pointercancel', endDrawing);
+window.addEventListener('pointerdown', beginDrawing, {passive:false}); window.addEventListener('pointermove', continueDrawing, {passive:false}); window.addEventListener('pointerup', endDrawing); window.addEventListener('pointercancel', endDrawing);
 document.querySelectorAll('[data-draw-mode]').forEach(button => button.addEventListener('click', () => setDrawingMode(button.dataset.drawMode)));
 document.querySelector('#clearDrawing').addEventListener('click', () => { drawingContext.clearRect(0,0,drawingCanvas.width,drawingCanvas.height); laserContext.clearRect(0,0,laserCanvas.width,laserCanvas.height); });
-document.querySelector('#toggleAnnotation').addEventListener('click', () => document.querySelector('#annotationToolbar').classList.toggle('collapsed'));
+document.querySelector('#toggleAnnotation').addEventListener('click', () => {
+  const toolbar = document.querySelector('#annotationToolbar'); const collapsed = toolbar.classList.toggle('collapsed'); const toggle = document.querySelector('#toggleAnnotation');
+  toggle.setAttribute('aria-expanded', String(!collapsed)); toggle.querySelector('span').textContent = collapsed ? 'เครื่องมือเขียน' : 'ซ่อนรายละเอียด';
+  if (collapsed) setDrawingMode('pointer');
+});
 window.addEventListener('pointermove', event => { if (drawingMode !== 'pointer') return; const pointer = document.querySelector('#screenPointer'); pointer.style.left = `${event.clientX}px`; pointer.style.top = `${event.clientY}px`; });
 window.addEventListener('resize', resizeDrawingCanvases); resizeDrawingCanvases(); setDrawingMode('pointer');
