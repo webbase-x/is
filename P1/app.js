@@ -456,9 +456,10 @@ function beginDrawing(event) {
   if (event.target instanceof Element && event.target.closest('button,input,textarea,select,a,label,audio,dialog,[role="button"],.annotation-toolbar')) return;
   drawingActive = true; event.preventDefault(); const point = drawingPoint(event); const context = drawingMode === 'laser' ? laserContext : drawingContext;
   context.beginPath(); context.moveTo(point.x, point.y); context.lineWidth = Number(document.querySelector('#drawSize').value); context.strokeStyle = document.querySelector('#drawColor').value; context.globalCompositeOperation = drawingMode === 'eraser' ? 'destination-out' : 'source-over';
+  context.shadowColor = drawingMode === 'laser' ? document.querySelector('#drawColor').value : 'transparent'; context.shadowBlur = drawingMode === 'laser' ? Math.max(14, context.lineWidth * 3) : 0; context.globalAlpha = drawingMode === 'laser' ? .95 : 1;
 }
 function continueDrawing(event) { if (!drawingActive) return; const context = drawingMode === 'laser' ? laserContext : drawingContext; const point = drawingPoint(event); context.lineTo(point.x,point.y); context.stroke(); }
-function endDrawing() { if (!drawingActive) return; drawingActive = false; if (drawingMode === 'laser') { clearTimeout(laserClearTimer); laserClearTimer = setTimeout(() => laserContext.clearRect(0,0,laserCanvas.width,laserCanvas.height),1000); } }
+function endDrawing() { if (!drawingActive) return; drawingActive = false; drawingContext.globalAlpha = 1; drawingContext.shadowBlur = 0; if (drawingMode === 'laser') { laserContext.globalAlpha = 1; laserContext.shadowBlur = 0; clearTimeout(laserClearTimer); laserClearTimer = setTimeout(() => laserContext.clearRect(0,0,laserCanvas.width,laserCanvas.height),1000); } }
 window.addEventListener('pointerdown', beginDrawing, {passive:false}); window.addEventListener('pointermove', continueDrawing, {passive:false}); window.addEventListener('pointerup', endDrawing); window.addEventListener('pointercancel', endDrawing);
 document.querySelectorAll('[data-draw-mode]').forEach(button => button.addEventListener('click', () => setDrawingMode(button.dataset.drawMode)));
 document.querySelector('#clearDrawing').addEventListener('click', () => { drawingContext.clearRect(0,0,drawingCanvas.width,drawingCanvas.height); laserContext.clearRect(0,0,laserCanvas.width,laserCanvas.height); });

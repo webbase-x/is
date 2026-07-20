@@ -83,3 +83,6 @@
 
 /* Clear answer result for the sentence train. */
 .challenge{position:relative}.challenge.train-correct::before,.challenge.train-wrong::before{position:absolute;right:18px;top:18px;width:58px;height:58px;display:grid;place-items:center;border-radius:50%;font-size:38px;font-weight:900;line-height:1;z-index:2;animation:answerMarkPop .35s cubic-bezier(.2,1.5,.5,1)}.challenge.train-correct::before{content:'✓';color:white;background:#159b69;box-shadow:0 0 0 8px rgba(21,155,105,.16),0 8px 24px rgba(21,155,105,.3)}.challenge.train-wrong::before{content:'✕';color:white;background:#df334f;box-shadow:0 0 0 8px rgba(223,51,79,.15),0 8px 24px rgba(223,51,79,.3)}@keyframes answerMarkPop{from{opacity:0;transform:scale(.35) rotate(-18deg)}to{opacity:1;transform:scale(1) rotate(0)}}@media(max-width:600px){.challenge.train-correct::before,.challenge.train-wrong::before{right:10px;top:10px;width:44px;height:44px;font-size:29px}}
+
+/* Brighter, soft-edged laser glow. */
+.laser-canvas{filter:saturate(1.35) brightness(1.12)}
