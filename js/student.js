@@ -8,6 +8,10 @@ import {
 
 const MAE_KO_KA = new Set(["กา", "ปลา", "เต่า", "มือ", "ตา", "ปู", "เสือ", "แมว", "หมู", "นา", "ใบไม้", "ขา", "ผีเสื้อ", "ดู", "พ่อ", "แม่", "วัว", "หมี", "งู", "ไก่", "ปลาโลมา", "ม้า", "ลา", "จระเข้"]);
 const COMPARE_WORDS = new Set(["กบ", "นก", "เด็ก", "จาน", "ถ้วย", "เก้าอี้", "บ้าน", "ดิน"]);
+const WHEEL_WORDS = Object.freeze({
+  none: ["กา", "ปู", "มือ", "งา", "ชา", "แพ", "รู", "นา", "วัว", "เสือ", "ม้า", "ไผ่"],
+  has: ["กบ", "นก", "เด็ก", "จาน", "บ้าน", "ดิน", "มด", "เข็ม", "ลิง", "กลอง", "ขนม", "ดอกไม้"],
+});
 const RHYTHM_CUE_TEMPLATE = Object.freeze([
   { word: "เต่า", start: 38.00, end: 38.55 },
   { word: "วัว", start: 38.55, end: 39.10 },
@@ -1240,14 +1244,70 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
 }
 
 function renderWheel() {
-  const questions = shuffle([...MAE_KO_KA].slice(0, 5).concat([...COMPARE_WORDS].slice(0, 3))).map(word => ({ word, answer: MAE_KO_KA.has(word) ? "none" : "has" }));
-  runQuestionGame({
-    key: "wheel", title: "วงล้อเสี่ยงทาย", instruction: "คำนี้มีตัวสะกดหรือไม่",
-    questions,
-    renderPrompt(question, container) { container.innerHTML = `<div class="wheel" style="transform:rotate(${Math.random() * 540 + 360}deg)"><span style="transform:rotate(-${Math.random() * 20}deg)">${escapeHtml(question.word)}</span></div>`; },
-    choices: () => [{ value: "none", label: "ไม่มีตัวสะกด" }, { value: "has", label: "มีตัวสะกด" }],
-    replay: renderWheel,
-  });
+  const questions = shuffle([
+    ...shuffle(WHEEL_WORDS.none).slice(0, 5).map(word => ({ word, answer: "none" })),
+    ...shuffle(WHEEL_WORDS.has).slice(0, 5).map(word => ({ word, answer: "has" })),
+  ]);
+  let index = 0;
+  let score = 0;
+  let streak = 0;
+  const answers = [];
+
+  const renderQuestion = () => {
+    const question = questions[index];
+    const sparkles = Array.from({ length: 18 }, (_, item) => `<i style="--x:${(item * 47) % 97}%;--y:${(item * 31) % 91}%;--delay:${(item % 6) * -.32}s">✦</i>`).join("");
+    gameShell("วงล้อคำมหัศจรรย์", "หมุนแล้วสังเกตคำให้ดี คำนี้มีตัวสะกดหรือไม่", `
+      <section class="premium-wheel-game">
+        <div class="wheel-sparkles" aria-hidden="true">${sparkles}</div>
+        <div class="wheel-hud"><span>ด่าน <b>${index + 1}</b> / ${questions.length}</span><span>⭐ ${score}</span><span>🔥 ${streak}</span></div>
+        <div class="wheel-machine">
+          <div class="wheel-pointer" aria-hidden="true">▼</div>
+          <div class="premium-wheel-disc" style="--wheel-turn:${720 + Math.round(Math.random() * 360)}deg" aria-hidden="true">
+            <span>🌟</span><span>🎈</span><span>🦋</span><span>🍭</span><span>🚀</span><span>🌈</span><span>🐘</span><span>🎁</span>
+          </div>
+          <div class="wheel-word"><small>คำที่ได้</small><strong>${escapeHtml(question.word)}</strong><button id="wheelSpeak" type="button" aria-label="ฟังเสียงคำว่า ${escapeHtml(question.word)}">🔊 ฟังคำ</button></div>
+        </div>
+        <p id="wheelFeedback" class="wheel-feedback">วงล้อกำลังเลือกคำ...</p>
+        <div id="wheelChoices" class="wheel-answer-grid">
+          <button type="button" data-value="none" disabled><span>☀️</span><strong>ไม่มีตัวสะกด</strong><small>แม่ ก กา</small></button>
+          <button type="button" data-value="has" disabled><span>🔤</span><strong>มีตัวสะกด</strong><small>มีเสียงพยัญชนะท้าย</small></button>
+        </div>
+      </section>
+    `);
+    const disc = $(".premium-wheel-disc");
+    const choiceButtons = [...$("#wheelChoices").children];
+    $("#wheelSpeak").addEventListener("click", () => speakThai(question.word));
+    requestAnimationFrame(() => disc.classList.add("is-spinning"));
+    setTimeout(() => {
+      if (state.renderedActivity !== "wheel") return;
+      choiceButtons.forEach(button => { button.disabled = false; });
+      $("#wheelFeedback").textContent = "เลือกคำตอบได้เลย!";
+      speakThai(question.word);
+    }, 1250);
+    choiceButtons.forEach(button => button.addEventListener("click", () => {
+      const chosen = button.dataset.value;
+      const correct = chosen === question.answer;
+      if (correct) { score += 1; streak += 1; } else streak = 0;
+      answers.push({ prompt: question.word, chosen, correct });
+      choiceButtons.forEach(item => {
+        item.disabled = true;
+        if (item.dataset.value === question.answer) item.classList.add("correct");
+      });
+      if (!correct) button.classList.add("wrong");
+      $("#wheelFeedback").textContent = correct ? "ยอดเยี่ยม! ตอบถูกแล้ว ⭐" : `คำตอบคือ ${question.answer === "none" ? "ไม่มีตัวสะกด" : "มีตัวสะกด"} ลองจำไว้นะ`;
+      $(".premium-wheel-game").classList.add(correct ? "answer-correct" : "answer-wrong");
+      setTimeout(async () => {
+        if (state.renderedActivity !== "wheel") return;
+        index += 1;
+        if (index < questions.length) renderQuestion();
+        else {
+          const result = await submitAttempt("wheel", score, questions.length, answers);
+          if (result) showResult("พิชิตวงล้อคำมหัศจรรย์", score, questions.length, result, renderWheel);
+        }
+      }, 1050);
+    }));
+  };
+  renderQuestion();
 }
 
 function speakThai(word) {
