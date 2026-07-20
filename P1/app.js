@@ -280,6 +280,7 @@ document.querySelector('#spinWheel').addEventListener('click', () => {
   window.p1SpinInterval = setInterval(() => { previewIndex = (previewIndex + 1) % remainingWords.length; document.querySelector('#wheelWord').textContent = remainingWords[previewIndex]; wheelTone(320 + (previewIndex % 4) * 55); }, 75);
   window.p1SpinTimer = setTimeout(() => {
     clearInterval(window.p1SpinInterval); window.p1SpinInterval = null;
+    wheel.classList.remove('spinning');
     const index = Math.floor(Math.random() * remainingWords.length);
     const word = remainingWords.splice(index, 1)[0]; calledWords.push(word);
     document.querySelector('#wheelWord').textContent = word; renderCalledWords();
@@ -297,7 +298,24 @@ document.querySelector('#resetWheel').addEventListener('click', () => {
   document.querySelector('#wheel').classList.remove('spinning'); document.querySelector('#spinWheel').disabled = false;
   remainingWords = [...bingoWords]; calledWords = []; document.querySelector('#wheelWord').textContent = 'พร้อม!'; document.querySelector('#spinHint').textContent = 'คำที่ออกแล้วจะไม่ซ้ำจนกว่าจะเริ่มรอบใหม่'; renderCalledWords();
 });
-document.querySelector('#showBingoExample').addEventListener('click', () => document.querySelector('#bingoExampleDialog').showModal());
+const bingoExampleWords = ['ภูผา','ดูแล','ใบโบก','ใบบัว','พ่อ','แม่','หู','งา','ขา','หา','ดีใจ','รัก','ตา','หาง','งวง','ได้'];
+const bingoExamples = [
+  {title:'แนวนอน', winners:[4,5,6,7], explanation:'ดูแถวที่พาดจากซ้ายไปขวา เมื่อมีเบี้ยเรียงติดกันครบ 4 ช่องในแถวเดียวกัน แบบนี้เรียกว่า “แนวนอน” และได้คะแนน'},
+  {title:'แนวตั้ง', winners:[2,6,10,14], explanation:'ดูแถวที่ลากจากด้านบนลงด้านล่าง เมื่อมีเบี้ยเรียงติดกันครบ 4 ช่องในหลักเดียวกัน แบบนี้เรียกว่า “แนวตั้ง” และได้คะแนน'},
+  {title:'แนวทแยง ซ้ายบนไปขวาล่าง', winners:[0,5,10,15], explanation:'เริ่มจากช่องมุมซ้ายบน แล้วไล่เฉียงลงไปทางขวาจนครบ 4 ช่อง แบบนี้เรียกว่า “แนวทแยง” และได้คะแนน'},
+  {title:'แนวทแยง ขวาบนไปซ้ายล่าง', winners:[3,6,9,12], explanation:'เริ่มจากช่องมุมขวาบน แล้วไล่เฉียงลงไปทางซ้ายจนครบ 4 ช่อง นี่ก็เป็น “แนวทแยง” อีกแบบหนึ่งและได้คะแนน'}
+];
+let currentBingoExample = 0;
+function renderBingoExample(index) {
+  currentBingoExample = (index + bingoExamples.length) % bingoExamples.length; const example = bingoExamples[currentBingoExample];
+  document.querySelector('#bingoExamplePosition').textContent = `แบบที่ ${currentBingoExample + 1} จาก ${bingoExamples.length}`;
+  document.querySelector('#bingoExampleTitle').textContent = example.title; document.querySelector('#bingoExampleExplanation').textContent = example.explanation;
+  const board = document.querySelector('#bingoExampleBoard'); board.replaceChildren();
+  bingoExampleWords.forEach((word, cellIndex) => { const cell = document.createElement('span'); cell.textContent = word; if (example.winners.includes(cellIndex)) { cell.classList.add('winner'); const token = document.createElement('i'); token.textContent = '●'; cell.append(token); } board.append(cell); });
+}
+document.querySelector('#showBingoExample').addEventListener('click', () => { currentBingoExample = 0; renderBingoExample(0); document.querySelector('#bingoExampleDialog').showModal(); });
+document.querySelector('#previousBingoExample').addEventListener('click', () => renderBingoExample(currentBingoExample - 1));
+document.querySelector('#nextBingoExample').addEventListener('click', () => renderBingoExample(currentBingoExample + 1));
 document.querySelector('#closeBingoExample').addEventListener('click', () => document.querySelector('#bingoExampleDialog').close());
 
 const challenges = [

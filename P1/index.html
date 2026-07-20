@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <meta name="theme-color" content="#5a48d6"><meta name="description" content="สื่อการสอนภาษาไทย ป.1 เรื่อง รู้จักคำ นำเรื่อง เพื่อนภูผา">
-  <title>รู้จักคำ นำเรื่อง | เพลินภาษา ป.1</title><link rel="stylesheet" href="styles.css?v=20260721-17">
+  <title>รู้จักคำ นำเรื่อง | เพลินภาษา ป.1</title><link rel="stylesheet" href="styles.css?v=20260721-18">
 </head>
 <body>
   <header class="topbar">
@@ -76,9 +76,9 @@
             <button id="spinWheel" class="primary-action spin" type="button">หมุนวงล้อ</button>
             <p id="spinHint">คำที่ออกแล้วจะไม่ซ้ำจนกว่าจะเริ่มรอบใหม่</p>
           </div>
-          <div class="called-panel"><div class="called-heading"><div><small>คำที่ออกแล้ว</small><strong><output id="calledCount">0</output> / 16 คำ</strong></div><button id="resetWheel" type="button">เริ่มรอบใหม่</button></div><div id="calledWords" class="called-words"><p>กด “หมุนวงล้อ” เพื่อเริ่มกิจกรรม</p></div><div class="bingo-call">ได้ 4 ช่องเรียงกันแล้วตะโกน<br><strong>“บิงโก ช้างมาแล้ว!”</strong><button id="showBingoExample" type="button">ดูตัวอย่างการวางเบี้ยที่ได้คะแนน</button></div></div>
+          <div class="called-panel"><div class="called-heading"><div><small>คำที่ออกแล้ว</small><strong><output id="calledCount">0</output> / 16 คำ</strong></div><button id="resetWheel" type="button">เริ่มรอบใหม่</button></div><div id="calledWords" class="called-words"><p>กด “หมุนวงล้อ” เพื่อเริ่มกิจกรรม</p></div><div class="bingo-call">ได้ 4 ช่องเรียงกันแล้วตะโกน<br><strong>“บิงโก!”</strong><button id="showBingoExample" type="button">ดูตัวอย่างการวางเบี้ยที่ได้คะแนน</button></div></div>
         </div>
-        <dialog id="bingoExampleDialog" class="student-dialog bingo-example-dialog"><div class="bingo-example-content"><h2>ตัวอย่างการวางเบี้ยที่ได้คะแนน</h2><p>วางเบี้ยให้ครบ 4 ช่องเรียงกันในแนวนอน แนวตั้ง หรือแนวทแยง</p><div class="bingo-example-board" aria-label="ตัวอย่างบิงโกสี่ช่องเรียงกัน"><span class="winner">ภูผา<i>●</i></span><span class="winner">ดูแล<i>●</i></span><span class="winner">ใบโบก<i>●</i></span><span class="winner">ใบบัว<i>●</i></span><span>พ่อ</span><span>แม่</span><span>หู</span><span>งา</span><span>ขา</span><span>หา</span><span>ดีใจ</span><span>รัก</span><span>ตา</span><span>หาง</span><span>งวง</span><span>ได้</span></div><div class="bingo-example-result">✓ ได้คะแนน — เรียงกันครบ 4 ช่อง</div><div class="dialog-actions"><button id="closeBingoExample" class="primary-action" type="button">ปิด</button></div></div></dialog>
+        <dialog id="bingoExampleDialog" class="student-dialog bingo-example-dialog"><div class="bingo-example-content"><h2>ตัวอย่างการวางเบี้ยที่ได้คะแนน</h2><div class="bingo-example-card"><div class="bingo-example-heading"><button id="previousBingoExample" type="button" aria-label="ตัวอย่างก่อนหน้า">‹</button><div><small id="bingoExamplePosition">แบบที่ 1 จาก 4</small><h3 id="bingoExampleTitle">แนวนอน</h3></div><button id="nextBingoExample" type="button" aria-label="ตัวอย่างถัดไป">›</button></div><div id="bingoExampleBoard" class="bingo-example-board" aria-label="ตัวอย่างบิงโกสี่ช่องเรียงกัน"></div><div id="bingoExampleExplanation" class="bingo-example-explanation"></div><div class="bingo-example-result">✓ วางเบี้ยครบ 4 ช่องที่เรียงต่อกัน = ได้คะแนนและพูดว่า “บิงโก!”</div></div><div class="dialog-actions"><button id="closeBingoExample" class="primary-action" type="button">ปิด</button></div></div></dialog>
       </section>
 
       <section class="activity" data-activity="3" aria-labelledby="trainTitle" hidden>
@@ -93,5 +93,5 @@
 
     <nav class="activity-navigation" aria-label="เปลี่ยนกิจกรรม"><button id="previousActivity" type="button" disabled><span>‹</span><div><small>ย้อนกลับ</small><strong>กิจกรรมก่อนหน้า</strong></div></button><div class="activity-position"><span id="activityPosition">1 / 4</span><div><i class="active"></i><i></i><i></i><i></i></div></div><button id="nextActivity" type="button"><div><small>ไปต่อ</small><strong>กิจกรรมถัดไป</strong></div><span>›</span></button></nav>
   </main>
-  <script src="app.js?v=20260721-17"></script>
+  <script src="app.js?v=20260721-18"></script>
 </body></html>
