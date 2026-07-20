@@ -38,16 +38,20 @@
       </section>
 
       <section class="activity" data-activity="1" aria-labelledby="shadowTitle" hidden>
-        <div class="activity-heading"><div><span class="eyebrow">กิจกรรมที่ 2 · นำเสนอเนื้อหา</span><h1 id="shadowTitle">แผ่นป้าย ทายเงา</h1><p>ฟังคำใบ้ ทายคำ แล้วเปิดภาพและคำศัพท์</p></div><span class="time-badge">◐ 15 นาที</span></div>
-        <div class="shadow-game">
-          <aside class="word-list" id="wordList" aria-label="รายการคำศัพท์"></aside>
+        <div class="activity-heading shadow-heading"><div><span class="eyebrow">กิจกรรมที่ 2 · นำเสนอเนื้อหา</span><h1 id="shadowTitle">ทายเงา</h1><p>ดูภาพครึ่งเงา–ครึ่งจริง แล้วเลือกการ์ดคำที่ถูกต้อง</p></div><span class="time-badge">◐ 15 นาที</span></div>
+        <div id="shadowGame" class="shadow-game" aria-live="polite">
+          <div class="shadow-sparkles" aria-hidden="true">ก ◌า ะ คำ</div>
           <div class="shadow-card">
-            <div class="word-counter"><span id="shadowCount">คำที่ 1 จาก 17</span><div><button id="previousWord" type="button">‹</button><button id="nextWord" type="button">›</button></div></div>
-            <div id="shadowPicture" class="shadow-picture hidden-picture"><span>👦</span></div>
-            <p id="wordClue" class="clue">เด็กผู้ชายผู้เป็นเพื่อนของใบโบกและใบบัว</p>
-            <div id="answerArea" class="answer-area hidden-answer"><strong id="wordAnswer">ภูผา</strong><small id="wordSpelling">ภู – ผา</small></div>
-            <button id="revealWord" class="primary-action" type="button">เปิดภาพและเฉลย</button>
+            <div class="shadow-toolbar"><span id="shadowCount">ภาพที่ 1 จาก 16</span><button id="shuffleShadow" class="primary-action" type="button">สุ่มภาพใหม่</button></div>
+            <div id="shadowPicture" class="shadow-picture" aria-label="ภาพสำหรับทายคำ">
+              <div class="picture-half picture-shadow"><img id="shadowImage" src="img/ภูผา.png" alt="ภาพเงาสำหรับทายคำ"></div>
+              <div class="picture-half picture-real"><img id="realImage" src="img/ภูผา.png" alt="ภาพจริงสำหรับทายคำ"></div>
+              <span class="half-label label-shadow">เงา</span><span class="half-label label-real">ภาพจริง</span>
+            </div>
+            <p id="shadowPrompt" class="shadow-prompt">คำใดตรงกับภาพนี้?</p>
+            <div id="answerChoices" class="answer-choices" role="group" aria-label="เลือกคำตอบ 1 คำจาก 3 คำ"></div>
           </div>
+          <div id="flowerRain" class="flower-rain" aria-hidden="true"></div>
         </div>
       </section>
 

@@ -12,6 +12,16 @@ function stopRunningActivities() {
     clearTimeout(window.p1SpinTimer);
     window.p1SpinTimer = null;
   }
+  (window.p1ShadowTimers || []).forEach(timer => { clearTimeout(timer); clearInterval(timer); });
+  window.p1ShadowTimers = [];
+  (window.p1AudioContexts || []).forEach(context => context.close().catch(() => {}));
+  window.p1AudioContexts = [];
+  window.p1ShadowRun = (window.p1ShadowRun || 0) + 1;
+  document.querySelector('#shadowGame')?.classList.remove('is-correct', 'is-wrong', 'is-shuffling');
+  const flowerRain = document.querySelector('#flowerRain');
+  if (flowerRain) flowerRain.innerHTML = '';
+  const shuffleButton = document.querySelector('#shuffleShadow');
+  if (shuffleButton) shuffleButton.disabled = false;
   document.querySelector('#wheel')?.classList.remove('spinning');
   const spinButton = document.querySelector('#spinWheel');
   if (spinButton) spinButton.disabled = false;
@@ -68,26 +78,94 @@ lyricButtons.forEach(button => button.addEventListener('click', () => { song.cur
 const vocabulary = [
   ['ภูผา','👦','เด็กผู้ชายผู้เป็นเพื่อนของใบโบกและใบบัว','ภู – ผา'],['พ่อ','👨','ผู้ชายผู้ดูแลครอบครัว','พ่อ'],['แม่','👩','ผู้หญิงผู้ให้ความรักและดูแลลูก','แม่'],['ตา','👴','คุณตาผู้สูงอายุในครอบครัว','ตา'],['ใบโบก','🐘','ช้างสีฟ้า เพื่อนของภูผา','ใบ – โบก'],['ใบบัว','🐘','ช้างสีส้ม เพื่อนของภูผา','ใบ – บัว'],['ขา','🦵','อวัยวะที่ใช้ยืนและเดิน','ขา'],['หู','👂','อวัยวะที่ใช้ฟังเสียง','หู'],['งา','🦷','ส่วนสีขาวยาวอยู่ข้างปากช้าง','งา'],['งวง','🐘','จมูกยาวของช้าง ใช้หยิบจับสิ่งของ','งวง'],['หาง','🐿️','ส่วนที่อยู่ด้านหลังของสัตว์','หาง'],['หา','🔎','มองดูเพื่อให้พบสิ่งที่ต้องการ','หา'],['ให้','🎁','ยื่นสิ่งของแก่ผู้อื่น','ให้'],['ได้','🙌','ได้รับหรือทำสำเร็จ','ได้'],['ดีใจ','😄','ความรู้สึกเมื่อมีเรื่องน่ายินดี','ดี – ใจ'],['ดูแล','🤲','เอาใจใส่และช่วยเหลือ','ดู – แล'],['รัก','❤️','ความรู้สึกผูกพันและห่วงใย','รัก']
 ];
-let currentWord = 0;
-const wordList = document.querySelector('#wordList');
-vocabulary.forEach((item, i) => { const button = document.createElement('button'); button.textContent = item[0]; button.addEventListener('click', () => showWord(i)); wordList.append(button); });
-function showWord(index) {
-  currentWord = (index + vocabulary.length) % vocabulary.length;
-  const [word, picture, clue, spelling] = vocabulary[currentWord];
-  document.querySelector('#shadowCount').textContent = `คำที่ ${currentWord + 1} จาก ${vocabulary.length}`;
-  document.querySelector('#shadowPicture span').textContent = picture;
-  document.querySelector('#wordClue').textContent = clue;
-  document.querySelector('#wordAnswer').textContent = word;
-  document.querySelector('#wordSpelling').textContent = spelling;
-  document.querySelector('#shadowPicture').classList.add('hidden-picture');
-  document.querySelector('#answerArea').classList.add('hidden-answer');
-  document.querySelector('#revealWord').textContent = 'เปิดภาพและเฉลย';
-  [...wordList.children].forEach((button, i) => button.classList.toggle('active', i === currentWord));
+
+const shadowVocabulary = [
+  ['ภูผา','ภูผา.png'],['พ่อ','พ่อ.png'],['แม่','แม่.png'],['ตา','ตา.png'],
+  ['ใบโบก','ใบโบก.png'],['ใบบัว','ใบบัว.png'],['ขา','ขา.png'],['หู','หู.png'],
+  ['งา','งา.png'],['งวง','งวง.png'],['หาง','หาง.png'],['หา','หา.png'],
+  ['ให้–ได้','ให้-ได้.png'],['ดีใจ','ดีใจ.png'],['ดูแล','ดูแล.png'],['รัก','รัก.png']
+];
+let currentShadow = 0;
+window.p1ShadowTimers = [];
+window.p1AudioContexts = [];
+const shadowGame = document.querySelector('#shadowGame');
+const shadowImages = [document.querySelector('#shadowImage'), document.querySelector('#realImage')];
+const rememberShadowTimer = timer => (window.p1ShadowTimers.push(timer), timer);
+const shuffleItems = items => [...items].sort(() => Math.random() - .5);
+function playFeedback(correct) {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  const context = new AudioContext();
+  window.p1AudioContexts.push(context);
+  const notes = correct ? [523.25, 659.25, 783.99] : [185, 138];
+  notes.forEach((frequency, index) => {
+    const oscillator = context.createOscillator(); const gain = context.createGain();
+    oscillator.type = correct ? 'sine' : 'sawtooth'; oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(.0001, context.currentTime + index * .1);
+    gain.gain.exponentialRampToValueAtTime(.16, context.currentTime + index * .1 + .02);
+    gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + index * .1 + .22);
+    oscillator.connect(gain).connect(context.destination); oscillator.start(context.currentTime + index * .1); oscillator.stop(context.currentTime + index * .1 + .24);
+  });
+  rememberShadowTimer(setTimeout(() => { context.close(); window.p1AudioContexts = window.p1AudioContexts.filter(item => item !== context); }, 700));
 }
-document.querySelector('#previousWord').addEventListener('click', () => showWord(currentWord - 1));
-document.querySelector('#nextWord').addEventListener('click', () => showWord(currentWord + 1));
-document.querySelector('#revealWord').addEventListener('click', event => { const hidden = document.querySelector('#answerArea').classList.toggle('hidden-answer'); document.querySelector('#shadowPicture').classList.toggle('hidden-picture', hidden); event.currentTarget.textContent = hidden ? 'เปิดภาพและเฉลย' : 'ซ่อนเฉลย'; });
-showWord(0);
+function renderShadowImage(index) {
+  const [word, file] = shadowVocabulary[index];
+  shadowImages.forEach(image => { image.src = `img/${encodeURIComponent(file)}`; });
+  document.querySelector('#shadowPicture').setAttribute('aria-label', 'ภาพด้านซ้ายเป็นเงา และภาพด้านขวาเป็นภาพจริงสำหรับทายคำ');
+}
+function renderChoices() {
+  const answer = shadowVocabulary[currentShadow][0];
+  const distractors = shuffleItems(shadowVocabulary.filter((_, index) => index !== currentShadow)).slice(0, 2).map(item => item[0]);
+  const container = document.querySelector('#answerChoices');
+  container.innerHTML = '';
+  shuffleItems([answer, ...distractors]).forEach(word => {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'answer-card'; button.textContent = word;
+    button.addEventListener('click', () => answerShadow(button, word === answer)); container.append(button);
+  });
+}
+function rainFlowers() {
+  const rain = document.querySelector('#flowerRain'); rain.innerHTML = '';
+  const flowers = ['🌸','🌼','🌺','🌻','🌷','💮'];
+  for (let i = 0; i < 38; i += 1) {
+    const flower = document.createElement('span'); flower.textContent = flowers[i % flowers.length];
+    flower.style.setProperty('--x', `${Math.random() * 100}%`); flower.style.setProperty('--delay', `${Math.random() * .5}s`); flower.style.setProperty('--fall', `${1.25 + Math.random() * .8}s`); flower.style.setProperty('--size', `${20 + Math.random() * 27}px`); rain.append(flower);
+  }
+  rememberShadowTimer(setTimeout(() => { rain.innerHTML = ''; }, 2600));
+}
+function answerShadow(button, correct) {
+  if (shadowGame.classList.contains('is-correct') || shadowGame.classList.contains('is-shuffling')) return;
+  shadowGame.classList.remove('is-wrong'); void shadowGame.offsetWidth;
+  shadowGame.classList.add(correct ? 'is-correct' : 'is-wrong'); button.classList.add(correct ? 'correct' : 'wrong');
+  [...document.querySelectorAll('.answer-card')].forEach(choice => choice.disabled = true);
+  playFeedback(correct);
+  if (correct) {
+    document.querySelector('#shadowPrompt').textContent = 'เก่งมาก! ตอบถูกแล้ว'; rainFlowers();
+    rememberShadowTimer(setTimeout(() => shuffleShadow(), 1700));
+  } else {
+    document.querySelector('#shadowPrompt').textContent = 'ลองอีกครั้ง เลือกคำใหม่ให้ตรงกับภาพ';
+    rememberShadowTimer(setTimeout(() => { shadowGame.classList.remove('is-wrong'); renderChoices(); }, 700));
+  }
+}
+function settleShadow(index) {
+  currentShadow = index;
+  renderShadowImage(currentShadow);
+  document.querySelector('#shadowCount').textContent = `ภาพที่ ${currentShadow + 1} จาก ${shadowVocabulary.length}`;
+  document.querySelector('#shadowPrompt').textContent = 'คำใดตรงกับภาพนี้?';
+  shadowGame.classList.remove('is-shuffling', 'is-correct', 'is-wrong'); renderChoices();
+  document.querySelector('#shuffleShadow').disabled = false;
+}
+function shuffleShadow() {
+  (window.p1ShadowTimers || []).forEach(timer => { clearTimeout(timer); clearInterval(timer); }); window.p1ShadowTimers = [];
+  const run = window.p1ShadowRun = (window.p1ShadowRun || 0) + 1;
+  shadowGame.classList.remove('is-correct', 'is-wrong'); shadowGame.classList.add('is-shuffling');
+  document.querySelector('#shuffleShadow').disabled = true; document.querySelector('#answerChoices').innerHTML = '';
+  document.querySelector('#shadowPrompt').textContent = 'กำลังสุ่มภาพ…';
+  const interval = rememberShadowTimer(setInterval(() => renderShadowImage(Math.floor(Math.random() * shadowVocabulary.length)), 75));
+  rememberShadowTimer(setTimeout(() => { clearInterval(interval); if (run === window.p1ShadowRun) settleShadow(Math.floor(Math.random() * shadowVocabulary.length)); }, 1050));
+}
+document.querySelector('#shuffleShadow').addEventListener('click', shuffleShadow);
+shadowVocabulary.forEach(([, file]) => { const image = new Image(); image.src = `img/${encodeURIComponent(file)}`; });
+settleShadow(0);
 
 const bingoWords = vocabulary.filter(item => item[0] !== 'รัก').map(item => item[0]);
 let remainingWords = [...bingoWords];
