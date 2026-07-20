@@ -22,23 +22,32 @@ showActivity(currentActivity);
 
 const song = document.querySelector('#song');
 const lyricButtons = [...document.querySelectorAll('#lyrics button')];
+const lyricWords = [...document.querySelectorAll('#lyrics [data-cue]')];
+const songSeek = document.querySelector('#songSeek');
+const karaokeCues = [[14,0],[17,1],[18,2],[20,3],[21,4],[23,5],[25,6],[27,7],[28,8],[31,9],[32,10],[51,0],[53,1],[54,2],[56,3],[57,4],[58,5],[60,6],[62,7],[64,8],[66,9],[68,10]];
 const formatTime = value => Number.isFinite(value) ? `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}` : '–:––';
 function updateSong() {
   const ratio = song.duration ? song.currentTime / song.duration : 0;
-  document.querySelector('#songProgress').style.width = `${ratio * 100}%`;
+  if (document.activeElement !== songSeek) songSeek.value = ratio * 100;
   document.querySelector('#songTime').textContent = formatTime(song.currentTime);
-  const line = Math.min(3, Math.floor(ratio * 4));
-  lyricButtons.forEach((button, i) => { button.classList.toggle('active', i === line); button.classList.toggle('past', i < line); });
+  let cue = -1;
+  karaokeCues.forEach(([time, index]) => { if (song.currentTime >= time) cue = index; });
+  lyricWords.forEach((word, i) => { word.classList.toggle('singing', i === cue); word.classList.toggle('sung', cue >= 0 && i < cue); });
+  const activeWord = lyricWords[cue];
+  lyricButtons.forEach(button => button.classList.toggle('active', Boolean(activeWord && button.contains(activeWord))));
 }
+song.loop = true;
 song.addEventListener('loadedmetadata', () => document.querySelector('#songDuration').textContent = formatTime(song.duration));
 song.addEventListener('timeupdate', updateSong);
 song.addEventListener('play', () => document.querySelector('#playSong').textContent = '❚❚');
 song.addEventListener('pause', () => document.querySelector('#playSong').textContent = '▶');
-song.addEventListener('ended', () => { song.currentTime = 0; updateSong(); });
+song.addEventListener('ended', () => { if (!song.loop) { song.currentTime = 0; updateSong(); } });
 document.querySelector('#playSong').addEventListener('click', () => song.paused ? song.play() : song.pause());
 document.querySelector('#restartSong').addEventListener('click', () => { song.currentTime = 0; song.play(); });
 document.querySelector('#muteSong').addEventListener('click', event => { song.muted = !song.muted; event.currentTarget.textContent = song.muted ? '🔇' : '🔊'; });
-lyricButtons.forEach((button, i) => button.addEventListener('click', () => { if (song.duration) song.currentTime = song.duration * i / 4; song.play(); }));
+document.querySelector('#loopSong').addEventListener('click', event => { song.loop = !song.loop; event.currentTarget.classList.toggle('active', song.loop); event.currentTarget.setAttribute('aria-pressed', song.loop); });
+songSeek.addEventListener('input', () => { if (song.duration) song.currentTime = song.duration * Number(songSeek.value) / 100; updateSong(); });
+lyricButtons.forEach(button => button.addEventListener('click', () => { song.currentTime = Number(button.dataset.seek); song.play(); }));
 
 const vocabulary = [
   ['ภูผา','👦','เด็กผู้ชายผู้เป็นเพื่อนของใบโบกและใบบัว','ภู – ผา'],['พ่อ','👨','ผู้ชายผู้ดูแลครอบครัว','พ่อ'],['แม่','👩','ผู้หญิงผู้ให้ความรักและดูแลลูก','แม่'],['ตา','👴','คุณตาผู้สูงอายุในครอบครัว','ตา'],['ใบโบก','🐘','ช้างสีฟ้า เพื่อนของภูผา','ใบ – โบก'],['ใบบัว','🐘','ช้างสีส้ม เพื่อนของภูผา','ใบ – บัว'],['ขา','🦵','อวัยวะที่ใช้ยืนและเดิน','ขา'],['หู','👂','อวัยวะที่ใช้ฟังเสียง','หู'],['งา','🦷','ส่วนสีขาวยาวอยู่ข้างปากช้าง','งา'],['งวง','🐘','จมูกยาวของช้าง ใช้หยิบจับสิ่งของ','งวง'],['หาง','🐿️','ส่วนที่อยู่ด้านหลังของสัตว์','หาง'],['หา','🔎','มองดูเพื่อให้พบสิ่งที่ต้องการ','หา'],['ให้','🎁','ยื่นสิ่งของแก่ผู้อื่น','ให้'],['ได้','🙌','ได้รับหรือทำสำเร็จ','ได้'],['ดีใจ','😄','ความรู้สึกเมื่อมีเรื่องน่ายินดี','ดี – ใจ'],['ดูแล','🤲','เอาใจใส่และช่วยเหลือ','ดู – แล'],['รัก','❤️','ความรู้สึกผูกพันและห่วงใย','รัก']

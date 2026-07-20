@@ -14,7 +14,7 @@
 
   <main class="lesson-shell">
     <nav class="progress" aria-label="ลำดับกิจกรรม">
-      <button data-go="0" class="active"><span>1</span><strong>คาราโอเกะ</strong><small>5 นาที</small></button>
+      <button data-go="0" class="active"><span>1</span><strong>เพลงเพื่อนภูผา</strong><small>5 นาที</small></button>
       <button data-go="1"><span>2</span><strong>ทายเงา</strong><small>15 นาที</small></button>
       <button data-go="2"><span>3</span><strong>บิงโกและวงล้อ</strong><small>15 นาที</small></button>
       <button data-go="3"><span>4</span><strong>รถไฟประโยค</strong><small>20 นาที</small></button>
@@ -22,14 +22,18 @@
 
     <div class="activity-stage">
       <section class="activity active" data-activity="0" aria-labelledby="karaokeTitle">
-        <div class="activity-heading"><div><span class="eyebrow">กิจกรรมที่ 1 · กระตุ้นความสนใจ</span><h1 id="karaokeTitle">ร้องเพลงเพื่อนภูผา</h1><p>ร้องพร้อมกันและทำท่าทางประกอบจังหวะ</p></div><span class="time-badge">♪ 5 นาที</span></div>
-        <div class="karaoke-layout">
-          <div class="karaoke-visual" aria-hidden="true"><div class="mountain">⛰️</div><div class="elephant blue">🐘<small>ใบโบก</small></div><div class="elephant orange">🐘<small>ใบบัว</small></div><div class="music-notes">♪ ♫ ♪</div></div>
-          <div class="karaoke-panel">
-            <div id="lyrics" class="lyrics" aria-live="polite"><button data-line="0" class="active">ภูผา ดูแล ใบโบก</button><button data-line="1">ภูผา ดูแล ใบบัว</button><button data-line="2">ภูผา มีเพื่อน ข้างตัว</button><button data-line="3">ชื่อใบโบก ชื่อใบบัว</button></div>
-            <audio id="song" preload="metadata" src="sounds/02%20เพื่อนภูผา.mp3"></audio>
-            <div class="player"><button id="restartSong" type="button" aria-label="เริ่มเพลงใหม่">↺</button><button id="playSong" class="play" type="button" aria-label="เล่นเพลง">▶</button><div class="track"><div><span id="songProgress"></span></div><small><output id="songTime">0:00</output> / <output id="songDuration">–:––</output></small></div><button id="muteSong" type="button" aria-label="เปิดหรือปิดเสียง">🔊</button></div>
+        <div class="activity-heading"><div><span class="eyebrow">กิจกรรมที่ 1 · กระตุ้นความสนใจ</span><h1 id="karaokeTitle">เพลงเพื่อนภูผา</h1><p>ร้องพร้อมกันและทำท่าทางประกอบจังหวะ</p></div><span class="time-badge">♪ 5 นาที</span></div>
+        <div class="karaoke-full">
+          <div class="grammar grammar-a" aria-hidden="true">ก</div><div class="grammar grammar-b" aria-hidden="true">◌า</div><div class="grammar grammar-c" aria-hidden="true">ฯ</div><div class="grammar grammar-d" aria-hidden="true">คำ</div><div class="grammar grammar-e" aria-hidden="true">✦</div>
+          <img class="karaoke-image" src="img/02.png" alt="ภูผายืนอยู่ระหว่างช้างใบโบกและใบบัว">
+          <div id="lyrics" class="lyrics word-sync" aria-live="polite">
+            <button data-seek="14"><span data-cue="0">ภูผา</span><span data-cue="1">ดูแล</span><span data-cue="2">ใบโบก</span></button>
+            <button data-seek="20"><span data-cue="3">ภูผา</span><span data-cue="4">ดูแล</span><span data-cue="5">ใบบัว</span></button>
+            <button data-seek="25"><span data-cue="6">ภูผา</span><span data-cue="7">มีเพื่อน</span><span data-cue="8">ข้างตัว</span></button>
+            <button data-seek="31"><span data-cue="9">ชื่อใบบัว</span><span data-cue="10">ชื่อใบโบก</span></button>
           </div>
+          <audio id="song" preload="metadata" src="sounds/02%20เพื่อนภูผา.mp3"></audio>
+          <div class="player karaoke-player"><button id="restartSong" type="button" aria-label="เริ่มเพลงใหม่">↺</button><button id="playSong" class="play" type="button" aria-label="เล่นเพลง">▶</button><div class="track"><input id="songSeek" type="range" min="0" max="100" value="0" step="0.1" aria-label="เลื่อนตำแหน่งเพลง"><small><output id="songTime">0:00</output> / <output id="songDuration">–:––</output></small></div><button id="loopSong" class="loop active" type="button" aria-pressed="true" aria-label="เล่นเพลงวน">วน ↻</button><button id="muteSong" type="button" aria-label="เปิดหรือปิดเสียง">🔊</button></div>
         </div>
       </section>
 
