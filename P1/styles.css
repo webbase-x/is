@@ -34,3 +34,10 @@
 .student-result.student-success{background:linear-gradient(135deg,#0d9d7a,#51cf66,#ffd43b);animation:successStar .45s ease-in-out 3}
 @keyframes studentSparkle{to{filter:brightness(1.22);box-shadow:0 0 0 12px rgba(255,255,255,.65),0 0 75px #ffe866,0 28px 90px rgba(47,30,118,.45)}}
 @keyframes successStar{50%{transform:translate(-50%,-50%) scale(1.08);filter:brightness(1.25)}}
+
+/* Hold the correct answer and winner until the teacher continues */
+.is-correct .answer-choices{grid-template-columns:1fr}.answer-card.dismissed{display:none}.is-correct .answer-card.correct{grid-column:1/-1;min-height:clamp(95px,16vh,170px);font-size:clamp(48px,8vw,100px);transform:scale(1);box-shadow:0 0 0 7px rgba(25,169,132,.18),0 20px 55px rgba(8,115,94,.25);animation:correctAnswerHold .55s ease-out}
+@keyframes correctAnswerHold{from{transform:scale(.72);opacity:.3}70%{transform:scale(1.06)}to{transform:scale(1)}}
+.student-result.student-success{position:relative;z-index:4;left:auto;top:auto;transform:none;min-width:min(620px,92%);padding:12px 22px;margin:0 auto 10px;border-width:3px;border-radius:18px;font-size:clamp(26px,4vw,48px);animation:winnerGlow 1s ease-in-out infinite alternate;pointer-events:auto}
+@keyframes winnerGlow{to{filter:brightness(1.15);box-shadow:0 0 0 7px rgba(255,255,255,.55),0 0 35px #ffe866}}
+.student-button:disabled{opacity:.45;cursor:not-allowed}
