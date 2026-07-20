@@ -360,8 +360,22 @@ document.querySelector('#closeBingoExample').addEventListener('click', () => doc
 let savedSentenceWords = [];
 try { savedSentenceWords = JSON.parse(localStorage.getItem('p1TrainSentences') || '[]'); } catch { savedSentenceWords = []; }
 const challenges = [
-  {words:['พ่อ','หา','ภูผา']},{words:['ภูผา','รัก','ใบโบก']},{words:['แม่','ให้','ใบโบก']},{words:['ตา','ดูแล','ใบบัว']},{words:['ภูผา','ดีใจ','ได้','ดูแล','ใบบัว']},
-  ...savedSentenceWords.filter(words => Array.isArray(words) && words.length > 1).map(words => ({words}))
+  {answers:[['พ่อ','แม่','รัก','ภูผา'],['ภูผา','รัก','พ่อ','แม่']]},
+  {answers:[['ภูผา','รัก','ใบโบก'],['ใบโบก','รัก','ภูผา']]},
+  {answers:[['ภูผา','รัก','ใบบัว'],['ใบบัว','รัก','ภูผา']]},
+  {answers:[['ภูผา','ดูแล','ใบโบก']]},
+  {answers:[['ภูผา','ดูแล','ใบบัว']]},
+  {answers:[['ตา','ดูแล','ภูผา'],['ภูผา','ดูแล','ตา']]},
+  {answers:[['ภูผา','หา','ใบโบก'],['ใบโบก','หา','ภูผา']]},
+  {answers:[['ภูผา','หา','ใบบัว'],['ใบบัว','หา','ภูผา']]},
+  {answers:[['ตา','หา','ภูผา'],['ภูผา','หา','ตา']]},
+  {answers:[['พ่อ','หา','ภูผา'],['ภูผา','หา','พ่อ']]},
+  {answers:[['แม่','หา','ภูผา'],['ภูผา','หา','แม่']]},
+  {answers:[['ภูผา','ดีใจ','ได้','ดูแล','ใบโบก']]},
+  {answers:[['ภูผา','ดีใจ','ได้','ดูแล','ใบบัว']]},
+  {answers:[['พ่อ','ให้','ภูผา','ดูแล','ใบโบก']]},
+  {answers:[['พ่อ','ให้','ภูผา','ดูแล','ใบบัว']]},
+  ...savedSentenceWords.filter(words => Array.isArray(words) && words.length > 1).map(words => ({answers:[words]}))
 ];
 let currentChallenge = 0;
 let currentTrainTiles = [];
@@ -403,25 +417,26 @@ function renderTrainGame() {
 }
 function showChallenge(index) {
   currentChallenge = (index + challenges.length) % challenges.length;
-  const challenge = challenges[currentChallenge];
+  const challenge = challenges[currentChallenge]; const words = challenge.answers[0];
   document.querySelector('#challengeNumber').textContent = `โจทย์ที่ ${currentChallenge + 1} จาก ${challenges.length}`;
   document.querySelector('#challengeClue').textContent = 'ลากบัตรคำที่วางสลับกัน มาเรียงบนรถไฟให้เป็นประโยคที่อ่านรู้เรื่อง';
-  currentTrainTiles = shuffleItems(challenge.words.map((word, id) => ({word,id}))); placedTrainTiles = Array(challenge.words.length).fill(null);
+  currentTrainTiles = shuffleItems(words.map((word, id) => ({word,id}))); placedTrainTiles = Array(words.length).fill(null);
   document.querySelector('.challenge').classList.remove('train-correct','train-wrong'); renderTrainGame();
 }
 document.querySelector('#previousChallenge').addEventListener('click', () => showChallenge(currentChallenge - 1));
 document.querySelector('#nextChallenge').addEventListener('click', () => showChallenge(currentChallenge + 1));
 document.querySelector('#checkSentence').addEventListener('click', () => {
-  const correct = placedTrainTiles.every((tileId, index) => tileId === index); document.querySelector('.challenge').classList.remove('train-correct','train-wrong'); void document.querySelector('.challenge').offsetWidth; document.querySelector('.challenge').classList.add(correct ? 'train-correct' : 'train-wrong');
+  const arrangedWords = placedTrainTiles.map(tileId => currentTrainTiles.find(tile => tile.id === tileId)?.word || '');
+  const correct = challenges[currentChallenge].answers.some(answer => answer.length === arrangedWords.length && answer.every((word, index) => word === arrangedWords[index])); document.querySelector('.challenge').classList.remove('train-correct','train-wrong'); void document.querySelector('.challenge').offsetWidth; document.querySelector('.challenge').classList.add(correct ? 'train-correct' : 'train-wrong');
   document.querySelector('#challengeClue').textContent = correct ? 'เก่งมาก! เรียงประโยคถูกต้องแล้ว' : 'ยังไม่ถูก ลองสลับตำแหน่งคำแล้วตรวจอีกครั้ง'; playFeedback(correct);
 });
-document.querySelector('#revealSentence').addEventListener('click', () => { placedTrainTiles = challenges[currentChallenge].words.map((_, index) => index); document.querySelector('.challenge').classList.remove('train-wrong'); document.querySelector('.challenge').classList.add('train-correct'); document.querySelector('#challengeClue').textContent = 'อ่านประโยคบนขบวนรถไฟพร้อมกัน'; renderTrainGame(); });
+document.querySelector('#revealSentence').addEventListener('click', () => { placedTrainTiles = challenges[currentChallenge].answers[0].map((_, index) => index); document.querySelector('.challenge').classList.remove('train-wrong'); document.querySelector('.challenge').classList.add('train-correct'); document.querySelector('#challengeClue').textContent = challenges[currentChallenge].answers.length > 1 ? `อ่านพร้อมกัน • ข้อนี้เรียงได้ ${challenges[currentChallenge].answers.length} แบบ` : 'อ่านประโยคบนขบวนรถไฟพร้อมกัน'; renderTrainGame(); });
 document.querySelector('#awardStar').addEventListener('click', () => { const index = Number(document.querySelector('#groupSelect').value); groupStars[index] += 1; renderScores(); });
 document.querySelector('#addSentence').addEventListener('click', () => document.querySelector('#sentenceDialog').showModal());
 document.querySelector('#cancelSentence').addEventListener('click', () => document.querySelector('#sentenceDialog').close());
 document.querySelector('#sentenceForm').addEventListener('submit', event => {
   event.preventDefault(); const added = document.querySelector('#newSentences').value.split(',').map(sentence => sentence.trim().split(/\s+/).filter(Boolean)).filter(words => words.length > 1);
-  if (!added.length) return; added.forEach(words => challenges.push({words})); savedSentenceWords.push(...added); localStorage.setItem('p1TrainSentences', JSON.stringify(savedSentenceWords)); document.querySelector('#newSentences').value = ''; document.querySelector('#sentenceDialog').close(); showChallenge(challenges.length - added.length);
+  if (!added.length) return; added.forEach(words => challenges.push({answers:[words]})); savedSentenceWords.push(...added); localStorage.setItem('p1TrainSentences', JSON.stringify(savedSentenceWords)); document.querySelector('#newSentences').value = ''; document.querySelector('#sentenceDialog').close(); showChallenge(challenges.length - added.length);
 });
 renderScores(); showChallenge(0); renderCalledWords();
 
