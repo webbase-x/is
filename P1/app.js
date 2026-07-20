@@ -89,7 +89,7 @@ let currentShadow = 0;
 window.p1ShadowTimers = [];
 window.p1AudioContexts = [];
 const shadowGame = document.querySelector('#shadowGame');
-const shadowImages = [document.querySelector('#shadowImage'), document.querySelector('#realImage')];
+const shadowImage = document.querySelector('#shadowImage');
 const rememberShadowTimer = timer => (window.p1ShadowTimers.push(timer), timer);
 const shuffleItems = items => [...items].sort(() => Math.random() - .5);
 function playFeedback(correct) {
@@ -110,7 +110,8 @@ function playFeedback(correct) {
 }
 function renderShadowImage(index) {
   const [word, file] = shadowVocabulary[index];
-  shadowImages.forEach(image => { image.src = `img/${encodeURIComponent(file)}`; });
+  shadowImage.src = `img/${encodeURIComponent(file)}`;
+  shadowImage.alt = `ภาพครึ่งเงาและครึ่งภาพจริงสำหรับทายคำ ${word}`;
   document.querySelector('#shadowPicture').setAttribute('aria-label', 'ภาพด้านซ้ายเป็นเงา และภาพด้านขวาเป็นภาพจริงสำหรับทายคำ');
 }
 function renderChoices() {
