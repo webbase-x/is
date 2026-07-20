@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <meta name="theme-color" content="#5a48d6"><meta name="description" content="สื่อการสอนภาษาไทย ป.1 เรื่อง รู้จักคำ นำเรื่อง เพื่อนภูผา">
-  <title>รู้จักคำ นำเรื่อง | เพลินภาษา ป.1</title><link rel="stylesheet" href="styles.css?v=20260721-20">
+  <title>รู้จักคำ นำเรื่อง | เพลินภาษา ป.1</title><link rel="stylesheet" href="styles.css?v=20260721-21">
 </head>
 <body>
   <header class="topbar">
@@ -78,6 +78,19 @@
           </div>
           <div class="called-panel"><div class="called-heading"><div><small>คำที่ออกแล้ว</small><strong><output id="calledCount">0</output> / 16 คำ</strong></div><button id="resetWheel" type="button">เริ่มรอบใหม่</button></div><div id="calledWords" class="called-words"><p>กด “หมุนวงล้อ” เพื่อเริ่มกิจกรรม</p></div><div class="bingo-call">ได้ 4 ช่องเรียงกันแล้วตะโกน<br><strong>“บิงโก!”</strong><button id="showBingoExample" type="button">ดูตัวอย่างการวางเบี้ยที่ได้คะแนน</button></div></div>
         </div>
+        <div class="bingo-sheet-tools">
+          <div><strong>สร้างตารางบิงโก A4</strong><small>สุ่มคำให้แต่ละหน้าไม่ซ้ำกัน พร้อมพิมพ์หรือบันทึกเป็น PDF</small></div>
+          <button id="openBingoSheetMaker" class="primary-action" type="button">สร้างตารางบิงโก</button>
+        </div>
+        <dialog id="bingoSheetDialog" class="student-dialog bingo-sheet-dialog">
+          <form id="bingoSheetForm" method="dialog">
+            <h2>สร้างตารางบิงโก A4</h2>
+            <label>จำนวนหน้าที่ต้องการสร้าง<input id="bingoPageCount" type="number" min="1" max="100" value="1" required></label>
+            <label>คำสำหรับสร้างตาราง<textarea id="bingoSheetWords" rows="7"></textarea><small>เพิ่มหรือแก้ไขคำได้ โดยคั่นแต่ละคำด้วยเครื่องหมายจุลภาค (,) หรือขึ้นบรรทัดใหม่ ต้องมีอย่างน้อย 16 คำ</small></label>
+            <p id="bingoSheetMessage" class="form-message" role="status"></p>
+            <div class="dialog-actions"><button id="cancelBingoSheet" type="button">ยกเลิก</button><button class="primary-action" type="submit">ดาวน์โหลด / พิมพ์ PDF</button></div>
+          </form>
+        </dialog>
         <dialog id="bingoExampleDialog" class="student-dialog bingo-example-dialog"><div class="bingo-example-content"><h2>ตัวอย่างการวางเบี้ยที่ได้คะแนน</h2><div class="bingo-example-card"><div class="bingo-example-heading"><button id="previousBingoExample" type="button" aria-label="ตัวอย่างก่อนหน้า">‹</button><div><small id="bingoExamplePosition">แบบที่ 1 จาก 4</small><h3 id="bingoExampleTitle">แนวนอน</h3></div><button id="nextBingoExample" type="button" aria-label="ตัวอย่างถัดไป">›</button></div><div id="bingoExampleBoard" class="bingo-example-board" aria-label="ตัวอย่างบิงโกสี่ช่องเรียงกัน"></div><div id="bingoExampleExplanation" class="bingo-example-explanation"></div><div class="bingo-example-result">✓ วางเบี้ยครบ 4 ช่องที่เรียงต่อกัน = ได้คะแนนและพูดว่า “บิงโก!”</div></div><div class="dialog-actions"><button id="closeBingoExample" class="primary-action" type="button">ปิด</button></div></div></dialog>
       </section>
 
@@ -95,5 +108,5 @@
     <nav class="activity-navigation" aria-label="เปลี่ยนกิจกรรม"><button id="previousActivity" type="button" disabled><span>‹</span><div><small>ย้อนกลับ</small><strong>กิจกรรมก่อนหน้า</strong></div></button><div class="activity-position"><span id="activityPosition">1 / 4</span><div><i class="active"></i><i></i><i></i><i></i></div></div><button id="nextActivity" type="button"><div><small>ไปต่อ</small><strong>กิจกรรมถัดไป</strong></div><span>›</span></button></nav>
   </main>
   <div id="annotationToolbar" class="annotation-toolbar" aria-label="เครื่องมือเขียนหน้าจอ"><button id="toggleAnnotation" class="annotation-toggle" type="button" aria-label="เปิดหรือย่อเครื่องมือเขียน">✎</button><div class="annotation-tools"><button data-draw-mode="laser" type="button">เลเซอร์</button><button data-draw-mode="pen" type="button">ปากกา</button><button data-draw-mode="eraser" type="button">ยางลบ</button><button data-draw-mode="pointer" class="active" type="button">พอยน์เตอร์</button><label>สี <input id="drawColor" type="color" value="#e53935"></label><label>ขนาด <input id="drawSize" type="range" min="2" max="24" value="6"></label><button id="clearDrawing" type="button">ล้างทั้งหมด</button></div></div><canvas id="drawingCanvas" class="drawing-canvas" aria-label="พื้นที่เขียนหน้าจอ"></canvas><canvas id="laserCanvas" class="drawing-canvas laser-canvas" aria-hidden="true"></canvas><div id="screenPointer" class="screen-pointer" aria-hidden="true"></div>
-  <script src="app.js?v=20260721-20"></script>
+  <script src="app.js?v=20260721-21"></script>
 </body></html>

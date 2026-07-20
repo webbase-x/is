@@ -260,6 +260,41 @@ document.querySelector('#closeScores').addEventListener('click', () => document.
 updateScoreBoard();
 
 const bingoWords = vocabulary.filter(item => item[0] !== 'รัก').map(item => item[0]);
+const bingoSheetDialog = document.querySelector('#bingoSheetDialog');
+const bingoSheetWordsInput = document.querySelector('#bingoSheetWords');
+const shuffleBingoWords = words => {
+  const copy = [...words];
+  for (let index = copy.length - 1; index > 0; index -= 1) { const pick = Math.floor(Math.random() * (index + 1)); [copy[index], copy[pick]] = [copy[pick], copy[index]]; }
+  return copy;
+};
+const escapeBingoText = text => text.replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+document.querySelector('#openBingoSheetMaker').addEventListener('click', () => {
+  bingoSheetWordsInput.value = bingoWords.join(', ');
+  document.querySelector('#bingoSheetMessage').textContent = '';
+  bingoSheetDialog.showModal();
+});
+document.querySelector('#cancelBingoSheet').addEventListener('click', () => bingoSheetDialog.close());
+document.querySelector('#bingoSheetForm').addEventListener('submit', event => {
+  event.preventDefault();
+  const raw = bingoSheetWordsInput.value.trim();
+  const separator = raw.includes(',') ? /\s*,\s*/ : /\n+/;
+  const words = [...new Set(raw.split(separator).map(word => word.trim()).filter(Boolean))];
+  const pageCount = Math.min(100, Math.max(1, Number(document.querySelector('#bingoPageCount').value) || 1));
+  const message = document.querySelector('#bingoSheetMessage');
+  if (words.length < 16) { message.textContent = `กรุณาเพิ่มคำให้ครบอย่างน้อย 16 คำ (ขณะนี้มี ${words.length} คำ)`; return; }
+  const maximumLayouts = words.length === 16 ? 100 : pageCount;
+  const boards = []; const signatures = new Set(); let attempts = 0;
+  while (boards.length < Math.min(pageCount, maximumLayouts) && attempts < pageCount * 60) {
+    const board = shuffleBingoWords(words).slice(0, 16); const signature = board.join('|'); attempts += 1;
+    if (!signatures.has(signature)) { signatures.add(signature); boards.push(board); }
+  }
+  if (boards.length < pageCount) { message.textContent = 'ไม่สามารถสร้างหน้าที่ไม่ซ้ำกันได้ครบตามจำนวน กรุณาเพิ่มคำอีกเล็กน้อย'; return; }
+  const pages = boards.map((board, pageIndex) => `<section class="page"><header><div><h1>บิงโก!</h1><p>ชื่อ ______________________________ ชั้น ______ เลขที่ ______</p></div><b>ชุดที่ ${pageIndex + 1}</b></header><main>${board.map(word => `<div>${escapeBingoText(word)}</div>`).join('')}</main><footer>ฟังคำจากวงล้อ แล้ววางเบี้ยให้ตรงกับคำ • เรียงครบ 4 ช่อง พูดว่า “บิงโก!”</footer></section>`).join('');
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) { message.textContent = 'เบราว์เซอร์ปิดกั้นหน้าดาวน์โหลด กรุณาอนุญาตป๊อปอัปแล้วลองใหม่'; return; }
+  printWindow.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ตารางบิงโก ${pageCount} หน้า</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{margin:0;font-family:Tahoma,sans-serif;color:#241d46}.page{width:186mm;height:273mm;display:flex;flex-direction:column;page-break-after:always;padding:7mm;border:2px solid #5a48d6;border-radius:5mm;background:linear-gradient(145deg,#fff 70%,#f5f1ff)}.page:last-child{page-break-after:auto}header{display:flex;justify-content:space-between;align-items:start;margin-bottom:8mm}h1{margin:0;color:#5a48d6;font-size:30pt}header p{margin:3mm 0 0;font-size:13pt}header b{padding:3mm 5mm;border-radius:99px;background:#fff1b8;color:#7b5900}main{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:3mm}main div{display:grid;place-items:center;padding:3mm;border:2px solid #6c5bd8;border-radius:4mm;background:white;text-align:center;font-size:22pt;font-weight:700;overflow-wrap:anywhere}footer{margin-top:6mm;text-align:center;font-size:12pt;color:#655e78}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body>${pages}<script>window.onload=()=>{window.print()}<\/script></body></html>`);
+  printWindow.document.close(); bingoSheetDialog.close();
+});
 let remainingWords = [...bingoWords];
 let calledWords = [];
 function renderCalledWords() {
