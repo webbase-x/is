@@ -360,7 +360,7 @@ document.querySelector('#closeBingoExample').addEventListener('click', () => doc
 let savedSentenceWords = [];
 try { savedSentenceWords = JSON.parse(localStorage.getItem('p1TrainSentences') || '[]'); } catch { savedSentenceWords = []; }
 const challenges = [
-  {answers:[['พ่อ','แม่','รัก','ภูผา'],['ภูผา','รัก','พ่อ','แม่']]},
+  {answers:[['ภูผา','รัก','พ่อ','แม่'],['ภูผา','รัก','แม่','พ่อ'],['พ่อ','แม่','รัก','ภูผา'],['แม่','พ่อ','รัก','ภูผา']]},
   {answers:[['ภูผา','รัก','ใบโบก'],['ใบโบก','รัก','ภูผา']]},
   {answers:[['ภูผา','รัก','ใบบัว'],['ใบบัว','รัก','ภูผา']]},
   {answers:[['ภูผา','ดูแล','ใบโบก']]},
