@@ -620,16 +620,17 @@ function subscribePresence() {
   state.presenceReady = false;
   state.presenceTracked = false;
   state.presenceChannel = supabase.channel(`classroom-${state.session.id}`, { config: { presence: { key: state.player.id } } })
-    .on("broadcast", { event: "screen-watch" }, message => {
-      const request = message?.payload || message;
-      if (request?.role !== "teacher" || request.player_id !== state.player.id) return;
-      if (request.active === false) {
+    .on("broadcast", { event: "screen-stream-control" }, message => {
+      const control = message?.payload || message;
+      if (control?.role !== "teacher" || control.player_id !== state.player.id) return;
+      if (control.active === false) {
         state.screenWatchUntil = 0;
         clearInterval(state.screenWatchInterval);
         state.screenWatchInterval = null;
         return;
       }
-      state.screenWatchUntil = Math.max(Date.now(), Number(request.expires_at) || 0);
+      // Streaming starts automatically. The student never sees an approval prompt.
+      state.screenWatchUntil = Math.max(Date.now(), Number(control.expires_at) || 0);
       clearTimeout(state.screenPresenceTimer);
       state.screenPresenceTimer = null;
       scheduleStudentScreenPresence(true);

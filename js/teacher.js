@@ -816,7 +816,7 @@ function stopStudentScreenWatch() {
   if (playerId && state.presenceChannel) {
     void state.presenceChannel.send({
       type: "broadcast",
-      event: "screen-watch",
+      event: "screen-stream-control",
       payload: { role: "teacher", player_id: playerId, active: false },
     });
   }
@@ -829,7 +829,7 @@ function watchStudentScreen(playerId) {
   state.watchedStudentScreenId = playerId;
   const requestStream = () => void state.presenceChannel?.send({
     type: "broadcast",
-    event: "screen-watch",
+    event: "screen-stream-control",
     payload: { role: "teacher", player_id: playerId, active: true, expires_at: Date.now() + 6500 },
   });
   requestStream();
@@ -847,7 +847,7 @@ function renderStudentScreenFocus(entries) {
   const score = Number.isFinite(rawScore) ? rawScore : 0;
   const updatedAt = screen.updated_at ? new Date(screen.updated_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
   $("#studentScreenFocusContent").innerHTML = `<div class="student-screen-focus-layout">
-    <div class="student-screen-focus-device">${studentMirrorHtml(selected, true)}</div>
+    <div class="student-screen-focus-device"><div class="student-streaming-badge"><i></i> ถ่ายทอดสด</div>${studentMirrorHtml(selected, true)}</div>
     <aside class="panel student-screen-focus-info">
       <span class="eyebrow">นักเรียนคนที่ ${index + 1} จาก ${entries.length}</span>
       <div class="student-screen-person"><span>${escapeHtml(selected.student.avatar || randomAvatar(selected.student.nickname))}</span><div><h2>${escapeHtml(selected.student.full_name || "นักเรียน")}</h2><p>${escapeHtml(selected.student.nickname || "")} · ${escapeHtml(selected.student.student_code || "")}</p></div></div>

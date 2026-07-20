@@ -595,6 +595,8 @@ body.competition-overlay-open { overflow: hidden; }
 .student-screen-arrow:disabled { cursor: not-allowed; opacity: .4; }
 .student-screen-focus-layout { display: grid; grid-template-columns: minmax(330px, .82fr) minmax(360px, 1.18fr); align-items: center; gap: clamp(20px, 4vw, 55px); padding: clamp(20px, 4vw, 44px); border-radius: 28px; background: linear-gradient(135deg, #202a4b, #30285f); box-shadow: var(--shadow); }
 .student-screen-focus-device { width: min(430px, 100%); margin: 0 auto; }
+.student-streaming-badge { width: max-content; display: flex; align-items: center; gap: 8px; margin: 0 auto 10px; padding: 7px 13px; border-radius: 999px; color: white; background: #e43f5a; box-shadow: 0 8px 22px rgba(228,63,90,.3); font-size: 13px; font-weight: 900; }
+.student-streaming-badge i { width: 9px; height: 9px; border-radius: 50%; background: white; animation: screen-live-pulse 1.2s ease-in-out infinite; }
 .student-device-large { border-width: 12px; border-radius: 38px; box-shadow: 0 24px 50px rgba(0,0,0,.24); }
 .student-device-large::before { top: 7px; height: 15px; }
 .student-device-large .student-device-top { min-height: 47px; padding: 14px 17px 5px; font-size: 13px; }
