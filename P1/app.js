@@ -49,7 +49,24 @@ function showActivity(index) {
 document.querySelector('#previousActivity').addEventListener('click', () => showActivity(currentActivity - 1));
 document.querySelector('#nextActivity').addEventListener('click', () => showActivity(currentActivity + 1));
 progressButtons.forEach(button => button.addEventListener('click', () => showActivity(Number(button.dataset.go))));
-document.querySelector('#fullscreenButton').addEventListener('click', () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
+const fullscreenButton = document.querySelector('#fullscreenButton');
+function syncFullscreenPresentation() {
+  const active = Boolean(document.fullscreenElement);
+  document.body.classList.toggle('game-fullscreen', active);
+  fullscreenButton.textContent = active ? '✕' : '⛶';
+  fullscreenButton.setAttribute('aria-label', active ? 'ออกจากเต็มหน้าจอ' : 'แสดงเต็มหน้าจอ');
+  fullscreenButton.title = active ? 'ออกจากเต็มหน้าจอ' : 'เต็มหน้าจอ';
+}
+fullscreenButton.addEventListener('click', async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen();
+  } catch (error) {
+    console.warn('Fullscreen is unavailable', error);
+  }
+});
+document.addEventListener('fullscreenchange', syncFullscreenPresentation);
+syncFullscreenPresentation();
 showActivity(currentActivity);
 
 const song = document.querySelector('#song');
@@ -465,7 +482,8 @@ document.querySelectorAll('[data-draw-mode]').forEach(button => button.addEventL
 document.querySelector('#clearDrawing').addEventListener('click', () => { drawingContext.clearRect(0,0,drawingCanvas.width,drawingCanvas.height); laserContext.clearRect(0,0,laserCanvas.width,laserCanvas.height); });
 document.querySelector('#toggleAnnotation').addEventListener('click', () => {
   const toolbar = document.querySelector('#annotationToolbar'); const collapsed = toolbar.classList.toggle('collapsed'); const toggle = document.querySelector('#toggleAnnotation');
-  toggle.setAttribute('aria-expanded', String(!collapsed)); toggle.querySelector('span').textContent = collapsed ? 'เครื่องมือเขียน' : 'ซ่อนรายละเอียด';
+  const label = collapsed ? 'เปิดเครื่องมือเขียน' : 'ปิดเครื่องมือเขียน';
+  toggle.setAttribute('aria-expanded', String(!collapsed)); toggle.setAttribute('aria-label', label); toggle.title = label; toggle.querySelector('.sr-only').textContent = label;
   if (collapsed) setDrawingMode('pointer');
 });
 window.addEventListener('pointermove', event => { if (drawingMode !== 'pointer') return; const pointer = document.querySelector('#screenPointer'); pointer.style.left = `${event.clientX}px`; pointer.style.top = `${event.clientY}px`; });

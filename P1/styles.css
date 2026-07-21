@@ -86,3 +86,58 @@
 
 /* Brighter, soft-edged laser glow. */
 .laser-canvas{filter:saturate(1.35) brightness(1.12)}
+
+/* Compact icon-only annotation controls. */
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.annotation-toggle{width:42px!important;padding:0!important}
+.annotation-tools{gap:7px}
+.annotation-tools>button,.annotation-control{width:42px;height:42px;display:grid;place-items:center;flex:0 0 42px;padding:0!important;border:1px solid rgba(255,255,255,.28);border-radius:11px;background:rgba(255,255,255,.1);color:white;font-size:20px;cursor:pointer}
+.annotation-tools>button.active{background:#ffd34e;color:#4d3800}
+.annotation-control{position:relative}
+.annotation-control>span[aria-hidden="true"]{pointer-events:none}
+.annotation-control input[type="color"]{position:absolute;inset:4px;width:34px;height:34px;opacity:0;cursor:pointer}
+.annotation-size{width:118px;grid-template-columns:26px 1fr;padding:0 8px!important}
+.annotation-size input[type="range"]{width:76px}
+
+/* A shared, distraction-free fullscreen presentation for every game. */
+.game-fullscreen{overflow:hidden;background:#fff}
+.game-fullscreen .topbar{position:fixed;z-index:1100;top:8px;right:8px;left:auto;width:auto;height:auto;min-height:0;display:block;padding:0;border:0;background:transparent;box-shadow:none;backdrop-filter:none}
+.game-fullscreen .brand,.game-fullscreen .lesson-meta{display:none}
+.game-fullscreen .topbar-actions{display:flex}
+.game-fullscreen #fullscreenButton{background:rgba(31,27,70,.9);color:#fff;border-color:rgba(255,255,255,.3)}
+.game-fullscreen .lesson-shell{width:100vw;max-width:none;height:100dvh;margin:0;padding:0}
+.game-fullscreen .progress,.game-fullscreen .activity-navigation,.game-fullscreen .activity-heading,.game-fullscreen .bingo-sheet-tools{display:none!important}
+.game-fullscreen .activity-stage{width:100%;height:100dvh;min-height:0}
+.game-fullscreen .activity:not([hidden]){width:100%;height:100dvh;min-height:0;padding:8px;border:0;border-radius:0;box-shadow:none;overflow:hidden}
+
+.game-fullscreen .activity[data-activity="0"]:not([hidden]){display:block}
+.game-fullscreen .activity[data-activity="0"] .karaoke-full{height:calc(100dvh - 16px);min-height:0;grid-template-columns:minmax(220px,.85fr) minmax(350px,1.15fr);padding:clamp(12px,2vw,26px) clamp(18px,3vw,44px) 82px;border-radius:18px;overflow:hidden}
+.game-fullscreen .karaoke-image{max-height:calc(100dvh - 120px)}
+.game-fullscreen .word-sync{min-height:0;overflow:auto}
+
+.game-fullscreen .activity[data-activity="1"]{padding:6px}
+.game-fullscreen .activity[data-activity="1"] .shadow-game{height:calc(100dvh - 12px);min-height:0;display:block}
+.game-fullscreen .activity[data-activity="1"] .shadow-card{height:100%;max-width:none;display:flex;flex-direction:column;padding:8px 12px;overflow:hidden;border-radius:18px}
+.game-fullscreen .activity[data-activity="1"] .score-row,.game-fullscreen .activity[data-activity="1"] .shadow-toolbar{flex:0 0 auto;margin-bottom:4px}
+.game-fullscreen .activity[data-activity="1"] .shadow-picture{min-height:100px;height:auto;flex:1 1 auto;margin:4px auto}
+.game-fullscreen .activity[data-activity="1"] .shadow-prompt{flex:0 0 auto;margin:4px 0}
+.game-fullscreen .activity[data-activity="1"] .answer-choices{flex:0 0 auto}
+
+.game-fullscreen .activity[data-activity="2"] .bingo-layout{height:calc(100dvh - 16px);grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:12px;align-items:stretch}
+.game-fullscreen .wheel-panel,.game-fullscreen .called-panel{min-height:0;overflow:auto;padding:10px}
+.game-fullscreen .wheel{width:min(43vw,calc(100dvh - 125px),410px);height:min(43vw,calc(100dvh - 125px),410px);margin:5px auto 10px}
+.game-fullscreen .wheel-panel>p,.game-fullscreen .bingo-call{display:none}
+.game-fullscreen .called-words{min-height:0;height:calc(100% - 58px);margin:10px 0;overflow:auto}
+
+.game-fullscreen .activity[data-activity="3"] .train-game{height:calc(100dvh - 16px);display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);gap:0;overflow:hidden}
+.game-fullscreen .activity[data-activity="3"] .group-score,.game-fullscreen .activity[data-activity="3"] .train-actions{display:none}
+.game-fullscreen .activity[data-activity="3"] .challenge{min-height:0;height:100%;overflow:auto;padding:clamp(12px,2vw,24px)}
+
+@media (orientation:portrait) and (max-width:700px){
+  .game-fullscreen .activity:not([hidden]){padding:6px}
+  .game-fullscreen .activity[data-activity="0"] .karaoke-full{height:calc(100dvh - 12px);grid-template-columns:1fr;grid-template-rows:minmax(0,.75fr) auto;padding:10px 10px 88px}
+  .game-fullscreen .karaoke-image{max-height:34dvh}
+  .game-fullscreen .activity[data-activity="2"] .bingo-layout{height:calc(100dvh - 12px);grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(180px,.75fr);gap:7px}
+  .game-fullscreen .wheel{width:min(58vw,34dvh,320px);height:min(58vw,34dvh,320px)}
+  .game-fullscreen .called-panel{padding:8px}
+}
