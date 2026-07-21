@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <meta name="theme-color" content="#5a48d6"><meta name="description" content="สื่อการสอนภาษาไทย ป.1 เรื่อง รู้จักคำ นำเรื่อง เพื่อนภูผา">
-  <title>หน่วยที่ 2 ภูผา · แผนที่ 1 รู้จักคำ นำเรื่อง | เพลินภาษา ป.1</title><link rel="stylesheet" href="styles.css?v=20260721-31">
+  <title>หน่วยที่ 2 ภูผา · แผนที่ 1 รู้จักคำ นำเรื่อง | เพลินภาษา ป.1</title><link rel="stylesheet" href="styles.css?v=20260721-32">
 </head>
 <body class="app-loading">
   <div id="preloadScreen" class="preload-screen" role="status" aria-live="polite" aria-busy="true">
@@ -106,14 +106,15 @@
         <div class="train-game">
           <div class="group-score"><span>ดาวสะสมแต่ละกลุ่ม</span><div id="groupScores"></div></div>
           <div class="challenge"><div class="challenge-top"><span id="challengeNumber">โจทย์ที่ 1 จาก 5</span><div><button id="previousChallenge" type="button">‹</button><button id="nextChallenge" type="button">›</button></div></div><p id="challengeClue">ลากคำมาเรียงบนขบวนรถไฟให้เป็นประโยค</p><div id="wordBank" class="word-bank" aria-label="บัตรคำที่สุ่มตำแหน่ง"></div><div id="trainCars" class="train-cars interactive-train" aria-label="ช่องวางคำบนขบวนรถไฟ"></div><div class="train-check-actions"><button id="checkSentence" class="primary-action" type="button">ตรวจคำตอบ</button><button id="revealSentence" type="button">เฉลย</button></div></div>
-          <div class="train-actions"><a class="train-download" href="downloads/p1-train-word-cards-a4.pdf?v=20260721-2" download>⬇ ดาวน์โหลด PDF บัตรคำ</a><button id="addSentence" type="button">＋ เพิ่มประโยค</button><button id="awardStar" type="button">★ ให้ดาวกลุ่มที่เลือก</button><select id="groupSelect" aria-label="เลือกกลุ่ม"><option value="0">กลุ่ม 1</option><option value="1">กลุ่ม 2</option><option value="2">กลุ่ม 3</option><option value="3">กลุ่ม 4</option><option value="4">กลุ่ม 5</option></select></div>
+          <div class="train-actions"><a class="train-download" href="downloads/p1-train-word-cards-a4.pdf?v=20260721-2" download>⬇ ดาวน์โหลด PDF บัตรคำ</a><button id="showSentenceList" type="button">☷ ดูประโยคทั้งหมด</button><button id="addSentence" type="button">＋ เพิ่มประโยค</button><button id="awardStar" type="button">★ ให้ดาวกลุ่มที่เลือก</button><select id="groupSelect" aria-label="เลือกกลุ่ม"><option value="0">กลุ่ม 1</option><option value="1">กลุ่ม 2</option><option value="2">กลุ่ม 3</option><option value="3">กลุ่ม 4</option><option value="4">กลุ่ม 5</option></select></div>
         </div>
         <dialog id="sentenceDialog" class="student-dialog sentence-dialog"><form id="sentenceForm" method="dialog"><h2>เพิ่มประโยคใหม่</h2><p>เว้นวรรคระหว่างคำ และใช้จุลภาค <strong>,</strong> คั่นแต่ละข้อ</p><textarea id="newSentences" rows="6" placeholder="พ่อ หา ภูผา, ภูผา รัก ใบโบก" aria-label="ประโยคใหม่"></textarea><div class="dialog-actions"><button id="cancelSentence" type="button">ยกเลิก</button><button class="primary-action" type="submit">เพิ่มประโยค</button></div></form></dialog>
+        <dialog id="sentenceListDialog" class="student-dialog sentence-list-dialog"><div class="sentence-list-content"><h2>ประโยคสำหรับขบวนรถไฟ</h2><p>แต่ละข้อมีคำตอบที่ถูกต้องเพียง 1 ลำดับ</p><ol id="sentenceList" class="sentence-list"></ol><div class="dialog-actions"><button id="closeSentenceList" class="primary-action" type="button">ปิด</button></div></div></dialog>
       </section>
     </div>
 
     <nav class="activity-navigation" aria-label="เปลี่ยนกิจกรรม"><button id="previousActivity" type="button" disabled><span>‹</span><div><small>ย้อนกลับ</small><strong>กิจกรรมก่อนหน้า</strong></div></button><div class="activity-position"><span id="activityPosition">1 / 4</span><div><i class="active"></i><i></i><i></i><i></i></div></div><button id="nextActivity" type="button"><div><small>ไปต่อ</small><strong>กิจกรรมถัดไป</strong></div><span>›</span></button></nav>
   </main>
   <canvas id="drawingCanvas" class="drawing-canvas" aria-label="พื้นที่เขียนหน้าจอ"></canvas><canvas id="laserCanvas" class="drawing-canvas laser-canvas" aria-hidden="true"></canvas><div id="screenPointer" class="screen-pointer" aria-hidden="true"></div>
-  <script src="app.js?v=20260721-31"></script>
+  <script src="app.js?v=20260721-32"></script>
 </body></html>

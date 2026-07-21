@@ -424,22 +424,24 @@ document.querySelector('#closeBingoExample').addEventListener('click', () => doc
 
 let savedSentenceWords = [];
 try { savedSentenceWords = JSON.parse(localStorage.getItem('p1TrainSentences') || '[]'); } catch { savedSentenceWords = []; }
+const baseSentenceChallenges = [
+  ['พ่อ','แม่','รัก','ภูผา'],
+  ['ภูผา','รัก','พ่อ','แม่'],
+  ['ภูผา','รัก','ใบโบก'],
+  ['ภูผา','รัก','ใบบัว'],
+  ['ภูผา','ดูแล','ใบโบก'],
+  ['ภูผา','ดูแล','ใบบัว'],
+  ['ตา','ดูแล','ภูผา'],
+  ['ภูผา','หา','ใบโบก'],
+  ['ภูผา','หา','ใบบัว'],
+  ['ตา','หา','ภูผา'],
+  ['พ่อ','หา','ภูผา'],
+  ['แม่','หา','ภูผา'],
+  ['พ่อ','ให้','ภูผา','ดูแล','ใบโบก'],
+  ['พ่อ','ให้','ภูผา','ดูแล','ใบบัว']
+];
 const challenges = [
-  {answers:[['ภูผา','รัก','พ่อ','แม่'],['ภูผา','รัก','แม่','พ่อ'],['พ่อ','แม่','รัก','ภูผา'],['แม่','พ่อ','รัก','ภูผา']]},
-  {answers:[['ภูผา','รัก','ใบโบก'],['ใบโบก','รัก','ภูผา']]},
-  {answers:[['ภูผา','รัก','ใบบัว'],['ใบบัว','รัก','ภูผา']]},
-  {answers:[['ภูผา','ดูแล','ใบโบก']]},
-  {answers:[['ภูผา','ดูแล','ใบบัว']]},
-  {answers:[['ตา','ดูแล','ภูผา'],['ภูผา','ดูแล','ตา']]},
-  {answers:[['ภูผา','หา','ใบโบก'],['ใบโบก','หา','ภูผา']]},
-  {answers:[['ภูผา','หา','ใบบัว'],['ใบบัว','หา','ภูผา']]},
-  {answers:[['ตา','หา','ภูผา'],['ภูผา','หา','ตา']]},
-  {answers:[['พ่อ','หา','ภูผา'],['ภูผา','หา','พ่อ']]},
-  {answers:[['แม่','หา','ภูผา'],['ภูผา','หา','แม่']]},
-  {answers:[['ภูผา','ดีใจ','ได้','ดูแล','ใบโบก']]},
-  {answers:[['ภูผา','ดีใจ','ได้','ดูแล','ใบบัว']]},
-  {answers:[['พ่อ','ให้','ภูผา','ดูแล','ใบโบก']]},
-  {answers:[['พ่อ','ให้','ภูผา','ดูแล','ใบบัว']]},
+  ...baseSentenceChallenges.map(words => ({answers:[words]})),
   ...savedSentenceWords.filter(words => Array.isArray(words) && words.length > 1).map(words => ({answers:[words]}))
 ];
 let currentChallenge = 0;
@@ -495,10 +497,15 @@ document.querySelector('#checkSentence').addEventListener('click', () => {
   const correct = challenges[currentChallenge].answers.some(answer => answer.length === arrangedWords.length && answer.every((word, index) => word === arrangedWords[index])); document.querySelector('.challenge').classList.remove('train-correct','train-wrong'); void document.querySelector('.challenge').offsetWidth; document.querySelector('.challenge').classList.add(correct ? 'train-correct' : 'train-wrong');
   document.querySelector('#challengeClue').textContent = correct ? 'เก่งมาก! เรียงประโยคถูกต้องแล้ว' : 'ยังไม่ถูก ลองสลับตำแหน่งคำแล้วตรวจอีกครั้ง'; playFeedback(correct);
 });
-document.querySelector('#revealSentence').addEventListener('click', () => { placedTrainTiles = challenges[currentChallenge].answers[0].map((_, index) => index); document.querySelector('.challenge').classList.remove('train-wrong'); document.querySelector('.challenge').classList.add('train-correct'); document.querySelector('#challengeClue').textContent = challenges[currentChallenge].answers.length > 1 ? `อ่านพร้อมกัน • ข้อนี้เรียงได้ ${challenges[currentChallenge].answers.length} แบบ` : 'อ่านประโยคบนขบวนรถไฟพร้อมกัน'; renderTrainGame(); });
+document.querySelector('#revealSentence').addEventListener('click', () => { placedTrainTiles = challenges[currentChallenge].answers[0].map((_, index) => index); document.querySelector('.challenge').classList.remove('train-wrong'); document.querySelector('.challenge').classList.add('train-correct'); document.querySelector('#challengeClue').textContent = 'อ่านประโยคบนขบวนรถไฟพร้อมกัน'; renderTrainGame(); });
 document.querySelector('#awardStar').addEventListener('click', () => { const index = Number(document.querySelector('#groupSelect').value); groupStars[index] += 1; renderScores(); });
 document.querySelector('#addSentence').addEventListener('click', () => document.querySelector('#sentenceDialog').showModal());
 document.querySelector('#cancelSentence').addEventListener('click', () => document.querySelector('#sentenceDialog').close());
+function renderSentenceList() {
+  document.querySelector('#sentenceList').innerHTML = challenges.map((challenge, index) => `<li><span>${index + 1}</span>${challenge.answers[0].join(' ')}</li>`).join('');
+}
+document.querySelector('#showSentenceList').addEventListener('click', () => { renderSentenceList(); document.querySelector('#sentenceListDialog').showModal(); });
+document.querySelector('#closeSentenceList').addEventListener('click', () => document.querySelector('#sentenceListDialog').close());
 document.querySelector('#sentenceForm').addEventListener('submit', event => {
   event.preventDefault(); const added = document.querySelector('#newSentences').value.split(',').map(sentence => sentence.trim().split(/\s+/).filter(Boolean)).filter(words => words.length > 1);
   if (!added.length) return; added.forEach(words => challenges.push({answers:[words]})); savedSentenceWords.push(...added); localStorage.setItem('p1TrainSentences', JSON.stringify(savedSentenceWords)); document.querySelector('#newSentences').value = ''; document.querySelector('#sentenceDialog').close(); showChallenge(challenges.length - added.length);
