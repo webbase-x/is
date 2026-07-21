@@ -425,7 +425,6 @@ document.querySelector('#closeBingoExample').addEventListener('click', () => doc
 let savedSentenceWords = [];
 try { savedSentenceWords = JSON.parse(localStorage.getItem('p1TrainSentences') || '[]'); } catch { savedSentenceWords = []; }
 const baseSentenceChallenges = [
-  ['พ่อ','แม่','รัก','ภูผา'],
   ['ภูผา','รัก','พ่อ','แม่'],
   ['ภูผา','รัก','ใบโบก'],
   ['ภูผา','รัก','ใบบัว'],
