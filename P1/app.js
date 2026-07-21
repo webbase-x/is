@@ -108,6 +108,7 @@ const shadowVocabulary = [
   ['งา','งา.png'],['งวง','งวง.png'],['หาง','หาง.png'],['หา','หา.png'],
   ['ให้–ได้','ให้-ได้.png'],['ดีใจ','ดีใจ.png'],['ดูแล','ดูแล.png'],['รัก','รัก.png']
 ];
+const imageAssetVersion = '20260721-2';
 let currentShadow = 0;
 let remainingShadows = shadowVocabulary.map((_, index) => index);
 const studentScores = new Map();
@@ -135,7 +136,7 @@ function playFeedback(correct) {
 }
 function renderShadowImage(index) {
   const [word, file] = shadowVocabulary[index];
-  shadowImage.src = `img/${encodeURIComponent(file)}`;
+  shadowImage.src = `img/${encodeURIComponent(file)}?v=${imageAssetVersion}`;
   shadowImage.alt = `ภาพครึ่งเงาและครึ่งภาพจริงสำหรับทายคำ ${word}`;
   document.querySelector('#shadowPicture').setAttribute('aria-label', 'ภาพด้านซ้ายเป็นเงา และภาพด้านขวาเป็นภาพจริงสำหรับทายคำ');
 }
@@ -227,7 +228,7 @@ document.querySelector('#resetShadow').addEventListener('click', () => {
   studentResult.hidden = false;
   document.querySelector('#randomStudent').disabled = false; document.querySelector('#minimizeStudent').hidden = true; shuffleShadow();
 });
-shadowVocabulary.forEach(([, file]) => { const image = new Image(); image.src = `img/${encodeURIComponent(file)}`; });
+shadowVocabulary.forEach(([, file]) => { const image = new Image(); image.src = `img/${encodeURIComponent(file)}?v=${imageAssetVersion}`; });
 settleShadow(0);
 
 const studentDialog = document.querySelector('#studentDialog');
