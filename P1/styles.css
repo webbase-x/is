@@ -88,6 +88,10 @@
 /* Brighter, soft-edged laser glow. */
 .laser-canvas{filter:saturate(1.35) brightness(1.12)}
 
+/* Direct access to the teaching plan from the lesson toolbar. */
+.lesson-plan-link{height:42px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid #d9d4ec;border-radius:12px;background:#fff;color:#5040ae;text-decoration:none;font-size:13px;font-weight:700;white-space:nowrap}.lesson-plan-link:hover,.lesson-plan-link:focus-visible{border-color:#8f80df;background:#f1eeff}
+@media(max-width:700px){.lesson-plan-link{width:42px;padding:0;justify-content:center}.lesson-plan-link span{display:none}}
+
 /* Compact icon-only annotation controls. */
 .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .annotation-toggle{width:42px!important;padding:0!important}
@@ -104,6 +108,7 @@
 .game-fullscreen{overflow:hidden;background:#fff}
 .game-fullscreen .topbar{position:fixed;z-index:1100;top:8px;right:8px;left:auto;width:auto;height:auto;min-height:0;display:block;padding:0;border:0;background:transparent;box-shadow:none;backdrop-filter:none}
 .game-fullscreen .brand,.game-fullscreen .lesson-meta{display:none}
+.game-fullscreen .lesson-plan-link{display:none}
 .game-fullscreen .topbar-actions{display:flex}
 .game-fullscreen #fullscreenButton{background:rgba(31,27,70,.9);color:#fff;border-color:rgba(255,255,255,.3)}
 .game-fullscreen .lesson-shell{width:100vw;max-width:none;height:100dvh;margin:0;padding:0}
