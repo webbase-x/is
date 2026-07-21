@@ -142,3 +142,55 @@
   .game-fullscreen .wheel{width:min(58vw,34dvh,320px);height:min(58vw,34dvh,320px)}
   .game-fullscreen .called-panel{padding:8px}
 }
+
+/* Load every lesson asset before the first interaction. */
+body.app-loading{overflow:hidden}
+.preload-screen{position:fixed;inset:0;z-index:5000;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 20% 15%,#fff8c9 0 8%,transparent 32%),linear-gradient(145deg,#f8dfe9,#e5e0ff 52%,#d2f4ee);transition:opacity .3s ease,visibility .3s ease}
+.preload-screen.preload-complete{opacity:0;visibility:hidden}
+.preload-card{width:min(520px,100%);padding:clamp(28px,5vw,52px);text-align:center;border:2px solid rgba(255,255,255,.8);border-radius:30px;background:rgba(255,255,255,.86);box-shadow:0 28px 80px rgba(49,36,119,.18);backdrop-filter:blur(14px)}
+.preload-logo{width:78px;height:78px;display:grid;place-items:center;margin:0 auto 14px;border-radius:24px;background:linear-gradient(145deg,#6c59e2,#4937b8);color:#fff;box-shadow:0 14px 32px rgba(70,52,185,.3);font:700 48px 'Noto Serif Thai',serif}
+.preload-eyebrow{margin:0;color:#5a48d6;font-weight:700}.preload-card h1{margin:5px 0 3px;font:700 clamp(32px,6vw,48px) 'Noto Serif Thai',serif}.preload-card p{color:#686c7e}.preload-track{height:13px;margin:22px 0 10px;overflow:hidden;border-radius:999px;background:#dfdaef}.preload-track span{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#5a48d6,#ef7a9a,#f3bd43);transition:width .2s ease}.preload-card>strong{color:#4937b8;font-size:22px}.preload-card button{display:block;margin:18px auto 0;padding:11px 20px;border:0;border-radius:12px;background:#5a48d6;color:#fff;font-weight:700;cursor:pointer}
+
+/* Projector-scale fullscreen typography and imagery. */
+.game-fullscreen{font-size:clamp(18px,1.35vw,28px)}
+.game-fullscreen button,.game-fullscreen select{font-size:inherit}
+.game-fullscreen .activity[data-activity="0"] .karaoke-full{grid-template-columns:minmax(34vw,.9fr) minmax(48vw,1.1fr);gap:clamp(20px,3vw,56px)}
+.game-fullscreen .karaoke-image{width:100%;max-height:calc(100dvh - 112px);object-fit:contain}
+.game-fullscreen .word-sync{gap:clamp(8px,1.2vh,16px);align-content:center}
+.game-fullscreen .word-sync button{padding:clamp(10px,1.4vh,18px) clamp(14px,1.5vw,28px);font-size:clamp(28px,3vw,58px);line-height:1.32}
+.game-fullscreen .karaoke-player{font-size:clamp(16px,1.25vw,24px)}
+
+.game-fullscreen .activity[data-activity="1"] .shadow-card{padding:clamp(10px,1.2vw,22px)}
+.game-fullscreen .activity[data-activity="1"] .shadow-picture{width:min(1420px,96%);border-width:clamp(4px,.5vw,8px)}
+.game-fullscreen .activity[data-activity="1"] .shadow-prompt{font-size:clamp(28px,2.5vw,48px);line-height:1.25}
+.game-fullscreen .activity[data-activity="1"] .answer-card{min-height:clamp(66px,9vh,112px);font-size:clamp(32px,3vw,58px)}
+.game-fullscreen .activity[data-activity="1"] .reveal-shadow{padding:clamp(12px,1.5vh,20px) clamp(24px,2vw,40px);font-size:clamp(24px,2vw,38px)}
+
+.game-fullscreen .activity[data-activity="2"] .bingo-layout{grid-template-columns:minmax(0,1fr) minmax(0,1.18fr);gap:clamp(12px,2vw,30px)}
+.game-fullscreen .wheel{width:min(45vw,calc(100dvh - 130px),540px);height:min(45vw,calc(100dvh - 130px),540px)}
+.game-fullscreen .wheel span{font-size:clamp(46px,5vw,86px)}
+.game-fullscreen .spin{min-width:240px;padding:clamp(13px,1.5vh,21px) clamp(26px,2.4vw,46px);font-size:clamp(24px,2vw,38px)}
+.game-fullscreen .called-heading{font-size:clamp(21px,1.8vw,34px)}
+.game-fullscreen .called-heading small{font-size:clamp(17px,1.25vw,25px)}
+.game-fullscreen .called-words{grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(7px,1vw,15px)}
+.game-fullscreen .called-words span{font-size:clamp(22px,2vw,38px);line-height:1.2}
+
+.game-fullscreen .activity[data-activity="3"] .challenge{display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.game-fullscreen .activity[data-activity="3"] .challenge-top span{font-size:clamp(20px,1.6vw,30px)}
+.game-fullscreen .activity[data-activity="3"] .challenge>p{margin:clamp(6px,1vh,14px) 0;font-size:clamp(28px,2.6vw,50px);line-height:1.3}
+.game-fullscreen .activity[data-activity="3"] .word-bank{min-height:clamp(120px,25vh,260px);margin:clamp(7px,1vh,14px) 0;padding:clamp(10px,1.4vw,24px)}
+.game-fullscreen .activity[data-activity="3"] .word-tile{padding:clamp(10px,1.2vh,18px) clamp(18px,1.8vw,32px);font-size:clamp(32px,3.1vw,60px);line-height:1.2}
+.game-fullscreen .activity[data-activity="3"] .interactive-train{min-height:clamp(110px,22vh,230px);margin:clamp(7px,1vh,14px) 0}
+.game-fullscreen .activity[data-activity="3"] .interactive-train .train-slot{min-width:clamp(105px,10vw,190px);min-height:clamp(72px,10vh,120px);font-size:clamp(22px,2vw,38px)}
+.game-fullscreen .activity[data-activity="3"] .train-cars:before{font-size:clamp(58px,6vw,110px)}
+.game-fullscreen .activity[data-activity="3"] .train-check-actions>button{padding:clamp(11px,1.4vh,19px) clamp(22px,2vw,38px);font-size:clamp(22px,1.8vw,34px)}
+
+@media (orientation:portrait){
+  .game-fullscreen .activity[data-activity="0"] .karaoke-full{grid-template-columns:1fr;grid-template-rows:minmax(0,.8fr) auto;gap:8px}
+  .game-fullscreen .karaoke-image{max-height:38dvh}
+  .game-fullscreen .word-sync button{font-size:clamp(24px,4.6vw,44px);padding:8px 12px}
+  .game-fullscreen .activity[data-activity="2"] .bingo-layout{grid-template-columns:1fr;grid-template-rows:minmax(0,1.1fr) minmax(0,.9fr)}
+  .game-fullscreen .wheel{width:min(62vw,38dvh,480px);height:min(62vw,38dvh,480px)}
+  .game-fullscreen .called-words span{font-size:clamp(20px,3.4vw,32px)}
+  .game-fullscreen .activity[data-activity="3"] .word-tile{font-size:clamp(28px,5vw,46px)}
+}
