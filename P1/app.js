@@ -425,22 +425,22 @@ document.querySelector('#closeBingoExample').addEventListener('click', () => doc
 let savedSentenceWords = [];
 try { savedSentenceWords = JSON.parse(localStorage.getItem('p1TrainSentences') || '[]'); } catch { savedSentenceWords = []; }
 const baseSentenceChallenges = [
-  ['ภูผา','รัก','พ่อ','แม่'],
-  ['ภูผา','รัก','ใบโบก'],
-  ['ภูผา','รัก','ใบบัว'],
-  ['ภูผา','ดูแล','ใบโบก'],
-  ['ภูผา','ดูแล','ใบบัว'],
-  ['ตา','ดูแล','ภูผา'],
-  ['ภูผา','หา','ใบโบก'],
-  ['ภูผา','หา','ใบบัว'],
-  ['ตา','หา','ภูผา'],
-  ['พ่อ','หา','ภูผา'],
-  ['แม่','หา','ภูผา'],
-  ['พ่อ','ให้','ภูผา','ดูแล','ใบโบก'],
-  ['พ่อ','ให้','ภูผา','ดูแล','ใบบัว']
+  [['พ่อ','แม่','รัก','ภูผา'],['ภูผา','รัก','พ่อ','แม่']],
+  [['ภูผา','รัก','ใบโบก']],
+  [['ภูผา','รัก','ใบบัว']],
+  [['ภูผา','ดูแล','ใบโบก']],
+  [['ภูผา','ดูแล','ใบบัว']],
+  [['ตา','ดูแล','ภูผา']],
+  [['ภูผา','หา','ใบโบก']],
+  [['ภูผา','หา','ใบบัว']],
+  [['ตา','หา','ภูผา']],
+  [['พ่อ','หา','ภูผา']],
+  [['แม่','หา','ภูผา']],
+  [['พ่อ','ให้','ภูผา','ดูแล','ใบโบก']],
+  [['พ่อ','ให้','ภูผา','ดูแล','ใบบัว']]
 ];
 const challenges = [
-  ...baseSentenceChallenges.map(words => ({answers:[words]})),
+  ...baseSentenceChallenges.map(answers => ({answers})),
   ...savedSentenceWords.filter(words => Array.isArray(words) && words.length > 1).map(words => ({answers:[words]}))
 ];
 let currentChallenge = 0;
@@ -501,7 +501,7 @@ document.querySelector('#awardStar').addEventListener('click', () => { const ind
 document.querySelector('#addSentence').addEventListener('click', () => document.querySelector('#sentenceDialog').showModal());
 document.querySelector('#cancelSentence').addEventListener('click', () => document.querySelector('#sentenceDialog').close());
 function renderSentenceList() {
-  document.querySelector('#sentenceList').innerHTML = challenges.map((challenge, index) => `<li><span>${index + 1}</span>${challenge.answers[0].join(' ')}</li>`).join('');
+  document.querySelector('#sentenceList').innerHTML = challenges.map((challenge, index) => `<li><span>${index + 1}</span>${challenge.answers.map(words => words.join(' ')).join(' / ')}</li>`).join('');
 }
 document.querySelector('#showSentenceList').addEventListener('click', () => { renderSentenceList(); document.querySelector('#sentenceListDialog').showModal(); });
 document.querySelector('#closeSentenceList').addEventListener('click', () => document.querySelector('#sentenceListDialog').close());
