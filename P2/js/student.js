@@ -1518,7 +1518,14 @@ function renderTrain() {
     "แม่ ไก่ อยู่ ใน ตะ กร้า","แม่ ไก่ ไข่ มา สี่ ห้า ใบ","แม่ กา พา มา ไล่","แม่ ไก่ ไล่ ตี งู","หมา ใหญ่ ไล่ เห่า","หมู ใน เล้า แล ดู หมา","ปู แสม แล ปู นา","ปู ม้า อยู่ ทะ เล","เต่า นา แล เต่า ดำ","เต่า ดำ อยู่ ใน น้ำ",
     "จระ เข้ อยู่ ใน น้ำ","ปลา ทู อยู่ ทะ เล","ปลา ขี้ เหร่ ไม่ สู้ ดี","แม่ กา ดู ปู นา","หมา ใหญ่ ไล่ แม่ กา","จระ เข้ ดู เต่า ดำ","หมู ป่า ไล่ ตี งู","แม่ ไก่ ดู ปู ม้า","เต่า นา อยู่ ใน ตะ กร้า","ปู ทะ เล ดู ปลา ทู"
   ];
-  const sentences = trainSentenceTexts.map(text => ({ words: text.split(" "), answer: text.replaceAll(" ", "") }));
+  const roundSeed = String(state.session?.id || state.session?.room_code || "preview-round");
+  const seededShuffle = (items, seedText) => {
+    const result = [...items]; let seed = [...String(seedText)].reduce((sum, character) => (sum * 31 + character.codePointAt(0)) >>> 0, 7);
+    const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    for (let index = result.length - 1; index > 0; index -= 1) { const pick = Math.floor(random() * (index + 1)); [result[index], result[pick]] = [result[pick], result[index]]; }
+    return result;
+  };
+  const sentences = seededShuffle(trainSentenceTexts, roundSeed).slice(0, 10).map(text => ({ words: text.split(" "), answer: text.replaceAll(" ", "") }));
   let index = 0;
   let score = 0;
   const answers = [];
@@ -1526,7 +1533,7 @@ function renderTrain() {
     const item = sentences[index];
     let selected = [];
     gameShell("รถไฟประโยคแม่ ก กา", "แตะโบกี้ตามลำดับเพื่อเรียงเป็นประโยค", `<div class="game-status-row"><span>ขบวน ${index + 1} / ${sentences.length}</span><span class="mini-score">คะแนน ${score}</span></div><div class="sentence-output" id="sentenceOutput">แตะคำเพื่อเริ่มต่อขบวน</div><div class="train-track" id="trainTrack"></div><div class="button-row"><button id="resetTrain" class="button button-ghost">เริ่มเรียงใหม่</button><button id="checkTrain" class="button button-primary">ตรวจประโยค</button></div>`);
-    $("#trainTrack").innerHTML = shuffle(item.words).map((word, position) => `<button class="train-car" data-word="${escapeHtml(word)}" data-position="${position}">${escapeHtml(word)}</button>`).join("");
+    $("#trainTrack").innerHTML = seededShuffle(item.words, roundSeed + "-" + index).map((word, position) => `<button class="train-car" data-word="${escapeHtml(word)}" data-position="${position}">${escapeHtml(word)}</button>`).join("");
     $("#trainTrack").querySelectorAll("button").forEach(button => button.addEventListener("click", () => { button.disabled = true; selected.push(button.dataset.word); $("#sentenceOutput").textContent = selected.join(""); }));
     $("#resetTrain").addEventListener("click", render);
     $("#checkTrain").addEventListener("click", async () => {
