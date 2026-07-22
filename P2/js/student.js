@@ -37,6 +37,7 @@ const WHEEL_WORDS = Object.freeze({
   none: ["กา", "ปู", "มือ", "งา", "ชา", "แพ", "รู", "นา", "วัว", "เสือ", "ม้า", "ไผ่", ...TEXTBOOK_VOCABULARY.none],
   has: ["กบ", "นก", "เด็ก", "จาน", "บ้าน", "ดิน", "มด", "เข็ม", "ลิง", "กลอง", "ขนม", "ดอกไม้", ...TEXTBOOK_VOCABULARY.has],
 });
+const WHEEL_SPIN_DURATION = 3000;
 const RHYTHM_CUE_TEMPLATE = Object.freeze([
   { word: "เต่า", start: 38.00, end: 38.55 },
   { word: "วัว", start: 38.55, end: 39.10 },
@@ -1309,7 +1310,7 @@ function renderWheel() {
           <div class="premium-wheel-disc" style="--wheel-turn:${720 + Math.round(Math.random() * 360)}deg" aria-hidden="true">
             <span>🌟</span><span>🎈</span><span>🦋</span><span>🍭</span><span>🚀</span><span>🌈</span><span>🐘</span><span>🎁</span>
           </div>
-          <div class="wheel-word"><small>คำที่ได้</small><strong>${escapeHtml(question.word)}</strong><button id="wheelSpeak" type="button" aria-label="ฟังเสียงคำว่า ${escapeHtml(question.word)}">🔊 ฟังคำ</button></div>
+          <div class="wheel-word"><small>คำที่ได้</small><strong id="wheelWord" aria-live="polite">กำลังสุ่ม...</strong><button id="wheelSpeak" type="button" aria-label="ฟังเสียงคำว่า ${escapeHtml(question.word)}">🔊 ฟังคำ</button></div>
         </div>
         <p id="wheelFeedback" class="wheel-feedback">วงล้อกำลังเลือกคำ...</p>
         <div id="wheelChoices" class="wheel-answer-grid">
@@ -1319,15 +1320,40 @@ function renderWheel() {
       </section>
     `);
     const disc = $(".premium-wheel-disc");
+    const wordLabel = $("#wheelWord");
     const choiceButtons = [...$("#wheelChoices").children];
+    const previewWords = shuffle([...new Set([...WHEEL_WORDS.none, ...WHEEL_WORDS.has])]);
+    let spinStep = 0;
+    const spinStartedAt = performance.now();
     $("#wheelSpeak").addEventListener("click", () => speakThai(question.word));
-    requestAnimationFrame(() => disc.classList.add("is-spinning"));
-    setTimeout(() => {
+    const finishSpin = () => {
       if (state.renderedActivity !== "wheel") return;
+      wordLabel.textContent = question.word;
+      wordLabel.classList.remove("wheel-word-shuffling");
       choiceButtons.forEach(button => { button.disabled = false; });
       $("#wheelFeedback").textContent = "เลือกคำตอบได้เลย!";
       speakThai(question.word);
-    }, 1250);
+    };
+    const spinTick = () => {
+      if (state.renderedActivity !== "wheel") return;
+      const elapsed = performance.now() - spinStartedAt;
+      if (elapsed >= WHEEL_SPIN_DURATION) {
+        finishSpin();
+        return;
+      }
+      wordLabel.textContent = previewWords[spinStep % previewWords.length];
+      wordLabel.classList.remove("wheel-word-shuffling");
+      void wordLabel.offsetWidth;
+      wordLabel.classList.add("wheel-word-shuffling");
+      playWheelTick(spinStep);
+      spinStep += 1;
+      const progress = elapsed / WHEEL_SPIN_DURATION;
+      window.setTimeout(spinTick, 65 + Math.round(progress * 220));
+    };
+    requestAnimationFrame(() => {
+      disc.classList.add("is-spinning");
+      spinTick();
+    });
     choiceButtons.forEach(button => button.addEventListener("click", () => {
       const chosen = button.dataset.value;
       const correct = chosen === question.answer;
@@ -1360,6 +1386,29 @@ function speakThai(word) {
   utterance.lang = "th-TH";
   utterance.rate = .78;
   speechSynthesis.speak(utterance);
+}
+
+let wheelAudioContext;
+function playWheelTick(step) {
+  if (step % 2) return;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  try {
+    wheelAudioContext ||= new AudioContextClass();
+    if (wheelAudioContext.state === "suspended") wheelAudioContext.resume().catch(() => {});
+    const oscillator = wheelAudioContext.createOscillator();
+    const gain = wheelAudioContext.createGain();
+    oscillator.type = "triangle";
+    oscillator.frequency.value = 260 + (step % 6) * 45;
+    gain.gain.setValueAtTime(.0001, wheelAudioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.045, wheelAudioContext.currentTime + .008);
+    gain.gain.exponentialRampToValueAtTime(.0001, wheelAudioContext.currentTime + .065);
+    oscillator.connect(gain).connect(wheelAudioContext.destination);
+    oscillator.start();
+    oscillator.stop(wheelAudioContext.currentTime + .07);
+  } catch {
+    // Audio is optional; the visual spin continues on restricted devices.
+  }
 }
 
 function renderSound() {
