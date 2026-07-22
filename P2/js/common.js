@@ -37,15 +37,20 @@ export function gameStatePayload(session, reason = "state-change") {
 }
 
 const MIRROR_TAGS = new Set(["SECTION", "DIV", "SPAN", "SMALL", "STRONG", "H1", "H2", "H3", "H4", "P", "BUTTON", "UL", "OL", "LI", "MARK", "I", "B", "LABEL", "OUTPUT"]);
-const MIRROR_STYLE_PROPERTIES = ["width", "height", "transform", "text-align", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "left", "top", "opacity", "animation-duration", "--spark-x", "--spark-y", "--spark-delay", "--spark-size", "--wheel-turn", "--wheel-icon-radius"];
-const MIRROR_CLASS_PREFIXES = ["game-", "rhythm-", "karaoke-", "grammar-", "choice-", "word-", "falling-", "sort-", "train-", "vote-", "sentence-", "result-", "treasure-", "house-", "mini-", "sound-", "field-", "wheel-", "premium-wheel-"];
-const MIRROR_CLASS_NAMES = new Set(["wheel", "treasure", "button", "button-primary", "button-ghost", "button-row", "good", "bad", "hidden", "done", "active", "hot", "score-pop", "missed", "singing", "lyric-line", "correct", "wrong", "open", "empty-stage"]);
+const MIRROR_STYLE_PROPERTIES = ["width", "height", "transform", "text-align", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "left", "top", "opacity", "animation-duration"];
+const MIRROR_CLASS_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]{0,60}$/;
+const MIRROR_CUSTOM_PROPERTY_PATTERN = /^--[a-zA-Z][a-zA-Z0-9-]{0,48}$/;
 
 function sanitizeMirrorStyle(element, rawStyle) {
   const probe = document.createElement("span");
   probe.style.cssText = String(rawStyle || "").slice(0, 700);
   element.removeAttribute("style");
-  MIRROR_STYLE_PROPERTIES.forEach(property => {
+  const properties = new Set(MIRROR_STYLE_PROPERTIES);
+  for (let index = 0; index < probe.style.length; index += 1) {
+    const property = probe.style[index];
+    if (MIRROR_CUSTOM_PROPERTY_PATTERN.test(property)) properties.add(property);
+  }
+  properties.forEach(property => {
     const value = probe.style.getPropertyValue(property).trim();
     if (value && value.length <= 90 && !/url\s*\(|expression\s*\(/i.test(value)) element.style.setProperty(property, value);
   });
@@ -67,7 +72,10 @@ export function sanitizeGameMarkup(markup) {
       if (!keep) element.removeAttribute(attribute.name);
     });
     if (element.hasAttribute("class")) {
-      const safeClasses = element.className.split(/\s+/).filter(name => /^[a-zA-Z0-9_-]{1,60}$/.test(name) && (MIRROR_CLASS_NAMES.has(name) || MIRROR_CLASS_PREFIXES.some(prefix => name.startsWith(prefix)))).slice(0, 20);
+      // Script/event attributes are removed and controls are disabled. Keeping
+      // safe CSS classes lets every current and future game retain its visual
+      // design without a fragile per-game class allow-list.
+      const safeClasses = element.className.split(/\s+/).filter(name => MIRROR_CLASS_PATTERN.test(name)).slice(0, 30);
       if (safeClasses.length) element.className = safeClasses.join(" ");
       else element.removeAttribute("class");
     }

@@ -615,7 +615,7 @@ function scheduleStudentScreenPresence(immediate = false) {
   state.screenPresenceTimer = setTimeout(() => {
     state.screenPresenceTimer = null;
     void publishStudentScreenPresence();
-  }, immediate ? 0 : streaming ? 350 : 2500);
+  }, immediate ? 0 : streaming ? 180 : 2500);
 }
 
 function observeStudentScreenChanges() {
@@ -653,7 +653,7 @@ function subscribePresence() {
             return;
           }
           void publishStudentScreenPresence();
-        }, 500);
+        }, 300);
       }
     });
   state.presenceChannel.subscribe(status => {

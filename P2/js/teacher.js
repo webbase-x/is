@@ -886,6 +886,18 @@ function watchStudentScreen(playerId) {
   state.studentScreenWatchTimer = setInterval(requestStream, 4000);
 }
 
+function postStudentMirrorFrame(frame, markup) {
+  if (!frame?.contentWindow || typeof markup !== "string") return;
+  frame.contentWindow.postMessage({ type: "student-game-mirror-frame", markup }, window.location.origin);
+}
+
+window.addEventListener("message", event => {
+  if (event.origin !== window.location.origin || event.data?.type !== "student-game-mirror-ready") return;
+  const frame = $(".student-focus-game-frame", $("#studentScreenFocusContent"));
+  if (frame?.contentWindow !== event.source) return;
+  postStudentMirrorFrame(frame, state.studentScreenFocusMarkup);
+});
+
 function renderStudentScreenFocus(entries) {
   const selected = entries.find(entry => String(entry.player.id) === String(state.selectedStudentScreenId)) || entries[0];
   if (!selected) return;
@@ -899,19 +911,22 @@ function renderStudentScreenFocus(entries) {
   const playerName = selected.student.full_name || selected.student.nickname || "นักเรียน";
   const streamMarkup = sanitizeGameMarkup(screen.game_markup);
   const focusContent = $("#studentScreenFocusContent");
-  const sameStudentMarkup = focusContent?.dataset.playerId === String(selected.player.id)
-    && Boolean(streamMarkup)
-    && state.studentScreenFocusMarkup === streamMarkup;
-  // A wheel snapshot can be received several times while its CSS transition
-  // is running. Replacing the DOM for identical markup restarts that
-  // transition, making the teacher view appear out of sync with the student.
-  if (sameStudentMarkup) {
+  const existingFrame = $(".student-focus-game-frame", focusContent);
+  const sameStudent = focusContent?.dataset.playerId === String(selected.player.id);
+  // Keep a dedicated mirror document alive for the whole watch session. It
+  // uses the student game's own full-screen CSS, so Broadcast updates never
+  // inherit dashboard styles or restart an unchanged animation.
+  if (sameStudent && existingFrame && streamMarkup) {
+    if (state.studentScreenFocusMarkup !== streamMarkup) {
+      state.studentScreenFocusMarkup = streamMarkup;
+      postStudentMirrorFrame(existingFrame, streamMarkup);
+    }
     $("#studentScreenPrevious").disabled = entries.length < 2;
     $("#studentScreenNext").disabled = entries.length < 2;
     return;
   }
   const gameContent = streamMarkup
-    ? `<div class="student-focus-game-canvas game-canvas" style="--game-zoom:1">${streamMarkup}</div>`
+    ? `<iframe class="student-focus-game-frame" data-player-id="${escapeHtml(String(selected.player.id))}" src="mirror.html" title="ถ่ายทอดสดหน้าจอ ${escapeHtml(playerName)}"></iframe>`
     : `<div class="student-focus-waiting"><span>${studentScreenIcon(selected)}</span><h2>${escapeHtml(screen.activity_title || "กำลังรอภาพเกม")}</h2><p>${escapeHtml(screen.detail || "ภาพเกมจะปรากฏอัตโนมัติ")}</p></div>`;
   focusContent.innerHTML = `<div class="student-focus-stream">
     <div class="student-focus-overlay">
@@ -923,6 +938,11 @@ function renderStudentScreenFocus(entries) {
   focusContent.dataset.playerId = String(selected.player.id);
   state.studentScreenFocusMarkup = streamMarkup;
   $(".student-focus-back", focusContent)?.addEventListener("click", () => setStudentScreenView("grid"));
+  const mirrorFrame = $(".student-focus-game-frame", focusContent);
+  mirrorFrame?.addEventListener("load", () => {
+    if (mirrorFrame.dataset.playerId !== String(state.selectedStudentScreenId)) return;
+    postStudentMirrorFrame(mirrorFrame, state.studentScreenFocusMarkup);
+  });
   $("#studentScreenPrevious").disabled = entries.length < 2;
   $("#studentScreenNext").disabled = entries.length < 2;
 }

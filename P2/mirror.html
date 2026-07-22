@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>ถ่ายทอดสดหน้าจอนักเรียน</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="student-page student-game-live mirror-page">
+  <main class="app-shell student-shell">
+    <section id="gameView" class="view game-view game-focus-mode">
+      <section class="game-stage">
+        <div id="gameCanvas" class="game-canvas" aria-live="polite">
+          <div class="empty-stage"><span>📡</span><h2>กำลังรอภาพเกม</h2><p>จอของนักเรียนจะปรากฏอัตโนมัติ</p></div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script type="module" src="js/mirror.js"></script>
+</body>
+</html>
