@@ -16,7 +16,7 @@ function renderPlanDetail(plan) {
   stage.innerHTML = `
     <section class="plan-detail-heading">
       <div><span class="eyebrow">แผนการจัดการเรียนรู้ที่ ${plan.sequence}</span><h2>${plan.title}</h2><p>${plan.course}</p><p>${plan.grade}</p><p>${plan.unit} · เวลา ${plan.duration} · หน่วยรวม ${plan.unitDuration}</p></div>
-      <a class="button button-primary" href="${plan.document}" target="_blank" rel="noopener">เปิดเอกสารแผน 01 ↗</a>
+      <div class="plan-detail-actions"><a class="button button-primary" href="${plan.document}" target="_blank" rel="noopener">เปิดเอกสารแผน 01 ↗</a><a class="button button-ghost" href="expert.html?plan=${plan.id}">ห้องจำลองผู้เชี่ยวชาญ</a></div>
     </section>
     <article class="plan-detail-card plan-summary-card"><h3>สาระสำคัญ / ความคิดรวบยอด</h3><p>${plan.summary}</p></article>
     <div class="plan-detail-grid">

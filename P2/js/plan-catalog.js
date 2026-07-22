@@ -9,6 +9,7 @@ export const PLAN_CATALOG = Object.freeze([
     duration: "1 ชั่วโมง",
     unitDuration: "8 ชั่วโมง",
     published: true,
+    activityKeys: ["rhythm", "wheel", "sound", "sort", "train", "vote", "exit"],
     document: "plan/01.docx",
     summary: "มาตราแม่ ก กา คือคำที่ไม่มีพยัญชนะเป็นตัวสะกด เมื่ออ่านออกเสียงจะไม่มีเสียงพยัญชนะท้ายคำ นักเรียนเรียนรู้การสังเกต เปรียบเทียบ และนำคำไปใช้สื่อสารได้อย่างถูกต้อง",
     standards: [
@@ -45,6 +46,7 @@ export const PLAN_CATALOG = Object.freeze([
       unit: "รอรายละเอียดแผนการสอน",
       duration: "—",
       published: false,
+      activityKeys: [],
     };
   }),
 ]);
