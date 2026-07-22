@@ -28,6 +28,7 @@ const state = {
   celebrationActivityKey: null,
   celebrationReason: null,
   competitionSoundEnabled: true,
+  liveRankingEnabled: true,
   activityTimerId: null,
   activityRemainingMs: 0,
   activityTimerLastTickAt: null,
@@ -1051,7 +1052,7 @@ async function broadcastDisplay(reason = "state-change") {
     await state.displayChannel.send({
       type: "broadcast",
       event: GAME_STATE_EVENT,
-      payload: gameStatePayload(state.session, reason),
+      payload: { ...gameStatePayload(state.session, reason), live_ranking_enabled: state.liveRankingEnabled },
     });
   } catch {
     // The durable database state remains the reconnect fallback.
@@ -1730,6 +1731,7 @@ $("#finishActivityButton").addEventListener("click", () => finishActivity("manua
 $("#nextActivityButton").addEventListener("click", goToNextActivity);
 $("#competitionFullscreenButton").addEventListener("click", toggleCompetitionExpanded);
 $("#competitionSoundButton").addEventListener("click", toggleCompetitionSound);
+$("#liveRankingEnabled").addEventListener("change", event => { state.liveRankingEnabled = event.target.checked; renderLiveResults(); broadcastDisplay("ranking-visibility-changed"); });
 $$('[data-live-mode]').forEach(button => button.addEventListener("click", () => setLivePlayMode(button.dataset.liveMode)));
 $("#showSummaryButton").addEventListener("click", showSessionSummary);
 $("#summaryBackButton").addEventListener("click", () => setTeacherFlowStep("live"));

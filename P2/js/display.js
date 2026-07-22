@@ -100,12 +100,19 @@ function renderSnapshot(leaderboard) {
   $("#displayApproved").textContent = snapshot.approved_count;
   const progress = snapshot.total_students ? Math.min(100, (snapshot.approved_count / snapshot.total_students) * 100) : 0;
   $("#displayProgressBar").style.width = `${progress}%`;
-  renderLeaderboard(leaderboard, snapshot.leaderboard_mode);
+  const hideLiveRanking = snapshot.session_status === "active" && snapshot.live_ranking_enabled !== true;
+  renderLeaderboard(hideLiveRanking ? [] : leaderboard, snapshot.leaderboard_mode, hideLiveRanking);
   renderStudentScreens();
 }
 
-function renderLeaderboard(items, mode) {
+function renderLeaderboard(items, mode, hideLiveRanking = false) {
   const list = $("#leaderboardList");
+  if (hideLiveRanking) {
+    $("#leaderboardTitle").textContent = "กำลังแข่งขัน";
+    $("#leaderboardModeCaption").textContent = "ครูจะประกาศอันดับเมื่อจบกิจกรรม";
+    list.innerHTML = `<li class="empty-leaderboard">ตั้งใจทำเกมให้เต็มที่นะ ⭐</li>`;
+    return;
+  }
   if (mode === "hidden") {
     $("#leaderboardTitle").textContent = "ความก้าวหน้าของทั้งห้อง";
     list.innerHTML = `<li class="empty-leaderboard">ครูเลือกซ่อนรายชื่อนักเรียนในคาบนี้</li>`;
@@ -313,6 +320,7 @@ function subscribeBroadcast() {
         current_activity_key: session.current_activity_key,
         plan_id: session.plan_id,
         leaderboard_mode: session.leaderboard_mode,
+        live_ranking_enabled: update.live_ranking_enabled !== false,
       };
       // Render the command immediately; refresh scores in the background.
       renderSnapshot(state.leaderboard);
