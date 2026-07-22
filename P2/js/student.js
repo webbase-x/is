@@ -832,10 +832,9 @@ function renderRhythm() {
   const breakTargetCount = RHYTHM_BREAK_CARDS.filter(card => card.target).length;
   const maxScore = (RHYTHM_PRACTICE_COUNT * 15) + (breakTargetCount * 10) + (RHYTHM_CHALLENGE_TEMPLATE.length * 20);
   gameShell(
-    "จับคำแม่ ก กาให้ทันเพลง",
+    "เพลง มาตรา ก กา",
     "ร้องตาม แตะคำตามจังหวะ คัดคำช่วงดนตรี และเติมคำที่หายไป",
     `<section class="rhythm-karaoke">
-      <p class="rhythm-credit" aria-label="เครดิตเพลง มาตรา ก กา">คำร้อง: <strong>รศ.ปิตินันธ์ สุทธสาร</strong></p>
       <div class="game-status-row rhythm-status-row">
         <div class="rhythm-scoreboard">
           <span class="mini-score">⭐ <strong id="rhythmScore">0</strong> / ${maxScore}</span>
@@ -1009,7 +1008,7 @@ function renderRhythm() {
     run.activeChallengeIndex = -2;
     stage.dataset.phase = phase;
     phaseLabel.textContent = phaseTitle(phase);
-    if (phase === "intro") interaction.innerHTML = `<div class="rhythm-guide-panel"><span>🎤</span><strong>เตรียมร้องคาราโอเกะ</strong><small>เนื้อเพลงเริ่มที่วินาที 22</small></div>`;
+    if (phase === "intro") interaction.innerHTML = `<div class="rhythm-guide-panel"><span>🎤</span><strong>เตรียมร้องคาราโอเกะ<br>เพลง มาตรา ก กา</strong><small class="rhythm-credit-inline">คำร้อง: รศ.ปิตินันธ์ สุทธสาร</small><small>เนื้อเพลงเริ่มที่วินาที 22</small></div>`;
     if (phase === "sing-one") interaction.innerHTML = `<div class="rhythm-guide-panel"><span>🎶</span><strong>ร้องตามให้เต็มเสียง</strong><small>อีกสักครู่การ์ดคำจะปรากฏ</small></div>`;
     if (phase === "practice") interaction.innerHTML = `<div class="rhythm-mode-heading"><strong>รอบฝึก</strong><span>แตะการ์ดที่เปล่งแสง · ตรงจังหวะได้โบนัส</span></div><div class="rhythm-picture-grid">${practiceCardsHtml()}</div>`;
     if (phase === "break") interaction.innerHTML = `<div class="rhythm-mode-heading"><strong>ช่วงดนตรี</strong><span>แตะเฉพาะคำแม่ ก กาให้ครบ 4 คำ</span></div><div class="rhythm-picture-grid rhythm-sort-grid">${breakCardsHtml()}</div>`;

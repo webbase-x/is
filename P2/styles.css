@@ -881,8 +881,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .falling-word { position: absolute; top: -60px; min-width: 90px; padding: 13px 18px; border: 0; border-radius: 17px; background: white; color: var(--ink); box-shadow: 0 8px 15px rgba(0,0,0,.18); font-size: 22px; font-weight: 900; cursor: pointer; animation: fall linear forwards; }
 @keyframes fall { to { transform: translateY(430px); } }
 .rhythm-karaoke { width: 100%; max-width: 1500px; flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; }
-.rhythm-credit { width: min(1280px,100%); margin: -5px 0 9px; color: var(--muted); font-size: 12px; font-weight: 700; text-align: right; }
-.rhythm-credit strong { color: #4e42a4; }
+.rhythm-credit-inline { color: #fff7a9 !important; font-size: 14px !important; font-weight: 900; }
 .rhythm-status-row { width: 100%; max-width: 1280px; }
 .rhythm-scoreboard { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .rhythm-streak, .rhythm-phase { padding: 8px 12px; border-radius: 12px; font-size: 13px; font-weight: 900; }
