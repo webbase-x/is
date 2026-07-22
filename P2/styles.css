@@ -32,6 +32,11 @@ h1, h2, h3, p { margin-top: 0; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(91,75,219,.35); outline-offset: 3px; }
 .hidden { display: none !important; }
 
+.emoji-icon {
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif;
+  font-variant-emoji: emoji;
+}
+
 .site-header, .app-header {
   min-height: 78px; display: flex; align-items: center; justify-content: space-between;
   padding: 14px clamp(20px, 5vw, 72px); background: rgba(255,255,255,.92);
