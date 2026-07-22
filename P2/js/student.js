@@ -53,7 +53,7 @@ function wordEmoji(word) {
   return FALLBACK_EMOJI[key % FALLBACK_EMOJI.length];
 }
 function emojiAsset(emoji, label = "") {
-  const codepoints = [...emoji].map(character => character.codePointAt(0).toString(16)).join("-");
+  const codepoints = [...emoji].map(character => character.codePointAt(0)).filter(code => code !== 0xfe0e && code !== 0xfe0f).map(code => code.toString(16)).join("-");
   return `<img class="word-picture" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codepoints}.svg" alt="${escapeHtml(label)}" loading="eager" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="word-picture-fallback" aria-hidden="true" hidden>${emoji}</span>`;
 }
 const WHEEL_SPIN_DURATION = 3000;

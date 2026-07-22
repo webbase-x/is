@@ -1451,3 +1451,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 @media (prefers-reduced-motion: reduce) {
   .competition-live-badge i, .podium-stage::before, .podium-place-1 .podium-avatar, .podium-place-1 .podium-medal { animation: none; }
 }
+
+/* Compact audio control and centered picture card. */
+.sound-button { width:76px; height:76px; font-size:34px; display:grid; place-items:center; box-shadow:0 10px 22px rgba(91,75,219,.25); }
+.sound-word-emoji { overflow:hidden; }
+.sound-word-emoji .word-picture { width:clamp(72px,12vw,118px); height:clamp(72px,12vw,118px); object-fit:contain; }
