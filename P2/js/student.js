@@ -494,13 +494,19 @@ async function enterGame() {
   $("#studentLiveName").textContent = displayName;
   $("#studentLiveClass").textContent = classLabel;
   const profilePhoto = $("#playerProfilePhoto");
-  profilePhoto.src = state.selfieDataUrl || "";
   profilePhoto.classList.toggle("hidden", !state.selfieDataUrl);
   $("#playerAvatar").classList.toggle("hidden", Boolean(state.selfieDataUrl));
   const liveProfilePhoto = $("#studentLiveProfilePhoto");
-  liveProfilePhoto.src = state.selfieDataUrl || "";
   liveProfilePhoto.classList.toggle("hidden", !state.selfieDataUrl);
   $("#studentLiveAvatar").classList.toggle("hidden", Boolean(state.selfieDataUrl));
+  const useAvatarOnImageError = (image, fallback) => image?.addEventListener("error", () => {
+    image.classList.add("hidden");
+    fallback?.classList.remove("hidden");
+  }, { once: true });
+  useAvatarOnImageError(profilePhoto, $("#playerAvatar"));
+  useAvatarOnImageError(liveProfilePhoto, $("#studentLiveAvatar"));
+  profilePhoto.src = state.selfieDataUrl || "";
+  liveProfilePhoto.src = state.selfieDataUrl || "";
   $("#attemptBadge").textContent = modeLabel(session.play_mode);
   renderTimeline();
   setView(views.game, views.login, views.waiting);

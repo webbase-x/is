@@ -12,6 +12,13 @@
 
   const ICONS = {
     generic: '<path fill="currentColor" d="M32 4 38 24 60 32 38 40 32 60 26 40 4 32 26 24Z"/><circle cx="32" cy="32" r="8" fill="#fff" opacity=".9"/>',
+    sun: '<circle cx="32" cy="32" r="13" fill="#f7bd47"/><path fill="none" stroke="#f7bd47" stroke-linecap="round" stroke-width="5" d="M32 5v9M32 50v9M5 32h9M50 32h9M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/>',
+    alphabet: '<rect x="7" y="14" width="29" height="35" rx="4" fill="#5b3fd0"/><rect x="28" y="21" width="29" height="35" rx="4" fill="#8f7bea"/><text x="13" y="38" fill="#fff" font-size="18" font-weight="900">A</text><text x="35" y="46" fill="#fff" font-size="18" font-weight="900">B</text>',
+    check: '<circle cx="32" cy="32" r="26" fill="#35bf8d"/><path fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="6" d="m18 33 9 9 19-20"/>',
+    warning: '<path fill="#f7bd47" d="M32 6 60 55H4Z"/><path fill="none" stroke="#5b3fd0" stroke-linecap="round" stroke-width="5" d="M32 22v16"/><circle cx="32" cy="46" r="3" fill="#5b3fd0"/>',
+    expand: '<path fill="none" stroke="#5b3fd0" stroke-linecap="round" stroke-linejoin="round" stroke-width="6" d="M25 8H8v17M39 8h17v17M25 56H8V39M39 56h17V39"/>',
+    stop: '<rect x="10" y="10" width="44" height="44" rx="8" fill="#ef668d"/>',
+    wheel: '<circle cx="32" cy="32" r="25" fill="#6d4ed8"/><path fill="#f7bd47" d="m32 8 6 19 18 5-18 5-6 19-6-19-18-5 18-5Z"/><circle cx="32" cy="32" r="7" fill="#fff"/>',
     star: '<path fill="#f7bd47" d="m32 4 7.1 18.1L58 24l-15 12.2L47.5 56 32 45.7 16.5 56 21 36.2 6 24l18.9-1.9Z"/>',
     trophy: '<path fill="#f7bd47" d="M22 8h20v10c0 9-4 15-10 18-6-3-10-9-10-18Z"/><path fill="#c88720" d="M22 12H10v5c0 8 5 13 14 14l2-5c-6 0-10-3-10-8v-1h6Zm20 0h12v5c0 8-5 13-14 14l-2-5c6 0 10-3 10-8v-1h-6Z"/><path fill="#c88720" d="M28 36h8v12h8v8H20v-8h8Z"/>',
     game: '<path fill="#5b3fd0" d="M8 25c2-8 8-13 16-13h16c8 0 14 5 16 13l5 18c2 8-8 13-13 7l-8-9H24l-8 9c-5 6-15 1-13-7Z"/><path fill="#fff" d="M18 27h6v-6h5v6h6v5h-6v6h-5v-6h-6Z"/><circle cx="46" cy="27" r="3" fill="#f7bd47"/><circle cx="53" cy="34" r="3" fill="#f7bd47"/>',
@@ -59,11 +66,12 @@
   };
 
   const ICON_BY_EMOJI = {
-    "⭐": "star", "🌟": "star", "🏆": "trophy", "🥇": "medal", "🥈": "medal", "🥉": "medal",
+    "⭐": "star", "🌟": "star", "★": "star", "☆": "star", "✦": "star", "✨": "star", "🏆": "trophy", "🥇": "medal", "🥈": "medal", "🥉": "medal",
+    "☀️": "sun", "☀": "sun", "✅": "check", "✓": "check", "⚠️": "warning", "⚠": "warning", "⛶": "expand", "⏹": "stop", "✕": "stop", "♫": "microphone",
     "🎮": "game", "📱": "phone", "📲": "phone", "🔊": "speaker", "🔇": "speaker", "📣": "speaker",
     "📷": "camera", "📸": "camera", "🔐": "lock", "🔑": "lock", "🔒": "lock", "🗝️": "lock", "🗝": "lock",
     "🗺️": "map", "🗺": "map", "⏸️": "pause", "⏸": "pause", "⏳": "hourglass", "💗": "heart", "💞": "heart",
-    "👥": "people", "🙋": "people", "🏠": "home", "🏡": "home", "🚂": "train", "📊": "chart", "🏁": "flag",
+    "👥": "people", "🙋": "people", "🏠": "home", "🏡": "home", "🚂": "train", "🎡": "wheel", "📊": "chart", "🏁": "flag",
     "🔥": "fire", "🎤": "microphone", "🎶": "microphone", "🎵": "microphone", "🎧": "speaker", "👂": "eye",
     "📡": "eye", "👋": "people", "🎯": "star", "🎉": "star", "🎈": "star", "🖨": "chart", "📄": "chart",
     "🦉": "owl", "🐯": "tiger", "🐳": "whale", "🐰": "rabbit", "🦊": "fox", "🐼": "panda", "🦁": "lion",
@@ -71,14 +79,14 @@
     "🐻": "bear", "🐍": "snake", "🐔": "chicken", "🐦": "bird", "🐬": "dolphin", "🐴": "horse", "🫏": "donkey",
     "🐊": "crocodile", "🧒": "avatar", "🙂": "avatar", "😊": "avatar", "🟫": "avatar", "🍽️": "plate", "🍽": "plate",
     "🍭": "star", "🌈": "star", "🎁": "star", "💦": "star", "💬": "star", "📦": "chart", "🎒": "chart", "🏫": "home",
-    "🤝": "people", "🔎": "eye", "🔤": "chart", "💤": "hourglass", "🔔": "speaker", "🖊️": "chart", "🖊": "chart",
+    "🤝": "people", "🔎": "eye", "🔤": "alphabet", "💤": "hourglass", "🔔": "speaker", "🖊️": "chart", "🖊": "chart",
   };
 
   const emojiPattern = /(?:[\u{1F1E6}-\u{1F1FF}][\u{1F1E6}-\u{1F1FF}]|[\u{1F000}-\u{1FAFF}][\u{FE0E}\u{FE0F}]?(?:\u{200D}[\u{1F000}-\u{1FAFF}][\u{FE0E}\u{FE0F}]?)*|[\u{2300}-\u{23FF}][\u{FE0E}\u{FE0F}]?|[\u{2600}-\u{27BF}][\u{FE0E}\u{FE0F}]?|[#*0-9]\u{FE0F}?\u{20E3})/gu;
 
   function iconFor(token) {
     const normalized = token.replace(/\uFE0F/g, "");
-    return ICONS[ICON_BY_EMOJI[token] || ICON_BY_EMOJI[normalized] || "generic"];
+    return ICONS[ICON_BY_EMOJI[token] || ICON_BY_EMOJI[normalized] || "generic"] || ICONS.generic;
   }
 
   function replaceTextNode(node) {

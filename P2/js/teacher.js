@@ -937,6 +937,13 @@ function renderStudentScreenFocus(entries) {
   </div>`;
   focusContent.dataset.playerId = String(selected.player.id);
   state.studentScreenFocusMarkup = streamMarkup;
+  const focusProfileImage = $(".student-focus-player > img", focusContent);
+  focusProfileImage?.addEventListener("error", () => {
+    const fallback = document.createElement("span");
+    fallback.textContent = selected.student.avatar || randomAvatar(selected.student.nickname);
+    fallback.setAttribute("aria-label", `อวตาร ${playerName}`);
+    focusProfileImage.replaceWith(fallback);
+  }, { once: true });
   $(".student-focus-back", focusContent)?.addEventListener("click", () => setStudentScreenView("grid"));
   const mirrorFrame = $(".student-focus-game-frame", focusContent);
   mirrorFrame?.addEventListener("load", () => {
