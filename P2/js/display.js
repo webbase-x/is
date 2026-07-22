@@ -11,6 +11,7 @@ const state = {
   presenceChannel: null,
   presenceKey: `display-${crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`}`,
   studentScreens: new Map(),
+  studentScreenMarkupSignature: "",
   leaderboard: [],
   view: "screens",
 };
@@ -126,6 +127,55 @@ function screenIdentity(screen, index) {
   };
 }
 
+function screenTimestamp(screen) {
+  const timestamp = Date.parse(String(screen?.updated_at || screen?.online_at || ""));
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function mergeStudentScreen(previous, incoming) {
+  if (!incoming?.player_id) return previous || null;
+  if (previous && screenTimestamp(incoming) < screenTimestamp(previous)) return previous;
+  return {
+    ...previous,
+    ...incoming,
+    player_id: String(incoming.player_id),
+    // Presence is intentionally lightweight and does not contain the live
+    // game markup. Never let it erase a newer broadcast frame.
+    game_markup: incoming.game_markup || previous?.game_markup || "",
+  };
+}
+
+function updateStudentScreenCard(card, screen, index) {
+  if (!card) return;
+  const identity = screenIdentity(screen, index);
+  const screenState = screenStateMeta[screen.screen_state] ? screen.screen_state : "ready";
+  card.dataset.screenState = screenState;
+  const avatar = card.querySelector(".display-student-avatar");
+  const name = card.querySelector("header div strong");
+  if (avatar) avatar.textContent = identity.avatar;
+  if (name) name.textContent = identity.name;
+  const score = Math.max(0, Number(screen.score) || 0);
+  const percent = Math.max(0, Math.min(100, Number(screen.progress_percent) || 0));
+  const scoreElement = card.querySelector(".display-student-score");
+  if (scoreElement) scoreElement.textContent = `${score} ⭐`;
+  const progressElement = card.querySelector(".display-student-progress i");
+  if (progressElement) progressElement.style.width = `${percent}%`;
+  const footerText = card.querySelector("footer > span");
+  if (footerText) footerText.textContent = screen.progress_text || `${Math.round(percent)}%`;
+  const stage = card.querySelector(".display-student-stage");
+  if (stage) {
+    const activity = ACTIVITIES.find(item => item.key === screen.activity_key);
+    const meta = screenStateMeta[screenState];
+    stage.dataset.screenState = screenState;
+    const small = stage.querySelector("small");
+    const title = stage.querySelector("h2");
+    const detail = stage.querySelector("p");
+    if (small) small.textContent = screen.screen_label || meta.label;
+    if (title) title.textContent = screen.activity_title || activity?.title || "";
+    if (detail) detail.textContent = screen.detail || "";
+  }
+}
+
 function renderStudentScreens() {
   const grid = $("#displayStudentScreens");
   if (!grid) return;
@@ -135,13 +185,24 @@ function renderStudentScreens() {
   });
   $("#displayOnlineCount").textContent = screens.length;
   const sanitizedMarkups = screens.map(screen => sanitizeGameMarkup(screen.game_markup));
+  const markupSignature = screens.map((screen, index) => `${String(screen.player_id)}:${sanitizedMarkups[index]}`).join("\u0001");
   grid.classList.toggle("is-single", screens.length === 1);
   grid.classList.toggle("has-live-mirrors", sanitizedMarkups.some(Boolean));
   $("#displayScreensView").classList.toggle("is-single-screen", screens.length === 1 && Boolean(sanitizedMarkups[0]));
   if (!screens.length) {
+    state.studentScreenMarkupSignature = "";
     grid.innerHTML = `<div class="display-students-empty"><span>📡</span><h2>กำลังรอนักเรียนออนไลน์</h2><p>เมื่อนักเรียนได้รับอนุมัติและเปิดหน้าเกม จอจะปรากฏที่นี่ทันที</p></div>`;
     return;
   }
+  const existingCards = [...grid.querySelectorAll("[data-player-id]")];
+  const canPatchInPlace = state.studentScreenMarkupSignature === markupSignature
+    && existingCards.length === screens.length
+    && screens.every((screen, index) => existingCards[index]?.dataset.playerId === String(screen.player_id));
+  if (canPatchInPlace) {
+    screens.forEach((screen, index) => updateStudentScreenCard(existingCards[index], screen, index));
+    return;
+  }
+  state.studentScreenMarkupSignature = markupSignature;
   grid.innerHTML = screens.map((screen, index) => {
     const identity = screenIdentity(screen, index);
     const screenState = screenStateMeta[screen.screen_state] ? screen.screen_state : "ready";
@@ -154,7 +215,7 @@ function renderStudentScreens() {
     const screenContent = gameMarkup
       ? `<div class="display-student-mirror"><div class="display-student-mirror-canvas game-canvas" style="--game-zoom:${gameZoom}">${gameMarkup}</div></div>`
       : `<div class="display-student-stage"><span class="display-student-icon">${activity?.icon || meta.icon}</span><small>${escapeHtml(screen.screen_label || meta.label)}</small><h2>${escapeHtml(screen.activity_title || activity?.title || "รอครูเริ่มกิจกรรม")}</h2><p>${escapeHtml(screen.detail || "กำลังเตรียมพร้อม")}</p></div>`;
-    return `<article class="display-student-card${gameMarkup ? " has-live-mirror" : ""}" data-screen-state="${screenState}">
+    return `<article class="display-student-card${gameMarkup ? " has-live-mirror" : ""}" data-player-id="${escapeHtml(String(screen.player_id))}" data-screen-state="${screenState}">
       <header>
         <span class="display-student-avatar">${escapeHtml(identity.avatar)}</span>
         <div><strong>${escapeHtml(identity.name)}</strong><small><i></i> หน้าจอสด</small></div>
@@ -172,11 +233,15 @@ function renderStudentScreens() {
 
 function syncStudentPresence() {
   if (!state.presenceChannel) return;
-  const latest = new Map();
+  const latest = new Map([...state.studentScreens].filter(([, screen]) => {
+    const timestamp = screenTimestamp(screen);
+    return timestamp > 0 && Date.now() - timestamp < 15000;
+  }));
   Object.values(state.presenceChannel.presenceState()).flat().forEach(screen => {
     if (screen.role !== "student" || !screen.player_id) return;
-    const current = latest.get(screen.player_id) || state.studentScreens.get(screen.player_id);
-    latest.set(screen.player_id, !current || String(screen.updated_at || "") > String(current.updated_at || "") ? screen : current);
+    const playerId = String(screen.player_id);
+    const merged = mergeStudentScreen(latest.get(playerId), screen);
+    if (merged) latest.set(playerId, merged);
   });
   state.studentScreens = latest;
   renderStudentScreens();
@@ -185,8 +250,9 @@ function syncStudentPresence() {
 function receiveStudentScreen(message) {
   const screen = message?.payload || message;
   if (screen?.role !== "student" || !screen.player_id) return;
-  const current = state.studentScreens.get(screen.player_id);
-  if (!current || String(screen.updated_at || "") >= String(current.updated_at || "")) state.studentScreens.set(screen.player_id, screen);
+  const playerId = String(screen.player_id);
+  const merged = mergeStudentScreen(state.studentScreens.get(playerId), screen);
+  if (merged) state.studentScreens.set(playerId, merged);
   renderStudentScreens();
 }
 
@@ -216,6 +282,7 @@ function subscribeBroadcast() {
 function subscribePresence() {
   state.presenceChannel?.unsubscribe();
   state.studentScreens.clear();
+  state.studentScreenMarkupSignature = "";
   renderStudentScreens();
   state.presenceChannel = supabase.channel(`classroom-${state.snapshot.session_id}`, {
     config: { presence: { key: state.presenceKey } },
@@ -235,6 +302,7 @@ function showClosed() {
   state.broadcastChannel?.unsubscribe();
   state.presenceChannel?.unsubscribe();
   state.studentScreens.clear();
+  state.studentScreenMarkupSignature = "";
   renderStudentScreens();
   $("#displayStageTitle").textContent = "จบคาบเรียนแล้ว";
   $("#displayStageMessage").textContent = "ขอบคุณนักผจญภัยทุกคน แล้วพบกันในแผนถัดไป";

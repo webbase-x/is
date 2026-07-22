@@ -36,6 +36,7 @@ const state = {
   studentScreens: new Map(),
   studentScreenView: "grid",
   selectedStudentScreenId: null,
+  studentScreenFocusMarkup: "",
   watchedStudentScreenId: null,
   studentScreenWatchTimer: null,
   lateJoinMode: false,
@@ -770,7 +771,13 @@ function subscribePresence() {
     .on("presence", { event: "sync" }, () => {
       const presence = state.presenceChannel.presenceState();
       const students = Object.values(presence).flat().filter(item => item.role === "student");
-      const latestScreens = new Map();
+      // Keep the most recent broadcast while Presence catches up. Presence
+      // deliberately omits game_markup, so replacing the map wholesale can
+      // make a live screen jump back to a stale placeholder.
+      const latestScreens = new Map([...state.studentScreens].filter(([, screen]) => {
+        const timestamp = screenTimestamp(screen);
+        return timestamp > 0 && Date.now() - timestamp < 15000;
+      }));
       students.forEach(screen => {
         const playerId = String(screen.player_id || "");
         if (!playerId) return;
@@ -880,10 +887,10 @@ function watchStudentScreen(playerId) {
 }
 
 function renderStudentScreenFocus(entries) {
-  const selected = entries.find(entry => entry.player.id === state.selectedStudentScreenId) || entries[0];
+  const selected = entries.find(entry => String(entry.player.id) === String(state.selectedStudentScreenId)) || entries[0];
   if (!selected) return;
-  state.selectedStudentScreenId = selected.player.id;
-  watchStudentScreen(selected.player.id);
+  state.selectedStudentScreenId = String(selected.player.id);
+  watchStudentScreen(String(selected.player.id));
   const screen = state.studentScreens.get(String(selected.player.id)) || selected.screen || {};
   const profileUrl = state.playerSelfieUrls.get(selected.player.id) || "";
   const profileVisual = profileUrl
@@ -891,17 +898,31 @@ function renderStudentScreenFocus(entries) {
     : `<span>${escapeHtml(selected.student.avatar || randomAvatar(selected.student.nickname))}</span>`;
   const playerName = selected.student.full_name || selected.student.nickname || "นักเรียน";
   const streamMarkup = sanitizeGameMarkup(screen.game_markup);
+  const focusContent = $("#studentScreenFocusContent");
+  const sameStudentMarkup = focusContent?.dataset.playerId === String(selected.player.id)
+    && Boolean(streamMarkup)
+    && state.studentScreenFocusMarkup === streamMarkup;
+  // A wheel snapshot can be received several times while its CSS transition
+  // is running. Replacing the DOM for identical markup restarts that
+  // transition, making the teacher view appear out of sync with the student.
+  if (sameStudentMarkup) {
+    $("#studentScreenPrevious").disabled = entries.length < 2;
+    $("#studentScreenNext").disabled = entries.length < 2;
+    return;
+  }
   const gameContent = streamMarkup
     ? `<div class="student-focus-game-canvas game-canvas" style="--game-zoom:1">${streamMarkup}</div>`
     : `<div class="student-focus-waiting"><span>${studentScreenIcon(selected)}</span><h2>${escapeHtml(screen.activity_title || "กำลังรอภาพเกม")}</h2><p>${escapeHtml(screen.detail || "ภาพเกมจะปรากฏอัตโนมัติ")}</p></div>`;
-  $("#studentScreenFocusContent").innerHTML = `<div class="student-focus-stream">
+  focusContent.innerHTML = `<div class="student-focus-stream">
     <div class="student-focus-overlay">
       <button class="student-focus-back" type="button" aria-label="กลับไปดูนักเรียนทั้งหมด">‹</button>
       <div class="student-focus-player">${profileVisual}<strong>${escapeHtml(playerName)}</strong><i aria-label="ถ่ายทอดสด"></i></div>
     </div>
     <main class="student-focus-game-window">${gameContent}</main>
   </div>`;
-  $(".student-focus-back", $("#studentScreenFocusContent"))?.addEventListener("click", () => setStudentScreenView("grid"));
+  focusContent.dataset.playerId = String(selected.player.id);
+  state.studentScreenFocusMarkup = streamMarkup;
+  $(".student-focus-back", focusContent)?.addEventListener("click", () => setStudentScreenView("grid"));
   $("#studentScreenPrevious").disabled = entries.length < 2;
   $("#studentScreenNext").disabled = entries.length < 2;
 }
@@ -936,7 +957,7 @@ function renderStudentScreens() {
     return;
   }
   hide($("#studentScreensEmpty"));
-  if (!state.selectedStudentScreenId || !entries.some(entry => entry.player.id === state.selectedStudentScreenId)) state.selectedStudentScreenId = entries.find(entry => entry.online)?.player.id || entries[0].player.id;
+  if (!state.selectedStudentScreenId || !entries.some(entry => String(entry.player.id) === String(state.selectedStudentScreenId))) state.selectedStudentScreenId = String(entries.find(entry => entry.online)?.player.id || entries[0].player.id);
   $("#studentScreensFocusButton").disabled = false;
   if (state.studentScreenView === "focus") {
     hide($("#studentScreensGrid"));
@@ -951,7 +972,7 @@ function renderStudentScreens() {
     <span class="student-screen-card-name"><strong>${escapeHtml(entry.student.full_name || "นักเรียน")}</strong><small>${entry.online ? "แตะเพื่อดูจอรายคน" : "ออฟไลน์"}</small></span>
   </button>`).join("");
   $("#studentScreensGrid").querySelectorAll("[data-screen-player]").forEach(button => button.addEventListener("click", () => {
-    state.selectedStudentScreenId = button.dataset.screenPlayer;
+    state.selectedStudentScreenId = String(button.dataset.screenPlayer);
     state.studentScreenView = "focus";
     renderStudentScreens();
     requestAnimationFrame(openStudentScreenFullscreen);
@@ -961,7 +982,11 @@ function renderStudentScreens() {
 function setStudentScreenView(view) {
   if (!state.session) return toast("กรุณาเปิดคาบเรียนก่อน", "warning");
   state.studentScreenView = view === "focus" ? "focus" : "grid";
-  if (state.studentScreenView === "grid") stopStudentScreenWatch();
+  if (state.studentScreenView === "grid") {
+    stopStudentScreenWatch();
+    state.studentScreenFocusMarkup = "";
+    $("#studentScreenFocusContent")?.removeAttribute("data-player-id");
+  }
   if (state.studentScreenView === "grid") closeStudentScreenFullscreen();
   renderStudentScreens();
 }
@@ -969,7 +994,7 @@ function setStudentScreenView(view) {
 function moveStudentScreen(direction) {
   const entries = studentScreenEntries();
   if (!entries.length) return;
-  const currentIndex = Math.max(0, entries.findIndex(entry => entry.player.id === state.selectedStudentScreenId));
+  const currentIndex = Math.max(0, entries.findIndex(entry => String(entry.player.id) === String(state.selectedStudentScreenId)));
   state.selectedStudentScreenId = entries[(currentIndex + direction + entries.length) % entries.length].player.id;
   renderStudentScreens();
 }
@@ -1437,6 +1462,7 @@ async function closeSession() {
   state.playerSelfieUrls = new Map();
   state.studentScreens = new Map();
   state.studentScreenView = "grid";
+  state.studentScreenFocusMarkup = "";
   state.selectedStudentScreenId = null;
   state.lateJoinMode = false;
   state.lateJoinResumeStatus = "paused";
