@@ -733,6 +733,29 @@ function subscribeToSession() {
     .subscribe();
 }
 
+function screenTimestamp(screen) {
+  const timestamp = Date.parse(String(screen?.updated_at || screen?.online_at || ""));
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function mergeStudentScreen(previous, incoming) {
+  if (!incoming?.player_id) return previous || null;
+  if (previous && screenTimestamp(incoming) < screenTimestamp(previous)) return previous;
+  return {
+    ...previous,
+    ...incoming,
+    player_id: String(incoming.player_id),
+    game_markup: incoming.game_markup || previous?.game_markup || "",
+  };
+}
+
+function upsertStudentScreen(incoming) {
+  const playerId = String(incoming?.player_id || "");
+  if (!playerId) return;
+  const merged = mergeStudentScreen(state.studentScreens.get(playerId), incoming);
+  if (merged) state.studentScreens.set(playerId, merged);
+}
+
 function subscribePresence() {
   stopStudentScreenWatch();
   state.presenceChannel?.unsubscribe();
@@ -740,8 +763,7 @@ function subscribePresence() {
     .on("broadcast", { event: "student-screen" }, message => {
       const screen = message?.payload || message;
       if (screen?.role !== "student" || !screen.player_id) return;
-      const previous = state.studentScreens.get(screen.player_id);
-      if (!previous || String(screen.updated_at || "") >= String(previous.updated_at || "")) state.studentScreens.set(screen.player_id, screen);
+      upsertStudentScreen(screen);
       $("#onlineCount").textContent = state.studentScreens.size;
       renderStudentScreens();
     })
@@ -750,9 +772,11 @@ function subscribePresence() {
       const students = Object.values(presence).flat().filter(item => item.role === "student");
       const latestScreens = new Map();
       students.forEach(screen => {
-        if (!screen.player_id) return;
-        const previous = latestScreens.get(screen.player_id) || state.studentScreens.get(screen.player_id);
-        latestScreens.set(screen.player_id, !previous || String(screen.updated_at || screen.online_at || "") > String(previous.updated_at || previous.online_at || "") ? screen : previous);
+        const playerId = String(screen.player_id || "");
+        if (!playerId) return;
+        const previous = latestScreens.get(playerId) || state.studentScreens.get(playerId);
+        const merged = mergeStudentScreen(previous, screen);
+        if (merged) latestScreens.set(playerId, merged);
       });
       state.studentScreens = latestScreens;
       $("#onlineCount").textContent = latestScreens.size;
@@ -767,12 +791,12 @@ function studentScreenEntries() {
   const entries = state.players.filter(player => player.status === "approved").map(player => ({
     player,
     student: player.student || {},
-    screen: state.studentScreens.get(player.id) || null,
-    online: state.studentScreens.has(player.id),
+    screen: state.studentScreens.get(String(player.id)) || null,
+    online: state.studentScreens.has(String(player.id)),
   }));
-  const knownPlayerIds = new Set(entries.map(entry => entry.player.id));
+  const knownPlayerIds = new Set(entries.map(entry => String(entry.player.id)));
   state.studentScreens.forEach((screen, playerId) => {
-    if (knownPlayerIds.has(playerId)) return;
+    if (knownPlayerIds.has(String(playerId))) return;
     entries.push({
       player: { id: playerId, student_id: screen.student_id, status: "approved" },
       student: {
@@ -860,7 +884,7 @@ function renderStudentScreenFocus(entries) {
   if (!selected) return;
   state.selectedStudentScreenId = selected.player.id;
   watchStudentScreen(selected.player.id);
-  const screen = selected.screen || {};
+  const screen = state.studentScreens.get(String(selected.player.id)) || selected.screen || {};
   const profileUrl = state.playerSelfieUrls.get(selected.player.id) || "";
   const profileVisual = profileUrl
     ? `<img src="${escapeHtml(profileUrl)}" alt="รูปโปรไฟล์ ${escapeHtml(selected.student.full_name || "นักเรียน")}">`
