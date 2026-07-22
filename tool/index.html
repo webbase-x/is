@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#5b3fd0">
+  <meta name="description" content="เครื่องมืออำนวยความสะดวกในการสอนของเพลินภาษา">
+  <title>เครื่องมือครู | เพลินภาษา</title>
+  <link rel="stylesheet" href="styles.css?v=20260722-1">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html" aria-label="กลับหน้าหลัก"><span>ก</span><strong>เพลินภาษา</strong></a>
+    <div><small>Teacher toolkit</small><h1>เครื่องมืออำนวยความสะดวกในการสอน</h1></div>
+    <a class="home-link" href="../index.html">⌂ หน้าหลัก</a>
+  </header>
+
+  <main class="shell">
+    <section class="intro">
+      <div><span class="eyebrow">ใช้งานได้ทุกระดับชั้น</span><h2>สร้างสื่อในไม่กี่คลิก<br><em>พร้อมใช้หน้าชั้นเรียน</em></h2><p>เครื่องมือทุกชิ้นทำงานในเบราว์เซอร์ ข้อมูลคำศัพท์และรายชื่อผู้ชนะบันทึกไว้เฉพาะเครื่องนี้ ไม่ต้องใช้ฐานข้อมูล</p></div>
+      <div class="intro-orbit" aria-hidden="true"><i>ก</i><b>✦</b><span>บิงโก<br>วงล้อ</span></div>
+    </section>
+
+    <section class="tool-directory" aria-labelledby="directoryTitle">
+      <div class="section-heading"><div><span class="eyebrow">คลังเครื่องมือ</span><h2 id="directoryTitle">เลือกเครื่องมือ</h2></div><p>โครงสร้างนี้รองรับการเพิ่มเครื่องมือใหม่ได้ในอนาคต</p></div>
+      <div id="toolDirectory" class="tool-grid"></div>
+    </section>
+
+    <section id="bingo-tool" class="tool-workspace" aria-labelledby="bingoTitle">
+      <div class="workspace-heading"><div><span class="eyebrow">เครื่องมือ 01</span><h2 id="bingoTitle">▦ เครื่องมือสร้างสื่อปิงโก</h2><p>ป้อนคำศัพท์ กำหนดจำนวนผู้เล่น แล้วสร้างตารางที่ไม่ซ้ำกัน</p></div><span class="ready-badge">พร้อมพิมพ์ PDF</span></div>
+      <div class="bingo-builder">
+        <form id="bingoForm" class="control-card">
+          <label for="wordInput">คำศัพท์ทั้งหมด <small>คั่นด้วยบรรทัดใหม่หรือเครื่องหมายจุลภาค</small></label>
+          <textarea id="wordInput" rows="10" placeholder="เช่น ภูผา, ใบโบก, ใบบัว, พ่อ, แม่"></textarea>
+          <div class="form-grid">
+            <label>ขนาดตาราง<select id="boardSize"><option value="3">3 × 3</option><option value="4" selected>4 × 4</option><option value="5">5 × 5</option></select></label>
+            <label>จำนวนผู้เล่น<input id="playerCount" type="number" min="1" max="60" value="10"></label>
+          </div>
+          <p id="bingoMessage" class="form-message" role="status"></p>
+          <button class="primary-button" type="submit">✦ สร้างตารางปิงโก</button>
+        </form>
+        <aside class="bingo-summary"><span>ผลลัพธ์</span><strong id="boardSummary">รอคำศัพท์</strong><p>แต่ละผู้เล่นจะได้รับตารางที่สลับตำแหน่งคำต่างกัน</p><button id="printBoards" class="outline-button" type="button" disabled>🖨 พิมพ์ / บันทึกเป็น PDF</button></aside>
+      </div>
+      <div id="bingoBoards" class="bingo-boards" aria-live="polite"><div class="empty-state">กรอกคำศัพท์ แล้วกดสร้างตารางปิงโก</div></div>
+    </section>
+
+    <section id="wheel-tool" class="tool-workspace wheel-workspace" aria-labelledby="wheelTitle">
+      <div class="workspace-heading"><div><span class="eyebrow">เครื่องมือ 02</span><h2 id="wheelTitle">◉ วงล้อสุ่มคำ</h2><p>คำที่ออกแล้วจะไม่ซ้ำจนกว่าจะเริ่มรอบใหม่ พร้อมเอฟเฟกต์เสียงและบันทึกผู้ชนะ</p></div><span class="local-badge">⌁ บันทึกในเครื่องนี้</span></div>
+      <div class="wheel-layout">
+        <div class="wheel-stage">
+          <div class="wheel-pointer" aria-hidden="true">◆</div><div id="wheel" class="wheel" aria-label="วงล้อสุ่มคำ"><div class="wheel-center"><small>คำที่สุ่มได้</small><strong id="selectedWord">พร้อม!</strong></div></div>
+          <p id="wheelHint">ใส่คำศัพท์ แล้วเริ่มหมุนวงล้อ</p>
+          <button id="spinButton" class="spin-button" type="button">✦ หมุนวงล้อ</button>
+          <div class="wheel-actions"><button id="newRound" type="button">↻ เริ่มรอบใหม่</button><button id="soundToggle" type="button" aria-pressed="true">🔊 เสียง</button></div>
+        </div>
+        <div class="wheel-controls">
+          <label for="wheelWords">คำสำหรับวงล้อ</label>
+          <textarea id="wheelWords" rows="8" placeholder="คำศัพท์จะนำมาจากเครื่องมือบิงโกอัตโนมัติ"></textarea>
+          <div class="word-count-row"><strong id="remainingCount">เหลือ 0 คำ</strong><button id="useBingoWords" type="button">ใช้คำจากปิงโก</button></div>
+          <div class="called-card"><div><span>คำที่หมุนไปแล้ว</span><strong id="calledCount">0 คำ</strong></div><div id="calledWords" class="called-words"><p>ยังไม่มีคำที่สุ่ม</p></div></div>
+          <form id="winnerForm" class="winner-form"><label for="winnerName">บันทึกผู้ชนะ</label><div><input id="winnerName" autocomplete="name" placeholder="ชื่อหรือกลุ่มผู้ชนะ"><button type="submit">🏆 บันทึก</button></div><small id="winnerContext">หมุนคำก่อน แล้วบันทึกผู้ชนะได้ทันที</small></form>
+        </div>
+      </div>
+      <div class="winner-log"><div class="log-heading"><div><span class="eyebrow">บันทึกในเครื่อง</span><h3>ผู้ชนะของรอบนี้</h3></div><button id="clearWinners" type="button">ล้างประวัติ</button></div><ol id="winnerList"><li class="empty-winner">ยังไม่มีผู้ชนะที่บันทึกไว้</li></ol></div>
+    </section>
+  </main>
+  <footer>เพลินภาษา · เครื่องมือครู · เพิ่มเครื่องมือใหม่ได้จากรายการในไฟล์ <code>app.js</code></footer>
+  <script src="app.js?v=20260722-1"></script>
+</body>
+</html>
