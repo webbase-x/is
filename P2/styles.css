@@ -491,8 +491,12 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .teacher-vote-heading h4 { margin: 0; color: var(--ink); font-size: clamp(20px, 2.4vw, 28px); }
 .teacher-vote-count { padding: 7px 11px; border-radius: 999px; color: var(--purple); background: var(--purple-soft); font-size: 13px; font-weight: 900; white-space: nowrap; }
 .teacher-vote-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 10px; }
-.teacher-vote-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255,255,255,.9); box-shadow: 0 5px 16px rgba(34,41,77,.05); }
-.teacher-vote-sentence { grid-column: 1 / -1; color: var(--ink); font-size: clamp(18px, 2vw, 24px); font-weight: 950; line-height: 1.35; overflow-wrap: anywhere; }
+.teacher-vote-entry { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255,255,255,.9); box-shadow: 0 5px 16px rgba(34,41,77,.05); }
+.teacher-vote-rank { grid-row: 1 / span 2; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 10px; color: var(--purple); background: var(--purple-soft); font-size: 15px; font-weight: 950; }
+.teacher-vote-entry:nth-child(1) .teacher-vote-rank { color: #805c00; background: #fff0b3; }
+.teacher-vote-entry:nth-child(2) .teacher-vote-rank { color: #566171; background: #e8edf3; }
+.teacher-vote-entry:nth-child(3) .teacher-vote-rank { color: #8d552e; background: #f4dcc9; }
+.teacher-vote-sentence { grid-column: 2 / -1; color: var(--ink); font-size: clamp(18px, 2vw, 24px); font-weight: 950; line-height: 1.35; overflow-wrap: anywhere; }
 .teacher-vote-entry small { color: var(--muted); font-size: 12px; }
 .teacher-vote-entry strong { color: #d24b70; font-size: 15px; text-align: right; }
 .teacher-vote-empty { padding: 18px; border: 1px dashed #c9c4ee; border-radius: 15px; color: var(--muted); background: rgba(255,255,255,.6); text-align: center; }

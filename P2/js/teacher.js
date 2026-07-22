@@ -1072,7 +1072,7 @@ async function refreshSessionData() {
     supabase.from("session_players").select("*, student:students(*)").eq("session_id", state.session.id).order("joined_at"),
     supabase.rpc("get_session_leaderboard", { p_session_id: state.session.id }),
     state.session.current_activity_key === "vote"
-      ? supabase.from("sentence_submissions").select("id,sentence,session_player_id,sentence_votes(emoji)").eq("session_id", state.session.id).order("created_at")
+      ? supabase.from("sentence_submissions").select("id,sentence,session_player_id,created_at,sentence_votes(emoji)").eq("session_id", state.session.id).order("created_at")
       : Promise.resolve({ data: [] }),
   ]);
   state.players = players || [];
@@ -1095,7 +1095,7 @@ async function refreshSessionData() {
 
 async function loadSentenceSubmissions() {
   if (!state.session?.id || state.session.current_activity_key !== "vote") return;
-  const { data, error } = await supabase.from("sentence_submissions").select("id,sentence,session_player_id,sentence_votes(emoji)").eq("session_id", state.session.id).order("created_at");
+  const { data, error } = await supabase.from("sentence_submissions").select("id,sentence,session_player_id,created_at,sentence_votes(emoji)").eq("session_id", state.session.id).order("created_at");
   if (error) return;
   state.sentenceSubmissions = data || [];
   renderLiveResults();
@@ -1293,11 +1293,11 @@ function renderLiveRanking(entries) {
 function renderLiveVoteBoard() {
   const submissions = [...(state.sentenceSubmissions || [])]
     .map(item => ({ ...item, votes: item.sentence_votes?.length || 0 }))
-    .sort((a, b) => b.votes - a.votes);
+    .sort((a, b) => b.votes - a.votes || String(a.created_at || "").localeCompare(String(b.created_at || "")));
   const playerNames = new Map(state.players.map(player => [player.id, player.student?.full_name || player.student?.nickname || "นักเรียน"]));
   return `<section class="teacher-vote-board" aria-live="polite">
     <div class="teacher-vote-heading"><div><span class="eyebrow">บอร์ดประโยค</span><h4>ประโยคที่นักเรียนส่ง</h4></div><span class="teacher-vote-count">${submissions.length} ประโยค</span></div>
-    ${submissions.length ? `<div class="teacher-vote-list">${submissions.map(item => `<article class="teacher-vote-entry"><div class="teacher-vote-sentence">${escapeHtml(item.sentence)}</div><small>${escapeHtml(playerNames.get(item.session_player_id) || "นักเรียน")}</small><strong>💗 ${item.votes}</strong></article>`).join("")}</div>` : `<div class="teacher-vote-empty">รอประโยคจากนักเรียน ประโยคที่ส่งจะแสดงตรงนี้ทันที</div>`}
+    ${submissions.length ? `<div class="teacher-vote-list">${submissions.map((item, index) => `<article class="teacher-vote-entry"><span class="teacher-vote-rank">${index + 1}</span><div class="teacher-vote-sentence">${escapeHtml(item.sentence)}</div><small>${escapeHtml(playerNames.get(item.session_player_id) || "นักเรียน")}</small><strong>💗 ${item.votes}</strong></article>`).join("")}</div>` : `<div class="teacher-vote-empty">รอประโยคจากนักเรียน ประโยคที่ส่งจะแสดงตรงนี้ทันที</div>`}
   </section>`;
 }
 
