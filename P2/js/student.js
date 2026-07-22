@@ -418,8 +418,14 @@ async function submitJoin() {
     });
     if (error) throw error;
 
-    const { data: player, error: playerError } = await supabase.from("session_players").select("*").eq("id", playerId).single();
+    // Do not coerce the REST response with `.single()`: an RLS propagation
+    // delay can briefly return an empty result immediately after the RPC.
+    // Reading the first row lets us show a useful retry message instead of
+    // exposing PostgREST's "Cannot coerce ... single JSON object" error.
+    const { data: playerRows, error: playerError } = await supabase.from("session_players").select("*").eq("id", playerId).limit(1);
     if (playerError) throw playerError;
+    const player = playerRows?.[0];
+    if (!player) throw new Error("ยังไม่พบข้อมูลการเข้าห้อง กรุณากดส่งข้อมูลอีกครั้ง");
     state.player = player;
     sessionStorage.setItem("thaiGameJoin", JSON.stringify({
       roomCode: state.roomCode,
@@ -473,8 +479,10 @@ function handlePlayerStatus() {
 }
 
 async function enterGame() {
-  const { data: session, error } = await supabase.from("class_sessions").select("*").eq("id", state.player.session_id).single();
+  const { data: sessionRows, error } = await supabase.from("class_sessions").select("*").eq("id", state.player.session_id).limit(1);
   if (error) return toast(error.message, "error");
+  const session = sessionRows?.[0];
+  if (!session) return toast("ไม่พบข้อมูลคาบเรียน กรุณาเข้าห้องใหม่อีกครั้ง", "error");
   state.session = session;
   $("#playerAvatar").textContent = state.student?.avatar || randomAvatar(state.student?.nickname);
   $("#playerName").textContent = state.student?.nickname || state.student?.full_name || "นักเรียน";
