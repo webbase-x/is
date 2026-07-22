@@ -37,6 +37,15 @@ const WHEEL_WORDS = Object.freeze({
   none: ["กา", "ปู", "มือ", "งา", "ชา", "แพ", "รู", "นา", "วัว", "เสือ", "ม้า", "ไผ่", ...TEXTBOOK_VOCABULARY.none],
   has: ["กบ", "นก", "เด็ก", "จาน", "บ้าน", "ดิน", "มด", "เข็ม", "ลิง", "กลอง", "ขนม", "ดอกไม้", ...TEXTBOOK_VOCABULARY.has],
 });
+const WORD_EMOJI = Object.freeze({
+  "กา":"🐔","ปู":"🦀","มือ":"✋","งา":"🌽","ชา":"🍵","แพ":"🛶","รู":"⭕","นา":"🌾","วัว":"🐄","เสือ":"🐯","ม้า":"🐴","ไผ่":"🎋",
+  "โบ":"🎀","ไข่":"🥚","เล้า":"🏠","ไหว้":"🙏","แคร่":"🛏️","เกา":"🖐️","แฉะ":"💧","บ่อ":"🕳️","หัว":"🙂","ลา":"🫏","ค้า":"🛍️",
+  "ไฟ":"🔥","แกะ":"🐑","งอ":"〰️","ห่อ":"🎁","กลัว":"😨","คู่":"👫","ตู้":"🗄️","ซื้อ":"🛒","ก้าว":"👣","กะทิ":"🥥",
+  "กบ":"🐸","นก":"🐦","เด็ก":"🧒","จาน":"🍽️","บ้าน":"🏠","ดิน":"🟤","มด":"🐜","เข็ม":"🪡","ลิง":"🐒","กลอง":"🥁","ขนม":"🍪","ดอกไม้":"🌸",
+  "ราด":"💦","บิน":"🪽","ปีก":"🪽","ยิ้ม":"😊","เล่น":"🎮","มอง":"👀","รูป":"🖼️","ถ้วย":"🥣","ข่าว":"📰","แอ่ง":"💧","ท้อง":"🤰","โอบ":"🤗","กอด":"🫂","ตัด":"✂️","ขัง":"🔒","เสียม":"⛏️",
+  "ย่าง":"🍢","สูง":"⬆️","นึ่ง":"♨️","ทิ้ง":"🗑️","ผัก":"🥬","บน":"🔝","โยน":"🤾","ทาง":"🛣️","ฟืน":"🪵","ยุง":"🦟","พัด":"🪭","เต็นท์":"⛺","ผ้าม่าน":"🪟","สุมไฟ":"🔥","ก้อนหิน":"🪨","ไฟฉาย":"🔦","ตะเกียง":"🏮",
+  "อ่าน":"📖","ชิม":"😋","เงิน":"💰","ส้ม":"🍊","น้องชาย":"👦","มะม่วง":"🥭"
+});
 const WHEEL_SPIN_DURATION = 3000;
 const RHYTHM_CUE_TEMPLATE = Object.freeze([
   { word: "เต่า", start: 38.00, end: 38.55 },
@@ -1316,7 +1325,7 @@ function renderWheel() {
           <div class="premium-wheel-disc" style="--wheel-turn:${720 + Math.round(Math.random() * 360)}deg" aria-hidden="true">
             <span>🌟</span><span>🎈</span><span>🦋</span><span>🍭</span><span>🚀</span><span>🌈</span><span>🐘</span><span>🎁</span>
           </div>
-          <div class="wheel-word"><small>คำที่ได้</small><strong id="wheelWord" aria-live="polite">กำลังสุ่ม...</strong><button id="wheelSpeak" type="button" aria-label="ฟังเสียงคำว่า ${escapeHtml(question.word)}">🔊 ฟังคำ</button></div>
+          <div class="wheel-word"><small>คำที่ได้</small><span id="wheelWordEmoji" class="wheel-word-emoji" aria-hidden="true">🔤</span><strong id="wheelWord" aria-live="polite">กำลังสุ่ม...</strong><button id="wheelSpeak" type="button" aria-label="ฟังเสียงคำว่า ${escapeHtml(question.word)}">🔊 ฟังคำ</button></div>
         </div>
         <p id="wheelFeedback" class="wheel-feedback">วงล้อกำลังเลือกคำ...</p>
         <div id="wheelChoices" class="wheel-answer-grid">
@@ -1327,6 +1336,7 @@ function renderWheel() {
     `);
     const disc = $(".premium-wheel-disc");
     const wordLabel = $("#wheelWord");
+    const wordEmoji = $("#wheelWordEmoji");
     const choiceButtons = [...$("#wheelChoices").children];
     const previewWords = shuffle([...new Set([...WHEEL_WORDS.none, ...WHEEL_WORDS.has])]);
     let spinStep = 0;
@@ -1334,7 +1344,7 @@ function renderWheel() {
     $("#wheelSpeak").addEventListener("click", () => speakThai(question.word));
     const finishSpin = () => {
       if (state.renderedActivity !== "wheel") return;
-      wordLabel.textContent = question.word;
+      wordLabel.textContent = question.word; wordEmoji.textContent = WORD_EMOJI[question.word] || "🔤";
       wordLabel.classList.remove("wheel-word-shuffling");
       choiceButtons.forEach(button => { button.disabled = false; });
       $("#wheelFeedback").textContent = "เลือกคำตอบได้เลย!";
@@ -1348,6 +1358,7 @@ function renderWheel() {
         return;
       }
       wordLabel.textContent = previewWords[spinStep % previewWords.length];
+      wordEmoji.textContent = WORD_EMOJI[wordLabel.textContent] || "🔤";
       wordLabel.classList.remove("wheel-word-shuffling");
       void wordLabel.offsetWidth;
       wordLabel.classList.add("wheel-word-shuffling");
