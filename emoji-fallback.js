@@ -25,6 +25,7 @@
     heart: '<path fill="#ef668d" d="M32 55S8 41 8 24C8 13 21 8 29 18c1 1 2 3 3 4 1-1 2-3 3-4 8-10 21-5 21 6 0 17-24 31-24 31Z"/>',
     people: '<circle cx="24" cy="22" r="9" fill="#5b3fd0"/><circle cx="44" cy="25" r="8" fill="#8f7bea"/><path fill="#5b3fd0" d="M8 55c1-14 7-22 16-22s15 8 16 22Z"/><path fill="#8f7bea" d="M35 55c1-12 5-19 12-19s10 7 11 19Z"/>',
     home: '<path fill="#ef7a57" d="m6 29 26-22 26 22v27H38V39H26v17H6Z"/><path fill="#f7bd47" d="M32 7 6 29h8L32 15l18 14h8Z"/>',
+    plate: '<circle cx="28" cy="34" r="20" fill="#eef5ff" stroke="#5b3fd0" stroke-width="4"/><circle cx="28" cy="34" r="11" fill="#d8d4ff" stroke="#8f7bea" stroke-width="3"/><path fill="none" stroke="#5b3fd0" stroke-linecap="round" stroke-width="4" d="M51 12v44M46 12v13c0 4 3 6 6 6M56 12v19"/>',
     train: '<path fill="#5b3fd0" d="M15 10h34c6 0 10 5 10 11v22c0 5-4 9-9 9H14c-5 0-9-4-9-9V21c0-6 4-11 10-11Z"/><rect x="13" y="18" width="14" height="12" rx="2" fill="#eef5ff"/><rect x="37" y="18" width="14" height="12" rx="2" fill="#eef5ff"/><circle cx="20" cy="43" r="5" fill="#f7bd47"/><circle cx="44" cy="43" r="5" fill="#f7bd47"/><path fill="none" stroke="#5b3fd0" stroke-linecap="round" stroke-width="4" d="M20 52 14 59M44 52l6 7"/>',
     medal: '<circle cx="32" cy="36" r="20" fill="#f7bd47"/><path fill="#5b3fd0" d="m32 22 4 9 10 1-8 7 2 10-8-5-8 5 2-10-8-7 10-1Z"/><path fill="#5b3fd0" d="M19 6h10l3 13-8-4-8 4Zm26 0H35l-3 13 8-4 8 4Z"/>',
     chart: '<rect x="8" y="8" width="48" height="48" rx="8" fill="#eef5ff"/><path fill="none" stroke="#5b3fd0" stroke-linecap="round" stroke-width="6" d="M18 44V32M32 44V20M46 44V27"/>',
@@ -68,7 +69,7 @@
     "🦉": "owl", "🐯": "tiger", "🐳": "whale", "🐰": "rabbit", "🦊": "fox", "🐼": "panda", "🦁": "lion",
     "🐸": "frog", "🐙": "octopus", "🦋": "butterfly", "🚀": "rocket", "🐘": "elephant", "🐢": "turtle", "🐄": "cow",
     "🐻": "bear", "🐍": "snake", "🐔": "chicken", "🐦": "bird", "🐬": "dolphin", "🐴": "horse", "🫏": "donkey",
-    "🐊": "crocodile", "🧒": "avatar", "🙂": "avatar", "😊": "avatar", "🟫": "avatar", "🍽️": "avatar", "🍽": "avatar",
+    "🐊": "crocodile", "🧒": "avatar", "🙂": "avatar", "😊": "avatar", "🟫": "avatar", "🍽️": "plate", "🍽": "plate",
     "🍭": "star", "🌈": "star", "🎁": "star", "💦": "star", "💬": "star", "📦": "chart", "🎒": "chart", "🏫": "home",
     "🤝": "people", "🔎": "eye", "🔤": "chart", "💤": "hourglass", "🔔": "speaker", "🖊️": "chart", "🖊": "chart",
   };
