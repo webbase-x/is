@@ -1497,3 +1497,16 @@ html, body, .game-canvas, .game-play-area, .student-shell { scrollbar-width:none
 html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollbar, .game-play-area::-webkit-scrollbar, .student-shell::-webkit-scrollbar { display:none; width:0; height:0; }
 .game-canvas { overflow:auto; }
 .game-play-area { overflow:auto; }
+
+/* Fit the complete activity inside the viewport; no page scrolling during play. */
+.student-page.student-game-live, .student-page.student-game-live #gameView, .student-page.student-game-live .game-stage, .student-page.student-game-live #gameCanvas, .student-page.student-game-live #gameCanvas > .game-inner, .student-page.student-game-live #gameCanvas > .game-layout { height:100dvh; max-height:100dvh; overflow:hidden; }
+.student-page.student-game-live #gameCanvas > .game-inner { min-height:0; }
+.student-page.student-game-live .game-play-area { min-height:0; overflow:hidden; }
+.student-page.student-game-live .sort-area { max-height:calc(100dvh - 190px); }
+@media (max-width:760px) {
+  .student-page.student-game-live #gameCanvas > .game-inner { padding:10px 8px; }
+  .student-page.student-game-live .game-play-area { padding:6px; }
+  .student-page.student-game-live .sort-area { max-height:calc(100dvh - 150px); gap:10px; }
+  .student-page.student-game-live .word-house { min-height:0; height:100%; padding:12px; }
+  .student-page.student-game-live .house-dropzone { min-height:0; }
+}
