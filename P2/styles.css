@@ -37,6 +37,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   font-variant-emoji: emoji;
 }
 
+.emoji-svg { display: block; width: 38px; height: 38px; }
+.mascot .emoji-svg { width: 104px; height: 104px; }
+.privacy-note > .emoji-icon .emoji-svg { width: 42px; height: 42px; }
+
 .site-header, .app-header {
   min-height: 78px; display: flex; align-items: center; justify-content: space-between;
   padding: 14px clamp(20px, 5vw, 72px); background: rgba(255,255,255,.92);
