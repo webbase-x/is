@@ -1611,9 +1611,14 @@ function renderExit() {
     { prompt: "ประโยคใดเรียงได้ถูกต้อง", answer: "ตาดูปูนา", options: ["ดูตาปูนา", "ตาดูปูนา", "ปูนาตาดู", "นาดูปูตา"] },
     { prompt: "ประโยคจากบทเรียนข้อใดเรียงถูกต้อง", answer: "แม่ไก่ออกไข่", options: ["ไข่แม่ไก่ออก", "แม่ไก่ออกไข่", "ไก่แม่ไข่ออก", "ออกไข่แม่ไก่"] },
     { prompt: "คำใดมีตัวสะกด", answer: "ก้าว", options: ["เปีย", "โบ", "กะทิ", "ก้าว"] },
+    { prompt: "ข้อใดเป็นคำแม่ ก กา", answer: "ปู", options: ["ปู", "กบ", "นก", "ลม"] },
+    { prompt: "คำใดไม่มีตัวสะกด", answer: "ปลา", options: ["ปลา", "กิน", "จาน", "เด็ก"] },
+    { prompt: "ประโยคใดเรียงได้ถูกต้อง", answer: "แม่หาปู", options: ["แม่หาปู", "หาปูแม่", "ปูหาแม่", "แม่ปูหา"] },
+    { prompt: "คำใดมีตัวสะกด", answer: "น้ำ", options: ["น้ำ", "งู", "มา", "ปู"] },
+    { prompt: "คำใดเป็นคำแม่ ก กา", answer: "ทะเล", options: ["ทะเล", "นก", "กบ", "เล่ม"] },
   ];
   runQuestionGame({
-    key: "exit", title: "ไขกุญแจหีบสมบัติ", instruction: "ตอบให้ถูกอย่างน้อย 3 ใน 5 ข้อ เพื่อเปิดหีบสมบัติ",
+    key: "exit", title: "ไขกุญแจหีบสมบัติ", instruction: "ตอบให้ถูกอย่างน้อย 6 ใน 10 ข้อ เพื่อเปิดหีบสมบัติ",
     questions,
     renderPrompt(question, container) { container.innerHTML = `<div class="treasure"><span class="treasure-icon">🔒</span><h2>${escapeHtml(question.prompt)}</h2></div>`; },
     choices: question => question.options.map(option => ({ value: option, label: option })),
