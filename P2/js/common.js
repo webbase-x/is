@@ -36,7 +36,7 @@ export function gameStatePayload(session, reason = "state-change") {
   };
 }
 
-const MIRROR_TAGS = new Set(["SECTION", "DIV", "SPAN", "SMALL", "STRONG", "H1", "H2", "H3", "H4", "P", "BUTTON", "UL", "OL", "LI", "MARK", "I", "B", "LABEL", "OUTPUT"]);
+const MIRROR_TAGS = new Set(["SECTION", "HEADER", "DIV", "SPAN", "SMALL", "STRONG", "H1", "H2", "H3", "H4", "P", "BUTTON", "UL", "OL", "LI", "MARK", "I", "B", "LABEL", "OUTPUT"]);
 const MIRROR_STYLE_PROPERTIES = ["width", "height", "transform", "text-align", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "left", "top", "opacity", "animation-duration"];
 const MIRROR_CLASS_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]{0,60}$/;
 const MIRROR_CUSTOM_PROPERTY_PATTERN = /^--[a-zA-Z][a-zA-Z0-9-]{0,48}$/;

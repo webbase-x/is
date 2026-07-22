@@ -636,6 +636,14 @@ body.competition-overlay-open { overflow: hidden; }
 .student-screen-focus-nav { display: none; }
 .student-focus-game-window { width: 100%; height: 100%; min-height: 0; display: grid; overflow: hidden; background: white; }
 .student-focus-game-frame { width: 100%; height: 100%; min-height: 0; display: block; border: 0; background: white; pointer-events: none; }
+.mirror-page #gameCanvas { overflow: hidden; }
+.mirror-page #gameCanvas > .game-layout { height: 100%; min-height: 0; }
+.mirror-page .game-play-area { overflow: hidden; padding: 0; }
+.mirror-page .premium-wheel-game { width: 100%; max-width: none; min-height: 100%; height: 100%; border-radius: 0; padding: clamp(18px, 3vw, 44px); }
+.mirror-page .wheel-machine { --wheel-icon-radius: clamp(100px, 14vw, 150px); width: min(52dvh, 48vw, 580px); }
+.mirror-page .wheel-word strong { font-size: clamp(34px, 5vw, 68px); }
+.mirror-page .wheel-answer-grid { width: min(1080px, 88vw); }
+.mirror-page .wheel-answer-grid button { min-height: clamp(92px, 13vh, 128px); }
 .student-focus-game-canvas { width: 100%; height: 100%; min-height: 100%; overflow: auto; border: 0; border-radius: 0; box-shadow: none; pointer-events: none; }
 .student-focus-game-canvas * { pointer-events: none !important; }
 .student-focus-game-canvas > .game-inner { width: 100%; min-height: 100%; padding: clamp(12px,2vw,28px); }
