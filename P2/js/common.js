@@ -37,8 +37,8 @@ export function gameStatePayload(session, reason = "state-change") {
 }
 
 const MIRROR_TAGS = new Set(["SECTION", "DIV", "SPAN", "SMALL", "STRONG", "H1", "H2", "H3", "H4", "P", "BUTTON", "UL", "OL", "LI", "MARK", "I", "B", "LABEL", "OUTPUT"]);
-const MIRROR_STYLE_PROPERTIES = ["width", "height", "transform", "text-align", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "left", "top", "opacity", "animation-duration", "--spark-x", "--spark-y", "--spark-delay", "--spark-size"];
-const MIRROR_CLASS_PREFIXES = ["game-", "rhythm-", "karaoke-", "grammar-", "choice-", "word-", "falling-", "sort-", "train-", "vote-", "sentence-", "result-", "treasure-", "house-", "mini-", "sound-", "field-"];
+const MIRROR_STYLE_PROPERTIES = ["width", "height", "transform", "text-align", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "left", "top", "opacity", "animation-duration", "--spark-x", "--spark-y", "--spark-delay", "--spark-size", "--wheel-turn", "--wheel-icon-radius"];
+const MIRROR_CLASS_PREFIXES = ["game-", "rhythm-", "karaoke-", "grammar-", "choice-", "word-", "falling-", "sort-", "train-", "vote-", "sentence-", "result-", "treasure-", "house-", "mini-", "sound-", "field-", "wheel-", "premium-wheel-"];
 const MIRROR_CLASS_NAMES = new Set(["wheel", "treasure", "button", "button-primary", "button-ghost", "button-row", "good", "bad", "hidden", "done", "active", "hot", "score-pop", "missed", "singing", "lyric-line", "correct", "wrong", "open", "empty-stage"]);
 
 function sanitizeMirrorStyle(element, rawStyle) {
