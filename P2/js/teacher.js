@@ -1265,7 +1265,7 @@ function renderLiveRanking(entries) {
 
 function celebrationConfetti() {
   const colors = ["#ffd65a", "#ff7185", "#6c5ce7", "#41c7a2", "#53b9f1", "#ffffff"];
-  return Array.from({ length: 48 }, (_, index) => {
+  return Array.from({ length: 72 }, (_, index) => {
     const x = (index * 37) % 101;
     const delay = ((index * 13) % 28) / 20;
     const duration = 2.8 + ((index * 17) % 18) / 10;
@@ -1308,11 +1308,18 @@ function renderLiveResults() {
   const arena = $("#competitionArena");
   const status = $("#competitionStatus");
   const finishButton = $("#finishActivityButton");
+  const liveBadge = $("#competitionLiveBadge");
+  const lastUpdate = $("#competitionLastUpdate");
   if (!container || !state.session) return;
   const entries = currentCompetitionEntries();
   const resultCount = entries.filter(entry => entry.percent !== null).length;
   const isCelebrating = state.celebrationActivityKey === state.session.current_activity_key;
   arena?.classList.toggle("is-celebrating", isCelebrating);
+  if (liveBadge) {
+    liveBadge.classList.toggle("is-finished", isCelebrating);
+    liveBadge.innerHTML = isCelebrating ? "🏆 ผลประกาศแล้ว" : "<i></i> LIVE";
+  }
+  if (lastUpdate) lastUpdate.textContent = `อัปเดต ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
   if (finishButton) {
     finishButton.disabled = isCelebrating || state.finishingActivity || !state.session.current_activity_key;
     finishButton.textContent = state.finishingActivity ? "กำลังจบเกม..." : isCelebrating ? "✓ จบเกมแล้ว" : "⏹ จบเกม";

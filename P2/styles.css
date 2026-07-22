@@ -1381,3 +1381,50 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Teacher command center polish: a quieter workspace with a high-impact finish state. */
+.teacher-page { background: radial-gradient(circle at 82% 0%, rgba(108,92,231,.10), transparent 35%), var(--canvas); }
+.teacher-page .dashboard-sidebar { background: linear-gradient(180deg, #202a4b 0%, #171f3d 100%); box-shadow: 10px 0 30px rgba(20,29,63,.12); }
+.teacher-page .dashboard-sidebar nav button { min-height: 48px; transition: transform .18s ease, background .18s ease, color .18s ease; }
+.teacher-page .dashboard-sidebar nav button:hover { color: white; background: rgba(255,255,255,.08); transform: translateX(3px); }
+.teacher-page .dashboard-sidebar nav button.active { background: linear-gradient(100deg, rgba(108,92,231,.9), rgba(91,75,219,.45)); box-shadow: 0 9px 20px rgba(10,17,45,.2); }
+.teacher-page .dashboard-main { padding-top: clamp(24px, 3vw, 42px); }
+.teacher-page .teacher-flow-step { box-shadow: 0 22px 65px rgba(34,41,77,.11); }
+.teacher-page .live-competition-metrics .metric-card { position: relative; overflow: hidden; border-color: rgba(108,92,231,.14); background: linear-gradient(135deg, #fff 0%, #f7f5ff 100%); box-shadow: 0 12px 28px rgba(48,43,117,.08); }
+.teacher-page .live-competition-metrics .metric-card::after { content: ""; position: absolute; width: 90px; height: 90px; right: -32px; bottom: -40px; border-radius: 50%; background: rgba(108,92,231,.08); }
+.flow-live-results { border: 1px solid rgba(91,75,219,.15); border-radius: 26px; box-shadow: 0 22px 55px rgba(39,38,94,.12); }
+.competition-heading { gap: 16px; }
+.competition-heading > div:first-child { min-width: 0; }
+.competition-heading p { max-width: 650px; }
+.competition-live-meta { display: grid; justify-items: end; gap: 7px; min-width: 124px; margin-left: auto; }
+.competition-live-meta small { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.competition-live-badge { display: inline-flex; align-items: center; gap: 7px; min-height: 31px; padding: 6px 10px; border: 1px solid rgba(53,191,141,.24); border-radius: 99px; color: #187c5c; background: #edfbf5; font-size: 11px; font-weight: 950; letter-spacing: .04em; box-shadow: 0 5px 14px rgba(53,191,141,.14); }
+.competition-live-badge i { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 4px rgba(53,191,141,.13); animation: screen-live-pulse 1.8s ease-in-out infinite; }
+.competition-live-badge.is-finished { color: #815d00; border-color: rgba(245,185,63,.38); background: #fff7df; box-shadow: 0 5px 16px rgba(245,185,63,.17); }
+.competition-arena.is-celebrating { background: radial-gradient(circle at 50% 5%, rgba(255,218,111,.28), transparent 30%), linear-gradient(145deg, #fff 0%, #f8f6ff 100%); }
+.competition-arena.is-celebrating .competition-heading { border-bottom-color: rgba(245,185,63,.34); }
+.competition-rank-row { backdrop-filter: blur(9px); }
+.competition-rank-row.has-result:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 15px 32px rgba(54,47,133,.14); }
+.competition-rank-row:nth-child(1) .competition-rank { color: #795600; background: linear-gradient(145deg, #ffe789, #ffc947); box-shadow: 0 8px 18px rgba(245,185,63,.25); }
+.competition-score { font-variant-numeric: tabular-nums; }
+.competition-celebration { background: radial-gradient(circle at 50% 22%, rgba(255,221,116,.20), transparent 28%); }
+.competition-celebration::before, .competition-celebration::after { filter: drop-shadow(0 0 14px rgba(255,214,90,.38)); }
+.competition-celebration i { width: 9px; height: 15px; box-shadow: 0 0 8px rgba(255,255,255,.45); }
+.competition-celebration i:nth-child(3n) { border-radius: 50%; transform: rotate(45deg); }
+.podium-stage { position: relative; overflow: hidden; }
+.podium-stage::before { content: ""; position: absolute; inset: -30% -15%; background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,.18) 47%, transparent 56%); transform: translateX(-65%) rotate(6deg); animation: podium-shimmer 3.8s ease-in-out 1s infinite; pointer-events: none; }
+.podium-place-1 .podium-avatar { animation: winner-glow 1.8s ease-in-out infinite; }
+.podium-place-1 .podium-medal { animation: medal-bounce 1.3s ease-in-out infinite; }
+@keyframes podium-shimmer { 0%, 48% { transform: translateX(-65%) rotate(6deg); } 72%, 100% { transform: translateX(65%) rotate(6deg); } }
+@keyframes winner-glow { 50% { box-shadow: 0 0 0 9px rgba(255,214,90,.17), 0 0 32px rgba(255,214,90,.50); } }
+@keyframes medal-bounce { 50% { transform: translateY(-5px) rotate(-4deg); } }
+@media (max-width: 760px) {
+  .competition-live-meta { justify-items: start; margin-left: 0; }
+  .competition-heading { gap: 9px; }
+  .competition-live-badge { min-height: 28px; }
+  .teacher-page .dashboard-main { padding-top: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .competition-live-badge i, .podium-stage::before, .podium-place-1 .podium-avatar, .podium-place-1 .podium-medal { animation: none; }
+}
