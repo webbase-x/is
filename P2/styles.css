@@ -1472,3 +1472,22 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .sound-button { width:76px; height:76px; font-size:34px; display:grid; place-items:center; box-shadow:0 10px 22px rgba(91,75,219,.25); }
 .sound-word-emoji { overflow:hidden; }
 .sound-word-emoji .word-picture { width:clamp(72px,12vw,118px); height:clamp(72px,12vw,118px); object-fit:contain; }
+
+/* Viewport-safe classroom canvas on wide, tall and mobile screens. */
+html, body { max-width:100%; overflow-x:hidden; }
+.game-view { min-height:calc(100dvh - 78px); }
+.game-stage { min-height:0; width:100%; padding:clamp(16px,3vw,42px) clamp(12px,3vw,48px) clamp(24px,4vw,52px); }
+.game-canvas { width:100%; min-height:0; flex:1 1 auto; overflow:auto; }
+.game-canvas > .game-inner { width:100%; max-width:none; margin:0 auto; }
+.game-play-area { width:100%; min-height:0; }
+@media (max-width:760px) {
+  .game-view { min-height:calc(100dvh - 68px); }
+  .game-stage { padding:12px 10px 24px; }
+  .game-canvas { border-radius:20px; }
+  .game-canvas > .game-inner { padding:clamp(14px,4vw,24px) 12px; }
+}
+@media (orientation:landscape) and (max-height:650px) {
+  .game-stage { padding-top:8px; padding-bottom:12px; }
+  .game-instruction { margin-bottom:10px; }
+  .game-canvas > .game-inner { min-height:calc(100dvh - 150px); padding-top:12px; padding-bottom:16px; }
+}
