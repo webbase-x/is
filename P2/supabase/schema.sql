@@ -690,7 +690,11 @@ create policy "teachers manage sessions" on public.class_sessions for all to aut
   with check (teacher_id = auth.uid() and public.is_teacher());
 drop policy if exists "players read own session" on public.class_sessions;
 create policy "players read own session" on public.class_sessions for select to authenticated
-  using (exists (select 1 from public.session_players p where p.session_id = id and p.auth_user_id = auth.uid()));
+  using (exists (
+    select 1 from public.session_players as p
+    where p.session_id = public.class_sessions.id
+      and p.auth_user_id = auth.uid()
+  ));
 
 drop policy if exists "players see self teachers see class" on public.session_players;
 create policy "players see self teachers see class" on public.session_players for select to authenticated
