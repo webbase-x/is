@@ -9,11 +9,11 @@ import {
 const TEXTBOOK_VOCABULARY = Object.freeze({
   // คำจากชุด "รู้จักคำ นำเรื่อง" บทที่ 1-5 ในไฟล์ พาที วรรณคดลำนำ ป.2
   none: Object.freeze([
-    "โบ", "ไข่", "เล้า", "ไหว้", "แคร่", "เกา", "แฉะ", "บ่อ", "หัว",
+    "โบ", "ไข่", "เล้า", "ไหว้", "แคร่", "เกา", "แฉะ", "บ่อ", "หัว", "ลา", "ค้า",
     "ไฟ", "แกะ", "งอ", "ห่อ", "กลัว", "คู่", "ตู้", "ซื้อ", "ก้าว", "กะทิ",
   ]),
   has: Object.freeze([
-    "ราด", "บิน", "ปีก", "ยิ้ม", "มอง", "รูป", "ถ้วย", "ข่าว", "แอ่ง", "ท้อง", "โอบ", "กอด", "ตัด", "ขัง", "เสียม",
+    "ราด", "บิน", "ปีก", "ยิ้ม", "เล่น", "มอง", "รูป", "ถ้วย", "ข่าว", "แอ่ง", "ท้อง", "โอบ", "กอด", "ตัด", "ขัง", "เสียม",
     "ย่าง", "สูง", "นึ่ง", "ทิ้ง", "ผัก", "นก", "บน", "โยน", "ทาง", "ฟืน", "ยุง", "พัด", "เต็นท์", "ผ้าม่าน", "สุมไฟ", "ก้อนหิน", "ไฟฉาย", "ตะเกียง",
     "อ่าน", "ชิม", "เงิน", "ส้ม", "น้องชาย", "มะม่วง",
   ]),
@@ -1390,7 +1390,11 @@ function speakThai(word) {
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(word);
   utterance.lang = "th-TH";
-  utterance.rate = .78;
+  const voices = speechSynthesis.getVoices();
+  utterance.voice = voices.find(voice => /^th(-|_)?TH/i.test(voice.lang)) || voices.find(voice => /^th/i.test(voice.lang)) || null;
+  utterance.rate = .68;
+  utterance.pitch = 1.05;
+  utterance.volume = 1;
   speechSynthesis.speak(utterance);
 }
 
