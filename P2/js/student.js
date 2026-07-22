@@ -1533,7 +1533,7 @@ function renderTrain() {
     const item = sentences[index];
     let selected = [];
     gameShell("รถไฟประโยคแม่ ก กา", "แตะโบกี้ตามลำดับเพื่อเรียงเป็นประโยค", `<div class="game-status-row"><span>ขบวน ${index + 1} / ${sentences.length}</span><span class="mini-score">คะแนน ${score}</span></div><div class="sentence-output" id="sentenceOutput">แตะคำเพื่อเริ่มต่อขบวน</div><div class="train-track" id="trainTrack"></div><div class="button-row"><button id="resetTrain" class="button button-ghost">เริ่มเรียงใหม่</button><button id="checkTrain" class="button button-primary">ตรวจประโยค</button></div>`);
-    $("#trainTrack").innerHTML = seededShuffle(item.words, roundSeed + "-" + index).map((word, position) => `<button class="train-car" data-word="${escapeHtml(word)}" data-position="${position}">${escapeHtml(word)}</button>`).join("");
+    $("#trainTrack").innerHTML = seededShuffle(item.words, roundSeed + "-" + index).map((word, position) => `<button class="train-car ${position === 0 ? "train-locomotive" : "train-wagon"}" data-word="${escapeHtml(word)}" data-position="${position}">${escapeHtml(word)}</button>`).join("");
     $("#trainTrack").querySelectorAll("button").forEach(button => button.addEventListener("click", () => { button.disabled = true; selected.push(button.dataset.word); $("#sentenceOutput").textContent = selected.join(""); }));
     $("#resetTrain").addEventListener("click", render);
     $("#checkTrain").addEventListener("click", async () => {
