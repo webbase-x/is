@@ -485,6 +485,17 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .competition-student strong { overflow: hidden; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
 .competition-student small { margin-top: 2px; color: var(--muted); font-size: 12px; }
 .competition-score { min-width: 68px; color: var(--purple); font-size: 21px; text-align: right; }
+.teacher-vote-board { position: relative; z-index: 2; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.teacher-vote-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.teacher-vote-heading .eyebrow { margin-bottom: 3px; }
+.teacher-vote-heading h4 { margin: 0; color: var(--ink); font-size: clamp(20px, 2.4vw, 28px); }
+.teacher-vote-count { padding: 7px 11px; border-radius: 999px; color: var(--purple); background: var(--purple-soft); font-size: 13px; font-weight: 900; white-space: nowrap; }
+.teacher-vote-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 10px; }
+.teacher-vote-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255,255,255,.9); box-shadow: 0 5px 16px rgba(34,41,77,.05); }
+.teacher-vote-sentence { grid-column: 1 / -1; color: var(--ink); font-size: clamp(18px, 2vw, 24px); font-weight: 950; line-height: 1.35; overflow-wrap: anywhere; }
+.teacher-vote-entry small { color: var(--muted); font-size: 12px; }
+.teacher-vote-entry strong { color: #d24b70; font-size: 15px; text-align: right; }
+.teacher-vote-empty { padding: 18px; border: 1px dashed #c9c4ee; border-radius: 15px; color: var(--muted); background: rgba(255,255,255,.6); text-align: center; }
 .competition-celebration { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
 .competition-celebration::before, .competition-celebration::after { content: ""; position: absolute; width: 230px; height: 230px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, rgba(255,214,90,.75) 0 3deg, transparent 3deg 14deg); mask: radial-gradient(circle, transparent 0 25%, #000 27% 29%, transparent 31%); animation: award-firework 2.2s ease-out both; }
 .competition-celebration::before { left: 5%; top: 5%; }

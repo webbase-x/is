@@ -15,6 +15,7 @@ const state = {
   players: [],
   attempts: [],
   leaderboard: [],
+  sentenceSubmissions: [],
   sessionChannel: null,
   presenceChannel: null,
   displayChannel: null,
@@ -718,6 +719,12 @@ function subscribeToSession() {
       const playerIds = new Set(state.players.map(player => player.id));
       if (playerIds.has(payload.new?.session_player_id || payload.old?.session_player_id)) refreshSessionData();
     })
+    .on("postgres_changes", { event: "*", schema: "public", table: "sentence_submissions", filter: `session_id=eq.${state.session.id}` }, () => {
+      if (state.session?.current_activity_key === "vote") loadSentenceSubmissions();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "sentence_votes" }, () => {
+      if (state.session?.current_activity_key === "vote") loadSentenceSubmissions();
+    })
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "class_sessions", filter: `id=eq.${state.session.id}` }, payload => {
       const activityChanged = state.session?.current_activity_key !== payload.new.current_activity_key;
       state.session = payload.new;
@@ -1061,12 +1068,16 @@ async function broadcastDisplay(reason = "state-change") {
 
 async function refreshSessionData() {
   if (!state.session) return;
-  const [{ data: players }, { data: leaderboard }] = await Promise.all([
+  const [{ data: players }, { data: leaderboard }, { data: sentenceSubmissions }] = await Promise.all([
     supabase.from("session_players").select("*, student:students(*)").eq("session_id", state.session.id).order("joined_at"),
     supabase.rpc("get_session_leaderboard", { p_session_id: state.session.id }),
+    state.session.current_activity_key === "vote"
+      ? supabase.from("sentence_submissions").select("id,sentence,session_player_id,sentence_votes(emoji)").eq("session_id", state.session.id).order("created_at")
+      : Promise.resolve({ data: [] }),
   ]);
   state.players = players || [];
   state.leaderboard = leaderboard || [];
+  state.sentenceSubmissions = sentenceSubmissions || [];
   const playerIds = state.players.map(player => player.id);
   if (playerIds.length) {
     const { data: attempts } = await supabase.from("game_attempts").select("*").in("session_player_id", playerIds).order("completed_at");
@@ -1080,6 +1091,14 @@ async function refreshSessionData() {
   if (state.flowStep === "summary") renderSummary();
   void finishWhenEveryoneSubmitted();
   broadcastDisplay();
+}
+
+async function loadSentenceSubmissions() {
+  if (!state.session?.id || state.session.current_activity_key !== "vote") return;
+  const { data, error } = await supabase.from("sentence_submissions").select("id,sentence,session_player_id,sentence_votes(emoji)").eq("session_id", state.session.id).order("created_at");
+  if (error) return;
+  state.sentenceSubmissions = data || [];
+  renderLiveResults();
 }
 
 async function selfieUrl(path) {
@@ -1271,6 +1290,17 @@ function renderLiveRanking(entries) {
   }).join("")}</ol>`;
 }
 
+function renderLiveVoteBoard() {
+  const submissions = [...(state.sentenceSubmissions || [])]
+    .map(item => ({ ...item, votes: item.sentence_votes?.length || 0 }))
+    .sort((a, b) => b.votes - a.votes);
+  const playerNames = new Map(state.players.map(player => [player.id, player.student?.full_name || player.student?.nickname || "นักเรียน"]));
+  return `<section class="teacher-vote-board" aria-live="polite">
+    <div class="teacher-vote-heading"><div><span class="eyebrow">บอร์ดประโยค</span><h4>ประโยคที่นักเรียนส่ง</h4></div><span class="teacher-vote-count">${submissions.length} ประโยค</span></div>
+    ${submissions.length ? `<div class="teacher-vote-list">${submissions.map(item => `<article class="teacher-vote-entry"><div class="teacher-vote-sentence">${escapeHtml(item.sentence)}</div><small>${escapeHtml(playerNames.get(item.session_player_id) || "นักเรียน")}</small><strong>💗 ${item.votes}</strong></article>`).join("")}</div>` : `<div class="teacher-vote-empty">รอประโยคจากนักเรียน ประโยคที่ส่งจะแสดงตรงนี้ทันที</div>`}
+  </section>`;
+}
+
 function celebrationConfetti() {
   const colors = ["#ffd65a", "#ff7185", "#6c5ce7", "#41c7a2", "#53b9f1", "#ffffff"];
   return Array.from({ length: 72 }, (_, index) => {
@@ -1341,7 +1371,9 @@ function renderLiveResults() {
     container.innerHTML = `<div class="flow-empty-state"><span>👥</span><strong>ยังไม่มีนักเรียนที่อนุมัติ</strong><small>กลับไปห้องรอเพื่อตรวจรายชื่อได้</small></div>`;
     return;
   }
-  container.innerHTML = isCelebrating ? renderCelebration(entries) : renderLiveRanking(entries);
+  container.innerHTML = isCelebrating
+    ? renderCelebration(entries)
+    : `${renderLiveRanking(entries)}${state.session.current_activity_key === "vote" ? renderLiveVoteBoard() : ""}`;
 }
 
 let victoryAudioContext;
