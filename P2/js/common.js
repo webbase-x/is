@@ -1,5 +1,5 @@
 export const ACTIVITIES = Object.freeze([
-  { key: "rhythm", icon: "🎵", title: "แท็ปจังหวะ แม่ ก กา", short: "แท็ปจังหวะ", minutes: 10 },
+  { key: "rhythm", icon: "🎵", title: "เพลง มาตรา ก กา", short: "เพลง มาตรา", minutes: 10 },
   { key: "wheel", icon: "🎡", title: "วงล้อเสี่ยงทาย", short: "วงล้อ", minutes: 10 },
   { key: "sound", icon: "🔊", title: "นักสืบเสียงท้ายคำ", short: "นักสืบเสียง", minutes: 7 },
   { key: "sort", icon: "🏠", title: "จัดบ้านให้คำ", short: "จัดบ้าน", minutes: 7 },

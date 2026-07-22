@@ -6,11 +6,36 @@ import {
   updateConnectionBadge,
 } from "./common.js";
 
-const MAE_KO_KA = new Set(["กา", "ปลา", "เต่า", "มือ", "ตา", "ปู", "เสือ", "แมว", "หมู", "นา", "ใบไม้", "ขา", "ผีเสื้อ", "ดู", "พ่อ", "แม่", "วัว", "หมี", "งู", "ไก่", "ปลาโลมา", "ม้า", "ลา", "จระเข้"]);
-const COMPARE_WORDS = new Set(["กบ", "นก", "เด็ก", "จาน", "ถ้วย", "เก้าอี้", "บ้าน", "ดิน"]);
+const TEXTBOOK_VOCABULARY = Object.freeze({
+  // คำจากชุด "รู้จักคำ นำเรื่อง" บทที่ 1-5 ในไฟล์ พาที วรรณคดลำนำ ป.2
+  none: Object.freeze([
+    "โบ", "ไข่", "เล้า", "ไหว้", "แคร่", "เกา", "แฉะ", "บ่อ", "หัว",
+    "ไฟ", "แกะ", "งอ", "ห่อ", "กลัว", "คู่", "ตู้", "ซื้อ", "ก้าว", "กะทิ",
+  ]),
+  has: Object.freeze([
+    "ราด", "บิน", "ปีก", "ยิ้ม", "มอง", "รูป", "ถ้วย", "ข่าว", "แอ่ง", "ท้อง", "โอบ", "กอด", "ตัด", "ขัง", "เสียม",
+    "ย่าง", "สูง", "นึ่ง", "ทิ้ง", "ผัก", "นก", "บน", "โยน", "ทาง", "ฟืน", "ยุง", "พัด", "เต็นท์", "ผ้าม่าน", "สุมไฟ", "ก้อนหิน", "ไฟฉาย", "ตะเกียง",
+    "อ่าน", "ชิม", "เงิน", "ส้ม", "น้องชาย", "มะม่วง",
+  ]),
+  sentences: Object.freeze([
+    { words: ["แม่", "ไก่", "ออก", "ไข่"], answer: "แม่ไก่ออกไข่" },
+    { words: ["น้ำใส", "วิ่ง", "นำหน้า", "ภูผา"], answer: "น้ำใสวิ่งนำหน้าภูผา" },
+    { words: ["ภูผา", "และ", "น้ำใส", "หัวเราะ", "ดังลั่น"], answer: "ภูผาและน้ำใสหัวเราะดังลั่น" },
+    { words: ["น้ำใส", "ป้อน", "น้ำแข็งกด", "ให้", "ใบโบก"], answer: "น้ำใสป้อนน้ำแข็งกดให้ใบโบก" },
+    { words: ["ใบโบก", "ใบบัว", "โบกหู", "แกว่งหาง"], answer: "ใบโบกใบบัวโบกหูแกว่งหาง" },
+    { words: ["วันนี้", "ลม", "พัด", "แรง"], answer: "วันนี้ลมพัดแรง" },
+    { words: ["น้ำใส", "ไม่ต้อง", "กลัว"], answer: "น้ำใสไม่ต้องกลัว" },
+    { words: ["ลุงวัน", "พา", "เด็ก", "กลับบ้าน"], answer: "ลุงวันพาเด็กกลับบ้าน" },
+    { words: ["ขบวนช้าง", "เดินทาง", "มาถึง", "ชายป่า"], answer: "ขบวนช้างเดินทางมาถึงชายป่า" },
+    { words: ["ใบโบก", "ใบบัว", "เป็น", "ดาราช้างน้อย"], answer: "ใบโบกใบบัวเป็นดาราช้างน้อย" },
+    { words: ["เด็กๆ", "ชอบกิน", "ไอศกรีม", "รสต่างๆ"], answer: "เด็กๆชอบกินไอศกรีมรสต่างๆ" },
+  ]),
+});
+const MAE_KO_KA = new Set(["กา", "ปลา", "เต่า", "มือ", "ตา", "ปู", "เสือ", "แมว", "หมู", "นา", "ใบไม้", "ขา", "ผีเสื้อ", "ดู", "พ่อ", "แม่", "วัว", "หมี", "งู", "ไก่", "ปลาโลมา", "ม้า", "ลา", "จระเข้", ...TEXTBOOK_VOCABULARY.none]);
+const HAS_FINAL_WORDS = new Set(["กบ", "นก", "เด็ก", "จาน", "ถ้วย", "เก้าอี้", "บ้าน", "ดิน", "มด", "เข็ม", "ลิง", "กลอง", "ขนม", "ดอกไม้", ...TEXTBOOK_VOCABULARY.has]);
 const WHEEL_WORDS = Object.freeze({
-  none: ["กา", "ปู", "มือ", "งา", "ชา", "แพ", "รู", "นา", "วัว", "เสือ", "ม้า", "ไผ่"],
-  has: ["กบ", "นก", "เด็ก", "จาน", "บ้าน", "ดิน", "มด", "เข็ม", "ลิง", "กลอง", "ขนม", "ดอกไม้"],
+  none: ["กา", "ปู", "มือ", "งา", "ชา", "แพ", "รู", "นา", "วัว", "เสือ", "ม้า", "ไผ่", ...TEXTBOOK_VOCABULARY.none],
+  has: ["กบ", "นก", "เด็ก", "จาน", "บ้าน", "ดิน", "มด", "เข็ม", "ลิง", "กลอง", "ขนม", "ดอกไม้", ...TEXTBOOK_VOCABULARY.has],
 });
 const RHYTHM_CUE_TEMPLATE = Object.freeze([
   { word: "เต่า", start: 38.00, end: 38.55 },
@@ -1320,7 +1345,10 @@ function speakThai(word) {
 }
 
 function renderSound() {
-  const questions = shuffle(["กา", "ปลา", "มือ", "กบ", "นก", "จาน"]).map(word => ({ word, answer: MAE_KO_KA.has(word) ? "yes" : "no" }));
+  const questions = shuffle([
+    ...shuffle([...MAE_KO_KA]).slice(0, 6).map(word => ({ word, answer: "yes" })),
+    ...shuffle([...HAS_FINAL_WORDS]).slice(0, 6).map(word => ({ word, answer: "no" })),
+  ]);
   runQuestionGame({
     key: "sound", title: "นักสืบเสียงท้ายคำ", instruction: "กดฟังเสียง แล้วตอบว่าเป็นคำแม่ ก กา หรือไม่",
     questions,
@@ -1331,7 +1359,10 @@ function renderSound() {
 }
 
 function renderSort() {
-  const words = shuffle(["กา", "ปลา", "เต่า", "มือ", "ปู", "เสือ", "กบ", "นก", "เด็ก", "จาน"]);
+  const words = shuffle([
+    ...shuffle([...MAE_KO_KA]).slice(0, 6),
+    ...shuffle([...HAS_FINAL_WORDS]).slice(0, 6),
+  ]);
   gameShell("จัดบ้านให้คำ", "ลากคำไปใส่บ้านที่ถูกต้อง หรือแตะคำแล้วแตะบ้าน", `<div class="sort-area"><div class="word-bank" id="sortWordBank"></div><div class="word-house good" data-house="none"><h3>🏡 บ้านแม่ ก กา</h3><div class="house-dropzone" id="noneHouse"></div></div><div class="word-house bad" data-house="has"><h3>🏠 บ้านมีตัวสะกด</h3><div class="house-dropzone" id="hasHouse"></div></div></div><button id="checkSort" class="button button-primary" style="margin-top:22px" disabled>ตรวจคำตอบ</button>`);
   let selected = null;
   const bank = $("#sortWordBank");
@@ -1367,11 +1398,12 @@ function renderSort() {
 }
 
 function renderTrain() {
-  const sentences = [
+  const coreSentences = [
     { words: ["ตา", "ดู", "ปู", "นา"], answer: "ตาดูปูนา" },
     { words: ["แม่", "พา", "ปู", "นา"], answer: "แม่พาปูนา" },
     { words: ["พ่อ", "ดู", "ปลา"], answer: "พ่อดูปลา" },
   ];
+  const sentences = [...coreSentences, ...shuffle(TEXTBOOK_VOCABULARY.sentences).slice(0, 5)];
   let index = 0;
   let score = 0;
   const answers = [];
@@ -1399,7 +1431,11 @@ function renderTrain() {
 }
 
 async function renderVote() {
-  const wordBank = ["ตา", "ยาย", "พ่อ", "แม่", "ดู", "พา", "ปู", "ปลา", "นา", "มา", "หา", "เสือ"];
+  const wordBank = [...new Set([
+    "ตา", "ยาย", "พ่อ", "แม่", "ดู", "พา", "ปู", "ปลา", "นา", "มา", "หา", "เสือ",
+    ...TEXTBOOK_VOCABULARY.none.slice(0, 8),
+    ...TEXTBOOK_VOCABULARY.has.slice(0, 10),
+  ])];
   let selected = [];
   gameShell("บอร์ดโหวตประโยคฮิต", "เลือกคำมาแต่งประโยค ส่งขึ้นบอร์ด แล้วมอบหัวใจให้เพื่อน", `<div class="sentence-output" id="voteSentence">เลือกคำจากคลังคำ</div><div class="word-bank-large" id="voteWordBank"></div><div class="button-row" style="margin:18px 0"><button id="clearSentence" class="button button-ghost">ล้างคำ</button><button id="submitSentence" class="button button-primary">ส่งประโยค</button></div><div class="vote-board" id="voteBoard"></div>`);
   $("#voteWordBank").innerHTML = wordBank.map(word => `<button class="word-token" data-word="${word}">${word}</button>`).join("");
@@ -1437,9 +1473,11 @@ function renderExit() {
     { prompt: "ข้อใดเป็นคำแม่ ก กา", answer: "ปลา", options: ["ปลา", "กบ", "นก", "จาน"] },
     { prompt: "คำแม่ ก กา มีลักษณะอย่างไร", answer: "ไม่มีตัวสะกด", options: ["ไม่มีตัวสะกด", "มี ก สะกด", "มีเสียงท้าย", "อ่านไม่ได้"] },
     { prompt: "ประโยคใดเรียงได้ถูกต้อง", answer: "ตาดูปูนา", options: ["ดูตาปูนา", "ตาดูปูนา", "ปูนาตาดู", "นาดูปูตา"] },
+    { prompt: "ประโยคจากบทเรียนข้อใดเรียงถูกต้อง", answer: "แม่ไก่ออกไข่", options: ["ไข่แม่ไก่ออก", "แม่ไก่ออกไข่", "ไก่แม่ไข่ออก", "ออกไข่แม่ไก่"] },
+    { prompt: "คำใดมีตัวสะกด", answer: "ยิ้ม", options: ["ยิ้ม", "โบ", "กะทิ", "ก้าว"] },
   ];
   runQuestionGame({
-    key: "exit", title: "ไขกุญแจหีบสมบัติ", instruction: "ตอบให้ถูกอย่างน้อย 2 ใน 3 ข้อ เพื่อเปิดหีบสมบัติ",
+    key: "exit", title: "ไขกุญแจหีบสมบัติ", instruction: "ตอบให้ถูกอย่างน้อย 3 ใน 5 ข้อ เพื่อเปิดหีบสมบัติ",
     questions,
     renderPrompt(question, container) { container.innerHTML = `<div class="treasure"><span class="treasure-icon">🔒</span><h2>${escapeHtml(question.prompt)}</h2></div>`; },
     choices: question => question.options.map(option => ({ value: option, label: option })),
