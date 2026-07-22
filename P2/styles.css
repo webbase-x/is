@@ -663,8 +663,16 @@ body.competition-overlay-open { overflow: hidden; }
 .student-broadcast-badge { width: max-content; display: inline-flex; align-items: center; gap: 7px; margin-top: 5px; padding: 5px 10px; border-radius: 999px; color: white; background: #e43f5a; box-shadow: 0 6px 18px rgba(228,63,90,.28); font-size: 11px; font-weight: 900; }
 .student-broadcast-badge i { width: 8px; height: 8px; border-radius: 50%; background: white; animation: screen-live-pulse 1.2s ease-in-out infinite; }
 .student-game-live-badge { position: fixed; z-index: 30; top: max(10px,env(safe-area-inset-top)); right: max(10px,env(safe-area-inset-right)); margin: 0; }
+.student-live-profile { position: fixed; z-index: 35; top: max(10px,env(safe-area-inset-top)); left: max(10px,env(safe-area-inset-left)); display: none; align-items: center; gap: 9px; max-width: min(300px, calc(100vw - 165px)); padding: 6px 13px 6px 6px; border: 1px solid rgba(255,255,255,.76); border-radius: 18px; color: #252b4a; background: rgba(255,255,255,.94); box-shadow: 0 9px 28px rgba(36,42,82,.16); backdrop-filter: blur(14px); }
+.student-live-profile-visual { position: relative; width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border: 2px solid #fff; border-radius: 14px; background: var(--purple-soft); box-shadow: 0 3px 10px rgba(91,75,219,.16); }
+.student-live-profile-visual img, .student-live-profile-visual > span { width: 100%; height: 100%; display: grid; place-items: center; border-radius: 11px; object-fit: cover; font-size: 22px; }
+.student-live-profile-visual > i { position: absolute; right: -3px; bottom: -3px; width: 11px; height: 11px; border: 2px solid #fff; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 3px rgba(53,191,141,.15); }
+.student-live-profile div { min-width: 0; display: grid; gap: 1px; }
+.student-live-profile small, .student-live-profile em { color: var(--muted); font-size: 10px; font-style: normal; line-height: 1.1; }
+.student-live-profile strong { overflow: hidden; font-size: 14px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .student-page.student-game-live { overflow: hidden; background: white; }
 .student-page.student-game-live > .app-header { display: none; }
+.student-page.student-game-live .student-live-profile { display: flex; }
 .student-page.student-game-live .student-shell { width: 100%; max-width: none; min-height: 100dvh; margin: 0; padding: 0; }
 .student-page.student-game-live #gameView { position: fixed; z-index: 20; inset: 0; width: 100vw; height: 100dvh; min-height: 100dvh; overflow: hidden; background: white; }
 .student-page.student-game-live .journey-panel, .student-page.student-game-live .stage-topbar { display: none; }
@@ -1358,6 +1366,11 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .student-page.student-game-live .game-instruction h2 { font-size: 20px; }
   .student-page.student-game-live .game-instruction p { max-width: 45vw; font-size: 11px; }
   .student-page.student-game-live .game-play-area { padding: 8px; }
+  .student-live-profile { top: max(7px,env(safe-area-inset-top)); left: max(7px,env(safe-area-inset-left)); max-width: min(235px, calc(100vw - 125px)); padding: 4px 9px 4px 4px; border-radius: 14px; }
+  .student-live-profile-visual { width: 34px; height: 34px; flex-basis: 34px; border-radius: 11px; }
+  .student-live-profile-visual img, .student-live-profile-visual > span { border-radius: 8px; font-size: 18px; }
+  .student-live-profile strong { font-size: 12px; }
+  .student-live-profile small, .student-live-profile em { font-size: 9px; }
   .premium-wheel-game { gap: 8px; padding: 10px 8px 12px; border-radius: 20px; }
   .wheel-machine { width: clamp(235px,72vw,300px); }
   .wheel-hud { gap: 5px; }
