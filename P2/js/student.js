@@ -52,6 +52,10 @@ function wordEmoji(word) {
   const key = [...String(word || "")].reduce((sum, character) => sum + character.codePointAt(0), 0);
   return FALLBACK_EMOJI[key % FALLBACK_EMOJI.length];
 }
+function emojiAsset(emoji, label = "") {
+  const codepoints = [...emoji].map(character => character.codePointAt(0).toString(16)).join("-");
+  return `<img class="word-picture" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codepoints}.svg" alt="${escapeHtml(label)}" loading="eager" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="word-picture-fallback" aria-hidden="true" hidden>${emoji}</span>`;
+}
 const WHEEL_SPIN_DURATION = 3000;
 const RHYTHM_CUE_TEMPLATE = Object.freeze([
   { word: "เต่า", start: 38.00, end: 38.55 },
@@ -1331,7 +1335,7 @@ function renderWheel() {
           <div class="premium-wheel-disc" style="--wheel-turn:${720 + Math.round(Math.random() * 360)}deg" aria-hidden="true">
             <span>🌟</span><span>🎈</span><span>🦋</span><span>🍭</span><span>🚀</span><span>🌈</span><span>🐘</span><span>🎁</span>
           </div>
-          <div class="wheel-word"><small>คำที่ได้</small><span id="wheelWordEmoji" class="wheel-word-emoji" aria-hidden="true">🔤</span><strong id="wheelWord" aria-live="polite">กำลังสุ่ม...</strong><button id="wheelSpeak" type="button" aria-label="ฟังเสียงคำว่า ${escapeHtml(question.word)}">🔊 ฟังคำ</button></div>
+          <div class="wheel-word"><small>คำที่ได้</small><span id="wheelWordEmoji" class="wheel-word-emoji" aria-hidden="true">${emojiAsset(wordEmoji(question.word), question.word)}</span><strong id="wheelWord" aria-live="polite">กำลังสุ่ม...</strong><button id="wheelSpeak" type="button" aria-label="ฟังเสียงคำว่า ${escapeHtml(question.word)}">🔊 ฟังคำ</button></div>
         </div>
         <p id="wheelFeedback" class="wheel-feedback">วงล้อกำลังเลือกคำ...</p>
         <div id="wheelChoices" class="wheel-answer-grid">
@@ -1350,7 +1354,7 @@ function renderWheel() {
     $("#wheelSpeak").addEventListener("click", () => speakThai(question.word));
     const finishSpin = () => {
       if (state.renderedActivity !== "wheel") return;
-      wordLabel.textContent = question.word; wordEmojiLabel.textContent = wordEmoji(question.word);
+      wordLabel.textContent = question.word; wordEmojiLabel.innerHTML = emojiAsset(wordEmoji(question.word), question.word);
       wordLabel.classList.remove("wheel-word-shuffling");
       choiceButtons.forEach(button => { button.disabled = false; });
       $("#wheelFeedback").textContent = "เลือกคำตอบได้เลย!";
@@ -1364,7 +1368,7 @@ function renderWheel() {
         return;
       }
       wordLabel.textContent = previewWords[spinStep % previewWords.length];
-      wordEmojiLabel.textContent = wordEmoji(wordLabel.textContent);
+      wordEmojiLabel.innerHTML = emojiAsset(wordEmoji(wordLabel.textContent), wordLabel.textContent);
       wordLabel.classList.remove("wheel-word-shuffling");
       void wordLabel.offsetWidth;
       wordLabel.classList.add("wheel-word-shuffling");
@@ -1459,7 +1463,7 @@ function renderSound() {
   runQuestionGame({
     key: "sound", title: "นักสืบเสียงท้ายคำ", instruction: "กดฟังเสียง แล้วตอบว่าเป็นคำแม่ ก กา หรือไม่",
     questions,
-    renderPrompt(question, container) { container.innerHTML = `<div class="sound-prompt-visual"><span class="sound-word-emoji" aria-hidden="true">${wordEmoji(question.word)}</span><button class="sound-button" id="speakWord" aria-label="ฟังคำ">🔊</button><small>ฟังเสียง แล้วสังเกตรูปประกอบ</small></div>`; $("#speakWord").addEventListener("click", () => speakThai(question.word)); setTimeout(() => speakThai(question.word), 300); },
+    renderPrompt(question, container) { container.innerHTML = `<div class="sound-prompt-visual"><span class="sound-word-emoji" aria-hidden="true">${emojiAsset(wordEmoji(question.word), question.word)}</span><button class="sound-button" id="speakWord" aria-label="ฟังคำ">🔊</button><small>ฟังเสียง แล้วสังเกตรูปประกอบ</small></div>`; $("#speakWord").addEventListener("click", () => speakThai(question.word)); setTimeout(() => speakThai(question.word), 300); },
     choices: () => [{ value: "yes", label: "ใช่ แม่ ก กา" }, { value: "no", label: "ไม่ใช่" }],
     replay: renderSound,
   });
