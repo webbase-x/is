@@ -1386,14 +1386,27 @@ function renderWheel() {
   renderQuestion();
 }
 
+let thaiSpeechVoices = [];
+function refreshThaiSpeechVoices() {
+  if (!("speechSynthesis" in window)) return;
+  thaiSpeechVoices = speechSynthesis.getVoices().filter(voice => /^th(?:-|_)?/i.test(voice.lang));
+}
+if ("speechSynthesis" in window) {
+  refreshThaiSpeechVoices();
+  speechSynthesis.addEventListener("voiceschanged", refreshThaiSpeechVoices);
+}
 function speakThai(word) {
+  if (!("speechSynthesis" in window) || !word) return;
   speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(word);
+  refreshThaiSpeechVoices();
+  const utterance = new SpeechSynthesisUtterance(String(word).trim());
   utterance.lang = "th-TH";
-  const voices = speechSynthesis.getVoices();
-  utterance.voice = voices.find(voice => /^th(-|_)?TH/i.test(voice.lang)) || voices.find(voice => /^th/i.test(voice.lang)) || null;
-  utterance.rate = .68;
-  utterance.pitch = 1.05;
+  const voice = thaiSpeechVoices.find(item => /^th(?:-|_)TH$/i.test(item.lang))
+    || thaiSpeechVoices.find(item => /google|natural|ออนไลน์|enhanced/i.test(item.name))
+    || thaiSpeechVoices[0];
+  if (voice) utterance.voice = voice;
+  utterance.rate = .62;
+  utterance.pitch = 1;
   utterance.volume = 1;
   speechSynthesis.speak(utterance);
 }
