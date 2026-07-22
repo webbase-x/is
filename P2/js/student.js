@@ -835,6 +835,7 @@ function renderRhythm() {
     "จับคำแม่ ก กาให้ทันเพลง",
     "ร้องตาม แตะคำตามจังหวะ คัดคำช่วงดนตรี และเติมคำที่หายไป",
     `<section class="rhythm-karaoke">
+      <p class="rhythm-credit" aria-label="เครดิตเพลง มาตรา ก กา">คำร้อง: <strong>รศ.ปิตินันธ์ สุทธสาร</strong></p>
       <div class="game-status-row rhythm-status-row">
         <div class="rhythm-scoreboard">
           <span class="mini-score">⭐ <strong id="rhythmScore">0</strong> / ${maxScore}</span>
