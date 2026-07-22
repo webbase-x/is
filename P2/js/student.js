@@ -1453,7 +1453,7 @@ function renderSound() {
   runQuestionGame({
     key: "sound", title: "นักสืบเสียงท้ายคำ", instruction: "กดฟังเสียง แล้วตอบว่าเป็นคำแม่ ก กา หรือไม่",
     questions,
-    renderPrompt(question, container) { container.innerHTML = `<div style="text-align:center;margin:15px 0 30px"><button class="sound-button" id="speakWord" aria-label="ฟังคำ">🔊</button></div>`; $("#speakWord").addEventListener("click", () => speakThai(question.word)); setTimeout(() => speakThai(question.word), 300); },
+    renderPrompt(question, container) { container.innerHTML = `<div class="sound-prompt-visual"><span class="sound-word-emoji" aria-hidden="true">${WORD_EMOJI[question.word] || "🔤"}</span><button class="sound-button" id="speakWord" aria-label="ฟังคำ">🔊</button><small>ฟังเสียง แล้วสังเกตรูปประกอบ</small></div>`; $("#speakWord").addEventListener("click", () => speakThai(question.word)); setTimeout(() => speakThai(question.word), 300); },
     choices: () => [{ value: "yes", label: "ใช่ แม่ ก กา" }, { value: "no", label: "ไม่ใช่" }],
     replay: renderSound,
   });
