@@ -195,11 +195,25 @@ function renderStudentScreens() {
     return;
   }
   const existingCards = [...grid.querySelectorAll("[data-player-id]")];
-  const canPatchInPlace = state.studentScreenMarkupSignature === markupSignature
-    && existingCards.length === screens.length
+  const sameCards = existingCards.length === screens.length
     && screens.every((screen, index) => existingCards[index]?.dataset.playerId === String(screen.player_id));
-  if (canPatchInPlace) {
-    screens.forEach((screen, index) => updateStudentScreenCard(existingCards[index], screen, index));
+  const canPatchFrames = sameCards && screens.every((screen, index) => {
+    const hasMarkup = Boolean(sanitizedMarkups[index]);
+    const hasMirror = Boolean(existingCards[index]?.querySelector(".display-student-mirror-canvas"));
+    return hasMarkup === hasMirror;
+  });
+  if (canPatchFrames) {
+    state.studentScreenMarkupSignature = markupSignature;
+    screens.forEach((screen, index) => {
+      const card = existingCards[index];
+      const frame = card.querySelector(".display-student-mirror-canvas");
+      if (frame) {
+        frame.style.setProperty("--game-zoom", Math.max(.75, Math.min(1.3, Number(screen.game_zoom) || 1)));
+        const nextMarkup = sanitizedMarkups[index];
+        if (frame.innerHTML !== nextMarkup) frame.innerHTML = nextMarkup;
+      }
+      updateStudentScreenCard(card, screen, index);
+    });
     return;
   }
   state.studentScreenMarkupSignature = markupSignature;
@@ -220,6 +234,7 @@ function renderStudentScreens() {
         <span class="display-student-avatar">${escapeHtml(identity.avatar)}</span>
         <div><strong>${escapeHtml(identity.name)}</strong><small><i></i> หน้าจอสด</small></div>
         <span class="display-student-score">${score} ★</span>
+        <button class="display-student-fullscreen" type="button" data-display-fullscreen aria-label="เต็มจอ ${escapeHtml(identity.name)}" title="เต็มจอ">⛶</button>
       </header>
       ${screenContent}
       <footer>
@@ -229,6 +244,35 @@ function renderStudentScreens() {
       </footer>
     </article>`;
   }).join("");
+}
+
+function syncFullscreenButtons() {
+  const activeCard = document.fullscreenElement?.closest?.(".display-student-card");
+  document.querySelectorAll("[data-display-fullscreen]").forEach(button => {
+    const isActive = activeCard && button.closest(".display-student-card") === activeCard;
+    button.setAttribute("aria-pressed", String(Boolean(isActive)));
+    button.textContent = isActive ? "×" : "⛶";
+  });
+}
+
+function toggleStudentFullscreen(button) {
+  const card = button.closest(".display-student-card");
+  if (!card) return;
+  if (card.classList.contains("display-card-fullscreen-fallback")) {
+    card.classList.remove("display-card-fullscreen-fallback");
+    syncFullscreenButtons();
+    return;
+  }
+  if (document.fullscreenElement === card) {
+    void document.exitFullscreen?.();
+    return;
+  }
+  if (typeof card.requestFullscreen === "function") {
+    card.requestFullscreen().catch(() => card.classList.add("display-card-fullscreen-fallback"));
+  } else {
+    card.classList.add("display-card-fullscreen-fallback");
+  }
+  syncFullscreenButtons();
 }
 
 function syncStudentPresence() {
@@ -319,6 +363,11 @@ $("#displayViewSwitch").addEventListener("click", event => {
   const button = event.target.closest("[data-display-view]");
   if (button) setDisplayView(button.dataset.displayView);
 });
+$("#displayStudentScreens").addEventListener("click", event => {
+  const button = event.target.closest("[data-display-fullscreen]");
+  if (button) toggleStudentFullscreen(button);
+});
+document.addEventListener("fullscreenchange", syncFullscreenButtons);
 const initialRoom = roomCodeFromUrl() || localStorage.getItem("thaiGameDisplayRoom") || "";
 $("#displayRoomInput").value = initialRoom;
 if (initialRoom) void connectDisplay();
