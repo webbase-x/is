@@ -4,7 +4,7 @@ import {
   $, ACTIVITIES, escapeHtml, GAME_STATE_EVENT, gameStateChannelName, hide,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js";
+} from "./common.js?v=20260722-play-modes-1";
 
 const TEXTBOOK_VOCABULARY = Object.freeze({
   // คำจากชุด "รู้จักคำ นำเรื่อง" บทที่ 1-5 ในไฟล์ พาที วรรณคดลำนำ ป.2

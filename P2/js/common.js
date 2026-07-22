@@ -137,7 +137,7 @@ export function roomCodeFromUrl() {
 }
 
 export function modeLabel(mode) {
-  return ({ practice: "รอบฝึก", test: "รอบทดสอบ", real: "รอบจริง" })[mode] || "รอบฝึก";
+  return ({ practice: "รอบทดลอง", real: "รอบจริง" })[mode] || "รอบทดลอง";
 }
 
 export function playerStatusLabel(status) {

@@ -4,7 +4,7 @@ import {
   $, $$, ACTIVITIES, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js";
+} from "./common.js?v=20260722-play-modes-1";
 
 const state = {
   user: null,
@@ -417,7 +417,7 @@ function renderLiveModeSwitch() {
 }
 
 async function setLivePlayMode(mode) {
-  if (!state.session || !["practice", "test", "real"].includes(mode) || state.session.play_mode === mode) return;
+  if (!state.session || !["practice", "real"].includes(mode) || state.session.play_mode === mode) return;
   const buttons = $$('[data-live-mode]');
   buttons.forEach(button => { button.disabled = true; });
   const { data, error } = await supabase.from("class_sessions").update({ play_mode: mode }).eq("id", state.session.id).select().single();
@@ -427,7 +427,7 @@ async function setLivePlayMode(mode) {
   $("#playMode").value = mode;
   renderLiveModeSwitch();
   await broadcastDisplay("play-mode-changed");
-  const labels = { practice: "โหมดทดลอง", test: "โหมดทดสอบ", real: "โหมดจริง" };
+  const labels = { practice: "โหมดทดลอง", real: "โหมดจริง" };
   toast(`เปลี่ยนเป็น${labels[mode]}แล้ว`, "success");
 }
 
@@ -823,7 +823,7 @@ function studentScreenEntries() {
 }
 
 function studentScreenModeLabel(mode) {
-  return ({ practice: "ทดลอง", test: "ทดสอบ", real: "จริง" })[mode] || "ทดลอง";
+  return ({ practice: "ทดลอง", real: "จริง" })[mode] || "ทดลอง";
 }
 
 function studentScreenIcon(entry) {
