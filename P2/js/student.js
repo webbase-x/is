@@ -1553,7 +1553,7 @@ function renderTrain() {
 async function renderVote() {
   // คลังคำสำหรับบอร์ดโหวตประโยคฮิต ใช้รายการเดียวกับบทเรียน ป.2
   // และตัดคำซ้ำอัตโนมัติเพื่อไม่ให้ปุ่มคำเดิมแสดงซ้ำ
-  const wordBank = [...new Set([
+  const allVoteWords = [...new Set([
     "กา", "กำไล", "กีฬา", "ไก่", "ขา", "ขี่", "ขู่", "ไข่", "คอ", "คำ", "โค", "งู", "เงาะ", "จระเข้",
     "จำ", "เจอ", "ชา", "ชู", "ซื้อ", "ดำ", "ดีใจ", "ดุ", "ดู", "ตะกร้า", "ตา", "ตี", "เต่า", "เต่าดำ",
     "เต่านา", "ไต่", "ถือ", "ถู", "ทะเล", "ทา", "เท", "นา", "น้า", "น้ำ", "ใน", "ใบ", "ใบไม้", "ประตู",
@@ -1561,8 +1561,19 @@ async function renderVote() {
     "ม้า", "มี", "แม่", "แม่กา", "แม่ไก่", "ยา", "ย่า", "ล่า", "ไล่", "สี", "สี่", "เสือ", "เสื้อ", "ใส่",
     "หญ้า", "ใหญ่", "หนู", "หมา", "หมู", "หมูป่า", "หัวเข่า", "หา", "ห้า", "เห่า", "ให้", "อา", "อยู่",
   ])];
+  // ใช้ seed จากห้องและกิจกรรม ทำให้ผู้เล่นทุกคนได้ชุดคำและลำดับเดียวกัน
+  // แต่เมื่อเริ่มกิจกรรมรอบใหม่ (ข้อมูลกิจกรรมเปลี่ยน) จะได้ชุดสุ่มใหม่
+  const roundSeed = [state.session?.id, state.session?.current_activity_key, state.session?.started_at].filter(Boolean).join(":") || "preview-vote-round";
+  const seededShuffle = (items, seedText) => {
+    const result = [...items]; let seed = [...String(seedText)].reduce((sum, character) => (sum * 31 + character.codePointAt(0)) >>> 0, 7);
+    const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    for (let index = result.length - 1; index > 0; index -= 1) { const pick = Math.floor(random() * (index + 1)); [result[index], result[pick]] = [result[pick], result[index]]; }
+    return result;
+  };
+  const wordsPerRound = 24;
+  const wordBank = seededShuffle(allVoteWords, roundSeed).slice(0, wordsPerRound);
   let selected = [];
-  gameShell("บอร์ดโหวตประโยคฮิต", "เลือกคำมาแต่งประโยค ส่งขึ้นบอร์ด แล้วมอบหัวใจให้เพื่อน", `<div class="sentence-output" id="voteSentence">เลือกคำจากคลังคำ</div><div class="word-bank-large" id="voteWordBank"></div><div class="button-row" style="margin:18px 0"><button id="clearSentence" class="button button-ghost">ล้างคำ</button><button id="submitSentence" class="button button-primary">ส่งประโยค</button></div><div class="vote-board" id="voteBoard"></div>`);
+  gameShell("บอร์ดโหวตประโยคฮิต", `เลือกคำมาแต่งประโยค · รอบนี้ ${wordsPerRound} คำจาก ${allVoteWords.length} คำ · ทุกคนเห็นเหมือนกัน`, `<div class="sentence-output" id="voteSentence">เลือกคำจากคลังคำ</div><div class="word-bank-large" id="voteWordBank"></div><div class="button-row" style="margin:18px 0"><button id="clearSentence" class="button button-ghost">ล้างคำ</button><button id="submitSentence" class="button button-primary">ส่งประโยค</button></div><div class="vote-board" id="voteBoard"></div>`);
   $("#voteWordBank").innerHTML = wordBank.map(word => `<button class="word-token" data-word="${word}">${word}</button>`).join("");
   $("#voteWordBank").querySelectorAll("button").forEach(button => button.addEventListener("click", () => { selected.push(button.dataset.word); $("#voteSentence").textContent = selected.join(""); }));
   $("#clearSentence").addEventListener("click", () => { selected = []; $("#voteSentence").textContent = "เลือกคำจากคลังคำ"; });
