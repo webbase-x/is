@@ -92,7 +92,11 @@ function setPlan(planId) {
 
 function setActivity(key) {
   state.activityKey = key;
-  resetRound(`ครูเปิดกิจกรรม ${currentActivity().title}`);
+  state.round = 0;
+  state.answered = false;
+  state.trainSelected = [];
+  state.voteSelected = [];
+  state.feedback = `ครูเปิดกิจกรรม ${currentActivity().title}`;
   event(`ครูเปิดกิจกรรม ${currentActivity().title}`);
   renderAll();
 }
