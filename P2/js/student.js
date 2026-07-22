@@ -46,6 +46,12 @@ const WORD_EMOJI = Object.freeze({
   "ย่าง":"🍢","สูง":"⬆️","นึ่ง":"♨️","ทิ้ง":"🗑️","ผัก":"🥬","บน":"🔝","โยน":"🤾","ทาง":"🛣️","ฟืน":"🪵","ยุง":"🦟","พัด":"🪭","เต็นท์":"⛺","ผ้าม่าน":"🪟","สุมไฟ":"🔥","ก้อนหิน":"🪨","ไฟฉาย":"🔦","ตะเกียง":"🏮",
   "อ่าน":"📖","ชิม":"😋","เงิน":"💰","ส้ม":"🍊","น้องชาย":"👦","มะม่วง":"🥭"
 });
+const FALLBACK_EMOJI = ["🧸","🌈","⭐","🎈","🪄","🌟"];
+function wordEmoji(word) {
+  if (WORD_EMOJI[word]) return WORD_EMOJI[word];
+  const key = [...String(word || "")].reduce((sum, character) => sum + character.codePointAt(0), 0);
+  return FALLBACK_EMOJI[key % FALLBACK_EMOJI.length];
+}
 const WHEEL_SPIN_DURATION = 3000;
 const RHYTHM_CUE_TEMPLATE = Object.freeze([
   { word: "เต่า", start: 38.00, end: 38.55 },
@@ -1336,7 +1342,7 @@ function renderWheel() {
     `);
     const disc = $(".premium-wheel-disc");
     const wordLabel = $("#wheelWord");
-    const wordEmoji = $("#wheelWordEmoji");
+    const wordEmojiLabel = $("#wheelWordEmoji");
     const choiceButtons = [...$("#wheelChoices").children];
     const previewWords = shuffle([...new Set([...WHEEL_WORDS.none, ...WHEEL_WORDS.has])]);
     let spinStep = 0;
@@ -1344,7 +1350,7 @@ function renderWheel() {
     $("#wheelSpeak").addEventListener("click", () => speakThai(question.word));
     const finishSpin = () => {
       if (state.renderedActivity !== "wheel") return;
-      wordLabel.textContent = question.word; wordEmoji.textContent = WORD_EMOJI[question.word] || "🔤";
+      wordLabel.textContent = question.word; wordEmojiLabel.textContent = wordEmoji(question.word);
       wordLabel.classList.remove("wheel-word-shuffling");
       choiceButtons.forEach(button => { button.disabled = false; });
       $("#wheelFeedback").textContent = "เลือกคำตอบได้เลย!";
@@ -1358,7 +1364,7 @@ function renderWheel() {
         return;
       }
       wordLabel.textContent = previewWords[spinStep % previewWords.length];
-      wordEmoji.textContent = WORD_EMOJI[wordLabel.textContent] || "🔤";
+      wordEmojiLabel.textContent = wordEmoji(wordLabel.textContent);
       wordLabel.classList.remove("wheel-word-shuffling");
       void wordLabel.offsetWidth;
       wordLabel.classList.add("wheel-word-shuffling");
@@ -1453,7 +1459,7 @@ function renderSound() {
   runQuestionGame({
     key: "sound", title: "นักสืบเสียงท้ายคำ", instruction: "กดฟังเสียง แล้วตอบว่าเป็นคำแม่ ก กา หรือไม่",
     questions,
-    renderPrompt(question, container) { container.innerHTML = `<div class="sound-prompt-visual"><span class="sound-word-emoji" aria-hidden="true">${WORD_EMOJI[question.word] || "🔤"}</span><button class="sound-button" id="speakWord" aria-label="ฟังคำ">🔊</button><small>ฟังเสียง แล้วสังเกตรูปประกอบ</small></div>`; $("#speakWord").addEventListener("click", () => speakThai(question.word)); setTimeout(() => speakThai(question.word), 300); },
+    renderPrompt(question, container) { container.innerHTML = `<div class="sound-prompt-visual"><span class="sound-word-emoji" aria-hidden="true">${wordEmoji(question.word)}</span><button class="sound-button" id="speakWord" aria-label="ฟังคำ">🔊</button><small>ฟังเสียง แล้วสังเกตรูปประกอบ</small></div>`; $("#speakWord").addEventListener("click", () => speakThai(question.word)); setTimeout(() => speakThai(question.word), 300); },
     choices: () => [{ value: "yes", label: "ใช่ แม่ ก กา" }, { value: "no", label: "ไม่ใช่" }],
     replay: renderSound,
   });
