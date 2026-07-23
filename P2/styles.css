@@ -1644,7 +1644,6 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .display-screens-view.is-single-screen { padding: 6px 10px; }
   .display-student-grid.has-live-mirrors:not(.is-single) .display-student-mirror { height: 215px; flex-basis: 215px; }
   .teacher-page .teacher-header { min-height: 52px; }
-  .teacher-page .dashboard-sidebar { top: 52px; height: calc(100vh - 52px); }
   .teacher-page .dashboard-main { padding-top: 14px; }
   .teacher-flow-header h1 { font-size: 26px; }
   .teacher-flow-header p { display: none; }
@@ -1671,6 +1670,17 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .student-scan-hint { margin-top: 8px; }
   .student-live-camera { width: min(62vh, 520px); }
   .student-capture-button { width: min(520px,100%); margin-left: auto; margin-right: auto; }
+}
+
+/* On a narrow landscape screen (including the expert iPad preview), the
+   dashboard has already switched to its horizontal navigation.  Keeping the
+   desktop sidebar at viewport height here pushes the teacher content below a
+   large empty navy block. */
+@media (max-width: 760px) and (max-height: 620px) and (orientation: landscape) {
+  .teacher-page .dashboard-sidebar { top: 52px; height: auto; }
+}
+@media (min-width: 761px) and (max-height: 620px) and (orientation: landscape) {
+  .teacher-page .dashboard-sidebar { top: 52px; height: calc(100vh - 52px); }
 }
 
 @media (orientation: portrait) and (max-width: 700px) {
