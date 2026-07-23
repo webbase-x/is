@@ -45,8 +45,10 @@ const state = {
   lateJoinResumeStatus: "paused",
 };
 
-const expertAutofillLogin = new URLSearchParams(window.location.search).get("embed") === "expert-teacher"
-  && new URLSearchParams(window.location.search).get("autofill") === "1";
+const teacherPageQuery = new URLSearchParams(window.location.search);
+const expertTeacherEmbed = teacherPageQuery.get("embed") === "expert-teacher";
+const expertAutofillLogin = expertTeacherEmbed && teacherPageQuery.get("autofill") === "1";
+if (expertTeacherEmbed) document.body.classList.add("expert-embed", "expert-teacher-embed");
 const expertLogin = Object.freeze({ email: "expert@webbase.x", password: "123456" });
 
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];

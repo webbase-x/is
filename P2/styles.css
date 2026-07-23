@@ -1817,10 +1817,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .game-canvas { overflow:auto; }
 .game-play-area { overflow:auto; }
 
-/* Fit the complete activity inside the viewport; no page scrolling during play. */
-.student-page.student-game-live, .student-page.student-game-live #gameView, .student-page.student-game-live .game-stage, .student-page.student-game-live #gameCanvas, .student-page.student-game-live #gameCanvas > .game-inner, .student-page.student-game-live #gameCanvas > .game-layout { height:100dvh; max-height:100dvh; overflow:hidden; }
-.student-page.student-game-live #gameCanvas > .game-inner { min-height:0; }
-.student-page.student-game-live .game-play-area { min-height:0; overflow:hidden; }
+/* Fit live play inside its own viewport.  The canvas scrolls internally when a
+   game needs more room, rather than letting its content escape the screen. */
+.student-page.student-game-live, .student-page.student-game-live #gameView, .student-page.student-game-live .game-stage, .student-page.student-game-live #gameCanvas { height:100dvh; max-height:100dvh; overflow:hidden; }
+.student-page.student-game-live #gameCanvas > .game-inner, .student-page.student-game-live #gameCanvas > .game-layout { height:100%; max-height:100%; min-height:0; overflow:hidden; }
+.student-page.student-game-live .game-play-area { min-height:0; overflow:auto; }
 .student-page.student-game-live .sort-area { max-height:calc(100dvh - 190px); }
 @media (max-width:760px) {
   .student-page.student-game-live #gameCanvas > .game-inner { padding:10px 8px; }
@@ -1829,3 +1830,50 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .student-page.student-game-live .word-house { min-height:0; height:100%; padding:12px; }
   .student-page.student-game-live .house-dropzone { min-height:0; }
 }
+
+/* Expert iPad framing: the real pages stay interactive, but their compact
+   layout never pushes controls or games outside the two preview devices. */
+.expert-embed { height:100dvh; overflow:hidden; }
+.expert-teacher-embed .teacher-header { position:relative; min-height:48px; padding:5px 12px; }
+.expert-teacher-embed .teacher-header .brand small, .expert-teacher-embed .teacher-header .button { display:none; }
+.expert-teacher-embed .teacher-header .header-actions { gap:6px; }
+.expert-teacher-embed .teacher-header .status-pill { padding:7px; font-size:0; }
+.expert-teacher-embed .teacher-header .status-pill i { margin:0; }
+.expert-teacher-embed .dashboard-shell { height:calc(100dvh - 48px); min-height:0; grid-template-rows:auto minmax(0,1fr); }
+.expert-teacher-embed .dashboard-sidebar { position:static; top:auto; height:auto; min-height:0; padding:6px 8px; overflow:hidden; }
+.expert-teacher-embed .dashboard-sidebar nav { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; overflow:hidden; }
+.expert-teacher-embed .dashboard-sidebar nav button { position:relative; min-width:0; min-height:38px; justify-content:center; padding:5px; font-size:0; }
+.expert-teacher-embed .dashboard-sidebar nav button span { margin:0; font-size:17px; }
+.expert-teacher-embed .dashboard-sidebar nav .nav-count-badge { position:absolute; top:3px; right:4px; min-width:16px; padding:1px 4px; font-size:9px; }
+.expert-teacher-embed .dashboard-main { height:100%; min-height:0; padding:8px; overflow:auto; }
+.expert-teacher-embed .teacher-flow-shell { min-height:0; }
+.expert-teacher-embed .teacher-flow-header, .expert-teacher-embed .teacher-flow-progress { display:none; }
+.expert-teacher-embed .teacher-flow-step { min-height:0; padding:12px; border-radius:16px; box-shadow:0 8px 20px rgba(34,41,77,.10); }
+.expert-teacher-embed .teacher-flow-step h2 { margin:2px 0 5px; font-size:22px; line-height:1.2; }
+.expert-teacher-embed .flow-lead { margin:0 auto 10px; font-size:12px; line-height:1.35; }
+.expert-teacher-embed .flow-hero-icon, .expert-teacher-embed .resume-session-icon { width:44px; height:44px; margin-bottom:5px; border-radius:14px; font-size:25px; }
+.expert-teacher-embed .resume-session-card { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin-top:2px; }
+.expert-teacher-embed .resume-session-card > div { min-height:0; padding:7px 8px; border-radius:10px; }
+.expert-teacher-embed .resume-session-card small { margin-bottom:2px; font-size:9px; }
+.expert-teacher-embed .resume-session-card strong { font-size:12px; line-height:1.2; }
+.expert-teacher-embed .resume-session-card .resume-room-code { font-size:16px; }
+.expert-teacher-embed .resume-session-actions, .expert-teacher-embed .flow-footer { gap:6px; margin-top:8px; padding-top:8px; }
+.expert-teacher-embed .resume-session-actions { display:flex; flex-wrap:wrap; width:100%; }
+.expert-teacher-embed .resume-session-actions .button, .expert-teacher-embed .flow-footer .button { min-width:0; min-height:32px; flex:1 1 130px; padding:6px 8px; font-size:11px; }
+.expert-teacher-embed .flow-choice-form { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.expert-teacher-embed .flow-choice-form label { font-size:11px; }
+.expert-teacher-embed .flow-choice-form select { min-height:36px; font-size:12px; }
+.expert-teacher-embed .flow-info-card { margin-top:7px; padding:8px 10px; border-radius:10px; font-size:11px; }
+
+.expert-student-embed:has(#gameView:not(.hidden)) > .app-header { display:none; }
+.expert-student-embed:has(#gameView:not(.hidden)) .student-shell { width:100%; min-height:100dvh; margin:0; padding:0; }
+.expert-student-embed:has(#gameView:not(.hidden)) #gameView { position:fixed; inset:0; width:100vw; height:100dvh; min-height:0; overflow:hidden; background:white; }
+.expert-student-embed:has(#gameView:not(.hidden)) .journey-panel, .expert-student-embed:has(#gameView:not(.hidden)) .stage-topbar { display:none; }
+.expert-student-embed:has(#gameView:not(.hidden)) .game-stage { height:100dvh; padding:0; }
+.expert-student-embed:has(#gameView:not(.hidden)) #gameCanvas { height:100%; min-height:0; overflow:auto; border:0; border-radius:0; box-shadow:none; }
+.expert-student-embed:has(#gameView:not(.hidden)) #gameCanvas > .game-inner, .expert-student-embed:has(#gameView:not(.hidden)) #gameCanvas > .game-layout { min-height:100%; }
+.expert-student-embed:has(#gameView:not(.hidden)) #gameCanvas > .game-inner { padding:8px; }
+.expert-student-embed:has(#gameView:not(.hidden)) .game-play-area { min-height:0; overflow:auto; padding:4px; }
+.expert-student-embed .student-live-profile { top:6px; left:6px; max-width:min(220px, calc(100vw - 118px)); padding:4px 8px 4px 4px; }
+.expert-student-embed .student-live-profile-visual { width:32px; height:32px; flex-basis:32px; }
+.expert-student-embed .student-live-profile strong { font-size:11px; }

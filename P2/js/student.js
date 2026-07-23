@@ -6,6 +6,9 @@ import {
   updateConnectionBadge,
 } from "./common.js?v=20260722-play-modes-1";
 
+const expertStudentEmbed = new URLSearchParams(window.location.search).get("embed") === "expert-student";
+if (expertStudentEmbed) document.body.classList.add("expert-embed", "expert-student-embed");
+
 const TEXTBOOK_VOCABULARY = Object.freeze({
   // คำจากชุด "รู้จักคำ นำเรื่อง" บทที่ 1-5 ในไฟล์ พาที วรรณคดลำนำ ป.2
   none: Object.freeze([
@@ -712,8 +715,10 @@ function scheduleStudentScreenPresence(immediate = false) {
 function observeStudentScreenChanges() {
   const observer = new MutationObserver(() => scheduleStudentScreenPresence());
   const options = { childList: true, subtree: true, characterData: true, attributes: true };
-  const gameView = document.getElementById("gameView");
-  if (gameView instanceof HTMLElement) observer.observe(gameView, options);
+  // The app shell exists for every join/game state, unlike individual game
+  // nodes that may be replaced while a realtime update is being applied.
+  const screenRoot = document.querySelector(".student-shell");
+  if (screenRoot) observer.observe(screenRoot, options);
 }
 
 function subscribePresence() {
