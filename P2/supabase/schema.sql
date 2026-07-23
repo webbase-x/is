@@ -40,6 +40,7 @@ create table if not exists public.teacher_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null,
   role text not null default 'teacher' check (role in ('teacher', 'admin')),
+  access_level smallint not null default 2 check (access_level in (1, 2)),
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -144,6 +145,19 @@ as $$
   );
 $$;
 
+create or replace function public.is_admin(check_user uuid default auth.uid())
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.teacher_profiles t
+    where t.user_id = check_user and t.active and t.role = 'admin' and t.access_level = 1
+  );
+$$;
+
 create or replace function public.teacher_can_access_class(p_class_id uuid)
 returns boolean
 language sql
@@ -240,8 +254,8 @@ declare
   grade_no integer;
   room_number integer;
 begin
-  if not public.is_teacher() then
-    raise exception 'Teacher permission required';
+  if not public.is_admin() then
+    raise exception 'Administrator permission required';
   end if;
 
   insert into public.schools(code, name)
@@ -635,6 +649,7 @@ grant execute on function public.record_game_attempt(uuid, text, integer, intege
 grant execute on function public.get_session_leaderboard(uuid) to authenticated;
 grant execute on function public.get_display_snapshot(text) to authenticated;
 grant execute on function public.get_display_leaderboard(text) to authenticated;
+revoke all on function public.create_school_structure(text, text, smallint) from public, anon;
 grant execute on function public.create_school_structure(text, text, smallint) to authenticated;
 
 alter table public.schools enable row level security;
@@ -666,8 +681,12 @@ create policy "admins manage classes" on public.classes for all to authenticated
   with check (exists (select 1 from public.teacher_profiles t where t.user_id = auth.uid() and t.role = 'admin' and t.active));
 drop policy if exists "teachers manage students" on public.students;
 drop policy if exists "teachers manage assigned students" on public.students;
-create policy "teachers manage assigned students" on public.students for all to authenticated
-  using (public.teacher_can_access_class(class_id)) with check (public.teacher_can_access_class(class_id));
+drop policy if exists "teachers read assigned students" on public.students;
+create policy "teachers read assigned students" on public.students for select to authenticated
+  using (public.teacher_can_access_class(class_id));
+drop policy if exists "admins manage students" on public.students;
+create policy "admins manage students" on public.students for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "teachers see own profile" on public.teacher_profiles;
 create policy "teachers see own profile" on public.teacher_profiles for select to authenticated using (user_id = auth.uid());
@@ -682,7 +701,8 @@ create policy "teachers read own assignments" on public.teacher_class_assignment
 drop policy if exists "authenticated read plans" on public.lesson_plans;
 create policy "authenticated read plans" on public.lesson_plans for select to authenticated using (true);
 drop policy if exists "teachers manage plans" on public.lesson_plans;
-create policy "teachers manage plans" on public.lesson_plans for all to authenticated using (public.is_teacher()) with check (public.is_teacher());
+drop policy if exists "admins manage plans" on public.lesson_plans;
+create policy "admins manage plans" on public.lesson_plans for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "teachers manage sessions" on public.class_sessions;
 create policy "teachers manage sessions" on public.class_sessions for all to authenticated

@@ -45,6 +45,10 @@ const state = {
   lateJoinResumeStatus: "paused",
 };
 
+const expertAutofillLogin = new URLSearchParams(window.location.search).get("embed") === "expert-teacher"
+  && new URLSearchParams(window.location.search).get("autofill") === "1";
+const expertLogin = Object.freeze({ email: "expert@webbase.x", password: "123456" });
+
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
 const FLOW_TITLES = {
   class: "เลือกโรงเรียนและห้องเรียน",
@@ -109,11 +113,24 @@ function syncLateJoinControls() {
 async function bootstrap() {
   connectionUpdate();
   renderPlanTimeline($("#planTimeline"), 1);
+  configureExpertAutofill();
   const { data } = await supabase.auth.getSession();
   if (data.session && !data.session.user.is_anonymous) {
     state.user = data.session.user;
     await loadTeacherWorkspace();
   }
+}
+
+function configureExpertAutofill() {
+  if (!expertAutofillLogin) return;
+  $("#teacherEmail").value = expertLogin.email;
+  $("#teacherPassword").value = expertLogin.password;
+}
+
+function applyRolePermissions() {
+  const administrator = state.profile?.role === "admin" && Number(state.profile?.access_level) === 1;
+  $$('[data-admin-only]').forEach(element => element.classList.toggle("hidden", !administrator));
+  if (!administrator && $("#rosterPanel")?.classList.contains("active")) showPanel("sessionPanel");
 }
 
 async function signIn(event) {
@@ -145,6 +162,7 @@ async function loadTeacherWorkspace() {
     return toast("บัญชีนี้ยังไม่ได้รับสิทธิ์ครู กรุณาให้ผู้ดูแลเปิดสิทธิ์ก่อน", "error");
   }
   state.profile = profile;
+  applyRolePermissions();
   $("#teacherName").textContent = profile.full_name;
   hide($("#teacherLoginView"));
   show($("#teacherDashboard"));

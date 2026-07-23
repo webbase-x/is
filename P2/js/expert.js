@@ -22,7 +22,8 @@ const frames = {
 function sourceFor(frame, { fresh = false } = {}) {
   const url = new URL(frame.page, window.location.href);
   url.searchParams.set("embed", frame.role);
-  url.searchParams.set("screen", "20260723-expert-real-login-1");
+  url.searchParams.set("screen", "20260723-expert-level-2-1");
+  if (frame.role === "expert-teacher") url.searchParams.set("autofill", "1");
   if (fresh) url.searchParams.set("fresh", String(Date.now()));
   return url.href;
 }
