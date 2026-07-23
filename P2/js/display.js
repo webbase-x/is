@@ -1,8 +1,9 @@
 import { supabase, ensureAnonymousAuth } from "./supabase.js";
 import {
-  $, ACTIVITIES, escapeHtml, GAME_STATE_EVENT, gameStateChannelName, hide,
+  $, ACTIVITIES, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
+  GAME_STATE_EVENT, gameStateChannelName, hide,
   roomCodeFromUrl, sanitizeGameMarkup, show, toast,
-} from "./common.js";
+} from "./common.js?v=20260723-expert-live-score-1";
 
 const state = {
   roomCode: "",
@@ -13,6 +14,7 @@ const state = {
   studentScreens: new Map(),
   studentScreenMarkupSignature: "",
   leaderboard: [],
+  expertScoreboardSessionId: null,
   view: "screens",
 };
 
@@ -79,7 +81,7 @@ async function refreshBoard() {
     return false;
   }
   state.snapshot = snapshots[0];
-  state.leaderboard = leaderboard || [];
+  if (state.expertScoreboardSessionId !== state.snapshot.session_id) state.leaderboard = leaderboard || [];
   renderSnapshot(state.leaderboard);
   if (previousSessionId && previousSessionId !== state.snapshot.session_id) {
     subscribeBroadcast();
@@ -307,6 +309,14 @@ function receiveStudentScreen(message) {
   renderStudentScreens();
 }
 
+function receiveExpertScoreboard(message) {
+  const update = message?.payload || message;
+  if (!update || update.session_id !== state.snapshot?.session_id || !Array.isArray(update.leaderboard)) return;
+  state.expertScoreboardSessionId = update.session_id;
+  state.leaderboard = update.leaderboard;
+  renderSnapshot(state.leaderboard);
+}
+
 function subscribeBroadcast() {
   state.broadcastChannel?.unsubscribe();
   state.broadcastChannel = supabase.channel(gameStateChannelName(state.snapshot.session_id))
@@ -326,7 +336,15 @@ function subscribeBroadcast() {
       renderSnapshot(state.leaderboard);
       void refreshBoard();
     })
+    .on("broadcast", { event: EXPERT_SCOREBOARD_EVENT }, receiveExpertScoreboard)
     .subscribe(status => {
+      if (status === "SUBSCRIBED") {
+        void state.broadcastChannel.send({
+          type: "broadcast",
+          event: EXPERT_SCOREBOARD_REQUEST_EVENT,
+          payload: { session_id: state.snapshot?.session_id },
+        });
+      }
       if (["SUBSCRIBED", "CHANNEL_ERROR", "TIMED_OUT"].includes(status)) void refreshBoard();
     });
 }
@@ -335,6 +353,7 @@ function subscribePresence() {
   state.presenceChannel?.unsubscribe();
   state.studentScreens.clear();
   state.studentScreenMarkupSignature = "";
+  state.expertScoreboardSessionId = null;
   renderStudentScreens();
   state.presenceChannel = supabase.channel(`classroom-${state.snapshot.session_id}`, {
     config: { presence: { key: state.presenceKey } },

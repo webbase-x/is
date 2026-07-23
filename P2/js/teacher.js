@@ -2,9 +2,10 @@ import { APP_CONFIG } from "./config.js";
 import { supabase } from "./supabase.js?v=20260723-expert-real-login-1";
 import {
   $, $$, ACTIVITIES, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
+  EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260722-play-modes-1";
+} from "./common.js?v=20260723-expert-live-score-1";
 
 const state = {
   user: null,
@@ -14,6 +15,7 @@ const state = {
   session: null,
   players: [],
   attempts: [],
+  expertAttemptIds: new Set(),
   leaderboard: [],
   sentenceSubmissions: [],
   sessionChannel: null,
@@ -80,7 +82,7 @@ function selectedClassroom() {
 
 function classContext(classroom = selectedClassroom()) {
   if (!classroom) return "ยังไม่ได้เลือกห้องเรียน";
-  const scoreMode = state.session?.score_recording_enabled === false ? " · โหมดตรวจสื่อ ไม่บันทึกคะแนน" : "";
+  const scoreMode = state.session?.score_recording_enabled === false ? " · โหมดตรวจสื่อ จัดอันดับสดได้ ไม่บันทึกคะแนนหลังจบคาบ" : "";
   return `${classroom.school?.name || "โรงเรียน"} · ${classroom.label} · ครู${state.profile?.full_name || "ผู้สอน"}${scoreMode}`;
 }
 
@@ -1072,6 +1074,88 @@ function moveStudentScreen(direction) {
   renderStudentScreens();
 }
 
+function selectScoreAttempt(attempts, policy = state.session?.score_policy || "best") {
+  const ordered = [...attempts].sort((a, b) => Number(a.attempt_no || 0) - Number(b.attempt_no || 0) || String(a.completed_at || "").localeCompare(String(b.completed_at || "")));
+  if (!ordered.length) return null;
+  if (policy === "first") return ordered[0];
+  if (policy === "latest") return ordered[ordered.length - 1];
+  return ordered.reduce((best, attempt) => Number(attempt.score || 0) > Number(best.score || 0) ? attempt : best, ordered[0]);
+}
+
+function liveLeaderboardDisplayName(player) {
+  const student = player.student || {};
+  if (state.session?.leaderboard_mode === "real_name") return student.full_name || "นักเรียน";
+  if (state.session?.leaderboard_mode === "student_code") return student.student_code || "ไม่ระบุรหัส";
+  if (state.session?.leaderboard_mode === "hidden") return "นักผจญภัย";
+  return student.nickname || student.full_name || "นักเรียน";
+}
+
+function buildExpertLeaderboard() {
+  return state.players.filter(player => player.status === "approved").map(player => {
+    const selected = new Map();
+    state.attempts.filter(attempt => attempt.session_player_id === player.id).forEach(attempt => {
+      const list = selected.get(attempt.activity_key) || [];
+      list.push(attempt);
+      selected.set(attempt.activity_key, list);
+    });
+    const bestAttempts = [...selected.values()]
+      .map(attempts => selectScoreAttempt(attempts))
+      .filter(Boolean);
+    const totalScore = bestAttempts.reduce((sum, attempt) => sum + Number(attempt.score || 0), 0);
+    const averagePercent = bestAttempts.length
+      ? Math.round((bestAttempts.reduce((sum, attempt) => sum + Number(attempt.percent || 0), 0) / bestAttempts.length) * 100) / 100
+      : 0;
+    return {
+      player_id: player.id,
+      display_name: liveLeaderboardDisplayName(player),
+      avatar: player.student?.avatar || randomAvatar(player.student?.nickname),
+      total_score: totalScore,
+      average_percent: averagePercent,
+      completed_activities: bestAttempts.length,
+    };
+  }).sort((a, b) => Number(b.total_score) - Number(a.total_score) || String(a.display_name).localeCompare(String(b.display_name), "th"));
+}
+
+function applyExpertLiveScore(message) {
+  if (sessionRecordsScores() || !state.session) return;
+  const payload = message?.payload || message;
+  if (!payload || payload.session_id !== state.session.id) return;
+  const player = state.players.find(item => item.id === payload.session_player_id && item.status === "approved");
+  if (!player || payload.activity_key !== state.session.current_activity_key) return;
+  const maxScore = Number(payload.max_score);
+  const score = Number(payload.score);
+  if (!Number.isFinite(maxScore) || !Number.isFinite(score) || maxScore <= 0 || score < 0 || score > maxScore) return;
+  const attemptId = String(payload.attempt_id || "");
+  if (!attemptId || state.expertAttemptIds.has(attemptId)) return;
+  const attemptNo = state.attempts.filter(attempt => attempt.session_player_id === player.id && attempt.activity_key === payload.activity_key).length + 1;
+  const percent = Math.round((score / maxScore) * 10000) / 100;
+  state.expertAttemptIds.add(attemptId);
+  state.attempts.push({
+    id: attemptId,
+    session_player_id: player.id,
+    activity_key: payload.activity_key,
+    score,
+    max_score: maxScore,
+    percent,
+    passed: percent >= Number(state.session.pass_percent || 80),
+    attempt_no: attemptNo,
+    completed_at: payload.completed_at || new Date().toISOString(),
+    ephemeral: true,
+  });
+  state.leaderboard = buildExpertLeaderboard();
+  renderMetrics();
+  renderLiveResults();
+  renderReport();
+  if (state.flowStep === "summary") renderSummary();
+  void finishWhenEveryoneSubmitted();
+  void broadcastExpertScoreboard();
+}
+
+function receiveExpertScoreboardRequest(message) {
+  const payload = message?.payload || message;
+  if (!sessionRecordsScores() && payload?.session_id === state.session?.id) void broadcastExpertScoreboard();
+}
+
 function subscribeDisplay() {
   state.displayChannel?.unsubscribe();
   return new Promise(resolve => {
@@ -1083,7 +1167,10 @@ function subscribeDisplay() {
     };
     state.displayChannel = supabase.channel(gameStateChannelName(state.session.id), {
       config: { broadcast: { ack: true } },
-    }).subscribe(status => {
+    })
+      .on("broadcast", { event: EXPERT_SCORE_EVENT }, applyExpertLiveScore)
+      .on("broadcast", { event: EXPERT_SCOREBOARD_REQUEST_EVENT }, receiveExpertScoreboardRequest)
+      .subscribe(status => {
       if (status === "SUBSCRIBED") finish(true);
       if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) finish(false);
     });
@@ -1104,6 +1191,24 @@ async function broadcastDisplay(reason = "state-change") {
   }
 }
 
+async function broadcastExpertScoreboard() {
+  if (sessionRecordsScores() || !state.displayChannel || !state.session) return;
+  try {
+    await state.displayChannel.send({
+      type: "broadcast",
+      event: EXPERT_SCOREBOARD_EVENT,
+      payload: {
+        session_id: state.session.id,
+        leaderboard: state.leaderboard,
+        issued_at: Date.now(),
+      },
+    });
+  } catch {
+    // Live scoreboards are intentionally transient; a later score or display
+    // request publishes the latest in-memory snapshot again.
+  }
+}
+
 async function refreshSessionData() {
   if (!state.session) return;
   const [{ data: players }, { data: leaderboard }, { data: sentenceSubmissions }] = await Promise.all([
@@ -1114,13 +1219,20 @@ async function refreshSessionData() {
       : Promise.resolve({ data: [] }),
   ]);
   state.players = players || [];
-  state.leaderboard = leaderboard || [];
   state.sentenceSubmissions = sentenceSubmissions || [];
   const playerIds = state.players.map(player => player.id);
-  if (playerIds.length) {
+  if (!sessionRecordsScores()) {
+    const activePlayerIds = new Set(playerIds);
+    state.attempts = state.attempts.filter(attempt => activePlayerIds.has(attempt.session_player_id));
+    state.leaderboard = buildExpertLeaderboard();
+  } else if (playerIds.length) {
     const { data: attempts } = await supabase.from("game_attempts").select("*").in("session_player_id", playerIds).order("completed_at");
     state.attempts = attempts || [];
-  } else state.attempts = [];
+    state.leaderboard = leaderboard || [];
+  } else {
+    state.attempts = [];
+    state.leaderboard = leaderboard || [];
+  }
   await renderPlayers();
   renderMetrics();
   renderLiveResults();
@@ -1128,7 +1240,8 @@ async function refreshSessionData() {
   renderReport();
   if (state.flowStep === "summary") renderSummary();
   void finishWhenEveryoneSubmitted();
-  broadcastDisplay();
+  void broadcastDisplay();
+  void broadcastExpertScoreboard();
 }
 
 async function loadSentenceSubmissions() {
@@ -1264,11 +1377,6 @@ function renderMetrics() {
   $("#approvedCount").textContent = approved;
   $("#waitingCount").textContent = state.players.filter(player => ["waiting", "returned"].includes(player.status)).length;
   $("#liveApprovedCount").textContent = approved;
-  if (!sessionRecordsScores()) {
-    $("#averageScore").textContent = "—";
-    $("#completedAttemptCount").textContent = "—";
-    return;
-  }
   const averages = state.leaderboard.map(item => Number(item.average_percent || 0));
   const average = averages.length ? Math.round(averages.reduce((sum, value) => sum + value, 0) / averages.length) : 0;
   $("#averageScore").textContent = `${average}%`;
@@ -1277,7 +1385,7 @@ function renderMetrics() {
 }
 
 async function finishWhenEveryoneSubmitted() {
-  if (!sessionRecordsScores() || !state.session?.current_activity_key || state.session.status !== "active" || state.finishingActivity || state.celebrationActivityKey) return;
+  if (!state.session?.current_activity_key || state.session.status !== "active" || state.finishingActivity || state.celebrationActivityKey) return;
   const approvedIds = state.players.filter(player => player.status === "approved").map(player => player.id);
   if (!approvedIds.length) return;
   const roundStartedAt = state.activityStartedAt ? new Date(state.activityStartedAt).getTime() - 1000 : 0;
@@ -1399,28 +1507,18 @@ function renderLiveResults() {
   arena?.classList.toggle("is-celebrating", isCelebrating);
   if (liveBadge) {
     liveBadge.classList.toggle("is-finished", isCelebrating);
-    liveBadge.innerHTML = isCelebrating ? "🏆 ผลประกาศแล้ว" : "<i></i> LIVE";
+    liveBadge.innerHTML = isCelebrating ? "🏆 ผลประกาศแล้ว" : scoresRecorded ? "<i></i> LIVE" : "🧪 LIVE";
   }
   if (lastUpdate) lastUpdate.textContent = `อัปเดต ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
   if (finishButton) {
     finishButton.disabled = isCelebrating || state.finishingActivity || !state.session.current_activity_key;
     finishButton.textContent = state.finishingActivity ? "กำลังจบเกม..." : isCelebrating ? "✓ จบเกมแล้ว" : "⏹ จบเกม";
   }
-  if (!scoresRecorded) {
-    arena?.classList.remove("is-celebrating");
-    if (liveBadge) {
-      liveBadge.classList.remove("is-finished");
-      liveBadge.innerHTML = "🧪 ตรวจสื่อ";
-    }
-    if (status) status.textContent = "คาบผู้เชี่ยวชาญ · ทำกิจกรรมได้ตามปกติ แต่ไม่มีการบันทึกหรือจัดอันดับคะแนน";
-    container.innerHTML = `<div class="flow-empty-state"><span>🧪</span><strong>โหมดตรวจสื่อ</strong><small>คาบนี้ไม่บันทึกคะแนนและไม่จัดอันดับผลการแข่งขัน</small></div>${state.session.current_activity_key === "vote" ? renderLiveVoteBoard() : ""}`;
-    return;
-  }
   if (status) status.textContent = isCelebrating
-    ? `ประกาศผลแล้ว ${resultCount} คน · พร้อมไปเกมถัดไป`
+    ? `${scoresRecorded ? "ประกาศผลแล้ว" : "ประกาศอันดับสดแล้ว"} ${resultCount} คน · พร้อมไปเกมถัดไป`
     : state.session.status === "paused"
-      ? `พักเกมอยู่ · ส่งคำตอบแล้ว ${resultCount}/${entries.length} คน`
-      : `ส่งคำตอบแล้ว ${resultCount}/${entries.length} คน · จบอัตโนมัติเมื่อส่งครบหรือเวลาหมด`;
+      ? `พักเกมอยู่ · ส่งคำตอบแล้ว ${resultCount}/${entries.length} คน${scoresRecorded ? "" : " · คะแนนสดจะไม่บันทึกหลังจบคาบ"}`
+      : `ส่งคำตอบแล้ว ${resultCount}/${entries.length} คน · จบอัตโนมัติเมื่อส่งครบหรือเวลาหมด${scoresRecorded ? "" : " · จัดอันดับสดโดยไม่บันทึกคะแนน"}`;
   if (!entries.length) {
     container.innerHTML = `<div class="flow-empty-state"><span>👥</span><strong>ยังไม่มีนักเรียนที่อนุมัติ</strong><small>กลับไปห้องรอเพื่อตรวจรายชื่อได้</small></div>`;
     return;
@@ -1479,6 +1577,7 @@ async function finishActivity(reason = "manual") {
   renderLiveResults();
   playVictorySound();
   broadcastDisplay();
+  void broadcastExpertScoreboard();
   const message = ({ all_submitted: "นักเรียนส่งครบทุกคน จบเกมอัตโนมัติแล้ว", time_up: "หมดเวลา จบเกมอัตโนมัติแล้ว", manual: "จบเกมและประกาศผลแล้ว" })[reason] || "จบเกมแล้ว";
   toast(message, "success");
   if (state.flowStep === "live") $("#competitionArena").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1505,13 +1604,7 @@ function toggleCompetitionSound() {
 function renderSummary() {
   if (!state.session) return;
   const approved = state.players.filter(player => player.status === "approved");
-  if (!sessionRecordsScores()) {
-    $("#summaryApproved").textContent = approved.length;
-    $("#summaryAverage").textContent = "—";
-    $("#summaryCompleted").textContent = "—";
-    $("#summaryContent").innerHTML = `<div class="flow-empty-state"><span>🧪</span><strong>คาบตรวจสื่อไม่มีรายงานคะแนน</strong><small>นักเรียนทำกิจกรรมได้ตามปกติ แต่ผลคะแนนจะไม่ถูกบันทึก</small></div>`;
-    return;
-  }
+  const expertLiveScores = !sessionRecordsScores();
   const averages = state.leaderboard.map(item => Number(item.average_percent || 0));
   const average = averages.length ? Math.round(averages.reduce((sum, value) => sum + value, 0) / averages.length) : 0;
   const completedActivities = new Set(state.attempts.map(item => item.activity_key)).size;
@@ -1524,7 +1617,8 @@ function renderSummary() {
     const bestAverage = bestScores.length ? Math.round(bestScores.reduce((sum, value) => sum + value, 0) / bestScores.length) : 0;
     return { player, completed: groups.size, bestAverage };
   });
-  $("#summaryContent").innerHTML = rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>เกมที่ทำ</th><th>คะแนนดีที่สุดเฉลี่ย</th><th>ผล</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.completed}/${ACTIVITIES.length}</td><td>${row.bestAverage}%</td><td><span class="summary-pass ${row.bestAverage >= state.session.pass_percent ? "passed" : "needs-work"}">${row.bestAverage >= state.session.pass_percent ? "ผ่าน" : "ควรเสริม"}</span></td></tr>`).join("")}</tbody></table></div>` : `<div class="flow-empty-state"><span>📊</span><strong>ยังไม่มีคะแนนในคาบนี้</strong><small>กลับไปเริ่มเกมหรือรอให้นักเรียนส่งคำตอบ</small></div>`;
+  const expertNotice = expertLiveScores ? `<p class="flow-score-recording-notice">🧪 ผลและอันดับนี้เป็นข้อมูลสดของคาบตรวจสื่อ และจะไม่ถูกบันทึกลงฐานข้อมูล</p>` : "";
+  $("#summaryContent").innerHTML = `${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>เกมที่ทำ</th><th>คะแนนดีที่สุดเฉลี่ย</th><th>ผล</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.completed}/${ACTIVITIES.length}</td><td>${row.bestAverage}%</td><td><span class="summary-pass ${row.bestAverage >= state.session.pass_percent ? "passed" : "needs-work"}">${row.bestAverage >= state.session.pass_percent ? "ผ่าน" : "ควรเสริม"}</span></td></tr>`).join("")}</tbody></table></div>` : `<div class="flow-empty-state"><span>📊</span><strong>ยังไม่มีคะแนนในคาบนี้</strong><small>กลับไปเริ่มเกมหรือรอให้นักเรียนส่งคำตอบ</small></div>`}`;
 }
 
 async function approvePlayer(playerId) {
@@ -1586,6 +1680,7 @@ async function closeSession() {
   state.session = null;
   state.players = [];
   state.attempts = [];
+  state.expertAttemptIds = new Set();
   state.leaderboard = [];
   state.playerSelfieUrls = new Map();
   state.studentScreens = new Map();
@@ -1744,22 +1839,21 @@ function bestAttemptsForPlayer(playerId) {
 
 function renderReport() {
   if (!state.session) return;
-  if (!sessionRecordsScores()) {
-    $("#reportContent").innerHTML = `<div class="flow-empty-state"><span>🧪</span><strong>คาบตรวจสื่อไม่มีรายงานคะแนน</strong><small>ไม่มีคะแนนถูกเก็บไว้ในฐานข้อมูลสำหรับคาบนี้</small></div>`;
-    return;
-  }
+  const expertNotice = !sessionRecordsScores()
+    ? `<p class="flow-score-recording-notice">🧪 แสดงผลสดระหว่างคาบเท่านั้น · ไม่มีการบันทึกคะแนนลงฐานข้อมูล</p>`
+    : "";
   const rows = state.players.filter(player => player.status === "approved").map(player => {
     const groups = bestAttemptsForPlayer(player.id);
     const first = [...groups.values()].map(items => items.sort((a, b) => a.attempt_no - b.attempt_no)[0]?.percent || 0);
     const best = [...groups.values()].map(items => Math.max(...items.map(item => Number(item.percent))));
     return { player, activities: groups.size, first: first.length ? Math.round(first.reduce((a, b) => a + Number(b), 0) / first.length) : 0, best: best.length ? Math.round(best.reduce((a, b) => a + b, 0) / best.length) : 0 };
   });
-  $("#reportContent").innerHTML = rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>ทำแล้ว</th><th>คะแนนครั้งแรกเฉลี่ย</th><th>คะแนนดีที่สุดเฉลี่ย</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.activities}/${ACTIVITIES.length}</td><td>${row.first}%</td><td>${row.best}%</td></tr>`).join("")}</tbody></table></div>` : `<span>📊</span><h2>ยังไม่มีคะแนนในคาบนี้</h2><p>ผลจะปรากฏเมื่อนักเรียนเริ่มทำกิจกรรม</p>`;
+  $("#reportContent").innerHTML = `${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>ทำแล้ว</th><th>คะแนนครั้งแรกเฉลี่ย</th><th>คะแนนดีที่สุดเฉลี่ย</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.activities}/${ACTIVITIES.length}</td><td>${row.first}%</td><td>${row.best}%</td></tr>`).join("")}</tbody></table></div>` : `<span>📊</span><h2>ยังไม่มีคะแนนในคาบนี้</h2><p>ผลจะปรากฏเมื่อนักเรียนเริ่มทำกิจกรรม</p>`}`;
 }
 
 function exportCurrentReport() {
   if (!state.session) return toast("ยังไม่มีคาบเรียนให้ส่งออก", "warning");
-  if (!sessionRecordsScores()) return toast("คาบตรวจสื่อไม่มีคะแนนสำหรับส่งออกรายงาน", "warning");
+  if (!sessionRecordsScores()) return toast("คะแนนสดของคาบตรวจสื่อไม่สามารถส่งออกรายงานได้", "warning");
   const rows = [["ห้อง", "เลขประจำตัว", "ชื่อ-นามสกุล", "ชื่อเล่น", "กิจกรรม", "ครั้งที่", "คะแนน", "คะแนนเต็ม", "ร้อยละ", "ผ่าน", "เวลา"]];
   state.attempts.forEach(attempt => {
     const player = state.players.find(item => item.id === attempt.session_player_id);

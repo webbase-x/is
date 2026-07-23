@@ -22,6 +22,11 @@ export const PLAN_TITLES = Object.freeze([
 export const AVATARS = ["⭐", "🦉", "🐯", "🐳", "🐰", "🦊", "🐼", "🦁", "🐸", "🐙", "🦋", "🚀"];
 
 export const GAME_STATE_EVENT = "game-state";
+// Expert sessions intentionally keep scores out of the database. These events
+// carry only the in-memory, live scoreboard for the current class session.
+export const EXPERT_SCORE_EVENT = "expert-live-score";
+export const EXPERT_SCOREBOARD_EVENT = "expert-live-scoreboard";
+export const EXPERT_SCOREBOARD_REQUEST_EVENT = "expert-live-scoreboard-request";
 
 export function gameStateChannelName(sessionId) {
   return `game-session-${sessionId}`;

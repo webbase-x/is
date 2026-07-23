@@ -1,10 +1,10 @@
 import { APP_CONFIG } from "./config.js";
 import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260723-expert-isolated-auth-1";
 import {
-  $, ACTIVITIES, escapeHtml, GAME_STATE_EVENT, gameStateChannelName, hide,
+  $, ACTIVITIES, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, gameStateChannelName, hide,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260722-play-modes-1";
+} from "./common.js?v=20260723-expert-live-score-1";
 
 const expertStudentEmbed = new URLSearchParams(window.location.search).get("embed") === "expert-student";
 if (expertStudentEmbed) document.body.classList.add("expert-embed", "expert-student-embed");
@@ -147,6 +147,7 @@ const state = {
   session: null,
   playerChannel: null,
   sessionChannel: null,
+  sessionChannelReady: false,
   presenceChannel: null,
   lastGameStateEventId: null,
   renderedActivity: null,
@@ -545,9 +546,8 @@ function sessionRecordsScores(session = state.session) {
 
 function renderScoreRecordingState() {
   const recordsScores = sessionRecordsScores();
-  $("#playerScoreLabel").textContent = recordsScores ? "คะแนนสะสม" : "โหมดตรวจสื่อ";
+  $("#playerScoreLabel").textContent = recordsScores ? "คะแนนสะสม" : "คะแนนสด";
   $("#playerScoreChip")?.classList.toggle("score-recording-off", !recordsScores);
-  if (!recordsScores) $("#playerScore").textContent = "—";
 }
 
 function renderTimeline() {
@@ -558,21 +558,21 @@ function renderTimeline() {
 
 async function loadAttempts() {
   if (!sessionRecordsScores()) {
-    state.attempts = [];
-    $("#playerScore").textContent = "—";
-    ACTIVITIES.forEach(activity => {
-      $(`[data-activity="${activity.key}"]`, $("#activityTimeline"))?.classList.remove("done");
-    });
+    renderAttemptProgress();
     return;
   }
   const { data } = await supabase.from("game_attempts").select("*").eq("session_player_id", state.player.id).order("completed_at");
   state.attempts = data || [];
+  renderAttemptProgress();
+}
+
+function renderAttemptProgress() {
   const bestByActivity = new Map();
   state.attempts.forEach(attempt => {
     const best = bestByActivity.get(attempt.activity_key);
-    if (!best || attempt.score > best.score) bestByActivity.set(attempt.activity_key, attempt);
+    if (!best || Number(attempt.score) > Number(best.score)) bestByActivity.set(attempt.activity_key, attempt);
   });
-  const total = [...bestByActivity.values()].reduce((sum, attempt) => sum + attempt.score, 0);
+  const total = [...bestByActivity.values()].reduce((sum, attempt) => sum + Number(attempt.score || 0), 0);
   $("#playerScore").textContent = total;
   ACTIVITIES.forEach(activity => {
     const item = $(`[data-activity="${activity.key}"]`, $("#activityTimeline"));
@@ -582,6 +582,7 @@ async function loadAttempts() {
 
 function subscribeToSession() {
   state.sessionChannel?.unsubscribe();
+  state.sessionChannelReady = false;
   state.sessionChannel = supabase.channel(gameStateChannelName(state.session.id))
     .on("broadcast", { event: GAME_STATE_EVENT }, message => {
       const update = message?.payload || message;
@@ -598,7 +599,9 @@ function subscribeToSession() {
       renderScoreRecordingState();
       applySessionState();
     })
-    .subscribe();
+    .subscribe(status => {
+      state.sessionChannelReady = status === "SUBSCRIBED";
+    });
 }
 
 function studentPresenceIdentity() {
@@ -651,7 +654,7 @@ function studentScreenPresencePayload() {
   else if (state.session?.status === "active" && activity) { screenState = "playing"; screenLabel = "กำลังเล่นเกม"; }
   const detailElement = $("#rhythmFeedback") || $("#gameCanvas .result-card p") || $("#gameCanvas .game-instruction p") || $("#gameCanvas .empty-stage p");
   const detail = (detailElement?.textContent || "กำลังทำกิจกรรม").trim().slice(0, 120);
-  const score = sessionRecordsScores() ? Number($("#playerScore")?.textContent || 0) : 0;
+  const score = Number($("#playerScore")?.textContent || 0);
   const progressPercent = resultVisible || currentAttempts ? 100 : activity ? 30 : 0;
   return {
     role: "student",
@@ -805,6 +808,30 @@ function gameShell(title, instruction, content) {
 }
 
 async function submitAttempt(activityKey, score, maxScore, answers) {
+  if (!sessionRecordsScores()) {
+    const attempt = createExpertAttempt(activityKey, score, maxScore, answers);
+    state.attempts.push(attempt);
+    renderAttemptProgress();
+    scheduleStudentScreenPresence(true);
+    try {
+      await state.sessionChannel?.send({
+        type: "broadcast",
+        event: EXPERT_SCORE_EVENT,
+        payload: {
+          session_id: state.session.id,
+          attempt_id: attempt.id,
+          session_player_id: attempt.session_player_id,
+          activity_key: attempt.activity_key,
+          score: attempt.score,
+          max_score: attempt.max_score,
+          completed_at: attempt.completed_at,
+        },
+      });
+    } catch {
+      toast("ส่งคะแนนสดไม่สำเร็จ ลองทำกิจกรรมนี้อีกครั้ง", "warning");
+    }
+    return attempt;
+  }
   const { data, error } = await supabase.rpc("record_game_attempt", {
     p_session_player_id: state.player.id,
     p_activity_key: activityKey,
@@ -820,10 +847,30 @@ async function submitAttempt(activityKey, score, maxScore, answers) {
   return data?.[0];
 }
 
+function createExpertAttempt(activityKey, score, maxScore, answers) {
+  const normalizedScore = Math.max(0, Math.min(Number(maxScore) || 0, Number(score) || 0));
+  const normalizedMax = Math.max(1, Number(maxScore) || 1);
+  const attemptNo = state.attempts.filter(attempt => attempt.activity_key === activityKey).length + 1;
+  const percent = Math.round((normalizedScore / normalizedMax) * 10000) / 100;
+  return {
+    id: `expert-${crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`}`,
+    session_player_id: state.player.id,
+    activity_key: activityKey,
+    score: normalizedScore,
+    max_score: normalizedMax,
+    percent,
+    passed: percent >= Number(state.session?.pass_percent || 80),
+    attempt_no: attemptNo,
+    completed_at: new Date().toISOString(),
+    answers,
+    ephemeral: true,
+  };
+}
+
 function showResult(title, score, maxScore, result, replay) {
   cleanupRhythm();
   const percent = result?.percent ?? Math.round((score / maxScore) * 100);
-  const scoreNotice = sessionRecordsScores() ? "" : "<p>🧪 โหมดตรวจสื่อ · ผลนี้ไม่บันทึกคะแนน</p>";
+  const scoreNotice = sessionRecordsScores() ? "" : "<p>🧪 คะแนนนี้ใช้จัดอันดับสดในคาบ แต่จะไม่บันทึกหลังจบคาบ</p>";
   $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2><p>ได้ <strong>${score} / ${maxScore}</strong> คะแนน (${percent}%)</p><p>${result?.passed ? "ผ่านด่านแล้ว เก่งมาก!" : "ลองทบทวนแล้วพยายามใหม่นะ"}</p>${scoreNotice}<button id="replayButton" class="button button-primary">เล่นอีกครั้ง</button></div></div>`;
   $("#replayButton")?.addEventListener("click", replay);
 }
