@@ -1860,6 +1860,9 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .expert-teacher-embed .resume-session-actions, .expert-teacher-embed .flow-footer { gap:6px; margin-top:8px; padding-top:8px; }
 .expert-teacher-embed .resume-session-actions { display:flex; flex-wrap:wrap; width:100%; }
 .expert-teacher-embed .resume-session-actions .button, .expert-teacher-embed .flow-footer .button { min-width:0; min-height:32px; flex:1 1 130px; padding:6px 8px; font-size:11px; }
+.expert-teacher-embed .flow-footer.live-actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); align-items:stretch; justify-content:stretch; flex-direction:row; gap:5px; }
+.expert-teacher-embed .flow-footer.live-actions .button, .expert-teacher-embed .flow-footer.live-actions .button-large { width:auto; min-width:0; min-height:38px; margin:0; padding:5px 4px; overflow:hidden; font-size:10px; line-height:1.2; text-align:center; white-space:normal; }
+.expert-teacher-embed .flow-footer.live-actions #pauseSessionButton { margin-right:0; }
 .expert-teacher-embed .flow-choice-form { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
 .expert-teacher-embed .flow-choice-form label { font-size:11px; }
 .expert-teacher-embed .flow-choice-form select { min-height:36px; font-size:12px; }
