@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260723-expert-isolated-auth-1";
+import { supabase, useExistingTeacherSessionForExpert } from "./supabase.js?v=20260723-expert-one-click-login-1";
 import {
   $, $$, ACTIVITIES, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
@@ -46,6 +46,7 @@ const state = {
 };
 
 const expertFixedRoomCode = new URLSearchParams(window.location.search).get("embed") === "expert-teacher" ? "123456" : null;
+const expertTeacherLoginMode = Boolean(expertFixedRoomCode);
 
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
 const FLOW_TITLES = {
@@ -111,10 +112,36 @@ function syncLateJoinControls() {
 async function bootstrap() {
   connectionUpdate();
   renderPlanTimeline($("#planTimeline"), 1);
+  configureExpertTeacherLogin();
   const { data } = await supabase.auth.getSession();
   if (data.session && !data.session.user.is_anonymous) {
     state.user = data.session.user;
     await loadTeacherWorkspace();
+  }
+}
+
+function configureExpertTeacherLogin() {
+  if (!expertTeacherLoginMode) return;
+  hide($("#teacherLoginForm"));
+  show($("#expertTeacherLoginCard"));
+}
+
+async function signInAsExpert() {
+  const button = $("#expertTeacherSignInButton");
+  button.disabled = true;
+  button.textContent = "กำลังเข้าสู่ระบบ...";
+  try {
+    const session = await useExistingTeacherSessionForExpert();
+    if (!session?.user) {
+      throw new Error("ยังไม่พบบัญชีครูที่เข้าสู่ระบบในเบราว์เซอร์นี้ กรุณาเข้าสู่ระบบที่จอครูปกติครั้งแรก");
+    }
+    state.user = session.user;
+    await loadTeacherWorkspace();
+  } catch (error) {
+    toast(error.message || "เข้าสู่ระบบไม่สำเร็จ", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "เข้าสู่ระบบ";
   }
 }
 
@@ -1721,6 +1748,7 @@ function switchPanel(panelId) {
 }
 
 $("#teacherLoginForm").addEventListener("submit", signIn);
+$("#expertTeacherSignInButton").addEventListener("click", signInAsExpert);
 $("#signOutButton").addEventListener("click", signOut);
 $("#sessionSetup").addEventListener("submit", createSession);
 $("#schoolSelect").addEventListener("change", event => renderClassOptions(event.target.value));
