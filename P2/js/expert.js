@@ -22,7 +22,7 @@ const frames = {
 function sourceFor(frame, { fresh = false } = {}) {
   const url = new URL(frame.page, window.location.href);
   url.searchParams.set("embed", frame.role);
-  url.searchParams.set("screen", "20260723-expert-real-screens-2");
+  url.searchParams.set("screen", "20260723-expert-fixed-room-1");
   if (fresh) url.searchParams.set("fresh", "1");
   return url.href;
 }

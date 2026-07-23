@@ -45,6 +45,8 @@ const state = {
   lateJoinResumeStatus: "paused",
 };
 
+const expertFixedRoomCode = new URLSearchParams(window.location.search).get("embed") === "expert-teacher" ? "123456" : null;
+
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
 const FLOW_TITLES = {
   class: "เลือกโรงเรียนและห้องเรียน",
@@ -287,7 +289,7 @@ async function createSession(event) {
   try {
     const attemptMode = $("#attemptMode").value;
     const maxAttempts = attemptMode === "single" ? 1 : Number($("#maxAttempts").value);
-    const { data, error } = await supabase.rpc("create_class_session", {
+    const { data, error } = await supabase.rpc(expertFixedRoomCode ? "create_expert_class_session" : "create_class_session", {
       p_class_id: classId,
       p_plan_id: Number(firstPlan.id),
       p_play_mode: $("#playMode").value,
@@ -301,7 +303,7 @@ async function createSession(event) {
     state.session = data;
     state.selectedPlanId = firstPlan.id;
     await showLiveSession("qr");
-    toast(`สร้างรหัสสำหรับ ${classContext()} แล้ว`, "success");
+    toast(expertFixedRoomCode ? `เปิดห้องตรวจด้วยรหัส ${expertFixedRoomCode} แล้ว` : `สร้างรหัสสำหรับ ${classContext()} แล้ว`, "success");
   } catch (error) {
     toast(error.message, "error");
   } finally {

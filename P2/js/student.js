@@ -8,6 +8,7 @@ import {
 
 const expertStudentFreshStart = new URLSearchParams(window.location.search).get("embed") === "expert-student"
   && new URLSearchParams(window.location.search).get("fresh") === "1";
+const expertStudentRoomCode = new URLSearchParams(window.location.search).get("embed") === "expert-student" ? "123456" : "";
 
 const TEXTBOOK_VOCABULARY = Object.freeze({
   // คำจากชุด "รู้จักคำ นำเรื่อง" บทที่ 1-5 ในไฟล์ พาที วรรณคดลำนำ ป.2
@@ -1733,10 +1734,11 @@ async function initializeStudentPage() {
 
 async function initializeJoinFlow() {
   setJoinStep("code");
-  const code = normalizeRoomCode(roomCodeFromUrl());
+  const codeFromUrl = normalizeRoomCode(roomCodeFromUrl());
+  const code = codeFromUrl || expertStudentRoomCode;
   $("#roomCode").value = code;
   setStepStatus($("#codeStatus"), "");
-  if (code.length === 6) await findRoom();
+  if (codeFromUrl.length === 6) await findRoom();
   else window.setTimeout(() => $("#roomCode").focus(), 100);
 }
 
