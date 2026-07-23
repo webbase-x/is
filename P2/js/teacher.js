@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js";
+import { supabase } from "./supabase.js?v=20260723-expert-isolated-auth-1";
 import {
   $, $$, ACTIVITIES, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,

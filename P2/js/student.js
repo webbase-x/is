@@ -1,10 +1,13 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260723-expert-isolated-auth-1";
 import {
   $, ACTIVITIES, escapeHtml, GAME_STATE_EVENT, gameStateChannelName, hide,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
 } from "./common.js?v=20260722-play-modes-1";
+
+const expertStudentFreshStart = new URLSearchParams(window.location.search).get("embed") === "expert-student"
+  && new URLSearchParams(window.location.search).get("fresh") === "1";
 
 const TEXTBOOK_VOCABULARY = Object.freeze({
   // คำจากชุด "รู้จักคำ นำเรื่อง" บทที่ 1-5 ในไฟล์ พาที วรรณคดลำนำ ป.2
@@ -689,7 +692,9 @@ function scheduleStudentScreenPresence(immediate = false) {
 
 function observeStudentScreenChanges() {
   const observer = new MutationObserver(() => scheduleStudentScreenPresence());
-  [$("#gameCanvas"), $("#stageTitle"), $("#attemptBadge"), $("#playerScore")].filter(Boolean).forEach(element => observer.observe(element, { childList: true, subtree: true, characterData: true, attributes: true }));
+  const options = { childList: true, subtree: true, characterData: true, attributes: true };
+  const gameView = document.getElementById("gameView");
+  if (gameView instanceof HTMLElement) observer.observe(gameView, options);
 }
 
 function subscribePresence() {
@@ -1721,7 +1726,8 @@ async function initializeStudentPage() {
   applyGameZoom();
   setGameFocus(true);
   observeStudentScreenChanges();
-  const restored = await restoreSession();
+  if (expertStudentFreshStart) sessionStorage.removeItem("thaiGameJoin");
+  const restored = expertStudentFreshStart ? false : await restoreSession();
   if (!restored) await initializeJoinFlow();
 }
 

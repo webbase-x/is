@@ -1,6 +1,13 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import { APP_CONFIG } from "./config.js";
 
+const embedRole = new URLSearchParams(window.location.search).get("embed");
+const isolatedStorageKey = embedRole === "expert-teacher"
+  ? "thai-game-p2-expert-teacher-auth"
+  : embedRole === "expert-student"
+    ? "thai-game-p2-expert-student-auth"
+    : undefined;
+
 export const supabase = createClient(
   APP_CONFIG.supabaseUrl,
   APP_CONFIG.supabaseAnonKey,
@@ -9,6 +16,7 @@ export const supabase = createClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      ...(isolatedStorageKey ? { storageKey: isolatedStorageKey } : {}),
     },
     realtime: {
       params: { eventsPerSecond: 12 },
