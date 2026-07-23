@@ -1877,6 +1877,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .expert-student-embed:has(#gameView:not(.hidden)) #gameCanvas > .game-inner, .expert-student-embed:has(#gameView:not(.hidden)) #gameCanvas > .game-layout { min-height:100%; }
 .expert-student-embed:has(#gameView:not(.hidden)) #gameCanvas > .game-inner { padding:8px; }
 .expert-student-embed:has(#gameView:not(.hidden)) .game-play-area { min-height:0; overflow:auto; padding:4px; }
+/* The embedded iPad has a tablet-sized viewport.  Keep binary answer choices
+   in one compact row there, even though the real student page changes to a
+   single column for narrow phones. */
+.expert-student-embed:has(#gameView:not(.hidden)) .choice-grid { width:min(100%,620px); grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.expert-student-embed:has(#gameView:not(.hidden)) .choice-button { min-height:64px; padding:8px 10px; border-radius:14px; font-size:clamp(17px,2.35vw,22px); line-height:1.18; }
 .expert-student-embed .student-live-profile { top:6px; left:6px; max-width:min(220px, calc(100vw - 118px)); padding:4px 8px 4px 4px; }
 .expert-student-embed .student-live-profile-visual { width:32px; height:32px; flex-basis:32px; }
 .expert-student-embed .student-live-profile strong { font-size:11px; }
