@@ -151,6 +151,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Expert simulator: interactive teacher and student screens without live class data. */
 .expert-page { background: radial-gradient(circle at 10% 0%, rgba(91,75,219,.12), transparent 32%), linear-gradient(145deg, #f9f9ff, #f5fbff 60%, #fffaf1); }
 .expert-main { width: min(1540px, 100%); margin: 0 auto; padding: clamp(28px, 5vw, 70px) clamp(14px, 4vw, 55px) 72px; }
+.expert-demo-pill { display: inline-flex; align-items: center; min-height: 32px; padding: 6px 11px; border: 1px solid #d9e9e2; border-radius: 999px; color: #27785f; background: #effcf6; font-size: 11px; font-weight: 900; white-space: nowrap; }
 .expert-intro { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 370px); align-items: center; gap: clamp(24px, 5vw, 75px); margin-bottom: 27px; }
 .expert-intro h1 { margin-bottom: 15px; font-size: clamp(38px, 5vw, 69px); line-height: 1.07; letter-spacing: -.045em; }
 .expert-intro h1 span { color: var(--purple); }
