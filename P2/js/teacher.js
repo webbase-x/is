@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, useExistingTeacherSessionForExpert } from "./supabase.js?v=20260723-expert-one-click-login-1";
+import { supabase } from "./supabase.js?v=20260723-expert-real-login-1";
 import {
   $, $$, ACTIVITIES, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
@@ -44,9 +44,6 @@ const state = {
   lateJoinMode: false,
   lateJoinResumeStatus: "paused",
 };
-
-const expertFixedRoomCode = new URLSearchParams(window.location.search).get("embed") === "expert-teacher" ? "123456" : null;
-const expertTeacherLoginMode = Boolean(expertFixedRoomCode);
 
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
 const FLOW_TITLES = {
@@ -112,45 +109,10 @@ function syncLateJoinControls() {
 async function bootstrap() {
   connectionUpdate();
   renderPlanTimeline($("#planTimeline"), 1);
-  configureExpertTeacherLogin();
   const { data } = await supabase.auth.getSession();
   if (data.session && !data.session.user.is_anonymous) {
     state.user = data.session.user;
     await loadTeacherWorkspace();
-  }
-}
-
-function configureExpertTeacherLogin() {
-  if (!expertTeacherLoginMode) return;
-  const form = $("#teacherLoginForm");
-  form.noValidate = true;
-  form.removeAttribute("action");
-  form.innerHTML = `
-    <span class="big-icon" aria-hidden="true">🧑‍🏫</span>
-    <span class="eyebrow">สำหรับผู้เชี่ยวชาญ</span>
-    <h1>เข้าสู่จอควบคุม</h1>
-    <p>ใช้บัญชีครูที่เข้าสู่ระบบไว้แล้วในเบราว์เซอร์นี้</p>
-    <button id="expertTeacherSignInButton" class="button button-primary button-large full" type="button">เข้าสู่ระบบ</button>
-    <p class="field-help">บัญชีครูต้องได้รับสิทธิ์จากผู้ดูแลระบบก่อน</p>
-  `;
-}
-
-async function signInAsExpert() {
-  const button = $("#expertTeacherSignInButton");
-  button.disabled = true;
-  button.textContent = "กำลังเข้าสู่ระบบ...";
-  try {
-    const session = await useExistingTeacherSessionForExpert();
-    if (!session?.user) {
-      throw new Error("ยังไม่พบบัญชีครูที่เข้าสู่ระบบในเบราว์เซอร์นี้ กรุณาเข้าสู่ระบบที่จอครูปกติครั้งแรก");
-    }
-    state.user = session.user;
-    await loadTeacherWorkspace();
-  } catch (error) {
-    toast(error.message || "เข้าสู่ระบบไม่สำเร็จ", "error");
-  } finally {
-    button.disabled = false;
-    button.textContent = "เข้าสู่ระบบ";
   }
 }
 
@@ -325,7 +287,7 @@ async function createSession(event) {
   try {
     const attemptMode = $("#attemptMode").value;
     const maxAttempts = attemptMode === "single" ? 1 : Number($("#maxAttempts").value);
-    const { data, error } = await supabase.rpc(expertFixedRoomCode ? "create_expert_class_session" : "create_class_session", {
+    const { data, error } = await supabase.rpc("create_class_session", {
       p_class_id: classId,
       p_plan_id: Number(firstPlan.id),
       p_play_mode: $("#playMode").value,
@@ -339,7 +301,7 @@ async function createSession(event) {
     state.session = data;
     state.selectedPlanId = firstPlan.id;
     await showLiveSession("qr");
-    toast(expertFixedRoomCode ? `เปิดห้องตรวจด้วยรหัส ${expertFixedRoomCode} แล้ว` : `สร้างรหัสสำหรับ ${classContext()} แล้ว`, "success");
+    toast(`สร้างรหัสสำหรับ ${classContext()} แล้ว`, "success");
   } catch (error) {
     toast(error.message, "error");
   } finally {
@@ -1757,7 +1719,6 @@ function switchPanel(panelId) {
 }
 
 $("#teacherLoginForm").addEventListener("submit", signIn);
-$("#expertTeacherSignInButton").addEventListener("click", signInAsExpert);
 $("#signOutButton").addEventListener("click", signOut);
 $("#sessionSetup").addEventListener("submit", createSession);
 $("#schoolSelect").addEventListener("change", event => renderClassOptions(event.target.value));

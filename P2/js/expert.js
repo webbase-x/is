@@ -1,28 +1,28 @@
 const $ = selector => document.querySelector(selector);
 
-const channelId = `p2-expert-visitor-${crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`}`;
 const frames = {
   teacher: {
     element: $("#expertTeacherFrame"),
     status: $("#expertTeacherStatus"),
     link: $("#expertTeacherOpen"),
-    role: "teacher",
-    readyText: "พร้อมเข้าสู่ระบบ",
+    page: "teacher.html",
+    role: "expert-teacher",
+    readyText: "พร้อมเริ่มคาบ",
   },
   student: {
     element: $("#expertStudentFrame"),
     status: $("#expertStudentStatus"),
     link: $("#expertStudentOpen"),
-    role: "student",
+    page: "student.html",
+    role: "expert-student",
     readyText: "พร้อมใส่รหัส",
   },
 };
 
 function sourceFor(frame, { fresh = false } = {}) {
-  const url = new URL("expert-visitor.html", window.location.href);
-  url.searchParams.set("role", frame.role);
-  url.searchParams.set("room", "123456");
-  url.searchParams.set("channel", channelId);
+  const url = new URL(frame.page, window.location.href);
+  url.searchParams.set("embed", frame.role);
+  url.searchParams.set("screen", "20260723-expert-real-login-1");
   if (fresh) url.searchParams.set("fresh", String(Date.now()));
   return url.href;
 }
@@ -40,7 +40,8 @@ function loadFrame(frame, options) {
 }
 
 function loadAll(options = {}) {
-  Object.values(frames).forEach(frame => loadFrame(frame, options));
+  loadFrame(frames.teacher, options);
+  loadFrame(frames.student, { ...options, fresh: true });
 }
 
 Object.values(frames).forEach(frame => {

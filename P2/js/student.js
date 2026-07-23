@@ -6,10 +6,6 @@ import {
   updateConnectionBadge,
 } from "./common.js?v=20260722-play-modes-1";
 
-const expertStudentFreshStart = new URLSearchParams(window.location.search).get("embed") === "expert-student"
-  && new URLSearchParams(window.location.search).get("fresh") === "1";
-const expertStudentRoomCode = new URLSearchParams(window.location.search).get("embed") === "expert-student" ? "123456" : "";
-
 const TEXTBOOK_VOCABULARY = Object.freeze({
   // คำจากชุด "รู้จักคำ นำเรื่อง" บทที่ 1-5 ในไฟล์ พาที วรรณคดลำนำ ป.2
   none: Object.freeze([
@@ -1727,15 +1723,14 @@ async function initializeStudentPage() {
   applyGameZoom();
   setGameFocus(true);
   observeStudentScreenChanges();
-  if (expertStudentFreshStart) sessionStorage.removeItem("thaiGameJoin");
-  const restored = expertStudentFreshStart ? false : await restoreSession();
+  const restored = await restoreSession();
   if (!restored) await initializeJoinFlow();
 }
 
 async function initializeJoinFlow() {
   setJoinStep("code");
   const codeFromUrl = normalizeRoomCode(roomCodeFromUrl());
-  const code = codeFromUrl || expertStudentRoomCode;
+  const code = codeFromUrl;
   $("#roomCode").value = code;
   setStepStatus($("#codeStatus"), "");
   if (codeFromUrl.length === 6) await findRoom();

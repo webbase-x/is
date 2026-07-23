@@ -24,40 +24,6 @@ export const supabase = createClient(
   },
 );
 
-function standardAuthStorageKey() {
-  const projectRef = new URL(APP_CONFIG.supabaseUrl).hostname.split(".")[0];
-  return `sb-${projectRef}-auth-token`;
-}
-
-/**
- * Copies an already-authenticated teacher session into the isolated Expert
- * iframe. Tokens stay in browser storage and are never placed in markup,
- * URLs, or source code.
- */
-export async function useExistingTeacherSessionForExpert() {
-  if (embedRole !== "expert-teacher") return null;
-
-  let storedSession;
-  try {
-    storedSession = JSON.parse(window.localStorage.getItem(standardAuthStorageKey()) || "null");
-  } catch {
-    return null;
-  }
-
-  if (!storedSession?.access_token || !storedSession?.refresh_token || storedSession?.user?.is_anonymous) return null;
-
-  const { data, error } = await supabase.auth.setSession({
-    access_token: storedSession.access_token,
-    refresh_token: storedSession.refresh_token,
-  });
-  if (error) throw error;
-  if (data.session?.user?.is_anonymous) {
-    await supabase.auth.signOut({ scope: "local" });
-    return null;
-  }
-  return data.session;
-}
-
 export async function ensureAnonymousAuth() {
   const { data: current, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;

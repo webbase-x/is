@@ -4,70 +4,70 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#5b4bdb">
-  <meta name="description" content="ห้องตรวจสื่อแบบสองจอสำหรับผู้เยี่ยมชม ภาษาไทย ป.2">
+  <meta name="description" content="ห้องตรวจสื่อแบบสองจอ ใช้หน้าครูและหน้าของนักเรียนจริง ภาษาไทย ป.2">
   <title>ตรวจสื่อสองจอ | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260723-expert-visitor-1">
+  <link rel="stylesheet" href="styles.css?v=20260723-expert-real-login-1">
 </head>
 <body class="expert-page">
   <header class="site-header expert-header">
     <a class="brand" href="index.html" aria-label="กลับหน้าหลัก"><span class="brand-mark" aria-hidden="true">ก</span><span><strong>คำไทยผจญภัย</strong><small>ห้องตรวจสื่อแบบสองจอ</small></span></a>
-    <div class="header-actions"><span class="expert-demo-pill">โหมดผู้เยี่ยมชม · ไม่บันทึกข้อมูล</span><a class="button button-ghost button-small" href="plans.html">แผนการสอน</a></div>
+    <div class="header-actions"><a class="button button-ghost button-small" href="plans.html">แผนการสอน</a><a class="button button-primary button-small" href="teacher.html">เปิดจอครูจริง</a></div>
   </header>
 
   <main class="expert-real-main">
     <section class="expert-real-intro">
       <div>
-        <span class="eyebrow">โหมดจำลองสำหรับตรวจสื่อ</span>
-        <h1>จอครูและจอนักเรียน<br><span>ในหน้าเดียวกัน</span></h1>
-        <p>ทดสอบลำดับการใช้งานได้เหมือนชั้นเรียน: ครูเข้าสู่ระบบจำลอง เลือกคาบเรียน แล้วเริ่มกิจกรรมให้นักเรียนในห้อง <strong>123456</strong> พร้อมกัน โดยไม่เชื่อมต่อบัญชีหรือข้อมูลจริง</p>
+        <span class="eyebrow">โหมดตรวจสื่อ · ระบบจริง</span>
+        <h1>จอครูและจอนักเรียน<br><span>จากระบบจริงในหน้าเดียว</span></h1>
+        <p>ทั้งสองจอใช้ <strong>teacher.html</strong> และ <strong>student.html</strong> โดยตรง ครูเข้าสู่ระบบด้วยอีเมลและรหัสผ่านจริง แล้วเลือกห้อง <strong>ป.2/4</strong> เพื่อเปิดคาบเรียนจริงให้นักเรียนเข้าร่วม</p>
       </div>
       <aside class="expert-real-guide">
         <strong>ลำดับการตรวจ</strong>
         <ol>
-          <li>จอครู: กดเข้าสู่ระบบด้วยบัญชีจำลองที่กรอกไว้ให้</li>
-          <li>จอนักเรียน: กดเข้าห้องทดลองรหัส <strong>123456</strong></li>
-          <li>ครูเลือกกิจกรรมและกดเริ่ม เพื่อดูการเปลี่ยนหน้าจอพร้อมกัน</li>
+          <li>จอครู: เข้าสู่ระบบด้วยบัญชีผู้เชี่ยวชาญจริง แล้วเลือกห้อง ป.2/4</li>
+          <li>จอนักเรียน: กรอกรหัสห้องจริงที่ครูสร้าง หรือสแกน QR</li>
+          <li>อนุมัตินักเรียนและเริ่มกิจกรรมจากจอครู เพื่อตรวจ Realtime จริง</li>
         </ol>
       </aside>
     </section>
 
     <section class="panel expert-real-toolbar" aria-label="เครื่องมือห้องตรวจสื่อ">
-      <div><strong>บัญชีจำลอง · สิทธิ์ผู้เยี่ยมชม</strong><small>ไม่มีการเชื่อม Supabase และไม่มีการบันทึกคะแนนหรือข้อมูลผู้ใช้จริง</small></div>
-      <button id="expertReloadButton" class="button button-ghost" type="button">↻ เริ่มสองจอใหม่</button>
+      <div><strong>ใช้ระบบจริง</strong><small>จอครูล็อกอินจริง และจอนักเรียนเข้าห้องจริงโดยใช้พื้นที่เข้าสู่ระบบแยกจากกัน</small></div>
+      <button id="expertReloadButton" class="button button-ghost" type="button">↻ โหลดสองจอใหม่</button>
       <button id="expertFullscreenButton" class="button button-secondary" type="button">⛶ เต็มจอสองจอ</button>
     </section>
 
     <section id="expertWorkspace" class="expert-real-workspace" aria-label="จอ iPad ครูและนักเรียน">
       <article class="expert-real-device expert-real-teacher-device">
         <header class="expert-real-device-header">
-          <div><span class="expert-real-device-icon" aria-hidden="true">👩‍🏫</span><div><small>iPad จอที่ 1</small><strong>จอครู · ผู้เยี่ยมชม</strong></div></div>
+          <div><span class="expert-real-device-icon" aria-hidden="true">🧑‍🏫</span><div><small>iPad จอที่ 1</small><strong>จอครู · คาบเรียนปัจจุบัน</strong></div></div>
           <span id="expertTeacherStatus" class="expert-real-status">กำลังเปิดจอ</span>
         </header>
         <div class="expert-real-device-screen">
-          <iframe id="expertTeacherFrame" title="จอครูจำลองสำหรับผู้เยี่ยมชม" loading="eager"></iframe>
+          <iframe id="expertTeacherFrame" title="จอครูจาก teacher.html" loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe>
         </div>
-        <footer><span>บัญชีจำลอง · ไม่มีสิทธิ์บันทึก</span><a id="expertTeacherOpen" href="expert-visitor.html?role=teacher" target="_blank" rel="noopener">เปิดเต็มแท็บ ↗</a></footer>
+        <footer><span>ต้นฉบับ: teacher.html</span><a id="expertTeacherOpen" href="teacher.html" target="_blank" rel="noopener">เปิดเต็มแท็บ ↗</a></footer>
       </article>
 
       <article class="expert-real-device expert-real-student-device">
         <header class="expert-real-device-header">
-          <div><span class="expert-real-device-icon" aria-hidden="true">🧒</span><div><small>iPad จอที่ 2</small><strong>จอนักเรียน · รหัส 123456</strong></div></div>
+          <div><span class="expert-real-device-icon" aria-hidden="true">🧒</span><div><small>iPad จอที่ 2</small><strong>จอนักเรียน · เข้าห้องจริง</strong></div></div>
           <span id="expertStudentStatus" class="expert-real-status">กำลังเปิดจอ</span>
         </header>
         <div class="expert-real-device-screen">
-          <iframe id="expertStudentFrame" title="จอนักเรียนจำลองสำหรับผู้เยี่ยมชม" loading="eager"></iframe>
+          <iframe id="expertStudentFrame" title="จอนักเรียนจาก student.html" loading="eager" allow="camera; microphone" referrerpolicy="strict-origin-when-cross-origin"></iframe>
         </div>
-        <footer><span>ห้องทดลอง 123456 · ไม่บันทึกคะแนน</span><a id="expertStudentOpen" href="expert-visitor.html?role=student" target="_blank" rel="noopener">เปิดเต็มแท็บ ↗</a></footer>
+        <footer><span>ต้นฉบับ: student.html</span><a id="expertStudentOpen" href="student.html" target="_blank" rel="noopener">เปิดเต็มแท็บ ↗</a></footer>
       </article>
     </section>
 
     <section class="expert-real-note" aria-label="ขอบเขตการตรวจ">
       <span aria-hidden="true">🔒</span>
-      <div><strong>เป็นการจำลองในเบราว์เซอร์เท่านั้น</strong><p>อีเมล รหัสผ่าน รหัสห้อง ผลการตอบ และการสื่อสารระหว่างจอเป็นข้อมูลตัวอย่างชั่วคราว ไม่ส่งไปยัง Authentication, Database หรือ Realtime ของระบบจริง</p></div>
+      <div><strong>การทำงานและข้อมูลเป็นของจริง</strong><p>หน้านี้แยกพื้นที่เข้าสู่ระบบของจอครูและจอนักเรียนเพื่อไม่ให้สถานะชนกัน แต่คาบเรียน การเข้าห้อง คะแนน และ Realtime เชื่อมกับระบบ Supabase จริงทั้งหมด</p></div>
     </section>
   </main>
 
-  <footer class="site-footer">คำไทยผจญภัย · ห้องตรวจสื่อสำหรับผู้เยี่ยมชม</footer>
-  <script type="module" src="js/expert.js?v=20260723-expert-visitor-1"></script>
+  <footer class="site-footer">คำไทยผจญภัย · ห้องตรวจสื่อแบบสองจอ</footer>
+  <script type="module" src="js/expert.js?v=20260723-expert-real-login-1"></script>
 </body>
 </html>
