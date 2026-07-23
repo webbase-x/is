@@ -122,8 +122,17 @@ async function bootstrap() {
 
 function configureExpertTeacherLogin() {
   if (!expertTeacherLoginMode) return;
-  hide($("#teacherLoginForm"));
-  show($("#expertTeacherLoginCard"));
+  const form = $("#teacherLoginForm");
+  form.noValidate = true;
+  form.removeAttribute("action");
+  form.innerHTML = `
+    <span class="big-icon" aria-hidden="true">🧑‍🏫</span>
+    <span class="eyebrow">สำหรับผู้เชี่ยวชาญ</span>
+    <h1>เข้าสู่จอควบคุม</h1>
+    <p>ใช้บัญชีครูที่เข้าสู่ระบบไว้แล้วในเบราว์เซอร์นี้</p>
+    <button id="expertTeacherSignInButton" class="button button-primary button-large full" type="button">เข้าสู่ระบบ</button>
+    <p class="field-help">บัญชีครูต้องได้รับสิทธิ์จากผู้ดูแลระบบก่อน</p>
+  `;
 }
 
 async function signInAsExpert() {
