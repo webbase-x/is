@@ -41,6 +41,7 @@ create table if not exists public.teacher_profiles (
   full_name text not null,
   role text not null default 'teacher' check (role in ('teacher', 'admin')),
   access_level smallint not null default 2 check (access_level in (1, 2)),
+  can_record_scores boolean not null default true,
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -71,6 +72,7 @@ create table if not exists public.class_sessions (
   attempt_mode text not null default 'limited' check (attempt_mode in ('single', 'limited', 'unlimited')),
   max_attempts smallint not null default 2 check (max_attempts between 1 and 10),
   score_policy text not null default 'first_and_best' check (score_policy in ('first_and_best', 'first', 'best', 'latest')),
+  score_recording_enabled boolean not null default true,
   leaderboard_mode text not null default 'nickname_avatar' check (leaderboard_mode in ('nickname_avatar', 'real_name', 'student_code', 'hidden')),
   pass_percent smallint not null default 80 check (pass_percent between 0 and 100),
   selfie_delete_policy text not null default 'session_close' check (selfie_delete_policy = 'session_close'),
@@ -156,6 +158,20 @@ as $$
     select 1 from public.teacher_profiles t
     where t.user_id = check_user and t.active and t.role = 'admin' and t.access_level = 1
   );
+$$;
+
+create or replace function public.teacher_can_record_scores(check_user uuid default auth.uid())
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce((
+    select t.can_record_scores
+    from public.teacher_profiles t
+    where t.user_id = check_user and t.active
+  ), false);
 $$;
 
 create or replace function public.teacher_can_access_class(p_class_id uuid)
@@ -386,10 +402,10 @@ begin
     begin
       insert into public.class_sessions(
         class_id, teacher_id, plan_id, room_code, play_mode, attempt_mode,
-        max_attempts, score_policy, leaderboard_mode, pass_percent
+        max_attempts, score_policy, score_recording_enabled, leaderboard_mode, pass_percent
       ) values (
         p_class_id, auth.uid(), p_plan_id, public.generate_room_code(), p_play_mode,
-        p_attempt_mode, p_max_attempts, p_score_policy, p_leaderboard_mode, p_pass_percent
+        p_attempt_mode, p_max_attempts, p_score_policy, public.teacher_can_record_scores(), p_leaderboard_mode, p_pass_percent
       ) returning * into new_session;
       return new_session;
     exception when unique_violation then
@@ -453,6 +469,13 @@ begin
   if p_activity_key <> session_row.current_activity_key then raise exception 'กิจกรรมนี้ยังไม่เปิด'; end if;
   if p_max_score <= 0 or p_score < 0 or p_score > p_max_score then raise exception 'Invalid score'; end if;
 
+  result_percent := round((p_score::numeric / p_max_score::numeric) * 100, 2);
+
+  if not session_row.score_recording_enabled then
+    return query select null::uuid, 0::smallint, result_percent, result_percent >= session_row.pass_percent;
+    return;
+  end if;
+
   select count(*) into previous_count
   from public.game_attempts
   where session_player_id = player.id and activity_key = p_activity_key;
@@ -461,7 +484,6 @@ begin
   if session_row.attempt_mode = 'limited' and previous_count >= session_row.max_attempts then raise exception 'ครบจำนวนรอบแล้ว'; end if;
 
   next_attempt := previous_count + 1;
-  result_percent := round((p_score::numeric / p_max_score::numeric) * 100, 2);
 
   insert into public.game_attempts(session_player_id, activity_key, attempt_no, score, max_score, percent, passed, answers)
   values (player.id, p_activity_key, next_attempt, p_score, p_max_score, result_percent, result_percent >= session_row.pass_percent, p_answers)
@@ -640,11 +662,16 @@ end;
 $$;
 
 revoke all on function public.grant_teacher(text, text, text) from public, anon, authenticated;
+revoke all on function public.is_admin(uuid) from public, anon;
+grant execute on function public.is_admin(uuid) to authenticated;
+revoke all on function public.teacher_can_record_scores(uuid) from public, anon, authenticated;
 grant execute on function public.get_open_session_roster(text) to authenticated;
 revoke all on function public.get_teacher_classes() from public, anon;
 grant execute on function public.get_teacher_classes() to authenticated;
 grant execute on function public.join_session(text, uuid, text) to authenticated;
+revoke all on function public.create_class_session(uuid, smallint, text, text, smallint, text, text, smallint) from public, anon;
 grant execute on function public.create_class_session(uuid, smallint, text, text, smallint, text, text, smallint) to authenticated;
+revoke all on function public.record_game_attempt(uuid, text, integer, integer, jsonb) from public, anon;
 grant execute on function public.record_game_attempt(uuid, text, integer, integer, jsonb) to authenticated;
 grant execute on function public.get_session_leaderboard(uuid) to authenticated;
 grant execute on function public.get_display_snapshot(text) to authenticated;

@@ -78,7 +78,16 @@ function selectedClassroom() {
 
 function classContext(classroom = selectedClassroom()) {
   if (!classroom) return "ยังไม่ได้เลือกห้องเรียน";
-  return `${classroom.school?.name || "โรงเรียน"} · ${classroom.label} · ครู${state.profile?.full_name || "ผู้สอน"}`;
+  const scoreMode = state.session?.score_recording_enabled === false ? " · โหมดตรวจสื่อ ไม่บันทึกคะแนน" : "";
+  return `${classroom.school?.name || "โรงเรียน"} · ${classroom.label} · ครู${state.profile?.full_name || "ผู้สอน"}${scoreMode}`;
+}
+
+function sessionRecordsScores(session = state.session) {
+  return session?.score_recording_enabled !== false;
+}
+
+function renderScoreRecordingNotice() {
+  $("#scoreRecordingNotice")?.classList.toggle("hidden", sessionRecordsScores());
 }
 
 function setTeacherFlowStep(step) {
@@ -311,7 +320,8 @@ async function createSession(event) {
   try {
     const attemptMode = $("#attemptMode").value;
     const maxAttempts = attemptMode === "single" ? 1 : Number($("#maxAttempts").value);
-    const { data, error } = await supabase.rpc("create_class_session", {
+    const sessionRpc = state.profile?.can_record_scores === false ? "create_expert_class_session" : "create_class_session";
+    const { data, error } = await supabase.rpc(sessionRpc, {
       p_class_id: classId,
       p_plan_id: Number(firstPlan.id),
       p_play_mode: $("#playMode").value,
@@ -376,6 +386,7 @@ async function showLiveSession(step = "qr") {
   $("#qrClassContext").textContent = classContext();
   $("#liveClassContext").textContent = classContext();
   $("#summaryClassContext").textContent = classContext();
+  renderScoreRecordingNotice();
   await renderStudentAccess();
   $("#openDisplayButton").href = `display.html?room=${state.session.room_code}`;
   $("#pauseSessionButton").textContent = state.session.status === "paused" ? "เล่นต่อ" : "พักเกม";
@@ -440,6 +451,7 @@ function renderLiveModeSwitch() {
     button.classList.toggle("active", active);
     button.setAttribute("aria-pressed", String(active));
   });
+  renderScoreRecordingNotice();
 }
 
 async function setLivePlayMode(mode) {
@@ -1250,6 +1262,11 @@ function renderMetrics() {
   $("#approvedCount").textContent = approved;
   $("#waitingCount").textContent = state.players.filter(player => ["waiting", "returned"].includes(player.status)).length;
   $("#liveApprovedCount").textContent = approved;
+  if (!sessionRecordsScores()) {
+    $("#averageScore").textContent = "—";
+    $("#completedAttemptCount").textContent = "—";
+    return;
+  }
   const averages = state.leaderboard.map(item => Number(item.average_percent || 0));
   const average = averages.length ? Math.round(averages.reduce((sum, value) => sum + value, 0) / averages.length) : 0;
   $("#averageScore").textContent = `${average}%`;
@@ -1258,7 +1275,7 @@ function renderMetrics() {
 }
 
 async function finishWhenEveryoneSubmitted() {
-  if (!state.session?.current_activity_key || state.session.status !== "active" || state.finishingActivity || state.celebrationActivityKey) return;
+  if (!sessionRecordsScores() || !state.session?.current_activity_key || state.session.status !== "active" || state.finishingActivity || state.celebrationActivityKey) return;
   const approvedIds = state.players.filter(player => player.status === "approved").map(player => player.id);
   if (!approvedIds.length) return;
   const roundStartedAt = state.activityStartedAt ? new Date(state.activityStartedAt).getTime() - 1000 : 0;
@@ -1373,6 +1390,7 @@ function renderLiveResults() {
   const liveBadge = $("#competitionLiveBadge");
   const lastUpdate = $("#competitionLastUpdate");
   if (!container || !state.session) return;
+  const scoresRecorded = sessionRecordsScores();
   const entries = currentCompetitionEntries();
   const resultCount = entries.filter(entry => entry.percent !== null).length;
   const isCelebrating = state.celebrationActivityKey === state.session.current_activity_key;
@@ -1385,6 +1403,16 @@ function renderLiveResults() {
   if (finishButton) {
     finishButton.disabled = isCelebrating || state.finishingActivity || !state.session.current_activity_key;
     finishButton.textContent = state.finishingActivity ? "กำลังจบเกม..." : isCelebrating ? "✓ จบเกมแล้ว" : "⏹ จบเกม";
+  }
+  if (!scoresRecorded) {
+    arena?.classList.remove("is-celebrating");
+    if (liveBadge) {
+      liveBadge.classList.remove("is-finished");
+      liveBadge.innerHTML = "🧪 ตรวจสื่อ";
+    }
+    if (status) status.textContent = "คาบผู้เชี่ยวชาญ · ทำกิจกรรมได้ตามปกติ แต่ไม่มีการบันทึกหรือจัดอันดับคะแนน";
+    container.innerHTML = `<div class="flow-empty-state"><span>🧪</span><strong>โหมดตรวจสื่อ</strong><small>คาบนี้ไม่บันทึกคะแนนและไม่จัดอันดับผลการแข่งขัน</small></div>${state.session.current_activity_key === "vote" ? renderLiveVoteBoard() : ""}`;
+    return;
   }
   if (status) status.textContent = isCelebrating
     ? `ประกาศผลแล้ว ${resultCount} คน · พร้อมไปเกมถัดไป`
@@ -1475,6 +1503,13 @@ function toggleCompetitionSound() {
 function renderSummary() {
   if (!state.session) return;
   const approved = state.players.filter(player => player.status === "approved");
+  if (!sessionRecordsScores()) {
+    $("#summaryApproved").textContent = approved.length;
+    $("#summaryAverage").textContent = "—";
+    $("#summaryCompleted").textContent = "—";
+    $("#summaryContent").innerHTML = `<div class="flow-empty-state"><span>🧪</span><strong>คาบตรวจสื่อไม่มีรายงานคะแนน</strong><small>นักเรียนทำกิจกรรมได้ตามปกติ แต่ผลคะแนนจะไม่ถูกบันทึก</small></div>`;
+    return;
+  }
   const averages = state.leaderboard.map(item => Number(item.average_percent || 0));
   const average = averages.length ? Math.round(averages.reduce((sum, value) => sum + value, 0) / averages.length) : 0;
   const completedActivities = new Set(state.attempts.map(item => item.activity_key)).size;
@@ -1707,6 +1742,10 @@ function bestAttemptsForPlayer(playerId) {
 
 function renderReport() {
   if (!state.session) return;
+  if (!sessionRecordsScores()) {
+    $("#reportContent").innerHTML = `<div class="flow-empty-state"><span>🧪</span><strong>คาบตรวจสื่อไม่มีรายงานคะแนน</strong><small>ไม่มีคะแนนถูกเก็บไว้ในฐานข้อมูลสำหรับคาบนี้</small></div>`;
+    return;
+  }
   const rows = state.players.filter(player => player.status === "approved").map(player => {
     const groups = bestAttemptsForPlayer(player.id);
     const first = [...groups.values()].map(items => items.sort((a, b) => a.attempt_no - b.attempt_no)[0]?.percent || 0);
@@ -1718,6 +1757,7 @@ function renderReport() {
 
 function exportCurrentReport() {
   if (!state.session) return toast("ยังไม่มีคาบเรียนให้ส่งออก", "warning");
+  if (!sessionRecordsScores()) return toast("คาบตรวจสื่อไม่มีคะแนนสำหรับส่งออกรายงาน", "warning");
   const rows = [["ห้อง", "เลขประจำตัว", "ชื่อ-นามสกุล", "ชื่อเล่น", "กิจกรรม", "ครั้งที่", "คะแนน", "คะแนนเต็ม", "ร้อยละ", "ผ่าน", "เวลา"]];
   state.attempts.forEach(attempt => {
     const player = state.players.find(item => item.id === attempt.session_player_id);

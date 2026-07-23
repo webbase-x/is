@@ -27,6 +27,10 @@ declare
   new_session public.class_sessions%rowtype;
   fixed_room_code char(6) := '123456';
 begin
+  if public.teacher_can_record_scores() then
+    raise exception 'Expert test account required';
+  end if;
+
   if not public.teacher_can_access_class(p_class_id) then
     raise exception 'Teacher is not assigned to this class';
   end if;
@@ -51,10 +55,10 @@ begin
 
   insert into public.class_sessions(
     class_id, teacher_id, plan_id, room_code, play_mode, attempt_mode,
-    max_attempts, score_policy, leaderboard_mode, pass_percent
+    max_attempts, score_policy, score_recording_enabled, leaderboard_mode, pass_percent
   ) values (
     p_class_id, auth.uid(), p_plan_id, fixed_room_code, p_play_mode,
-    p_attempt_mode, p_max_attempts, p_score_policy, p_leaderboard_mode, p_pass_percent
+    p_attempt_mode, p_max_attempts, p_score_policy, false, p_leaderboard_mode, p_pass_percent
   ) returning * into new_session;
 
   return new_session;

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="theme-color" content="#5b4bdb">
   <title>จอนักเรียน | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260723-layout-4">
+  <link rel="stylesheet" href="styles.css?v=20260723-expert-noscore-1">
 </head>
 <body class="student-page">
   <header class="app-header">
@@ -78,7 +78,7 @@
       </div>
       <aside class="journey-panel">
         <div class="player-chip player-profile-chip"><span class="player-profile-visual"><img id="playerProfilePhoto" class="hidden" alt="รูปโปรไฟล์นักเรียน"><span id="playerAvatar">⭐</span></span><div><small>นักผจญภัย</small><strong id="playerName">—</strong></div></div>
-        <div class="score-chip"><span>★</span><div><small>คะแนนสะสม</small><strong id="playerScore">0</strong></div></div>
+        <div id="playerScoreChip" class="score-chip"><span>★</span><div><small id="playerScoreLabel">คะแนนสะสม</small><strong id="playerScore">0</strong></div></div>
         <nav aria-label="เส้นทางแผนที่ 1">
           <h2>เส้นทางวันนี้</h2>
           <ol id="activityTimeline" class="activity-timeline"></ol>
@@ -106,7 +106,7 @@
     </section>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/student.js?v=20260723-expert-real-login-1"></script>
+  <script type="module" src="js/student.js?v=20260723-expert-noscore-1"></script>
   <script src="../emoji-fallback.js?v=20260722-wheel-fixes-1" defer></script>
 </body>
 </html>

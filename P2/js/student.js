@@ -527,12 +527,24 @@ async function enterGame() {
   profilePhoto.src = state.selfieDataUrl || "";
   liveProfilePhoto.src = state.selfieDataUrl || "";
   $("#attemptBadge").textContent = modeLabel(session.play_mode);
+  renderScoreRecordingState();
   renderTimeline();
   setView(views.game, views.login, views.waiting);
   await loadAttempts();
   subscribeToSession();
   subscribePresence();
   applySessionState();
+}
+
+function sessionRecordsScores(session = state.session) {
+  return session?.score_recording_enabled !== false;
+}
+
+function renderScoreRecordingState() {
+  const recordsScores = sessionRecordsScores();
+  $("#playerScoreLabel").textContent = recordsScores ? "คะแนนสะสม" : "โหมดตรวจสื่อ";
+  $("#playerScoreChip")?.classList.toggle("score-recording-off", !recordsScores);
+  if (!recordsScores) $("#playerScore").textContent = "—";
 }
 
 function renderTimeline() {
@@ -542,6 +554,14 @@ function renderTimeline() {
 }
 
 async function loadAttempts() {
+  if (!sessionRecordsScores()) {
+    state.attempts = [];
+    $("#playerScore").textContent = "—";
+    ACTIVITIES.forEach(activity => {
+      $(`[data-activity="${activity.key}"]`, $("#activityTimeline"))?.classList.remove("done");
+    });
+    return;
+  }
   const { data } = await supabase.from("game_attempts").select("*").eq("session_player_id", state.player.id).order("completed_at");
   state.attempts = data || [];
   const bestByActivity = new Map();
@@ -566,11 +586,13 @@ function subscribeToSession() {
       if (update.event_id && update.event_id === state.lastGameStateEventId) return;
       state.lastGameStateEventId = update.event_id || null;
       state.session = update.session;
+      renderScoreRecordingState();
       applySessionState();
     })
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "class_sessions", filter: `id=eq.${state.session.id}` }, payload => {
       // Durable fallback for reconnects; Broadcast is the immediate render path.
       state.session = payload.new;
+      renderScoreRecordingState();
       applySessionState();
     })
     .subscribe();
@@ -626,7 +648,7 @@ function studentScreenPresencePayload() {
   else if (state.session?.status === "active" && activity) { screenState = "playing"; screenLabel = "กำลังเล่นเกม"; }
   const detailElement = $("#rhythmFeedback") || $("#gameCanvas .result-card p") || $("#gameCanvas .game-instruction p") || $("#gameCanvas .empty-stage p");
   const detail = (detailElement?.textContent || "กำลังทำกิจกรรม").trim().slice(0, 120);
-  const score = Number($("#playerScore")?.textContent || 0);
+  const score = sessionRecordsScores() ? Number($("#playerScore")?.textContent || 0) : 0;
   const progressPercent = resultVisible || currentAttempts ? 100 : activity ? 30 : 0;
   return {
     role: "student",
@@ -796,7 +818,8 @@ async function submitAttempt(activityKey, score, maxScore, answers) {
 function showResult(title, score, maxScore, result, replay) {
   cleanupRhythm();
   const percent = result?.percent ?? Math.round((score / maxScore) * 100);
-  $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2><p>ได้ <strong>${score} / ${maxScore}</strong> คะแนน (${percent}%)</p><p>${result?.passed ? "ผ่านด่านแล้ว เก่งมาก!" : "ลองทบทวนแล้วพยายามใหม่นะ"}</p><button id="replayButton" class="button button-primary">เล่นอีกครั้ง</button></div></div>`;
+  const scoreNotice = sessionRecordsScores() ? "" : "<p>🧪 โหมดตรวจสื่อ · ผลนี้ไม่บันทึกคะแนน</p>";
+  $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2><p>ได้ <strong>${score} / ${maxScore}</strong> คะแนน (${percent}%)</p><p>${result?.passed ? "ผ่านด่านแล้ว เก่งมาก!" : "ลองทบทวนแล้วพยายามใหม่นะ"}</p>${scoreNotice}<button id="replayButton" class="button button-primary">เล่นอีกครั้ง</button></div></div>`;
   $("#replayButton")?.addEventListener("click", replay);
 }
 
