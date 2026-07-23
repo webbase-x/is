@@ -149,8 +149,9 @@ async function loadTeacherWorkspace() {
   hide($("#teacherLoginView"));
   show($("#teacherDashboard"));
   show($("#signOutButton"));
-  await Promise.all([loadClasses(), loadPlans()]);
+  await loadClasses();
   await loadRoster();
+  await loadPlans();
   await restoreActiveSession();
 }
 
@@ -176,7 +177,6 @@ async function loadClasses() {
     school_id: item.school_id,
     school: { id: item.school_id, name: item.school_name, code: item.school_code },
   }));
-  renderSchoolOptions();
   const rosterOptions = `<option value="">เลือกห้อง</option>${state.classes.map(item => `<option value="${item.id}">${escapeHtml(item.school?.name)} · ${escapeHtml(item.label)}</option>`).join("")}`;
   $("#rosterClassSelect").innerHTML = rosterOptions;
 }
@@ -189,8 +189,13 @@ async function loadPlans() {
   renderPlanChoices();
 }
 
+function readyClasses() {
+  return state.classes.filter(item => (state.rosterCounts.get(item.id) || 0) > 0);
+}
+
 function renderSchoolOptions() {
-  const schools = [...new Map(state.classes.map(item => [item.school?.id, item.school])).values()].filter(Boolean);
+  const availableClasses = readyClasses();
+  const schools = [...new Map(availableClasses.map(item => [item.school?.id, item.school])).values()].filter(Boolean);
   $("#schoolSelect").innerHTML = `<option value="">เลือกโรงเรียน</option>${schools.map(school => `<option value="${school.id}">${escapeHtml(school.name)}</option>`).join("")}`;
   $("#classSelect").innerHTML = `<option value="">เลือกห้องเรียน</option>`;
   $("#classSelect").disabled = true;
@@ -198,15 +203,16 @@ function renderSchoolOptions() {
     $("#schoolSelect").value = schools[0].id;
     renderClassOptions(schools[0].id);
   }
-  $("#classOwnershipNote").textContent = state.classes.length
-    ? `🔒 บัญชีนี้รับผิดชอบ ${state.classes.length} ห้อง ระบบจะแยกข้อมูลแต่ละห้องให้อัตโนมัติ`
-    : "ยังไม่มีห้องเรียนที่มอบหมายให้บัญชีนี้ กรุณาให้ผู้ดูแลกำหนดห้องก่อน";
+  $("#classOwnershipNote").textContent = availableClasses.length
+    ? `✅ แสดงเฉพาะ ${availableClasses.length} ห้องที่มีรายชื่อนักเรียนพร้อมเปิดคาบ`
+    : "ยังไม่มีห้องเรียนที่มีรายชื่อนักเรียนพร้อมเปิดคาบ";
 }
 
 function renderClassOptions(schoolId) {
-  const classrooms = state.classes.filter(item => item.school?.id === schoolId);
-  $("#classSelect").innerHTML = `<option value="">เลือกห้องเรียน</option>${classrooms.map(item => `<option value="${item.id}">${escapeHtml(item.label)} · ปี ${item.academic_year}</option>`).join("")}`;
+  const classrooms = readyClasses().filter(item => item.school?.id === schoolId);
+  $("#classSelect").innerHTML = `<option value="">เลือกห้องเรียน</option>${classrooms.map(item => `<option value="${item.id}">${escapeHtml(item.label)} · ${state.rosterCounts.get(item.id) || 0} คน</option>`).join("")}`;
   $("#classSelect").disabled = !classrooms.length;
+  if (classrooms.length === 1) $("#classSelect").value = classrooms[0].id;
   updateSelectedClassRosterNote();
 }
 
@@ -215,9 +221,9 @@ function updateSelectedClassRosterNote() {
   const classId = $("#classSelect").value;
   const classroom = state.classes.find(item => item.id === classId);
   if (!classroom) {
-    note.textContent = state.classes.length
-      ? `🔒 บัญชีนี้รับผิดชอบ ${state.classes.length} ห้อง เลือกห้องเพื่อดูจำนวนรายชื่อ`
-      : "ยังไม่มีห้องเรียนที่มอบหมายให้บัญชีนี้ กรุณาให้ผู้ดูแลกำหนดห้องก่อน";
+    note.textContent = readyClasses().length
+      ? "เลือกห้องเรียนที่พร้อมใช้งานเพื่อเปิดคาบ"
+      : "ยังไม่มีห้องเรียนที่มีรายชื่อนักเรียนพร้อมเปิดคาบ";
     note.classList.remove("warning", "success");
     return;
   }
@@ -1574,6 +1580,7 @@ async function loadRoster() {
   const classIds = state.classes.map(item => item.id);
   if (!classIds.length) {
     state.rosterCounts = new Map();
+    renderSchoolOptions();
     $("#rosterCount").textContent = "0 คน";
     $("#rosterTableBody").innerHTML = `<tr><td colspan="5">ยังไม่มีห้องเรียนที่ได้รับมอบหมาย</td></tr>`;
     return;
@@ -1585,7 +1592,7 @@ async function loadRoster() {
     counts.set(student.class_id, (counts.get(student.class_id) || 0) + 1);
     return counts;
   }, new Map());
-  updateSelectedClassRosterNote();
+  renderSchoolOptions();
   $("#rosterCount").textContent = `${rows.length} คน`;
   $("#rosterTableBody").innerHTML = rows.length ? rows.map(student => `<tr><td>${escapeHtml(student.classroom?.label || "—")}</td><td>${escapeHtml(student.student_code)}</td><td>${escapeHtml(student.full_name)}</td><td>${escapeHtml(student.nickname)}</td><td>${student.active ? "ใช้งาน" : "พักใช้"}</td></tr>`).join("") : `<tr><td colspan="5">ยังไม่มีรายชื่อนักเรียน</td></tr>`;
 }
