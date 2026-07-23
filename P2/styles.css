@@ -165,6 +165,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .expert-workspace:fullscreen { width: 100%; height: 100%; overflow: auto; padding: 25px; border-radius: 0; background: var(--canvas); }
 .expert-pane { min-width: 0; border-radius: 24px; overflow: hidden; }
 .expert-teacher-pane { border: 1px solid rgba(29,40,78,.2); background: #202948; box-shadow: 0 17px 35px rgba(23,32,59,.20); }
+.expert-teacher-topbar { min-height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 15px; color: white; background: #151d38; }
+.expert-teacher-brand { min-width: 0; display: flex; align-items: center; gap: 8px; }
+.expert-teacher-brand > span { width: 31px; height: 31px; display: grid; place-items: center; flex: 0 0 31px; border-radius: 10px; color: white; background: linear-gradient(135deg, #7567ee, #4c3aca); font-weight: 950; }
+.expert-teacher-brand small, .expert-teacher-brand strong { display: block; }
+.expert-teacher-brand small { color: #aeb8d8; font-size: 10px; }
+.expert-teacher-brand strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.expert-teacher-room { padding: 4px 8px; border: 1px solid rgba(255,255,255,.13); border-radius: 9px; background: rgba(255,255,255,.06); text-align: center; }
+.expert-teacher-room small, .expert-teacher-room strong { display: block; }
+.expert-teacher-room small { color: #aeb8d8; font-size: 8px; }
+.expert-teacher-room strong { color: #fff1ad; font-size: 16px; letter-spacing: .12em; line-height: 1.1; }
 .expert-student-pane { display: grid; place-items: center; padding: clamp(8px, 1.6vw, 18px); border: 1px solid rgba(91,75,219,.16); background: linear-gradient(145deg, #ebe9ff, #dbf4ff); }
 .expert-device-title { display: flex; align-items: center; gap: 10px; padding: 17px; color: white; background: linear-gradient(135deg, #29335a, #1d2645); }
 .expert-device-title > span:first-child { width: 43px; height: 43px; display: grid; place-items: center; border-radius: 14px; background: rgba(255,255,255,.12); font-size: 24px; }
@@ -175,6 +185,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .expert-status { padding: 6px 9px; border-radius: 99px; color: #e4e8f9; background: rgba(255,255,255,.10); font-size: 11px; font-style: normal; font-weight: 900; white-space: nowrap; }
 .expert-status.active { color: #a2f2d5; background: rgba(44,183,132,.16); }
 .expert-status.paused { color: #ffd77d; background: rgba(245,185,63,.17); }
+.expert-teacher-live-card { display: grid; grid-template-columns: 40px minmax(0,1fr) auto; align-items: center; gap: 10px; margin: 13px 17px 4px; padding: 12px; border: 1px solid rgba(118,105,243,.43); border-radius: 15px; color: #edf0fd; background: linear-gradient(135deg, rgba(109,91,234,.32), rgba(55,188,224,.16)); }
+.expert-live-device { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: rgba(255,255,255,.13); font-size: 21px; }
+.expert-teacher-live-card div { min-width: 0; }
+.expert-teacher-live-card small, .expert-teacher-live-card strong, .expert-teacher-live-card p { display: block; }
+.expert-teacher-live-card small { color: #c7ccf3; font-size: 10px; }
+.expert-teacher-live-card strong { overflow: hidden; margin-top: 2px; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.expert-teacher-live-card p { margin: 3px 0 0; overflow: hidden; color: #dce0fa; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.expert-live-count { min-width: 44px; display: grid; place-items: center; padding: 5px; border-radius: 10px; background: rgba(16,24,57,.28); text-align: center; }
+.expert-live-count b, .expert-live-count small { display: block; }
+.expert-live-count b { color: #a5f0d2; font-size: 19px; line-height: 1; }
+.expert-live-count small { color: #d8dff7; font-size: 8px; }
 .expert-teacher-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 15px 17px; border-bottom: 1px solid rgba(255,255,255,.10); }
 .expert-teacher-controls .button { min-height: 42px; padding-inline: 10px; }
 .expert-teacher-section { padding: 16px 17px; border-bottom: 1px solid rgba(255,255,255,.10); }
@@ -194,12 +215,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .expert-student-list span { grid-row: 1 / span 2; font-size: 22px; }
 .expert-student-list strong { font-size: 12px; }
 .expert-student-list small { color: inherit; font-size: 10px; opacity: .75; }
+.expert-student-list small i { width: 6px; height: 6px; display: inline-block; margin-right: 3px; border-radius: 50%; background: #4ce0a5; box-shadow: 0 0 0 3px rgba(76,224,165,.13); }
 .expert-ranking { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .expert-ranking li { display: grid; grid-template-columns: 25px 26px 1fr auto; align-items: center; gap: 7px; padding: 7px 8px; border-radius: 11px; color: #e8ebf8; background: rgba(255,255,255,.055); font-size: 12px; }
 .expert-ranking li b { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 7px; color: #3d328f; background: #e4e0ff; }
 .expert-ranking li:nth-child(1) b { color: #705000; background: #ffdf78; }
 .expert-ranking li em { color: #9ff1d2; font-size: 11px; font-style: normal; font-weight: 900; }
-.expert-ipad { position: relative; width: min(100%, 820px); min-height: 625px; display: grid; grid-template-rows: auto auto 1fr auto; overflow: hidden; border: 10px solid #20284a; border-radius: 34px; background: white; box-shadow: 0 24px 48px rgba(31,39,86,.28); }
+.expert-ipad { position: relative; width: min(100%, 820px); min-height: 625px; display: grid; grid-template-rows: auto auto auto 1fr auto; overflow: hidden; border: 10px solid #20284a; border-radius: 34px; background: white; box-shadow: 0 24px 48px rgba(31,39,86,.28); }
 .expert-ipad.portrait { width: min(100%, 445px); min-height: 690px; }
 .expert-ipad-camera { position: absolute; top: 5px; left: 50%; z-index: 2; width: 8px; height: 8px; border-radius: 50%; background: #596184; transform: translateX(-50%); }
 .expert-student-top { display: flex; align-items: center; gap: 9px; padding: 15px 18px 12px; color: white; background: linear-gradient(135deg, #6757e6, #4332ae); }
@@ -214,6 +236,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .expert-student-lesson small, .expert-student-lesson strong { display: block; }
 .expert-student-lesson small { color: var(--purple); font-size: 10px; font-weight: 900; }
 .expert-student-lesson strong { font-size: 15px; }
+.expert-student-sync { display: flex; align-items: center; gap: 7px; min-height: 33px; padding: 7px 18px; color: #5f6381; background: #f9f9fd; border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 850; }
+.expert-student-sync i { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #a7aaba; }
+.expert-student-sync.active { color: #27785f; background: #effcf6; }
+.expert-student-sync.active i { background: #35bf8d; box-shadow: 0 0 0 4px rgba(53,191,141,.14); }
+.expert-student-sync.paused { color: #906a18; background: #fff8e5; }
+.expert-student-sync.paused i { background: #f5b93f; }
+.expert-student-sync span { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expert-student-sync small { color: inherit; font-size: 9px; letter-spacing: .07em; }
 .expert-student-play { position: relative; min-height: 0; display: grid; place-items: center; padding: clamp(17px, 3.2vw, 34px); background: radial-gradient(circle at 10% 0%, rgba(91,75,219,.11), transparent 34%), #fafaff; }
 .expert-game-card { width: min(100%, 620px); display: grid; justify-items: center; gap: 14px; padding: clamp(20px, 3vw, 32px); border: 1px solid #e3e0fb; border-radius: 26px; background: rgba(255,255,255,.93); box-shadow: 0 15px 34px rgba(67,53,157,.10); text-align: center; }
 .expert-game-card p { margin: 0; color: var(--muted); font-weight: 700; }

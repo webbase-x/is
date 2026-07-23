@@ -36,6 +36,7 @@ const state = {
   activityKey: "rhythm",
   status: "ready",
   device: "landscape",
+  roomCode: "260923",
   activeStudentId: "mali",
   round: 0,
   answered: false,
@@ -103,8 +104,10 @@ function setActivity(key) {
 
 function toggleSimulation() {
   state.status = state.status === "active" ? "paused" : "active";
-  state.feedback = state.status === "active" ? "เริ่มกิจกรรมแล้ว ลองเล่นบนจอนักเรียนได้เลย" : "ครูพักกิจกรรมชั่วคราว";
-  event(state.status === "active" ? "ครูเริ่ม/เล่นต่อกิจกรรม" : "ครูพักกิจกรรม");
+  state.feedback = state.status === "active"
+    ? `ครูส่งกิจกรรม “${currentActivity().title}” ไปยังจอนักเรียนจำลองทุกเครื่องแล้ว`
+    : "ครูพักกิจกรรมชั่วคราว จอนักเรียนหยุดรอทันที";
+  event(state.status === "active" ? `ครูเริ่ม/เล่นต่อ · ส่ง ${currentActivity().short} ไปยัง ${state.students.length} เครื่อง` : "ครูพักกิจกรรม · จอนักเรียนหยุดรอ");
   renderAll();
 }
 
@@ -176,10 +179,15 @@ function renderTeacher() {
     return;
   }
   const ranked = [...state.students].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "th"));
-  panel.innerHTML = `<div class="expert-device-title"><span>🧑‍🏫</span><div><small>จอครูจำลอง · แผน ${plan.id}</small><strong>${escapeHtml(plan.title)}</strong></div><span class="expert-status ${state.status}">${state.status === "active" ? "● กำลังสอน" : state.status === "paused" ? "Ⅱ พักเกม" : "○ พร้อมเริ่ม"}</span></div>
+  const planActivities = ACTIVITIES.filter(activity => plan.activityKeys.includes(activity.key));
+  const activity = currentActivity();
+  const student = activeStudent();
+  const onlineCount = state.students.length;
+  panel.innerHTML = `<div class="expert-teacher-topbar"><div class="expert-teacher-brand"><span>ก</span><div><small>คำไทยผจญภัย</small><strong>หน้าควบคุมครู · จำลอง</strong></div></div><div class="expert-teacher-room"><small>รหัสห้องจำลอง</small><strong>${state.roomCode}</strong></div></div><div class="expert-device-title"><span>🧑‍🏫</span><div><small>จอครูจำลอง · แผน ${plan.id}</small><strong>${escapeHtml(plan.title)}</strong></div><span class="expert-status ${state.status}">${state.status === "active" ? "● กำลังสอน" : state.status === "paused" ? "Ⅱ พักเกม" : "○ พร้อมเริ่ม"}</span></div>
+    <section class="expert-teacher-live-card"><span class="expert-live-device">📡</span><div><small>กิจกรรมที่ส่งถึงจอนักเรียน</small><strong>${activity.icon} ${escapeHtml(activity.title)}</strong><p>${state.status === "active" ? `กำลังเล่นพร้อมกัน ${onlineCount}/${onlineCount} คน · จอของ ${student.name} กำลังถ่ายทอดสด` : state.status === "paused" ? "ครูพักกิจกรรม · จอนักเรียนรอคำสั่ง" : "ครูยังไม่ได้เริ่มกิจกรรม"}</p></div><span class="expert-live-count"><b>${onlineCount}</b><small>ออนไลน์</small></span></section>
     <div class="expert-teacher-controls"><button class="button button-primary" data-teacher-action="toggle">${state.status === "active" ? "⏸ พักกิจกรรม" : "▶ เริ่มจำลอง"}</button><button class="button button-ghost" data-teacher-action="round">↻ โจทย์ใหม่</button></div>
-    <section class="expert-teacher-section"><div class="expert-section-label"><span>กิจกรรมในแผน</span><small>${ACTIVITIES.length} เกม</small></div><div class="expert-activity-grid">${ACTIVITIES.map((activity, index) => `<button class="${activity.key === state.activityKey ? "active" : ""}" data-activity="${activity.key}"><span>${activity.icon}</span><strong>${index + 1}. ${activity.short}</strong><small>${activity.minutes} นาที</small></button>`).join("")}</div></section>
-    <section class="expert-teacher-section"><div class="expert-section-label"><span>นักเรียนจำลอง</span><small>คลิกเพื่อสลับจอ นร.</small></div><div class="expert-student-list">${state.students.map(student => `<button class="${student.id === state.activeStudentId ? "active" : ""}" data-student="${student.id}"><span>${student.avatar}</span><strong>${student.name}</strong><small>⭐ ${student.score}</small></button>`).join("")}</div></section>
+    <section class="expert-teacher-section"><div class="expert-section-label"><span>กิจกรรมในแผน</span><small>${planActivities.length} เกม</small></div><div class="expert-activity-grid">${planActivities.map((item, index) => `<button class="${item.key === state.activityKey ? "active" : ""}" data-activity="${item.key}"><span>${item.icon}</span><strong>${index + 1}. ${item.short}</strong><small>${item.minutes} นาที</small></button>`).join("")}</div></section>
+    <section class="expert-teacher-section"><div class="expert-section-label"><span>นักเรียนจำลอง</span><small>คลิกเพื่อสลับจอ นร.</small></div><div class="expert-student-list">${state.students.map(item => `<button class="${item.id === state.activeStudentId ? "active" : ""}" data-student="${item.id}"><span>${item.avatar}</span><strong>${item.name}</strong><small><i></i> ออนไลน์ · ⭐ ${item.score}</small></button>`).join("")}</div></section>
     <section class="expert-teacher-section"><div class="expert-section-label"><span>ผลการแข่งขัน</span><small>เรียลไทม์จำลอง</small></div><ol class="expert-ranking">${ranked.map((student, index) => `<li><b>${index + 1}</b><span>${student.avatar}</span><strong>${student.name}</strong><em>${student.score} คะแนน</em></li>`).join("")}</ol></section>`;
   panel.querySelectorAll("[data-activity]").forEach(button => button.addEventListener("click", () => setActivity(button.dataset.activity)));
   panel.querySelectorAll("[data-student]").forEach(button => button.addEventListener("click", () => { state.activeStudentId = button.dataset.student; event(`สลับเป็นจอนักเรียน ${activeStudent().name}`); renderAll(); }));
@@ -192,7 +200,7 @@ function renderStudent() {
   const student = activeStudent();
   const panel = $("#expertStudentScreen");
   const activity = currentActivity();
-  panel.innerHTML = `<div class="expert-ipad ${state.device === "portrait" ? "portrait" : ""}"><div class="expert-ipad-camera"></div><div class="expert-student-top"><span>${student.avatar}</span><div><small>นักเรียนจำลอง</small><strong>${student.name}</strong></div><em>⭐ ${student.score}</em></div><div class="expert-student-lesson"><span>${activity.icon}</span><div><small>เกมภาษาไทย · แผน ${plan.id}</small><strong>${activity.title}</strong></div></div><div class="expert-student-play ${state.status !== "active" ? "is-blocked" : ""}">${plan.published ? renderActivityGame() : `<div class="expert-game-card"><h2>รอสื่อของแผนนี้</h2></div>`}${state.status !== "active" ? `<div class="expert-student-overlay"><span>${state.status === "paused" ? "⏸️" : "🧑‍🏫"}</span><strong>${state.status === "paused" ? "ครูพักกิจกรรม" : "รอครูเริ่มจำลอง"}</strong><small>เมื่อครูกดเริ่ม จอนักเรียนจะใช้งานได้ทันที</small></div>` : ""}</div><div class="expert-feedback ${state.answered ? "answered" : ""}">${escapeHtml(state.feedback)}</div></div>`;
+  panel.innerHTML = `<div class="expert-ipad ${state.device === "portrait" ? "portrait" : ""}"><div class="expert-ipad-camera"></div><div class="expert-student-top"><span>${student.avatar}</span><div><small>นักเรียนจำลอง · ห้อง ${state.roomCode}</small><strong>${student.name}</strong></div><em>⭐ ${student.score}</em></div><div class="expert-student-lesson"><span>${activity.icon}</span><div><small>เกมภาษาไทย · แผน ${plan.id}</small><strong>${activity.title}</strong></div></div><div class="expert-student-sync ${state.status}"><i></i><span>${state.status === "active" ? "ครูเริ่มเกมแล้ว · เล่นพร้อมกัน" : state.status === "paused" ? "ครูพักเกมชั่วคราว" : "กำลังรอครูเริ่มเกม"}</span><small>${state.status === "active" ? "LIVE" : "SYNC"}</small></div><div class="expert-student-play ${state.status !== "active" ? "is-blocked" : ""}">${plan.published ? renderActivityGame() : `<div class="expert-game-card"><h2>รอสื่อของแผนนี้</h2></div>`}${state.status !== "active" ? `<div class="expert-student-overlay"><span>${state.status === "paused" ? "⏸️" : "🧑‍🏫"}</span><strong>${state.status === "paused" ? "ครูพักกิจกรรม" : "รอครูเริ่มจำลอง"}</strong><small>เมื่อครูกดเริ่ม จอนักเรียนจะใช้งานได้ทันที</small></div>` : ""}</div><div class="expert-feedback ${state.answered ? "answered" : ""}">${escapeHtml(state.feedback)}</div></div>`;
   panel.querySelectorAll("[data-answer]").forEach(button => button.addEventListener("click", () => {
     const key = state.activityKey;
     const word = key === "rhythm" ? GAME_WORDS.rhythm[state.round % GAME_WORDS.rhythm.length] : GAME_WORDS.wheel[state.round % GAME_WORDS.wheel.length];
