@@ -1,11 +1,12 @@
 import { APP_CONFIG } from "./config.js";
 import { supabase } from "./supabase.js?v=20260723-expert-real-login-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-plan-fallback-1";
 import {
   $, $$, ACTIVITIES, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260726-thai-toast-fix-1";
+} from "./common.js?v=20260726-thai-toast-fix-2";
 
 const state = {
   user: null,
@@ -214,8 +215,17 @@ async function loadClasses() {
 
 async function loadPlans() {
   const { data, error } = await supabase.from("lesson_plans").select("*").order("sequence_no");
-  if (error) return toast(error.message, "error");
-  state.plans = data || [];
+  if (error) {
+    console.warn("ใช้ข้อมูลแผนสำรองจากเว็บไซต์ เนื่องจากโหลดรายการแผนจากฐานข้อมูลไม่สำเร็จ", error.code);
+    state.plans = PLAN_CATALOG.map(plan => ({
+      id: plan.sequence,
+      sequence_no: plan.sequence,
+      title: plan.title,
+      published: plan.published,
+    }));
+  } else {
+    state.plans = data || [];
+  }
   state.selectedPlanId = state.plans.find(plan => plan.published)?.id || null;
   renderPlanChoices();
 }

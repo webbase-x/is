@@ -133,7 +133,7 @@ function readableToastMessage(message) {
   // Some database messages can arrive after being decoded through the wrong
   // legacy character set twice. Do not expose unreadable mojibake to children.
   if (/(?:เน€|เน|เธฃ|เธ|เธ|เธ|เธญ|à¸|à¹|Ã|�)/.test(text)) {
-    return "ระบบอ่านข้อความแจ้งเตือนไม่สมบูรณ์ กรุณาลองใหม่อีกครั้ง";
+    return "เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง";
   }
   return text;
 }
