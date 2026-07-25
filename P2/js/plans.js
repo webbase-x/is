@@ -13,10 +13,16 @@ function renderPlanDetail(plan) {
     stage.innerHTML = `<section class="plan-detail-empty"><span>🔒</span><h2>${plan.title}</h2><p>เตรียมพื้นที่ของแผนนี้ไว้แล้ว เมื่อมีเอกสารและเกมของแผนที่ ${plan.sequence} ให้เพิ่มข้อมูลในชุดแผนกลางเพียงครั้งเดียว</p></section>`;
     return;
   }
+  const documentAction = plan.document ? `<a class="button button-primary" href="${plan.document}" target="_blank" rel="noopener">เปิดเอกสารแผน ${plan.id} ↗</a>` : "";
+  const gameAction = plan.game ? `<a class="button button-primary" href="${plan.game}">🎮 เล่นเกมแผนที่ ${plan.sequence}</a>` : "";
+  const firstWordGroup = plan.words.maeKaka || plan.words.maeKong || plan.words.maeKom || plan.words.primary || [];
+  const secondWordGroup = plan.words.finalSound || plan.words.compare || [];
+  const firstWordLabel = plan.words.primary ? `คำตัวอย่าง${plan.title}` : plan.words.maeKom ? "คำมาตราแม่กม" : plan.words.maeKong ? "คำมาตราแม่กง" : "คำแม่ ก กา";
+  const secondWordLabel = plan.words.maeKong || plan.words.maeKom || plan.words.primary ? "คำมาตราอื่น เพื่อเปรียบเทียบ" : "คำที่มีตัวสะกด เพื่อเปรียบเทียบ";
   stage.innerHTML = `
     <section class="plan-detail-heading">
       <div><span class="eyebrow">แผนการจัดการเรียนรู้ที่ ${plan.sequence}</span><h2>${plan.title}</h2><p>${plan.course}</p><p>${plan.grade}</p><p>${plan.unit} · เวลา ${plan.duration} · หน่วยรวม ${plan.unitDuration}</p></div>
-      <div class="plan-detail-actions"><a class="button button-primary" href="${plan.document}" target="_blank" rel="noopener">เปิดเอกสารแผน 01 ↗</a><a class="button button-ghost" href="expert.html?plan=${plan.id}">ห้องจำลองผู้เชี่ยวชาญ</a></div>
+      <div class="plan-detail-actions">${gameAction}${documentAction}<a class="button button-ghost" href="expert.html?plan=${plan.id}">ห้องจำลองผู้เชี่ยวชาญ</a></div>
     </section>
     <article class="plan-detail-card plan-summary-card"><h3>สาระสำคัญ / ความคิดรวบยอด</h3><p>${plan.summary}</p></article>
     <div class="plan-detail-grid">
@@ -26,7 +32,7 @@ function renderPlanDetail(plan) {
     <article class="plan-detail-card"><h3>จุดประสงค์การเรียนรู้</h3><div class="plan-objective-grid">${plan.objectives.map(item => `<section><strong>${item.label}</strong><p>${item.text}</p></section>`).join("")}</div></article>
     <div class="plan-detail-grid">
       <article class="plan-detail-card"><h3>สาระการเรียนรู้</h3><ul>${plan.learning.map(item => `<li>${item}</li>`).join("")}</ul></article>
-      <article class="plan-detail-card"><h3>คลังคำประกอบกิจกรรม</h3><p class="plan-word-label">คำแม่ ก กา</p><div class="plan-word-list">${wordChips(plan.words.maeKaka, "mae-kaka")}</div><p class="plan-word-label">คำที่มีตัวสะกด เพื่อเปรียบเทียบ</p><div class="plan-word-list">${wordChips(plan.words.finalSound, "final-sound")}</div></article>
+      <article class="plan-detail-card"><h3>คลังคำประกอบกิจกรรม</h3><p class="plan-word-label">${firstWordLabel}</p><div class="plan-word-list">${wordChips(firstWordGroup, "mae-kaka")}</div><p class="plan-word-label">${secondWordLabel}</p><div class="plan-word-list">${wordChips(secondWordGroup, "final-sound")}</div></article>
     </div>`;
 }
 

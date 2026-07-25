@@ -5,7 +5,7 @@ import {
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260723-expert-live-score-1";
+} from "./common.js?v=20260726-thai-toast-fix-1";
 
 const state = {
   user: null,

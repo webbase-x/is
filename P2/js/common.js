@@ -127,10 +127,21 @@ export function debounce(callback, wait = 250) {
 }
 
 let toastTimer;
+function readableToastMessage(message) {
+  const text = String(message || "").trim();
+  if (!text) return "เกิดข้อผิดพลาด กรุณาลองใหม่";
+  // Some database messages can arrive after being decoded through the wrong
+  // legacy character set twice. Do not expose unreadable mojibake to children.
+  if (/(?:เน€|เน|เธฃ|เธ|เธ|เธ|เธญ|à¸|à¹|Ã|�)/.test(text)) {
+    return "ระบบอ่านข้อความแจ้งเตือนไม่สมบูรณ์ กรุณาลองใหม่อีกครั้ง";
+  }
+  return text;
+}
+
 export function toast(message, tone = "default") {
   const element = $("#toast");
   if (!element) return;
-  element.textContent = message;
+  element.textContent = readableToastMessage(message);
   element.dataset.tone = tone;
   element.classList.add("show");
   clearTimeout(toastTimer);

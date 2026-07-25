@@ -1071,7 +1071,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .modal { position: fixed; inset: 0; z-index: 100; background: rgba(18,24,44,.65); display: grid; place-items: center; padding: 20px; }
 .modal-card { width: min(470px, 100%); padding: 28px; border-radius: 20px; background: white; }
 .modal-card .button-row { justify-content: flex-end; margin-top: 24px; }
-.toast { position: fixed; left: 50%; bottom: 25px; z-index: 120; max-width: min(460px, calc(100vw - 30px)); transform: translate(-50%, 25px); opacity: 0; pointer-events: none; padding: 12px 17px; border-radius: 13px; background: #17203b; color: white; box-shadow: var(--shadow); transition: .22s ease; }
+.toast { position: fixed; left: 50%; bottom: 25px; z-index: 120; width: max-content; max-width: min(460px, calc(100vw - 30px)); transform: translate(-50%, 25px); opacity: 0; pointer-events: none; padding: 12px 17px; border-radius: 13px; background: #17203b; color: white; box-shadow: var(--shadow); transition: .22s ease; white-space: normal; overflow-wrap: anywhere; line-height: 1.55; text-align: left; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 .display-page { background: #11182e; color: white; overflow: hidden; }
