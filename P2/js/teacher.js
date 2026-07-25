@@ -6,7 +6,7 @@ import {
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260726-thai-toast-fix-2";
+} from "./common.js?v=20260726-session-recovery-1";
 
 const state = {
   user: null,
@@ -351,21 +351,53 @@ async function createSession(event) {
     await showLiveSession("qr");
     toast(`สร้างรหัสสำหรับ ${classContext()} แล้ว`, "success");
   } catch (error) {
-    toast(error.message, "error");
+    const recovered = await recoverOpenClassSession(classId);
+    if (!recovered) toast(error.message || "สร้างห้องเรียนไม่สำเร็จ", "error");
   } finally {
     button.disabled = false;
     button.textContent = "สร้างห้องและแสดง QR →";
   }
 }
 
+async function recoverOpenClassSession(classId) {
+  const { data, error } = await supabase.from("class_sessions")
+    .select("*")
+    .eq("class_id", classId)
+    .neq("status", "closed")
+    .order("opened_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return false;
+
+  if (data.teacher_id !== state.user.id) {
+    const classroom = state.classes.find(item => item.id === classId);
+    const note = $("#classOwnershipNote");
+    note.textContent = `⚠️ ${classroom?.school?.name || "โรงเรียน"} · ${classroom?.label || "ห้องเรียนนี้"} มีคาบที่ครูอีกบัญชีเปิดอยู่ กรุณาปิดคาบเดิมก่อนสร้างห้องใหม่`;
+    note.classList.add("warning");
+    note.classList.remove("success");
+    toast("ห้องเรียนนี้มีคาบที่ครูอีกบัญชีเปิดอยู่ กรุณาปิดคาบเดิมก่อน", "warning");
+    return true;
+  }
+
+  state.session = data;
+  state.selectedPlanId = data.plan_id;
+  showResumeSession();
+  toast("พบคาบเดิมที่ยังไม่ปิด ระบบพากลับมาที่คาบเดิมแล้ว", "warning");
+  return true;
+}
+
 async function restoreActiveSession() {
-  const { data } = await supabase.from("class_sessions")
+  const { data, error } = await supabase.from("class_sessions")
     .select("*")
     .eq("teacher_id", state.user.id)
     .neq("status", "closed")
     .order("opened_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (error) {
+    console.warn("โหลดคาบเดิมไม่สำเร็จ", error.code);
+    return;
+  }
   if (!data) return;
   state.session = data;
   state.selectedPlanId = data.plan_id;

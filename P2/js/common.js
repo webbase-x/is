@@ -127,13 +127,37 @@ export function debounce(callback, wait = 250) {
 }
 
 let toastTimer;
+let legacyThaiByteMap;
+
+function repairThaiMojibake(text) {
+  try {
+    const legacyDecoder = new TextDecoder("windows-874");
+    if (!legacyThaiByteMap) {
+      legacyThaiByteMap = new Map();
+      for (let byte = 0; byte < 256; byte += 1) {
+        const character = legacyDecoder.decode(Uint8Array.of(byte));
+        if (character && character !== "\ufffd") legacyThaiByteMap.set(character, byte);
+      }
+    }
+    const bytes = [];
+    for (const character of text) {
+      const byte = legacyThaiByteMap.get(character);
+      if (byte === undefined) return null;
+      bytes.push(byte);
+    }
+    return new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(bytes));
+  } catch {
+    return null;
+  }
+}
+
 function readableToastMessage(message) {
   const text = String(message || "").trim();
   if (!text) return "เกิดข้อผิดพลาด กรุณาลองใหม่";
-  // Some database messages can arrive after being decoded through the wrong
-  // legacy character set twice. Do not expose unreadable mojibake to children.
+  // Some database messages were saved after UTF-8 bytes were decoded as
+  // Windows-874. Repair the original Thai message instead of hiding its cause.
   if (/(?:เน€|เน|เธฃ|เธ|เธ|เธ|เธญ|à¸|à¹|Ã|�)/.test(text)) {
-    return "เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง";
+    return repairThaiMojibake(text) || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
   }
   return text;
 }
