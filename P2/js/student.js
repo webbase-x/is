@@ -1,14 +1,19 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-plan1-teaching-flow-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-projector-stage-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260726-plan1-teaching-flow-1";
+} from "./common.js?v=20260726-projector-stage-1";
 
-const expertStudentEmbed = new URLSearchParams(window.location.search).get("embed") === "expert-student";
+const studentPageQuery = new URLSearchParams(window.location.search);
+const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
+const projectorPreviewActivityKey = studentPageQuery.get("preview") === "projector"
+  ? String(studentPageQuery.get("activity") || "")
+  : "";
 if (expertStudentEmbed) document.body.classList.add("expert-embed", "expert-student-embed");
+if (projectorPreviewActivityKey) document.body.classList.add("expert-embed", "expert-student-embed", "projector-game-preview");
 
 const TEXTBOOK_VOCABULARY = Object.freeze({
   // คำจากชุด "รู้จักคำ นำเรื่อง" บทที่ 1-5 ในไฟล์ พาที วรรณคดลำนำ ป.2
@@ -1102,7 +1107,11 @@ function createExpertAttempt(activityKey, score, maxScore, answers) {
 function showResult(title, score, maxScore, result, replay) {
   cleanupRhythm();
   const percent = result?.percent ?? Math.round((score / maxScore) * 100);
-  const scoreNotice = sessionRecordsScores() ? "" : "<p>🧪 คะแนนนี้ใช้จัดอันดับสดในคาบ แต่จะไม่บันทึกหลังจบคาบ</p>";
+  const scoreNotice = sessionRecordsScores()
+    ? ""
+    : projectorPreviewActivityKey
+      ? "<p>📽️ นี่คือผลทดลองบนจอครู คะแนนไม่ถูกบันทึกและไม่กระทบผลนักเรียน</p>"
+      : "<p>🧪 คะแนนนี้ใช้จัดอันดับสดในคาบ แต่จะไม่บันทึกหลังจบคาบ</p>";
   $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2><p>ได้ <strong>${score} / ${maxScore}</strong> คะแนน (${percent}%)</p><p>${result?.passed ? "ผ่านด่านแล้ว เก่งมาก!" : "ลองทบทวนแล้วพยายามใหม่นะ"}</p>${scoreNotice}<button id="replayButton" class="button button-primary">เล่นอีกครั้ง</button></div></div>`;
   $("#replayButton")?.addEventListener("click", replay);
 }
@@ -1973,6 +1982,11 @@ async function renderVote() {
   $("#submitSentence").addEventListener("click", async () => {
     const sentence = selected.join("");
     if (selected.length < 2) return toast("เลือกอย่างน้อย 2 คำก่อนส่ง", "warning");
+    if (projectorPreviewActivityKey) {
+      const attempt = await submitAttempt("vote", 1, 1, [{ sentence }]);
+      if (attempt) toast("ทดลองส่งประโยคแล้ว · ไม่บันทึกข้อมูล", "success");
+      return;
+    }
     const { error } = await supabase.from("sentence_submissions").insert({ session_id: state.session.id, session_player_id: state.player.id, sentence });
     if (error) return toast(error.message, "error");
     const attempt = await submitAttempt("vote", 1, 1, [{ sentence }]);
@@ -2111,10 +2125,71 @@ window.addEventListener("beforeunload", cleanupRhythm);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) scheduleStudentScreenPresence(true); });
 setInterval(updateStudentLessonCountdown, 1000);
 
+function initializeProjectorPreview() {
+  const planId = Math.min(8, Math.max(1, Number(studentPageQuery.get("plan")) || 1));
+  const activity = activityForKey(projectorPreviewActivityKey, planId);
+  if (!activity) return false;
+
+  const roundId = studentPageQuery.get("round") || `${Date.now()}-${Math.random()}`;
+  const previewId = `projector-preview-${roundId}`;
+  state.roomCode = "PREVIEW";
+  state.sessionInfo = { class_label: "จอทดลองครู" };
+  state.student = { full_name: "ครูทดลองเล่น", nickname: "ครู", avatar: "🎓", student_code: "PREVIEW" };
+  state.player = { id: previewId, student_id: previewId, session_id: previewId, status: "approved" };
+  state.session = {
+    id: previewId,
+    plan_id: planId,
+    current_activity_key: activity.key,
+    status: "active",
+    play_mode: "practice",
+    attempt_mode: "unlimited",
+    max_attempts: 99,
+    score_policy: "best",
+    leaderboard_mode: "hidden",
+    pass_percent: 80,
+    score_recording_enabled: false,
+    started_at: new Date().toISOString(),
+  };
+  state.lessonStep = {
+    key: `preview-${activity.key}`,
+    round_id: roundId,
+    stage: 1,
+    kind: "game",
+    activity_key: activity.key,
+    title: activity.title,
+    icon: activity.icon,
+    show_on_students: true,
+  };
+  state.lessonTimer = null;
+  state.renderedActivity = null;
+  state.renderedLessonRoundId = null;
+  state.attempts = [];
+
+  $("#playerAvatar").textContent = "🎓";
+  $("#playerName").textContent = "ครู";
+  $("#studentLiveAvatar").textContent = "🎓";
+  $("#studentLiveName").textContent = "ครูทดลองเล่น";
+  $("#studentLiveClass").textContent = "จอทดลอง · ไม่บันทึกคะแนน";
+  $("#playerProfilePhoto").classList.add("hidden");
+  $("#studentLiveProfilePhoto").classList.add("hidden");
+  $("#playerAvatar").classList.remove("hidden");
+  $("#studentLiveAvatar").classList.remove("hidden");
+  $("#attemptBadge").textContent = "ทดลอง";
+  document.title = `${activity.title} · ทดลองบนจอครู`;
+
+  renderScoreRecordingState();
+  renderTimeline();
+  renderAttemptProgress();
+  setView(views.game, views.login, views.waiting);
+  applySessionState();
+  return true;
+}
+
 async function initializeStudentPage() {
   connectionUpdate();
   applyGameZoom();
   setGameFocus(true);
+  if (projectorPreviewActivityKey && initializeProjectorPreview()) return;
   observeStudentScreenChanges();
   const restored = await restoreSession();
   if (!restored) await initializeJoinFlow();

@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17203b">
   <title>จอครู | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260726-lesson-navigation-1">
+  <link rel="stylesheet" href="styles.css?v=20260726-projector-stage-1">
   <script>
     (() => {
       const url = new URL(location.href);
@@ -212,24 +212,50 @@
                   <div id="liveJoinRequestList" class="live-join-request-list"></div>
                 </section>
                 <div class="flow-live-stack">
-                  <section id="lessonStepPanel" class="panel lesson-step-panel">
+                  <section id="lessonStepPanel" class="panel lesson-step-panel classroom-stage-panel">
                     <header class="lesson-step-heading">
                       <div>
-                        <span id="lessonStageLabel" class="eyebrow">ลำดับการสอน</span>
+                        <span id="lessonStageLabel" class="eyebrow">เวทีห้องเรียน · ลำดับการสอน</span>
                         <h3 id="lessonStepTitle">เลือกขั้นการสอน</h3>
                         <p id="lessonStepMeta">สื่อ เกม และคำสั่งจะเรียงตามแผนการสอน 60 นาที</p>
                       </div>
-                      <span id="lessonStepKind" class="lesson-kind-badge">เตรียมพร้อม</span>
+                      <div class="classroom-stage-heading-actions">
+                        <span id="lessonStepKind" class="lesson-kind-badge">เตรียมพร้อม</span>
+                        <button id="competitionFullscreenButton" class="competition-tool-button classroom-stage-fullscreen" type="button" aria-pressed="false">⛶ <span>ฉายเต็มจอ</span></button>
+                      </div>
                     </header>
-                    <div class="lesson-step-layout">
-                      <div class="lesson-teacher-notes">
-                        <strong>สิ่งที่ครูต้องดำเนินการ</strong>
+                    <div class="lesson-step-layout classroom-stage-body">
+                      <aside class="lesson-teacher-notes">
+                        <div class="teacher-note-heading"><span>👩‍🏫</span><strong>สิ่งที่ครูต้องดำเนินการ</strong></div>
                         <ul id="lessonTeacherNotes"><li>เลือกขั้นแรกเพื่อเริ่มสอน</li></ul>
-                      </div>
-                      <div id="lessonScreenPreview" class="lesson-screen-preview">
-                        <span>🗺️</span><div><small>ตัวอย่างสื่อบนจอฉาย</small><strong>พร้อมเริ่มแผนที่ 1</strong><p>ครูเป็นผู้ควบคุมทุกหน้าด้วยตนเอง</p></div>
-                      </div>
+                      </aside>
+                      <section class="lesson-projector-display" aria-label="พื้นที่แสดงบนจอโปรเจกเตอร์">
+                        <header class="lesson-projector-header">
+                          <div><span>📽️</span><strong>จอโปรเจกเตอร์</strong></div>
+                          <em id="projectorModeLabel">สื่อพร้อมฉาย</em>
+                        </header>
+                        <div id="lessonProjectorViewport" class="lesson-projector-viewport">
+                          <div id="lessonScreenPreview" class="lesson-screen-preview lesson-projector-media">
+                            <span>🗺️</span><div><small>ตัวอย่างสื่อบนจอฉาย</small><strong>พร้อมเริ่มแผนที่ 1</strong><p>ครูเป็นผู้ควบคุมทุกหน้าด้วยตนเอง</p></div>
+                          </div>
+                          <div id="lessonGamePreview" class="lesson-game-preview hidden">
+                            <iframe id="lessonGamePreviewFrame" title="เกมตัวอย่างสำหรับครู" allow="autoplay; fullscreen"></iframe>
+                            <span class="projector-preview-badge">🎮 ทดลองเล่นได้ · ไม่บันทึกคะแนน</span>
+                          </div>
+                        </div>
+                      </section>
                     </div>
+                    <section id="competitionArena" class="classroom-live-results competition-arena">
+                      <div class="panel-heading competition-heading">
+                        <div><span class="eyebrow">อัปเดตแบบเรียลไทม์</span><h3>ผลการแข่งขัน</h3><p id="competitionStatus">จัดอันดับเมื่อส่งคำตอบ และเปิดเวทีรางวัลเมื่อจบเกม</p></div>
+                        <div class="competition-live-meta" aria-live="polite"><span id="competitionLiveBadge" class="competition-live-badge"><i></i> LIVE</span><small id="competitionLastUpdate">รอข้อมูลสด</small></div>
+                        <div class="competition-view-actions">
+                          <button id="finishActivityButton" class="competition-tool-button competition-finish-button" type="button">⏹ จบเกม</button>
+                          <button id="competitionSoundButton" class="competition-tool-button" type="button" aria-pressed="true" title="เปิดหรือปิดเสียงประกาศผล">🔊 <span>เสียง</span></button>
+                        </div>
+                      </div>
+                      <div id="liveResults" aria-live="polite"></div>
+                    </section>
                     <div class="lesson-step-actions">
                       <label id="shareLessonToStudentsLabel" class="lesson-share-toggle">
                         <input id="shareLessonToStudents" type="checkbox">
@@ -246,18 +272,6 @@
                     <summary><span><span class="eyebrow">เส้นทางการสอนครบ 60 นาที</span><strong>สื่อ คำสั่ง กิจกรรม และเกมตามลำดับแผน</strong></span><span class="flow-collapsible-label" aria-hidden="true"></span></summary>
                     <div id="activityControls" class="activity-controls flow-activity-controls"></div>
                   </details>
-                  <section id="competitionArena" class="panel flow-live-results competition-arena">
-                    <div class="panel-heading competition-heading">
-                      <div><span class="eyebrow">อัปเดตแบบเรียลไทม์</span><h3>ผลการแข่งขัน</h3><p id="competitionStatus">จัดอันดับเมื่อส่งคำตอบ และเปิดเวทีรางวัลเมื่อจบเกม</p></div>
-                      <div class="competition-live-meta" aria-live="polite"><span id="competitionLiveBadge" class="competition-live-badge"><i></i> LIVE</span><small id="competitionLastUpdate">รอข้อมูลสด</small></div>
-                      <div class="competition-view-actions">
-                        <button id="finishActivityButton" class="competition-tool-button competition-finish-button" type="button">⏹ จบเกม</button>
-                        <button id="competitionSoundButton" class="competition-tool-button" type="button" aria-pressed="true" title="เปิดหรือปิดเสียงประกาศผล">🔊 <span>เสียง</span></button>
-                        <button id="competitionFullscreenButton" class="competition-tool-button" type="button" aria-pressed="false">⛶ <span>เต็มจอ</span></button>
-                      </div>
-                    </div>
-                    <div id="liveResults" aria-live="polite"></div>
-                  </section>
                 </div>
                 <div class="flow-footer live-actions"><button id="pauseSessionButton" class="button button-secondary" type="button">พักกิจกรรม</button><button id="openLateJoinButton" class="button button-success" type="button">📋 ดูคำขอเข้าใหม่</button><button id="showSummaryButton" class="button button-ghost" type="button">ดูสรุปผล</button></div>
               </section>
@@ -342,6 +356,6 @@
   </main>
   <div id="returnDialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="returnDialogTitle"><form id="returnForm" class="modal-card"><h2 id="returnDialogTitle">ส่งข้อมูลกลับให้นักเรียนแก้ไข</h2><input id="returnPlayerId" type="hidden"><label>เหตุผล<select id="returnReason"><option>เลือกชื่อไม่ถูกต้อง</option><option>รูปไม่ชัด กรุณาถ่ายใหม่</option><option>นักเรียนไม่อยู่ในห้องนี้</option><option>ข้อมูลไม่ครบถ้วน</option></select></label><div class="button-row"><button type="button" id="cancelReturn" class="button button-ghost">ยกเลิก</button><button class="button button-danger" type="submit">ส่งคืน</button></div></form></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/teacher.js?v=20260726-lesson-navigation-1"></script>
+  <script type="module" src="js/teacher.js?v=20260726-projector-stage-1"></script>
 </body>
 </html>

@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260726-lesson-navigation-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-lesson-navigation-1";
+import { supabase } from "./supabase.js?v=20260726-projector-stage-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-projector-stage-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260726-lesson-navigation-1";
+} from "./common.js?v=20260726-projector-stage-1";
 
-const TEACHER_BUILD_VERSION = "20260726-lesson-navigation-1";
+const TEACHER_BUILD_VERSION = "20260726-projector-stage-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -619,6 +619,39 @@ function lessonScreenDetailsMarkup(screen = {}) {
   return "";
 }
 
+function renderProjectorLessonContent(step) {
+  const media = $("#lessonScreenPreview");
+  const gamePreview = $("#lessonGamePreview");
+  const gameFrame = $("#lessonGamePreviewFrame");
+  const modeLabel = $("#projectorModeLabel");
+  const planId = Number(state.session?.plan_id || state.selectedPlanId || 1);
+  const activity = step?.activityKey ? activityForKey(step.activityKey, planId) : null;
+  const showGame = step?.kind === "game" && Boolean(activity);
+
+  media.classList.toggle("hidden", showGame);
+  gamePreview.classList.toggle("hidden", !showGame);
+  modeLabel.textContent = showGame ? "เกมตัวอย่าง · ไม่บันทึกคะแนน" : "สื่อพร้อมฉาย";
+
+  if (!showGame) {
+    if (gameFrame.dataset.previewSrc) {
+      gameFrame.src = "about:blank";
+      delete gameFrame.dataset.previewSrc;
+    }
+    return;
+  }
+
+  const previewUrl = new URL("student.html", window.location.href);
+  previewUrl.search = "";
+  previewUrl.searchParams.set("preview", "projector");
+  previewUrl.searchParams.set("plan", String(planId));
+  previewUrl.searchParams.set("activity", activity.key);
+  previewUrl.searchParams.set("round", state.lessonRoundId || step.key);
+  const previewSrc = previewUrl.href;
+  if (gameFrame.dataset.previewSrc === previewSrc) return;
+  gameFrame.dataset.previewSrc = previewSrc;
+  gameFrame.src = previewSrc;
+}
+
 function renderCurrentLessonStep() {
   const step = currentLessonStep();
   const flow = currentLessonFlow();
@@ -650,6 +683,7 @@ function renderCurrentLessonStep() {
   $("#restartLessonTimerButton").disabled = !step;
   $("#finishActivityButton").classList.toggle("hidden", !isGame);
   $("#competitionArena").classList.toggle("lesson-media-results", Boolean(step && !isGame));
+  renderProjectorLessonContent(step);
 }
 
 function renderLiveModeSwitch() {
@@ -1886,13 +1920,13 @@ async function finishActivity(reason = "manual") {
 }
 
 function toggleCompetitionExpanded() {
-  const arena = $("#competitionArena");
+  const arena = $("#lessonStepPanel");
   const button = $("#competitionFullscreenButton");
-  const expanded = !arena.classList.contains("competition-expanded");
-  arena.classList.toggle("competition-expanded", expanded);
+  const expanded = !arena.classList.contains("classroom-stage-expanded");
+  arena.classList.toggle("classroom-stage-expanded", expanded);
   document.body.classList.toggle("competition-overlay-open", expanded);
   button.setAttribute("aria-pressed", String(expanded));
-  button.innerHTML = expanded ? "✕ <span>ปิดเต็มจอ</span>" : "⛶ <span>เต็มจอ</span>";
+  button.innerHTML = expanded ? "✕ <span>ออกจากจอฉาย</span>" : "⛶ <span>ฉายเต็มจอ</span>";
 }
 
 function toggleCompetitionSound() {
@@ -2004,7 +2038,8 @@ async function closeSession() {
   state.activityStartedAt = null;
   state.finishingActivity = false;
   renderStudentScreens();
-  $("#competitionArena")?.classList.remove("competition-expanded", "is-celebrating");
+  $("#competitionArena")?.classList.remove("is-celebrating");
+  $("#lessonStepPanel")?.classList.remove("classroom-stage-expanded");
   document.body.classList.remove("competition-overlay-open");
   hide($("#liveSession"));
   hide($("#resumeSessionView"));
@@ -2310,7 +2345,7 @@ $$('#dashboardNav button').forEach(button => button.addEventListener("click", ()
 window.addEventListener("online", connectionUpdate);
 window.addEventListener("offline", connectionUpdate);
 window.addEventListener("keydown", event => {
-  if (event.key === "Escape" && $("#competitionArena")?.classList.contains("competition-expanded")) toggleCompetitionExpanded();
+  if (event.key === "Escape" && $("#lessonStepPanel")?.classList.contains("classroom-stage-expanded")) toggleCompetitionExpanded();
 });
 let lobbyResizeTimer;
 window.addEventListener("resize", () => {
