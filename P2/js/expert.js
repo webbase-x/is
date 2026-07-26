@@ -1,7 +1,14 @@
+import {
+  LEGACY_REVIEWER,
+  reviewerInviteFromHash,
+} from "./reviewer-access.js?v=20260727-reviewer-links-1";
+
 const $ = selector => document.querySelector(selector);
-const EXPERT_BUILD_VERSION = "20260727-plan8-mae-kon-1";
+const EXPERT_BUILD_VERSION = "20260727-reviewer-links-1";
 const IPAD_VIEWPORT = Object.freeze({ width: 1024, height: 768 });
-const EXPERT_EMAIL = "expert@webbase.x";
+const reviewerInvite = reviewerInviteFromHash();
+const activeReviewer = reviewerInvite?.account || LEGACY_REVIEWER;
+const reviewerPassword = reviewerInvite?.password || "";
 
 const frames = {
   teacher: {
@@ -9,7 +16,7 @@ const frames = {
     status: $("#expertTeacherStatus"),
     link: $("#expertTeacherOpen"),
     page: "teacher.html",
-    authScope: "expert-teacher",
+    authScope: `reviewer-${activeReviewer.alias}-teacher`,
     readyText: "พร้อมเริ่มคาบ",
   },
   student: {
@@ -17,7 +24,7 @@ const frames = {
     status: $("#expertStudentStatus"),
     link: $("#expertStudentOpen"),
     page: "student.html",
-    authScope: "expert-student",
+    authScope: `reviewer-${activeReviewer.alias}-student`,
     readyText: "พร้อมใส่รหัส",
   },
 };
@@ -26,6 +33,8 @@ function sourceFor(frame, { fresh = false } = {}) {
   const url = new URL(frame.page, window.location.href);
   url.searchParams.set("authScope", frame.authScope);
   url.searchParams.set("expertReview", "1");
+  url.searchParams.set("reviewer", activeReviewer.email);
+  if (frame === frames.teacher) url.searchParams.set("embed", "expert-teacher");
   url.searchParams.set("appBuild", EXPERT_BUILD_VERSION);
   if (fresh) url.searchParams.set("fresh", String(Date.now()));
   return url.href;
@@ -63,6 +72,23 @@ function markCredentials(message, state = "") {
   status.className = state;
 }
 
+function renderReviewerIdentity() {
+  $("#expertAccountBadge").textContent = reviewerInvite
+    ? `✓ ${activeReviewer.label} · พร้อมเข้าสู่ระบบ`
+    : "บัญชีผู้ตรวจสื่อเดิม";
+  $("#expertAccountEmail").textContent = activeReviewer.email;
+  $("#expertAccountPassword").textContent = reviewerInvite ? "พร้อมใช้จากลิงก์ส่วนตัว" : "กรอกด้วยตนเอง";
+  $("#expertFillLoginButton").textContent = reviewerInvite
+    ? "✉️ กรอก USER และ PASSWORD ในจอครู"
+    : "✉️ กรอก USER ในจอครู";
+  markCredentials(
+    reviewerInvite
+      ? `ลิงก์ส่วนตัวของ ${activeReviewer.label} พร้อมแล้ว ระบบจะกรอกข้อมูลในจอครูอัตโนมัติ`
+      : "เปิดจากลิงก์ส่วนตัวเพื่อให้ระบบกรอกบัญชีและรหัสผ่านในจอครูอัตโนมัติ",
+    reviewerInvite ? "ready" : "",
+  );
+}
+
 function fillTeacherCredentials() {
   try {
     const documentRef = frames.teacher.element.contentDocument;
@@ -78,12 +104,20 @@ function fillTeacherCredentials() {
       markCredentials("กำลังรอแบบฟอร์มเข้าสู่ระบบจอครู…", "loading");
       return false;
     }
-    email.value = EXPERT_EMAIL;
-    password.value = "";
-    ["input", "change"].forEach(type => email.dispatchEvent(new Event(type, { bubbles: true })));
-    markCredentials("กรอกอีเมลในจอครูแล้ว — กรุณากรอกรหัสผ่านเพื่อเข้าสู่ระบบ", "ready");
-    setFrameStatus(frames.teacher, "รอรหัสผ่าน", "ready");
-    password.focus({ preventScroll: true });
+    email.value = activeReviewer.email;
+    password.value = reviewerPassword;
+    [email, password].forEach(field => {
+      ["input", "change"].forEach(type => field.dispatchEvent(new Event(type, { bubbles: true })));
+    });
+    markCredentials(
+      reviewerInvite
+        ? `กรอก USER และ PASSWORD ของ ${activeReviewer.label} ในจอครูแล้ว กด “เข้าสู่ระบบ” ได้ทันที`
+        : "กรอก USER ในจอครูแล้ว กรุณากรอกรหัสผ่านเพื่อเข้าสู่ระบบ",
+      "ready",
+    );
+    setFrameStatus(frames.teacher, reviewerInvite ? "พร้อมกดเข้าสู่ระบบ" : "รอรหัสผ่าน", "ready");
+    (reviewerInvite ? documentRef?.querySelector("#teacherLoginForm button[type='submit']") : password)
+      ?.focus({ preventScroll: true });
     return true;
   } catch {
     markCredentials("เปิดจอครูเต็มแท็บเพื่อกรอกบัญชีผู้เชี่ยวชาญ", "warning");
@@ -160,4 +194,5 @@ document.addEventListener("fullscreenchange", () => {
   else if (!workspace.classList.contains("expert-fullscreen-fallback")) fullscreenButton.textContent = "⛶ เต็มจอสองจอ";
 });
 
+renderReviewerIdentity();
 loadAll({ fresh: true });

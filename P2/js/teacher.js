@@ -1,5 +1,6 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260727-plan8-mae-kon-1";
+import { supabase } from "./supabase.js?v=20260727-reviewer-links-1";
+import { isReviewerEmail, reviewerByEmail } from "./reviewer-access.js?v=20260727-reviewer-links-1";
 import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-plan8-mae-kon-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
@@ -8,7 +9,7 @@ import {
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
 } from "./common.js?v=20260727-plan8-mae-kon-1";
 
-const TEACHER_BUILD_VERSION = "20260727-plan8-mae-kon-1";
+const TEACHER_BUILD_VERSION = "20260727-reviewer-links-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -175,10 +176,11 @@ function lessonTimerBroadcastPayload() {
 const teacherPageQuery = new URLSearchParams(window.location.search);
 const expertTeacherEmbed = teacherPageQuery.get("embed") === "expert-teacher";
 const expertReviewMode = teacherPageQuery.get("expertReview") === "1";
-const EXPERT_REVIEW_EMAIL = "expert@webbase.x";
+const requestedReviewerEmail = String(teacherPageQuery.get("reviewer") || "").trim().toLowerCase();
+const expertReviewEmail = isReviewerEmail(requestedReviewerEmail) ? requestedReviewerEmail : "expert@webbase.x";
 if (expertTeacherEmbed) document.body.classList.add("expert-embed", "expert-teacher-embed");
 if (expertReviewMode) {
-  $("#teacherEmail").value = EXPERT_REVIEW_EMAIL;
+  $("#teacherEmail").value = expertReviewEmail;
   $("#teacherPassword").value = "";
 }
 
@@ -259,9 +261,9 @@ async function bootstrap() {
   renderPlanTimeline($("#planTimeline"), 1);
   const { data } = await supabase.auth.getSession();
   if (data.session && !data.session.user.is_anonymous) {
-    if (expertReviewMode && String(data.session.user.email || "").toLowerCase() !== EXPERT_REVIEW_EMAIL) {
+    if (expertReviewMode && String(data.session.user.email || "").toLowerCase() !== expertReviewEmail) {
       await supabase.auth.signOut();
-      $("#teacherEmail").value = EXPERT_REVIEW_EMAIL;
+      $("#teacherEmail").value = expertReviewEmail;
       $("#teacherPassword").value = "";
       return;
     }
@@ -303,6 +305,22 @@ async function loadTeacherWorkspace() {
     await supabase.auth.signOut();
     state.user = null;
     return toast("บัญชีนี้ยังไม่ได้รับสิทธิ์ครู กรุณาให้ผู้ดูแลเปิดสิทธิ์ก่อน", "error");
+  }
+  if (expertReviewMode) {
+    const signedInEmail = String(state.user.email || "").trim().toLowerCase();
+    const reviewOnly = signedInEmail === expertReviewEmail
+      && isReviewerEmail(signedInEmail)
+      && Number(profile.access_level) === 2
+      && profile.can_record_scores === false;
+    if (!reviewOnly) {
+      await supabase.auth.signOut();
+      state.user = null;
+      $("#teacherEmail").value = expertReviewEmail;
+      $("#teacherPassword").value = "";
+      return toast("บัญชีนี้ไม่ได้รับสิทธิ์โหมดตรวจสื่อ", "error");
+    }
+    const reviewer = reviewerByEmail(signedInEmail);
+    if (reviewer) profile.full_name = reviewer.label;
   }
   state.profile = profile;
   applyRolePermissions();

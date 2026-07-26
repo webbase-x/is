@@ -5,9 +5,10 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#5b4bdb">
+  <meta name="referrer" content="no-referrer">
   <meta name="description" content="ห้องตรวจสื่อแบบสองจอ iPad ใช้หน้าครูและหน้าของนักเรียนจริง 100% ภาษาไทย ป.2">
   <title>ตรวจสื่อสองจอ | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260727-plan8-mae-kon-1">
+  <link rel="stylesheet" href="styles.css?v=20260727-reviewer-links-1">
 </head>
 <body class="expert-page">
   <header class="site-header expert-header">
@@ -25,7 +26,7 @@
       <aside class="expert-real-guide">
         <strong>ลำดับการตรวจ</strong>
         <ol>
-          <li>จอครู: อีเมลผู้เชี่ยวชาญถูกกรอกไว้แล้ว กรอกรหัสผ่านแล้วกด “เข้าสู่ระบบ”</li>
+          <li>จอครู: เปิดจากลิงก์ส่วนตัวเพื่อกรอกบัญชีและรหัสผ่านอัตโนมัติ แล้วกด “เข้าสู่ระบบ”</li>
           <li>จอนักเรียน: กรอกรหัสห้องจริงที่ครูสร้าง หรือสแกน QR</li>
           <li>อนุมัตินักเรียนและเริ่มกิจกรรมจากจอครู เพื่อตรวจ Realtime จริง</li>
         </ol>
@@ -34,15 +35,15 @@
 
     <section class="panel expert-real-toolbar" aria-label="บัญชีและเครื่องมือห้องตรวจสื่อ">
       <div class="expert-account-summary">
-        <span class="expert-account-badge">✓ บัญชีผู้เชี่ยวชาญพร้อมเข้าสู่ระบบ</span>
+        <span id="expertAccountBadge" class="expert-account-badge">บัญชีผู้ตรวจสื่อ</span>
         <div class="expert-account-fields" aria-label="ข้อมูลเข้าสู่ระบบผู้เชี่ยวชาญ">
-          <span><small>USER</small><strong>expert@webbase.x</strong></span>
-          <span><small>PASSWORD</small><strong>กรอกด้วยตนเอง</strong></span>
+          <span><small>USER</small><strong id="expertAccountEmail">expert@webbase.x</strong></span>
+          <span><small>PASSWORD</small><strong id="expertAccountPassword">กรอกด้วยตนเอง</strong></span>
         </div>
-        <small id="expertCredentialStatus">ระบบกรอกอีเมลในจอครูให้อัตโนมัติ ส่วนรหัสผ่านไม่ถูกบันทึกหรือเผยแพร่ในเว็บไซต์</small>
+        <small id="expertCredentialStatus">เปิดจากลิงก์ส่วนตัวเพื่อให้ระบบกรอกบัญชีและรหัสผ่านในจอครูอัตโนมัติ</small>
       </div>
       <div class="expert-real-actions">
-        <button id="expertFillLoginButton" class="button button-primary" type="button">✉️ กรอกอีเมลในจอครู</button>
+        <button id="expertFillLoginButton" class="button button-primary" type="button">✉️ กรอกข้อมูลในจอครู</button>
         <button id="expertReloadButton" class="button button-ghost" type="button">↻ โหลดสองจอใหม่</button>
         <button id="expertFullscreenButton" class="button button-secondary" type="button">⛶ เต็มจอสองจอ</button>
       </div>
@@ -75,11 +76,11 @@
 
     <section class="expert-real-note" aria-label="ขอบเขตการตรวจ">
       <span aria-hidden="true">🔒</span>
-      <div><strong>การทำงานเป็นของจริง แต่บัญชีนี้ไม่บันทึกคะแนน</strong><p>จอครูและจอนักเรียนใช้พื้นที่เข้าสู่ระบบแยกกันเพื่อไม่ให้สถานะชนกัน บัญชี expert@webbase.x ถูกจำกัดสิทธิ์ระดับผู้เชี่ยวชาญและใช้คาบสาธิตซึ่งจัดอันดับสดได้ แต่ไม่บันทึกคะแนนหลังจบคาบ</p></div>
+      <div><strong>การทำงานเป็นของจริง แต่บัญชีผู้ตรวจสื่อไม่บันทึกคะแนน</strong><p>ผู้เชี่ยวชาญทั้ง 3 คนและอาจารย์ที่ปรึกษามีบัญชีแยกกัน จอครูและจอนักเรียนใช้พื้นที่เข้าสู่ระบบแยกกันเพื่อไม่ให้สถานะชนกัน ทุกบัญชีถูกจำกัดสิทธิ์ระดับตรวจสื่อ จัดอันดับสดได้ แต่ไม่บันทึกคะแนนหลังจบคาบ</p></div>
     </section>
   </main>
 
   <footer class="site-footer">คำไทยผจญภัย · ห้องตรวจสื่อแบบสองจอ</footer>
-  <script type="module" src="js/expert.js?v=20260727-plan8-mae-kon-1"></script>
+  <script type="module" src="js/expert.js?v=20260727-reviewer-links-1"></script>
 </body>
 </html>

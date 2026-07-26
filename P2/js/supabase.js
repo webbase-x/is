@@ -3,11 +3,14 @@ import { APP_CONFIG } from "./config.js";
 
 const pageQuery = new URLSearchParams(window.location.search);
 const authScope = pageQuery.get("authScope") || pageQuery.get("embed");
-const isolatedStorageKey = authScope === "expert-teacher"
-  ? "thai-game-p2-expert-teacher-auth"
-  : authScope === "expert-student"
-    ? "thai-game-p2-expert-student-auth"
-    : undefined;
+const safeAuthScope = String(authScope || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 64);
+const isolatedStorageKey = safeAuthScope.startsWith("reviewer-")
+  ? `thai-game-p2-${safeAuthScope}-auth`
+  : safeAuthScope === "expert-teacher"
+    ? "thai-game-p2-expert-teacher-auth"
+    : safeAuthScope === "expert-student"
+      ? "thai-game-p2-expert-student-auth"
+      : undefined;
 
 export const supabase = createClient(
   APP_CONFIG.supabaseUrl,
