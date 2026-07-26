@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17203b">
   <title>จอครู | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260726-plan1-teaching-flow-1">
+  <link rel="stylesheet" href="styles.css?v=20260726-lobby-room-code-1">
   <script>
     (() => {
       const url = new URL(location.href);
@@ -128,7 +128,13 @@
               </section>
 
               <section class="teacher-flow-step hidden" data-flow-step="lobby">
-                <div class="flow-section-heading lobby-heading"><div><span class="eyebrow">ขั้นที่ 3 จาก 6</span><h2>ตรวจและอนุมัตินักเรียน</h2><p id="lobbySummary">ยังไม่มีนักเรียน</p></div><button id="approveAllButton" class="button button-success" type="button">✓ อนุมัติทั้งหมดในหน้านี้</button></div>
+                <div class="flow-section-heading lobby-heading">
+                  <div><span class="eyebrow">ขั้นที่ 3 จาก 6</span><h2>ตรวจและอนุมัตินักเรียน</h2><p id="lobbySummary">ยังไม่มีนักเรียน</p></div>
+                  <div class="lobby-heading-actions">
+                    <div class="lobby-room-code" aria-label="รหัสห้องเรียนปัจจุบัน"><small>รหัสห้องเรียน</small><strong id="lobbyRoomCode">------</strong></div>
+                    <button id="approveAllButton" class="button button-success" type="button">✓ อนุมัติทั้งหมดในหน้านี้</button>
+                  </div>
+                </div>
                 <div id="lateJoinNotice" class="flow-info-card hidden">🚪 เปิดรับนักเรียนเพิ่มแล้ว · ใช้รหัสเดิม <strong id="lateJoinRoomCode">------</strong></div>
                 <div class="session-summary-grid flow-metrics">
                   <div class="panel metric-card"><span>👥</span><div><small>ออนไลน์</small><strong id="onlineCount">0</strong></div></div>
@@ -335,6 +341,6 @@
   </main>
   <div id="returnDialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="returnDialogTitle"><form id="returnForm" class="modal-card"><h2 id="returnDialogTitle">ส่งข้อมูลกลับให้นักเรียนแก้ไข</h2><input id="returnPlayerId" type="hidden"><label>เหตุผล<select id="returnReason"><option>เลือกชื่อไม่ถูกต้อง</option><option>รูปไม่ชัด กรุณาถ่ายใหม่</option><option>นักเรียนไม่อยู่ในห้องนี้</option><option>ข้อมูลไม่ครบถ้วน</option></select></label><div class="button-row"><button type="button" id="cancelReturn" class="button button-ghost">ยกเลิก</button><button class="button button-danger" type="submit">ส่งคืน</button></div></form></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/teacher.js?v=20260726-plan1-teaching-flow-1"></script>
+  <script type="module" src="js/teacher.js?v=20260726-lobby-room-code-1"></script>
 </body>
 </html>

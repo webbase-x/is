@@ -2018,6 +2018,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 }
 .live-room-code small { font-size: 10px; font-weight: 900; }
 .live-room-code strong { color: var(--purple); font-size: 24px; letter-spacing: .13em; line-height: 1; }
+.lobby-heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.lobby-room-code { min-width: 150px; padding: 8px 13px; border: 1px solid rgba(91,75,219,.2); border-radius: 14px; background: linear-gradient(145deg,#faf9ff,#f1efff); text-align: center; }
+.lobby-room-code small, .lobby-room-code strong { display: block; }
+.lobby-room-code small { color: var(--muted); font-size: 9px; font-weight: 900; }
+.lobby-room-code strong { margin-top: 1px; color: var(--purple); font-size: 23px; letter-spacing: .14em; line-height: 1.05; }
 .competition-timer-card em { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; font-style: normal; font-weight: 800; }
 .live-join-requests { padding: 18px; border-color: rgba(243,164,44,.35); background: linear-gradient(135deg,#fffaf0,#fff); }
 .live-join-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
@@ -2131,6 +2136,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .live-room-code { min-width: 0; padding: 7px 9px; }
   .live-room-code strong { font-size: 19px; }
   .live-join-heading, .lesson-step-heading { align-items: stretch; flex-direction: column; }
+  .lobby-heading-actions { width: 100%; align-items: stretch; flex-direction: column; }
+  .lobby-room-code { width: 100%; }
   .lesson-kind-badge { align-self: flex-start; }
   .lesson-screen-preview { grid-template-columns: 55px minmax(0,1fr); padding: 14px; }
   .lesson-screen-preview > span { font-size: 41px; }

@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260726-plan1-teaching-flow-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-plan1-teaching-flow-1";
+import { supabase } from "./supabase.js?v=20260726-lobby-room-code-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-lobby-room-code-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260726-plan1-teaching-flow-1";
+} from "./common.js?v=20260726-lobby-room-code-1";
 
-const TEACHER_BUILD_VERSION = "20260726-plan1-teaching-flow-1";
+const TEACHER_BUILD_VERSION = "20260726-lobby-room-code-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -538,6 +538,7 @@ async function showLiveSession(step = "qr") {
   $("#liveRoomCode").textContent = state.session.room_code;
   $("#liveHeaderRoomCode").textContent = state.session.room_code;
   $("#liveJoinRoomCode").textContent = state.session.room_code;
+  $("#lobbyRoomCode").textContent = state.session.room_code;
   $("#qrClassContext").textContent = classContext();
   $("#liveClassContext").textContent = classContext();
   $("#summaryClassContext").textContent = classContext();
