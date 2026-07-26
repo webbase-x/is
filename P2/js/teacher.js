@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260727-rhythm-live-clock-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-rhythm-live-clock-1";
+import { supabase } from "./supabase.js?v=20260727-karaoke-lyrics-restored-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-karaoke-lyrics-restored-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260727-rhythm-live-clock-1";
+} from "./common.js?v=20260727-karaoke-lyrics-restored-1";
 
-const TEACHER_BUILD_VERSION = "20260727-rhythm-live-clock-1";
+const TEACHER_BUILD_VERSION = "20260727-karaoke-lyrics-restored-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 

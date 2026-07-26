@@ -3,7 +3,7 @@ import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   roomCodeFromUrl, sanitizeGameMarkup, show, toast,
-} from "./common.js?v=20260727-rhythm-live-clock-1";
+} from "./common.js?v=20260727-karaoke-lyrics-restored-1";
 
 const state = {
   roomCode: "",

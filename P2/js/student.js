@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-rhythm-live-clock-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-karaoke-lyrics-restored-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-rhythm-live-clock-1";
+} from "./common.js?v=20260727-karaoke-lyrics-restored-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -1214,10 +1214,10 @@ function renderRhythm() {
             <span class="rhythm-wall-clock" id="rhythmWallClock" aria-label="เวลาปัจจุบัน">🕒 --:--:--</span>
           </div>
         </div>
-        <div class="karaoke-now rhythm-now-status"><small>คำที่กำลังร้อง</small><strong id="karaokeCurrentWord">พร้อม!</strong><div class="karaoke-progress"><i id="karaokeProgressBar"></i></div></div>
       </div>
       <div class="karaoke-stage" id="karaokeStage">
         <div class="grammar-sparkles" aria-hidden="true">${sparkles}</div>
+        <div class="karaoke-now"><small>คำที่กำลังร้อง</small><strong id="karaokeCurrentWord">พร้อม!</strong><div class="karaoke-progress"><i id="karaokeProgressBar"></i></div></div>
         <div class="rhythm-interaction" id="rhythmInteraction"><div class="rhythm-guide-panel"><span>🎤</span><strong>คาราโอเกะเริ่มที่วินาที 22</strong><small>ครูกดเริ่มแล้ว เกมของทุกคนจะเดินพร้อมกันอัตโนมัติ</small></div></div>
         <p class="rhythm-feedback" id="rhythmFeedback" aria-live="polite">รอบแรกมีแสงช่วย รอบสองฟังแล้วเลือกเอง</p>
       </div>
