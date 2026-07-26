@@ -3,7 +3,7 @@ import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   roomCodeFromUrl, sanitizeGameMarkup, show, toast,
-} from "./common.js?v=20260727-expert-ipad-safe-login-4";
+} from "./common.js?v=20260727-expert-responsive-balance-1";
 
 const state = {
   roomCode: "",
