@@ -1201,11 +1201,12 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .rhythm-start-tools > span { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rhythm-start-tools .button { min-height: 34px; padding: 6px 10px; font-size: 11px; white-space: nowrap; }
 .rhythm-control-row { width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 6px; margin: 0; }
-.rhythm-control-row label, .rhythm-timing-control, .rhythm-clock { min-height: 34px; display: flex; align-items: center; gap: 5px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: white; font-size: 11px; font-weight: 900; }
+.rhythm-control-row label, .rhythm-timing-control, .rhythm-clock, .rhythm-wall-clock { min-height: 34px; display: flex; align-items: center; gap: 5px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: white; font-size: 11px; font-weight: 900; }
 .rhythm-control-row select { width: auto; min-height: 26px; height: 26px; margin: 0; padding: 0 22px 0 0; border: 0; outline: 0; color: var(--ink); background: transparent; font: inherit; cursor: pointer; }
 .rhythm-timing-control button { min-width: 40px; min-height: 26px; border: 0; border-radius: 8px; color: #5145ba; background: #eeeaff; font-weight: 900; cursor: pointer; }
 .rhythm-timing-control output { min-width: 68px; color: var(--ink); text-align: center; }
 .rhythm-clock { color: #4f5a7a; font-variant-numeric: tabular-nums; }
+.rhythm-wall-clock { color: #3f318f; border-color: #d9d3ff; background: #f3f0ff; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .karaoke-stage { position: relative; isolation: isolate; width: 100%; min-height: 470px; flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(18px,3vh,34px); padding: clamp(24px,4vw,54px); overflow: hidden; border: 1px solid rgba(255,255,255,.24); border-radius: 28px; color: white; background: radial-gradient(circle at 18% 22%, rgba(255,91,185,.58), transparent 28%), radial-gradient(circle at 82% 20%, rgba(52,214,255,.55), transparent 27%), radial-gradient(circle at 52% 88%, rgba(255,211,67,.45), transparent 32%), linear-gradient(135deg, #21134f 0%, #4422a2 48%, #0f6592 100%); box-shadow: inset 0 0 80px rgba(255,255,255,.08), 0 20px 45px rgba(38,25,105,.28); animation: karaokeBackdrop 8s ease-in-out infinite alternate; }
 .karaoke-stage[data-phase="break"] { background: radial-gradient(circle at 22% 18%, rgba(72,255,198,.5), transparent 30%), radial-gradient(circle at 85% 70%, rgba(255,231,86,.42), transparent 34%), linear-gradient(135deg,#123c5c,#285f7d 48%,#3e3b92); }
 .karaoke-stage[data-phase="challenge"] { background: radial-gradient(circle at 20% 24%, rgba(255,190,60,.48), transparent 30%), radial-gradient(circle at 82% 18%, rgba(255,95,177,.45), transparent 32%), linear-gradient(135deg,#331250,#6c297d 52%,#194b75); }
@@ -1618,7 +1619,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .game-view-controls button { min-width: 0; padding-left: 7px; padding-right: 7px; font-size: 12px; }
   .karaoke-now strong { font-size: clamp(46px,18vw,76px); }
   .rhythm-now-status strong, .rhythm-now-status strong.lyric-line { font-size: clamp(20px,8vw,32px); }
-  .rhythm-control-row label, .rhythm-timing-control, .rhythm-clock { flex: 1 1 auto; justify-content: center; }
+  .rhythm-control-row label, .rhythm-timing-control, .rhythm-clock, .rhythm-wall-clock { flex: 1 1 auto; justify-content: center; }
   .rhythm-sort-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .rhythm-choice-grid { gap: 6px; }
   .rhythm-choice { min-height: 90px; border-radius: 15px; }

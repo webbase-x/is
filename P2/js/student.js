@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-rhythm-projector-timer-3";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-rhythm-live-clock-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-rhythm-projector-timer-3";
+} from "./common.js?v=20260727-rhythm-live-clock-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -959,6 +959,12 @@ function updateStudentLessonCountdown() {
     element.textContent = lessonCountdownLabel();
     element.classList.toggle("is-expired", lessonCountdownMilliseconds() === 0);
   });
+  const wallClock = $("#rhythmWallClock");
+  if (wallClock) {
+    wallClock.textContent = `🕒 ${new Intl.DateTimeFormat("th-TH", {
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+    }).format(new Date())}`;
+  }
 }
 
 function lessonDetailsMarkup(screen = {}) {
@@ -1205,6 +1211,7 @@ function renderRhythm() {
               <span>ปรับคำ</span><button id="rhythmTimingDown" type="button" title="ให้คำช้าลง">−0.5</button><output id="rhythmTimingLabel">ตรงเวลา</output><button id="rhythmTimingUp" type="button" title="ให้คำเร็วขึ้น">+0.5</button>
             </div>
             <span class="rhythm-clock" id="rhythmClock">00:00 / 01:52</span>
+            <span class="rhythm-wall-clock" id="rhythmWallClock" aria-label="เวลาปัจจุบัน">🕒 --:--:--</span>
           </div>
         </div>
         <div class="karaoke-now rhythm-now-status"><small>คำที่กำลังร้อง</small><strong id="karaokeCurrentWord">พร้อม!</strong><div class="karaoke-progress"><i id="karaokeProgressBar"></i></div></div>
@@ -1217,6 +1224,7 @@ function renderRhythm() {
       <audio id="rhythmAudio" class="rhythm-audio" src="sounds/01-01.mp3" preload="metadata" controls></audio>
     </section>`,
   );
+  updateStudentLessonCountdown();
 
   const audio = $("#rhythmAudio");
   const startButton = $("#startRhythm");
