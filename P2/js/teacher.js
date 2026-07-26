@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260727-projector-clock-nav-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-projector-clock-nav-1";
+import { supabase } from "./supabase.js?v=20260727-expert-ipad-safe-login-3";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-expert-ipad-safe-login-3";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260727-projector-clock-nav-1";
+} from "./common.js?v=20260727-expert-ipad-safe-login-3";
 
-const TEACHER_BUILD_VERSION = "20260727-projector-clock-nav-1";
+const TEACHER_BUILD_VERSION = "20260727-expert-ipad-safe-login-3";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -174,7 +174,12 @@ function lessonTimerBroadcastPayload() {
 
 const teacherPageQuery = new URLSearchParams(window.location.search);
 const expertTeacherEmbed = teacherPageQuery.get("embed") === "expert-teacher";
+const expertReviewMode = teacherPageQuery.get("expertReview") === "1";
 if (expertTeacherEmbed) document.body.classList.add("expert-embed", "expert-teacher-embed");
+if (expertReviewMode) {
+  $("#teacherEmail").value = "expert@webbase.x";
+  $("#teacherPassword").value = "";
+}
 
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
 const FLOW_TITLES = {

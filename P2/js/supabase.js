@@ -1,10 +1,11 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.8/+esm";
 import { APP_CONFIG } from "./config.js";
 
-const embedRole = new URLSearchParams(window.location.search).get("embed");
-const isolatedStorageKey = embedRole === "expert-teacher"
+const pageQuery = new URLSearchParams(window.location.search);
+const authScope = pageQuery.get("authScope") || pageQuery.get("embed");
+const isolatedStorageKey = authScope === "expert-teacher"
   ? "thai-game-p2-expert-teacher-auth"
-  : embedRole === "expert-student"
+  : authScope === "expert-student"
     ? "thai-game-p2-expert-student-auth"
     : undefined;
 
