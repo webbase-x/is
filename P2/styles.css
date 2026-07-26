@@ -2076,7 +2076,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .lesson-share-toggle.is-forced input { opacity: .65; }
 
 /* Unified classroom stage for the teacher and projector. */
-.classroom-stage-heading-actions { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; gap: 9px; }
+.classroom-stage-heading-actions { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 9px; }
 .classroom-stage-fullscreen { color: white; border-color: transparent; background: linear-gradient(135deg,#5b4bdb,#3b8e8f); box-shadow: 0 9px 24px rgba(68,56,166,.22); }
 .classroom-stage-fullscreen:hover { color: white; border-color: transparent; background: linear-gradient(135deg,#4939c6,#2f7d7e); }
 .classroom-stage-body { grid-template-columns: minmax(240px,.68fr) minmax(440px,1.62fr); align-items: stretch; }
@@ -2106,6 +2106,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .lesson-game-preview iframe { width: 100%; height: 100%; min-height: inherit; display: block; border: 0; background: white; }
 .projector-preview-badge { position: absolute; right: 12px; top: 10px; z-index: 3; padding: 6px 10px; border: 1px solid rgba(255,255,255,.65); border-radius: 999px; color: #493a00; background: rgba(255,225,115,.94); box-shadow: 0 7px 20px rgba(49,43,99,.15); font-size: 10px; font-weight: 950; pointer-events: none; }
 .classroom-live-results { position: relative; min-height: 220px; margin-top: 16px; overflow: hidden; padding: clamp(14px,1.7vw,21px); border: 1px solid rgba(91,75,219,.17); border-radius: 20px; background: linear-gradient(145deg,#fff,#f7f6ff); isolation: isolate; }
+.lesson-results-stage { width: 100%; height: 100%; min-height: inherit; margin: 0; overflow: auto; border: 0; border-radius: 0; padding: clamp(16px,2.2vw,30px); background: radial-gradient(circle at 50% 0%,#fff8d9,transparent 32%),linear-gradient(145deg,#fff,#f4f2ff); }
 .classroom-live-results .competition-heading { gap: 12px; padding-bottom: 12px; }
 .classroom-live-results .competition-heading h3 { font-size: clamp(22px,2.3vw,31px); }
 .classroom-live-results .competition-ranking-list { grid-template-columns: repeat(auto-fit,minmax(min(100%,270px),1fr)); }
@@ -2113,12 +2114,14 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .classroom-live-results .competition-rank { width: 38px; height: 38px; font-size: 18px; }
 .classroom-live-results .competition-avatar { width: 42px; height: 42px; font-size: 23px; }
 .classroom-live-results.lesson-media-results { min-height: 145px; }
-.classroom-stage-panel.classroom-stage-expanded { position: fixed; inset: 0; z-index: 90; width: 100vw; height: 100dvh; min-height: 0; display: grid; grid-template-rows: auto minmax(0,1fr) minmax(145px,.38fr) auto; padding: 12px clamp(12px,2vw,28px); overflow: hidden; border: 0; border-radius: 0; background: linear-gradient(145deg,#f7f5ff,#eefbf8); }
+.lesson-kind-badge.is-results { color: #795600; background: linear-gradient(135deg,#fff0a9,#ffd869); box-shadow: 0 7px 18px rgba(232,174,31,.18); }
+.classroom-stage-panel.classroom-stage-expanded { position: fixed; inset: 0; z-index: 90; width: 100vw; height: 100dvh; min-height: 0; display: grid; grid-template-rows: auto minmax(0,1fr) auto; padding: 12px clamp(12px,2vw,28px); overflow: hidden; border: 0; border-radius: 0; background: linear-gradient(145deg,#f7f5ff,#eefbf8); }
 .classroom-stage-expanded .lesson-step-heading { min-height: 62px; align-items: center; }
 .classroom-stage-expanded .lesson-step-heading h3 { font-size: clamp(23px,2.3vw,36px); }
 .classroom-stage-expanded .classroom-stage-body { min-height: 0; margin-top: 8px; grid-template-columns: minmax(230px,.6fr) minmax(0,1.75fr); }
 .classroom-stage-expanded .lesson-teacher-notes, .classroom-stage-expanded .lesson-projector-display, .classroom-stage-expanded .lesson-projector-viewport, .classroom-stage-expanded .lesson-game-preview, .classroom-stage-expanded .lesson-game-preview iframe { min-height: 0; height: 100%; }
-.classroom-stage-expanded .classroom-live-results { min-height: 0; margin-top: 9px; padding: 10px 13px; overflow: auto; }
+.classroom-stage-expanded .classroom-live-results { min-height: 0; margin: 0; padding: 10px 13px; overflow: auto; }
+.classroom-stage-expanded .lesson-results-stage { height: 100%; min-height: 0; padding: clamp(12px,1.7vw,24px); }
 .classroom-stage-expanded .competition-heading { position: sticky; top: -10px; z-index: 5; padding: 8px 0 9px; background: rgba(250,249,255,.95); backdrop-filter: blur(12px); }
 .classroom-stage-expanded .competition-heading h3 { font-size: clamp(20px,2vw,28px); }
 .classroom-stage-expanded .competition-heading p { margin: 2px 0 0; font-size: 11px; }
@@ -2195,7 +2198,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .live-room-code strong { font-size: 19px; }
   .live-join-heading, .lesson-step-heading { align-items: stretch; flex-direction: column; }
   .classroom-stage-heading-actions { width: 100%; justify-content: space-between; }
-  .classroom-stage-panel.classroom-stage-expanded { grid-template-rows: auto minmax(0,1fr) 126px auto; padding: 8px; }
+  .classroom-stage-panel.classroom-stage-expanded { grid-template-rows: auto minmax(0,1fr) auto; padding: 8px; }
   .classroom-stage-expanded .lesson-step-heading { min-height: 48px; align-items: center; flex-direction: row; }
   .classroom-stage-expanded .lesson-step-heading p { display: none; }
   .classroom-stage-expanded .classroom-stage-heading-actions { width: auto; }
@@ -2212,7 +2215,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .classroom-stage-expanded .lesson-navigation-buttons { width: 100%; flex-wrap: nowrap; }
   .classroom-stage-expanded .lesson-navigation-buttons .button { min-height: 38px; min-width: 0 !important; padding: 6px 7px; font-size: 10px; }
   .classroom-stage-expanded .competition-heading p, .classroom-stage-expanded .competition-live-meta small { display: none; }
-  .classroom-stage-expanded .classroom-live-results { margin-top: 6px; padding: 6px 9px; }
+  .classroom-stage-expanded .classroom-live-results { margin: 0; padding: 6px 9px; }
   .classroom-stage-expanded .competition-heading { top: -6px; padding: 4px 0 6px; }
   .classroom-stage-expanded .competition-heading h3 { font-size: 18px; }
   .lobby-heading-actions { width: 100%; align-items: stretch; flex-direction: column; }

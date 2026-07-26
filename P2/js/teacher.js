@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260726-projector-stage-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-projector-stage-1";
+import { supabase } from "./supabase.js?v=20260726-postgame-results-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-postgame-results-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260726-projector-stage-1";
+} from "./common.js?v=20260726-postgame-results-1";
 
-const TEACHER_BUILD_VERSION = "20260726-projector-stage-1";
+const TEACHER_BUILD_VERSION = "20260726-postgame-results-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -120,6 +120,8 @@ function restoreLessonFlowState() {
   state.lessonStepKey = step?.key || null;
   state.lessonRoundId = saved?.roundId || `${Date.now()}-${Math.random()}`;
   state.lessonShareStudents = step?.kind === "game" ? true : Boolean(savedStep ? saved?.shareStudents : step?.studentVisibleDefault);
+  state.celebrationActivityKey = step?.kind === "results" ? step.activityKey : null;
+  state.celebrationReason = step?.kind === "results" ? "manual" : null;
   state.lessonTimerExpired = false;
 }
 
@@ -393,7 +395,7 @@ function selectPlan(planId, rerender = true) {
   state.selectedPlanId = plan.id;
   $("#planSelect").value = plan.id;
   $("#selectedPlanTitle").textContent = `แผนที่ ${plan.sequence_no} · ${plan.title}`;
-  $("#activityPreview").innerHTML = lessonFlowForPlan(plan.id).map((step, index) => `<article><span>${step.icon}</span><div><small>${step.kind === "game" ? "เกมนักเรียน" : "สื่อ/คำสั่งครู"} · ลำดับ ${index + 1}</small><strong>${escapeHtml(step.title)}</strong><em>${step.minutes} นาที</em></div></article>`).join("");
+  $("#activityPreview").innerHTML = lessonFlowForPlan(plan.id).map((step, index) => `<article><span>${step.icon}</span><div><small>${step.kind === "game" ? "เกมนักเรียน" : step.kind === "results" ? "ประกาศผลการแข่งขัน" : "สื่อ/คำสั่งครู"} · ลำดับ ${index + 1}</small><strong>${escapeHtml(step.title)}</strong><em>${step.kind === "results" ? "หลังจบเกม" : `${step.minutes} นาที`}</em></div></article>`).join("");
   if (rerender) renderPlanChoices();
 }
 
@@ -597,9 +599,9 @@ function renderActivityControls() {
     <button class="activity-control lesson-flow-control ${step.key === state.lessonStepKey ? "active" : ""} ${index < activeIndex ? "done" : ""}" data-lesson-step="${escapeHtml(step.key)}">
       <span>${step.icon}</span>
       <span>
-        <small>ขั้น ${step.stage} · ${step.kind === "game" ? "เกมนักเรียน" : "สื่อ/คำสั่งครู"}</small>
+        <small>ขั้น ${step.stage} · ${step.kind === "game" ? "เกมนักเรียน" : step.kind === "results" ? "ประกาศผลการแข่งขัน" : "สื่อ/คำสั่งครู"}</small>
         <strong>${index + 1}. ${escapeHtml(step.title)}</strong>
-        <em>${step.minutes} นาที</em>
+        <em>${step.kind === "results" ? "ลำดับถัดไปหลังจบเกม" : `${step.minutes} นาที`}</em>
       </span>
       <i>${step.key === state.lessonStepKey ? "กำลังใช้" : "เปิด →"}</i>
     </button>
@@ -623,14 +625,21 @@ function renderProjectorLessonContent(step) {
   const media = $("#lessonScreenPreview");
   const gamePreview = $("#lessonGamePreview");
   const gameFrame = $("#lessonGamePreviewFrame");
+  const results = $("#competitionArena");
   const modeLabel = $("#projectorModeLabel");
   const planId = Number(state.session?.plan_id || state.selectedPlanId || 1);
   const activity = step?.activityKey ? activityForKey(step.activityKey, planId) : null;
   const showGame = step?.kind === "game" && Boolean(activity);
+  const showResults = step?.kind === "results" && Boolean(activity);
 
-  media.classList.toggle("hidden", showGame);
+  media.classList.toggle("hidden", showGame || showResults);
   gamePreview.classList.toggle("hidden", !showGame);
-  modeLabel.textContent = showGame ? "เกมตัวอย่าง · ไม่บันทึกคะแนน" : "สื่อพร้อมฉาย";
+  results.classList.toggle("hidden", !showResults);
+  modeLabel.textContent = showResults
+    ? "✨ ประกาศผลการแข่งขัน ✨"
+    : showGame
+      ? "เกมตัวอย่าง · ไม่บันทึกคะแนน"
+      : "สื่อพร้อมฉาย";
 
   if (!showGame) {
     if (gameFrame.dataset.previewSrc) {
@@ -660,9 +669,14 @@ function renderCurrentLessonStep() {
   $("#currentActivityLabel").textContent = step?.title || "ยังไม่เริ่มกิจกรรม";
   $("#lessonStageLabel").textContent = step ? `ขั้นที่ ${step.stage} · รายการ ${index + 1} จาก ${flow.length}` : "ลำดับการสอน";
   $("#lessonStepTitle").textContent = step?.title || "เลือกขั้นการสอน";
-  $("#lessonStepMeta").textContent = step ? `${step.minutes} นาที · ${step.kind === "game" ? "เกมบนจอนักเรียน" : "สื่อหรือคำสั่งสำหรับครู"}` : "สื่อ เกม และคำสั่งจะเรียงตามแผนการสอน 60 นาที";
-  $("#lessonStepKind").textContent = step?.kind === "game" ? "🎮 เกมนักเรียน" : "📺 สื่อ/คำสั่ง";
+  $("#lessonStepMeta").textContent = step
+    ? step.kind === "results"
+      ? "ลำดับถัดไปหลังจบเกม · ประกาศอันดับบนจอโปรเจกเตอร์"
+      : `${step.minutes} นาที · ${step.kind === "game" ? "เกมบนจอนักเรียน" : "สื่อหรือคำสั่งสำหรับครู"}`
+    : "สื่อ เกม และคำสั่งจะเรียงตามแผนการสอน 60 นาที";
+  $("#lessonStepKind").textContent = step?.kind === "game" ? "🎮 เกมนักเรียน" : step?.kind === "results" ? "🏆 ประกาศผล" : "📺 สื่อ/คำสั่ง";
   $("#lessonStepKind").classList.toggle("is-game", step?.kind === "game");
+  $("#lessonStepKind").classList.toggle("is-results", step?.kind === "results");
   $("#lessonTeacherNotes").innerHTML = step?.teacherNotes?.length
     ? step.teacherNotes.map(note => `<li>${escapeHtml(note)}</li>`).join("")
     : "<li>เลือกขั้นแรกเพื่อเริ่มสอน</li>";
@@ -672,17 +686,24 @@ function renderCurrentLessonStep() {
   const shareLabel = $("#shareLessonToStudentsLabel");
   const shareInput = $("#shareLessonToStudents");
   const isGame = step?.kind === "game";
-  shareLabel.classList.toggle("is-forced", isGame);
-  shareInput.disabled = !step || isGame;
-  shareInput.checked = Boolean(step && (isGame || state.lessonShareStudents));
-  shareLabel.querySelector("strong").textContent = isGame ? "เกมนี้แสดงบนจอนักเรียนทุกคน" : "แสดงสื่อนี้บนจอนักเรียนด้วย";
+  const isResults = step?.kind === "results";
+  shareLabel.classList.toggle("is-forced", isGame || isResults);
+  shareInput.disabled = !step || isGame || isResults;
+  shareInput.checked = Boolean(step && (isGame || (!isResults && state.lessonShareStudents)));
+  shareLabel.querySelector("strong").textContent = isGame
+    ? "เกมนี้แสดงบนจอนักเรียนทุกคน"
+    : isResults
+      ? "ผลการแข่งขันแสดงบนจอโปรเจกเตอร์"
+      : "แสดงสื่อนี้บนจอนักเรียนด้วย";
   shareLabel.querySelector("small").textContent = isGame
     ? "นักเรียนต้องใช้หน้าจอของตนเองเพื่อทำภารกิจ"
+    : isResults
+      ? "จอนักเรียนหยุดรอ ส่วนครูประกาศอันดับจากหน้าจอนี้"
     : "จอฉายจะแสดงเสมอ ส่วนจอนักเรียนครูเลือกได้";
   $("#previousLessonStepButton").disabled = index <= 0;
-  $("#restartLessonTimerButton").disabled = !step;
+  $("#restartLessonTimerButton").disabled = !step || isResults;
   $("#finishActivityButton").classList.toggle("hidden", !isGame);
-  $("#competitionArena").classList.toggle("lesson-media-results", Boolean(step && !isGame));
+  $("#pauseSessionButton")?.classList.toggle("hidden", isResults);
   renderProjectorLessonContent(step);
 }
 
@@ -732,7 +753,8 @@ function activityTimerStorageKey() {
 }
 
 function activityDurationMs(stepKey = state.lessonStepKey) {
-  return (lessonStepForKey(stepKey, state.session?.plan_id)?.minutes || 10) * 60 * 1000;
+  const step = lessonStepForKey(stepKey, state.session?.plan_id);
+  return (step ? Number(step.minutes) : 10) * 60 * 1000;
 }
 
 function updateActivityCountdown(label) {
@@ -866,20 +888,26 @@ async function startSelectedPlan() {
   }
 }
 
-async function startLessonStep(stepKey) {
+async function startLessonStep(stepKey, options = {}) {
   const step = lessonStepForKey(stepKey, state.session?.plan_id || state.selectedPlanId || 1);
   if (!step) {
     toast("ไม่พบขั้นการสอนนี้ กรุณาเลือกจากลำดับในแผน", "warning");
     return false;
   }
   prepareVictoryAudio();
-  state.celebrationActivityKey = null;
-  state.celebrationReason = null;
+  const isResults = step.kind === "results";
+  if (!options.preserveCelebration) {
+    state.celebrationActivityKey = isResults ? step.activityKey : null;
+    state.celebrationReason = isResults ? (options.reason || "manual") : null;
+  }
   state.lessonStepKey = step.key;
   state.lessonRoundId = crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
   state.lessonShareStudents = step.kind === "game" ? true : Boolean(step.studentVisibleDefault);
   state.lessonTimerExpired = false;
-  const updates = { status: "active", current_activity_key: step.kind === "game" ? step.activityKey : null };
+  const updates = {
+    status: isResults ? "paused" : "active",
+    current_activity_key: step.kind === "game" || isResults ? step.activityKey : null,
+  };
   if (!state.session.started_at) updates.started_at = new Date().toISOString();
   const { data, error } = await supabase.from("class_sessions").update(updates).eq("id", state.session.id).select().single();
   if (error) {
@@ -888,13 +916,18 @@ async function startLessonStep(stepKey) {
   }
   state.session = data;
   saveLessonFlowState();
-  startActivityTimer(step.key, true);
+  if (isResults) {
+    state.activityRemainingMs = 0;
+    stopActivityTimer({ clearSaved: true, label: "ประกาศผล" });
+  } else {
+    startActivityTimer(step.key, true);
+  }
   renderActivityControls();
   renderLiveModeSwitch();
   renderLiveResults();
   $("#pauseSessionButton").textContent = "พักกิจกรรม";
   await broadcastDisplay("lesson-step-started");
-  toast(`เปิด ${step.title} แล้ว`, "success");
+  if (!options.silent) toast(`เปิด ${step.title} แล้ว`, "success");
   return true;
 }
 
@@ -913,6 +946,10 @@ function updateNextActivityButton() {
 async function goToNextActivity() {
   const flow = currentLessonFlow();
   const index = flow.findIndex(item => item.key === state.lessonStepKey);
+  if (flow[index]?.kind === "game") {
+    await finishActivity("manual");
+    return;
+  }
   if (index >= flow.length - 1) return showSessionSummary();
   await startLessonStep(flow[Math.max(index + 1, 0)].key);
 }
@@ -1462,7 +1499,7 @@ async function broadcastDisplay(reason = "state-change") {
       type: "broadcast",
       event: GAME_STATE_EVENT,
       payload: gameStatePayload(state.session, reason, {
-        live_ranking_enabled: state.liveRankingEnabled,
+        live_ranking_enabled: currentLessonStep()?.kind === "results",
         lesson_step: lessonStepBroadcastPayload(),
         lesson_timer: lessonTimerBroadcastPayload(),
       }),
@@ -1717,9 +1754,12 @@ function finishWhenEveryoneSubmitted() {
 
 function currentCompetitionEntries() {
   const policy = state.session?.score_policy || "best";
+  const roundStartedAt = state.activityStartedAt ? new Date(state.activityStartedAt).getTime() - 1000 : 0;
   return state.players.filter(player => player.status === "approved").map(player => {
     const current = state.attempts
-      .filter(item => item.session_player_id === player.id && item.activity_key === state.session.current_activity_key)
+      .filter(item => item.session_player_id === player.id
+        && item.activity_key === state.session.current_activity_key
+        && (!roundStartedAt || new Date(item.completed_at).getTime() >= roundStartedAt))
       .sort((a, b) => Number(a.attempt_no) - Number(b.attempt_no));
     let selected = null;
     if (current.length) {
@@ -1833,7 +1873,7 @@ function renderLiveResults() {
   if (lastUpdate) lastUpdate.textContent = `อัปเดต ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
   if (finishButton) {
     finishButton.disabled = isCelebrating || state.finishingActivity || !state.session.current_activity_key;
-    finishButton.textContent = state.finishingActivity ? "กำลังจบเกม..." : isCelebrating ? "✓ จบเกมแล้ว" : "⏹ จบเกม";
+    finishButton.textContent = state.finishingActivity ? "กำลังจบเกม..." : isCelebrating ? "✓ ประกาศผลแล้ว" : "⏹ จบเกมและประกาศผล";
   }
   if (status) status.textContent = isCelebrating
     ? `${scoresRecorded ? "ประกาศผลแล้ว" : "ประกาศอันดับสดแล้ว"} ${resultCount} คน · พร้อมไปเกมถัดไป`
@@ -1895,6 +1935,12 @@ function playVictorySound() {
 
 async function finishActivity(reason = "manual") {
   if (!state.session?.current_activity_key || state.finishingActivity || state.celebrationActivityKey) return;
+  const finishedActivityKey = state.session.current_activity_key;
+  const flow = currentLessonFlow();
+  const gameIndex = flow.findIndex(step => step.key === state.lessonStepKey && step.kind === "game");
+  const resultsStep = flow[gameIndex + 1]?.kind === "results" && flow[gameIndex + 1]?.activityKey === finishedActivityKey
+    ? flow[gameIndex + 1]
+    : null;
   prepareVictoryAudio();
   state.finishingActivity = true;
   renderLiveResults();
@@ -1905,18 +1951,25 @@ async function finishActivity(reason = "manual") {
     return toast(error.message, "error");
   }
   state.session = data;
-  state.celebrationActivityKey = state.session.current_activity_key;
+  state.celebrationActivityKey = finishedActivityKey;
   state.celebrationReason = reason;
   state.finishingActivity = false;
   stopActivityTimer({ clearSaved: true, label: "จบเกม" });
-  $("#pauseSessionButton").textContent = "เล่นรอบนี้ต่อ";
-  renderLiveResults();
+  if (resultsStep) {
+    await startLessonStep(resultsStep.key, { preserveCelebration: true, silent: true });
+  } else {
+    $("#pauseSessionButton").textContent = "เล่นรอบนี้ต่อ";
+    renderActivityControls();
+    renderLiveResults();
+  }
   playVictorySound();
-  broadcastDisplay();
+  await broadcastDisplay("competition-results");
   void broadcastExpertScoreboard();
-  const message = reason === "manual" ? "จบเกมและประกาศผลแล้ว" : "จบเกมตามคำสั่งครูแล้ว";
+  const message = reason === "manual"
+    ? "จบเกมแล้ว · เปิดลำดับประกาศผลการแข่งขัน"
+    : "เกมจบแล้ว · เปิดลำดับประกาศผลการแข่งขัน";
   toast(message, "success");
-  if (state.flowStep === "live") $("#competitionArena").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (state.flowStep === "live") $("#lessonStepPanel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function toggleCompetitionExpanded() {

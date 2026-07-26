@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-projector-stage-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-postgame-results-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260726-projector-stage-1";
+} from "./common.js?v=20260726-postgame-results-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -973,13 +973,19 @@ function lessonDetailsMarkup(screen = {}) {
 
 function renderLessonMedia(step, shared) {
   const screen = step?.screen || {};
-  const title = shared ? (screen.title || step.title) : "ดูจอหน้าชั้นและฟังคุณครู";
-  const message = shared
+  const isResults = step?.kind === "results";
+  const title = isResults ? "ดูจอโปรเจกเตอร์" : shared ? (screen.title || step.title) : "ดูจอหน้าชั้นและฟังคุณครู";
+  const message = isResults
+    ? "คุณครูกำลังประกาศผลการแข่งขัน ปรบมือให้เพื่อนทุกคน"
+    : shared
     ? (screen.message || "ทำตามคำแนะนำของคุณครู")
     : "ขั้นนี้คุณครูเลือกฉายสื่อบนจอหน้าชั้น นักเรียนเตรียมพร้อมสำหรับกิจกรรมถัดไป";
-  const icon = shared ? (screen.icon || step.icon || "📺") : "👀";
+  const icon = isResults ? "🏆" : shared ? (screen.icon || step.icon || "📺") : "👀";
+  const timeMarkup = isResults
+    ? `<div class="student-lesson-time">ลำดับถัดไป<strong>ประกาศผล</strong></div>`
+    : `<div class="student-lesson-time">เวลาขั้นนี้ <strong data-lesson-countdown>${lessonCountdownLabel()}</strong></div>`;
   $("#gameCanvas").innerHTML = `<section class="student-lesson-media${shared ? " is-shared" : " is-teacher-screen"}">
-    <header><span>${escapeHtml(screen.eyebrow || `ขั้นที่ ${step.stage}`)}</span><div class="student-lesson-time">เวลาขั้นนี้ <strong data-lesson-countdown>${lessonCountdownLabel()}</strong></div></header>
+    <header><span>${escapeHtml(screen.eyebrow || `ขั้นที่ ${step.stage}`)}</span>${timeMarkup}</header>
     <div class="student-lesson-visual">${escapeHtml(icon)}</div>
     <h2>${escapeHtml(title)}</h2>
     <p>${escapeHtml(message)}</p>
@@ -1011,6 +1017,12 @@ function applySessionState() {
   if (state.session.status === "closed") {
     cleanupRhythm();
     return resetJoin("คาบเรียนจบแล้ว ขอบคุณที่ร่วมผจญภัย!");
+  }
+  if (lesson?.kind === "results") {
+    cleanupRhythm();
+    state.renderedActivity = null;
+    if (state.renderedLessonRoundId !== lesson.round_id) renderLessonMedia(lesson, false);
+    return;
   }
   if (mediaIsActive) {
     cleanupRhythm();

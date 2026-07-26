@@ -3,7 +3,7 @@ import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   roomCodeFromUrl, sanitizeGameMarkup, show, toast,
-} from "./common.js?v=20260726-plan1-teaching-flow-1";
+} from "./common.js?v=20260726-postgame-results-1";
 
 const state = {
   roomCode: "",
@@ -143,16 +143,17 @@ function renderSnapshot(leaderboard) {
   const activities = activitiesForPlan(snapshot.plan_id);
   const activity = activityForKey(snapshot.current_activity_key, snapshot.plan_id);
   const lesson = state.lessonStep;
+  const showingResults = lesson?.kind === "results";
   const screen = lesson?.screen || {};
   const paused = snapshot.session_status === "paused";
   $("#displayRoomCode").textContent = snapshot.room_code;
   $("#displayClassName").textContent = `${snapshot.school_name} · ${snapshot.class_label}`;
   $("#displayStageStep").textContent = lesson
-    ? `แผนที่ ${snapshot.plan_id} · ขั้นที่ ${lesson.stage} · ${lesson.kind === "game" ? "เกม" : "สื่อการสอน"}`
+    ? `แผนที่ ${snapshot.plan_id} · ขั้นที่ ${lesson.stage} · ${lesson.kind === "game" ? "เกม" : showingResults ? "ประกาศผลการแข่งขัน" : "สื่อการสอน"}`
     : `แผนที่ ${snapshot.plan_id}${activity ? ` · ภารกิจ ${activities.findIndex(item => item.key === activity.key) + 1}/${activities.length}` : ""}`;
-  $("#displayStageTitle").textContent = paused ? "พักกิจกรรมสักครู่" : screen.title || lesson?.title || activity?.title || "รอนักเรียนเข้าห้อง";
-  $("#displayStageMessage").textContent = paused ? "ครูจะดำเนินการต่อเมื่อทุกคนพร้อม" : screen.message || activityMessages[activity?.key] || "เมื่อทุกคนพร้อม ครูจะเริ่มกิจกรรมแรก";
-  $("#displayActivityVisual").innerHTML = `<span>${paused ? "⏸️" : screen.icon || lesson?.icon || activity?.icon || "🗺️"}</span>`;
+  $("#displayStageTitle").textContent = showingResults ? lesson.title : paused ? "พักกิจกรรมสักครู่" : screen.title || lesson?.title || activity?.title || "รอนักเรียนเข้าห้อง";
+  $("#displayStageMessage").textContent = showingResults ? "ขอเสียงปรบมือให้ผู้เข้าแข่งขันทุกคน" : paused ? "ครูจะดำเนินการต่อเมื่อทุกคนพร้อม" : screen.message || activityMessages[activity?.key] || "เมื่อทุกคนพร้อม ครูจะเริ่มกิจกรรมแรก";
+  $("#displayActivityVisual").innerHTML = `<span>${showingResults ? "🏆" : paused ? "⏸️" : screen.icon || lesson?.icon || activity?.icon || "🗺️"}</span>`;
   const details = $("#displayLessonDetails");
   const detailsMarkup = lesson ? displayLessonDetailsMarkup(screen) : "";
   details.classList.toggle("hidden", !detailsMarkup);

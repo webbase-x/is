@@ -59,7 +59,36 @@ const freezeLessonFlow = steps => Object.freeze(steps.map(step => Object.freeze(
   }),
 })));
 
-const PLAN_1_LESSON_FLOW = freezeLessonFlow([
+const addCompetitionResultSteps = steps => steps.flatMap(step => {
+  if (step.kind !== "game" || !step.activityKey) return [step];
+  return [
+    step,
+    {
+      key: `${step.key}-results`,
+      stage: step.stage,
+      kind: "results",
+      activityKey: step.activityKey,
+      icon: "🏆",
+      title: `✨ ${step.title} · ประกาศผลการแข่งขัน ✨`,
+      minutes: Number(step.resultMinutes || 0),
+      studentVisibleDefault: false,
+      showLeaderboard: true,
+      teacherNotes: [
+        "ประกาศอันดับและชื่นชมความพยายามของนักเรียนทุกคน",
+        "ใช้ผลเพื่อสังเกตนักเรียนที่ควรได้รับคำแนะนำเพิ่มเติม",
+        "เมื่อประกาศผลเรียบร้อยแล้ว ครูเป็นผู้กดขั้นถัดไป",
+      ],
+      screen: {
+        eyebrow: "ลำดับถัดไปหลังจบเกม",
+        title: `ประกาศผล ${step.title}`,
+        message: "ปรบมือให้ผู้เข้าแข่งขันทุกคน แล้วเตรียมเข้าสู่กิจกรรมถัดไป",
+        icon: "🏆",
+      },
+    },
+  ];
+});
+
+const PLAN_1_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
   {
     key: "p1-song",
     stage: 1,
@@ -186,6 +215,7 @@ const PLAN_1_LESSON_FLOW = freezeLessonFlow([
     icon: "🚂",
     title: "ด่านที่ 2 · รถไฟประโยคแม่ ก กา",
     minutes: 14,
+    resultMinutes: 1,
     studentVisibleDefault: true,
     teacherNotes: [
       "ให้นักเรียนเรียงคำเป็นประโยค 10 ข้อจากง่ายไปยาก",
@@ -198,28 +228,6 @@ const PLAN_1_LESSON_FLOW = freezeLessonFlow([
       message: "แตะโบกี้ตามลำดับให้เป็นประโยคที่ถูกต้อง",
       icon: "🚂",
       bullets: ["เรียงคำให้สื่อความหมาย", "อ่านทบทวนก่อนกดตรวจคำตอบ"],
-    },
-  },
-  {
-    key: "p1-score-check",
-    stage: 3,
-    kind: "media",
-    icon: "🏆",
-    title: "ตรวจคะแนนและช่วยเหลือรายบุคคล",
-    minutes: 1,
-    studentVisibleDefault: false,
-    showLeaderboard: true,
-    teacherNotes: [
-      "ฉายกระดานคะแนนเพื่อสร้างแรงจูงใจ",
-      "ดูรายชื่อนักเรียนที่ยังไม่ส่งคำตอบหรือคะแนนต่ำกว่าเกณฑ์",
-      "ให้คำแนะนำสั้น ๆ รายบุคคลก่อนเข้าสู่กิจกรรมกลุ่ม",
-    ],
-    screen: {
-      eyebrow: "พักตรวจความก้าวหน้า",
-      title: "นักผจญภัยกำลังไปได้ดี!",
-      message: "ครูกำลังตรวจผลและช่วยเพื่อนที่ต้องการคำแนะนำ",
-      icon: "🏆",
-      bullets: ["ปรบมือให้ความพยายามของทุกคน", "เตรียมเข้าสู่กิจกรรมกลุ่ม"],
     },
   },
   {
@@ -369,7 +377,7 @@ const PLAN_1_LESSON_FLOW = freezeLessonFlow([
       bullets: ["จำแนกคำ", "วงกลมคำแม่ ก กา", "เรียงคำเป็นประโยค"],
     },
   },
-]);
+]));
 
 export const PLAN_LESSON_FLOWS = Object.freeze({
   1: PLAN_1_LESSON_FLOW,
@@ -378,7 +386,7 @@ export const PLAN_LESSON_FLOWS = Object.freeze({
 export function lessonFlowForPlan(planId = 1) {
   const flow = PLAN_LESSON_FLOWS[Number(planId)];
   if (flow) return flow;
-  return freezeLessonFlow(activitiesForPlan(planId).map((activity, index) => ({
+  return freezeLessonFlow(addCompetitionResultSteps(activitiesForPlan(planId).map((activity, index) => ({
     key: `plan-${Number(planId)}-${activity.key}`,
     stage: index + 1,
     kind: "game",
@@ -394,7 +402,7 @@ export function lessonFlowForPlan(planId = 1) {
       message: "ฟังคำชี้แจงจากคุณครู แล้วเริ่มทำกิจกรรม",
       icon: activity.icon,
     },
-  })));
+  }))));
 }
 
 export function lessonStepForKey(stepKey, planId = 1) {

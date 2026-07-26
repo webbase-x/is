@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17203b">
   <title>จอครู | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260726-projector-stage-1">
+  <link rel="stylesheet" href="styles.css?v=20260726-postgame-results-1">
   <script>
     (() => {
       const url = new URL(location.href);
@@ -175,7 +175,7 @@
                     <label>จำนวนรอบสูงสุด<input id="maxAttempts" type="number" min="1" max="10" value="2"></label>
                     <label>เก็บคะแนน<select id="scorePolicy"><option value="first_and_best">ครั้งแรกและดีที่สุด</option><option value="first">ครั้งแรกเท่านั้น</option><option value="best">ดีที่สุดเท่านั้น</option><option value="latest">ครั้งล่าสุด</option></select></label>
                     <label>จอกระดานคะแนน<select id="leaderboardMode"><option value="nickname_avatar">ชื่อเล่นและอวตาร</option><option value="real_name">ชื่อจริง</option><option value="student_code">รหัสนักเรียน</option><option value="hidden">ไม่แสดงรายชื่อ</option></select></label>
-                    <label class="toggle-field"><span>อันดับระหว่างเล่น</span><input id="liveRankingEnabled" type="checkbox" checked><small>แสดงอันดับบนจอฉายทันที</small></label>
+                    <label class="toggle-field"><span>ประกาศอันดับหลังจบเกม</span><input id="liveRankingEnabled" type="checkbox" checked disabled><small>ไม่แสดงอันดับระหว่างแข่งขัน</small></label>
                     <label>เกณฑ์ผ่าน<input id="passPercent" type="number" min="0" max="100" value="80"></label>
                   </div>
                 </details>
@@ -221,6 +221,7 @@
                       </div>
                       <div class="classroom-stage-heading-actions">
                         <span id="lessonStepKind" class="lesson-kind-badge">เตรียมพร้อม</span>
+                        <button id="finishActivityButton" class="competition-tool-button competition-finish-button hidden" type="button">⏹ จบเกมและประกาศผล</button>
                         <button id="competitionFullscreenButton" class="competition-tool-button classroom-stage-fullscreen" type="button" aria-pressed="false">⛶ <span>ฉายเต็มจอ</span></button>
                       </div>
                     </header>
@@ -242,20 +243,19 @@
                             <iframe id="lessonGamePreviewFrame" title="เกมตัวอย่างสำหรับครู" allow="autoplay; fullscreen"></iframe>
                             <span class="projector-preview-badge">🎮 ทดลองเล่นได้ · ไม่บันทึกคะแนน</span>
                           </div>
+                          <section id="competitionArena" class="classroom-live-results competition-arena lesson-results-stage hidden">
+                            <div class="panel-heading competition-heading">
+                              <div><span class="eyebrow">ประกาศผลหลังจบเกม</span><h3>ผลการแข่งขัน</h3><p id="competitionStatus">เมื่อครูกดจบเกม ระบบจะแสดงอันดับในขั้นถัดไป</p></div>
+                              <div class="competition-live-meta" aria-live="polite"><span id="competitionLiveBadge" class="competition-live-badge"><i></i> รอจบเกม</span><small id="competitionLastUpdate">รอประกาศผล</small></div>
+                              <div class="competition-view-actions">
+                                <button id="competitionSoundButton" class="competition-tool-button" type="button" aria-pressed="true" title="เปิดหรือปิดเสียงประกาศผล">🔊 <span>เสียง</span></button>
+                              </div>
+                            </div>
+                            <div id="liveResults" aria-live="polite"></div>
+                          </section>
                         </div>
                       </section>
                     </div>
-                    <section id="competitionArena" class="classroom-live-results competition-arena">
-                      <div class="panel-heading competition-heading">
-                        <div><span class="eyebrow">อัปเดตแบบเรียลไทม์</span><h3>ผลการแข่งขัน</h3><p id="competitionStatus">จัดอันดับเมื่อส่งคำตอบ และเปิดเวทีรางวัลเมื่อจบเกม</p></div>
-                        <div class="competition-live-meta" aria-live="polite"><span id="competitionLiveBadge" class="competition-live-badge"><i></i> LIVE</span><small id="competitionLastUpdate">รอข้อมูลสด</small></div>
-                        <div class="competition-view-actions">
-                          <button id="finishActivityButton" class="competition-tool-button competition-finish-button" type="button">⏹ จบเกม</button>
-                          <button id="competitionSoundButton" class="competition-tool-button" type="button" aria-pressed="true" title="เปิดหรือปิดเสียงประกาศผล">🔊 <span>เสียง</span></button>
-                        </div>
-                      </div>
-                      <div id="liveResults" aria-live="polite"></div>
-                    </section>
                     <div class="lesson-step-actions">
                       <label id="shareLessonToStudentsLabel" class="lesson-share-toggle">
                         <input id="shareLessonToStudents" type="checkbox">
@@ -356,6 +356,6 @@
   </main>
   <div id="returnDialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="returnDialogTitle"><form id="returnForm" class="modal-card"><h2 id="returnDialogTitle">ส่งข้อมูลกลับให้นักเรียนแก้ไข</h2><input id="returnPlayerId" type="hidden"><label>เหตุผล<select id="returnReason"><option>เลือกชื่อไม่ถูกต้อง</option><option>รูปไม่ชัด กรุณาถ่ายใหม่</option><option>นักเรียนไม่อยู่ในห้องนี้</option><option>ข้อมูลไม่ครบถ้วน</option></select></label><div class="button-row"><button type="button" id="cancelReturn" class="button button-ghost">ยกเลิก</button><button class="button button-danger" type="submit">ส่งคืน</button></div></form></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/teacher.js?v=20260726-projector-stage-1"></script>
+  <script type="module" src="js/teacher.js?v=20260726-postgame-results-1"></script>
 </body>
 </html>
