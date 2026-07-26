@@ -126,7 +126,7 @@ create table if not exists public.game_attempts (
     'mae-kong-box', 'mae-kong-rocket', 'mae-kong-exit',
     'mae-kom-box', 'picture-word', 'mae-kom-exit',
     'yw-sort', 'picture-choice', 'cave-door', 'true-false',
-    'treasure-hunt', 'island-supply', 'space-fuel'
+    'treasure-hunt', 'island-supply', 'space-fuel', 'alien-scan'
   )),
   attempt_no smallint not null check (attempt_no > 0),
   score integer not null check (score >= 0),

@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan7-mae-kop-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan8-mae-kon-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-plan7-mae-kop-1";
+} from "./common.js?v=20260727-plan8-mae-kon-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -213,19 +213,26 @@ const LIVE_PLAN_GAME_DATA = Object.freeze({
   },
   8: {
     title: "มาตราแม่กน", targetLabel: "แม่กน", rule: "ออกเสียงเหมือน น สะกด เขียนด้วย น ญ ณ ร ล หรือ ฬ",
-    target: [["ช้อน","🥄"],["บ้าน","🏠"],["บิน","🪽"],["นอน","🛏️"],["จาน","🍽️"],["ของขวัญ","🎁"],["คุณ","🙂"],["ทหาร","🪖"],["พยาบาล","🧑‍⚕️"],["ปลาวาฬ","🐋"]],
-    compare: [["ช้าง","🐘"],["มด","🐜"],["ดาว","⭐"],["ส้ม","🍊"]],
+    target: [["ค้อน","🔨"],["เดือน","🌙"],["ห่าน","🪿"],["อ้วน","🙂"],["ฝุ่น","🌫️"],["หนอน","🐛"],["กุญแจ","🔑"],["คูณ","✖️"],["โจร","🥷"],["ผล","🍎"]],
+    compare: [["ธง","🚩"],["ส้ม","🍊"],["ปลา","🐟"],["ถ้วย","🥣"],["ดาว","⭐"],["ทุ่ง","🌾"],["บัว","🪷"],["ร่ม","☂️"],["นก","🐦"],["กบ","🐸"]],
     secondary: [
-      { prompt:"คำว่า “พยาบาล” เป็นคำมาตราแม่กน", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🧑‍⚕️" },
-      { prompt:"คำว่า “ของขวัญ” สะกดด้วย ร เรือ", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🎁" },
-      { prompt:"คำว่า “ปลาวาฬ” ออกเสียงท้ายเหมือน น สะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🐋" },
-      { prompt:"คำว่า “ดาว” เป็นคำมาตราแม่กน", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"⭐" },
-      { prompt:"ญ ณ ร ล ฬ เป็นตัวสะกดไม่ตรงมาตราแม่กน", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🧩" },
+      { prompt:"รสของน้ำตาลหรือขนม", options:["หวาน","หวาญ","หวาณ"], answer:"หวาน", reason:"หวาน เขียนด้วย น สะกดตรงมาตรา", emoji:"🍬" },
+      { prompt:"ผู้ทำหน้าที่ป้องกันประเทศ", options:["ทหาน","ทหาร","ทหาล"], answer:"ทหาร", reason:"ทหาร เขียนด้วย ร แต่ออกเสียงเหมือน น สะกด", emoji:"🪖" },
+      { prompt:"สิ่งที่ใช้ไขกุญแจประตู", options:["กุนแจ","กุญแจ","กุณแจ"], answer:"กุญแจ", reason:"กุญแจ เขียนด้วย ญ สะกดไม่ตรงมาตรา", emoji:"🔑" },
+      { prompt:"คำสุภาพที่ใช้เรียกผู้อื่น", options:["คุน","คุณ","คุล"], answer:"คุณ", reason:"คุณ เขียนด้วย ณ สะกดไม่ตรงมาตรา", emoji:"🙂" },
+      { prompt:"สิ่งที่เรากินเพื่อให้อิ่ม", options:["อาหาน","อาหาร","อาหาล"], answer:"อาหาร", reason:"อาหาร เขียนด้วย ร แต่ออกเสียงเหมือน น สะกด", emoji:"🍚" },
+      { prompt:"ผู้ลักขโมยทรัพย์ของผู้อื่น", options:["โจน","โจร","โจล"], answer:"โจร", reason:"โจร เขียนด้วย ร สะกดไม่ตรงมาตรา", emoji:"🥷" },
+      { prompt:"การคิดเลขที่ตรงข้ามกับการหาร", options:["คูน","คูณ","คูล"], answer:"คูณ", reason:"คูณ เขียนด้วย ณ สะกดไม่ตรงมาตรา", emoji:"✖️" },
+      { prompt:"ผู้ดูแลผู้ป่วยในโรงพยาบาล", options:["พยาบาน","พยาบาล","พยาบาร"], answer:"พยาบาล", reason:"พยาบาล เขียนด้วย ล สะกดไม่ตรงมาตรา", emoji:"🧑‍⚕️" },
+      { prompt:"มีความหมายมาก ต้องใส่ใจเป็นพิเศษ", options:["สำคัน","สำคัญ","สำคัณ"], answer:"สำคัญ", reason:"สำคัญ เขียนด้วย ญ สะกดไม่ตรงมาตรา", emoji:"❗" },
+      { prompt:"ผลไม้เปลือกสีแดง เนื้อกรอบ", options:["แอปเปิน","แอปเปิล","แอปเปิร"], answer:"แอปเปิล", reason:"แอปเปิล เขียนด้วย ล สะกดไม่ตรงมาตรา", emoji:"🍎" },
     ],
     exit: [
-      { prompt:"คำใดเป็นแม่กน", options:["บ้าน","ดาว","มด"], answer:"บ้าน" },
-      { prompt:"แม่กนออกเสียงท้ายเหมือนตัวใด", options:["น","ด","บ"], answer:"น" },
-      { prompt:"คำใดสะกดไม่ตรงมาตรา", options:["จาน","บิน","ปลาวาฬ"], answer:"ปลาวาฬ" },
+      { prompt:"คำมาตราแม่กนมีลักษณะอย่างไร", options:["ออกเสียงท้ายเหมือน น สะกด","มี น เป็นตัวสะกดเท่านั้น","ไม่มีตัวสะกด"], answer:"ออกเสียงท้ายเหมือน น สะกด" },
+      { prompt:"พยัญชนะใดใช้สะกดคำมาตราแม่กนได้", options:["น ญ ณ ร ล ฬ","บ ป พ ฟ ภ","ก ข ค ฆ"], answer:"น ญ ณ ร ล ฬ" },
+      { prompt:"คำใดเป็นแม่กนสะกดตรงมาตรา", options:["บาน","คุณ","ทหาร"], answer:"บาน" },
+      { prompt:"คำใดเป็นแม่กนสะกดไม่ตรงมาตรา", options:["คุณ","ดาบ","ปีก"], answer:"คุณ" },
+      { prompt:"ข้อใดเป็นคำมาตราแม่กนทั้ง 2 คำ", options:["ทหาร, ผล","ส้ม, เดือน","ปลา, พยาบาล"], answer:"ทหาร, ผล" },
     ],
   },
 });
@@ -2432,6 +2439,121 @@ function renderMaeKopIslandPuzzle(activityKey, data, activity) {
   render();
 }
 
+function renderMaeKonFuel(activityKey, data, activity) {
+  const questions = shuffle([
+    ...data.target.map(([word, emoji]) => ({ word, emoji, target: true })),
+    ...data.compare.map(([word, emoji]) => ({ word, emoji, target: false })),
+  ]);
+  let index = 0;
+  let score = 0;
+  const answers = [];
+
+  const render = () => {
+    const question = questions[index];
+    const fuel = Math.round((index / questions.length) * 100);
+    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าจะเติมคำนี้ลงถังเชื้อเพลิงหรือส่งผ่านไป", `
+      <section class="mae-kon-fuel-game">
+        <div class="game-status-row"><span>คำที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="mae-kon-space-scene" data-kon-scene>
+          <span class="mae-kon-planet" aria-hidden="true">🪐</span>
+          <span class="mae-kon-rocket" aria-hidden="true">🚀</span>
+          <div class="mae-kon-fuel-meter"><i style="width:${fuel}%"></i><small>เชื้อเพลิง ${fuel}%</small></div>
+          <article class="mae-kon-word-card">
+            <span aria-hidden="true">${question.emoji}</span>
+            <strong>${escapeHtml(question.word)}</strong>
+            <button type="button" class="button button-ghost button-small" data-kon-speak>🔊 ฟังคำ</button>
+          </article>
+        </div>
+        <p class="mae-kong-feedback" data-kon-feedback>คำนี้ออกเสียงท้ายเหมือนมี น สะกดหรือไม่?</p>
+        <div class="mae-kon-action-grid">
+          <button type="button" class="mae-kon-choice target" data-kon-answer="target"><span>⛽</span><strong>เติมเชื้อเพลิง</strong><small>คำมาตราแม่กน</small></button>
+          <button type="button" class="mae-kon-choice other" data-kon-answer="other"><span>➡️</span><strong>ส่งคำนี้ผ่าน</strong><small>คำมาตราอื่น</small></button>
+        </div>
+      </section>`);
+
+    $("[data-kon-speak]")?.addEventListener("click", () => speakThai(question.word));
+    document.querySelectorAll("[data-kon-answer]").forEach(button => button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      document.querySelectorAll("[data-kon-answer]").forEach(item => { item.disabled = true; });
+      const chosen = button.dataset.konAnswer;
+      const expected = question.target ? "target" : "other";
+      const correct = chosen === expected;
+      if (correct) score += 1;
+      answers.push({ prompt: question.word, chosen, correct });
+      button.classList.add(correct ? "correct" : "wrong");
+      document.querySelector(`[data-kon-answer="${expected}"]`)?.classList.add("correct");
+      $("[data-kon-scene]")?.classList.add(question.target ? "is-fueled" : "is-passed");
+      $("[data-kon-feedback]").textContent = question.target
+        ? `“${question.word}” ออกเสียงท้าย /น/ จึงเป็นคำมาตราแม่กน`
+        : `“${question.word}” ไม่ได้ออกเสียงท้าย /น/ จึงเป็นคำมาตราอื่น`;
+      if (correct) speakThai(`ถูกต้อง ${question.word}`);
+      else if (navigator.vibrate) navigator.vibrate([90, 55, 90]);
+      setTimeout(async () => {
+        index += 1;
+        if (index < questions.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, questions.length, answers);
+          if (result) showResult("เติมเชื้อเพลิงยานครบแล้ว", score, questions.length, result, () => renderMaeKonFuel(activityKey, data, activity));
+        }
+      }, 1050);
+    }));
+  };
+
+  render();
+}
+
+function renderMaeKonAlienScan(activityKey, data, activity) {
+  const questions = data.secondary.map(question => ({ ...question }));
+  let index = 0;
+  let score = 0;
+  let busy = false;
+  const answers = [];
+
+  const render = () => {
+    const question = questions[index];
+    busy = false;
+    gameShell(activity.title, "อ่านคำใบ้ แล้วสแกนเลือกรูปเขียนของคำให้ถูกต้อง", `
+      <section class="mae-kon-scan-game">
+        <div class="game-status-row"><span>รหัส ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="mae-kon-scan-scene" data-kon-scan-scene>
+          <span class="mae-kon-ufo" aria-hidden="true">🛸</span>
+          <span class="mae-kon-alien" aria-hidden="true">${question.emoji}</span>
+          <article class="mae-kon-clue"><small>คำใบ้จากต่างดาว</small><strong>${escapeHtml(question.prompt)}</strong></article>
+          <div class="mae-kon-scan-options">${shuffle(question.options).map(option => `<button type="button" data-kon-scan-answer="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join("")}</div>
+          <p class="mae-kong-feedback" data-kon-scan-feedback>สังเกตตัวสะกดให้ละเอียดก่อนเลือก</p>
+        </div>
+      </section>`);
+
+    document.querySelectorAll("[data-kon-scan-answer]").forEach(button => button.addEventListener("click", () => {
+      if (busy) return;
+      busy = true;
+      const chosen = button.dataset.konScanAnswer;
+      const correct = chosen === question.answer;
+      if (correct) score += 1;
+      answers.push({ prompt: question.prompt, chosen, correct });
+      document.querySelectorAll("[data-kon-scan-answer]").forEach(item => {
+        item.disabled = true;
+        if (item.dataset.konScanAnswer === question.answer) item.classList.add("correct");
+      });
+      button.classList.add(correct ? "correct" : "wrong");
+      $("[data-kon-scan-scene]")?.classList.add(correct ? "is-unlocked" : "is-error");
+      $("[data-kon-scan-feedback]").textContent = question.reason;
+      if (correct) speakThai(`ถูกต้อง ${question.answer}`);
+      else if (navigator.vibrate) navigator.vibrate([90, 55, 90]);
+      setTimeout(async () => {
+        index += 1;
+        if (index < questions.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, questions.length, answers);
+          if (result) showResult("ปลดล็อกรหัสต่างดาวครบแล้ว", score, questions.length, result, () => renderMaeKonAlienScan(activityKey, data, activity));
+        }
+      }, 1350);
+    }));
+  };
+
+  render();
+}
+
 function renderLivePlanActivity(activityKey) {
   const planId = Number(state.session?.plan_id || 1);
   const data = LIVE_PLAN_GAME_DATA[planId];
@@ -2481,6 +2603,14 @@ function renderLivePlanActivity(activityKey) {
   }
   if (planId === 7 && activityKey === "island-puzzle") {
     renderMaeKopIslandPuzzle(activityKey, data, activity);
+    return;
+  }
+  if (planId === 8 && activityKey === "space-fuel") {
+    renderMaeKonFuel(activityKey, data, activity);
+    return;
+  }
+  if (planId === 8 && activityKey === "alien-scan") {
+    renderMaeKonAlienScan(activityKey, data, activity);
     return;
   }
 

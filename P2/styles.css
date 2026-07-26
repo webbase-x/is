@@ -2673,3 +2673,52 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .mae-kop-island { font-size: 70px; }
   .mae-kop-riddle-emoji { font-size: 42px; }
 }
+
+.mae-kon-fuel-game,.mae-kon-scan-game { width:min(940px,100%); height:100%; margin:auto; display:grid; gap:clamp(8px,1.7vh,15px); align-content:center; }
+.mae-kon-space-scene { position:relative; display:grid; grid-template-columns:minmax(155px,.78fr) minmax(240px,1.22fr); align-items:center; gap:clamp(12px,3vw,28px); min-height:clamp(190px,34vh,270px); padding:clamp(14px,2.5vh,24px); border-radius:30px; overflow:hidden; background:radial-gradient(circle at 18% 18%,#6e62dc 0 7%,transparent 8%),radial-gradient(circle at 75% 25%,#5141b9 0 4%,transparent 5%),linear-gradient(145deg,#13113c,#342878 60%,#171342); box-shadow:0 18px 42px rgba(22,17,70,.34); }
+.mae-kon-planet { position:absolute; left:3%; top:5%; font-size:clamp(40px,7vh,70px); opacity:.78; }
+.mae-kon-rocket { position:relative; z-index:1; display:grid; place-items:center; min-height:clamp(150px,26vh,220px); font-size:clamp(95px,17vh,155px); filter:drop-shadow(0 15px 12px rgba(0,0,0,.3)); transition:.5s; }
+.mae-kon-space-scene.is-fueled .mae-kon-rocket { animation:konRocketGlow .9s ease both; }
+.mae-kon-fuel-meter { position:absolute; left:5%; bottom:7%; z-index:2; width:min(30%,190px); height:18px; border:2px solid #d9e8ff; border-radius:99px; overflow:visible; background:#17133e; }
+.mae-kon-fuel-meter i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#ffcc4d,#65f6bf); transition:.4s; }
+.mae-kon-fuel-meter small { position:absolute; top:-26px; left:0; color:#fff; white-space:nowrap; font-weight:800; }
+.mae-kon-word-card { position:relative; z-index:1; min-height:clamp(150px,26vh,220px); padding:14px; border:3px solid #c8d7ff; border-radius:26px; background:linear-gradient(145deg,#fff,#edf0ff); display:grid; place-items:center; align-content:center; gap:5px; }
+.mae-kon-word-card>span { font-size:clamp(46px,8vh,76px); line-height:1; }
+.mae-kon-word-card>strong { font-size:clamp(36px,6.5vh,62px); color:#352a96; line-height:1.1; }
+.mae-kon-action-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:clamp(10px,2vw,20px); }
+.mae-kon-choice { min-height:clamp(94px,16vh,138px); border:3px solid transparent; border-radius:24px; padding:10px; cursor:pointer; display:grid; place-items:center; align-content:center; gap:2px; box-shadow:0 12px 28px rgba(34,27,106,.15); transition:.2s; }
+.mae-kon-choice>span { font-size:clamp(32px,5.5vh,50px); }
+.mae-kon-choice>strong { font-size:clamp(20px,3vh,28px); }
+.mae-kon-choice.target { background:linear-gradient(145deg,#dedbff,#f5f4ff); color:#3e319b; }
+.mae-kon-choice.other { background:linear-gradient(145deg,#fff0c4,#fffaf0); color:#775000; }
+.mae-kon-choice.correct,.mae-kon-scan-options button.correct { border-color:#16a36a; background:#dff9ed; color:#087147; }
+.mae-kon-choice.wrong,.mae-kon-scan-options button.wrong { border-color:#e45454; background:#ffe7e7; color:#a52121; animation:shake .35s; }
+@keyframes konRocketGlow { 50% { transform:translateY(-12px); filter:drop-shadow(0 0 34px #8effdf); } 100% { filter:drop-shadow(0 0 20px #f9e87c); } }
+
+.mae-kon-scan-scene { position:relative; min-height:clamp(330px,58vh,500px); padding:clamp(15px,2.5vh,25px); border-radius:30px; overflow:hidden; background:radial-gradient(circle at 12% 20%,#7569d8 0 5%,transparent 6%),linear-gradient(145deg,#121037,#2b2469 64%,#17133f); display:grid; align-content:center; justify-items:center; gap:clamp(9px,1.7vh,16px); box-shadow:0 18px 42px rgba(22,17,70,.34); }
+.mae-kon-ufo { position:absolute; left:4%; top:4%; font-size:clamp(55px,10vh,95px); transition:.45s; }
+.mae-kon-alien { position:absolute; right:5%; top:5%; font-size:clamp(44px,8vh,76px); }
+.mae-kon-scan-scene.is-unlocked .mae-kon-ufo { transform:translateX(30px) rotate(8deg); filter:drop-shadow(0 0 28px #77ffd9); }
+.mae-kon-scan-scene.is-error { animation:shake .35s; }
+.mae-kon-clue { position:relative; z-index:1; width:min(670px,82%); min-height:clamp(105px,18vh,145px); padding:16px; border:3px solid #a99dff; border-radius:24px; background:rgba(255,255,255,.95); display:grid; place-items:center; align-content:center; gap:4px; text-align:center; }
+.mae-kon-clue small { color:#6759c7; font-weight:900; }
+.mae-kon-clue strong { font-size:clamp(24px,4.2vh,38px); line-height:1.35; }
+.mae-kon-scan-options { position:relative; z-index:1; width:min(820px,96%); display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(8px,1.5vw,14px); }
+.mae-kon-scan-options button { min-height:clamp(70px,12vh,100px); border:3px solid #d8d2ff; border-radius:20px; background:#fff; color:#352a96; font-size:clamp(20px,3.3vh,30px); font-weight:900; cursor:pointer; box-shadow:0 10px 24px rgba(20,16,60,.22); }
+.mae-kon-scan-game .mae-kong-feedback { position:relative; z-index:1; margin:0; color:#eef0ff; }
+
+@media (max-width:620px) {
+  .mae-kon-fuel-game,.mae-kon-scan-game { gap:6px; }
+  .mae-kon-space-scene { grid-template-columns:105px minmax(0,1fr); min-height:160px; padding:9px; border-radius:20px; }
+  .mae-kon-rocket { min-height:135px; font-size:88px; }
+  .mae-kon-word-card { min-height:135px; padding:8px; border-radius:18px; }
+  .mae-kon-fuel-meter { width:90px; }
+  .mae-kon-action-grid { gap:8px; }
+  .mae-kon-choice { min-height:96px; border-radius:18px; padding:6px; }
+  .mae-kon-scan-scene { min-height:370px; padding:12px 8px; border-radius:20px; }
+  .mae-kon-clue { width:96%; margin-top:48px; }
+  .mae-kon-scan-options { grid-template-columns:1fr; width:96%; gap:7px; }
+  .mae-kon-scan-options button { min-height:56px; border-radius:15px; }
+  .mae-kon-ufo { font-size:52px; }
+  .mae-kon-alien { font-size:42px; }
+}

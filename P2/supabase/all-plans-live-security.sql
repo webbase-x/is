@@ -12,7 +12,7 @@ alter table public.game_attempts
     'mae-kong-box', 'mae-kong-rocket', 'mae-kong-exit',
     'mae-kom-box', 'picture-word', 'mae-kom-exit',
     'yw-sort', 'picture-choice', 'cave-door', 'true-false',
-    'treasure-hunt', 'island-supply', 'space-fuel'
+    'treasure-hunt', 'island-supply', 'space-fuel', 'alien-scan'
   ));
 
 insert into public.lesson_plans(id, sequence_no, title, published) values
