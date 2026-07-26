@@ -2282,6 +2282,15 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .lesson-screen-card-list > span strong, .lesson-screen-card-list > span small { display: block; }
 .lesson-screen-card-list > span strong { color: white; font-size: 14px; }
 .lesson-screen-card-list > span small { overflow: hidden; color: #d9dcf2; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.lesson-video-frame,
+.display-lesson-video,
+.student-lesson-video { width: min(1100px,100%); aspect-ratio: 16 / 9; overflow: hidden; border: 2px solid rgba(255,255,255,.72); border-radius: clamp(16px,2vw,28px); background: #0c1020; box-shadow: 0 20px 50px rgba(5,8,28,.3); }
+.lesson-video-frame iframe,
+.display-lesson-video iframe,
+.student-lesson-video iframe { width: 100%; height: 100%; display: block; border: 0; }
+.lesson-video-frame { margin-top: 14px; }
+.display-lesson-video { max-height: 58vh; margin: 8px auto 0; }
+.student-lesson-video { max-height: 58vh; margin: 4px auto; }
 .lesson-step-actions { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 16px; padding-top: 15px; border-top: 1px solid #e7e6f1; }
 .lesson-navigation-buttons { width: min(900px,100%); flex: 1 1 650px; display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 8px; }
 .lesson-navigation-buttons .button { min-width: 0; min-height: 50px; white-space: nowrap; }
@@ -2436,6 +2445,35 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .student-lesson-bullets { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; margin: 4px 0; padding: 0; list-style: none; }
 .student-lesson-bullets li { padding: 9px 15px; border-radius: 999px; color: #3f4780; background: #eeebff; font-size: clamp(14px,1.6vw,20px); font-weight: 800; }
 .student-lesson-media.is-teacher-screen { background: radial-gradient(circle at 50% 15%,#ede9ff,transparent 40%),linear-gradient(145deg,#fff,#f6f7fb); }
+.mae-kong-box-game,
+.mae-kong-rocket-game { width: min(1050px,100%); display: grid; gap: clamp(12px,2vh,22px); margin: 0 auto; }
+.mae-kong-conveyor { min-height: clamp(145px,24vh,230px); display: grid; place-items: center; overflow: hidden; border: 2px solid #d9d4ff; border-radius: 24px; background: repeating-linear-gradient(90deg,#f1efff 0 42px,#e7e3ff 42px 84px); box-shadow: inset 0 -14px 0 rgba(57,46,139,.09); }
+.mae-kong-moving-word { min-width: min(330px,78vw); display: grid; place-items: center; gap: 3px; padding: 12px 28px; border: 3px solid white; border-radius: 24px; color: #302671; background: linear-gradient(145deg,#fff,#fff8cf); box-shadow: 0 18px 38px rgba(59,44,151,.22); animation: kongConveyor 1.1s ease both; cursor: grab; }
+.mae-kong-moving-word > span { font-size: clamp(46px,8vw,82px); }
+.mae-kong-moving-word > strong { font-size: clamp(36px,6vw,68px); line-height: 1.1; }
+.mae-kong-moving-word > button { border: 0; color: #5448af; background: transparent; font-weight: 900; cursor: pointer; }
+.mae-kong-moving-word.is-correct { border-color: #32c982; }
+.mae-kong-moving-word.is-wrong { border-color: #f05c72; animation: kongShake .35s ease; }
+.mae-kong-drop-box { min-height: 110px; display: grid; grid-template-columns: auto 1fr; grid-template-areas:"icon title" "icon detail"; align-items: center; column-gap: 16px; padding: 15px 22px; border: 3px dashed #6a5ce1; border-radius: 24px; color: #302671; background: linear-gradient(145deg,#f0edff,#e4fff5); text-align: left; transition: transform .16s ease,background .16s ease; }
+.mae-kong-drop-box.drag-over { transform: scale(1.02); background: #d8fff0; }
+.mae-kong-drop-box > span { grid-area: icon; font-size: 58px; }
+.mae-kong-drop-box > strong { grid-area: title; font-size: clamp(24px,4vw,38px); }
+.mae-kong-drop-box > small { grid-area: detail; color: #68708a; font-weight: 800; }
+.mae-kong-feedback { min-height: 1.5em; margin: 0; color: #5f6780; font-size: clamp(15px,2vw,20px); font-weight: 800; text-align: center; }
+.mae-kong-action-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.mae-kong-rocket-scene { min-height: clamp(180px,30vh,310px); position: relative; display: grid; place-items: center; overflow: hidden; padding: 24px; border-radius: 28px; background: radial-gradient(circle at 80% 16%,#fff5b8 0 8%,transparent 9%),linear-gradient(155deg,#20145d,#5642c8 58%,#8975ef); }
+.mae-kong-rocket { position: absolute; top: 18px; right: clamp(18px,5vw,70px); font-size: clamp(58px,9vw,98px); filter: drop-shadow(0 12px 12px rgba(0,0,0,.25)); transform: rotate(-35deg); }
+.mae-kong-rocket.is-launching { animation: kongLaunch 1.1s ease-in forwards; }
+.mae-kong-sentence-output { width: min(800px,100%); min-height: 90px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; padding: 16px; border: 3px dashed rgba(255,255,255,.55); border-radius: 22px; color: white; font-size: clamp(20px,3vw,32px); font-weight: 900; }
+.mae-kong-sentence-output span { padding: 9px 16px; border-radius: 14px; color: #302671; background: white; box-shadow: 0 6px 0 #cec5ff; }
+.mae-kong-sentence-output.is-correct { border-color: #61efaa; background: rgba(33,205,125,.22); }
+.mae-kong-sentence-output.is-wrong { border-color: #ff8999; animation: kongShake .35s ease; }
+.mae-kong-word-bank { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+.mae-kong-word-bank button { min-width: 90px; padding: 12px 18px; border: 2px solid #d8d2ff; border-radius: 15px; color: #34297b; background: white; box-shadow: 0 6px 0 #e1ddf8; font: inherit; font-size: clamp(20px,3vw,30px); font-weight: 900; cursor: grab; }
+.mae-kong-word-bank button:disabled { opacity: .25; transform: translateY(5px); }
+@keyframes kongConveyor { from { transform: translateX(70vw) rotate(4deg); } to { transform: translateX(0) rotate(0); } }
+@keyframes kongShake { 25% { transform: translateX(-9px); } 50% { transform: translateX(9px); } 75% { transform: translateX(-5px); } }
+@keyframes kongLaunch { to { transform: translate(-90vw,-60vh) rotate(-35deg) scale(.45); opacity: 0; } }
 
 @media (max-width:900px) {
   .lesson-step-layout { grid-template-columns: 1fr; }

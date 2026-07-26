@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-expert-responsive-balance-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan2-mae-kong-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-expert-responsive-balance-1";
+} from "./common.js?v=20260727-plan2-mae-kong-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -65,19 +65,26 @@ function wordEmoji(word) {
 const LIVE_PLAN_GAME_DATA = Object.freeze({
   2: {
     title: "มาตราแม่กง", targetLabel: "แม่กง", rule: "คำที่มี ง เป็นตัวสะกด",
-    target: [["ช้าง","🐘"],["กอง","🪙"],["ธง","🚩"],["ผึ้ง","🐝"],["กางเกง","👖"],["ทุ่ง","🌾"]],
-    compare: [["นก","🐦"],["ขนม","🍪"],["ปู","🦀"],["กุหลาบ","🌹"]],
+    target: [["กอง","🪙"],["ก้าง","🐟"],["กำแพง","🧱"],["กิ่ง","🌿"],["เข่ง","🧺"],["งวง","🐘"],["จูง","🤝"],["ม่วง","🟣"],["ระเบียง","🏠"],["อึ่งอ่าง","🐸"]],
+    compare: [["ขนม","🍪"],["กบ","🐸"],["จาน","🍽️"],["ถ้วย","🥣"],["รถ","🚗"],["ภาพ","🖼️"],["นิ้ว","☝️"],["ผัก","🥬"],["ปลาวาฬ","🐋"],["สนุก","🎉"]],
     secondary: [
-      { prompt:"ประโยคใดมีคำแม่กง", options:["ปูอยู่ในนา","ช้างเดินในทุ่ง","แมวกินปลา"], answer:"ช้างเดินในทุ่ง", emoji:"🚀" },
-      { prompt:"เลือกคำแม่กงมาเติม: ผึ้งบินกลับ ___", options:["รัง","นา","บ่อ"], answer:"รัง", emoji:"🐝" },
-      { prompt:"เลือกคำแม่กงมาเติม: เด็กถือ ___ สีแดง", options:["ธง","ปลา","นก"], answer:"ธง", emoji:"🚩" },
-      { prompt:"คำใดใช้แต่งประโยคเกี่ยวกับเสื้อผ้า", options:["กางเกง","ทุ่ง","กอง"], answer:"กางเกง", emoji:"👖" },
-      { prompt:"คำใดมีเสียง ง อยู่ท้ายคำ", options:["ทาง","ตา","กบ"], answer:"ทาง", emoji:"🛣️" },
+      { prompt:"เรียงคำให้เป็นประโยค", options:["ผึ้งทำรัง","รังทำผึ้ง","ทำรังผึ้ง"], answer:"ผึ้งทำรัง", emoji:"🐝" },
+      { prompt:"เรียงคำให้เป็นประโยค", options:["พี่ตีระฆัง","ระฆังตีพี่","ตีพี่ระฆัง"], answer:"พี่ตีระฆัง", emoji:"🔔" },
+      { prompt:"เรียงคำให้เป็นประโยค", options:["น้องถือธง","ธงถือน้อง","ถือน้องธง"], answer:"น้องถือธง", emoji:"🚩" },
+      { prompt:"เรียงคำให้เป็นประโยค", options:["ตาจูงวัว","วัวจูงตา","จูงตาวัว"], answer:"ตาจูงวัว", emoji:"🐄" },
+      { prompt:"เรียงคำให้เป็นประโยค", options:["ควายกินฟาง","ฟางกินควาย","กินควายฟาง"], answer:"ควายกินฟาง", emoji:"🌾" },
+      { prompt:"เรียงคำให้เป็นประโยค", options:["แม่ซื้อกระถาง","กระถางซื้อแม่","ซื้อแม่กระถาง"], answer:"แม่ซื้อกระถาง", emoji:"🪴" },
+      { prompt:"เรียงคำให้เป็นประโยค", options:["พ่อทาสีกำแพง","กำแพงทาสีพ่อ","ทาสีพ่อกำแพง"], answer:"พ่อทาสีกำแพง", emoji:"🧱" },
+      { prompt:"เรียงคำให้เป็นประโยค", options:["ปลาอยู่ในบึง","บึงอยู่ในปลา","อยู่ปลาบึงใน"], answer:"ปลาอยู่ในบึง", emoji:"🐟" },
+      { prompt:"เรียงคำให้เป็นประโยค", options:["พี่ปีนต้นไม้สูง","ต้นไม้สูงปีนพี่","สูงพี่ปีนต้นไม้"], answer:"พี่ปีนต้นไม้สูง", emoji:"🌳" },
+      { prompt:"เรียงคำให้เป็นประโยค", options:["ยายปลูกดอกไม้สีม่วง","ดอกไม้ปลูกยายสีม่วง","สีม่วงยายดอกไม้ปลูก"], answer:"ยายปลูกดอกไม้สีม่วง", emoji:"🌸" },
     ],
     exit: [
-      { prompt:"คำใดอยู่ในมาตราแม่กง", options:["กา","ช้าง","นก"], answer:"ช้าง" },
-      { prompt:"ตัวสะกดของมาตราแม่กงคือข้อใด", options:["ง","ก","บ"], answer:"ง" },
-      { prompt:"ประโยคใดมีคำแม่กง", options:["ปูอยู่ในนา","ช้างเดินในทุ่ง","แมวกินปลา"], answer:"ช้างเดินในทุ่ง" },
+      { prompt:"คำมาตราแม่กงมีลักษณะอย่างไร", options:["มี ง เป็นตัวสะกด","ไม่มีตัวสะกด","มี ก เป็นตัวสะกด"], answer:"มี ง เป็นตัวสะกด" },
+      { prompt:"คำใดอยู่ในมาตราแม่กง", options:["ฟาง","ปลา","ลม"], answer:"ฟาง" },
+      { prompt:"คำใดไม่ใช่คำมาตราแม่กง", options:["ผึ้ง","แรง","นก"], answer:"นก" },
+      { prompt:"ข้อใดเป็นคำมาตราแม่กงทั้ง 2 คำ", options:["ธง, รัง","ปลา, ฟาง","ลม, นก"], answer:"ธง, รัง" },
+      { prompt:"ตัวสะกดของคำว่า “กำแพง” คือข้อใด", options:["ง","ม","ก"], answer:"ง" },
     ],
   },
   3: {
@@ -969,6 +976,14 @@ function updateStudentLessonCountdown() {
 }
 
 function lessonDetailsMarkup(screen = {}) {
+  if (screen.presentation === "video" && screen.videoId) {
+    const videoId = String(screen.videoId).replace(/[^A-Za-z0-9_-]/g, "");
+    if (videoId) {
+      return `<div class="student-lesson-video">
+        <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&playsinline=1" title="${escapeHtml(screen.title || "วิดีโอประกอบการสอน")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      </div>`;
+    }
+  }
   if (Array.isArray(screen.cards) && screen.cards.length) {
     if (screen.presentation === "flashcards") {
       const cardIndex = Math.min(screen.cards.length - 1, Math.max(0, Number(state.lessonStep?.card_index) || 0));
@@ -1664,6 +1679,185 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
   render();
 }
 
+function renderMaeKongBox(activityKey, data, activity) {
+  const items = shuffle([
+    ...data.target.map(([word, emoji]) => ({ word, emoji, target: true })),
+    ...data.compare.map(([word, emoji]) => ({ word, emoji, target: false })),
+  ]);
+  let index = 0;
+  let score = 0;
+  let busy = false;
+  const answers = [];
+
+  const render = () => {
+    const item = items[index];
+    gameShell(activity.title, "อ่านคำ แล้วลากเฉพาะคำแม่กงลงกล่อง ส่วนคำอื่นให้ส่งต่อ", `
+      <section class="mae-kong-box-game">
+        <div class="game-status-row"><span>คำที่ ${index + 1} / ${items.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="mae-kong-conveyor" aria-label="สายพานคำ">
+          <article class="mae-kong-moving-word" draggable="true" tabindex="0">
+            <span aria-hidden="true">${item.emoji}</span>
+            <strong>${escapeHtml(item.word)}</strong>
+            <button type="button" data-kong-speak>🔊 ฟังคำ</button>
+          </article>
+        </div>
+        <div class="mae-kong-drop-box" data-kong-drop>
+          <span aria-hidden="true">📦</span>
+          <strong>กล่องคำแม่กง</strong>
+          <small>วางเฉพาะคำที่มี ง เป็นตัวสะกด</small>
+        </div>
+        <p class="mae-kong-feedback" data-kong-feedback>พิจารณาตัวสะกดให้ดีก่อนตอบ</p>
+        <div class="mae-kong-action-row">
+          <button class="button button-primary" type="button" data-kong-answer="target">ใส่กล่องแม่กง</button>
+          <button class="button button-ghost" type="button" data-kong-answer="other">ส่งคำนี้ต่อ</button>
+        </div>
+      </section>`);
+
+    const card = $(".mae-kong-moving-word");
+    const box = $("[data-kong-drop]");
+    const feedback = $("[data-kong-feedback]");
+    const buttons = [...document.querySelectorAll("[data-kong-answer]")];
+    const resolve = async chosen => {
+      if (busy) return;
+      busy = true;
+      const correct = (chosen === "target") === item.target;
+      if (correct) score += 1;
+      answers.push({ prompt: item.word, chosen, correct });
+      document.querySelector(`[data-kong-answer="${chosen}"]`)?.classList.add(correct ? "correct" : "wrong");
+      card.classList.add(correct ? "is-correct" : "is-wrong");
+      feedback.textContent = correct
+        ? item.target ? `ถูกต้อง “${item.word}” มี ง เป็นตัวสะกด` : `ถูกต้อง “${item.word}” ไม่ใช่คำแม่กง`
+        : item.target ? `ลองสังเกตอีกครั้ง “${item.word}” ลงท้ายด้วย ง` : `คำว่า “${item.word}” ไม่ได้มี ง เป็นตัวสะกด`;
+      buttons.forEach(button => { button.disabled = true; });
+      if (!correct && navigator.vibrate) navigator.vibrate([90, 55, 90]);
+      setTimeout(async () => {
+        index += 1;
+        busy = false;
+        if (index < items.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, items.length, answers);
+          if (result) showResult("คัดคำลงกล่องครบแล้ว", score, items.length, result, () => renderMaeKongBox(activityKey, data, activity));
+        }
+      }, 950);
+    };
+
+    card.addEventListener("dragstart", event => event.dataTransfer.setData("text/plain", "target"));
+    box.addEventListener("dragover", event => { event.preventDefault(); box.classList.add("drag-over"); });
+    box.addEventListener("dragleave", () => box.classList.remove("drag-over"));
+    box.addEventListener("drop", event => { event.preventDefault(); box.classList.remove("drag-over"); resolve("target"); });
+    buttons.forEach(button => button.addEventListener("click", () => resolve(button.dataset.kongAnswer)));
+    $("[data-kong-speak]")?.addEventListener("click", event => {
+      event.stopPropagation();
+      speakThai(item.word);
+    });
+  };
+
+  render();
+}
+
+function renderMaeKongRocket(activityKey, activity) {
+  const sentences = shuffle([
+    ["ผึ้ง", "ทำ", "รัง"],
+    ["พี่", "ตี", "ระฆัง"],
+    ["น้อง", "ถือ", "ธง"],
+    ["ตา", "จูง", "วัว"],
+    ["ควาย", "กิน", "ฟาง"],
+    ["แม่", "ซื้อ", "กระถาง"],
+    ["พ่อ", "ทา", "สี", "กำแพง"],
+    ["ปลา", "อยู่", "ใน", "บึง"],
+    ["พี่", "ปีน", "ต้นไม้", "สูง"],
+    ["ยาย", "ปลูก", "ดอกไม้", "สีม่วง"],
+  ]);
+  let index = 0;
+  let score = 0;
+  let firstTry = true;
+  let selected = [];
+  const answers = [];
+
+  const render = () => {
+    const sentence = sentences[index];
+    const bank = shuffle(sentence.map((word, wordIndex) => ({ word, id: `${index}-${wordIndex}` })));
+    selected = [];
+    firstTry = true;
+    gameShell(activity.title, "แตะหรือลากคำตามลำดับให้เป็นประโยค แล้วปล่อยจรวด", `
+      <section class="mae-kong-rocket-game">
+        <div class="game-status-row"><span>ประโยค ${index + 1} / ${sentences.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="mae-kong-rocket-scene">
+          <span class="mae-kong-rocket" aria-hidden="true">🚀</span>
+          <div class="mae-kong-sentence-output" data-kong-sentence-output>แตะคำเพื่อเติมเชื้อเพลิง</div>
+        </div>
+        <div class="mae-kong-word-bank">${bank.map(item => `<button type="button" draggable="true" data-kong-word="${escapeHtml(item.id)}" data-word="${escapeHtml(item.word)}">${escapeHtml(item.word)}</button>`).join("")}</div>
+        <p class="mae-kong-feedback" data-kong-feedback>อ่านประโยคในใจ แล้วเลือกคำให้ครบ</p>
+        <div class="mae-kong-action-row">
+          <button class="button button-ghost" type="button" data-kong-reset>เริ่มเรียงใหม่</button>
+          <button class="button button-primary" type="button" data-kong-check>ตรวจและปล่อยจรวด</button>
+        </div>
+      </section>`);
+
+    const output = $("[data-kong-sentence-output]");
+    const feedback = $("[data-kong-feedback]");
+    const paint = () => {
+      output.innerHTML = selected.length
+        ? selected.map(item => `<span>${escapeHtml(item.word)}</span>`).join("")
+        : "แตะคำเพื่อเติมเชื้อเพลิง";
+    };
+    const choose = button => {
+      if (!button || button.disabled) return;
+      button.disabled = true;
+      selected.push({ id: button.dataset.kongWord, word: button.dataset.word });
+      paint();
+    };
+    const reset = () => {
+      selected = [];
+      document.querySelectorAll("[data-kong-word]").forEach(button => { button.disabled = false; });
+      output.classList.remove("is-correct", "is-wrong");
+      paint();
+    };
+    document.querySelectorAll("[data-kong-word]").forEach(button => {
+      button.addEventListener("click", () => choose(button));
+      button.addEventListener("dragstart", event => event.dataTransfer.setData("text/plain", button.dataset.kongWord));
+    });
+    output.addEventListener("dragover", event => event.preventDefault());
+    output.addEventListener("drop", event => {
+      event.preventDefault();
+      choose(document.querySelector(`[data-kong-word="${CSS.escape(event.dataTransfer.getData("text/plain"))}"]`));
+    });
+    $("[data-kong-reset]")?.addEventListener("click", reset);
+    $("[data-kong-check]")?.addEventListener("click", async () => {
+      if (selected.length !== sentence.length) {
+        feedback.textContent = "เลือกคำให้ครบทุกคำก่อนนะ";
+        return;
+      }
+      const response = selected.map(item => item.word).join(" ");
+      const answer = sentence.join(" ");
+      if (response !== answer) {
+        firstTry = false;
+        output.classList.add("is-wrong");
+        feedback.textContent = "ลำดับยังไม่ถูก ลองอ่านใหม่แล้วเรียงอีกครั้ง";
+        if (navigator.vibrate) navigator.vibrate([90, 55, 90]);
+        setTimeout(reset, 700);
+        return;
+      }
+      if (firstTry) score += 1;
+      answers.push({ prompt: answer, chosen: response, correct: firstTry });
+      output.classList.add("is-correct");
+      $(".mae-kong-rocket")?.classList.add("is-launching");
+      feedback.textContent = "ประโยคถูกต้อง จรวดพุ่งทะยานแล้ว!";
+      speakThai(answer);
+      setTimeout(async () => {
+        index += 1;
+        if (index < sentences.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, sentences.length, answers);
+          if (result) showResult("จรวดครบทุกประโยคแล้ว", score, sentences.length, result, () => renderMaeKongRocket(activityKey, activity));
+        }
+      }, 1200);
+    });
+  };
+
+  render();
+}
+
 function renderLivePlanActivity(activityKey) {
   const planId = Number(state.session?.plan_id || 1);
   const data = LIVE_PLAN_GAME_DATA[planId];
@@ -1672,6 +1866,15 @@ function renderLivePlanActivity(activityKey) {
   const activity = activities[activityIndex];
   if (!data || !activity || activityIndex < 0) {
     $("#gameCanvas").innerHTML = `<div class="empty-stage"><span>🧭</span><h2>ยังไม่พบกิจกรรมนี้</h2><p>กรุณาแจ้งครูให้เลือกกิจกรรมจากแผนปัจจุบันอีกครั้ง</p></div>`;
+    return;
+  }
+
+  if (planId === 2 && activityKey === "mae-kong-box") {
+    renderMaeKongBox(activityKey, data, activity);
+    return;
+  }
+  if (planId === 2 && activityKey === "mae-kong-rocket") {
+    renderMaeKongRocket(activityKey, activity);
     return;
   }
 
@@ -1690,7 +1893,7 @@ function renderLivePlanActivity(activityKey) {
     const source = activityIndex === activities.length - 1 ? data.exit : data.secondary;
     questions = shuffle(source).map(question => ({ ...question, options: shuffle(question.options) }));
     instruction = activityIndex === activities.length - 1
-      ? `ตอบให้ถูกอย่างน้อย 2 จาก ${source.length} ข้อ`
+      ? `ตอบให้ถูกอย่างน้อย ${planId === 2 ? 3 : 2} จาก ${source.length} ข้อ`
       : "อ่านหรือฟังโจทย์ แล้วเลือกคำตอบที่ถูกต้อง";
   }
 

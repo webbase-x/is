@@ -3,7 +3,7 @@ import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   roomCodeFromUrl, sanitizeGameMarkup, show, toast,
-} from "./common.js?v=20260727-expert-responsive-balance-1";
+} from "./common.js?v=20260727-plan2-mae-kong-1";
 
 const state = {
   roomCode: "",
@@ -129,6 +129,14 @@ function updateDisplayLessonCountdown() {
 }
 
 function displayLessonDetailsMarkup(screen = {}) {
+  if (screen.presentation === "video" && screen.videoId) {
+    const videoId = String(screen.videoId).replace(/[^A-Za-z0-9_-]/g, "");
+    if (videoId) {
+      return `<div class="display-lesson-video">
+        <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&playsinline=1" title="${escapeHtml(screen.title || "วิดีโอประกอบการสอน")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      </div>`;
+    }
+  }
   if (Array.isArray(screen.cards) && screen.cards.length) {
     if (screen.presentation === "flashcards") {
       const cardIndex = Math.min(screen.cards.length - 1, Math.max(0, Number(state.lessonStep?.card_index) || 0));

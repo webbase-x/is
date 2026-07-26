@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260727-expert-responsive-balance-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-expert-responsive-balance-1";
+import { supabase } from "./supabase.js?v=20260727-plan2-mae-kong-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-plan2-mae-kong-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260727-expert-responsive-balance-1";
+} from "./common.js?v=20260727-plan2-mae-kong-1";
 
-const TEACHER_BUILD_VERSION = "20260727-expert-responsive-balance-1";
+const TEACHER_BUILD_VERSION = "20260727-plan2-mae-kong-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -646,6 +646,14 @@ function renderActivityControls() {
 }
 
 function lessonScreenDetailsMarkup(screen = {}) {
+  if (screen.presentation === "video" && screen.videoId) {
+    const videoId = String(screen.videoId).replace(/[^A-Za-z0-9_-]/g, "");
+    if (videoId) {
+      return `<div class="lesson-video-frame">
+        <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&playsinline=1" title="${escapeHtml(screen.title || "วิดีโอประกอบการสอน")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      </div>`;
+    }
+  }
   if (Array.isArray(screen.cards) && screen.cards.length) {
     if (screen.presentation === "flashcards") {
       const cardIndex = Math.min(screen.cards.length - 1, Math.max(0, Number(state.lessonCardIndex) || 0));
