@@ -1,5 +1,5 @@
-import { $ } from "./common.js?v=20260727-plan5-mae-kok-1";
-import { PLAN_CATALOG, getPlanById } from "./plan-catalog.js?v=20260727-plan5-mae-kok-1";
+import { $ } from "./common.js?v=20260727-plan6-mae-kot-1";
+import { PLAN_CATALOG, getPlanById } from "./plan-catalog.js?v=20260727-plan6-mae-kot-1";
 
 let activePlanId = "01";
 
@@ -14,8 +14,8 @@ const WORD_GROUP_META = Object.freeze({
   maeKom: ["คำมาตราแม่กม", "mae-kaka"],
   maeKoei: ["คำมาตราแม่เกย", "mae-kaka"],
   maeKoew: ["คำมาตราแม่เกอว", "final-sound"],
-  direct: ["คำแม่กกสะกดตรงมาตรา (ก)", "mae-kaka"],
-  irregular: ["คำแม่กกสะกดไม่ตรงมาตรา (ข ค ฆ)", "final-sound"],
+  direct: ["คำสะกดตรงมาตรา", "mae-kaka"],
+  irregular: ["คำสะกดไม่ตรงมาตรา", "final-sound"],
   primary: ["คำตัวอย่างในมาตรานี้", "mae-kaka"],
   compare: ["คำมาตราอื่น เพื่อเปรียบเทียบ", "final-sound"],
 });

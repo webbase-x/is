@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan5-mae-kok-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan6-mae-kot-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-plan5-mae-kok-1";
+} from "./common.js?v=20260727-plan6-mae-kot-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -164,20 +164,27 @@ const LIVE_PLAN_GAME_DATA = Object.freeze({
     ],
   },
   6: {
-    title: "มาตราแม่กด", targetLabel: "แม่กด", rule: "ออกเสียงเหมือน ด สะกด",
-    target: [["มด","🐜"],["เห็ด","🍄"],["เป็ด","🦆"],["กวาด","🧹"],["ตำรวจ","👮"],["รถ","🚗"],["โกรธ","😠"],["กระดาษ","📄"],["โอกาส","🎯"]],
-    compare: [["ช้าง","🐘"],["ดาว","⭐"],["ปาก","👄"],["กล้วย","🍌"]],
+    title: "มาตราแม่กด", targetLabel: "แม่กด", rule: "ออกเสียงเหมือน ด สะกด แม้เขียนด้วยพยัญชนะต่างรูป",
+    target: [["จุด","📍"],["เผ็ด","🌶️"],["ปัด","👋"],["หลุด","💨"],["ตลอด","♾️"],["ผักกาด","🥬"],["ตรวจ","🔍"],["บาท","💵"],["ทิศ","🧭"],["รส","👅"]],
+    compare: [["กบ","🐸"],["จาน","🍽️"],["ส้ม","🍊"],["ปลา","🐟"],["ถ้วย","🥣"],["ดาว","⭐"],["ทุ่ง","🌾"],["บัว","🪷"],["ร่ม","☂️"],["ยาว","📏"]],
     secondary: [
-      { prompt:"คำว่า “โอกาส” เป็นคำมาตราแม่กด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🎯" },
-      { prompt:"คำว่า “ตำรวจ” สะกดด้วย ช ช้าง", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"👮" },
-      { prompt:"คำว่า “รถ” ออกเสียงท้ายเหมือน ด สะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🚗" },
-      { prompt:"คำว่า “ดาว” เป็นคำมาตราแม่กด", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"⭐" },
-      { prompt:"คำว่า “เห็ด” มี ด เป็นตัวสะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🍄" },
+      { prompt:"สัตว์ตัวเล็กสีดำ ชอบขนอาหารเป็นแถว", options:["มด","มถ","มท"], answer:"มด", emoji:"🐜" },
+      { prompt:"ยานพาหนะที่มีล้อ ใช้เดินทาง", options:["รด","รถ","รส"], answer:"รถ", emoji:"🚗" },
+      { prompt:"สถานที่ซื้อขายสินค้า", options:["ตลาด","ตลาต","ตลาส"], answer:"ตลาด", emoji:"🏪" },
+      { prompt:"สิ่งมีชีวิตที่ปลูกได้ เช่น ต้นไม้", options:["พืด","พืช","พืส"], answer:"พืช", emoji:"🌱" },
+      { prompt:"รู้สึกโมโหมาก", options:["โกรด","โกรธ","โกรส"], answer:"โกรธ", emoji:"😠" },
+      { prompt:"ผลไม้เปลือกแข็งสีม่วง เนื้อสีขาว", options:["มังคุด","มังคุต","มังคุถ"], answer:"มังคุด", emoji:"🟣" },
+      { prompt:"เจ้าหน้าที่ผู้รักษากฎหมาย", options:["ตำรวด","ตำรวจ","ตำรวช"], answer:"ตำรวจ", emoji:"👮" },
+      { prompt:"สภาพฟ้าฝนร้อนหรือเย็น", options:["อากาด","อากาศ","อากาษ"], answer:"อากาศ", emoji:"🌤️" },
+      { prompt:"ทางที่ชี้ไป เช่น เหนือ ใต้ ออก ตก", options:["ทิด","ทิศ","ทิษ"], answer:"ทิศ", emoji:"🧭" },
+      { prompt:"ของใช้คาดเอวไว้กับกางเกง", options:["เข็มขัด","เข็มขัต","เข็มขัถ"], answer:"เข็มขัด", emoji:"🩳" },
     ],
     exit: [
-      { prompt:"คำใดเป็นแม่กด", options:["รถ","ดาว","ปาก"], answer:"รถ" },
-      { prompt:"แม่กดออกเสียงท้ายเหมือนตัวใด", options:["ก","ด","บ"], answer:"ด" },
-      { prompt:"คำใดเขียนด้วยตัวสะกดไม่ตรงมาตรา", options:["มด","เป็ด","โกรธ"], answer:"โกรธ" },
+      { prompt:"คำมาตราแม่กดมีลักษณะอย่างไร", options:["ออกเสียงท้ายเหมือน ด สะกด","มี ด เป็นตัวสะกดเท่านั้น","ไม่มีตัวสะกด"], answer:"ออกเสียงท้ายเหมือน ด สะกด" },
+      { prompt:"ข้อใดเป็นกลุ่มตัวสะกดในมาตราแม่กด", options:["ด จ ช ต ถ ท ธ ศ ษ ส","ก ข ค ฆ","บ ป พ ฟ ภ"], answer:"ด จ ช ต ถ ท ธ ศ ษ ส" },
+      { prompt:"คำใดเป็นแม่กดสะกดตรงมาตรา", options:["สด","รถ","โกรธ"], answer:"สด" },
+      { prompt:"คำใดเป็นแม่กดสะกดไม่ตรงมาตรา", options:["รถ","ลม","ปีก"], answer:"รถ" },
+      { prompt:"ข้อใดเป็นคำมาตราแม่กดทั้ง 2 คำ", options:["โทษ, ชาติ","ส้ม, หวัด","ปลา, อิฐ"], answer:"โทษ, ชาติ" },
     ],
   },
   7: {
@@ -2202,6 +2209,68 @@ function renderMaeKokCave(activityKey, data, activity) {
   render();
 }
 
+function renderMaeKotTreasure(activityKey, data, activity) {
+  const questions = shuffle([
+    ...data.target.map(([word, emoji]) => ({ word, emoji, target: true })),
+    ...data.compare.map(([word, emoji]) => ({ word, emoji, target: false })),
+  ]);
+  let index = 0;
+  let score = 0;
+  const answers = [];
+
+  const render = () => {
+    const question = questions[index];
+    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าจะเก็บลงหีบแม่กดหรือส่งคำนี้ผ่านไป", `
+      <section class="mae-kot-treasure-game">
+        <div class="game-status-row"><span>คำที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="mae-kot-treasure-scene" data-kot-scene>
+          <div class="mae-kot-chest" aria-hidden="true"><span>🧰</span><i>✨</i></div>
+          <article class="mae-kot-word-card">
+            <span aria-hidden="true">${question.emoji}</span>
+            <strong>${escapeHtml(question.word)}</strong>
+            <button type="button" class="button button-ghost button-small" data-kot-speak>🔊 ฟังคำ</button>
+          </article>
+        </div>
+        <p class="mae-kong-feedback" data-kot-feedback>คำนี้ออกเสียงท้ายเหมือนมี ด สะกดหรือไม่?</p>
+        <div class="mae-kot-action-grid">
+          <button type="button" class="mae-kot-choice target" data-kot-answer="target"><span>💰</span><strong>เก็บลงหีบ</strong><small>คำมาตราแม่กด</small></button>
+          <button type="button" class="mae-kot-choice other" data-kot-answer="other"><span>➡️</span><strong>ส่งคำนี้ผ่าน</strong><small>คำมาตราอื่น</small></button>
+        </div>
+      </section>`);
+
+    $("[data-kot-speak]")?.addEventListener("click", () => speakThai(question.word));
+    document.querySelectorAll("[data-kot-answer]").forEach(button => button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      document.querySelectorAll("[data-kot-answer]").forEach(item => { item.disabled = true; });
+      const chosen = button.dataset.kotAnswer;
+      const expected = question.target ? "target" : "other";
+      const correct = chosen === expected;
+      if (correct) score += 1;
+      answers.push({ prompt: question.word, chosen, correct });
+      button.classList.add(correct ? "correct" : "wrong");
+      document.querySelector(`[data-kot-answer="${expected}"]`)?.classList.add("correct");
+      if (question.target) {
+        $("[data-kot-scene]")?.classList.add("is-collected");
+        $("[data-kot-feedback]").textContent = `“${question.word}” ออกเสียงท้าย /ด/ จึงเป็นคำมาตราแม่กด`;
+      } else {
+        $("[data-kot-feedback]").textContent = `“${question.word}” ไม่ได้ออกเสียงท้าย /ด/ จึงเป็นคำมาตราอื่น`;
+      }
+      if (correct) speakThai(`ถูกต้อง ${question.word}`);
+      else if (navigator.vibrate) navigator.vibrate([90, 55, 90]);
+      setTimeout(async () => {
+        index += 1;
+        if (index < questions.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, questions.length, answers);
+          if (result) showResult("ล่าสมบัติแม่กดครบแล้ว", score, questions.length, result, () => renderMaeKotTreasure(activityKey, data, activity));
+        }
+      }, 1100);
+    }));
+  };
+
+  render();
+}
+
 function renderLivePlanActivity(activityKey) {
   const planId = Number(state.session?.plan_id || 1);
   const data = LIVE_PLAN_GAME_DATA[planId];
@@ -2241,6 +2310,10 @@ function renderLivePlanActivity(activityKey) {
     renderMaeKokCave(activityKey, data, activity);
     return;
   }
+  if (planId === 6 && activityKey === "treasure-hunt") {
+    renderMaeKotTreasure(activityKey, data, activity);
+    return;
+  }
 
   let questions;
   let instruction;
@@ -2257,7 +2330,7 @@ function renderLivePlanActivity(activityKey) {
     const source = activityIndex === activities.length - 1 ? data.exit : data.secondary;
     questions = shuffle(source).map(question => ({ ...question, options: shuffle(question.options) }));
     instruction = activityIndex === activities.length - 1
-      ? `ตอบให้ถูกอย่างน้อย ${[2, 3, 4, 5].includes(planId) ? 3 : 2} จาก ${source.length} ข้อ`
+      ? `ตอบให้ถูกอย่างน้อย ${[2, 3, 4, 5, 6].includes(planId) ? 3 : 2} จาก ${source.length} ข้อ`
       : "อ่านหรือฟังโจทย์ แล้วเลือกคำตอบที่ถูกต้อง";
   }
 
