@@ -3,7 +3,7 @@ import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   roomCodeFromUrl, sanitizeGameMarkup, show, toast,
-} from "./common.js?v=20260727-plan2-mae-kong-1";
+} from "./common.js?v=20260727-plan3-mae-kom-1";
 
 const state = {
   roomCode: "",

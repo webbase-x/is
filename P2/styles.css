@@ -2471,6 +2471,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .mae-kong-word-bank { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
 .mae-kong-word-bank button { min-width: 90px; padding: 12px 18px; border: 2px solid #d8d2ff; border-radius: 15px; color: #34297b; background: white; box-shadow: 0 6px 0 #e1ddf8; font: inherit; font-size: clamp(20px,3vw,30px); font-weight: 900; cursor: grab; }
 .mae-kong-word-bank button:disabled { opacity: .25; transform: translateY(5px); }
+.mae-kom-picture-scene { min-height: clamp(140px,23vh,235px); display: grid; place-items: center; align-content: center; gap: 6px; overflow: hidden; border: 3px solid white; border-radius: 28px; background: radial-gradient(circle at 20% 15%,#fff7be,transparent 35%),linear-gradient(145deg,#fff,#ebe7ff 65%,#dcfaf0); box-shadow: 0 18px 40px rgba(59,44,151,.16); }
+.mae-kom-picture { font-size: clamp(72px,13vw,145px); filter: drop-shadow(0 12px 10px rgba(54,44,118,.18)); }
+.mae-kom-picture-scene small { color: #5d6681; font-size: clamp(15px,2vw,21px); font-weight: 900; }
+.mae-kong-sentence-output .is-target-word { color: #fff; background: linear-gradient(135deg,#e14c91,#8c4ce1); box-shadow: 0 6px 0 #632da0,0 0 24px rgba(225,76,145,.45); }
 @keyframes kongConveyor { from { transform: translateX(70vw) rotate(4deg); } to { transform: translateX(0) rotate(0); } }
 @keyframes kongShake { 25% { transform: translateX(-9px); } 50% { transform: translateX(9px); } 75% { transform: translateX(-5px); } }
 @keyframes kongLaunch { to { transform: translate(-90vw,-60vh) rotate(-35deg) scale(.45); opacity: 0; } }

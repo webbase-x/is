@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan2-mae-kong-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan3-mae-kom-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-plan2-mae-kong-1";
+} from "./common.js?v=20260727-plan3-mae-kom-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -89,19 +89,26 @@ const LIVE_PLAN_GAME_DATA = Object.freeze({
   },
   3: {
     title: "มาตราแม่กม", targetLabel: "แม่กม", rule: "คำที่มี ม เป็นตัวสะกด",
-    target: [["ลม","💨"],["แก้ม","😊"],["แมงมุม","🕷️"],["ส้ม","🍊"],["ร่ม","☂️"],["กลม","🌐"]],
-    compare: [["ธง","🚩"],["นก","🐦"],["ดาว","⭐"],["ปลา","🐟"]],
+    target: [["ก้ม","🙇"],["จิ้ม","👉"],["ตอม","🪰"],["ทีม","👥"],["ยอม","🤝"],["ส้วม","🚽"],["เอี่ยม","✨"],["ประชุม","🗣️"],["สนาม","🏟️"],["กลุ่ม","👨‍👩‍👧‍👦"]],
+    compare: [["กบ","🐸"],["จาน","🍽️"],["รถ","🚗"],["ผัก","🥬"],["ถ้วย","🥣"],["ภาพ","🖼️"],["นิ้ว","☝️"],["ปลาวาฬ","🐋"],["สนุก","🎉"],["ทุ่ง","🌾"]],
     secondary: [
-      { prompt:"ส่วนหนึ่งของใบหน้า", options:["แก้ม","ก้าม","แกง"], answer:"แก้ม", emoji:"😊" },
-      { prompt:"สิ่งที่ใช้กันฝน", options:["ร่ม","ลม","ธง"], answer:"ร่ม", emoji:"☂️" },
-      { prompt:"ผลไม้สีส้ม", options:["ส้ม","ส้อม","ซ่อม"], answer:"ส้ม", emoji:"🍊" },
-      { prompt:"สัตว์แปดขา", options:["แมงมุม","แมลง","มด"], answer:"แมงมุม", emoji:"🕷️" },
-      { prompt:"ลักษณะเหมือนลูกบอล", options:["กลม","กว้าง","แบน"], answer:"กลม", emoji:"🌐" },
+      { prompt:"เรียงคำบรรยายภาพ", options:["แม่ทำส้มตำ","ส้มตำทำแม่","ทำแม่ส้มตำ"], answer:"แม่ทำส้มตำ", emoji:"🥗" },
+      { prompt:"เรียงคำบรรยายภาพ", options:["น้องกินข้าวต้ม","ข้าวต้มกินน้อง","กินน้องข้าวต้ม"], answer:"น้องกินข้าวต้ม", emoji:"🍚" },
+      { prompt:"เรียงคำบรรยายภาพ", options:["พี่กางร่ม","ร่มกางพี่","กางพี่ร่ม"], answer:"พี่กางร่ม", emoji:"☂️" },
+      { prompt:"เรียงคำบรรยายภาพ", options:["ยายอุ้มหลาน","หลานอุ้มยาย","อุ้มยายหลาน"], answer:"ยายอุ้มหลาน", emoji:"👵" },
+      { prompt:"เรียงคำบรรยายภาพ", options:["แมงมุมชักใย","ใยชักแมงมุม","ชักแมงมุมใย"], answer:"แมงมุมชักใย", emoji:"🕷️" },
+      { prompt:"เรียงคำบรรยายภาพ", options:["พ่อเปิดพัดลม","พัดลมเปิดพ่อ","เปิดพ่อพัดลม"], answer:"พ่อเปิดพัดลม", emoji:"🌀" },
+      { prompt:"เรียงคำบรรยายภาพ", options:["ครูห้ามวิ่ง","วิ่งห้ามครู","ห้ามครูวิ่ง"], answer:"ครูห้ามวิ่ง", emoji:"🛑" },
+      { prompt:"เรียงคำบรรยายภาพ", options:["เด็กเล่นในสนาม","สนามเล่นในเด็ก","ในเด็กสนามเล่น"], answer:"เด็กเล่นในสนาม", emoji:"🏃" },
+      { prompt:"เรียงคำบรรยายภาพ", options:["แม่ซื้อผ้านวมใหม่","ผ้านวมซื้อแม่ใหม่","ใหม่แม่ผ้านวมซื้อ"], answer:"แม่ซื้อผ้านวมใหม่", emoji:"🛏️" },
+      { prompt:"เรียงคำบรรยายภาพ", options:["ตาขุดหลุมลึก","หลุมขุดตาลึก","ลึกตาหลุมขุด"], answer:"ตาขุดหลุมลึก", emoji:"🕳️" },
     ],
     exit: [
-      { prompt:"คำใดอยู่ในมาตราแม่กม", options:["ธง","ส้ม","ปลา"], answer:"ส้ม" },
-      { prompt:"มาตราแม่กมมีตัวใดเป็นตัวสะกด", options:["ง","ม","น"], answer:"ม" },
-      { prompt:"ข้อใดเขียนสะกดคำได้ถูกต้อง", options:["แมงมุน","แมงมูม","แมงมุม"], answer:"แมงมุม" },
+      { prompt:"คำมาตราแม่กมมีลักษณะอย่างไร", options:["มี ม เป็นตัวสะกด","ไม่มีตัวสะกด","มี ง เป็นตัวสะกด"], answer:"มี ม เป็นตัวสะกด" },
+      { prompt:"คำใดอยู่ในมาตราแม่กม", options:["ยืม","ธง","นก"], answer:"ยืม" },
+      { prompt:"คำใดไม่ใช่คำมาตราแม่กม", options:["ร่ม","ส้ม","ทุ่ง"], answer:"ทุ่ง" },
+      { prompt:"ข้อใดเป็นคำมาตราแม่กมทั้ง 2 คำ", options:["ชม, ห้าม","ธง, สนาม","นก, ลม"], answer:"ชม, ห้าม" },
+      { prompt:"ตัวสะกดของคำว่า “สนาม” คือข้อใด", options:["ม","น","ง"], answer:"ม" },
     ],
   },
   4: {
@@ -1679,7 +1686,9 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
   render();
 }
 
-function renderMaeKongBox(activityKey, data, activity) {
+function renderMaeKongBox(activityKey, data, activity, options = {}) {
+  const label = options.label || "แม่กง";
+  const finalLetter = options.finalLetter || "ง";
   const items = shuffle([
     ...data.target.map(([word, emoji]) => ({ word, emoji, target: true })),
     ...data.compare.map(([word, emoji]) => ({ word, emoji, target: false })),
@@ -1691,7 +1700,7 @@ function renderMaeKongBox(activityKey, data, activity) {
 
   const render = () => {
     const item = items[index];
-    gameShell(activity.title, "อ่านคำ แล้วลากเฉพาะคำแม่กงลงกล่อง ส่วนคำอื่นให้ส่งต่อ", `
+    gameShell(activity.title, `อ่านคำ แล้วลากเฉพาะคำ${label}ลงกล่อง ส่วนคำอื่นให้ส่งต่อ`, `
       <section class="mae-kong-box-game">
         <div class="game-status-row"><span>คำที่ ${index + 1} / ${items.length}</span><span class="mini-score">คะแนน ${score}</span></div>
         <div class="mae-kong-conveyor" aria-label="สายพานคำ">
@@ -1703,12 +1712,12 @@ function renderMaeKongBox(activityKey, data, activity) {
         </div>
         <div class="mae-kong-drop-box" data-kong-drop>
           <span aria-hidden="true">📦</span>
-          <strong>กล่องคำแม่กง</strong>
-          <small>วางเฉพาะคำที่มี ง เป็นตัวสะกด</small>
+          <strong>กล่องคำ${label}</strong>
+          <small>วางเฉพาะคำที่มี ${finalLetter} เป็นตัวสะกด</small>
         </div>
         <p class="mae-kong-feedback" data-kong-feedback>พิจารณาตัวสะกดให้ดีก่อนตอบ</p>
         <div class="mae-kong-action-row">
-          <button class="button button-primary" type="button" data-kong-answer="target">ใส่กล่องแม่กง</button>
+          <button class="button button-primary" type="button" data-kong-answer="target">ใส่กล่อง${label}</button>
           <button class="button button-ghost" type="button" data-kong-answer="other">ส่งคำนี้ต่อ</button>
         </div>
       </section>`);
@@ -1726,8 +1735,8 @@ function renderMaeKongBox(activityKey, data, activity) {
       document.querySelector(`[data-kong-answer="${chosen}"]`)?.classList.add(correct ? "correct" : "wrong");
       card.classList.add(correct ? "is-correct" : "is-wrong");
       feedback.textContent = correct
-        ? item.target ? `ถูกต้อง “${item.word}” มี ง เป็นตัวสะกด` : `ถูกต้อง “${item.word}” ไม่ใช่คำแม่กง`
-        : item.target ? `ลองสังเกตอีกครั้ง “${item.word}” ลงท้ายด้วย ง` : `คำว่า “${item.word}” ไม่ได้มี ง เป็นตัวสะกด`;
+        ? item.target ? `ถูกต้อง “${item.word}” มี ${finalLetter} เป็นตัวสะกด` : `ถูกต้อง “${item.word}” ไม่ใช่คำ${label}`
+        : item.target ? `ลองสังเกตอีกครั้ง “${item.word}” ลงท้ายด้วย ${finalLetter}` : `คำว่า “${item.word}” ไม่ได้มี ${finalLetter} เป็นตัวสะกด`;
       buttons.forEach(button => { button.disabled = true; });
       if (!correct && navigator.vibrate) navigator.vibrate([90, 55, 90]);
       setTimeout(async () => {
@@ -1736,7 +1745,7 @@ function renderMaeKongBox(activityKey, data, activity) {
         if (index < items.length) render();
         else {
           const result = await submitAttempt(activityKey, score, items.length, answers);
-          if (result) showResult("คัดคำลงกล่องครบแล้ว", score, items.length, result, () => renderMaeKongBox(activityKey, data, activity));
+          if (result) showResult("คัดคำลงกล่องครบแล้ว", score, items.length, result, () => renderMaeKongBox(activityKey, data, activity, options));
         }
       }, 950);
     };
@@ -1858,6 +1867,111 @@ function renderMaeKongRocket(activityKey, activity) {
   render();
 }
 
+function renderMaeKomPictureSentences(activityKey, activity) {
+  const questions = [
+    { emoji: "🥗", words: ["แม่", "ทำ", "ส้มตำ"], target: "ส้มตำ" },
+    { emoji: "🍚", words: ["น้อง", "กิน", "ข้าวต้ม"], target: "ข้าวต้ม" },
+    { emoji: "☂️", words: ["พี่", "กาง", "ร่ม"], target: "ร่ม" },
+    { emoji: "👵", words: ["ยาย", "อุ้ม", "หลาน"], target: "อุ้ม" },
+    { emoji: "🕷️", words: ["แมงมุม", "ชัก", "ใย"], target: "แมงมุม" },
+    { emoji: "🌀", words: ["พ่อ", "เปิด", "พัดลม"], target: "พัดลม" },
+    { emoji: "🛑", words: ["ครู", "ห้าม", "วิ่ง"], target: "ห้าม" },
+    { emoji: "🏃", words: ["เด็ก", "เล่น", "ใน", "สนาม"], target: "สนาม" },
+    { emoji: "🛏️", words: ["แม่", "ซื้อ", "ผ้านวม", "ใหม่"], target: "ผ้านวม" },
+    { emoji: "🕳️", words: ["ตา", "ขุด", "หลุม", "ลึก"], target: "หลุม" },
+  ];
+  let index = 0;
+  let score = 0;
+  let firstTry = true;
+  let selected = [];
+  const answers = [];
+
+  const render = () => {
+    const question = questions[index];
+    const bank = shuffle(question.words.map((word, wordIndex) => ({ word, id: `kom-${index}-${wordIndex}` })));
+    selected = [];
+    firstTry = true;
+    gameShell(activity.title, "ดูภาพ แล้วแตะหรือลากคำตามลำดับให้เป็นประโยคที่ถูกต้อง", `
+      <section class="mae-kong-rocket-game mae-kom-picture-game">
+        <div class="game-status-row"><span>ภาพที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="mae-kom-picture-scene">
+          <span class="mae-kom-picture" aria-hidden="true">${question.emoji}</span>
+          <small>ภาพนี้ควรบรรยายว่าอย่างไร?</small>
+        </div>
+        <div class="mae-kong-sentence-output" data-kom-sentence-output>แตะคำเพื่อเรียงประโยค</div>
+        <div class="mae-kong-word-bank">${bank.map(item => `<button type="button" draggable="true" data-kom-word="${escapeHtml(item.id)}" data-word="${escapeHtml(item.word)}">${escapeHtml(item.word)}</button>`).join("")}</div>
+        <p class="mae-kong-feedback" data-kom-feedback>คำแม่กมในประโยคจะแสดงเป็นสีพิเศษเมื่อตอบถูก</p>
+        <div class="mae-kong-action-row">
+          <button class="button button-ghost" type="button" data-kom-reset>เริ่มเรียงใหม่</button>
+          <button class="button button-primary" type="button" data-kom-check>ตรวจคำตอบ</button>
+        </div>
+      </section>`);
+
+    const output = $("[data-kom-sentence-output]");
+    const feedback = $("[data-kom-feedback]");
+    const paint = (showTarget = false) => {
+      output.innerHTML = selected.length
+        ? selected.map(item => `<span class="${showTarget && item.word === question.target ? "is-target-word" : ""}">${escapeHtml(item.word)}</span>`).join("")
+        : "แตะคำเพื่อเรียงประโยค";
+    };
+    const choose = button => {
+      if (!button || button.disabled) return;
+      button.disabled = true;
+      selected.push({ id: button.dataset.komWord, word: button.dataset.word });
+      paint();
+    };
+    const reset = () => {
+      selected = [];
+      document.querySelectorAll("[data-kom-word]").forEach(button => { button.disabled = false; });
+      output.classList.remove("is-correct", "is-wrong");
+      paint();
+    };
+    document.querySelectorAll("[data-kom-word]").forEach(button => {
+      button.addEventListener("click", () => choose(button));
+      button.addEventListener("dragstart", event => event.dataTransfer.setData("text/plain", button.dataset.komWord));
+    });
+    output.addEventListener("dragover", event => event.preventDefault());
+    output.addEventListener("drop", event => {
+      event.preventDefault();
+      const id = event.dataTransfer.getData("text/plain");
+      choose(document.querySelector(`[data-kom-word="${CSS.escape(id)}"]`));
+    });
+    $("[data-kom-reset]")?.addEventListener("click", reset);
+    $("[data-kom-check]")?.addEventListener("click", async () => {
+      if (selected.length !== question.words.length) {
+        feedback.textContent = "เลือกคำให้ครบทุกคำก่อนนะ";
+        return;
+      }
+      const response = selected.map(item => item.word).join(" ");
+      const answer = question.words.join(" ");
+      if (response !== answer) {
+        firstTry = false;
+        output.classList.add("is-wrong");
+        feedback.textContent = "ลำดับยังไม่ถูก ลองดูภาพและอ่านใหม่อีกครั้ง";
+        if (navigator.vibrate) navigator.vibrate([90, 55, 90]);
+        setTimeout(reset, 700);
+        return;
+      }
+      if (firstTry) score += 1;
+      answers.push({ prompt: answer, chosen: response, correct: firstTry });
+      output.classList.add("is-correct");
+      paint(true);
+      feedback.textContent = `ถูกต้อง! “${question.target}” เป็นคำมาตราแม่กม`;
+      speakThai(answer);
+      setTimeout(async () => {
+        index += 1;
+        if (index < questions.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, questions.length, answers);
+          if (result) showResult("เรียงประโยคจากภาพครบแล้ว", score, questions.length, result, () => renderMaeKomPictureSentences(activityKey, activity));
+        }
+      }, 1250);
+    });
+  };
+
+  render();
+}
+
 function renderLivePlanActivity(activityKey) {
   const planId = Number(state.session?.plan_id || 1);
   const data = LIVE_PLAN_GAME_DATA[planId];
@@ -1877,6 +1991,14 @@ function renderLivePlanActivity(activityKey) {
     renderMaeKongRocket(activityKey, activity);
     return;
   }
+  if (planId === 3 && activityKey === "mae-kom-box") {
+    renderMaeKongBox(activityKey, data, activity, { label: "แม่กม", finalLetter: "ม" });
+    return;
+  }
+  if (planId === 3 && activityKey === "picture-word") {
+    renderMaeKomPictureSentences(activityKey, activity);
+    return;
+  }
 
   let questions;
   let instruction;
@@ -1893,7 +2015,7 @@ function renderLivePlanActivity(activityKey) {
     const source = activityIndex === activities.length - 1 ? data.exit : data.secondary;
     questions = shuffle(source).map(question => ({ ...question, options: shuffle(question.options) }));
     instruction = activityIndex === activities.length - 1
-      ? `ตอบให้ถูกอย่างน้อย ${planId === 2 ? 3 : 2} จาก ${source.length} ข้อ`
+      ? `ตอบให้ถูกอย่างน้อย ${planId === 2 || planId === 3 ? 3 : 2} จาก ${source.length} ข้อ`
       : "อ่านหรือฟังโจทย์ แล้วเลือกคำตอบที่ถูกต้อง";
   }
 
