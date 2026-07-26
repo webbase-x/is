@@ -36,6 +36,22 @@ create table if not exists public.students (
   unique (class_id, student_code)
 );
 
+create table if not exists public.student_class_assignments (
+  student_id uuid not null references public.students(id) on delete cascade,
+  class_id uuid not null references public.classes(id) on delete cascade,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  primary key (student_id, class_id)
+);
+
+create index if not exists student_class_assignments_class_active_idx
+  on public.student_class_assignments(class_id, active, student_id);
+
+insert into public.student_class_assignments(student_id, class_id, active)
+select id, class_id, true
+from public.students
+on conflict (student_id, class_id) do nothing;
+
 create table if not exists public.teacher_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null,
@@ -196,6 +212,21 @@ as $$
   );
 $$;
 
+create or replace function public.teacher_can_access_student(p_student_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.student_class_assignments membership
+    where membership.student_id = p_student_id
+      and public.teacher_can_access_class(membership.class_id)
+  );
+$$;
+
 create or replace function public.teacher_can_access_session(p_session_id uuid)
 returns boolean
 language sql
@@ -232,6 +263,150 @@ as $$
   join public.schools school on school.id = c.school_id
   where c.active and school.active and public.teacher_can_access_class(c.id)
   order by school.name, c.grade, c.room_no;
+$$;
+
+create or replace function public.get_teacher_roster()
+returns table (
+  student_id uuid,
+  class_id uuid,
+  class_label text,
+  grade smallint,
+  room_no smallint,
+  academic_year smallint,
+  school_id uuid,
+  school_name text,
+  student_code text,
+  full_name text,
+  nickname text,
+  avatar text,
+  student_active boolean,
+  membership_active boolean
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    student.id,
+    classroom.id,
+    classroom.label,
+    classroom.grade,
+    classroom.room_no,
+    classroom.academic_year,
+    school.id,
+    school.name,
+    student.student_code,
+    student.full_name,
+    student.nickname,
+    student.avatar,
+    student.active,
+    membership.active
+  from public.student_class_assignments membership
+  join public.students student on student.id = membership.student_id
+  join public.classes classroom on classroom.id = membership.class_id
+  join public.schools school on school.id = classroom.school_id
+  where classroom.active
+    and school.active
+    and public.teacher_can_access_class(membership.class_id)
+  order by school.name, classroom.grade, classroom.room_no, student.student_code, student.full_name;
+$$;
+
+create or replace function public.upsert_student_class_membership(
+  p_class_id uuid,
+  p_student_code text,
+  p_full_name text,
+  p_nickname text,
+  p_avatar text default '⭐'
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  target_class public.classes%rowtype;
+  target_student public.students%rowtype;
+  clean_code text := btrim(coalesce(p_student_code, ''));
+  clean_name text := btrim(coalesce(p_full_name, ''));
+  clean_nickname text;
+  clean_avatar text := coalesce(nullif(btrim(coalesce(p_avatar, '')), ''), '⭐');
+begin
+  if not public.teacher_can_access_class(p_class_id) then
+    raise exception 'Teacher is not assigned to this class';
+  end if;
+
+  select * into target_class
+  from public.classes
+  where id = p_class_id and active;
+
+  if target_class.id is null then
+    raise exception 'ไม่พบห้องเรียนที่เปิดใช้งาน';
+  end if;
+  if clean_code = '' then raise exception 'กรุณากรอกเลขประจำตัวนักเรียน'; end if;
+  if clean_name = '' then raise exception 'กรุณากรอกชื่อ–นามสกุลนักเรียน'; end if;
+
+  clean_nickname := coalesce(
+    nullif(btrim(coalesce(p_nickname, '')), ''),
+    nullif(split_part(clean_name, ' ', 1), ''),
+    clean_name
+  );
+
+  perform pg_advisory_xact_lock(hashtextextended(
+    target_class.school_id::text || ':' || target_class.academic_year::text || ':' || lower(clean_code),
+    0
+  ));
+
+  select student.* into target_student
+  from public.students student
+  where lower(btrim(student.student_code)) = lower(clean_code)
+    and (
+      student.class_id = p_class_id
+      or exists (
+        select 1
+        from public.student_class_assignments membership
+        where membership.student_id = student.id
+          and membership.class_id = p_class_id
+      )
+    )
+  order by student.created_at
+  limit 1;
+
+  if target_student.id is null then
+    select student.* into target_student
+    from public.students student
+    join public.classes home_class on home_class.id = student.class_id
+    where home_class.school_id = target_class.school_id
+      and home_class.academic_year = target_class.academic_year
+      and lower(btrim(student.student_code)) = lower(clean_code)
+      and lower(regexp_replace(btrim(student.full_name), '[[:space:]]+', '', 'g'))
+          = lower(regexp_replace(clean_name, '[[:space:]]+', '', 'g'))
+    order by student.created_at
+    limit 1;
+  end if;
+
+  if target_student.id is null then
+    insert into public.students(class_id, student_code, full_name, nickname, avatar, active)
+    values (p_class_id, clean_code, clean_name, clean_nickname, clean_avatar, true)
+    returning * into target_student;
+  else
+    update public.students
+    set student_code = clean_code,
+        full_name = clean_name,
+        nickname = clean_nickname,
+        active = true,
+        updated_at = now()
+    where id = target_student.id
+    returning * into target_student;
+  end if;
+
+  insert into public.student_class_assignments(student_id, class_id, active)
+  values (target_student.id, p_class_id, true)
+  on conflict (student_id, class_id)
+  do update set active = true;
+
+  return target_student.id;
+end;
 $$;
 
 create or replace function public.generate_room_code()
@@ -319,7 +494,9 @@ as $$
   from public.class_sessions s
   join public.classes c on c.id = s.class_id
   join public.schools school on school.id = c.school_id
-  join public.students st on st.class_id = c.id and st.active
+  join public.student_class_assignments membership
+    on membership.class_id = c.id and membership.active
+  join public.students st on st.id = membership.student_id and st.active
   where s.room_code = lpad(regexp_replace(p_room_code, '\D', '', 'g'), 6, '0')
     and s.status in ('lobby', 'active', 'paused')
   order by st.student_code, st.full_name;
@@ -348,7 +525,15 @@ begin
   limit 1;
 
   if target_session.id is null then raise exception 'คาบนี้จบแล้วหรือไม่พบรหัสห้อง'; end if;
-  if not exists (select 1 from public.students where id = p_student_id and class_id = target_session.class_id and active) then
+  if not exists (
+    select 1
+    from public.student_class_assignments membership
+    join public.students student on student.id = membership.student_id
+    where membership.student_id = p_student_id
+      and membership.class_id = target_session.class_id
+      and membership.active
+      and student.active
+  ) then
     raise exception 'ไม่พบรายชื่อนักเรียนในห้องนี้';
   end if;
 
@@ -390,11 +575,14 @@ begin
   end if;
 
   perform pg_advisory_xact_lock(hashtextextended(p_class_id::text, 0));
-  if exists (
-    select 1 from public.class_sessions
-    where class_id = p_class_id and status <> 'closed'
-  ) then
-    raise exception 'ห้องเรียนนี้มีคาบที่ยังไม่ปิด กรุณากลับไปใช้คาบเดิมหรือปิดคาบก่อน';
+  select * into new_session
+  from public.class_sessions
+  where class_id = p_class_id and status <> 'closed'
+  order by opened_at desc
+  limit 1;
+
+  if new_session.id is not null then
+    return new_session;
   end if;
 
   loop
@@ -425,8 +613,12 @@ set search_path = ''
 as $$
 begin
   if not exists (
-    select 1 from public.students
-    where class_id = new.class_id and active
+    select 1
+    from public.student_class_assignments membership
+    join public.students student on student.id = membership.student_id
+    where membership.class_id = new.class_id
+      and membership.active
+      and student.active
   ) then
     raise exception 'ห้องเรียนนี้ยังไม่มีรายชื่อนักเรียนที่เปิดใช้งาน';
   end if;
@@ -665,10 +857,20 @@ revoke all on function public.grant_teacher(text, text, text) from public, anon,
 revoke all on function public.is_admin(uuid) from public, anon;
 grant execute on function public.is_admin(uuid) to authenticated;
 revoke all on function public.teacher_can_record_scores(uuid) from public, anon, authenticated;
+revoke all on function public.teacher_can_access_student(uuid) from public, anon;
+grant execute on function public.teacher_can_access_student(uuid) to authenticated;
+revoke all on function public.get_open_session_roster(text) from public, anon;
 grant execute on function public.get_open_session_roster(text) to authenticated;
 revoke all on function public.get_teacher_classes() from public, anon;
 grant execute on function public.get_teacher_classes() to authenticated;
+revoke all on function public.get_teacher_roster() from public, anon;
+grant execute on function public.get_teacher_roster() to authenticated;
+revoke all on function public.upsert_student_class_membership(uuid, text, text, text, text) from public, anon;
+grant execute on function public.upsert_student_class_membership(uuid, text, text, text, text) to authenticated;
+revoke all on function public.join_session(text, uuid, text) from public, anon;
 grant execute on function public.join_session(text, uuid, text) to authenticated;
+revoke all on function public.ensure_session_class_has_students() from public, anon, authenticated;
+revoke all on function public.generate_room_code() from public, anon, authenticated;
 revoke all on function public.create_class_session(uuid, smallint, text, text, smallint, text, text, smallint) from public, anon;
 grant execute on function public.create_class_session(uuid, smallint, text, text, smallint, text, text, smallint) to authenticated;
 revoke all on function public.record_game_attempt(uuid, text, integer, integer, jsonb) from public, anon;
@@ -682,6 +884,7 @@ grant execute on function public.create_school_structure(text, text, smallint) t
 alter table public.schools enable row level security;
 alter table public.classes enable row level security;
 alter table public.students enable row level security;
+alter table public.student_class_assignments enable row level security;
 alter table public.teacher_profiles enable row level security;
 alter table public.teacher_class_assignments enable row level security;
 alter table public.lesson_plans enable row level security;
@@ -690,6 +893,9 @@ alter table public.session_players enable row level security;
 alter table public.game_attempts enable row level security;
 alter table public.sentence_submissions enable row level security;
 alter table public.sentence_votes enable row level security;
+
+revoke all on table public.student_class_assignments from public, anon;
+grant select, insert, update, delete on table public.student_class_assignments to authenticated;
 
 drop policy if exists "teachers manage schools" on public.schools;
 drop policy if exists "teachers read assigned schools" on public.schools;
@@ -710,9 +916,16 @@ drop policy if exists "teachers manage students" on public.students;
 drop policy if exists "teachers manage assigned students" on public.students;
 drop policy if exists "teachers read assigned students" on public.students;
 create policy "teachers read assigned students" on public.students for select to authenticated
-  using (public.teacher_can_access_class(class_id));
+  using (public.teacher_can_access_student(id));
 drop policy if exists "admins manage students" on public.students;
 create policy "admins manage students" on public.students for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "teachers read assigned student memberships" on public.student_class_assignments;
+create policy "teachers read assigned student memberships" on public.student_class_assignments for select to authenticated
+  using (public.teacher_can_access_class(class_id));
+drop policy if exists "admins manage student memberships" on public.student_class_assignments;
+create policy "admins manage student memberships" on public.student_class_assignments for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "teachers see own profile" on public.teacher_profiles;
@@ -732,9 +945,20 @@ drop policy if exists "admins manage plans" on public.lesson_plans;
 create policy "admins manage plans" on public.lesson_plans for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "teachers manage sessions" on public.class_sessions;
-create policy "teachers manage sessions" on public.class_sessions for all to authenticated
-  using (teacher_id = auth.uid() or public.teacher_can_access_class(class_id))
-  with check (teacher_id = auth.uid() and public.is_teacher());
+drop policy if exists "teachers read assigned sessions" on public.class_sessions;
+drop policy if exists "teachers create assigned sessions" on public.class_sessions;
+drop policy if exists "teachers update assigned sessions" on public.class_sessions;
+create policy "teachers read assigned sessions" on public.class_sessions for select to authenticated
+  using (public.teacher_can_access_class(class_id));
+create policy "teachers create assigned sessions" on public.class_sessions for insert to authenticated
+  with check (
+    teacher_id = auth.uid()
+    and public.is_teacher()
+    and public.teacher_can_access_class(class_id)
+  );
+create policy "teachers update assigned sessions" on public.class_sessions for update to authenticated
+  using (public.is_teacher() and public.teacher_can_access_class(class_id))
+  with check (public.is_teacher() and public.teacher_can_access_class(class_id));
 drop policy if exists "players read own session" on public.class_sessions;
 create policy "players read own session" on public.class_sessions for select to authenticated
   using (exists (

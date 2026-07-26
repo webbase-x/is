@@ -264,11 +264,11 @@
           </form>
           <div class="teacher-grid equal">
             <form id="manualStudentForm" class="panel">
-              <div class="panel-heading"><h2>เพิ่มรายชื่อด้วยตนเอง</h2></div>
+              <div class="panel-heading"><div><h2>เพิ่มรายชื่อด้วยตนเอง</h2><p>นักเรียนคนเดิมเพิ่มได้หลายห้อง โดยใช้เลขประจำตัวและชื่อเดิม</p></div></div>
               <label>ห้องเรียน<select id="rosterClassSelect" required></select></label>
               <div class="form-grid two"><label>เลขประจำตัว<input id="studentCode" required></label><label>ชื่อเล่น<input id="studentNickname" required></label></div>
               <label>ชื่อ–นามสกุล<input id="studentFullName" required></label>
-              <button class="button button-primary" type="submit">เพิ่มนักเรียน</button>
+              <button class="button button-primary" type="submit">เพิ่มนักเรียนเข้าห้อง</button>
             </form>
             <div class="panel import-panel">
               <div class="panel-heading"><div><h2>นำเข้าจาก Excel/CSV</h2><p>รองรับไฟล์ CSV ที่ส่งออกจาก Excel</p></div></div>
@@ -294,7 +294,7 @@
   </main>
   <div id="returnDialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="returnDialogTitle"><form id="returnForm" class="modal-card"><h2 id="returnDialogTitle">ส่งข้อมูลกลับให้นักเรียนแก้ไข</h2><input id="returnPlayerId" type="hidden"><label>เหตุผล<select id="returnReason"><option>เลือกชื่อไม่ถูกต้อง</option><option>รูปไม่ชัด กรุณาถ่ายใหม่</option><option>นักเรียนไม่อยู่ในห้องนี้</option><option>ข้อมูลไม่ครบถ้วน</option></select></label><div class="button-row"><button type="button" id="cancelReturn" class="button button-ghost">ยกเลิก</button><button class="button button-danger" type="submit">ส่งคืน</button></div></form></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/teacher.js?v=20260726-session-recovery-1"></script>
+  <script type="module" src="js/teacher.js?v=20260726-shared-classes-1"></script>
   <script src="../emoji-fallback.js?v=20260722-screen-fixes-1" defer></script>
 </body>
 </html>

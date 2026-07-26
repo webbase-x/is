@@ -347,9 +347,20 @@ async function createSession(event) {
     });
     if (error) throw error;
     state.session = data;
-    state.selectedPlanId = firstPlan.id;
-    await showLiveSession("qr");
-    toast(`สร้างรหัสสำหรับ ${classContext()} แล้ว`, "success");
+    state.selectedPlanId = data.plan_id;
+    const joinedSharedSession = data.teacher_id !== state.user.id;
+    if (joinedSharedSession || data.status !== "lobby" || data.current_activity_key) {
+      showResumeSession();
+      toast(
+        joinedSharedSession
+          ? "เข้าร่วมคาบที่ครูในห้องเปิดไว้แล้ว สามารถควบคุมคาบร่วมกันได้"
+          : "พบคาบเดิมที่ยังไม่จบ ระบบพากลับมาที่คาบเดิมแล้ว",
+        "success",
+      );
+    } else {
+      await showLiveSession("qr");
+      toast(`สร้างรหัสสำหรับ ${classContext()} แล้ว`, "success");
+    }
   } catch (error) {
     const recovered = await recoverOpenClassSession(classId);
     if (!recovered) toast(error.message || "สร้างห้องเรียนไม่สำเร็จ", "error");
@@ -369,27 +380,24 @@ async function recoverOpenClassSession(classId) {
     .maybeSingle();
   if (error || !data) return false;
 
-  if (data.teacher_id !== state.user.id) {
-    const classroom = state.classes.find(item => item.id === classId);
-    const note = $("#classOwnershipNote");
-    note.textContent = `⚠️ ${classroom?.school?.name || "โรงเรียน"} · ${classroom?.label || "ห้องเรียนนี้"} มีคาบที่ครูอีกบัญชีเปิดอยู่ กรุณาปิดคาบเดิมก่อนสร้างห้องใหม่`;
-    note.classList.add("warning");
-    note.classList.remove("success");
-    toast("ห้องเรียนนี้มีคาบที่ครูอีกบัญชีเปิดอยู่ กรุณาปิดคาบเดิมก่อน", "warning");
-    return true;
-  }
-
   state.session = data;
   state.selectedPlanId = data.plan_id;
   showResumeSession();
-  toast("พบคาบเดิมที่ยังไม่ปิด ระบบพากลับมาที่คาบเดิมแล้ว", "warning");
+  toast(
+    data.teacher_id === state.user.id
+      ? "พบคาบเดิมที่ยังไม่ปิด ระบบพากลับมาที่คาบเดิมแล้ว"
+      : "เข้าร่วมคาบที่ครูในห้องเปิดไว้แล้ว สามารถควบคุมคาบร่วมกันได้",
+    data.teacher_id === state.user.id ? "warning" : "success",
+  );
   return true;
 }
 
 async function restoreActiveSession() {
+  const classIds = state.classes.map(item => item.id);
+  if (!classIds.length) return;
   const { data, error } = await supabase.from("class_sessions")
     .select("*")
-    .eq("teacher_id", state.user.id)
+    .in("class_id", classIds)
     .neq("status", "closed")
     .order("opened_at", { ascending: false })
     .limit(1)
@@ -1753,18 +1761,27 @@ async function addStudent(event) {
   const selectedClass = state.classes.find(item => item.id === $("#rosterClassSelect").value);
   if (!selectedClass) return;
   const nickname = $("#studentNickname").value.trim();
-  const { error } = await supabase.from("students").upsert({
-    class_id: selectedClass.id,
-    student_code: $("#studentCode").value.trim(),
-    full_name: $("#studentFullName").value.trim(),
+  const { error } = await upsertStudentMembership({
+    classId: selectedClass.id,
+    studentCode: $("#studentCode").value.trim(),
+    fullName: $("#studentFullName").value.trim(),
     nickname,
     avatar: randomAvatar(nickname),
-    active: true,
-  }, { onConflict: "class_id,student_code" });
+  });
   if (error) return toast(error.message, "error");
   event.target.reset();
-  toast("บันทึกรายชื่อแล้ว", "success");
+  toast("เพิ่มนักเรียนเข้าห้องแล้ว หากเป็นคนเดิมระบบจะใช้รายชื่อเดียวกัน", "success");
   await loadRoster();
+}
+
+function upsertStudentMembership({ classId, studentCode, fullName, nickname, avatar }) {
+  return supabase.rpc("upsert_student_class_membership", {
+    p_class_id: classId,
+    p_student_code: studentCode,
+    p_full_name: fullName,
+    p_nickname: nickname,
+    p_avatar: avatar,
+  });
 }
 
 async function loadRoster() {
@@ -1777,16 +1794,42 @@ async function loadRoster() {
     $("#rosterTableBody").innerHTML = `<tr><td colspan="5">ยังไม่มีห้องเรียนที่ได้รับมอบหมาย</td></tr>`;
     return;
   }
-  const { data, error } = await supabase.from("students").select("*, classroom:classes(*, school:schools(name))").in("class_id", classIds).order("student_code");
+  const { data, error } = await supabase.rpc("get_teacher_roster");
   if (error) return toast(`โหลดรายชื่อนักเรียนไม่สำเร็จ: ${error.message}`, "error");
-  const rows = data || [];
+  const rows = (data || []).map(item => ({
+    id: item.student_id,
+    class_id: item.class_id,
+    student_code: item.student_code,
+    full_name: item.full_name,
+    nickname: item.nickname,
+    avatar: item.avatar,
+    active: item.student_active && item.membership_active,
+    student_active: item.student_active,
+    membership_active: item.membership_active,
+    classroom: {
+      id: item.class_id,
+      label: item.class_label,
+      grade: item.grade,
+      room_no: item.room_no,
+      academic_year: item.academic_year,
+      school: { id: item.school_id, name: item.school_name },
+    },
+  }));
   state.rosterCounts = rows.filter(student => student.active).reduce((counts, student) => {
     counts.set(student.class_id, (counts.get(student.class_id) || 0) + 1);
     return counts;
   }, new Map());
   renderSchoolOptions();
-  $("#rosterCount").textContent = `${rows.length} คน`;
-  $("#rosterTableBody").innerHTML = rows.length ? rows.map(student => `<tr><td>${escapeHtml(student.classroom?.label || "—")}</td><td>${escapeHtml(student.student_code)}</td><td>${escapeHtml(student.full_name)}</td><td>${escapeHtml(student.nickname)}</td><td>${student.active ? "ใช้งาน" : "พักใช้"}</td></tr>`).join("") : `<tr><td colspan="5">ยังไม่มีรายชื่อนักเรียน</td></tr>`;
+  const uniqueStudents = new Set(rows.map(student => student.id)).size;
+  $("#rosterCount").textContent = rows.length === uniqueStudents
+    ? `${uniqueStudents} คน`
+    : `${uniqueStudents} คน · ${rows.length} รายการสังกัดห้อง`;
+  $("#rosterTableBody").innerHTML = rows.length ? rows.map(student => {
+    const status = !student.student_active
+      ? "พักใช้ทุกห้อง"
+      : student.membership_active ? "ใช้งาน" : "พักใช้ในห้องนี้";
+    return `<tr><td>${escapeHtml(student.classroom?.label || "—")}</td><td>${escapeHtml(student.student_code)}</td><td>${escapeHtml(student.full_name)}</td><td>${escapeHtml(student.nickname)}</td><td>${status}</td></tr>`;
+  }).join("") : `<tr><td colspan="5">ยังไม่มีรายชื่อนักเรียน</td></tr>`;
 }
 
 function parseCsv(text) {
@@ -1852,16 +1895,21 @@ async function handleImportFile(event) {
 async function importStudents() {
   const classMap = new Map(state.classes.map(item => [item.label, item.id]));
   const payload = state.importRows.map(row => ({
-    class_id: classMap.get(row.classLabel),
-    student_code: row.studentCode,
-    full_name: row.fullName,
+    classId: classMap.get(row.classLabel),
+    studentCode: row.studentCode,
+    fullName: row.fullName,
     nickname: row.nickname || row.fullName.split(/\s+/)[0],
     avatar: randomAvatar(row.nickname || row.studentCode),
-    active: true,
-  })).filter(row => row.class_id);
+  })).filter(row => row.classId);
   if (!payload.length) return toast("ไม่พบชื่อห้องที่ตรงกับระบบ", "error");
-  const { error } = await supabase.from("students").upsert(payload, { onConflict: "class_id,student_code" });
-  if (error) return toast(error.message, "error");
+
+  for (let offset = 0; offset < payload.length; offset += 20) {
+    const batch = payload.slice(offset, offset + 20);
+    const results = await Promise.all(batch.map(upsertStudentMembership));
+    const failed = results.find(result => result.error);
+    if (failed?.error) return toast(`นำเข้ารายชื่อไม่สำเร็จ: ${failed.error.message}`, "error");
+  }
+
   toast(`นำเข้าสำเร็จ ${payload.length} คน`, "success");
   state.importRows = [];
   $("#importPreview").innerHTML = "";
