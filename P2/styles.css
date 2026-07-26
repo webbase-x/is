@@ -738,7 +738,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .flow-settings summary { cursor: pointer; color: var(--purple); font-weight: 900; }
 .flow-settings[open] summary { margin-bottom: 17px; }
 .flow-live-stack { display: grid; gap: 14px; }
-.live-competition-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.live-competition-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .competition-timer-card strong { font-variant-numeric: tabular-nums; letter-spacing: .03em; }
 .competition-timer-card.is-urgent { border-color: #f3a5a5; color: #a83737; background: linear-gradient(135deg, #fff, var(--coral-soft)); animation: timer-pulse 1s ease-in-out infinite; }
 .competition-timer-card.is-paused { color: #81671f; background: var(--amber-soft); }
@@ -1187,22 +1187,26 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .falling-word { position: absolute; top: -60px; min-width: 90px; padding: 13px 18px; border: 0; border-radius: 17px; background: white; color: var(--ink); box-shadow: 0 8px 15px rgba(0,0,0,.18); font-size: 22px; font-weight: 900; cursor: pointer; animation: fall linear forwards; }
 @keyframes fall { to { transform: translateY(430px); } }
 .rhythm-karaoke { width: 100%; max-width: 1500px; flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; }
+.game-layout[data-game="rhythm"] .game-play-area { width: 100%; max-width: 100%; min-width: 0; align-self: stretch; justify-content: flex-start; overflow: auto; }
 .rhythm-credit-inline { color: #fff7a9 !important; font-size: 14px !important; font-weight: 900; }
-.rhythm-status-row { width: 100%; max-width: 1280px; }
+.rhythm-top-status { width: 100%; max-width: 1440px; display: grid; grid-template-columns: minmax(210px,.62fr) minmax(420px,1.45fr) minmax(230px,.72fr); align-items: center; gap: 10px; margin-bottom: 10px; padding: 9px 11px; border: 1px solid #e5e3f2; border-radius: 18px; background: linear-gradient(135deg,#fff,#f7f5ff 55%,#eefcf8); box-shadow: 0 8px 24px rgba(37,31,93,.08); }
 .rhythm-scoreboard { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .rhythm-streak, .rhythm-phase { padding: 8px 12px; border-radius: 12px; font-size: 13px; font-weight: 900; }
 .rhythm-streak { color: #a14a18; background: #fff1df; }
 .rhythm-streak.hot { color: #fff; background: linear-gradient(135deg,#ff973d,#ef476f); box-shadow: 0 0 18px rgba(239,71,111,.35); }
 .rhythm-phase { color: #4e42a4; background: #eeeaff; }
-.rhythm-start-tools { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.rhythm-session-tools { min-width: 0; display: grid; gap: 6px; }
+.rhythm-start-tools { min-width: 0; display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
 .rhythm-start-tools > span { color: var(--muted); font-size: 12px; font-weight: 800; }
-.rhythm-control-row { width: min(1280px,100%); display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 9px; margin: -7px 0 12px; }
-.rhythm-control-row label, .rhythm-timing-control, .rhythm-clock { min-height: 38px; display: flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); background: white; font-size: 12px; font-weight: 900; }
-.rhythm-control-row select { border: 0; outline: 0; color: var(--ink); background: transparent; font: inherit; cursor: pointer; }
-.rhythm-timing-control button { min-width: 46px; min-height: 28px; border: 0; border-radius: 8px; color: #5145ba; background: #eeeaff; font-weight: 900; cursor: pointer; }
-.rhythm-timing-control output { min-width: 82px; color: var(--ink); text-align: center; }
+.rhythm-start-tools > span { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rhythm-start-tools .button { min-height: 34px; padding: 6px 10px; font-size: 11px; white-space: nowrap; }
+.rhythm-control-row { width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 6px; margin: 0; }
+.rhythm-control-row label, .rhythm-timing-control, .rhythm-clock { min-height: 34px; display: flex; align-items: center; gap: 5px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: white; font-size: 11px; font-weight: 900; }
+.rhythm-control-row select { width: auto; min-height: 26px; height: 26px; margin: 0; padding: 0 22px 0 0; border: 0; outline: 0; color: var(--ink); background: transparent; font: inherit; cursor: pointer; }
+.rhythm-timing-control button { min-width: 40px; min-height: 26px; border: 0; border-radius: 8px; color: #5145ba; background: #eeeaff; font-weight: 900; cursor: pointer; }
+.rhythm-timing-control output { min-width: 68px; color: var(--ink); text-align: center; }
 .rhythm-clock { color: #4f5a7a; font-variant-numeric: tabular-nums; }
-.karaoke-stage { position: relative; isolation: isolate; width: 100%; min-height: 410px; flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(18px,3vh,34px); padding: clamp(24px,4vw,54px); overflow: hidden; border: 1px solid rgba(255,255,255,.24); border-radius: 28px; color: white; background: radial-gradient(circle at 18% 22%, rgba(255,91,185,.58), transparent 28%), radial-gradient(circle at 82% 20%, rgba(52,214,255,.55), transparent 27%), radial-gradient(circle at 52% 88%, rgba(255,211,67,.45), transparent 32%), linear-gradient(135deg, #21134f 0%, #4422a2 48%, #0f6592 100%); box-shadow: inset 0 0 80px rgba(255,255,255,.08), 0 20px 45px rgba(38,25,105,.28); animation: karaokeBackdrop 8s ease-in-out infinite alternate; }
+.karaoke-stage { position: relative; isolation: isolate; width: 100%; min-height: 470px; flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(18px,3vh,34px); padding: clamp(24px,4vw,54px); overflow: hidden; border: 1px solid rgba(255,255,255,.24); border-radius: 28px; color: white; background: radial-gradient(circle at 18% 22%, rgba(255,91,185,.58), transparent 28%), radial-gradient(circle at 82% 20%, rgba(52,214,255,.55), transparent 27%), radial-gradient(circle at 52% 88%, rgba(255,211,67,.45), transparent 32%), linear-gradient(135deg, #21134f 0%, #4422a2 48%, #0f6592 100%); box-shadow: inset 0 0 80px rgba(255,255,255,.08), 0 20px 45px rgba(38,25,105,.28); animation: karaokeBackdrop 8s ease-in-out infinite alternate; }
 .karaoke-stage[data-phase="break"] { background: radial-gradient(circle at 22% 18%, rgba(72,255,198,.5), transparent 30%), radial-gradient(circle at 85% 70%, rgba(255,231,86,.42), transparent 34%), linear-gradient(135deg,#123c5c,#285f7d 48%,#3e3b92); }
 .karaoke-stage[data-phase="challenge"] { background: radial-gradient(circle at 20% 24%, rgba(255,190,60,.48), transparent 30%), radial-gradient(circle at 82% 18%, rgba(255,95,177,.45), transparent 32%), linear-gradient(135deg,#331250,#6c297d 52%,#194b75); }
 .karaoke-stage.score-pop { animation: karaokeBackdrop 8s ease-in-out infinite alternate, rhythmScorePop .42s ease-out; }
@@ -1223,6 +1227,11 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 @keyframes karaokeWordPulse { to { transform: scale(1.035); text-shadow: 0 0 22px #fff, 0 0 48px #ff7ed9, 0 10px 30px rgba(18,9,62,.55); } }
 .karaoke-progress { height: 9px; margin-top: 12px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.18); }
 .karaoke-progress i { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#fff27b,#ff70d1,#6de8ff); box-shadow: 0 0 14px rgba(255,255,255,.8); transition: width .12s linear; }
+.rhythm-now-status { width: 100%; min-width: 0; display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 3px 9px; padding: 7px 10px; overflow: hidden; border: 1px solid rgba(91,75,219,.17); border-radius: 14px; color: #27204e; background: white; box-shadow: inset 0 0 22px rgba(91,75,219,.06); text-align: left; }
+.rhythm-now-status small { margin: 0; color: #716b91; font-size: 10px; white-space: nowrap; }
+.rhythm-now-status strong, .rhythm-now-status strong.lyric-line { min-width: 0; min-height: 1.15em; overflow: hidden; color: #4536a7; font-size: clamp(22px,2.8vw,40px); line-height: 1.12; text-overflow: ellipsis; text-shadow: 0 0 16px rgba(91,75,219,.18); white-space: nowrap; }
+.rhythm-now-status strong mark { padding: 0 .13em; color: #33165f; background: #fff0a2; box-shadow: 0 0 0 3px rgba(255,224,91,.18),0 0 18px rgba(255,126,217,.42); }
+.rhythm-now-status .karaoke-progress { grid-column: 1 / -1; height: 6px; margin-top: 2px; background: #e8e5f5; }
 .rhythm-interaction { position: relative; z-index: 2; width: min(1120px,100%); min-height: 150px; display: grid; place-items: center; }
 .rhythm-guide-panel { min-width: min(520px,100%); display: grid; justify-items: center; gap: 4px; padding: 18px 24px; border: 1px solid rgba(255,255,255,.26); border-radius: 22px; background: rgba(21,13,70,.36); box-shadow: inset 0 1px rgba(255,255,255,.2); text-align: center; backdrop-filter: blur(9px); }
 .rhythm-guide-panel > span { font-size: 42px; }
@@ -1353,6 +1362,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .student-screen-focus-device { width: min(390px, 100%); }
   .session-access-panel { grid-template-columns: minmax(0,1fr) 240px; }
   .session-summary-grid { grid-template-columns: repeat(3,1fr); }
+  .rhythm-top-status { grid-template-columns: minmax(190px,.7fr) minmax(0,1.3fr); }
+  .rhythm-now-status { grid-column: 1 / -1; }
   .teacher-grid { grid-template-columns: 1fr; }
   .plan-timeline { grid-template-columns: repeat(2,1fr); }
   .display-board { grid-template-columns: 1fr 320px; }
@@ -1412,7 +1423,10 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .game-canvas, .empty-stage { min-height: 500px; }
   .game-focus-mode .game-canvas { min-height: 0; }
   .game-inner { padding: 18px 12px; }
-  .rhythm-status-row, .rhythm-start-tools { align-items: stretch; flex-direction: column; gap: 8px; }
+  .student-page.student-game-live .game-layout[data-game="rhythm"] .game-play-area { width: calc(100vw - 16px); max-width: calc(100vw - 16px); }
+  .rhythm-top-status { grid-template-columns: minmax(0,1fr); padding: 8px; }
+  .rhythm-now-status { grid-column: auto; }
+  .rhythm-start-tools { align-items: stretch; flex-direction: column; gap: 6px; }
   .rhythm-scoreboard { justify-content: center; }
   .rhythm-start-tools > span { text-align: center; }
   .rhythm-control-row { justify-content: center; margin-top: 0; }
@@ -1603,6 +1617,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .game-view-controls { display: grid; grid-template-columns: 40px minmax(48px,1fr) 40px 1fr 1fr; }
   .game-view-controls button { min-width: 0; padding-left: 7px; padding-right: 7px; font-size: 12px; }
   .karaoke-now strong { font-size: clamp(46px,18vw,76px); }
+  .rhythm-now-status strong, .rhythm-now-status strong.lyric-line { font-size: clamp(20px,8vw,32px); }
   .rhythm-control-row label, .rhythm-timing-control, .rhythm-clock { flex: 1 1 auto; justify-content: center; }
   .rhythm-sort-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .rhythm-choice-grid { gap: 6px; }
@@ -2093,6 +2108,15 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .lesson-projector-header { min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 13px; color: white; background: linear-gradient(90deg,#232743,#30355b); }
 .lesson-projector-header > div { display: flex; align-items: center; gap: 8px; }
 .lesson-projector-header em { padding: 5px 9px; border-radius: 999px; color: #e7e4ff; background: rgba(255,255,255,.1); font-size: 10px; font-style: normal; font-weight: 900; }
+.lesson-projector-header .lesson-projector-meta { min-width: 0; justify-content: flex-end; margin-left: auto; }
+.projector-lesson-timer { min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid rgba(255,255,255,.13); border-radius: 12px; color: white; background: rgba(255,255,255,.08); }
+.projector-lesson-timer > span { font-size: 15px; }
+.projector-lesson-timer > small { color: #c7cce0; font-size: 9px; font-weight: 900; white-space: nowrap; }
+.projector-lesson-timer > strong { color: #fff; font-size: 22px; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: .04em; white-space: nowrap; }
+.lesson-projector-header .projector-lesson-timer > em { padding: 0; color: #c7cce0; background: transparent; font-size: 8px; white-space: nowrap; }
+.projector-lesson-timer.is-urgent { color: #fff; border-color: rgba(255,137,137,.72); background: rgba(183,47,65,.58); }
+.projector-lesson-timer.is-paused { color: #fff; border-color: rgba(255,220,120,.4); background: rgba(142,106,13,.42); }
+.projector-lesson-timer.is-finished { color: #fff; border-color: rgba(102,229,183,.42); background: rgba(29,121,91,.5); }
 .lesson-projector-viewport { min-height: clamp(420px,58vh,720px); position: relative; overflow: hidden; background: #111629; }
 .lesson-projector-media { width: 100%; height: 100%; min-height: inherit; grid-template-columns: minmax(90px,.28fr) minmax(0,1fr); align-content: center; padding: clamp(26px,4vw,58px); border-radius: 0; box-shadow: none; }
 .lesson-projector-media > span { font-size: clamp(72px,9vw,128px); }
@@ -2143,9 +2167,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 
 .display-header { grid-template-columns: minmax(210px,1fr) auto auto auto auto; }
 .display-lesson-countdown { min-width: 105px; padding: 7px 12px; border: 1px solid rgba(255,255,255,.13); border-radius: 13px; text-align: center; background: rgba(255,255,255,.06); }
-.display-lesson-countdown small, .display-lesson-countdown strong { display: block; }
+.display-lesson-countdown small, .display-lesson-countdown strong, .display-lesson-countdown em { display: block; }
 .display-lesson-countdown small { color: #aeb7d2; font-size: 9px; font-weight: 900; }
 .display-lesson-countdown strong { color: #fff; font-size: 24px; line-height: 1.1; }
+.display-lesson-countdown em { margin-top: 2px; color: #aeb7d2; font-size: 7px; font-style: normal; font-weight: 800; white-space: nowrap; }
 .display-lesson-countdown strong.is-expired { color: #ffd46d; }
 .display-lesson-details { width: min(980px,100%); margin: 5px auto 22px; }
 .display-lesson-details > ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 0; padding: 0; list-style: none; }
@@ -2216,6 +2241,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .classroom-stage-expanded .lesson-teacher-notes ul { margin-top: 6px; font-size: 12px; line-height: 1.4; }
   .classroom-stage-expanded .lesson-projector-header { min-height: 36px; padding: 5px 9px; }
   .classroom-stage-expanded .lesson-projector-header em { font-size: 8px; }
+  .lesson-projector-header .lesson-projector-meta > #projectorModeLabel { display: none; }
+  .projector-lesson-timer { padding: 3px 6px; }
+  .projector-lesson-timer > strong { font-size: 17px; }
+  .lesson-projector-header .projector-lesson-timer > em { display: none; }
   .classroom-stage-expanded .lesson-step-actions { min-height: 48px; flex-direction: row; }
   .classroom-stage-expanded .lesson-share-toggle { display: none; }
   .classroom-stage-expanded .lesson-navigation-buttons { width: 100%; flex-wrap: nowrap; }
@@ -2234,6 +2263,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .display-header { grid-template-columns: auto minmax(0,1fr) auto; }
   .display-header .display-lesson-countdown { min-width: 78px; padding: 5px 7px; }
   .display-header .display-lesson-countdown strong { font-size: 18px; }
+  .display-header .display-lesson-countdown em { display: none; }
   .display-header .display-view-switch { display: none; }
   .display-lesson-card-grid, .student-lesson-cards { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .student-lesson-media { min-height: calc(100dvh - 130px); border-radius: 16px; }

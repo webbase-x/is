@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-projector-auto-results-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-rhythm-projector-timer-3";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260726-projector-auto-results-1";
+} from "./common.js?v=20260727-rhythm-projector-timer-3";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -1191,24 +1191,26 @@ function renderRhythm() {
     "เพลง มาตรา ก กา",
     "ร้องตาม แตะคำตามจังหวะ คัดคำช่วงดนตรี และเติมคำที่หายไป",
     `<section class="rhythm-karaoke">
-      <div class="game-status-row rhythm-status-row">
+      <div class="rhythm-top-status">
         <div class="rhythm-scoreboard">
           <span class="mini-score">⭐ <strong id="rhythmScore">0</strong> / ${maxScore}</span>
           <span class="rhythm-streak" id="rhythmStreak">🔥 ต่อเนื่อง 0</span>
           <span class="rhythm-phase" id="rhythmPhase">เตรียมพร้อม</span>
         </div>
-        <div class="rhythm-start-tools"><span id="rhythmAudioStatus">เกมจะเริ่มอัตโนมัติ…</span><button id="startRhythm" class="button button-primary" type="button" disabled>⏳ กำลังเริ่มพร้อมกัน</button></div>
-      </div>
-      <div class="rhythm-control-row">
-        <label>ความเร็ว <select id="rhythmSpeed"><option value="0.8">0.8× ฝึกช้า</option><option value="1" selected>1× ปกติ</option></select></label>
-        <div class="rhythm-timing-control" aria-label="ปรับเวลาเนื้อเพลง">
-          <span>ปรับคำ</span><button id="rhythmTimingDown" type="button" title="ให้คำช้าลง">−0.5</button><output id="rhythmTimingLabel">ตรงเวลา</output><button id="rhythmTimingUp" type="button" title="ให้คำเร็วขึ้น">+0.5</button>
+        <div class="rhythm-session-tools">
+          <div class="rhythm-start-tools"><span id="rhythmAudioStatus">เกมจะเริ่มอัตโนมัติ…</span><button id="startRhythm" class="button button-primary" type="button" disabled>⏳ กำลังเริ่มพร้อมกัน</button></div>
+          <div class="rhythm-control-row">
+            <label>ความเร็ว <select id="rhythmSpeed"><option value="0.8">0.8× ฝึกช้า</option><option value="1" selected>1× ปกติ</option></select></label>
+            <div class="rhythm-timing-control" aria-label="ปรับเวลาเนื้อเพลง">
+              <span>ปรับคำ</span><button id="rhythmTimingDown" type="button" title="ให้คำช้าลง">−0.5</button><output id="rhythmTimingLabel">ตรงเวลา</output><button id="rhythmTimingUp" type="button" title="ให้คำเร็วขึ้น">+0.5</button>
+            </div>
+            <span class="rhythm-clock" id="rhythmClock">00:00 / 01:52</span>
+          </div>
         </div>
-        <span class="rhythm-clock" id="rhythmClock">00:00 / 01:52</span>
+        <div class="karaoke-now rhythm-now-status"><small>คำที่กำลังร้อง</small><strong id="karaokeCurrentWord">พร้อม!</strong><div class="karaoke-progress"><i id="karaokeProgressBar"></i></div></div>
       </div>
       <div class="karaoke-stage" id="karaokeStage">
         <div class="grammar-sparkles" aria-hidden="true">${sparkles}</div>
-        <div class="karaoke-now"><small>คำที่กำลังร้อง</small><strong id="karaokeCurrentWord">พร้อม!</strong><div class="karaoke-progress"><i id="karaokeProgressBar"></i></div></div>
         <div class="rhythm-interaction" id="rhythmInteraction"><div class="rhythm-guide-panel"><span>🎤</span><strong>คาราโอเกะเริ่มที่วินาที 22</strong><small>ครูกดเริ่มแล้ว เกมของทุกคนจะเดินพร้อมกันอัตโนมัติ</small></div></div>
         <p class="rhythm-feedback" id="rhythmFeedback" aria-live="polite">รอบแรกมีแสงช่วย รอบสองฟังแล้วเลือกเอง</p>
       </div>

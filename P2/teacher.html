@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17203b">
   <title>จอครู | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260726-projector-auto-results-1">
+  <link rel="stylesheet" href="styles.css?v=20260727-rhythm-projector-timer-3">
   <script>
     (() => {
       const url = new URL(location.href);
@@ -202,7 +202,6 @@
                   <div class="panel metric-card"><span>👥</span><div><small>นักเรียน</small><strong id="liveApprovedCount">0</strong></div></div>
                   <div class="panel metric-card"><span>⭐</span><div><small>คะแนนเฉลี่ย</small><strong id="averageScore">0%</strong></div></div>
                   <div class="panel metric-card"><span>🎮</span><div><small>ส่งคำตอบแล้ว</small><strong id="completedAttemptCount">0</strong></div></div>
-                  <div id="activityTimerCard" class="panel metric-card competition-timer-card"><span>⏱️</span><div><small>เวลาขั้นนี้</small><strong id="activityCountdown">--:--</strong><em>หมดเวลาแล้วไม่เปลี่ยนหน้า</em></div></div>
                 </div>
                 <section id="liveJoinRequests" class="panel live-join-requests hidden" aria-live="polite">
                   <div class="live-join-heading">
@@ -234,7 +233,15 @@
                       <section class="lesson-projector-display" aria-label="พื้นที่แสดงบนจอโปรเจกเตอร์">
                         <header class="lesson-projector-header">
                           <div><span>📽️</span><strong>จอโปรเจกเตอร์</strong></div>
-                          <em id="projectorModeLabel">สื่อพร้อมฉาย</em>
+                          <div class="lesson-projector-meta">
+                            <em id="projectorModeLabel">สื่อพร้อมฉาย</em>
+                            <div id="activityTimerCard" class="projector-lesson-timer competition-timer-card">
+                              <span>⏱️</span>
+                              <small>เวลาขั้นนี้</small>
+                              <strong id="activityCountdown">--:--</strong>
+                              <em>หมดเวลาแล้วไม่เปลี่ยนหน้า</em>
+                            </div>
+                          </div>
                         </header>
                         <div id="lessonProjectorViewport" class="lesson-projector-viewport">
                           <div id="lessonScreenPreview" class="lesson-screen-preview lesson-projector-media">
@@ -357,6 +364,6 @@
   </main>
   <div id="returnDialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="returnDialogTitle"><form id="returnForm" class="modal-card"><h2 id="returnDialogTitle">ส่งข้อมูลกลับให้นักเรียนแก้ไข</h2><input id="returnPlayerId" type="hidden"><label>เหตุผล<select id="returnReason"><option>เลือกชื่อไม่ถูกต้อง</option><option>รูปไม่ชัด กรุณาถ่ายใหม่</option><option>นักเรียนไม่อยู่ในห้องนี้</option><option>ข้อมูลไม่ครบถ้วน</option></select></label><div class="button-row"><button type="button" id="cancelReturn" class="button button-ghost">ยกเลิก</button><button class="button button-danger" type="submit">ส่งคืน</button></div></form></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/teacher.js?v=20260726-projector-auto-results-1"></script>
+  <script type="module" src="js/teacher.js?v=20260727-rhythm-projector-timer-3"></script>
 </body>
 </html>
