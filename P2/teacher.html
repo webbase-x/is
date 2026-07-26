@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17203b">
   <title>จอครู | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260726-lobby-room-code-1">
+  <link rel="stylesheet" href="styles.css?v=20260726-lesson-navigation-1">
   <script>
     (() => {
       const url = new URL(location.href);
@@ -235,9 +235,10 @@
                         <input id="shareLessonToStudents" type="checkbox">
                         <span><strong>แสดงสื่อนี้บนจอนักเรียนด้วย</strong><small>จอฉายจะแสดงเสมอ ส่วนจอนักเรียนครูเลือกได้</small></span>
                       </label>
-                      <div class="button-row">
+                      <div class="button-row lesson-navigation-buttons" role="group" aria-label="ควบคุมลำดับการสอน">
                         <button id="previousLessonStepButton" class="button button-ghost" type="button">← ขั้นก่อนหน้า</button>
                         <button id="restartLessonTimerButton" class="button button-secondary" type="button">↻ เริ่มเวลาใหม่</button>
+                        <button id="nextActivityButton" class="button button-primary" type="button">ขั้นถัดไป →</button>
                       </div>
                     </div>
                   </section>
@@ -258,7 +259,7 @@
                     <div id="liveResults" aria-live="polite"></div>
                   </section>
                 </div>
-                <div class="flow-footer live-actions"><button id="pauseSessionButton" class="button button-secondary" type="button">พักกิจกรรม</button><button id="openLateJoinButton" class="button button-success" type="button">📋 ดูคำขอเข้าใหม่</button><button id="showSummaryButton" class="button button-ghost" type="button">ดูสรุปผล</button><button id="nextActivityButton" class="button button-primary button-large" type="button">ขั้นถัดไป →</button></div>
+                <div class="flow-footer live-actions"><button id="pauseSessionButton" class="button button-secondary" type="button">พักกิจกรรม</button><button id="openLateJoinButton" class="button button-success" type="button">📋 ดูคำขอเข้าใหม่</button><button id="showSummaryButton" class="button button-ghost" type="button">ดูสรุปผล</button></div>
               </section>
 
               <section class="teacher-flow-step hidden" data-flow-step="summary">
@@ -341,6 +342,6 @@
   </main>
   <div id="returnDialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="returnDialogTitle"><form id="returnForm" class="modal-card"><h2 id="returnDialogTitle">ส่งข้อมูลกลับให้นักเรียนแก้ไข</h2><input id="returnPlayerId" type="hidden"><label>เหตุผล<select id="returnReason"><option>เลือกชื่อไม่ถูกต้อง</option><option>รูปไม่ชัด กรุณาถ่ายใหม่</option><option>นักเรียนไม่อยู่ในห้องนี้</option><option>ข้อมูลไม่ครบถ้วน</option></select></label><div class="button-row"><button type="button" id="cancelReturn" class="button button-ghost">ยกเลิก</button><button class="button button-danger" type="submit">ส่งคืน</button></div></form></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/teacher.js?v=20260726-lobby-room-code-1"></script>
+  <script type="module" src="js/teacher.js?v=20260726-lesson-navigation-1"></script>
 </body>
 </html>

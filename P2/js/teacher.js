@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260726-lobby-room-code-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-lobby-room-code-1";
+import { supabase } from "./supabase.js?v=20260726-lesson-navigation-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-lesson-navigation-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260726-lobby-room-code-1";
+} from "./common.js?v=20260726-lesson-navigation-1";
 
-const TEACHER_BUILD_VERSION = "20260726-lobby-room-code-1";
+const TEACHER_BUILD_VERSION = "20260726-lesson-navigation-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -869,9 +869,11 @@ function updateNextActivityButton() {
   if (!button || !state.session) return;
   const flow = currentLessonFlow();
   const index = flow.findIndex(item => item.key === state.lessonStepKey);
-  button.textContent = index >= flow.length - 1
-    ? "สรุปผลคาบเรียน →"
-    : `ขั้นถัดไป: ${flow[Math.max(index + 1, 0)]?.title || flow[0]?.title} →`;
+  const nextStep = flow[Math.max(index + 1, 0)] || flow[0];
+  button.textContent = index >= flow.length - 1 ? "สรุปผล →" : "ถัดไป →";
+  button.title = index >= flow.length - 1
+    ? "เปิดหน้าสรุปผลคาบเรียน"
+    : `ขั้นถัดไป: ${nextStep?.title || "ดำเนินการสอนต่อ"}`;
 }
 
 async function goToNextActivity() {
