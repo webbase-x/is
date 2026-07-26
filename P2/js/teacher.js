@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260727-teacher-lobby-audio-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-teacher-lobby-audio-1";
+import { supabase } from "./supabase.js?v=20260727-projector-clock-nav-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-projector-clock-nav-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260727-teacher-lobby-audio-1";
+} from "./common.js?v=20260727-projector-clock-nav-1";
 
-const TEACHER_BUILD_VERSION = "20260727-teacher-lobby-audio-1";
+const TEACHER_BUILD_VERSION = "20260727-projector-clock-nav-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -34,6 +34,21 @@ async function checkForTeacherUpdate() {
 
 void checkForTeacherUpdate();
 window.setInterval(checkForTeacherUpdate, TEACHER_BUILD_CHECK_INTERVAL_MS);
+
+const projectorClockFormatter = new Intl.DateTimeFormat("th-TH", {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
+function updateProjectorWallClock() {
+  const output = $("#projectorWallClock");
+  if (output) output.textContent = projectorClockFormatter.format(new Date());
+}
+
+updateProjectorWallClock();
+window.setInterval(updateProjectorWallClock, 1000);
 
 const state = {
   user: null,
@@ -745,6 +760,9 @@ function renderCurrentLessonStep() {
       ? "จอนักเรียนหยุดรอ ส่วนครูประกาศอันดับจากหน้าจอนี้"
     : "จอฉายจะแสดงเสมอ ส่วนจอนักเรียนครูเลือกได้";
   $("#previousLessonStepButton").disabled = index <= 0;
+  const previousStep = index > 0 ? flow[index - 1] : null;
+  $("#previousLessonStepButton").innerHTML = `<span class="lesson-nav-title">${escapeHtml(previousStep?.title || "เริ่มต้น")}</span><span class="lesson-nav-direction">← ขั้นก่อนหน้า</span>`;
+  $("#previousLessonStepButton").title = previousStep ? `ย้อนกลับไป: ${previousStep.title}` : "นี่คือรายการแรก";
   $("#restartLessonTimerButton").disabled = !step || isResults;
   $("#finishActivityButton").classList.toggle("hidden", !isGame);
   $("#pauseSessionButton")?.classList.toggle("hidden", isResults);
@@ -982,10 +1000,11 @@ function updateNextActivityButton() {
   const flow = currentLessonFlow();
   const index = flow.findIndex(item => item.key === state.lessonStepKey);
   const nextStep = flow[Math.max(index + 1, 0)] || flow[0];
-  button.textContent = index >= flow.length - 1 ? "สรุปผล →" : "ถัดไป →";
+  const nextTitle = index >= flow.length - 1 ? "สรุปผลคาบเรียน" : nextStep?.title || "ดำเนินการสอนต่อ";
+  button.innerHTML = `<span class="lesson-nav-direction">ถัดไป →</span><span class="lesson-nav-title">${escapeHtml(nextTitle)}</span>`;
   button.title = index >= flow.length - 1
     ? "เปิดหน้าสรุปผลคาบเรียน"
-    : `ขั้นถัดไป: ${nextStep?.title || "ดำเนินการสอนต่อ"}`;
+    : `ขั้นถัดไป: ${nextTitle}`;
 }
 
 async function goToNextActivity() {

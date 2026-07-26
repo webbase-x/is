@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17203b">
   <title>จอครู | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260727-teacher-lobby-audio-1">
+  <link rel="stylesheet" href="styles.css?v=20260727-projector-clock-nav-1">
   <script>
     (() => {
       const url = new URL(location.href);
@@ -232,7 +232,7 @@
                       </aside>
                       <section class="lesson-projector-display" aria-label="พื้นที่แสดงบนจอโปรเจกเตอร์">
                         <header class="lesson-projector-header">
-                          <div><span>📽️</span><strong>จอโปรเจกเตอร์</strong></div>
+                          <div class="lesson-projector-brand"><span>📽️</span><strong>จอโปรเจกเตอร์</strong><time id="projectorWallClock" class="projector-wall-clock" aria-label="เวลาปัจจุบัน">--:--:--</time></div>
                           <div class="lesson-projector-meta">
                             <em id="projectorModeLabel">สื่อพร้อมฉาย</em>
                             <div id="activityTimerCard" class="projector-lesson-timer competition-timer-card">
@@ -270,9 +270,9 @@
                         <span><strong>แสดงสื่อนี้บนจอนักเรียนด้วย</strong><small>จอฉายจะแสดงเสมอ ส่วนจอนักเรียนครูเลือกได้</small></span>
                       </label>
                       <div class="button-row lesson-navigation-buttons" role="group" aria-label="ควบคุมลำดับการสอน">
-                        <button id="previousLessonStepButton" class="button button-ghost" type="button">← ขั้นก่อนหน้า</button>
+                        <button id="previousLessonStepButton" class="button button-ghost lesson-nav-previous" type="button"><span class="lesson-nav-title">เริ่มต้น</span><span class="lesson-nav-direction">← ขั้นก่อนหน้า</span></button>
                         <button id="restartLessonTimerButton" class="button button-secondary" type="button">↻ เริ่มเวลาใหม่</button>
-                        <button id="nextActivityButton" class="button button-primary" type="button">ขั้นถัดไป →</button>
+                        <button id="nextActivityButton" class="button button-primary lesson-nav-next" type="button"><span class="lesson-nav-direction">ถัดไป →</span><span class="lesson-nav-title">รายการถัดไป</span></button>
                       </div>
                     </div>
                   </section>
@@ -364,6 +364,6 @@
   </main>
   <div id="returnDialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="returnDialogTitle"><form id="returnForm" class="modal-card"><h2 id="returnDialogTitle">ส่งข้อมูลกลับให้นักเรียนแก้ไข</h2><input id="returnPlayerId" type="hidden"><label>เหตุผล<select id="returnReason"><option>เลือกชื่อไม่ถูกต้อง</option><option>รูปไม่ชัด กรุณาถ่ายใหม่</option><option>นักเรียนไม่อยู่ในห้องนี้</option><option>ข้อมูลไม่ครบถ้วน</option></select></label><div class="button-row"><button type="button" id="cancelReturn" class="button button-ghost">ยกเลิก</button><button class="button button-danger" type="submit">ส่งคืน</button></div></form></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/teacher.js?v=20260727-teacher-lobby-audio-1"></script>
+  <script type="module" src="js/teacher.js?v=20260727-projector-clock-nav-1"></script>
 </body>
 </html>

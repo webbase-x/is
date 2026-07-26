@@ -2074,9 +2074,15 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .lesson-screen-card-list > span strong { color: white; font-size: 14px; }
 .lesson-screen-card-list > span small { overflow: hidden; color: #d9dcf2; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .lesson-step-actions { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 16px; padding-top: 15px; border-top: 1px solid #e7e6f1; }
-.lesson-navigation-buttons { flex: 0 1 auto; flex-wrap: nowrap; }
-.lesson-navigation-buttons .button { min-height: 44px; white-space: nowrap; }
-.lesson-navigation-buttons #nextActivityButton { min-width: 190px; box-shadow: 0 10px 24px rgba(91,75,219,.2); }
+.lesson-navigation-buttons { width: min(900px,100%); flex: 1 1 650px; display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 8px; }
+.lesson-navigation-buttons .button { min-width: 0; min-height: 50px; white-space: nowrap; }
+.lesson-navigation-buttons #nextActivityButton { box-shadow: 0 10px 24px rgba(91,75,219,.2); }
+.lesson-navigation-buttons .lesson-nav-previous, .lesson-navigation-buttons .lesson-nav-next { display: grid; align-content: center; gap: 2px; overflow: hidden; }
+.lesson-navigation-buttons .lesson-nav-previous { justify-items: end; text-align: right; }
+.lesson-navigation-buttons .lesson-nav-next { justify-items: start; text-align: left; }
+.lesson-nav-title, .lesson-nav-direction { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lesson-nav-title { font-size: 12px; font-weight: 950; }
+.lesson-nav-direction { font-size: 10px; opacity: .78; }
 .lesson-share-toggle { min-width: 0; display: flex; align-items: center; gap: 11px; cursor: pointer; }
 .lesson-share-toggle input { width: 22px; height: 22px; accent-color: var(--purple); }
 .lesson-share-toggle span, .lesson-share-toggle strong, .lesson-share-toggle small { display: block; }
@@ -2100,6 +2106,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .lesson-projector-display { min-width: 0; display: grid; grid-template-rows: auto minmax(0,1fr); overflow: hidden; border: 1px solid rgba(91,75,219,.22); border-radius: 20px; background: #191d35; box-shadow: 0 16px 38px rgba(31,29,69,.17); }
 .lesson-projector-header { min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 13px; color: white; background: linear-gradient(90deg,#232743,#30355b); }
 .lesson-projector-header > div { display: flex; align-items: center; gap: 8px; }
+.lesson-projector-header .lesson-projector-brand { min-width: 0; }
+.projector-wall-clock { padding: 4px 8px; border: 1px solid rgba(255,255,255,.13); border-radius: 9px; color: #fff6b4; background: rgba(255,255,255,.08); font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 950; letter-spacing: .04em; white-space: nowrap; }
 .lesson-projector-header em { padding: 5px 9px; border-radius: 999px; color: #e7e4ff; background: rgba(255,255,255,.1); font-size: 10px; font-style: normal; font-weight: 900; }
 .lesson-projector-header .lesson-projector-meta { min-width: 0; justify-content: flex-end; margin-left: auto; }
 .projector-lesson-timer { min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid rgba(255,255,255,.13); border-radius: 12px; color: white; background: rgba(255,255,255,.08); }
@@ -2228,8 +2236,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .lesson-step-actions { align-items: stretch; flex-direction: column; }
   .lesson-step-actions .button-row { width: 100%; }
   .lesson-step-actions .button { flex: 1 1 0; }
-  .lesson-navigation-buttons { flex-wrap: wrap; }
-  .lesson-navigation-buttons #nextActivityButton { flex-basis: 100%; }
+  .lesson-navigation-buttons { width: 100%; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
   .live-join-card { grid-template-columns: 50px minmax(0,1fr); }
   .live-join-card > img, .live-join-card > .avatar-fallback { width: 50px; height: 50px; }
   .live-join-actions { grid-column: 1 / -1; }
@@ -2257,6 +2264,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .classroom-stage-expanded .lesson-teacher-notes ul { margin-top: 6px; font-size: 12px; line-height: 1.4; }
   .classroom-stage-expanded .lesson-projector-header { min-height: 36px; padding: 5px 9px; }
   .classroom-stage-expanded .lesson-projector-header em { font-size: 8px; }
+  .classroom-stage-expanded .projector-wall-clock { padding: 3px 6px; font-size: 11px; }
   .lesson-projector-header .lesson-projector-meta > #projectorModeLabel { display: none; }
   .projector-lesson-timer { padding: 3px 6px; }
   .projector-lesson-timer > strong { font-size: 17px; }
@@ -2265,6 +2273,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .classroom-stage-expanded .lesson-share-toggle { display: none; }
   .classroom-stage-expanded .lesson-navigation-buttons { width: 100%; flex-wrap: nowrap; }
   .classroom-stage-expanded .lesson-navigation-buttons .button { min-height: 38px; min-width: 0 !important; padding: 6px 7px; font-size: 10px; }
+  .classroom-stage-expanded .lesson-nav-title { font-size: 9px; }
+  .classroom-stage-expanded .lesson-nav-direction { font-size: 8px; }
   .classroom-stage-expanded .competition-heading p, .classroom-stage-expanded .competition-live-meta small { display: none; }
   .classroom-stage-expanded .classroom-live-results { margin: 0; padding: 6px 9px; }
   .classroom-stage-expanded .competition-heading { top: -6px; padding: 4px 0 6px; }
