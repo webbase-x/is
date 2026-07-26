@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan3-mae-kom-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan4-yw-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-plan3-mae-kom-1";
+} from "./common.js?v=20260727-plan4-yw-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -114,20 +114,29 @@ const LIVE_PLAN_GAME_DATA = Object.freeze({
   4: {
     title: "มาตราแม่เกยและแม่เกอว", rule: "แม่เกยมี ย สะกด ส่วนแม่เกอวมี ว สะกด",
     categories: [
-      ["กล้วย","แม่เกย","🍌"],["สวย","แม่เกย","✨"],["จ่าย","แม่เกย","💵"],["ถ้วย","แม่เกย","🏆"],["ยาย","แม่เกย","👵"],
-      ["แมว","แม่เกอว","🐱"],["แก้ว","แม่เกอว","🥛"],["ข้าว","แม่เกอว","🍚"],["ว่าว","แม่เกอว","🪁"],["ดาว","แม่เกอว","⭐"],
+      ["กล้วย","แม่เกย","🍌"],["กลาย","แม่เกย","🔄"],["จ่าย","แม่เกย","💵"],["เฉย","แม่เกย","🙂"],["ด้าย","แม่เกย","🧵"],
+      ["ทราย","แม่เกย","🏖️"],["ฝ้าย","แม่เกย","☁️"],["ลอย","แม่เกย","🎈"],["สบาย","แม่เกย","😌"],["เหนื่อย","แม่เกย","😮‍💨"],
+      ["ข้าว","แม่เกอว","🍚"],["เขียว","แม่เกอว","🟢"],["ชาว","แม่เกอว","👨‍🌾"],["เดียว","แม่เกอว","1️⃣"],["แถว","แม่เกอว","🚶"],
+      ["แนว","แม่เกอว","📏"],["นิ้ว","แม่เกอว","☝️"],["พร้าว","แม่เกอว","🥥"],["ว่าว","แม่เกอว","🪁"],["เอว","แม่เกอว","🧍"],
     ],
     secondary: [
-      { prompt:"ภาพแมว เขียนคำใดถูกต้อง", options:["แมว","แมย"], answer:"แมว", emoji:"🐱" },
-      { prompt:"ภาพกล้วย เขียนคำใดถูกต้อง", options:["กล้วย","กล้วว"], answer:"กล้วย", emoji:"🍌" },
-      { prompt:"ภาพดาว เขียนคำใดถูกต้อง", options:["ดาย","ดาว"], answer:"ดาว", emoji:"⭐" },
-      { prompt:"ภาพถ้วย เขียนคำใดถูกต้อง", options:["ถ้วว","ถ้วย"], answer:"ถ้วย", emoji:"🏆" },
-      { prompt:"ภาพว่าว เขียนคำใดถูกต้อง", options:["ว่าย","ว่าว"], answer:"ว่าว", emoji:"🪁" },
+      { words:["แม่","ซื้อ","กล้วย"], target:"กล้วย", emoji:"🍌" },
+      { words:["พี่","ถือ","ถ้วย"], target:"ถ้วย", emoji:"🏆" },
+      { words:["น้อง","เล่น","ว่าว"], target:"ว่าว", emoji:"🪁" },
+      { words:["ยาย","หุง","ข้าว"], target:"ข้าว", emoji:"🍚" },
+      { words:["เด็ก","เข้า","แถว"], target:"แถว", emoji:"🚶" },
+      { words:["พ่อ","ปลูก","อ้อย"], target:"อ้อย", emoji:"🌱" },
+      { words:["ชาวนา","เลี้ยง","ควาย"], target:"ควาย", emoji:"🐃" },
+      { words:["ดาว","บนฟ้า","สวย"], target:"ดาว", emoji:"🌟" },
+      { words:["พี่สาว","ใส่","เสื้อ","สีเขียว"], target:"สีเขียว", emoji:"👕" },
+      { words:["น้อง","กิน","ก๋วยเตี๋ยว","อร่อย"], target:"ก๋วยเตี๋ยว", emoji:"🍜" },
     ],
     exit: [
-      { prompt:"คำว่า “กล้วย” อยู่ในมาตราใด", options:["แม่เกย","แม่เกอว"], answer:"แม่เกย" },
-      { prompt:"คำว่า “แมว” มีตัวใดเป็นตัวสะกด", options:["ย","ว"], answer:"ว" },
-      { prompt:"คำใดเป็นแม่เกอว", options:["ยาย","ดาว","ถ้วย"], answer:"ดาว" },
+      { prompt:"คำมาตราแม่เกยมีลักษณะอย่างไร", options:["มี ย เป็นตัวสะกด","มี ว เป็นตัวสะกด","ไม่มีตัวสะกด"], answer:"มี ย เป็นตัวสะกด" },
+      { prompt:"คำมาตราแม่เกอวมีลักษณะอย่างไร", options:["มี ว เป็นตัวสะกด","มี ย เป็นตัวสะกด","มี ม เป็นตัวสะกด"], answer:"มี ว เป็นตัวสะกด" },
+      { prompt:"คำใดอยู่ในมาตราแม่เกย", options:["กล้วย","ดาว","ลม"], answer:"กล้วย" },
+      { prompt:"ข้อใดเป็นคำมาตราแม่เกอวทั้ง 2 คำ", options:["ข้าว, ว่าว","ทราย, ดาว","สบาย, นิ้ว"], answer:"ข้าว, ว่าว" },
+      { prompt:"ข้อใดอธิบายคำว่า “บัว” ได้ถูกต้อง", options:["ว เป็นส่วนหนึ่งของสระอัว","ว เป็นตัวสะกดแม่เกอว","ย เป็นตัวสะกดแม่เกย"], answer:"ว เป็นส่วนหนึ่งของสระอัว" },
     ],
   },
   5: {
@@ -1972,6 +1981,158 @@ function renderMaeKomPictureSentences(activityKey, activity) {
   render();
 }
 
+function renderMaeKoeiKoewSort(activityKey, data, activity) {
+  const questions = shuffle(data.categories).map(([word, answer, emoji]) => ({ word, answer, emoji }));
+  let index = 0;
+  let score = 0;
+  const answers = [];
+
+  const render = () => {
+    const question = questions[index];
+    gameShell(activity.title, "อ่านคำ แล้วส่งลงตะกร้า ย หรือ ว ให้ถูกต้อง", `
+      <section class="yw-basket-game">
+        <div class="game-status-row"><span>คำที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <article class="yw-word-card">
+          <span aria-hidden="true">${question.emoji}</span>
+          <strong>${escapeHtml(question.word)}</strong>
+          <button type="button" class="button button-ghost button-small" data-yw-speak>🔊 ฟังคำ</button>
+        </article>
+        <p class="mae-kong-feedback" data-yw-feedback>สังเกตพยัญชนะตัวสุดท้าย แล้วเลือกตะกร้า</p>
+        <div class="yw-basket-grid">
+          <button type="button" class="yw-basket koei" data-yw-answer="แม่เกย">
+            <span>🧺</span><strong>ตะกร้า ย</strong><small>มาตราแม่เกย</small>
+          </button>
+          <button type="button" class="yw-basket koew" data-yw-answer="แม่เกอว">
+            <span>🧺</span><strong>ตะกร้า ว</strong><small>มาตราแม่เกอว</small>
+          </button>
+        </div>
+      </section>`);
+
+    $("[data-yw-speak]")?.addEventListener("click", () => speakThai(question.word));
+    document.querySelectorAll("[data-yw-answer]").forEach(button => button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      document.querySelectorAll("[data-yw-answer]").forEach(item => { item.disabled = true; });
+      const chosen = button.dataset.ywAnswer;
+      const correct = chosen === question.answer;
+      if (correct) score += 1;
+      answers.push({ prompt: question.word, chosen, correct });
+      button.classList.add(correct ? "correct" : "wrong");
+      const correctButton = document.querySelector(`[data-yw-answer="${question.answer}"]`);
+      correctButton?.classList.add("correct");
+      const finalLetter = question.answer === "แม่เกย" ? "ย" : "ว";
+      $("[data-yw-feedback]").textContent = correct
+        ? `ถูกต้อง! “${question.word}” มี ${finalLetter} เป็นตัวสะกด`
+        : `คำว่า “${question.word}” อยู่ใน${question.answer} เพราะมี ${finalLetter} เป็นตัวสะกด`;
+      if (correct) speakThai(`ถูกต้อง ${question.word}`);
+      else if (navigator.vibrate) navigator.vibrate([90, 55, 90]);
+      setTimeout(async () => {
+        index += 1;
+        if (index < questions.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, questions.length, answers);
+          if (result) showResult("แยกคำคู่หู ย ว ครบแล้ว", score, questions.length, result, () => renderMaeKoeiKoewSort(activityKey, data, activity));
+        }
+      }, 1050);
+    }));
+  };
+
+  render();
+}
+
+function renderMaeKoeiKoewPictureSentences(activityKey, data, activity) {
+  const questions = data.secondary;
+  let index = 0;
+  let score = 0;
+  let firstTry = true;
+  let selected = [];
+  const answers = [];
+
+  const render = () => {
+    const question = questions[index];
+    const bank = shuffle(question.words.map((word, wordIndex) => ({ word, id: `yw-${index}-${wordIndex}` })));
+    selected = [];
+    firstTry = true;
+    gameShell(activity.title, "ดูภาพ แล้วแตะหรือลากคำตามลำดับให้เป็นประโยคที่ถูกต้อง", `
+      <section class="mae-kong-rocket-game mae-kom-picture-game">
+        <div class="game-status-row"><span>ภาพที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="mae-kom-picture-scene yw-picture-scene">
+          <span class="mae-kom-picture" aria-hidden="true">${question.emoji}</span>
+          <small>ภาพนี้ควรบรรยายว่าอย่างไร?</small>
+        </div>
+        <div class="mae-kong-sentence-output" data-yw-sentence-output>แตะคำเพื่อเรียงประโยค</div>
+        <div class="mae-kong-word-bank">${bank.map(item => `<button type="button" draggable="true" data-yw-word="${escapeHtml(item.id)}" data-word="${escapeHtml(item.word)}">${escapeHtml(item.word)}</button>`).join("")}</div>
+        <p class="mae-kong-feedback" data-yw-picture-feedback>คำแม่เกยหรือแม่เกอวจะเปลี่ยนสีเมื่อตอบถูก</p>
+        <div class="mae-kong-action-row">
+          <button class="button button-ghost" type="button" data-yw-reset>เริ่มเรียงใหม่</button>
+          <button class="button button-primary" type="button" data-yw-check>ตรวจคำตอบ</button>
+        </div>
+      </section>`);
+
+    const output = $("[data-yw-sentence-output]");
+    const feedback = $("[data-yw-picture-feedback]");
+    const paint = (showTarget = false) => {
+      output.innerHTML = selected.length
+        ? selected.map(item => `<span class="${showTarget && item.word === question.target ? "is-target-word" : ""}">${escapeHtml(item.word)}</span>`).join("")
+        : "แตะคำเพื่อเรียงประโยค";
+    };
+    const choose = button => {
+      if (!button || button.disabled) return;
+      button.disabled = true;
+      selected.push({ id: button.dataset.ywWord, word: button.dataset.word });
+      paint();
+    };
+    const reset = () => {
+      selected = [];
+      document.querySelectorAll("[data-yw-word]").forEach(button => { button.disabled = false; });
+      output.classList.remove("is-correct", "is-wrong");
+      paint();
+    };
+    document.querySelectorAll("[data-yw-word]").forEach(button => {
+      button.addEventListener("click", () => choose(button));
+      button.addEventListener("dragstart", event => event.dataTransfer.setData("text/plain", button.dataset.ywWord));
+    });
+    output.addEventListener("dragover", event => event.preventDefault());
+    output.addEventListener("drop", event => {
+      event.preventDefault();
+      choose(document.querySelector(`[data-yw-word="${CSS.escape(event.dataTransfer.getData("text/plain"))}"]`));
+    });
+    $("[data-yw-reset]")?.addEventListener("click", reset);
+    $("[data-yw-check]")?.addEventListener("click", async () => {
+      if (selected.length !== question.words.length) {
+        feedback.textContent = "เลือกคำให้ครบทุกคำก่อนนะ";
+        return;
+      }
+      const response = selected.map(item => item.word).join(" ");
+      const answer = question.words.join(" ");
+      if (response !== answer) {
+        firstTry = false;
+        output.classList.add("is-wrong");
+        feedback.textContent = "ลำดับยังไม่ถูก ลองดูภาพและอ่านใหม่อีกครั้ง";
+        if (navigator.vibrate) navigator.vibrate([90, 55, 90]);
+        setTimeout(reset, 700);
+        return;
+      }
+      if (firstTry) score += 1;
+      answers.push({ prompt: answer, chosen: response, correct: firstTry });
+      output.classList.add("is-correct");
+      paint(true);
+      const category = /ย$/.test(question.target) ? "แม่เกย" : "แม่เกอว";
+      feedback.textContent = `ถูกต้อง! “${question.target}” เป็นคำ${category}`;
+      speakThai(answer);
+      setTimeout(async () => {
+        index += 1;
+        if (index < questions.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, questions.length, answers);
+          if (result) showResult("เรียงประโยคจากภาพครบแล้ว", score, questions.length, result, () => renderMaeKoeiKoewPictureSentences(activityKey, data, activity));
+        }
+      }, 1250);
+    });
+  };
+
+  render();
+}
+
 function renderLivePlanActivity(activityKey) {
   const planId = Number(state.session?.plan_id || 1);
   const data = LIVE_PLAN_GAME_DATA[planId];
@@ -1999,6 +2160,14 @@ function renderLivePlanActivity(activityKey) {
     renderMaeKomPictureSentences(activityKey, activity);
     return;
   }
+  if (planId === 4 && activityKey === "yw-sort") {
+    renderMaeKoeiKoewSort(activityKey, data, activity);
+    return;
+  }
+  if (planId === 4 && activityKey === "picture-choice") {
+    renderMaeKoeiKoewPictureSentences(activityKey, data, activity);
+    return;
+  }
 
   let questions;
   let instruction;
@@ -2015,7 +2184,7 @@ function renderLivePlanActivity(activityKey) {
     const source = activityIndex === activities.length - 1 ? data.exit : data.secondary;
     questions = shuffle(source).map(question => ({ ...question, options: shuffle(question.options) }));
     instruction = activityIndex === activities.length - 1
-      ? `ตอบให้ถูกอย่างน้อย ${planId === 2 || planId === 3 ? 3 : 2} จาก ${source.length} ข้อ`
+      ? `ตอบให้ถูกอย่างน้อย ${[2, 3, 4].includes(planId) ? 3 : 2} จาก ${source.length} ข้อ`
       : "อ่านหรือฟังโจทย์ แล้วเลือกคำตอบที่ถูกต้อง";
   }
 

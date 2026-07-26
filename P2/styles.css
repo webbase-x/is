@@ -2552,3 +2552,26 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .display-lesson-flashcard > span, .student-lesson-flashcard > span { font-size: clamp(17px,5vw,24px); }
   .student-lesson-media { min-height: calc(100dvh - 130px); border-radius: 16px; }
 }
+
+.yw-basket-game { width: min(900px,100%); height: 100%; margin: auto; display: grid; gap: clamp(10px,2vh,18px); align-content: center; }
+.yw-word-card { width: min(420px,88vw); margin: auto; padding: clamp(14px,2.4vh,24px); border: 3px solid #ddd7ff; border-radius: 28px; background: linear-gradient(145deg,#fff,#f1efff); box-shadow: 0 16px 38px rgba(66,55,142,.16); display: grid; justify-items: center; gap: 7px; }
+.yw-word-card > span { font-size: clamp(52px,9vh,84px); line-height: 1; }
+.yw-word-card > strong { font-size: clamp(38px,7vh,64px); line-height: 1.12; color: #352a96; }
+.yw-basket-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: clamp(12px,2.5vw,24px); }
+.yw-basket { min-height: clamp(110px,19vh,170px); border: 3px solid transparent; border-radius: 28px; padding: 14px; background: #fff; box-shadow: 0 14px 32px rgba(39,32,98,.13); cursor: pointer; display: grid; place-items: center; align-content: center; gap: 3px; transition: .2s; }
+.yw-basket > span { font-size: clamp(38px,7vh,62px); }
+.yw-basket > strong { font-size: clamp(22px,3.5vh,32px); }
+.yw-basket > small { font-size: clamp(14px,2.2vh,18px); }
+.yw-basket.koei { background: linear-gradient(145deg,#fff2bc,#fffaf0); color: #755000; }
+.yw-basket.koew { background: linear-gradient(145deg,#dff6ff,#f3fbff); color: #095f80; }
+.yw-basket:hover { transform: translateY(-3px); }
+.yw-basket.correct { border-color: #16a36a; background: #dff9ed; color: #087147; box-shadow: 0 0 0 8px rgba(22,163,106,.12); }
+.yw-basket.wrong { border-color: #e45454; background: #ffe7e7; color: #a52121; animation: shake .35s; }
+.yw-picture-scene { background: linear-gradient(135deg,#fff5cb,#e7e3ff); }
+
+@media (max-width:620px) {
+  .yw-basket-game { gap: 8px; }
+  .yw-basket { min-height: 108px; border-radius: 20px; padding: 8px; }
+  .yw-word-card { padding: 12px; border-radius: 22px; }
+  .yw-basket-grid { gap: 9px; }
+}

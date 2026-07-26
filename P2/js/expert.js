@@ -1,5 +1,5 @@
 const $ = selector => document.querySelector(selector);
-const EXPERT_BUILD_VERSION = "20260727-plan3-mae-kom-1";
+const EXPERT_BUILD_VERSION = "20260727-plan4-yw-1";
 const IPAD_VIEWPORT = Object.freeze({ width: 1024, height: 768 });
 const EXPERT_EMAIL = "expert@webbase.x";
 

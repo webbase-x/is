@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"><link rel="icon" href="favicon.svg" type="image/svg+xml"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#5b4bdb"><meta name="description" content="ชุดสื่อและเกมภาษาไทย ป.2 เรื่องมาตราแม่เกยและแม่เกอว">
+  <title>คู่หู ย ว | คำไทยผจญภัย</title>
+  <link rel="stylesheet" href="game-plan-2.css?v=20260727-plan4-yw-1">
+</head>
+<body>
+  <header class="game-header">
+    <a href="plans.html" class="back-link">← แผนการสอน</a>
+    <div class="brand"><span>ยว</span><div><strong>ภารกิจคู่หู ย ว</strong><small>ภาษาไทย ป.2 · แผนที่ 4</small></div></div>
+    <div class="score-pill">⭐ <strong id="score">0</strong></div>
+  </header>
+  <main>
+    <section class="hero" id="hero">
+      <div class="hero-copy"><span class="eyebrow">ดินแดนคู่หูตัวสะกด</span><h1>จับคู่คำ<br><em>แม่เกย–แม่เกอว</em></h1><p>แม่เกยมี <strong>ย</strong> เป็นตัวสะกด ส่วนแม่เกอวมี <strong>ว</strong> เป็นตัวสะกด</p>
+        <div class="hero-actions"><button id="teachButton" class="primary-button">ฉายสื่อสอนหน้าชั้น 🧑‍🏫</button><button id="startButton" class="secondary-button hero-secondary">เข้าเกมนักเรียน 🎮</button></div>
+        <div class="quick-links"><a href="teacher.html">จอครู</a><a href="display.html">จอคะแนนรวม</a><a href="worksheet-plan-4.html" target="_blank">ใบงานที่ 4</a></div>
+      </div>
+      <div class="hero-art" aria-hidden="true"><span class="moon">ยว</span><span class="elephant">🧺</span><i class="star one">★</i><i class="star two">★</i><i class="star three">★</i></div>
+    </section>
+    <section id="lesson" class="lesson-panel hidden">
+      <aside class="lesson-nav"><div><small>ชุดสื่อครบคาบ · 60 นาที</small><strong>แผนที่ 4 คู่หู ย ว</strong></div><ol id="lessonSteps"></ol><button id="closeLesson" class="secondary-button">← กลับหน้าแรก</button></aside>
+      <section class="lesson-screen"><div class="lesson-toolbar"><span id="slideCounter">1 / 10</span><div><button id="fullscreenButton" class="icon-button">⛶ เต็มจอ</button><button id="prevSlide" class="icon-button">← ก่อนหน้า</button><button id="nextSlide" class="primary-button compact">ถัดไป →</button></div></div><div id="lessonStage" class="lesson-stage"></div></section>
+    </section>
+    <section id="game" class="game-panel hidden">
+      <div class="progress-head"><div><small id="missionLabel">ภารกิจ 1 จาก 3</small><strong id="missionTitle">คู่หู ย ว</strong></div><span id="roundLabel">ข้อ 1 / 20</span></div>
+      <div class="progress-track"><i id="progressBar"></i></div><div id="stage" class="stage"></div>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="js/game-plan-4.js?v=20260727-plan4-yw-1"></script>
+</body>
+</html>
