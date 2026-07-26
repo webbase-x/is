@@ -1,10 +1,33 @@
-import { $ } from "./common.js?v=20260727-plan4-yw-1";
-import { PLAN_CATALOG, getPlanById } from "./plan-catalog.js?v=20260727-plan4-yw-1";
+import { $ } from "./common.js?v=20260727-plan5-mae-kok-1";
+import { PLAN_CATALOG, getPlanById } from "./plan-catalog.js?v=20260727-plan5-mae-kok-1";
 
 let activePlanId = "01";
 
 function wordChips(words, tone) {
   return words.map(word => `<span class="plan-word-chip ${tone}">${word}</span>`).join("");
+}
+
+const WORD_GROUP_META = Object.freeze({
+  maeKaka: ["คำมาตราแม่ ก กา", "mae-kaka"],
+  finalSound: ["คำที่มีตัวสะกด เพื่อเปรียบเทียบ", "final-sound"],
+  maeKong: ["คำมาตราแม่กง", "mae-kaka"],
+  maeKom: ["คำมาตราแม่กม", "mae-kaka"],
+  maeKoei: ["คำมาตราแม่เกย", "mae-kaka"],
+  maeKoew: ["คำมาตราแม่เกอว", "final-sound"],
+  direct: ["คำแม่กกสะกดตรงมาตรา (ก)", "mae-kaka"],
+  irregular: ["คำแม่กกสะกดไม่ตรงมาตรา (ข ค ฆ)", "final-sound"],
+  primary: ["คำตัวอย่างในมาตรานี้", "mae-kaka"],
+  compare: ["คำมาตราอื่น เพื่อเปรียบเทียบ", "final-sound"],
+});
+
+function renderWordGroups(words = {}) {
+  return Object.entries(words)
+    .filter(([, items]) => Array.isArray(items) && items.length)
+    .map(([key, items]) => {
+      const [label, tone] = WORD_GROUP_META[key] || [key, "mae-kaka"];
+      return `<p class="plan-word-label">${label}</p><div class="plan-word-list">${wordChips(items, tone)}</div>`;
+    })
+    .join("");
 }
 
 function renderPlanDetail(plan) {
@@ -16,10 +39,6 @@ function renderPlanDetail(plan) {
   const documentAction = plan.document ? `<a class="button button-primary" href="${plan.document}" target="_blank" rel="noopener">เปิดเอกสารแผน ${plan.id} ↗</a>` : "";
   const gameAction = plan.game ? `<a class="button button-primary" href="${plan.game}">🎮 เล่นเกมแผนที่ ${plan.sequence}</a>` : "";
   const worksheetAction = plan.worksheet ? `<a class="button button-ghost" href="${plan.worksheet}" target="_blank" rel="noopener">📝 เปิดใบงาน ${plan.sequence}</a>` : "";
-  const firstWordGroup = plan.words.maeKaka || plan.words.maeKong || plan.words.maeKom || plan.words.primary || [];
-  const secondWordGroup = plan.words.finalSound || plan.words.compare || [];
-  const firstWordLabel = plan.words.primary ? `คำตัวอย่าง${plan.title}` : plan.words.maeKom ? "คำมาตราแม่กม" : plan.words.maeKong ? "คำมาตราแม่กง" : "คำแม่ ก กา";
-  const secondWordLabel = plan.words.maeKong || plan.words.maeKom || plan.words.primary ? "คำมาตราอื่น เพื่อเปรียบเทียบ" : "คำที่มีตัวสะกด เพื่อเปรียบเทียบ";
   stage.innerHTML = `
     <section class="plan-detail-heading">
       <div><span class="eyebrow">แผนการจัดการเรียนรู้ที่ ${plan.sequence}</span><h2>${plan.title}</h2><p>${plan.course}</p><p>${plan.grade}</p><p>${plan.unit} · เวลา ${plan.duration} · หน่วยรวม ${plan.unitDuration}</p></div>
@@ -34,7 +53,7 @@ function renderPlanDetail(plan) {
     <article class="plan-detail-card"><h3>จุดประสงค์การเรียนรู้</h3><div class="plan-objective-grid">${plan.objectives.map(item => `<section><strong>${item.label}</strong><p>${item.text}</p></section>`).join("")}</div></article>
     <div class="plan-detail-grid">
       <article class="plan-detail-card"><h3>สาระการเรียนรู้</h3><ul>${plan.learning.map(item => `<li>${item}</li>`).join("")}</ul></article>
-      <article class="plan-detail-card"><h3>คลังคำประกอบกิจกรรม</h3><p class="plan-word-label">${firstWordLabel}</p><div class="plan-word-list">${wordChips(firstWordGroup, "mae-kaka")}</div><p class="plan-word-label">${secondWordLabel}</p><div class="plan-word-list">${wordChips(secondWordGroup, "final-sound")}</div></article>
+      <article class="plan-detail-card"><h3>คลังคำประกอบกิจกรรม</h3>${renderWordGroups(plan.words)}</article>
     </div>`;
 }
 

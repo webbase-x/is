@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan4-yw-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan5-mae-kok-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-plan4-yw-1";
+} from "./common.js?v=20260727-plan5-mae-kok-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -141,19 +141,26 @@ const LIVE_PLAN_GAME_DATA = Object.freeze({
   },
   5: {
     title: "มาตราแม่กก", targetLabel: "แม่กก", rule: "ออกเสียงเหมือน ก สะกด เขียนด้วย ก ข ค หรือ ฆ",
-    target: [["นก","🐦"],["เลข","🔢"],["เมฆ","☁️"],["สุข","😊"],["โรค","🩺"],["กระดูก","🦴"],["ปีก","🪽"],["ลูก","⚽"],["สุนัข","🐶"]],
-    compare: [["แมว","🐱"],["กล้วย","🍌"],["ส้ม","🍊"],["จาน","🍽️"]],
+    target: [["กระดูก","🦴"],["แตก","💥"],["ปลูก","🌱"],["พริก","🌶️"],["หมอก","🌫️"],["ฟัก","🎃"],["แลก","🔁"],["ครก","🥣"],["ภาค","🗺️"],["ยักษ์","👹"]],
+    compare: [["กบ","🐸"],["จาน","🍽️"],["ส้ม","🍊"],["ปลา","🐟"],["ถ้วย","🥣"],["ดาว","⭐"],["ทุ่ง","🌾"],["บัว","🪷"],["ร่ม","☂️"],["ยาว","📏"]],
     secondary: [
-      { prompt:"คำว่า “เลข” เป็นคำมาตราแม่กก", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🔢" },
-      { prompt:"คำว่า “ความสุข” สะกดด้วย ค ควาย", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"😊" },
-      { prompt:"คำว่า “เมฆ” ออกเสียงท้ายเหมือน ก สะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"☁️" },
-      { prompt:"คำว่า “แมว” เป็นคำมาตราแม่กก", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🐱" },
-      { prompt:"แม่กกมีเฉพาะ ก เป็นตัวสะกดเท่านั้น", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🧩" },
+      { prompt:"คำว่า ตก มี ก เป็นตัวสะกด จึงเป็นคำในมาตราแม่กก", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🍂" },
+      { prompt:"คำว่า เมฆ เป็นคำในมาตราแม่กก", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"☁️" },
+      { prompt:"คำว่า ธง เป็นคำในมาตราแม่กก", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🚩" },
+      { prompt:"คำว่า สุนัข สะกดด้วย ข แต่ออกเสียงเหมือนมี ก สะกด จึงเป็นแม่กก", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🐶" },
+      { prompt:"มาตราแม่กกมีพยัญชนะสะกดได้เพียงตัวเดียว คือ ก", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🔤" },
+      { prompt:"คำว่า โรค เป็นคำในมาตราแม่กก", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🩺" },
+      { prompt:"คำว่า ส้ม เป็นคำในมาตราแม่กก", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🍊" },
+      { prompt:"คำว่า หมวก มี ก เป็นตัวสะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🎩" },
+      { prompt:"คำว่า ปลา เป็นคำในมาตราแม่กก", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🐟" },
+      { prompt:"คำว่า ภาค กับคำว่า ปีก อยู่ในมาตราตัวสะกดเดียวกัน", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🪽" },
     ],
     exit: [
-      { prompt:"คำใดเป็นแม่กก", options:["แมว","เมฆ","ส้ม"], answer:"เมฆ" },
-      { prompt:"ตัวสะกดใดอยู่ในแม่กก", options:["ข","ว","ม"], answer:"ข" },
-      { prompt:"คำว่า “สุนัข” ออกเสียงท้ายเหมือนตัวใด", options:["ก","ด","บ"], answer:"ก" },
+      { prompt:"คำมาตราแม่กกมีลักษณะอย่างไร", options:["ออกเสียงท้ายเหมือน ก สะกด","มี ก เป็นตัวสะกดเท่านั้น","ไม่มีตัวสะกด"], answer:"ออกเสียงท้ายเหมือน ก สะกด" },
+      { prompt:"พยัญชนะใดใช้สะกดคำมาตราแม่กกได้", options:["ก ข ค ฆ","ง ม น","บ ป พ ฟ"], answer:"ก ข ค ฆ" },
+      { prompt:"คำใดเป็นแม่กกสะกดตรงมาตรา", options:["หมวก","โรค","เมฆ"], answer:"หมวก" },
+      { prompt:"คำใดเป็นแม่กกสะกดไม่ตรงมาตรา", options:["สุนัข","ธง","ลม"], answer:"สุนัข" },
+      { prompt:"ข้อใดเป็นคำมาตราแม่กกทั้ง 2 คำ", options:["ภาค, ปีก","ส้ม, หมอก","ปลา, เมฆ"], answer:"ภาค, ปีก" },
     ],
   },
   6: {
@@ -2133,6 +2140,68 @@ function renderMaeKoeiKoewPictureSentences(activityKey, data, activity) {
   render();
 }
 
+function renderMaeKokCave(activityKey, data, activity) {
+  const questions = shuffle([
+    ...data.target.map(([word, emoji]) => ({ word, emoji, target: true })),
+    ...data.compare.map(([word, emoji]) => ({ word, emoji, target: false })),
+  ]);
+  let index = 0;
+  let score = 0;
+  const answers = [];
+
+  const render = () => {
+    const question = questions[index];
+    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าจะใช้คำนี้ไขประตูแม่กกหรือส่งต่อ", `
+      <section class="mae-kok-cave-game">
+        <div class="game-status-row"><span>คำที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="mae-kok-cave-scene" data-kok-scene>
+          <div class="mae-kok-door" aria-hidden="true"><span>🚪</span><i>🔒</i></div>
+          <article class="mae-kok-word-card">
+            <span aria-hidden="true">${question.emoji}</span>
+            <strong>${escapeHtml(question.word)}</strong>
+            <button type="button" class="button button-ghost button-small" data-kok-speak>🔊 ฟังคำ</button>
+          </article>
+        </div>
+        <p class="mae-kong-feedback" data-kok-feedback>คำนี้ออกเสียงท้ายเหมือนมี ก สะกดหรือไม่?</p>
+        <div class="mae-kok-action-grid">
+          <button type="button" class="mae-kok-key-button target" data-kok-answer="target"><span>🗝️</span><strong>ใช้ไขประตู</strong><small>คำมาตราแม่กก</small></button>
+          <button type="button" class="mae-kok-key-button other" data-kok-answer="other"><span>➡️</span><strong>ส่งคำนี้ต่อ</strong><small>คำมาตราอื่น</small></button>
+        </div>
+      </section>`);
+
+    $("[data-kok-speak]")?.addEventListener("click", () => speakThai(question.word));
+    document.querySelectorAll("[data-kok-answer]").forEach(button => button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      document.querySelectorAll("[data-kok-answer]").forEach(item => { item.disabled = true; });
+      const chosen = button.dataset.kokAnswer;
+      const expected = question.target ? "target" : "other";
+      const correct = chosen === expected;
+      if (correct) score += 1;
+      answers.push({ prompt: question.word, chosen, correct });
+      button.classList.add(correct ? "correct" : "wrong");
+      document.querySelector(`[data-kok-answer="${expected}"]`)?.classList.add("correct");
+      if (question.target) {
+        $("[data-kok-scene]")?.classList.add("is-open");
+        $("[data-kok-feedback]").textContent = `“${question.word}” ออกเสียงท้าย /ก/ จึงเป็นคำมาตราแม่กก`;
+      } else {
+        $("[data-kok-feedback]").textContent = `“${question.word}” ไม่ได้ออกเสียงท้าย /ก/ จึงเป็นคำมาตราอื่น`;
+      }
+      if (correct) speakThai(`ถูกต้อง ${question.word}`);
+      else if (navigator.vibrate) navigator.vibrate([90, 55, 90]);
+      setTimeout(async () => {
+        index += 1;
+        if (index < questions.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, questions.length, answers);
+          if (result) showResult("ไขประตูแม่กกครบแล้ว", score, questions.length, result, () => renderMaeKokCave(activityKey, data, activity));
+        }
+      }, 1100);
+    }));
+  };
+
+  render();
+}
+
 function renderLivePlanActivity(activityKey) {
   const planId = Number(state.session?.plan_id || 1);
   const data = LIVE_PLAN_GAME_DATA[planId];
@@ -2168,6 +2237,10 @@ function renderLivePlanActivity(activityKey) {
     renderMaeKoeiKoewPictureSentences(activityKey, data, activity);
     return;
   }
+  if (planId === 5 && activityKey === "cave-door") {
+    renderMaeKokCave(activityKey, data, activity);
+    return;
+  }
 
   let questions;
   let instruction;
@@ -2184,7 +2257,7 @@ function renderLivePlanActivity(activityKey) {
     const source = activityIndex === activities.length - 1 ? data.exit : data.secondary;
     questions = shuffle(source).map(question => ({ ...question, options: shuffle(question.options) }));
     instruction = activityIndex === activities.length - 1
-      ? `ตอบให้ถูกอย่างน้อย ${[2, 3, 4].includes(planId) ? 3 : 2} จาก ${source.length} ข้อ`
+      ? `ตอบให้ถูกอย่างน้อย ${[2, 3, 4, 5].includes(planId) ? 3 : 2} จาก ${source.length} ข้อ`
       : "อ่านหรือฟังโจทย์ แล้วเลือกคำตอบที่ถูกต้อง";
   }
 

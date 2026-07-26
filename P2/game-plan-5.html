@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"><link rel="icon" href="favicon.svg" type="image/svg+xml"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#5b4bdb"><meta name="description" content="ชุดสื่อและเกมภาษาไทย ป.2 เรื่องมาตราแม่กก">
+  <title>เปิดประตูแม่กก | คำไทยผจญภัย</title>
+  <link rel="stylesheet" href="game-plan-2.css?v=20260727-plan5-mae-kok-1">
+</head>
+<body>
+  <header class="game-header">
+    <a href="plans.html" class="back-link">← แผนการสอน</a>
+    <div class="brand"><span id="brandLetter">ก</span><div><strong id="brandTitle">ภารกิจมาตราแม่กก</strong><small id="brandSubtitle">ภาษาไทย ป.2 · แผนที่ 5</small></div></div>
+    <div class="score-pill">⭐ <strong id="score">0</strong></div>
+  </header>
+  <main>
+    <section class="hero" id="hero">
+      <div class="hero-copy"><span id="heroEyebrow" class="eyebrow">เปิดประตูแม่กก</span><h1 id="heroTitle">ไขกุญแจ<br><em>เสียงท้าย /ก/</em></h1><p id="heroDescription">คำแม่กกออกเสียงเหมือนมี ก สะกด เขียนด้วย ก ข ค หรือ ฆ</p>
+        <div class="hero-actions"><button id="teachButton" class="primary-button">ฉายสื่อสอนหน้าชั้น 🧑‍🏫</button><button id="startButton" class="secondary-button hero-secondary">เข้าเกมนักเรียน 🎮</button></div>
+        <div class="quick-links"><a href="teacher.html">จอครู</a><a href="display.html">จอคะแนนรวม</a><a id="worksheetLink" href="worksheet-plan-5.html" target="_blank">ใบงานที่ 5</a></div>
+      </div>
+      <div class="hero-art" aria-hidden="true"><span id="heroLetter" class="moon">ก</span><span id="heroEmoji" class="elephant">🗝️</span><i class="star one">★</i><i class="star two">★</i><i class="star three">★</i></div>
+    </section>
+    <section id="lesson" class="lesson-panel hidden">
+      <aside class="lesson-nav"><div><small>ชุดสื่อครบคาบ · 60 นาที</small><strong id="lessonName">แผนที่ 5 · มาตราแม่กก</strong></div><ol id="lessonSteps"></ol><button id="closeLesson" class="secondary-button">← กลับหน้าแรก</button></aside>
+      <section class="lesson-screen"><div class="lesson-toolbar"><span id="slideCounter">1 / 10</span><div><button id="fullscreenButton" class="icon-button">⛶ เต็มจอ</button><button id="prevSlide" class="icon-button">← ก่อนหน้า</button><button id="nextSlide" class="primary-button compact">ถัดไป →</button></div></div><div id="lessonStage" class="lesson-stage"></div></section>
+    </section>
+    <section id="game" class="game-panel hidden">
+      <div class="progress-head"><div><small id="missionLabel">ภารกิจ 1 จาก 3</small><strong id="missionTitle">เปิดประตูแม่กก</strong></div><span id="roundLabel">ข้อ 1 / 20</span></div>
+      <div class="progress-track"><i id="progressBar"></i></div><div id="stage" class="stage"></div>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status"></div>
+  <script>const planUrl=new URL(location.href);planUrl.searchParams.set("plan","5");history.replaceState(null,"",planUrl);</script>
+  <script type="module" src="js/game-plans-4-8.js?v=20260727-plan5-mae-kok-1"></script>
+</body>
+</html>
