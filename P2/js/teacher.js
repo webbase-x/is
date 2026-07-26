@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260727-step2-flashcards-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-step2-flashcards-1";
+import { supabase } from "./supabase.js?v=20260727-teacher-lobby-audio-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-teacher-lobby-audio-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260727-step2-flashcards-1";
+} from "./common.js?v=20260727-teacher-lobby-audio-1";
 
-const TEACHER_BUILD_VERSION = "20260727-step2-flashcards-1";
+const TEACHER_BUILD_VERSION = "20260727-teacher-lobby-audio-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -219,6 +219,8 @@ function setTeacherFlowStep(step) {
     syncLateJoinControls();
     requestAnimationFrame(renderPlayerPage);
   }
+  if (step === "live" && state.session) renderCurrentLessonStep();
+  else stopProjectorGamePreview();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -640,6 +642,13 @@ function lessonScreenDetailsMarkup(screen = {}) {
   return "";
 }
 
+function stopProjectorGamePreview() {
+  const gameFrame = $("#lessonGamePreviewFrame");
+  if (!gameFrame) return;
+  if (gameFrame.dataset.previewSrc || gameFrame.src !== "about:blank") gameFrame.src = "about:blank";
+  delete gameFrame.dataset.previewSrc;
+}
+
 function renderProjectorLessonContent(step) {
   const media = $("#lessonScreenPreview");
   const gamePreview = $("#lessonGamePreview");
@@ -648,8 +657,9 @@ function renderProjectorLessonContent(step) {
   const modeLabel = $("#projectorModeLabel");
   const planId = Number(state.session?.plan_id || state.selectedPlanId || 1);
   const activity = step?.activityKey ? activityForKey(step.activityKey, planId) : null;
-  const showGame = step?.kind === "game" && Boolean(activity);
-  const showResults = step?.kind === "results" && Boolean(activity);
+  const lessonStageVisible = state.flowStep === "live";
+  const showGame = lessonStageVisible && state.session?.status === "active" && step?.kind === "game" && Boolean(activity);
+  const showResults = lessonStageVisible && step?.kind === "results" && Boolean(activity);
 
   media.classList.toggle("hidden", showGame || showResults);
   gamePreview.classList.toggle("hidden", !showGame);
@@ -658,13 +668,12 @@ function renderProjectorLessonContent(step) {
     ? "✨ ประกาศผลการแข่งขัน ✨"
     : showGame
       ? "เกมตัวอย่าง · ไม่บันทึกคะแนน"
-      : "สื่อพร้อมฉาย";
+      : step?.kind === "game"
+        ? state.session?.status === "paused" ? "เกมพักอยู่ · กดเล่นต่อเมื่อพร้อม" : "รอครูกดเริ่มเกม"
+        : "สื่อพร้อมฉาย";
 
   if (!showGame) {
-    if (gameFrame.dataset.previewSrc) {
-      gameFrame.src = "about:blank";
-      delete gameFrame.dataset.previewSrc;
-    }
+    stopProjectorGamePreview();
     return;
   }
 
@@ -1039,6 +1048,7 @@ async function togglePause() {
     saveActivityTimer(false);
   }
   $("#pauseSessionButton").textContent = status === "paused" ? "เล่นต่อ" : "พักเกม";
+  renderCurrentLessonStep();
   renderLiveResults();
   broadcastDisplay();
 }
