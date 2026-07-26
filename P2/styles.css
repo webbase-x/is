@@ -767,7 +767,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .competition-rank-row.has-result { animation: live-rank-slide .45s ease calc(var(--rank-index) * .04s) both; }
 .competition-rank-row.is-waiting { opacity: .66; box-shadow: none; }
 .competition-rank { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; color: var(--ink); background: var(--canvas); font-size: 22px; font-weight: 950; }
-.competition-avatar { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: var(--purple-soft); font-size: 27px; }
+.competition-avatar { width: 48px; height: 48px; display: grid; place-items: center; overflow: hidden; border: 2px solid white; border-radius: 50%; background: var(--purple-soft); box-shadow: 0 3px 10px rgba(34,41,77,.13); font-size: 27px; object-fit: cover; }
 .competition-student { min-width: 0; }
 .competition-student strong, .competition-student small { display: block; }
 .competition-student strong { overflow: hidden; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
@@ -808,7 +808,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .podium-person > strong { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: clamp(13px, 1.6vw, 19px); }
 .podium-person > em { margin-top: 2px; color: #ffe17c; font-size: clamp(18px, 2vw, 28px); font-style: normal; font-weight: 950; }
 .podium-person > small { color: #cbd1ed; font-size: 10px; }
-.podium-avatar { width: clamp(54px, 6vw, 78px); height: clamp(54px, 6vw, 78px); display: grid; place-items: center; margin-bottom: 7px; border: 4px solid rgba(255,255,255,.8); border-radius: 50%; background: #fff; font-size: clamp(30px, 3.6vw, 43px); box-shadow: 0 0 0 7px rgba(255,255,255,.10); }
+.podium-avatar { width: clamp(54px, 6vw, 78px); height: clamp(54px, 6vw, 78px); display: grid; place-items: center; overflow: hidden; margin-bottom: 7px; border: 4px solid rgba(255,255,255,.8); border-radius: 50%; background: #fff; font-size: clamp(30px, 3.6vw, 43px); box-shadow: 0 0 0 7px rgba(255,255,255,.10); object-fit: cover; }
 .podium-medal { margin-bottom: -7px; z-index: 1; font-size: 29px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.25)); }
 .podium-block { min-height: 125px; display: grid; place-content: center; border-radius: 15px 15px 0 0; background: linear-gradient(150deg, #8e82ff, #5b4bdb); box-shadow: inset 0 4px rgba(255,255,255,.20); }
 .podium-block strong { font-size: 53px; line-height: .95; }
@@ -826,6 +826,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .runnerup-board ol { max-height: 390px; display: grid; gap: 8px; margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; list-style: none; }
 .runnerup-board li { display: grid; grid-template-columns: 34px 34px minmax(0,1fr) auto; align-items: center; gap: 8px; padding: 9px; border-radius: 13px; background: var(--canvas); animation: runner-slide-in .55s ease calc(.9s + var(--rank-index) * .09s) both; }
 .runnerup-board li > span:first-child { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; color: var(--purple); background: white; font-weight: 950; }
+.runnerup-avatar { width: 34px; height: 34px; display: grid; place-items: center; overflow: hidden; border: 2px solid white; border-radius: 50%; background: var(--purple-soft); box-shadow: 0 2px 8px rgba(34,41,77,.12); font-size: 19px; object-fit: cover; }
 .runnerup-board li strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .runnerup-board li em { color: var(--purple); font-style: normal; font-weight: 950; }
 .runnerup-empty { min-height: 90px; display: grid; place-items: center; margin: 0; border-radius: 14px; color: var(--muted); background: var(--canvas); text-align: center; }
@@ -2080,6 +2081,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .classroom-stage-fullscreen { color: white; border-color: transparent; background: linear-gradient(135deg,#5b4bdb,#3b8e8f); box-shadow: 0 9px 24px rgba(68,56,166,.22); }
 .classroom-stage-fullscreen:hover { color: white; border-color: transparent; background: linear-gradient(135deg,#4939c6,#2f7d7e); }
 .classroom-stage-body { grid-template-columns: minmax(240px,.68fr) minmax(440px,1.62fr); align-items: stretch; }
+.classroom-stage-body.teacher-notes-collapsed { grid-template-columns: minmax(0,1fr); }
+.classroom-stage-body.teacher-notes-collapsed .lesson-teacher-notes { display: none; }
 .classroom-stage-body .lesson-teacher-notes { overflow: auto; border: 1px solid #e3e5f0; background: linear-gradient(155deg,#fff,#f9f8ff); box-shadow: 0 10px 28px rgba(47,40,108,.07); }
 .teacher-note-heading { display: flex; align-items: center; gap: 9px; padding-bottom: 11px; border-bottom: 1px solid #e8e6f2; color: var(--purple); }
 .teacher-note-heading > span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; background: var(--purple-soft); font-size: 18px; }
@@ -2119,6 +2122,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .classroom-stage-expanded .lesson-step-heading { min-height: 62px; align-items: center; }
 .classroom-stage-expanded .lesson-step-heading h3 { font-size: clamp(23px,2.3vw,36px); }
 .classroom-stage-expanded .classroom-stage-body { min-height: 0; margin-top: 8px; grid-template-columns: minmax(230px,.6fr) minmax(0,1.75fr); }
+.classroom-stage-expanded .classroom-stage-body.teacher-notes-collapsed { grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr); }
 .classroom-stage-expanded .lesson-teacher-notes, .classroom-stage-expanded .lesson-projector-display, .classroom-stage-expanded .lesson-projector-viewport, .classroom-stage-expanded .lesson-game-preview, .classroom-stage-expanded .lesson-game-preview iframe { min-height: 0; height: 100%; }
 .classroom-stage-expanded .classroom-live-results { min-height: 0; margin: 0; padding: 10px 13px; overflow: auto; }
 .classroom-stage-expanded .lesson-results-stage { height: 100%; min-height: 0; padding: clamp(12px,1.7vw,24px); }
@@ -2178,6 +2182,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 @media (max-width:900px) {
   .lesson-step-layout { grid-template-columns: 1fr; }
   .classroom-stage-expanded .classroom-stage-body { grid-template-columns: minmax(210px,.55fr) minmax(0,1.45fr); }
+  .classroom-stage-expanded .classroom-stage-body.teacher-notes-collapsed { grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr); }
   .classroom-stage-expanded .lesson-step-actions { align-items: center; flex-direction: row; }
   .lesson-step-actions { align-items: stretch; flex-direction: column; }
   .lesson-step-actions .button-row { width: 100%; }
@@ -2204,6 +2209,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .classroom-stage-expanded .classroom-stage-heading-actions { width: auto; }
   .classroom-stage-expanded .lesson-kind-badge { display: none; }
   .classroom-stage-expanded .classroom-stage-body { grid-template-columns: 1fr; grid-template-rows: auto minmax(0,1fr); gap: 7px; }
+  .classroom-stage-expanded .classroom-stage-body.teacher-notes-collapsed { grid-template-rows: minmax(0,1fr); }
   .classroom-stage-expanded .lesson-teacher-notes { height: auto; max-height: 105px; padding: 9px 12px; }
   .classroom-stage-expanded .teacher-note-heading { padding-bottom: 6px; }
   .classroom-stage-expanded .teacher-note-heading > span { width: 27px; height: 27px; font-size: 15px; }

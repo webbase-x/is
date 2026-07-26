@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260726-postgame-results-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-postgame-results-1";
+import { supabase } from "./supabase.js?v=20260726-projector-auto-results-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-projector-auto-results-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260726-postgame-results-1";
+} from "./common.js?v=20260726-projector-auto-results-1";
 
-const TEACHER_BUILD_VERSION = "20260726-postgame-results-1";
+const TEACHER_BUILD_VERSION = "20260726-projector-auto-results-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -77,6 +77,7 @@ const state = {
   lessonRoundId: null,
   lessonShareStudents: false,
   lessonTimerExpired: false,
+  teacherNotesCollapsed: false,
 };
 
 function currentActivities(planId = state.session?.plan_id || state.selectedPlanId || 1) {
@@ -1739,8 +1740,9 @@ function renderMetrics() {
   $("#completedAttemptCount").textContent = currentPlayerIds.size;
 }
 
-function finishWhenEveryoneSubmitted() {
+async function finishWhenEveryoneSubmitted() {
   if (!state.session?.current_activity_key || state.session.status !== "active" || state.finishingActivity || state.celebrationActivityKey) return;
+  if (currentLessonStep()?.kind !== "game") return;
   const approvedIds = state.players.filter(player => player.status === "approved").map(player => player.id);
   if (!approvedIds.length) return;
   const roundStartedAt = state.activityStartedAt ? new Date(state.activityStartedAt).getTime() - 1000 : 0;
@@ -1748,7 +1750,8 @@ function finishWhenEveryoneSubmitted() {
     .filter(attempt => attempt.activity_key === state.session.current_activity_key && new Date(attempt.completed_at).getTime() >= roundStartedAt)
     .map(attempt => attempt.session_player_id));
   if (approvedIds.every(playerId => submittedIds.has(playerId))) {
-    $("#competitionStatus").textContent = "นักเรียนส่งครบทุกคนแล้ว · ครูเลือกจบเกมหรือไปขั้นถัดไปได้เมื่อพร้อม";
+    $("#competitionStatus").textContent = "นักเรียนส่งครบทุกคนแล้ว · กำลังประกาศผลการแข่งขันทันที";
+    await finishActivity("all_submitted");
   }
 }
 
@@ -1772,6 +1775,7 @@ function currentCompetitionEntries() {
       player,
       name: student.full_name || student.nickname || "นักเรียน",
       avatar: student.avatar || randomAvatar(student.nickname),
+      photoUrl: state.playerSelfieUrls.get(player.id) || "",
       percent: selected ? Number(selected.percent || 0) : null,
       completedAt: selected?.completed_at || "",
       attemptCount: current.length,
@@ -1789,12 +1793,19 @@ function rankMedal(rank) {
   return ["🥇", "🥈", "🥉"][rank - 1] || rank;
 }
 
+function competitionProfileMarkup(entry, className) {
+  const label = `รูปโปรไฟล์ ${entry.name}`;
+  return entry.photoUrl
+    ? `<img class="${className}" src="${escapeHtml(entry.photoUrl)}" alt="${escapeHtml(label)}" loading="lazy">`
+    : `<span class="${className}" role="img" aria-label="${escapeHtml(label)}">${escapeHtml(entry.avatar)}</span>`;
+}
+
 function renderLiveRanking(entries) {
   return `<ol class="competition-ranking-list">${entries.map((entry, index) => {
     const rank = entry.percent === null ? "—" : index + 1;
     return `<li class="competition-rank-row ${entry.percent === null ? "is-waiting" : "has-result"}" style="--rank-index:${index}">
       <span class="competition-rank">${entry.percent === null ? "⏳" : rankMedal(rank)}</span>
-      <span class="competition-avatar">${escapeHtml(entry.avatar)}</span>
+      ${competitionProfileMarkup(entry, "competition-avatar")}
       <span class="competition-student"><strong>${escapeHtml(entry.name)}</strong><small>${entry.percent === null ? "กำลังทำเกม" : `ส่งแล้ว ${entry.attemptCount} รอบ`}</small></span>
       <strong class="competition-score">${entry.percent === null ? "รอผล" : `${Math.round(entry.percent)}%`}</strong>
     </li>`;
@@ -1827,7 +1838,7 @@ function renderPodiumPlace(entry, rank) {
   const labels = ["ชนะเลิศ", "รองชนะเลิศอันดับ 1", "รองชนะเลิศอันดับ 2"];
   if (!entry) return `<article class="podium-place podium-place-${rank} is-empty"><div class="podium-person"><span>⭐</span><strong>รอผู้เข้าแข่งขัน</strong></div><div class="podium-block"><strong>${rank}</strong><small>อันดับ</small></div></article>`;
   return `<article class="podium-place podium-place-${rank}">
-    <div class="podium-person"><span class="podium-medal">${rankMedal(rank)}</span><span class="podium-avatar">${escapeHtml(entry.avatar)}</span><strong>${escapeHtml(entry.name)}</strong><em>${Math.round(entry.percent)}%</em><small>${labels[rank - 1]}</small></div>
+    <div class="podium-person"><span class="podium-medal">${rankMedal(rank)}</span>${competitionProfileMarkup(entry, "podium-avatar")}<strong>${escapeHtml(entry.name)}</strong><em>${Math.round(entry.percent)}%</em><small>${labels[rank - 1]}</small></div>
     <div class="podium-block"><strong>${rank}</strong><small>อันดับ</small></div>
   </article>`;
 }
@@ -1846,7 +1857,7 @@ function renderCelebration(entries) {
       </section>
       <aside class="runnerup-board">
         <h5>อันดับ 4 เป็นต้นไป</h5>
-        ${runnersUp.length ? `<ol start="4">${runnersUp.map((entry, index) => `<li style="--rank-index:${index}"><span>${index + 4}</span><span>${escapeHtml(entry.avatar)}</span><strong>${escapeHtml(entry.name)}</strong><em>${Math.round(entry.percent)}%</em></li>`).join("")}</ol>` : `<p class="runnerup-empty">ยังไม่มีอันดับเพิ่มเติม</p>`}
+        ${runnersUp.length ? `<ol start="4">${runnersUp.map((entry, index) => `<li style="--rank-index:${index}"><span>${index + 4}</span>${competitionProfileMarkup(entry, "runnerup-avatar")}<strong>${escapeHtml(entry.name)}</strong><em>${Math.round(entry.percent)}%</em></li>`).join("")}</ol>` : `<p class="runnerup-empty">ยังไม่มีอันดับเพิ่มเติม</p>`}
         ${waiting.length ? `<div class="competition-waiting"><strong>กำลังทำเกม ${waiting.length} คน</strong><span>${waiting.map(entry => escapeHtml(entry.name)).join(" · ")}</span></div>` : ""}
       </aside>
     </div>`;
@@ -1980,6 +1991,17 @@ function toggleCompetitionExpanded() {
   document.body.classList.toggle("competition-overlay-open", expanded);
   button.setAttribute("aria-pressed", String(expanded));
   button.innerHTML = expanded ? "✕ <span>ออกจากจอฉาย</span>" : "⛶ <span>ฉายเต็มจอ</span>";
+}
+
+function toggleTeacherNotes() {
+  state.teacherNotesCollapsed = !state.teacherNotesCollapsed;
+  const layout = $(".classroom-stage-body");
+  const button = $("#toggleTeacherNotesButton");
+  layout?.classList.toggle("teacher-notes-collapsed", state.teacherNotesCollapsed);
+  button?.setAttribute("aria-expanded", String(!state.teacherNotesCollapsed));
+  if (button) button.innerHTML = state.teacherNotesCollapsed
+    ? "👩‍🏫 <span>แสดงคำแนะนำครู</span>"
+    : "👩‍🏫 <span>ซ่อนคำแนะนำครู</span>";
 }
 
 function toggleCompetitionSound() {
@@ -2362,6 +2384,7 @@ $("#restartLessonTimerButton").addEventListener("click", restartLessonTimer);
 $("#shareLessonToStudents").addEventListener("change", event => setLessonStudentVisibility(event.target.checked));
 $("#nextActivityButton").addEventListener("click", goToNextActivity);
 $("#competitionFullscreenButton").addEventListener("click", toggleCompetitionExpanded);
+$("#toggleTeacherNotesButton").addEventListener("click", toggleTeacherNotes);
 $("#competitionSoundButton").addEventListener("click", toggleCompetitionSound);
 $("#liveRankingEnabled").addEventListener("change", event => { state.liveRankingEnabled = event.target.checked; renderLiveResults(); broadcastDisplay("ranking-visibility-changed"); });
 $$('[data-live-mode]').forEach(button => button.addEventListener("click", () => setLivePlayMode(button.dataset.liveMode)));
