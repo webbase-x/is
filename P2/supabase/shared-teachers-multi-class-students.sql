@@ -4,11 +4,12 @@
 begin;
 
 create table if not exists public.student_class_assignments (
+  id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.students(id) on delete cascade,
   class_id uuid not null references public.classes(id) on delete cascade,
   active boolean not null default true,
   created_at timestamptz not null default now(),
-  primary key (student_id, class_id)
+  unique (student_id, class_id)
 );
 
 create index if not exists student_class_assignments_class_active_idx

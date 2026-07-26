@@ -57,6 +57,8 @@ select public.grant_teacher(
 
 สุดท้ายรัน `P2/supabase/shared-teachers-multi-class-students.sql` เพื่อย้ายรายชื่อเดิมเข้าสู่ระบบหลายห้อง เปิดให้ครูร่วมควบคุมคาบเดียวกัน และให้นักเรียนหนึ่งคนอยู่ได้หลายห้อง โดยไม่ลบคะแนนหรือข้อมูลเดิม
 
+หากเคยเปิดหน้าครูค้างไว้ก่อนติดตั้งระบบหลายห้อง ให้รัน `P2/supabase/legacy-teacher-page-compatibility.sql` ต่ออีกหนึ่งครั้ง เพื่อให้หน้ารุ่นเก่าและรุ่นใหม่อ่านรายชื่อได้พร้อมกัน
+
 ## ตั้งค่าการกู้รหัสผ่านครู
 
 1. ไปที่ **Authentication → URL Configuration** ใน Supabase Dashboard

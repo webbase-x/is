@@ -8,6 +8,33 @@ import {
   renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
 } from "./common.js?v=20260726-session-recovery-1";
 
+const TEACHER_BUILD_VERSION = "20260726-legacy-roster-compat-1";
+const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
+let teacherBuildReloadRequested = false;
+
+async function checkForTeacherUpdate() {
+  if (teacherBuildReloadRequested) return;
+  try {
+    const manifestUrl = new URL("app-version.json", window.location.href);
+    manifestUrl.searchParams.set("checkedAt", Date.now().toString());
+    const response = await fetch(manifestUrl, { cache: "no-store" });
+    if (!response.ok) return;
+    const deployedVersion = String((await response.json())?.teacher || "");
+    if (!deployedVersion || deployedVersion === TEACHER_BUILD_VERSION) return;
+
+    const latestUrl = new URL(window.location.href);
+    if (latestUrl.searchParams.get("appBuild") === deployedVersion) return;
+    teacherBuildReloadRequested = true;
+    latestUrl.searchParams.set("appBuild", deployedVersion);
+    window.location.replace(latestUrl.href);
+  } catch {
+    // การตรวจรุ่นต้องไม่ขัดขวางการสอนเมื่ออินเทอร์เน็ตไม่เสถียร
+  }
+}
+
+void checkForTeacherUpdate();
+window.setInterval(checkForTeacherUpdate, TEACHER_BUILD_CHECK_INTERVAL_MS);
+
 const state = {
   user: null,
   profile: null,
