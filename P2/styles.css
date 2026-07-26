@@ -2631,3 +2631,45 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .mae-kot-action-grid { gap: 8px; }
   .mae-kot-choice { min-height: 96px; border-radius: 18px; padding: 6px; }
 }
+
+.mae-kop-supply-game { width: min(920px,100%); height: 100%; margin: auto; display: grid; gap: clamp(9px,1.8vh,16px); align-content: center; }
+.mae-kop-supply-scene { display: grid; grid-template-columns: minmax(150px,.78fr) minmax(240px,1.22fr); align-items: center; gap: clamp(12px,3vw,28px); padding: clamp(12px,2.3vh,22px); border-radius: 30px; background: linear-gradient(165deg,#7bd7ed 0 46%,#217bb0 47% 67%,#0c4a74 68%); box-shadow: 0 18px 42px rgba(10,74,116,.28); }
+.mae-kop-boat { position: relative; display: grid; place-items: center; min-height: clamp(150px,27vh,230px); font-size: clamp(95px,18vh,165px); filter: drop-shadow(0 15px 12px rgba(0,0,0,.24)); }
+.mae-kop-boat i { position: absolute; top: 4%; right: 7%; font-style: normal; font-size: clamp(30px,5vh,48px); opacity: .35; transition: .35s; }
+.mae-kop-supply-scene.is-loaded .mae-kop-boat { animation: boatLoad .9s ease both; }
+.mae-kop-supply-scene.is-loaded .mae-kop-boat i { opacity: 1; transform: translate(-28px,55px) rotate(-12deg); }
+.mae-kop-word-card { min-height: clamp(150px,26vh,220px); padding: 14px; border: 3px solid #d5f4ff; border-radius: 26px; background: linear-gradient(145deg,#fff,#eafaff); display: grid; place-items: center; align-content: center; gap: 5px; }
+.mae-kop-word-card > span { font-size: clamp(46px,8vh,76px); line-height: 1; }
+.mae-kop-word-card > strong { font-size: clamp(36px,6.5vh,62px); color: #075b86; line-height: 1.1; }
+.mae-kop-action-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: clamp(10px,2vw,20px); }
+.mae-kop-choice { min-height: clamp(94px,16vh,138px); border: 3px solid transparent; border-radius: 24px; padding: 10px; cursor: pointer; display: grid; place-items: center; align-content: center; gap: 2px; box-shadow: 0 12px 28px rgba(12,74,116,.14); transition: .2s; }
+.mae-kop-choice > span { font-size: clamp(32px,5.5vh,50px); }
+.mae-kop-choice > strong { font-size: clamp(20px,3vh,28px); }
+.mae-kop-choice.target { background: linear-gradient(145deg,#c8f7ff,#f2fdff); color: #075b86; }
+.mae-kop-choice.other { background: linear-gradient(145deg,#fff0c4,#fffaf0); color: #775000; }
+.mae-kop-choice.correct { border-color: #16a36a; background: #dff9ed; color: #087147; }
+.mae-kop-choice.wrong { border-color: #e45454; background: #ffe7e7; color: #a52121; animation: shake .35s; }
+@keyframes boatLoad { 50% { transform: translateY(-8px) rotate(-2deg); filter: drop-shadow(0 0 30px #fff07d); } 100% { filter: drop-shadow(0 0 18px #b8ffec); } }
+
+.mae-kop-island-game { width: min(940px,100%); height: 100%; margin: auto; display: grid; gap: clamp(10px,2vh,18px); align-content: center; }
+.mae-kop-island-scene { position: relative; min-height: clamp(170px,30vh,250px); padding: clamp(18px,3vh,28px); border-radius: 30px; background: linear-gradient(180deg,#8be5f0 0 54%,#4db4dc 55% 72%,#e9cf7b 73%); display: grid; place-items: center; align-content: center; gap: 8px; overflow: hidden; }
+.mae-kop-island { position: absolute; left: clamp(10px,3vw,28px); bottom: 3px; font-size: clamp(72px,14vh,130px); transition: .35s; }
+.mae-kop-island.is-solved { animation: islandCelebrate .8s ease both; }
+.mae-kop-riddle-emoji { position: absolute; right: clamp(14px,4vw,38px); top: clamp(10px,2vh,22px); font-size: clamp(42px,7vh,72px); }
+.mae-kop-island-scene .mae-kong-sentence-output { position: relative; z-index: 1; width: min(620px,70%); background: rgba(255,255,255,.94); }
+.mae-kop-island-scene .mae-kong-sentence-output strong { display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 12px; background: #fff0a8; color: #8a5400; }
+.mae-kop-island-game .mae-kong-word-bank button.is-target { border: 3px solid #f0ae22; font-weight: 900; background: #fff4c8; color: #744600; }
+@keyframes islandCelebrate { 50% { transform: scale(1.12) rotate(4deg); filter: drop-shadow(0 0 24px #fff47d); } }
+
+@media (max-width:620px) {
+  .mae-kop-supply-game,.mae-kop-island-game { gap: 7px; }
+  .mae-kop-supply-scene { grid-template-columns: 105px minmax(0,1fr); padding: 9px; border-radius: 20px; }
+  .mae-kop-boat { min-height: 135px; font-size: 90px; }
+  .mae-kop-word-card { min-height: 135px; padding: 8px; border-radius: 18px; }
+  .mae-kop-action-grid { gap: 8px; }
+  .mae-kop-choice { min-height: 96px; border-radius: 18px; padding: 6px; }
+  .mae-kop-island-scene { min-height: 165px; padding: 10px; border-radius: 20px; }
+  .mae-kop-island-scene .mae-kong-sentence-output { width: 92%; margin-top: 54px; }
+  .mae-kop-island { font-size: 70px; }
+  .mae-kop-riddle-emoji { font-size: 42px; }
+}

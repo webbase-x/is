@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan6-mae-kot-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-plan7-mae-kop-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-plan6-mae-kot-1";
+} from "./common.js?v=20260727-plan7-mae-kop-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -189,19 +189,26 @@ const LIVE_PLAN_GAME_DATA = Object.freeze({
   },
   7: {
     title: "มาตราแม่กบ", targetLabel: "แม่กบ", rule: "ออกเสียงเหมือน บ สะกด เขียนด้วย บ ป พ ฟ หรือ ภ",
-    target: [["กบ","🐸"],["ดาบ","🗡️"],["สิบ","🔟"],["อาบ","🛁"],["จับ","✋"],["รูป","🖼️"],["ภาพ","🌄"],["ยีราฟ","🦒"],["โลภ","💰"],["ทัพ","🛡️"]],
-    compare: [["ช้าง","🐘"],["มด","🐜"],["ดาว","⭐"],["ส้ม","🍊"]],
+    target: [["กระสอบ","🧺"],["ตะเกียบ","🥢"],["บีบ","🤏"],["มอบ","🎁"],["ระเบียบ","📋"],["กลับ","↩️"],["ครอบ","🔔"],["หลับ","😴"],["เหยียบ","🦶"],["เคารพ","🙏"]],
+    compare: [["จาน","🍽️"],["ส้ม","🍊"],["ปลา","🐟"],["ถ้วย","🥣"],["ดาว","⭐"],["ทุ่ง","🌾"],["บัว","🪷"],["ร่ม","☂️"],["ยาว","📏"],["นก","🐦"]],
     secondary: [
-      { prompt:"คำว่า “รูปภาพ” เป็นคำมาตราแม่กบ", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🖼️" },
-      { prompt:"คำว่า “ยีราฟ” สะกดด้วย พ พาน", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🦒" },
-      { prompt:"คำว่า “โลภ” ออกเสียงท้ายเหมือน บ สะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"💰" },
-      { prompt:"คำว่า “ส้ม” เป็นคำมาตราแม่กบ", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🍊" },
-      { prompt:"ป พ ฟ ภ เป็นตัวสะกดไม่ตรงมาตราแม่กบ", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🧩" },
+      { words:["ทหาร","ถือ","ดาบ"], answer:"ทหาร ถือ ดาบ", target:"ดาบ", emoji:"🗡️" },
+      { words:["น้อง","ใช้","ตะเกียบ"], answer:"น้อง ใช้ ตะเกียบ", target:"ตะเกียบ", emoji:"🥢" },
+      { words:["พี่","ซื้อ","ยางลบ"], answer:"พี่ ซื้อ ยางลบ", target:"ยางลบ", emoji:"✏️" },
+      { words:["เด็ก","วาด","รูป"], answer:"เด็ก วาด รูป", target:"รูป", emoji:"🖼️" },
+      { words:["ตา","นอน","หลับ"], answer:"ตา นอน หลับ", target:"หลับ", emoji:"😴" },
+      { words:["ยาย","กราบ","พระ"], answer:"ยาย กราบ พระ", target:"กราบ", emoji:"🙏" },
+      { words:["อย่า","เหยียบ","หญ้า"], answer:"อย่า เหยียบ หญ้า", target:"เหยียบ", emoji:"🌿" },
+      { words:["ยีราฟ","มี","คอยาว"], answer:"ยีราฟ มี คอยาว", target:"ยีราฟ", emoji:"🦒" },
+      { words:["ภาพ","ในห้อง","สวย"], answer:"ภาพ ในห้อง สวย", target:"ภาพ", emoji:"🌄" },
+      { words:["พ่อ","ยก","กระสอบ","ข้าว"], answer:"พ่อ ยก กระสอบ ข้าว", target:"กระสอบ", emoji:"🧺" },
     ],
     exit: [
-      { prompt:"คำใดเป็นแม่กบ", options:["ภาพ","ดาว","ส้ม"], answer:"ภาพ" },
-      { prompt:"แม่กบออกเสียงท้ายเหมือนตัวใด", options:["บ","ด","น"], answer:"บ" },
-      { prompt:"คำใดสะกดไม่ตรงมาตรา", options:["กบ","ดาบ","ยีราฟ"], answer:"ยีราฟ" },
+      { prompt:"คำมาตราแม่กบมีลักษณะอย่างไร", options:["ออกเสียงท้ายเหมือน บ สะกด","มี บ เป็นตัวสะกดเท่านั้น","ไม่มีตัวสะกด"], answer:"ออกเสียงท้ายเหมือน บ สะกด" },
+      { prompt:"พยัญชนะใดใช้สะกดคำมาตราแม่กบได้", options:["บ ป พ ฟ ภ","ด จ ช ต ถ","น ญ ณ ร ล"], answer:"บ ป พ ฟ ภ" },
+      { prompt:"คำใดเป็นแม่กบสะกดตรงมาตรา", options:["ดาบ","รูป","ภาพ"], answer:"ดาบ" },
+      { prompt:"คำใดเป็นแม่กบสะกดไม่ตรงมาตรา", options:["รูป","มด","ปีก"], answer:"รูป" },
+      { prompt:"ข้อใดเป็นคำมาตราแม่กบทั้ง 2 คำ", options:["ภาพ, ยีราฟ","ส้ม, หลับ","ปลา, อาชีพ"], answer:"ภาพ, ยีราฟ" },
     ],
   },
   8: {
@@ -2271,6 +2278,160 @@ function renderMaeKotTreasure(activityKey, data, activity) {
   render();
 }
 
+function renderMaeKopSupply(activityKey, data, activity) {
+  const questions = shuffle([
+    ...data.target.map(([word, emoji]) => ({ word, emoji, target: true })),
+    ...data.compare.map(([word, emoji]) => ({ word, emoji, target: false })),
+  ]);
+  let index = 0;
+  let score = 0;
+  const answers = [];
+
+  const render = () => {
+    const question = questions[index];
+    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าจะเก็บเป็นเสบียงขึ้นเรือหรือส่งคำนี้ผ่านไป", `
+      <section class="mae-kop-supply-game">
+        <div class="game-status-row"><span>คำที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="mae-kop-supply-scene" data-kop-scene>
+          <div class="mae-kop-boat" aria-hidden="true"><span>🚢</span><i>📦</i></div>
+          <article class="mae-kop-word-card">
+            <span aria-hidden="true">${question.emoji}</span>
+            <strong>${escapeHtml(question.word)}</strong>
+            <button type="button" class="button button-ghost button-small" data-kop-speak>🔊 ฟังคำ</button>
+          </article>
+        </div>
+        <p class="mae-kong-feedback" data-kop-feedback>คำนี้ออกเสียงท้ายเหมือนมี บ สะกดหรือไม่?</p>
+        <div class="mae-kop-action-grid">
+          <button type="button" class="mae-kop-choice target" data-kop-answer="target"><span>📦</span><strong>เก็บขึ้นเรือ</strong><small>คำมาตราแม่กบ</small></button>
+          <button type="button" class="mae-kop-choice other" data-kop-answer="other"><span>➡️</span><strong>ส่งคำนี้ผ่าน</strong><small>คำมาตราอื่น</small></button>
+        </div>
+      </section>`);
+
+    $("[data-kop-speak]")?.addEventListener("click", () => speakThai(question.word));
+    document.querySelectorAll("[data-kop-answer]").forEach(button => button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      document.querySelectorAll("[data-kop-answer]").forEach(item => { item.disabled = true; });
+      const chosen = button.dataset.kopAnswer;
+      const expected = question.target ? "target" : "other";
+      const correct = chosen === expected;
+      if (correct) score += 1;
+      answers.push({ prompt: question.word, chosen, correct });
+      button.classList.add(correct ? "correct" : "wrong");
+      document.querySelector(`[data-kop-answer="${expected}"]`)?.classList.add("correct");
+      if (question.target) {
+        $("[data-kop-scene]")?.classList.add("is-loaded");
+        $("[data-kop-feedback]").textContent = `“${question.word}” ออกเสียงท้าย /บ/ จึงเป็นคำมาตราแม่กบ`;
+      } else {
+        $("[data-kop-feedback]").textContent = `“${question.word}” ไม่ได้ออกเสียงท้าย /บ/ จึงเป็นคำมาตราอื่น`;
+      }
+      if (correct) speakThai(`ถูกต้อง ${question.word}`);
+      else if (navigator.vibrate) navigator.vibrate([90, 55, 90]);
+      setTimeout(async () => {
+        index += 1;
+        if (index < questions.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, questions.length, answers);
+          if (result) showResult("เก็บเสบียงแม่กบครบแล้ว", score, questions.length, result, () => renderMaeKopSupply(activityKey, data, activity));
+        }
+      }, 1100);
+    }));
+  };
+
+  render();
+}
+
+function renderMaeKopIslandPuzzle(activityKey, data, activity) {
+  const questions = data.secondary.map(question => ({ ...question }));
+  let index = 0;
+  let score = 0;
+  let selected = [];
+  let firstTry = true;
+  const answers = [];
+
+  const render = () => {
+    const question = questions[index];
+    const bank = shuffle(question.words.map((word, wordIndex) => ({ word, id: `${index}-${wordIndex}` })));
+    selected = [];
+    firstTry = true;
+    gameShell(activity.title, "แตะหรือลากคำตามลำดับให้เป็นประโยค แล้วไขปริศนาชาวเกาะ", `
+      <section class="mae-kop-island-game">
+        <div class="game-status-row"><span>ปริศนา ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="mae-kop-island-scene">
+          <span class="mae-kop-island" aria-hidden="true">🏝️</span>
+          <span class="mae-kop-riddle-emoji" aria-hidden="true">${question.emoji}</span>
+          <div class="mae-kong-sentence-output" data-kop-sentence-output>แตะคำเพื่อเรียงประโยค</div>
+        </div>
+        <div class="mae-kong-word-bank">${bank.map(item => `<button type="button" draggable="true" class="${item.word===question.target?"is-target":""}" data-kop-word="${escapeHtml(item.id)}" data-word="${escapeHtml(item.word)}">${escapeHtml(item.word)}</button>`).join("")}</div>
+        <p class="mae-kong-feedback" data-kop-puzzle-feedback>คำตัวหนาคือคำมาตราแม่กบ</p>
+        <div class="mae-kong-action-row">
+          <button class="button button-ghost" type="button" data-kop-reset>เริ่มเรียงใหม่</button>
+          <button class="button button-primary" type="button" data-kop-check>ตรวจประโยค</button>
+        </div>
+      </section>`);
+
+    const output = $("[data-kop-sentence-output]");
+    const feedback = $("[data-kop-puzzle-feedback]");
+    const paint = () => {
+      output.innerHTML = selected.length
+        ? selected.map(item => item.word === question.target ? `<strong>${escapeHtml(item.word)}</strong>` : `<span>${escapeHtml(item.word)}</span>`).join("")
+        : "แตะคำเพื่อเรียงประโยค";
+    };
+    const choose = button => {
+      if (!button || button.disabled) return;
+      button.disabled = true;
+      selected.push({ id: button.dataset.kopWord, word: button.dataset.word });
+      paint();
+    };
+    const reset = () => {
+      selected = [];
+      document.querySelectorAll("[data-kop-word]").forEach(button => { button.disabled = false; });
+      output.classList.remove("is-correct", "is-wrong");
+      paint();
+    };
+    document.querySelectorAll("[data-kop-word]").forEach(button => {
+      button.addEventListener("click", () => choose(button));
+      button.addEventListener("dragstart", event => event.dataTransfer.setData("text/plain", button.dataset.kopWord));
+    });
+    output.addEventListener("dragover", event => event.preventDefault());
+    output.addEventListener("drop", event => {
+      event.preventDefault();
+      choose(document.querySelector(`[data-kop-word="${CSS.escape(event.dataTransfer.getData("text/plain"))}"]`));
+    });
+    $("[data-kop-reset]")?.addEventListener("click", reset);
+    $("[data-kop-check]")?.addEventListener("click", async () => {
+      if (selected.length !== question.words.length) {
+        feedback.textContent = "เลือกคำให้ครบทุกคำก่อนนะ";
+        return;
+      }
+      const response = selected.map(item => item.word).join(" ");
+      if (response !== question.answer) {
+        firstTry = false;
+        output.classList.add("is-wrong");
+        feedback.textContent = "ลำดับยังไม่ถูก ลองอ่านใหม่แล้วเรียงอีกครั้ง";
+        if (navigator.vibrate) navigator.vibrate([90, 55, 90]);
+        setTimeout(reset, 700);
+        return;
+      }
+      if (firstTry) score += 1;
+      answers.push({ prompt: question.answer, chosen: response, correct: firstTry });
+      output.classList.add("is-correct");
+      $(".mae-kop-island")?.classList.add("is-solved");
+      feedback.textContent = "ประโยคถูกต้อง ไขปริศนาสำเร็จ!";
+      speakThai(question.answer);
+      setTimeout(async () => {
+        index += 1;
+        if (index < questions.length) render();
+        else {
+          const result = await submitAttempt(activityKey, score, questions.length, answers);
+          if (result) showResult("ไขปริศนาชาวเกาะครบแล้ว", score, questions.length, result, () => renderMaeKopIslandPuzzle(activityKey, data, activity));
+        }
+      }, 1200);
+    });
+  };
+
+  render();
+}
+
 function renderLivePlanActivity(activityKey) {
   const planId = Number(state.session?.plan_id || 1);
   const data = LIVE_PLAN_GAME_DATA[planId];
@@ -2314,6 +2475,14 @@ function renderLivePlanActivity(activityKey) {
     renderMaeKotTreasure(activityKey, data, activity);
     return;
   }
+  if (planId === 7 && activityKey === "island-supply") {
+    renderMaeKopSupply(activityKey, data, activity);
+    return;
+  }
+  if (planId === 7 && activityKey === "island-puzzle") {
+    renderMaeKopIslandPuzzle(activityKey, data, activity);
+    return;
+  }
 
   let questions;
   let instruction;
@@ -2330,7 +2499,7 @@ function renderLivePlanActivity(activityKey) {
     const source = activityIndex === activities.length - 1 ? data.exit : data.secondary;
     questions = shuffle(source).map(question => ({ ...question, options: shuffle(question.options) }));
     instruction = activityIndex === activities.length - 1
-      ? `ตอบให้ถูกอย่างน้อย ${[2, 3, 4, 5, 6].includes(planId) ? 3 : 2} จาก ${source.length} ข้อ`
+      ? `ตอบให้ถูกอย่างน้อย ${[2, 3, 4, 5, 6, 7].includes(planId) ? 3 : 2} จาก ${source.length} ข้อ`
       : "อ่านหรือฟังโจทย์ แล้วเลือกคำตอบที่ถูกต้อง";
   }
 
