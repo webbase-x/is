@@ -1,4 +1,4 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.8/+esm";
 import { APP_CONFIG } from "./config.js";
 
 const embedRole = new URLSearchParams(window.location.search).get("embed");

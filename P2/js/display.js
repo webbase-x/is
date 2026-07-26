@@ -1,9 +1,9 @@
-import { supabase, ensureAnonymousAuth } from "./supabase.js";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-all-plans-responsive-1";
 import {
-  $, ACTIVITIES, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
+  $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, gameStateChannelName, hide,
   roomCodeFromUrl, sanitizeGameMarkup, show, toast,
-} from "./common.js?v=20260723-expert-live-score-1";
+} from "./common.js?v=20260726-all-plans-responsive-1";
 
 const state = {
   roomCode: "",
@@ -26,6 +26,19 @@ const activityMessages = {
   train: "เรียงโบกี้คำให้เป็นประโยคที่สมบูรณ์",
   vote: "ช่วยกันสร้างประโยคและมอบหัวใจให้เพื่อน",
   exit: "ตอบให้ถูกอย่างน้อย 2 ใน 3 ข้อ เพื่อเปิดหีบสมบัติ",
+  "mae-kong-box": "อ่านคำแล้วเลือกให้ถูกว่าเป็นคำมาตราแม่กงหรือไม่",
+  "mae-kong-rocket": "อ่านโจทย์แล้วเลือกคำแม่กงเพื่อเติมจรวด",
+  "mae-kong-exit": "ตอบแบบทดสอบท้ายคาบแม่กงให้ผ่านด่าน",
+  "mae-kom-box": "อ่านคำแล้วเลือกให้ถูกว่าเป็นคำมาตราแม่กมหรือไม่",
+  "picture-word": "ดูภาพและคำใบ้ แล้วเลือกคำมาตราแม่กมให้ถูกต้อง",
+  "mae-kom-exit": "ตอบแบบทดสอบท้ายคาบแม่กมให้ผ่านด่าน",
+  "yw-sort": "แยกคำลงกลุ่มแม่เกยหรือแม่เกอว",
+  "picture-choice": "ดูภาพแล้วเลือกคำที่สะกดถูกต้อง",
+  "cave-door": "เลือกคำมาตราแม่กกเพื่อเปิดประตูถ้ำ",
+  "treasure-hunt": "เลือกคำมาตราแม่กดเพื่อเก็บสมบัติ",
+  "island-supply": "เลือกคำมาตราแม่กบเพื่อเก็บเสบียง",
+  "space-fuel": "เลือกคำมาตราแม่กนเพื่อเติมเชื้อเพลิง",
+  "true-false": "วิเคราะห์ข้อความแล้วเลือกจริงหรือไม่จริง",
 };
 
 const screenStateMeta = {
@@ -92,10 +105,11 @@ async function refreshBoard() {
 
 function renderSnapshot(leaderboard) {
   const snapshot = state.snapshot;
-  const activity = ACTIVITIES.find(item => item.key === snapshot.current_activity_key);
+  const activities = activitiesForPlan(snapshot.plan_id);
+  const activity = activityForKey(snapshot.current_activity_key, snapshot.plan_id);
   $("#displayRoomCode").textContent = snapshot.room_code;
   $("#displayClassName").textContent = `${snapshot.school_name} · ${snapshot.class_label}`;
-  $("#displayStageStep").textContent = `แผนที่ ${snapshot.plan_id}${activity ? ` · ภารกิจ ${ACTIVITIES.indexOf(activity) + 1}/${ACTIVITIES.length}` : ""}`;
+  $("#displayStageStep").textContent = `แผนที่ ${snapshot.plan_id}${activity ? ` · ภารกิจ ${activities.findIndex(item => item.key === activity.key) + 1}/${activities.length}` : ""}`;
   $("#displayStageTitle").textContent = snapshot.session_status === "paused" ? "พักเกมสักครู่" : activity?.title || "รอนักเรียนเข้าห้อง";
   $("#displayStageMessage").textContent = snapshot.session_status === "paused" ? "ครูจะเปิดเกมต่อในอีกสักครู่" : activityMessages[activity?.key] || "เมื่อทุกคนพร้อม ครูจะเริ่มกิจกรรมแรก";
   $("#displayActivityVisual").innerHTML = `<span>${snapshot.session_status === "paused" ? "⏸️" : activity?.icon || "🗺️"}</span>`;
@@ -173,7 +187,7 @@ function updateStudentScreenCard(card, screen, index) {
   if (footerText) footerText.textContent = screen.progress_text || `${Math.round(percent)}%`;
   const stage = card.querySelector(".display-student-stage");
   if (stage) {
-    const activity = ACTIVITIES.find(item => item.key === screen.activity_key);
+    const activity = activityForKey(screen.activity_key, state.snapshot?.plan_id);
     const meta = screenStateMeta[screenState];
     stage.dataset.screenState = screenState;
     const small = stage.querySelector("small");
@@ -230,7 +244,7 @@ function renderStudentScreens() {
     const identity = screenIdentity(screen, index);
     const screenState = screenStateMeta[screen.screen_state] ? screen.screen_state : "ready";
     const meta = screenStateMeta[screenState];
-    const activity = ACTIVITIES.find(item => item.key === screen.activity_key);
+    const activity = activityForKey(screen.activity_key, state.snapshot?.plan_id);
     const percent = Math.max(0, Math.min(100, Number(screen.progress_percent) || 0));
     const score = Math.max(0, Number(screen.score) || 0);
     const gameMarkup = sanitizedMarkups[index];

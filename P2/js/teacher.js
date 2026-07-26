@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260723-expert-real-login-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-plan-fallback-1";
+import { supabase } from "./supabase.js?v=20260726-all-plans-responsive-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260726-all-plans-responsive-1";
 import {
-  $, $$, ACTIVITIES, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
+  $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260726-session-recovery-1";
+} from "./common.js?v=20260726-all-plans-responsive-1";
 
-const TEACHER_BUILD_VERSION = "20260726-legacy-roster-compat-1";
+const TEACHER_BUILD_VERSION = "20260726-all-plans-responsive-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -75,11 +75,13 @@ const state = {
   lateJoinResumeStatus: "paused",
 };
 
+function currentActivities(planId = state.session?.plan_id || state.selectedPlanId || 1) {
+  return activitiesForPlan(planId);
+}
+
 const teacherPageQuery = new URLSearchParams(window.location.search);
 const expertTeacherEmbed = teacherPageQuery.get("embed") === "expert-teacher";
-const expertAutofillLogin = expertTeacherEmbed && teacherPageQuery.get("autofill") === "1";
 if (expertTeacherEmbed) document.body.classList.add("expert-embed", "expert-teacher-embed");
-const expertLogin = Object.freeze({ email: "expert@webbase.x", password: "123456" });
 
 const FLOW_STEPS = ["class", "qr", "lobby", "plan", "live", "summary"];
 const FLOW_TITLES = {
@@ -154,18 +156,11 @@ function syncLateJoinControls() {
 async function bootstrap() {
   connectionUpdate();
   renderPlanTimeline($("#planTimeline"), 1);
-  configureExpertAutofill();
   const { data } = await supabase.auth.getSession();
   if (data.session && !data.session.user.is_anonymous) {
     state.user = data.session.user;
     await loadTeacherWorkspace();
   }
-}
-
-function configureExpertAutofill() {
-  if (!expertAutofillLogin) return;
-  $("#teacherEmail").value = expertLogin.email;
-  $("#teacherPassword").value = expertLogin.password;
 }
 
 function applyRolePermissions() {
@@ -306,13 +301,16 @@ function updateSelectedClassRosterNote() {
 function renderPlanChoices() {
   const container = $("#planChoices");
   if (!container) return;
-  container.innerHTML = state.plans.map(plan => `
+  container.innerHTML = state.plans.map(plan => {
+    const activities = activitiesForPlan(plan.id);
+    return `
     <button type="button" class="flow-plan-choice ${Number(state.selectedPlanId) === Number(plan.id) ? "selected" : ""}" data-plan-id="${plan.id}" ${plan.published ? "" : "disabled"}>
       <span>${plan.published ? `แผน ${plan.sequence_no}` : "🔒"}</span>
       <strong>${escapeHtml(plan.title)}</strong>
-      <small>${plan.published ? `${ACTIVITIES.length} เกม · ประมาณ ${ACTIVITIES.reduce((sum, item) => sum + item.minutes, 0)} นาที` : "ยังไม่เปิดใช้งาน"}</small>
+      <small>${plan.published ? `${activities.length} เกม · ประมาณ ${activities.reduce((sum, item) => sum + item.minutes, 0)} นาที` : "ยังไม่เปิดใช้งาน"}</small>
     </button>
-  `).join("");
+  `;
+  }).join("");
   container.querySelectorAll("[data-plan-id]").forEach(button => button.addEventListener("click", () => selectPlan(Number(button.dataset.planId))));
   if (state.selectedPlanId) selectPlan(Number(state.selectedPlanId), false);
 }
@@ -323,7 +321,7 @@ function selectPlan(planId, rerender = true) {
   state.selectedPlanId = plan.id;
   $("#planSelect").value = plan.id;
   $("#selectedPlanTitle").textContent = `แผนที่ ${plan.sequence_no} · ${plan.title}`;
-  $("#activityPreview").innerHTML = ACTIVITIES.map((activity, index) => `<article><span>${activity.icon}</span><div><small>เกมที่ ${index + 1}</small><strong>${escapeHtml(activity.title)}</strong><em>${activity.minutes} นาที</em></div></article>`).join("");
+  $("#activityPreview").innerHTML = activitiesForPlan(plan.id).map((activity, index) => `<article><span>${activity.icon}</span><div><small>เกมที่ ${index + 1}</small><strong>${escapeHtml(activity.title)}</strong><em>${activity.minutes} นาที</em></div></article>`).join("");
   if (rerender) renderPlanChoices();
 }
 
@@ -441,7 +439,7 @@ async function restoreActiveSession() {
 
 function showResumeSession() {
   const classroom = selectedClassroom();
-  const activity = ACTIVITIES.find(item => item.key === state.session.current_activity_key);
+  const activity = activityForKey(state.session.current_activity_key, state.session.plan_id);
   const statusLabels = { lobby: "กำลังรับนักเรียน", active: "กำลังเล่นเกม", paused: "พักเกมชั่วคราว" };
   state.flowStep = "resume";
   hide($("#teacherFlowProgress"));
@@ -515,13 +513,14 @@ async function renderStudentAccess() {
 }
 
 function renderActivityControls() {
-  $("#activityControls").innerHTML = ACTIVITIES.map((activity, index) => `
+  const activities = currentActivities();
+  $("#activityControls").innerHTML = activities.map((activity, index) => `
     <button class="activity-control ${activity.key === state.session.current_activity_key ? "active" : ""}" data-activity="${activity.key}">
       <span>${activity.icon}</span><span><strong>${index + 1}. ${escapeHtml(activity.title)}</strong><small>${activity.minutes} นาที</small></span><i>เริ่ม →</i>
     </button>
   `).join("");
   $("#activityControls").querySelectorAll("button").forEach(button => button.addEventListener("click", () => startActivity(button.dataset.activity)));
-  const current = ACTIVITIES.find(item => item.key === state.session.current_activity_key);
+  const current = activityForKey(state.session.current_activity_key, state.session.plan_id);
   $("#currentActivityLabel").textContent = current ? current.title : "ยังไม่เริ่มกิจกรรม";
   updateNextActivityButton();
 }
@@ -572,7 +571,7 @@ function activityTimerStorageKey() {
 }
 
 function activityDurationMs(activityKey = state.session?.current_activity_key) {
-  return (ACTIVITIES.find(item => item.key === activityKey)?.minutes || 10) * 60 * 1000;
+  return (activityForKey(activityKey, state.session?.plan_id)?.minutes || 10) * 60 * 1000;
 }
 
 function updateActivityCountdown(label) {
@@ -685,7 +684,7 @@ async function startSelectedPlan() {
   button.textContent = "กำลังเริ่มเกม...";
   try {
     await savePlanSettings();
-    const started = await startActivity(ACTIVITIES[0].key);
+    const started = await startActivity(currentActivities()[0].key);
     if (!started) return;
     setTeacherFlowStep("live");
   } catch (error) {
@@ -697,6 +696,11 @@ async function startSelectedPlan() {
 }
 
 async function startActivity(activityKey) {
+  const activities = currentActivities();
+  if (!activities.some(activity => activity.key === activityKey)) {
+    toast("กิจกรรมนี้ไม่อยู่ในแผนที่เลือก กรุณาเลือกกิจกรรมใหม่", "warning");
+    return false;
+  }
   prepareVictoryAudio();
   state.celebrationActivityKey = null;
   state.celebrationReason = null;
@@ -714,21 +718,23 @@ async function startActivity(activityKey) {
   renderLiveResults();
   $("#pauseSessionButton").textContent = "พักเกม";
   await broadcastDisplay("activity-started");
-  toast(`เริ่ม ${ACTIVITIES.find(item => item.key === activityKey)?.title}`, "success");
+  toast(`เริ่ม ${activityForKey(activityKey, state.session.plan_id)?.title || "กิจกรรม"}`, "success");
   return true;
 }
 
 function updateNextActivityButton() {
   const button = $("#nextActivityButton");
   if (!button || !state.session) return;
-  const index = ACTIVITIES.findIndex(item => item.key === state.session.current_activity_key);
-  button.textContent = index >= ACTIVITIES.length - 1 ? "สรุปผลคาบเรียน →" : `เกมถัดไป: ${ACTIVITIES[index + 1]?.short || ACTIVITIES[0].short} →`;
+  const activities = currentActivities();
+  const index = activities.findIndex(item => item.key === state.session.current_activity_key);
+  button.textContent = index >= activities.length - 1 ? "สรุปผลคาบเรียน →" : `เกมถัดไป: ${activities[index + 1]?.short || activities[0].short} →`;
 }
 
 async function goToNextActivity() {
-  const index = ACTIVITIES.findIndex(item => item.key === state.session.current_activity_key);
-  if (index >= ACTIVITIES.length - 1) return showSessionSummary();
-  await startActivity(ACTIVITIES[Math.max(index + 1, 0)].key);
+  const activities = currentActivities();
+  const index = activities.findIndex(item => item.key === state.session.current_activity_key);
+  if (index >= activities.length - 1) return showSessionSummary();
+  await startActivity(activities[Math.max(index + 1, 0)].key);
 }
 
 function showSessionSummary() {
@@ -958,7 +964,7 @@ function studentScreenIcon(entry) {
 
 function studentMirrorHtml(entry, large = false) {
   const screen = entry.screen || {};
-  const activity = ACTIVITIES.find(item => item.key === screen.activity_key);
+  const activity = activityForKey(screen.activity_key, state.session?.plan_id);
   const title = screen.activity_title || activity?.title || (entry.online ? "กำลังเชื่อมต่อจอ" : "ไม่ได้ออนไลน์");
   const label = entry.online ? (screen.screen_label || "อยู่หน้าเกม") : "ออฟไลน์";
   const detail = screen.detail || (entry.online ? "กำลังทำกิจกรรม" : "เมื่อนักเรียนกลับเข้าเกม จอจะเชื่อมต่อใหม่");
@@ -1556,7 +1562,7 @@ function renderCelebration(entries) {
   const runnersUp = ranked.slice(3);
   const reasonLabel = ({ all_submitted: "นักเรียนส่งครบทุกคน", time_up: "หมดเวลา", manual: "คุณครูจบเกม" })[state.celebrationReason] || "จบเกม";
   return `<div class="competition-celebration" aria-hidden="true">${celebrationConfetti()}</div>
-    <div class="celebration-title"><span>✨ ${reasonLabel} · ประกาศผลการแข่งขัน ✨</span><h4>${escapeHtml(ACTIVITIES.find(item => item.key === state.session.current_activity_key)?.title || "เกมนี้")}</h4><p>ขอเสียงปรบมือให้ผู้เข้าแข่งขันทุกคน</p></div>
+    <div class="celebration-title"><span>✨ ${reasonLabel} · ประกาศผลการแข่งขัน ✨</span><h4>${escapeHtml(activityForKey(state.session.current_activity_key, state.session.plan_id)?.title || "เกมนี้")}</h4><p>ขอเสียงปรบมือให้ผู้เข้าแข่งขันทุกคน</p></div>
     <div class="competition-finale">
       <section class="podium-stage" aria-label="แท่นรับรางวัลอันดับ 1 ถึง 3">
         <div class="podium-list">${podiumOrder.map(([entry, rank]) => renderPodiumPlace(entry, rank)).join("")}</div>
@@ -1687,7 +1693,8 @@ function renderSummary() {
   const completedActivities = new Set(state.attempts.map(item => item.activity_key)).size;
   $("#summaryApproved").textContent = approved.length;
   $("#summaryAverage").textContent = `${average}%`;
-  $("#summaryCompleted").textContent = `${completedActivities}/${ACTIVITIES.length}`;
+  const activityCount = currentActivities().length;
+  $("#summaryCompleted").textContent = `${completedActivities}/${activityCount}`;
   const rows = approved.map(player => {
     const groups = bestAttemptsForPlayer(player.id);
     const bestScores = [...groups.values()].map(items => Math.max(...items.map(item => Number(item.percent || 0))));
@@ -1695,7 +1702,7 @@ function renderSummary() {
     return { player, completed: groups.size, bestAverage };
   });
   const expertNotice = expertLiveScores ? `<p class="flow-score-recording-notice">🧪 ผลและอันดับนี้เป็นข้อมูลสดของคาบตรวจสื่อ และจะไม่ถูกบันทึกลงฐานข้อมูล</p>` : "";
-  $("#summaryContent").innerHTML = `${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>เกมที่ทำ</th><th>คะแนนดีที่สุดเฉลี่ย</th><th>ผล</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.completed}/${ACTIVITIES.length}</td><td>${row.bestAverage}%</td><td><span class="summary-pass ${row.bestAverage >= state.session.pass_percent ? "passed" : "needs-work"}">${row.bestAverage >= state.session.pass_percent ? "ผ่าน" : "ควรเสริม"}</span></td></tr>`).join("")}</tbody></table></div>` : `<div class="flow-empty-state"><span>📊</span><strong>ยังไม่มีคะแนนในคาบนี้</strong><small>กลับไปเริ่มเกมหรือรอให้นักเรียนส่งคำตอบ</small></div>`}`;
+  $("#summaryContent").innerHTML = `${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>เกมที่ทำ</th><th>คะแนนดีที่สุดเฉลี่ย</th><th>ผล</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.completed}/${activityCount}</td><td>${row.bestAverage}%</td><td><span class="summary-pass ${row.bestAverage >= state.session.pass_percent ? "passed" : "needs-work"}">${row.bestAverage >= state.session.pass_percent ? "ผ่าน" : "ควรเสริม"}</span></td></tr>`).join("")}</tbody></table></div>` : `<div class="flow-empty-state"><span>📊</span><strong>ยังไม่มีคะแนนในคาบนี้</strong><small>กลับไปเริ่มเกมหรือรอให้นักเรียนส่งคำตอบ</small></div>`}`;
 }
 
 async function approvePlayer(playerId) {
@@ -1965,7 +1972,8 @@ function renderReport() {
     const best = [...groups.values()].map(items => Math.max(...items.map(item => Number(item.percent))));
     return { player, activities: groups.size, first: first.length ? Math.round(first.reduce((a, b) => a + Number(b), 0) / first.length) : 0, best: best.length ? Math.round(best.reduce((a, b) => a + b, 0) / best.length) : 0 };
   });
-  $("#reportContent").innerHTML = `${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>ทำแล้ว</th><th>คะแนนครั้งแรกเฉลี่ย</th><th>คะแนนดีที่สุดเฉลี่ย</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.activities}/${ACTIVITIES.length}</td><td>${row.first}%</td><td>${row.best}%</td></tr>`).join("")}</tbody></table></div>` : `<span>📊</span><h2>ยังไม่มีคะแนนในคาบนี้</h2><p>ผลจะปรากฏเมื่อนักเรียนเริ่มทำกิจกรรม</p>`}`;
+  const activityCount = currentActivities().length;
+  $("#reportContent").innerHTML = `${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>ทำแล้ว</th><th>คะแนนครั้งแรกเฉลี่ย</th><th>คะแนนดีที่สุดเฉลี่ย</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.activities}/${activityCount}</td><td>${row.first}%</td><td>${row.best}%</td></tr>`).join("")}</tbody></table></div>` : `<span>📊</span><h2>ยังไม่มีคะแนนในคาบนี้</h2><p>ผลจะปรากฏเมื่อนักเรียนเริ่มทำกิจกรรม</p>`}`;
 }
 
 function exportCurrentReport() {
@@ -1978,7 +1986,7 @@ function exportCurrentReport() {
     rows.push([
       state.classes.find(item => item.id === state.session.class_id)?.label || "",
       student.student_code, student.full_name, student.nickname,
-      ACTIVITIES.find(item => item.key === attempt.activity_key)?.title || attempt.activity_key,
+      activityForKey(attempt.activity_key, state.session.plan_id)?.title || attempt.activity_key,
       attempt.attempt_no, attempt.score, attempt.max_score, attempt.percent,
       attempt.passed ? "ผ่าน" : "ไม่ผ่าน", attempt.completed_at,
     ]);

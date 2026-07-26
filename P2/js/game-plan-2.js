@@ -1,26 +1,26 @@
 const $ = selector => document.querySelector(selector);
-const words = [
+const words = shuffle([
   { word:"ช้าง", emoji:"🐘", target:true }, { word:"กอง", emoji:"🪙", target:true },
   { word:"ธง", emoji:"🚩", target:true }, { word:"ผึ้ง", emoji:"🐝", target:true },
   { word:"กางเกง", emoji:"👖", target:true }, { word:"ทุ่ง", emoji:"🌾", target:true },
   { word:"นก", emoji:"🐦", target:false }, { word:"ขนม", emoji:"🍪", target:false },
   { word:"ปู", emoji:"🦀", target:false }, { word:"กุหลาบ", emoji:"🌹", target:false },
-];
-const sentences = [
+]);
+const sentences = shuffle([
   ["ช้าง","มี","งวง"], ["ผึ้ง","บิน","กลับ","รัง"], ["เด็ก","ถือ","ธง","สีแดง"],
   ["พ่อ","มอง","ทาง","โค้ง"], ["น้อง","ใส่","กางเกง","สีม่วง"],
-];
-const exitQuestions = [
+]);
+const exitQuestions = shuffle([
   { q:"คำใดอยู่ในมาตราแม่กง", choices:["กา","ช้าง","นก"], answer:"ช้าง" },
   { q:"ตัวสะกดของมาตราแม่กงคือข้อใด", choices:["ง","ก","บ"], answer:"ง" },
   { q:"ประโยคใดมีคำแม่กง", choices:["ปูอยู่ในนา","ช้างเดินในทุ่ง","แมวกินปลา"], answer:"ช้างเดินในทุ่ง" },
-];
+]);
 const missionMeta = [
   { title:"กล่องคำแม่กง", total:words.length },
   { title:"จรวดประโยคพุ่งทะยาน", total:sentences.length },
   { title:"ด่านดาวพิชิตแม่กง", total:exitQuestions.length },
 ];
-const lessonTitles = ["เข้าห้องเรียน","คาราโอเกะแม่กง","สำรวจคำศัพท์","สรุปหลักแม่กง","สาธิตเกม","เริ่ม 2 ภารกิจ","กระดานคะแนน","แกลเลอรี่ประโยค","สรุปและ Exit Ticket","มอบรางวัลและใบงาน"];
+const lessonTitles = ["เข้าห้องเรียน","คาราโอเกะแม่กง","สำรวจคำศัพท์","สรุปหลักแม่กง","สาธิตเกม","เริ่ม 2 ภารกิจ","กระดานคะแนน","แกลเลอรี่ประโยค","สรุปและแบบทดสอบท้ายคาบ","มอบรางวัลและใบงาน"];
 const state = { mission:0,index:0,score:0,answers:[],selected:[],busy:false,roundTimer:null,slide:0,classTimer:null,classSeconds:600,karaokeTimer:null,karaokeLine:0 };
 
 function shuffle(items){const copy=[...items];for(let i=copy.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[copy[i],copy[j]]=[copy[j],copy[i]]}return copy}
@@ -66,24 +66,24 @@ function renderSentence(){
   $("#resetSentence").addEventListener("click",()=>{state.selected=[];document.querySelectorAll(".word-button").forEach(b=>b.disabled=false);paint()});
   $("#checkSentence").addEventListener("click",()=>{if(state.busy||state.selected.length!==sentence.length){toast("เลือกคำให้ครบทุกคำก่อนนะ");return}state.busy=true;const correct=state.selected.map(x=>x.word).join("")===sentence.join("");if(correct){state.answers.push({mission:"sentence",sentence:sentence.join(" "),correct:true});addScore(20);output.style.borderColor="#16a36a";$("#rocket").classList.add("launch");toast("จรวดพุ่งทะยาน! ได้ 20 ดาว 🚀");speak(sentence.join(" "));setTimeout(next,1500)}else{output.style.borderColor="#e45454";toast("ลำดับยังไม่ถูก ลองอีกครั้ง");state.busy=false;setTimeout(()=>$("#resetSentence").click(),700)}});
 }
-function renderExit(){const item=exitQuestions[state.index];$("#stage").innerHTML=`<article class="exit-question"><span class="eyebrow">Exit Ticket ข้อที่ ${state.index+1}</span><h2>${item.q}</h2><div class="exit-options">${item.choices.map(choice=>`<button data-choice="${choice}">${choice}</button>`).join("")}</div></article>`;document.querySelectorAll("[data-choice]").forEach(button=>button.addEventListener("click",()=>{if(state.busy)return;state.busy=true;const correct=button.dataset.choice===item.answer;button.classList.add(correct?"correct":"wrong");state.answers.push({mission:"exit",question:item.q,correct});if(correct){addScore(15);toast("ตอบถูก! รับ 15 ดาว ⭐")}else{document.querySelector(`[data-choice="${item.answer}"]`).classList.add("correct");toast(`คำตอบคือ ${item.answer}`)}setTimeout(next,1100)}))}
+function renderExit(){const item=exitQuestions[state.index];$("#stage").innerHTML=`<article class="exit-question"><span class="eyebrow">แบบทดสอบท้ายคาบ ข้อที่ ${state.index+1}</span><h2>${item.q}</h2><div class="exit-options">${shuffle(item.choices).map(choice=>`<button data-choice="${choice}">${choice}</button>`).join("")}</div></article>`;document.querySelectorAll("[data-choice]").forEach(button=>button.addEventListener("click",()=>{if(state.busy)return;state.busy=true;const correct=button.dataset.choice===item.answer;button.classList.add(correct?"correct":"wrong");state.answers.push({mission:"exit",question:item.q,correct});if(correct){addScore(15);toast("ตอบถูก! รับ 15 ดาว ⭐")}else{document.querySelector(`[data-choice="${item.answer}"]`).classList.add("correct");toast(`คำตอบคือ ${item.answer}`)}setTimeout(next,1100)}))}
 function renderResult(){
   $("#missionLabel").textContent="จบการผจญภัย";$("#missionTitle").textContent="สรุปผล";$("#roundLabel").textContent="สำเร็จ";$("#progressBar").style.width="100%";
   const exitAnswers=state.answers.filter(x=>x.mission==="exit"),exitCorrect=exitAnswers.filter(x=>x.correct).length,passed=exitCorrect>=2;
-  $("#stage").innerHTML=`<section class="result"><div class="result-medal">${passed?"🏆":"🌟"}</div><h2>${passed?"ผู้พิชิตมาตราแม่กง":"เก่งขึ้นอีกก้าวแล้ว"}</h2><p>Exit Ticket ถูก ${exitCorrect} จาก 3 ข้อ · เกณฑ์ผ่าน 2 ข้อ</p><div class="result-score">⭐ คะแนนรวม ${state.score}</div><p>${passed?"ได้รับสติกเกอร์ดาวดิจิทัล! หนูจำได้แล้วว่า คำแม่กงมี ง เป็นตัวสะกด":"ลองอีกครั้งเพื่อรับสติกเกอร์ดาวนะ"}</p><button id="restartButton" class="primary-button" type="button">เล่นอีกครั้ง ↻</button></section>`;
-  $("#restartButton").addEventListener("click",()=>{Object.assign(state,{mission:0,index:0,score:0,answers:[],selected:[],busy:false});$("#score").textContent="0";render()});
+  $("#stage").innerHTML=`<section class="result"><div class="result-medal">${passed?"🏆":"🌟"}</div><h2>${passed?"ผู้พิชิตมาตราแม่กง":"เก่งขึ้นอีกก้าวแล้ว"}</h2><p>แบบทดสอบท้ายคาบถูก ${exitCorrect} จาก 3 ข้อ · เกณฑ์ผ่าน 2 ข้อ</p><div class="result-score">⭐ คะแนนรวม ${state.score}</div><p>${passed?"ได้รับสติกเกอร์ดาวดิจิทัล! หนูจำได้แล้วว่า คำแม่กงมี ง เป็นตัวสะกด":"ลองอีกครั้งเพื่อรับสติกเกอร์ดาวนะ"}</p><button id="restartButton" class="primary-button" type="button">เล่นอีกครั้ง ↻</button></section>`;
+  $("#restartButton").addEventListener("click",()=>{words.splice(0,words.length,...shuffle(words));sentences.splice(0,sentences.length,...shuffle(sentences));exitQuestions.splice(0,exitQuestions.length,...shuffle(exitQuestions));Object.assign(state,{mission:0,index:0,score:0,answers:[],selected:[],busy:false});$("#score").textContent="0";render()});
 }
 
 const slideTemplates = [
-  ()=>`<span class="slide-icon">🔐</span><h2>เตรียมพร้อม<br><em>เข้าห้องเรียน</em></h2><p>ฉายรหัสห้องจาก Teacher Dashboard ให้นักเรียนกรอก แล้วตรวจรายชื่อที่เชื่อมต่อให้ครบ</p><div class="room-demo"><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span></div><div class="slide-actions"><a class="primary-button" href="teacher.html">เปิด Teacher Dashboard</a><a class="secondary-button" href="display.html">เปิดจอโปรเจกเตอร์</a></div>`,
+  ()=>`<span class="slide-icon">🔐</span><h2>เตรียมพร้อม<br><em>เข้าห้องเรียน</em></h2><p>ฉายรหัสห้องจากจอครูให้นักเรียนกรอก แล้วตรวจรายชื่อที่เชื่อมต่อให้ครบ</p><div class="room-demo"><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span></div><div class="slide-actions"><a class="primary-button" href="teacher.html">เปิดจอครู</a><a class="secondary-button" href="display.html">เปิดจอโปรเจกเตอร์</a></div>`,
   ()=>`<div class="karaoke-box"><span class="slide-icon">🎤</span><h2>คาราโอเกะ <em>แม่กง</em></h2><div id="karaokeLyrics"><p class="karaoke-line"><span class="karaoke-word target">ธง</span> คาง <span class="karaoke-word target">ผึ้ง</span> ส่งเสียง ง ง</p><p class="karaoke-line">กำแพง กางเกง รัง และทุ่ง</p><p class="karaoke-line">มี ง อยู่ท้าย มาร้องพร้อมกัน</p></div><button id="karaokePlay" class="primary-button">▶ ร้องและไล่คำ</button></div>`,
   ()=>`<span class="slide-icon">🔎</span><h2>อ่าน ฟัง และ<em>สังเกต</em></h2><p>แตะบัตรคำเพื่อฟังเสียง แล้วช่วยกันบอกความหมาย</p><div class="vocab-grid">${[{w:"กำแพง",e:"🧱",t:1},{w:"กางเกง",e:"👖",t:1},{w:"รัง",e:"🪹",t:1},{w:"ผึ้ง",e:"🐝",t:1},{w:"ขนม",e:"🍪"},{w:"กุหลาบ",e:"🌹"},{w:"ปู",e:"🦀"},{w:"นก",e:"🐦"}].map(x=>`<button class="vocab-card ${x.t?"target":""}" data-speak="${x.w}"><span>${x.e}</span><strong>${x.w}</strong><small>${x.t?"มีเสียง ง ท้ายคำ":"คำเปรียบเทียบ"}</small></button>`).join("")}</div>`,
   ()=>`<span class="slide-icon">💡</span><h2>มาตรา<em>แม่กง</em></h2><div class="rule-card">คำที่มี <strong>ง</strong> เป็นตัวสะกด<br>เมื่ออ่านจะมีเสียง <strong>“ง”</strong> อยู่ท้ายคำ</div><div class="demo-row"><span class="demo-word">รอ + อะ + งอ = รัง</span><button class="speak-button" data-speak="รัง">🔊 ฟังคำว่า รัง</button></div>`,
   ()=>`<span class="slide-icon">🧑‍🏫</span><h2>สาธิตก่อนเล่น<br><em>หนึ่งรอบ</em></h2><p>คำว่า “ช้าง” มี ง เป็นตัวสะกด จึงลากลงกล่องแม่กง ส่วนคำว่า “นก” ให้กดส่งต่อ</p><div class="demo-row"><span class="demo-word">🐘 ช้าง</span><span>→</span><span class="drop-box">📦 กล่องแม่กง</span></div>`,
   ()=>`<span class="slide-icon">🎮</span><h2>เริ่มภารกิจ<br><em>30 นาที</em></h2><p>ภารกิจ 1 กล่องคำแม่กง และภารกิจ 2 จรวดประโยคพุ่งทะยาน</p><div class="slide-actions"><button id="launchStudentGame" class="primary-button">เปิดเกมนักเรียน</button><a class="secondary-button" href="teacher.html">ควบคุมคาบจากจอครู</a></div>`,
-  ()=>`<span class="slide-icon">🏅</span><h2>กระดาน<em>คะแนนรวม</em></h2><p>ฉายเป็นระยะเพื่อสร้างแรงจูงใจ และใช้ Teacher Dashboard ช่วยนักเรียนที่คะแนนต่ำกว่าเกณฑ์</p><div class="slide-actions"><a class="primary-button" href="display.html">เปิด Leaderboard</a><a class="secondary-button" href="teacher.html">ดูรายละเอียดนักเรียน</a></div>`,
+  ()=>`<span class="slide-icon">🏅</span><h2>กระดาน<em>คะแนนรวม</em></h2><p>ฉายเป็นระยะเพื่อสร้างแรงจูงใจ และใช้จอครูช่วยนักเรียนที่คะแนนต่ำกว่าเกณฑ์</p><div class="slide-actions"><a class="primary-button" href="display.html">เปิดกระดานคะแนน</a><a class="secondary-button" href="teacher.html">ดูรายละเอียดนักเรียน</a></div>`,
   ()=>`<span class="slide-icon">🖍️</span><h2>แกลเลอรี่<br><em>ประโยคแม่กง</em></h2><p>กลุ่มละ 3–4 คน เลือกคำแม่กง แต่งหนึ่งประโยค เขียนตัวโตบน A4 แล้วติดรอบห้อง</p><div id="classTimer" class="timer-card">10:00</div><div class="slide-actions"><button id="timerStart" class="primary-button">▶ เริ่มจับเวลา</button><button id="timerReset" class="secondary-button">↻ เริ่มใหม่</button></div><ul class="checklist"><li>□ กระดาษ A4 และปากกาเมจิก</li><li>□ สติกเกอร์ดาวสำหรับ Gallery Walk</li><li>□ ตัวแทนกลุ่มอ่านประโยคให้เพื่อนฟัง</li></ul>`,
-  ()=>`<span class="slide-icon">🗝️</span><h2>สรุปและ<br><em>Exit Ticket</em></h2><div class="rule-card">มาตราแม่กง คือ คำที่มี <strong>ง</strong> เป็นตัวสะกด และนำมาเรียงเป็นประโยคสื่อความหมายได้</div><p>ให้นักเรียนทำ Exit Ticket 3 ข้อ เกณฑ์ผ่านอย่างน้อย 2 ข้อ</p><button id="launchExit" class="primary-button">เปิดเกมและทำ Exit Ticket</button>`,
+  ()=>`<span class="slide-icon">🗝️</span><h2>สรุปและ<br><em>แบบทดสอบท้ายคาบ</em></h2><div class="rule-card">มาตราแม่กง คือ คำที่มี <strong>ง</strong> เป็นตัวสะกด และนำมาเรียงเป็นประโยคสื่อความหมายได้</div><p>ให้นักเรียนทำแบบทดสอบ 3 ข้อ เกณฑ์ผ่านอย่างน้อย 2 ข้อ</p><button id="launchExit" class="primary-button">เปิดเกมและทำแบบทดสอบ</button>`,
   ()=>`<span class="slide-icon">🎉</span><h2>ปรบมือให้<br><em>ผู้พิชิตแม่กง</em></h2><div class="award-row">🥇 🥈 🥉</div><p>ฉายคะแนนรวม มอบดาวดิจิทัล และแจกใบงานที่ 2 กลับไปทบทวน</p><div class="slide-actions"><a class="primary-button" href="display.html">ฉายผลคะแนนท้ายคาบ</a><a class="secondary-button" href="worksheet-plan-2.html" target="_blank">เปิดและพิมพ์ใบงานที่ 2</a></div>`,
 ];
 function renderLessonNav(){$("#lessonSteps").innerHTML=lessonTitles.map((title,index)=>`<li class="${index===state.slide?"active":""}" data-slide="${index}">${index+1}. ${title}</li>`).join("");document.querySelectorAll("[data-slide]").forEach(item=>item.addEventListener("click",()=>{state.slide=Number(item.dataset.slide);renderSlide()}))}
@@ -94,7 +94,7 @@ function renderSlide(){
   stopTransient();$("#slideCounter").textContent=`${state.slide+1} / ${slideTemplates.length}`;$("#prevSlide").disabled=state.slide===0;$("#nextSlide").textContent=state.slide===slideTemplates.length-1?"จบการสอน ✓":"ถัดไป →";$("#lessonStage").innerHTML=slideTemplates[state.slide]();renderLessonNav();
   document.querySelectorAll("[data-speak]").forEach(button=>button.addEventListener("click",()=>speak(button.dataset.speak)));
   $("#karaokePlay")?.addEventListener("click",startKaraoke);$("#timerStart")?.addEventListener("click",startClassTimer);$("#timerReset")?.addEventListener("click",()=>{state.classSeconds=600;paintClassTimer()});
-  $("#launchStudentGame")?.addEventListener("click",openGame);$("#launchExit")?.addEventListener("click",()=>{openGame();state.mission=2;state.index=0;render()});
+  $("#launchStudentGame")?.addEventListener("click",openGame);$("#launchExit")?.addEventListener("click",()=>{openGame();clearInterval(state.roundTimer);state.roundTimer=null;state.mission=2;state.index=0;render()});
 }
 function openGame(){stopTransient();$("#hero").classList.add("hidden");$("#lesson").classList.add("hidden");$("#game").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"});render()}
 function openLesson(){stopTransient();$("#hero").classList.add("hidden");$("#game").classList.add("hidden");$("#lesson").classList.remove("hidden");state.slide=0;renderSlide();window.scrollTo({top:0,behavior:"smooth"})}

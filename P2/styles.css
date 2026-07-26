@@ -1885,3 +1885,121 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .expert-student-embed .student-live-profile { top:6px; left:6px; max-width:min(220px, calc(100vw - 118px)); padding:4px 8px 4px 4px; }
 .expert-student-embed .student-live-profile-visual { width:32px; height:32px; flex-basis:32px; }
 .expert-student-embed .student-live-profile strong { font-size:11px; }
+
+/* Shared live games for plans 2–8. */
+.live-plan-question { width:min(760px,100%); display:grid; justify-items:center; gap:12px; margin:0 auto 18px; padding:clamp(18px,3vw,34px); border:1px solid #e2def8; border-radius:26px; background:linear-gradient(145deg,#fff,#f4f2ff); box-shadow:0 14px 34px rgba(67,53,157,.10); text-align:center; }
+.live-plan-question-icon { display:grid; place-items:center; width:clamp(84px,13vw,126px); height:clamp(84px,13vw,126px); border-radius:32px; background:#fff2ba; font-size:clamp(48px,8vw,76px); }
+.live-plan-question h2 { margin:0; color:var(--purple-dark); font-size:clamp(30px,5vw,54px); line-height:1.2; overflow-wrap:anywhere; }
+.plan-live-ready { border-color:#cfe9de; background:linear-gradient(145deg,#f7fffb,#effbf6); }
+
+/* The plan chooser stays compact on phones; selected details move into view. */
+@media (max-width:640px) {
+  .plan-catalog-list { display:flex; grid-template-columns:none; gap:9px; margin-inline:-13px; padding:2px 13px 10px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .plan-catalog-list::-webkit-scrollbar { display:none; }
+  .plan-catalog-card { min-width:min(255px,82vw); min-height:102px; scroll-snap-align:start; }
+}
+
+/* Expert page: every control remains reachable from narrow phones to projectors. */
+.expert-page { width:100%; max-width:100%; overflow-x:hidden; }
+.expert-page .expert-header { min-width:0; }
+.expert-page .expert-header .brand { min-width:0; }
+.expert-page .expert-header .brand > span:last-child { min-width:0; }
+.expert-page .expert-header .brand strong,
+.expert-page .expert-header .brand small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.expert-page .expert-header .header-actions { min-width:0; flex-wrap:wrap; justify-content:flex-end; }
+.expert-real-main, .expert-real-intro, .expert-real-toolbar, .expert-real-workspace, .expert-real-device { min-width:0; max-width:100%; }
+.expert-real-intro h1, .expert-real-intro p, .expert-real-guide li, .expert-real-note p { overflow-wrap:anywhere; }
+.expert-real-device-screen iframe { min-width:0; }
+.expert-real-workspace:fullscreen { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.expert-fullscreen-exit {
+  display:none;
+  position:fixed;
+  z-index:2010;
+  top:max(10px,env(safe-area-inset-top));
+  right:max(10px,env(safe-area-inset-right));
+  min-height:42px;
+  padding:9px 14px;
+  border:1px solid rgba(255,255,255,.32);
+  border-radius:13px;
+  color:#fff;
+  background:#202947;
+  box-shadow:0 10px 24px rgba(22,28,56,.28);
+  font:inherit;
+  font-size:13px;
+  font-weight:800;
+  line-height:1.2;
+  cursor:pointer;
+}
+.expert-real-workspace:fullscreen .expert-fullscreen-exit,
+.expert-real-workspace.expert-fullscreen-fallback .expert-fullscreen-exit { display:block; }
+.expert-simulated-fullscreen { overflow:hidden; }
+.expert-real-workspace.expert-fullscreen-fallback {
+  position:fixed;
+  z-index:2000;
+  inset:0;
+  width:100vw;
+  max-width:none;
+  height:100dvh;
+  max-height:none;
+  margin:0;
+  padding:28px;
+  overflow:auto;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+  border-radius:0;
+  background:#eef0ff;
+}
+.expert-embed { min-height:100dvh; height:auto; overflow-x:hidden; overflow-y:auto; }
+.expert-teacher-embed:has(#teacherDashboard:not(.hidden)) { height:100dvh; overflow:hidden; }
+.expert-student-embed:has(#gameView:not(.hidden)) { height:100dvh; overflow:hidden; }
+
+@media (max-width:760px) {
+  .expert-page .expert-header { height:auto; min-height:64px; align-items:center; gap:8px; padding:8px 10px; }
+  .expert-page .expert-header .brand-mark { width:39px; height:39px; flex-basis:39px; }
+  .expert-page .expert-header .brand small { display:none; }
+  .expert-page .expert-header .brand strong { max-width:34vw; font-size:13px; }
+  .expert-page .expert-header .header-actions { gap:5px; }
+  .expert-page .expert-header .header-actions .button { min-height:38px; padding:7px 9px; font-size:11px; }
+  .expert-real-main { padding-top:24px; padding-bottom:42px; }
+  .expert-real-intro { gap:16px; margin-bottom:18px; }
+  .expert-real-intro h1 { font-size:clamp(32px,10vw,48px); }
+  .expert-real-intro p { font-size:15px; line-height:1.58; }
+  .expert-real-guide { padding:16px; border-radius:18px; }
+  .expert-real-toolbar { align-items:stretch; padding:12px; }
+  .expert-real-toolbar > div { min-width:0; flex-basis:100%; }
+  .expert-real-toolbar > .button { min-width:0; width:100%; }
+  .expert-real-device-header { flex-wrap:wrap; }
+  .expert-real-device-header > div { flex:1 1 180px; }
+  .expert-real-device-header strong { max-width:calc(100vw - 120px); }
+  .expert-real-device footer { flex-wrap:wrap; }
+  .expert-real-workspace:fullscreen { grid-template-columns:1fr; padding:8px; overflow:auto; }
+  .expert-real-workspace.expert-fullscreen-fallback { grid-template-columns:1fr; padding:8px; overflow:auto; }
+}
+
+@media (max-width:380px) {
+  .expert-page .expert-header .brand > span:last-child { display:none; }
+  .expert-page .expert-header .header-actions { flex:1; }
+  .expert-page .expert-header .header-actions .button { flex:1 1 0; padding-inline:5px; }
+  .expert-real-device { border-width:6px; border-radius:20px; }
+  .expert-real-device-header { padding:7px 8px; }
+  .expert-real-device-header small { display:none; }
+  .expert-real-status { padding:4px 6px; }
+  .expert-real-device footer { padding-inline:9px; }
+}
+
+@media (orientation:landscape) and (max-height:560px) {
+  .expert-real-main { padding-top:16px; }
+  .expert-real-intro { grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr); align-items:start; gap:16px; }
+  .expert-real-intro h1 { font-size:clamp(30px,5vw,46px); }
+  .expert-real-intro p { font-size:14px; line-height:1.45; }
+  .expert-real-guide { padding:12px 15px; }
+  .expert-real-guide ol { margin-top:5px; line-height:1.45; }
+  .expert-real-workspace:fullscreen { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; padding:6px; overflow:auto; }
+  .expert-real-workspace.expert-fullscreen-fallback { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; padding:6px; overflow:auto; }
+  .expert-real-workspace:fullscreen .expert-real-device { border-width:6px; border-radius:20px; }
+  .expert-real-workspace.expert-fullscreen-fallback .expert-real-device { border-width:6px; border-radius:20px; }
+  .expert-real-workspace:fullscreen .expert-real-device-header { min-height:42px; padding:5px 8px; }
+  .expert-real-workspace.expert-fullscreen-fallback .expert-real-device-header { min-height:42px; padding:5px 8px; }
+  .expert-real-workspace:fullscreen .expert-real-device footer { display:none; }
+  .expert-real-workspace.expert-fullscreen-fallback .expert-real-device footer { display:none; }
+}

@@ -22,8 +22,7 @@ const frames = {
 function sourceFor(frame, { fresh = false } = {}) {
   const url = new URL(frame.page, window.location.href);
   url.searchParams.set("embed", frame.role);
-  url.searchParams.set("screen", "20260723-expert-level-2-1");
-  if (frame.role === "expert-teacher") url.searchParams.set("autofill", "1");
+  url.searchParams.set("screen", "20260726-all-plans-responsive-3");
   if (fresh) url.searchParams.set("fresh", String(Date.now()));
   return url.href;
 }
@@ -50,10 +49,40 @@ Object.values(frames).forEach(frame => {
 });
 
 $("#expertReloadButton").addEventListener("click", () => loadAll({ fresh: true }));
-$("#expertFullscreenButton").addEventListener("click", async () => {
-  const workspace = $("#expertWorkspace");
-  if (document.fullscreenElement) await document.exitFullscreen();
-  else await workspace.requestFullscreen?.();
+const workspace = $("#expertWorkspace");
+const fullscreenButton = $("#expertFullscreenButton");
+const fullscreenExitButton = $("#expertFullscreenExitButton");
+
+function setFullscreenFallback(enabled) {
+  workspace.classList.toggle("expert-fullscreen-fallback", enabled);
+  document.body.classList.toggle("expert-simulated-fullscreen", enabled);
+  fullscreenButton.textContent = enabled ? "↙ ออกจากเต็มจอ" : "⛶ เต็มจอสองจอ";
+}
+
+async function toggleFullscreen() {
+  if (workspace.classList.contains("expert-fullscreen-fallback")) {
+    setFullscreenFallback(false);
+    return;
+  }
+  if (document.fullscreenElement) {
+    await document.exitFullscreen();
+    return;
+  }
+  try {
+    if (typeof workspace.requestFullscreen !== "function") throw new Error("Fullscreen API unavailable");
+    await workspace.requestFullscreen();
+    if (!document.fullscreenElement) setFullscreenFallback(true);
+  } catch {
+    setFullscreenFallback(true);
+  }
+}
+
+fullscreenButton.addEventListener("click", toggleFullscreen);
+fullscreenExitButton.addEventListener("click", toggleFullscreen);
+
+document.addEventListener("fullscreenchange", () => {
+  if (document.fullscreenElement) fullscreenButton.textContent = "↙ ออกจากเต็มจอ";
+  else if (!workspace.classList.contains("expert-fullscreen-fallback")) fullscreenButton.textContent = "⛶ เต็มจอสองจอ";
 });
 
 loadAll({ fresh: true });

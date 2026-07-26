@@ -1,5 +1,5 @@
-import { $ } from "./common.js";
-import { PLAN_CATALOG, getPlanById } from "./plan-catalog.js";
+import { $ } from "./common.js?v=20260726-all-plans-responsive-1";
+import { PLAN_CATALOG, getPlanById } from "./plan-catalog.js?v=20260726-all-plans-responsive-1";
 
 let activePlanId = "01";
 
@@ -15,6 +15,7 @@ function renderPlanDetail(plan) {
   }
   const documentAction = plan.document ? `<a class="button button-primary" href="${plan.document}" target="_blank" rel="noopener">เปิดเอกสารแผน ${plan.id} ↗</a>` : "";
   const gameAction = plan.game ? `<a class="button button-primary" href="${plan.game}">🎮 เล่นเกมแผนที่ ${plan.sequence}</a>` : "";
+  const worksheetAction = plan.worksheet ? `<a class="button button-ghost" href="${plan.worksheet}" target="_blank" rel="noopener">📝 เปิดใบงาน ${plan.sequence}</a>` : "";
   const firstWordGroup = plan.words.maeKaka || plan.words.maeKong || plan.words.maeKom || plan.words.primary || [];
   const secondWordGroup = plan.words.finalSound || plan.words.compare || [];
   const firstWordLabel = plan.words.primary ? `คำตัวอย่าง${plan.title}` : plan.words.maeKom ? "คำมาตราแม่กม" : plan.words.maeKong ? "คำมาตราแม่กง" : "คำแม่ ก กา";
@@ -22,8 +23,9 @@ function renderPlanDetail(plan) {
   stage.innerHTML = `
     <section class="plan-detail-heading">
       <div><span class="eyebrow">แผนการจัดการเรียนรู้ที่ ${plan.sequence}</span><h2>${plan.title}</h2><p>${plan.course}</p><p>${plan.grade}</p><p>${plan.unit} · เวลา ${plan.duration} · หน่วยรวม ${plan.unitDuration}</p></div>
-      <div class="plan-detail-actions">${gameAction}${documentAction}<a class="button button-ghost" href="expert.html?plan=${plan.id}">ห้องจำลองผู้เชี่ยวชาญ</a></div>
+      <div class="plan-detail-actions">${gameAction}${worksheetAction}${documentAction}<a class="button button-ghost" href="teacher.html">เปิดห้องเรียนสด</a><a class="button button-ghost" href="expert.html?plan=${plan.id}">ห้องตรวจสื่อผู้เชี่ยวชาญ</a></div>
     </section>
+    <article class="plan-detail-card plan-live-ready"><h3>สถานะการใช้งาน</h3><p>✅ ห้องเรียนสดพร้อม ${plan.activityKeys.length} กิจกรรม · ✅ ใบงานพร้อม · ${plan.document ? "✅ เอกสารต้นฉบับรวมในชุด" : "⚠️ ยังไม่มีเอกสารต้นฉบับในชุด"} · สื่อประกอบ: ${plan.mediaStatus || "สื่อในเว็บ"}</p></article>
     <article class="plan-detail-card plan-summary-card"><h3>สาระสำคัญ / ความคิดรวบยอด</h3><p>${plan.summary}</p></article>
     <div class="plan-detail-grid">
       <article class="plan-detail-card"><h3>มาตรฐานการเรียนรู้</h3><ul>${plan.standards.map(item => `<li>${item}</li>`).join("")}</ul></article>
@@ -40,13 +42,16 @@ function renderPlanCards() {
   const list = $("#planCatalog");
   list.innerHTML = PLAN_CATALOG.map(plan => `<button class="plan-catalog-card ${plan.id === activePlanId ? "active" : ""} ${plan.published ? "is-ready" : "is-waiting"}" data-plan-id="${plan.id}" type="button">
     <span class="plan-catalog-number">${String(plan.sequence).padStart(2, "0")}</span>
-    <span class="plan-catalog-status">${plan.published ? "พร้อมใช้" : "รอข้อมูล"}</span>
-    <strong>${plan.title}</strong><small>${plan.published ? `${plan.unit} · ${plan.duration}` : "เพิ่มเอกสารและรายละเอียดภายหลัง"}</small>
+    <span class="plan-catalog-status">${plan.liveReady ? "ห้องสดพร้อม" : plan.published ? "สื่อเดี่ยวพร้อม" : "รอข้อมูล"}</span>
+    <strong>${plan.title}</strong><small>${plan.published ? `${plan.activityKeys.length} กิจกรรม · ${plan.duration}` : "เพิ่มเอกสารและรายละเอียดภายหลัง"}</small>
   </button>`).join("");
   list.querySelectorAll("[data-plan-id]").forEach(button => button.addEventListener("click", () => {
     activePlanId = button.dataset.planId;
     renderPlanCards();
     renderPlanDetail(getPlanById(activePlanId));
+    if (matchMedia("(max-width: 980px)").matches) {
+      requestAnimationFrame(() => $("#planDetail").scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
   }));
 }
 

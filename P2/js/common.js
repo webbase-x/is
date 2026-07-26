@@ -5,18 +5,70 @@ export const ACTIVITIES = Object.freeze([
   { key: "sort", icon: "🏠", title: "จัดบ้านให้คำ", short: "จัดบ้าน", minutes: 7 },
   { key: "train", icon: "🚂", title: "รถไฟประโยคแม่ ก กา", short: "รถไฟประโยค", minutes: 6 },
   { key: "vote", icon: "💗", title: "บอร์ดโหวตประโยคฮิต", short: "บอร์ดโหวต", minutes: 10 },
-  { key: "exit", icon: "🗝️", title: "ไขกุญแจหีบสมบัติ", short: "Exit Ticket", minutes: 10 },
+  { key: "exit", icon: "🗝️", title: "ไขกุญแจหีบสมบัติ", short: "แบบทดสอบท้ายคาบ", minutes: 10 },
 ]);
+
+const freezeActivitySet = activities => Object.freeze(activities.map(activity => Object.freeze(activity)));
+
+export const PLAN_ACTIVITIES = Object.freeze({
+  1: ACTIVITIES,
+  2: freezeActivitySet([
+    { key: "mae-kong-box", icon: "📦", title: "กล่องคำแม่กง", short: "กล่องคำ", minutes: 12 },
+    { key: "mae-kong-rocket", icon: "🚀", title: "จรวดประโยคแม่กง", short: "จรวดประโยค", minutes: 12 },
+    { key: "mae-kong-exit", icon: "🗝️", title: "ด่านดาวพิชิตแม่กง", short: "แบบทดสอบท้ายคาบ", minutes: 8 },
+  ]),
+  3: freezeActivitySet([
+    { key: "mae-kom-box", icon: "📦", title: "กล่องคำแม่กม", short: "กล่องคำ", minutes: 12 },
+    { key: "picture-word", icon: "🖼️", title: "ภาพนี้คำอะไร", short: "ทายคำจากภาพ", minutes: 12 },
+    { key: "mae-kom-exit", icon: "🗝️", title: "ด่านพิชิตแม่กม", short: "แบบทดสอบท้ายคาบ", minutes: 8 },
+  ]),
+  4: freezeActivitySet([
+    { key: "yw-sort", icon: "👯", title: "คู่หู ย–ว", short: "แยกแม่เกย–เกอว", minutes: 12 },
+    { key: "picture-choice", icon: "🖼️", title: "เลือกคำให้ใช่", short: "เลือกจากภาพ", minutes: 12 },
+    { key: "exit", icon: "🗝️", title: "ด่านคู่หู ย–ว", short: "แบบทดสอบท้ายคาบ", minutes: 8 },
+  ]),
+  5: freezeActivitySet([
+    { key: "cave-door", icon: "🗝️", title: "เปิดประตูถ้ำแม่กก", short: "ประตูถ้ำ", minutes: 12 },
+    { key: "true-false", icon: "🧩", title: "จริงหรือไม่ แม่กก", short: "จริงหรือไม่", minutes: 12 },
+    { key: "exit", icon: "🏆", title: "ด่านพิชิตแม่กก", short: "แบบทดสอบท้ายคาบ", minutes: 8 },
+  ]),
+  6: freezeActivitySet([
+    { key: "treasure-hunt", icon: "💎", title: "ล่าสมบัติแม่กด", short: "ล่าสมบัติ", minutes: 12 },
+    { key: "true-false", icon: "🧩", title: "ถอดรหัสแม่กด", short: "ถอดรหัส", minutes: 12 },
+    { key: "exit", icon: "🏆", title: "ด่านพิชิตแม่กด", short: "แบบทดสอบท้ายคาบ", minutes: 8 },
+  ]),
+  7: freezeActivitySet([
+    { key: "island-supply", icon: "🏝️", title: "เก็บเสบียงแม่กบ", short: "เก็บเสบียง", minutes: 12 },
+    { key: "true-false", icon: "🧩", title: "ปริศนาชาวเกาะแม่กบ", short: "ปริศนาชาวเกาะ", minutes: 12 },
+    { key: "exit", icon: "🏆", title: "ด่านพิชิตแม่กบ", short: "แบบทดสอบท้ายคาบ", minutes: 8 },
+  ]),
+  8: freezeActivitySet([
+    { key: "space-fuel", icon: "🚀", title: "เติมเชื้อเพลิงแม่กน", short: "เติมเชื้อเพลิง", minutes: 12 },
+    { key: "true-false", icon: "🧩", title: "รหัสลับต่างดาวแม่กน", short: "รหัสลับ", minutes: 12 },
+    { key: "exit", icon: "🏆", title: "ด่านพิชิตแม่กน", short: "แบบทดสอบท้ายคาบ", minutes: 8 },
+  ]),
+});
+
+export function activitiesForPlan(planId = 1) {
+  return PLAN_ACTIVITIES[Number(planId)] || ACTIVITIES;
+}
+
+export function activityForKey(activityKey, planId) {
+  const planActivities = activitiesForPlan(planId);
+  return planActivities.find(activity => activity.key === activityKey)
+    || Object.values(PLAN_ACTIVITIES).flat().find(activity => activity.key === activityKey)
+    || null;
+}
 
 export const PLAN_TITLES = Object.freeze([
   "รู้จักมาตราตัวสะกดและแม่ ก กา",
-  "แผนการเรียนรู้ที่ 2",
-  "แผนการเรียนรู้ที่ 3",
-  "แผนการเรียนรู้ที่ 4",
-  "แผนการเรียนรู้ที่ 5",
-  "แผนการเรียนรู้ที่ 6",
-  "แผนการเรียนรู้ที่ 7",
-  "แผนการเรียนรู้ที่ 8",
+  "มาตราแม่กง",
+  "มาตราแม่กม",
+  "มาตราแม่เกยและแม่เกอว",
+  "มาตราแม่กก",
+  "มาตราแม่กด",
+  "มาตราแม่กบ",
+  "มาตราแม่กน",
 ]);
 
 export const AVATARS = ["⭐", "🦉", "🐯", "🐳", "🐰", "🦊", "🐼", "🦁", "🐸", "🐙", "🦋", "🚀"];
@@ -208,9 +260,9 @@ export function renderPlanTimeline(container, activePlan = 1) {
   container.innerHTML = PLAN_TITLES.map((title, index) => `
     <article class="plan-card ${index + 1 === activePlan ? "active" : ""}">
       <span class="plan-number">${index + 1}</span>
-      <span class="lock">${index + 1 === activePlan ? "เปิดใช้งาน" : "🔒"}</span>
+      <span class="lock">${index + 1 === activePlan ? "กำลังใช้" : "พร้อมใช้"}</span>
       <h3>${escapeHtml(title)}</h3>
-      <p>${index === 0 ? "7 กิจกรรม · 60 นาที" : "ครูจะเปิดเมื่อถึงคาบเรียน"}</p>
+      <p>${activitiesForPlan(index + 1).length} กิจกรรม · ${activitiesForPlan(index + 1).reduce((sum, activity) => sum + activity.minutes, 0)} นาที</p>
     </article>
   `).join("");
 }

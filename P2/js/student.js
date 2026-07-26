@@ -1,10 +1,10 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260723-expert-isolated-auth-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-all-plans-responsive-1";
 import {
-  $, ACTIVITIES, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, gameStateChannelName, hide,
+  $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, gameStateChannelName, hide,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260723-expert-live-score-1";
+} from "./common.js?v=20260726-all-plans-responsive-1";
 
 const expertStudentEmbed = new URLSearchParams(window.location.search).get("embed") === "expert-student";
 if (expertStudentEmbed) document.body.classList.add("expert-embed", "expert-student-embed");
@@ -55,6 +55,130 @@ function wordEmoji(word) {
   const key = [...String(word || "")].reduce((sum, character) => sum + character.codePointAt(0), 0);
   return FALLBACK_EMOJI[key % FALLBACK_EMOJI.length];
 }
+
+const LIVE_PLAN_GAME_DATA = Object.freeze({
+  2: {
+    title: "มาตราแม่กง", targetLabel: "แม่กง", rule: "คำที่มี ง เป็นตัวสะกด",
+    target: [["ช้าง","🐘"],["กอง","🪙"],["ธง","🚩"],["ผึ้ง","🐝"],["กางเกง","👖"],["ทุ่ง","🌾"]],
+    compare: [["นก","🐦"],["ขนม","🍪"],["ปู","🦀"],["กุหลาบ","🌹"]],
+    secondary: [
+      { prompt:"ประโยคใดมีคำแม่กง", options:["ปูอยู่ในนา","ช้างเดินในทุ่ง","แมวกินปลา"], answer:"ช้างเดินในทุ่ง", emoji:"🚀" },
+      { prompt:"เลือกคำแม่กงมาเติม: ผึ้งบินกลับ ___", options:["รัง","นา","บ่อ"], answer:"รัง", emoji:"🐝" },
+      { prompt:"เลือกคำแม่กงมาเติม: เด็กถือ ___ สีแดง", options:["ธง","ปลา","นก"], answer:"ธง", emoji:"🚩" },
+      { prompt:"คำใดใช้แต่งประโยคเกี่ยวกับเสื้อผ้า", options:["กางเกง","ทุ่ง","กอง"], answer:"กางเกง", emoji:"👖" },
+      { prompt:"คำใดมีเสียง ง อยู่ท้ายคำ", options:["ทาง","ตา","กบ"], answer:"ทาง", emoji:"🛣️" },
+    ],
+    exit: [
+      { prompt:"คำใดอยู่ในมาตราแม่กง", options:["กา","ช้าง","นก"], answer:"ช้าง" },
+      { prompt:"ตัวสะกดของมาตราแม่กงคือข้อใด", options:["ง","ก","บ"], answer:"ง" },
+      { prompt:"ประโยคใดมีคำแม่กง", options:["ปูอยู่ในนา","ช้างเดินในทุ่ง","แมวกินปลา"], answer:"ช้างเดินในทุ่ง" },
+    ],
+  },
+  3: {
+    title: "มาตราแม่กม", targetLabel: "แม่กม", rule: "คำที่มี ม เป็นตัวสะกด",
+    target: [["ลม","💨"],["แก้ม","😊"],["แมงมุม","🕷️"],["ส้ม","🍊"],["ร่ม","☂️"],["กลม","🌐"]],
+    compare: [["ธง","🚩"],["นก","🐦"],["ดาว","⭐"],["ปลา","🐟"]],
+    secondary: [
+      { prompt:"ส่วนหนึ่งของใบหน้า", options:["แก้ม","ก้าม","แกง"], answer:"แก้ม", emoji:"😊" },
+      { prompt:"สิ่งที่ใช้กันฝน", options:["ร่ม","ลม","ธง"], answer:"ร่ม", emoji:"☂️" },
+      { prompt:"ผลไม้สีส้ม", options:["ส้ม","ส้อม","ซ่อม"], answer:"ส้ม", emoji:"🍊" },
+      { prompt:"สัตว์แปดขา", options:["แมงมุม","แมลง","มด"], answer:"แมงมุม", emoji:"🕷️" },
+      { prompt:"ลักษณะเหมือนลูกบอล", options:["กลม","กว้าง","แบน"], answer:"กลม", emoji:"🌐" },
+    ],
+    exit: [
+      { prompt:"คำใดอยู่ในมาตราแม่กม", options:["ธง","ส้ม","ปลา"], answer:"ส้ม" },
+      { prompt:"มาตราแม่กมมีตัวใดเป็นตัวสะกด", options:["ง","ม","น"], answer:"ม" },
+      { prompt:"ข้อใดเขียนสะกดคำได้ถูกต้อง", options:["แมงมุน","แมงมูม","แมงมุม"], answer:"แมงมุม" },
+    ],
+  },
+  4: {
+    title: "มาตราแม่เกยและแม่เกอว", rule: "แม่เกยมี ย สะกด ส่วนแม่เกอวมี ว สะกด",
+    categories: [
+      ["กล้วย","แม่เกย","🍌"],["สวย","แม่เกย","✨"],["จ่าย","แม่เกย","💵"],["ถ้วย","แม่เกย","🏆"],["ยาย","แม่เกย","👵"],
+      ["แมว","แม่เกอว","🐱"],["แก้ว","แม่เกอว","🥛"],["ข้าว","แม่เกอว","🍚"],["ว่าว","แม่เกอว","🪁"],["ดาว","แม่เกอว","⭐"],
+    ],
+    secondary: [
+      { prompt:"ภาพแมว เขียนคำใดถูกต้อง", options:["แมว","แมย"], answer:"แมว", emoji:"🐱" },
+      { prompt:"ภาพกล้วย เขียนคำใดถูกต้อง", options:["กล้วย","กล้วว"], answer:"กล้วย", emoji:"🍌" },
+      { prompt:"ภาพดาว เขียนคำใดถูกต้อง", options:["ดาย","ดาว"], answer:"ดาว", emoji:"⭐" },
+      { prompt:"ภาพถ้วย เขียนคำใดถูกต้อง", options:["ถ้วว","ถ้วย"], answer:"ถ้วย", emoji:"🏆" },
+      { prompt:"ภาพว่าว เขียนคำใดถูกต้อง", options:["ว่าย","ว่าว"], answer:"ว่าว", emoji:"🪁" },
+    ],
+    exit: [
+      { prompt:"คำว่า “กล้วย” อยู่ในมาตราใด", options:["แม่เกย","แม่เกอว"], answer:"แม่เกย" },
+      { prompt:"คำว่า “แมว” มีตัวใดเป็นตัวสะกด", options:["ย","ว"], answer:"ว" },
+      { prompt:"คำใดเป็นแม่เกอว", options:["ยาย","ดาว","ถ้วย"], answer:"ดาว" },
+    ],
+  },
+  5: {
+    title: "มาตราแม่กก", targetLabel: "แม่กก", rule: "ออกเสียงเหมือน ก สะกด เขียนด้วย ก ข ค หรือ ฆ",
+    target: [["นก","🐦"],["เลข","🔢"],["เมฆ","☁️"],["สุข","😊"],["โรค","🩺"],["กระดูก","🦴"],["ปีก","🪽"],["ลูก","⚽"],["สุนัข","🐶"]],
+    compare: [["แมว","🐱"],["กล้วย","🍌"],["ส้ม","🍊"],["จาน","🍽️"]],
+    secondary: [
+      { prompt:"คำว่า “เลข” เป็นคำมาตราแม่กก", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🔢" },
+      { prompt:"คำว่า “ความสุข” สะกดด้วย ค ควาย", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"😊" },
+      { prompt:"คำว่า “เมฆ” ออกเสียงท้ายเหมือน ก สะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"☁️" },
+      { prompt:"คำว่า “แมว” เป็นคำมาตราแม่กก", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🐱" },
+      { prompt:"แม่กกมีเฉพาะ ก เป็นตัวสะกดเท่านั้น", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🧩" },
+    ],
+    exit: [
+      { prompt:"คำใดเป็นแม่กก", options:["แมว","เมฆ","ส้ม"], answer:"เมฆ" },
+      { prompt:"ตัวสะกดใดอยู่ในแม่กก", options:["ข","ว","ม"], answer:"ข" },
+      { prompt:"คำว่า “สุนัข” ออกเสียงท้ายเหมือนตัวใด", options:["ก","ด","บ"], answer:"ก" },
+    ],
+  },
+  6: {
+    title: "มาตราแม่กด", targetLabel: "แม่กด", rule: "ออกเสียงเหมือน ด สะกด",
+    target: [["มด","🐜"],["เห็ด","🍄"],["เป็ด","🦆"],["กวาด","🧹"],["ตำรวจ","👮"],["รถ","🚗"],["โกรธ","😠"],["กระดาษ","📄"],["โอกาส","🎯"]],
+    compare: [["ช้าง","🐘"],["ดาว","⭐"],["ปาก","👄"],["กล้วย","🍌"]],
+    secondary: [
+      { prompt:"คำว่า “โอกาส” เป็นคำมาตราแม่กด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🎯" },
+      { prompt:"คำว่า “ตำรวจ” สะกดด้วย ช ช้าง", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"👮" },
+      { prompt:"คำว่า “รถ” ออกเสียงท้ายเหมือน ด สะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🚗" },
+      { prompt:"คำว่า “ดาว” เป็นคำมาตราแม่กด", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"⭐" },
+      { prompt:"คำว่า “เห็ด” มี ด เป็นตัวสะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🍄" },
+    ],
+    exit: [
+      { prompt:"คำใดเป็นแม่กด", options:["รถ","ดาว","ปาก"], answer:"รถ" },
+      { prompt:"แม่กดออกเสียงท้ายเหมือนตัวใด", options:["ก","ด","บ"], answer:"ด" },
+      { prompt:"คำใดเขียนด้วยตัวสะกดไม่ตรงมาตรา", options:["มด","เป็ด","โกรธ"], answer:"โกรธ" },
+    ],
+  },
+  7: {
+    title: "มาตราแม่กบ", targetLabel: "แม่กบ", rule: "ออกเสียงเหมือน บ สะกด เขียนด้วย บ ป พ ฟ หรือ ภ",
+    target: [["กบ","🐸"],["ดาบ","🗡️"],["สิบ","🔟"],["อาบ","🛁"],["จับ","✋"],["รูป","🖼️"],["ภาพ","🌄"],["ยีราฟ","🦒"],["โลภ","💰"],["ทัพ","🛡️"]],
+    compare: [["ช้าง","🐘"],["มด","🐜"],["ดาว","⭐"],["ส้ม","🍊"]],
+    secondary: [
+      { prompt:"คำว่า “รูปภาพ” เป็นคำมาตราแม่กบ", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🖼️" },
+      { prompt:"คำว่า “ยีราฟ” สะกดด้วย พ พาน", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🦒" },
+      { prompt:"คำว่า “โลภ” ออกเสียงท้ายเหมือน บ สะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"💰" },
+      { prompt:"คำว่า “ส้ม” เป็นคำมาตราแม่กบ", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🍊" },
+      { prompt:"ป พ ฟ ภ เป็นตัวสะกดไม่ตรงมาตราแม่กบ", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🧩" },
+    ],
+    exit: [
+      { prompt:"คำใดเป็นแม่กบ", options:["ภาพ","ดาว","ส้ม"], answer:"ภาพ" },
+      { prompt:"แม่กบออกเสียงท้ายเหมือนตัวใด", options:["บ","ด","น"], answer:"บ" },
+      { prompt:"คำใดสะกดไม่ตรงมาตรา", options:["กบ","ดาบ","ยีราฟ"], answer:"ยีราฟ" },
+    ],
+  },
+  8: {
+    title: "มาตราแม่กน", targetLabel: "แม่กน", rule: "ออกเสียงเหมือน น สะกด เขียนด้วย น ญ ณ ร ล หรือ ฬ",
+    target: [["ช้อน","🥄"],["บ้าน","🏠"],["บิน","🪽"],["นอน","🛏️"],["จาน","🍽️"],["ของขวัญ","🎁"],["คุณ","🙂"],["ทหาร","🪖"],["พยาบาล","🧑‍⚕️"],["ปลาวาฬ","🐋"]],
+    compare: [["ช้าง","🐘"],["มด","🐜"],["ดาว","⭐"],["ส้ม","🍊"]],
+    secondary: [
+      { prompt:"คำว่า “พยาบาล” เป็นคำมาตราแม่กน", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🧑‍⚕️" },
+      { prompt:"คำว่า “ของขวัญ” สะกดด้วย ร เรือ", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"🎁" },
+      { prompt:"คำว่า “ปลาวาฬ” ออกเสียงท้ายเหมือน น สะกด", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🐋" },
+      { prompt:"คำว่า “ดาว” เป็นคำมาตราแม่กน", options:["จริง","ไม่จริง"], answer:"ไม่จริง", emoji:"⭐" },
+      { prompt:"ญ ณ ร ล ฬ เป็นตัวสะกดไม่ตรงมาตราแม่กน", options:["จริง","ไม่จริง"], answer:"จริง", emoji:"🧩" },
+    ],
+    exit: [
+      { prompt:"คำใดเป็นแม่กน", options:["บ้าน","ดาว","มด"], answer:"บ้าน" },
+      { prompt:"แม่กนออกเสียงท้ายเหมือนตัวใด", options:["น","ด","บ"], answer:"น" },
+      { prompt:"คำใดสะกดไม่ตรงมาตรา", options:["จาน","บิน","ปลาวาฬ"], answer:"ปลาวาฬ" },
+    ],
+  },
+});
 function emojiAsset(emoji, label = "") {
   const codepoints = [...emoji].map(character => character.codePointAt(0)).filter(code => code !== 0xfe0e && code !== 0xfe0f).map(code => code.toString(16)).join("-");
   return `<img class="word-picture" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codepoints}.svg" alt="${escapeHtml(label)}" loading="eager" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="word-picture-fallback" aria-hidden="true" hidden>${emoji}</span>`;
@@ -550,8 +674,12 @@ function renderScoreRecordingState() {
   $("#playerScoreChip")?.classList.toggle("score-recording-off", !recordsScores);
 }
 
+function sessionActivities() {
+  return activitiesForPlan(state.session?.plan_id || 1);
+}
+
 function renderTimeline() {
-  $("#activityTimeline").innerHTML = ACTIVITIES.map((activity, index) => `
+  $("#activityTimeline").innerHTML = sessionActivities().map((activity, index) => `
     <li data-activity="${activity.key}"><span>${activity.icon}</span><strong>${index + 1}. ${escapeHtml(activity.short)}</strong></li>
   `).join("");
 }
@@ -574,7 +702,7 @@ function renderAttemptProgress() {
   });
   const total = [...bestByActivity.values()].reduce((sum, attempt) => sum + Number(attempt.score || 0), 0);
   $("#playerScore").textContent = total;
-  ACTIVITIES.forEach(activity => {
+  sessionActivities().forEach(activity => {
     const item = $(`[data-activity="${activity.key}"]`, $("#activityTimeline"));
     item?.classList.toggle("done", bestByActivity.has(activity.key));
   });
@@ -642,7 +770,7 @@ function studentGameMirrorMarkup() {
 }
 
 function studentScreenPresencePayload() {
-  const activity = ACTIVITIES.find(item => item.key === state.session?.current_activity_key);
+  const activity = activityForKey(state.session?.current_activity_key, state.session?.plan_id);
   const identity = studentPresenceIdentity();
   const resultVisible = Boolean($("#gameCanvas .result-card"));
   const completedActivities = new Set(state.attempts.map(attempt => attempt.activity_key)).size;
@@ -670,7 +798,7 @@ function studentScreenPresencePayload() {
     mode: state.session?.play_mode || "practice",
     score,
     progress_percent: progressPercent,
-    progress_text: `ทำแล้ว ${completedActivities}/${ACTIVITIES.length} เกม`,
+    progress_text: `ทำแล้ว ${completedActivities}/${sessionActivities().length} เกม`,
     game_markup: studentGameMirrorMarkup(),
     game_zoom: Math.max(.75, Math.min(1.3, Number($("#gameCanvas")?.style.getPropertyValue("--game-zoom")) || 1)),
     updated_at: new Date().toISOString(),
@@ -721,7 +849,14 @@ function observeStudentScreenChanges() {
   // The app shell exists for every join/game state, unlike individual game
   // nodes that may be replaced while a realtime update is being applied.
   const screenRoot = document.querySelector(".student-shell");
-  if (screenRoot) observer.observe(screenRoot, options);
+  if (!(screenRoot instanceof Node)) return;
+  try {
+    observer.observe(screenRoot, options);
+  } catch {
+    // Screen mirroring is optional. A detached embedded document must never
+    // interrupt the student's join or game flow.
+    observer.disconnect();
+  }
 }
 
 function subscribePresence() {
@@ -772,14 +907,15 @@ function setStudentBroadcasting(active) {
 }
 
 function applySessionState() {
-  const activity = ACTIVITIES.find(item => item.key === state.session.current_activity_key);
+  const activities = sessionActivities();
+  const activity = activityForKey(state.session.current_activity_key, state.session.plan_id);
   const gameIsLive = state.session.status === "active" && Boolean(activity);
   document.body.classList.toggle("student-game-live", gameIsLive);
   if (gameIsLive) setGameFocus(true);
-  $("#stageStep").textContent = activity ? `ภารกิจ ${ACTIVITIES.indexOf(activity) + 1} จาก ${ACTIVITIES.length}` : "เตรียมพร้อม";
+  $("#stageStep").textContent = activity ? `ภารกิจ ${activities.findIndex(item => item.key === activity.key) + 1} จาก ${activities.length}` : "เตรียมพร้อม";
   $("#stageTitle").textContent = activity?.title || "รอครูเริ่มกิจกรรม";
   $("#attemptBadge").textContent = modeLabel(state.session.play_mode);
-  ACTIVITIES.forEach(item => $(`[data-activity="${item.key}"]`, $("#activityTimeline"))?.classList.toggle("active", item.key === activity?.key));
+  activities.forEach(item => $(`[data-activity="${item.key}"]`, $("#activityTimeline"))?.classList.toggle("active", item.key === activity?.key));
 
   if (state.session.status === "closed") {
     cleanupRhythm();
@@ -798,6 +934,10 @@ function applySessionState() {
 
 function renderActivity(key) {
   cleanupRhythm();
+  if (Number(state.session?.plan_id || 1) !== 1) {
+    renderLivePlanActivity(key);
+    return;
+  }
   const renderers = { rhythm: renderRhythm, wheel: renderWheel, sound: renderSound, sort: renderSort, train: renderTrain, vote: renderVote, exit: renderExit };
   renderers[key]?.();
 }
@@ -1390,6 +1530,71 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
   render();
 }
 
+function renderLivePlanActivity(activityKey) {
+  const planId = Number(state.session?.plan_id || 1);
+  const data = LIVE_PLAN_GAME_DATA[planId];
+  const activities = sessionActivities();
+  const activityIndex = activities.findIndex(activity => activity.key === activityKey);
+  const activity = activities[activityIndex];
+  if (!data || !activity || activityIndex < 0) {
+    $("#gameCanvas").innerHTML = `<div class="empty-stage"><span>🧭</span><h2>ยังไม่พบกิจกรรมนี้</h2><p>กรุณาแจ้งครูให้เลือกกิจกรรมจากแผนปัจจุบันอีกครั้ง</p></div>`;
+    return;
+  }
+
+  let questions;
+  let instruction;
+  if (activityIndex === 0 && data.categories) {
+    questions = shuffle(data.categories).map(([word, answer, emoji]) => ({ prompt: word, word, answer, emoji }));
+    instruction = "อ่านคำแล้วเลือกมาตราให้ถูกต้อง";
+  } else if (activityIndex === 0) {
+    questions = shuffle([
+      ...data.target.map(([word, emoji]) => ({ prompt: word, word, answer: "target", emoji })),
+      ...data.compare.map(([word, emoji]) => ({ prompt: word, word, answer: "other", emoji })),
+    ]);
+    instruction = `เลือกว่าคำนี้อยู่ใน${data.title}หรือไม่`;
+  } else {
+    const source = activityIndex === activities.length - 1 ? data.exit : data.secondary;
+    questions = shuffle(source).map(question => ({ ...question, options: shuffle(question.options) }));
+    instruction = activityIndex === activities.length - 1
+      ? `ตอบให้ถูกอย่างน้อย 2 จาก ${source.length} ข้อ`
+      : "อ่านหรือฟังโจทย์ แล้วเลือกคำตอบที่ถูกต้อง";
+  }
+
+  const renderPrompt = (question, container) => {
+    const prompt = question.prompt || question.word;
+    container.innerHTML = `
+      <article class="live-plan-question">
+        <span class="live-plan-question-icon" aria-hidden="true">${question.emoji || wordEmoji(prompt)}</span>
+        <h2>${escapeHtml(prompt)}</h2>
+        <button type="button" class="button button-ghost button-small" data-live-plan-speak>🔊 ฟังโจทย์</button>
+      </article>`;
+    container.querySelector("[data-live-plan-speak]")?.addEventListener("click", () => speakThai(prompt));
+  };
+
+  const choices = question => {
+    if (activityIndex === 0 && data.categories) {
+      return shuffle(["แม่เกย", "แม่เกอว"]).map(value => ({ value, label: value }));
+    }
+    if (activityIndex === 0) {
+      return shuffle([
+        { value: "target", label: `ใช่ · ${data.targetLabel}` },
+        { value: "other", label: "ไม่ใช่ · มาตราอื่น" },
+      ]);
+    }
+    return question.options.map(value => ({ value, label: value }));
+  };
+
+  runQuestionGame({
+    key: activityKey,
+    title: activity.title,
+    instruction,
+    questions,
+    renderPrompt,
+    choices,
+    replay: () => renderLivePlanActivity(activityKey),
+  });
+}
+
 function renderWheel() {
   const questions = shuffle([
     ...shuffle(WHEEL_WORDS.none).slice(0, 5).map(word => ({ word, answer: "none" })),
@@ -1809,7 +2014,7 @@ async function initializeJoinFlow() {
   $("#roomCode").value = code;
   setStepStatus($("#codeStatus"), "");
   if (codeFromUrl.length === 6) await findRoom();
-  else window.setTimeout(() => $("#roomCode").focus(), 100);
+  else if (!expertStudentEmbed) window.setTimeout(() => $("#roomCode").focus(), 100);
 }
 
 initializeStudentPage();

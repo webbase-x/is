@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#5b4bdb">
   <meta name="description" content="ห้องตรวจสื่อแบบสองจอ ใช้หน้าครูและหน้าของนักเรียนจริง ภาษาไทย ป.2">
   <title>ตรวจสื่อสองจอ | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260723-expert-level-2-1">
+  <link rel="stylesheet" href="styles.css?v=20260726-all-plans-responsive-3">
 </head>
 <body class="expert-page">
   <header class="site-header expert-header">
@@ -19,12 +19,12 @@
       <div>
         <span class="eyebrow">โหมดตรวจสื่อ · ระบบจริง</span>
         <h1>จอครูและจอนักเรียน<br><span>จากระบบจริงในหน้าเดียว</span></h1>
-        <p>ทั้งสองจอใช้ <strong>teacher.html</strong> และ <strong>student.html</strong> โดยตรง ครูเข้าสู่ระบบด้วยอีเมลและรหัสผ่านจริง แล้วเลือกห้อง <strong>ป.2/4</strong> เพื่อเปิดคาบเรียนจริงให้นักเรียนเข้าร่วม</p>
+        <p>ทั้งสองจอใช้หน้าครูและหน้านักเรียนจริงโดยตรง ผู้ตรวจเข้าสู่ระบบด้วยบัญชีครูหรือบัญชีผู้เชี่ยวชาญที่ได้รับสิทธิ์ แล้วเลือกห้องที่ต้องการเพื่อเปิดคาบให้นักเรียนเข้าร่วม</p>
       </div>
       <aside class="expert-real-guide">
         <strong>ลำดับการตรวจ</strong>
         <ol>
-          <li>จอครู: เข้าสู่ระบบด้วยบัญชีผู้เชี่ยวชาญจริง แล้วเลือกห้อง ป.2/4</li>
+          <li>จอครู: เข้าสู่ระบบด้วยบัญชีที่ได้รับสิทธิ์ แล้วเลือกโรงเรียนและห้องเรียน</li>
           <li>จอนักเรียน: กรอกรหัสห้องจริงที่ครูสร้าง หรือสแกน QR</li>
           <li>อนุมัตินักเรียนและเริ่มกิจกรรมจากจอครู เพื่อตรวจ Realtime จริง</li>
         </ol>
@@ -32,12 +32,13 @@
     </section>
 
     <section class="panel expert-real-toolbar" aria-label="เครื่องมือห้องตรวจสื่อ">
-      <div><strong>ใช้ระบบจริง</strong><small>จอครูล็อกอินจริง และจอนักเรียนเข้าห้องจริงโดยใช้พื้นที่เข้าสู่ระบบแยกจากกัน</small></div>
+      <div><strong>ใช้ระบบจริงอย่างปลอดภัย</strong><small>จอครูและจอนักเรียนใช้พื้นที่เข้าสู่ระบบแยกกัน โดยไม่บันทึกรหัสผ่านไว้ในหน้าเว็บ</small></div>
       <button id="expertReloadButton" class="button button-ghost" type="button">↻ โหลดสองจอใหม่</button>
       <button id="expertFullscreenButton" class="button button-secondary" type="button">⛶ เต็มจอสองจอ</button>
     </section>
 
     <section id="expertWorkspace" class="expert-real-workspace" aria-label="จอ iPad ครูและนักเรียน">
+      <button id="expertFullscreenExitButton" class="expert-fullscreen-exit" type="button">↙ ออกจากเต็มจอ</button>
       <article class="expert-real-device expert-real-teacher-device">
         <header class="expert-real-device-header">
           <div><span class="expert-real-device-icon" aria-hidden="true">🧑‍🏫</span><div><small>iPad จอที่ 1</small><strong>จอครู · คาบเรียนปัจจุบัน</strong></div></div>
@@ -63,11 +64,11 @@
 
     <section class="expert-real-note" aria-label="ขอบเขตการตรวจ">
       <span aria-hidden="true">🔒</span>
-      <div><strong>การทำงานและข้อมูลเป็นของจริง</strong><p>หน้านี้แยกพื้นที่เข้าสู่ระบบของจอครูและจอนักเรียนเพื่อไม่ให้สถานะชนกัน แต่คาบเรียน การเข้าห้อง คะแนน และ Realtime เชื่อมกับระบบ Supabase จริงทั้งหมด</p></div>
+      <div><strong>การทำงานและข้อมูลเป็นของจริง</strong><p>หน้านี้แยกพื้นที่เข้าสู่ระบบของจอครูและจอนักเรียนเพื่อไม่ให้สถานะชนกัน แต่คาบเรียน การเข้าห้อง คะแนน และข้อมูลสดเชื่อมกับระบบจริงทั้งหมด กรุณาใช้บัญชีที่ผู้ดูแลอนุญาตเท่านั้น</p></div>
     </section>
   </main>
 
   <footer class="site-footer">คำไทยผจญภัย · ห้องตรวจสื่อแบบสองจอ</footer>
-  <script type="module" src="js/expert.js?v=20260723-expert-level-2-1"></script>
+  <script type="module" src="js/expert.js?v=20260726-all-plans-responsive-3"></script>
 </body>
 </html>

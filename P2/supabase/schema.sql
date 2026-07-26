@@ -121,7 +121,13 @@ create index if not exists session_players_session_status_idx on public.session_
 create table if not exists public.game_attempts (
   id uuid primary key default gen_random_uuid(),
   session_player_id uuid not null references public.session_players(id) on delete cascade,
-  activity_key text not null check (activity_key in ('rhythm', 'wheel', 'sound', 'sort', 'train', 'vote', 'exit')),
+  activity_key text not null check (activity_key in (
+    'rhythm', 'wheel', 'sound', 'sort', 'train', 'vote', 'exit',
+    'mae-kong-box', 'mae-kong-rocket', 'mae-kong-exit',
+    'mae-kom-box', 'picture-word', 'mae-kom-exit',
+    'yw-sort', 'picture-choice', 'cave-door', 'true-false',
+    'treasure-hunt', 'island-supply', 'space-fuel'
+  )),
   attempt_no smallint not null check (attempt_no > 0),
   score integer not null check (score >= 0),
   max_score integer not null check (max_score > 0),
@@ -855,11 +861,17 @@ end;
 $$;
 
 revoke all on function public.grant_teacher(text, text, text) from public, anon, authenticated;
+revoke all on function public.is_teacher(uuid) from public, anon;
+grant execute on function public.is_teacher(uuid) to authenticated;
 revoke all on function public.is_admin(uuid) from public, anon;
 grant execute on function public.is_admin(uuid) to authenticated;
 revoke all on function public.teacher_can_record_scores(uuid) from public, anon, authenticated;
+revoke all on function public.teacher_can_access_class(uuid) from public, anon;
+grant execute on function public.teacher_can_access_class(uuid) to authenticated;
 revoke all on function public.teacher_can_access_student(uuid) from public, anon;
 grant execute on function public.teacher_can_access_student(uuid) to authenticated;
+revoke all on function public.teacher_can_access_session(uuid) from public, anon;
+grant execute on function public.teacher_can_access_session(uuid) to authenticated;
 revoke all on function public.get_open_session_roster(text) from public, anon;
 grant execute on function public.get_open_session_roster(text) to authenticated;
 revoke all on function public.get_teacher_classes() from public, anon;
@@ -876,8 +888,11 @@ revoke all on function public.create_class_session(uuid, smallint, text, text, s
 grant execute on function public.create_class_session(uuid, smallint, text, text, smallint, text, text, smallint) to authenticated;
 revoke all on function public.record_game_attempt(uuid, text, integer, integer, jsonb) from public, anon;
 grant execute on function public.record_game_attempt(uuid, text, integer, integer, jsonb) to authenticated;
+revoke all on function public.get_session_leaderboard(uuid) from public, anon;
 grant execute on function public.get_session_leaderboard(uuid) to authenticated;
+revoke all on function public.get_display_snapshot(text) from public, anon;
 grant execute on function public.get_display_snapshot(text) to authenticated;
+revoke all on function public.get_display_leaderboard(text) from public, anon;
 grant execute on function public.get_display_leaderboard(text) to authenticated;
 revoke all on function public.create_school_structure(text, text, smallint) from public, anon;
 grant execute on function public.create_school_structure(text, text, smallint) to authenticated;
@@ -1009,14 +1024,14 @@ create policy "players vote once" on public.sentence_votes for insert to authent
 
 insert into public.lesson_plans(id, sequence_no, title, published) values
   (1, 1, 'รู้จักมาตราตัวสะกดและแม่ ก กา', true),
-  (2, 2, 'แผนการเรียนรู้ที่ 2', false),
-  (3, 3, 'แผนการเรียนรู้ที่ 3', false),
-  (4, 4, 'แผนการเรียนรู้ที่ 4', false),
-  (5, 5, 'แผนการเรียนรู้ที่ 5', false),
-  (6, 6, 'แผนการเรียนรู้ที่ 6', false),
-  (7, 7, 'แผนการเรียนรู้ที่ 7', false),
-  (8, 8, 'แผนการเรียนรู้ที่ 8', false)
-on conflict (id) do update set title = excluded.title;
+  (2, 2, 'มาตราแม่กง', true),
+  (3, 3, 'มาตราแม่กม', true),
+  (4, 4, 'มาตราแม่เกยและแม่เกอว', true),
+  (5, 5, 'มาตราแม่กก', true),
+  (6, 6, 'มาตราแม่กด', true),
+  (7, 7, 'มาตราแม่กบ', true),
+  (8, 8, 'มาตราแม่กน', true)
+on conflict (id) do update set title = excluded.title, published = excluded.published;
 
 insert into storage.buckets(id, name, public, file_size_limit, allowed_mime_types)
 values ('session-selfies', 'session-selfies', false, 2097152, array['image/jpeg', 'image/webp'])
@@ -1024,13 +1039,41 @@ on conflict (id) do update set public = false, file_size_limit = excluded.file_s
 
 drop policy if exists "students upload own session selfie" on storage.objects;
 create policy "students upload own session selfie" on storage.objects for insert to authenticated
-  with check (bucket_id = 'session-selfies' and (storage.foldername(name))[2] = auth.uid()::text);
+  with check (
+    bucket_id = 'session-selfies'
+    and (storage.foldername(name))[2] = (select auth.uid())::text
+    and case
+      when coalesce((storage.foldername(name))[1], '') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+      then true
+      else false
+    end
+  );
 drop policy if exists "owners and teachers view selfies" on storage.objects;
 create policy "owners and teachers view selfies" on storage.objects for select to authenticated
-  using (bucket_id = 'session-selfies' and ((storage.foldername(name))[2] = auth.uid()::text or public.is_teacher()));
+  using (
+    bucket_id = 'session-selfies'
+    and (
+      (storage.foldername(name))[2] = (select auth.uid())::text
+      or case
+        when coalesce((storage.foldername(name))[1], '') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        then public.teacher_can_access_session(((storage.foldername(name))[1])::uuid)
+        else false
+      end
+    )
+  );
 drop policy if exists "owners and teachers delete selfies" on storage.objects;
 create policy "owners and teachers delete selfies" on storage.objects for delete to authenticated
-  using (bucket_id = 'session-selfies' and ((storage.foldername(name))[2] = auth.uid()::text or public.is_teacher()));
+  using (
+    bucket_id = 'session-selfies'
+    and (
+      (storage.foldername(name))[2] = (select auth.uid())::text
+      or case
+        when coalesce((storage.foldername(name))[1], '') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        then public.teacher_can_access_session(((storage.foldername(name))[1])::uuid)
+        else false
+      end
+    )
+  );
 
 do $$
 begin
