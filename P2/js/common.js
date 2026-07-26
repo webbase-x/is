@@ -150,6 +150,7 @@ const PLAN_1_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
       title: "คำไหนไม่มีตัวสะกด?",
       message: "อ่านออกเสียง แล้วสังเกตเสียงท้ายคำ",
       icon: "🔎",
+      presentation: "flashcards",
       cards: [
         { word: "ขา", detail: "ข + -า · ไม่มีตัวสะกด" },
         { word: "ปี", detail: "ป + -ี · ไม่มีตัวสะกด" },

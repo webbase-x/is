@@ -1,11 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-karaoke-lyrics-restored-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-step2-flashcards-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-karaoke-lyrics-restored-1";
+} from "./common.js?v=20260727-step2-flashcards-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -733,7 +733,8 @@ function subscribeToSession() {
       if (
         update.lesson_step?.round_id
         && (update.lesson_step.round_id !== state.lessonStep?.round_id
-          || update.lesson_step.show_on_students !== state.lessonStep?.show_on_students)
+          || update.lesson_step.show_on_students !== state.lessonStep?.show_on_students
+          || update.lesson_step.card_index !== state.lessonStep?.card_index)
       ) {
         state.renderedActivity = null;
         state.renderedLessonRoundId = null;
@@ -969,6 +970,16 @@ function updateStudentLessonCountdown() {
 
 function lessonDetailsMarkup(screen = {}) {
   if (Array.isArray(screen.cards) && screen.cards.length) {
+    if (screen.presentation === "flashcards") {
+      const cardIndex = Math.min(screen.cards.length - 1, Math.max(0, Number(state.lessonStep?.card_index) || 0));
+      const card = screen.cards[cardIndex];
+      return `<div class="student-lesson-flashcard" aria-live="polite">
+        <small>คำที่ ${cardIndex + 1} จาก ${screen.cards.length}</small>
+        <strong>${escapeHtml(card.word || "")}</strong>
+        <span>${escapeHtml(card.detail || "")}</span>
+        <i style="--flashcard-progress:${((cardIndex + 1) / screen.cards.length) * 100}%"></i>
+      </div>`;
+    }
     return `<div class="student-lesson-cards">${screen.cards.map(card => `<article><strong>${escapeHtml(card.word || "")}</strong><small>${escapeHtml(card.detail || "")}</small></article>`).join("")}</div>`;
   }
   if (Array.isArray(screen.bullets) && screen.bullets.length) {

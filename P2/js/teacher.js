@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase } from "./supabase.js?v=20260727-karaoke-lyrics-restored-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-karaoke-lyrics-restored-1";
+import { supabase } from "./supabase.js?v=20260727-step2-flashcards-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-step2-flashcards-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260727-karaoke-lyrics-restored-1";
+} from "./common.js?v=20260727-step2-flashcards-1";
 
-const TEACHER_BUILD_VERSION = "20260727-karaoke-lyrics-restored-1";
+const TEACHER_BUILD_VERSION = "20260727-step2-flashcards-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -78,6 +78,7 @@ const state = {
   lessonShareStudents: false,
   lessonTimerExpired: false,
   teacherNotesCollapsed: false,
+  lessonCardIndex: 0,
 };
 
 function currentActivities(planId = state.session?.plan_id || state.selectedPlanId || 1) {
@@ -107,6 +108,7 @@ function saveLessonFlowState() {
       stepKey: state.lessonStepKey,
       roundId: state.lessonRoundId,
       shareStudents: state.lessonShareStudents,
+      cardIndex: state.lessonCardIndex,
     }));
   } catch { /* Realtime continues even if local storage is unavailable. */ }
 }
@@ -121,6 +123,7 @@ function restoreLessonFlowState() {
   state.lessonStepKey = step?.key || null;
   state.lessonRoundId = saved?.roundId || `${Date.now()}-${Math.random()}`;
   state.lessonShareStudents = step?.kind === "game" ? true : Boolean(savedStep ? saved?.shareStudents : step?.studentVisibleDefault);
+  state.lessonCardIndex = Math.max(0, Number(savedStep ? saved?.cardIndex : 0) || 0);
   state.celebrationActivityKey = step?.kind === "results" ? step.activityKey : null;
   state.celebrationReason = step?.kind === "results" ? "manual" : null;
   state.lessonTimerExpired = false;
@@ -140,6 +143,7 @@ function lessonStepBroadcastPayload() {
     minutes: step.minutes,
     show_on_students: step.kind === "game" ? true : state.lessonShareStudents,
     show_leaderboard: Boolean(step.showLeaderboard),
+    card_index: state.lessonCardIndex,
     screen: step.screen,
   };
 }
@@ -614,6 +618,20 @@ function renderActivityControls() {
 
 function lessonScreenDetailsMarkup(screen = {}) {
   if (Array.isArray(screen.cards) && screen.cards.length) {
+    if (screen.presentation === "flashcards") {
+      const cardIndex = Math.min(screen.cards.length - 1, Math.max(0, Number(state.lessonCardIndex) || 0));
+      const card = screen.cards[cardIndex];
+      return `<div class="lesson-flashcard-deck">
+        <button class="lesson-flashcard-nav" type="button" data-lesson-card-direction="-1" aria-label="คำก่อนหน้า" ${cardIndex <= 0 ? "disabled" : ""}>‹</button>
+        <article class="lesson-flashcard-card" aria-live="polite">
+          <small>คำที่ ${cardIndex + 1} จาก ${screen.cards.length}</small>
+          <strong>${escapeHtml(card.word || "")}</strong>
+          <span>${escapeHtml(card.detail || "")}</span>
+          <i style="--flashcard-progress:${((cardIndex + 1) / screen.cards.length) * 100}%"></i>
+        </article>
+        <button class="lesson-flashcard-nav" type="button" data-lesson-card-direction="1" aria-label="คำถัดไป" ${cardIndex >= screen.cards.length - 1 ? "disabled" : ""}>›</button>
+      </div>`;
+    }
     return `<div class="lesson-screen-card-list">${screen.cards.map(card => `<span><strong>${escapeHtml(card.word || "")}</strong><small>${escapeHtml(card.detail || "")}</small></span>`).join("")}</div>`;
   }
   if (Array.isArray(screen.bullets) && screen.bullets.length) {
@@ -662,6 +680,18 @@ function renderProjectorLessonContent(step) {
   gameFrame.src = previewSrc;
 }
 
+async function changeLessonFlashcard(direction) {
+  const step = currentLessonStep();
+  const cards = step?.screen?.presentation === "flashcards" ? step.screen.cards : null;
+  if (!Array.isArray(cards) || !cards.length) return;
+  const nextIndex = Math.min(cards.length - 1, Math.max(0, state.lessonCardIndex + direction));
+  if (nextIndex === state.lessonCardIndex) return;
+  state.lessonCardIndex = nextIndex;
+  saveLessonFlowState();
+  renderCurrentLessonStep();
+  await broadcastDisplay("lesson-flashcard-changed");
+}
+
 function renderCurrentLessonStep() {
   const step = currentLessonStep();
   const flow = currentLessonFlow();
@@ -684,6 +714,10 @@ function renderCurrentLessonStep() {
   $("#lessonScreenPreview").innerHTML = step
     ? `<span>${escapeHtml(screen.icon || step.icon)}</span><div><small>${escapeHtml(screen.eyebrow || "สื่อบนจอฉาย")}</small><strong>${escapeHtml(screen.title || step.title)}</strong><p>${escapeHtml(screen.message || "")}</p>${lessonScreenDetailsMarkup(screen)}</div>`
     : `<span>🗺️</span><div><small>ตัวอย่างสื่อบนจอฉาย</small><strong>พร้อมเริ่มแผนที่ 1</strong><p>ครูเป็นผู้ควบคุมทุกหน้าด้วยตนเอง</p></div>`;
+  $("#lessonScreenPreview").classList.toggle("is-flashcard-screen", screen.presentation === "flashcards");
+  $("#lessonScreenPreview").querySelectorAll("[data-lesson-card-direction]").forEach(button => {
+    button.addEventListener("click", () => { void changeLessonFlashcard(Number(button.dataset.lessonCardDirection)); });
+  });
   const shareLabel = $("#shareLessonToStudentsLabel");
   const shareInput = $("#shareLessonToStudents");
   const isGame = step?.kind === "game";
@@ -904,6 +938,7 @@ async function startLessonStep(stepKey, options = {}) {
   state.lessonStepKey = step.key;
   state.lessonRoundId = crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
   state.lessonShareStudents = step.kind === "game" ? true : Boolean(step.studentVisibleDefault);
+  state.lessonCardIndex = 0;
   state.lessonTimerExpired = false;
   const updates = {
     status: isResults ? "paused" : "active",

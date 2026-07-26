@@ -2122,6 +2122,21 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .lesson-projector-media .lesson-screen-card-list > span { padding: 11px; border-radius: 13px; }
 .lesson-projector-media .lesson-screen-card-list > span strong { font-size: clamp(19px,2.2vw,30px); }
 .lesson-projector-media .lesson-screen-card-list > span small { margin-top: 3px; font-size: clamp(9px,1vw,13px); }
+.lesson-screen-preview.is-flashcard-screen { grid-template-columns: minmax(0,1fr); justify-items: center; align-content: center; text-align: center; }
+.lesson-screen-preview.is-flashcard-screen > span { display: none; }
+.lesson-screen-preview.is-flashcard-screen > div { width: min(1120px,100%); }
+.lesson-screen-preview.is-flashcard-screen > div > small { color: #fff4a8; }
+.lesson-screen-preview.is-flashcard-screen > div > strong { font-size: clamp(29px,3.2vw,48px); }
+.lesson-screen-preview.is-flashcard-screen > div > p { font-size: clamp(17px,1.8vw,25px); }
+.lesson-flashcard-deck { width: 100%; display: grid; grid-template-columns: clamp(48px,5vw,72px) minmax(0,1fr) clamp(48px,5vw,72px); align-items: stretch; gap: clamp(10px,1.4vw,20px); margin-top: clamp(15px,2.5vh,25px); }
+.lesson-flashcard-nav { min-width: 0; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.38); border-radius: 20px; color: white; background: rgba(255,255,255,.13); box-shadow: inset 0 1px rgba(255,255,255,.24); font-size: clamp(42px,5vw,72px); font-weight: 500; cursor: pointer; transition: transform .16s ease,background .16s ease,opacity .16s ease; }
+.lesson-flashcard-nav:hover:not(:disabled) { transform: translateY(-2px); background: rgba(255,255,255,.23); }
+.lesson-flashcard-nav:disabled { opacity: .3; cursor: not-allowed; }
+.lesson-flashcard-card { min-height: clamp(250px,35vh,430px); position: relative; display: grid; grid-template-rows: auto minmax(0,1fr) auto auto; align-items: center; gap: 8px; overflow: hidden; padding: clamp(18px,2.8vw,34px); border: 3px solid rgba(255,255,255,.84); border-radius: clamp(22px,3vw,38px); color: #241b57; background: radial-gradient(circle at 18% 12%,#fffdf0,transparent 36%),linear-gradient(145deg,#fff,#f0edff 60%,#dffbf3); box-shadow: 0 24px 55px rgba(8,6,34,.34),inset 0 0 0 8px rgba(91,75,219,.06); }
+.lesson-flashcard-card > small { color: #6b63a4 !important; font-size: clamp(13px,1.25vw,18px) !important; letter-spacing: .03em !important; }
+.lesson-flashcard-card > strong { align-self: center; margin: 0 !important; color: #4938bd; font-size: clamp(86px,11vw,170px) !important; line-height: 1 !important; text-shadow: 0 7px 0 #e5e0ff,0 15px 28px rgba(70,52,176,.2); }
+.lesson-flashcard-card > span { color: #3f4865; font-size: clamp(18px,2vw,29px); font-weight: 900; line-height: 1.35; }
+.lesson-flashcard-card > i, .display-lesson-flashcard > i, .student-lesson-flashcard > i { height: 9px; display: block; overflow: hidden; border-radius: 999px; background: linear-gradient(90deg,#ffd84e 0,#ff7eb7 var(--flashcard-progress),rgba(91,75,219,.14) var(--flashcard-progress),rgba(91,75,219,.14) 100%); box-shadow: inset 0 1px 2px rgba(21,14,65,.12); }
 .lesson-game-preview { width: 100%; height: 100%; min-height: inherit; position: relative; background: white; }
 .lesson-game-preview iframe { width: 100%; height: 100%; min-height: inherit; display: block; border: 0; background: white; }
 .projector-preview-badge { position: absolute; right: 12px; top: 10px; z-index: 3; padding: 6px 10px; border: 1px solid rgba(255,255,255,.65); border-radius: 999px; color: #493a00; background: rgba(255,225,115,.94); box-shadow: 0 7px 20px rgba(49,43,99,.15); font-size: 10px; font-weight: 950; pointer-events: none; }
@@ -2173,6 +2188,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .display-lesson-card-grid strong, .display-lesson-card-grid small { display: block; }
 .display-lesson-card-grid strong { color: white; font-size: clamp(24px,2.5vw,38px); }
 .display-lesson-card-grid small { margin-top: 3px; color: #c5cbe0; font-size: 11px; line-height: 1.4; }
+.display-lesson-flashcard { width: min(980px,100%); min-height: clamp(260px,38vh,470px); display: grid; grid-template-rows: auto minmax(0,1fr) auto auto; align-items: center; gap: 10px; margin: 8px auto 0; padding: clamp(20px,3vw,42px); border: 3px solid rgba(255,255,255,.72); border-radius: clamp(24px,3vw,40px); color: #20284d; background: radial-gradient(circle at 20% 10%,#fffbe3,transparent 36%),linear-gradient(145deg,#fff,#eeeaff 60%,#dff9f1); box-shadow: 0 25px 60px rgba(0,0,0,.3); text-align: center; }
+.display-lesson-flashcard > small { color: #6b63a4; font-size: clamp(14px,1.2vw,18px); font-weight: 900; }
+.display-lesson-flashcard > strong { color: #4938bd; font-size: clamp(100px,13vw,210px); line-height: 1; text-shadow: 0 8px 0 #e3deff,0 16px 30px rgba(71,53,176,.22); }
+.display-lesson-flashcard > span { font-size: clamp(22px,2.5vw,38px); font-weight: 900; line-height: 1.35; }
 .display-board.lesson-media-active { grid-template-columns: 1fr; }
 .display-board.lesson-media-active .display-main { background: radial-gradient(circle at 50% 35%,rgba(91,75,219,.32),transparent 48%),linear-gradient(145deg,#11182e,#17223f); }
 .display-board.lesson-media-active .display-main h1 { font-size: clamp(46px,6.2vw,94px); }
@@ -2193,6 +2212,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .student-lesson-cards strong, .student-lesson-cards small { display: block; }
 .student-lesson-cards strong { color: var(--purple); font-size: clamp(23px,3vw,36px); }
 .student-lesson-cards small { margin-top: 3px; color: #6e7690; font-size: 10px; line-height: 1.35; }
+.student-lesson-flashcard { width: min(900px,100%); min-height: clamp(260px,42vh,500px); display: grid; grid-template-rows: auto minmax(0,1fr) auto auto; align-items: center; gap: 10px; padding: clamp(20px,4vw,42px); border: 3px solid white; border-radius: clamp(22px,4vw,38px); color: #27304e; background: radial-gradient(circle at 16% 12%,#fffbdc,transparent 36%),linear-gradient(145deg,#fff,#eeeaff 60%,#dcfaf0); box-shadow: 0 22px 50px rgba(48,43,98,.18); text-align: center; }
+.student-lesson-flashcard > small { color: #6b63a4; font-size: clamp(13px,2vw,18px); font-weight: 900; }
+.student-lesson-flashcard > strong { color: var(--purple); font-size: clamp(90px,18vw,190px); line-height: 1; text-shadow: 0 7px 0 #e3deff,0 14px 25px rgba(71,53,176,.18); }
+.student-lesson-flashcard > span { font-size: clamp(20px,3vw,31px); font-weight: 900; line-height: 1.35; }
 .student-lesson-bullets { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; margin: 4px 0; padding: 0; list-style: none; }
 .student-lesson-bullets li { padding: 9px 15px; border-radius: 999px; color: #3f4780; background: #eeebff; font-size: clamp(14px,1.6vw,20px); font-weight: 800; }
 .student-lesson-media.is-teacher-screen { background: radial-gradient(circle at 50% 15%,#ede9ff,transparent 40%),linear-gradient(145deg,#fff,#f6f7fb); }
@@ -2259,5 +2282,12 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .display-header .display-lesson-countdown em { display: none; }
   .display-header .display-view-switch { display: none; }
   .display-lesson-card-grid, .student-lesson-cards { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .lesson-flashcard-deck { grid-template-columns: 38px minmax(0,1fr) 38px; gap: 7px; }
+  .lesson-flashcard-nav { border-radius: 13px; font-size: 38px; }
+  .lesson-flashcard-card { min-height: 250px; padding: 15px 10px; border-width: 2px; }
+  .lesson-flashcard-card > strong { font-size: clamp(62px,20vw,96px) !important; }
+  .lesson-flashcard-card > span { font-size: clamp(15px,4vw,20px); }
+  .display-lesson-flashcard > strong, .student-lesson-flashcard > strong { font-size: clamp(74px,24vw,118px); }
+  .display-lesson-flashcard > span, .student-lesson-flashcard > span { font-size: clamp(17px,5vw,24px); }
   .student-lesson-media { min-height: calc(100dvh - 130px); border-radius: 16px; }
 }
