@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17203b">
   <title>จอหน้าชั้น | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260726-all-plans-responsive-1">
+  <link rel="stylesheet" href="styles.css?v=20260726-plan1-teaching-flow-1">
 </head>
 <body class="display-page">
   <header class="display-header">
@@ -16,6 +16,7 @@
       <button type="button" data-display-view="activity" aria-pressed="false"><span>🎯</span> กิจกรรม</button>
     </nav>
     <div class="display-room"><small>รหัสเข้าห้อง</small><strong id="displayRoomCode">------</strong></div>
+    <div id="displayLessonCountdown" class="display-lesson-countdown hidden"><small>เวลาขั้นนี้</small><strong data-lesson-countdown>--:--</strong></div>
     <div class="display-clock" id="displayClock">00:00</div>
   </header>
   <main>
@@ -33,6 +34,7 @@
           <h1 id="displayStageTitle">รอนักเรียนเข้าห้อง</h1>
           <p id="displayStageMessage">เมื่อครูเริ่มกิจกรรม ข้อมูลจะปรากฏบนจอนี้โดยอัตโนมัติ</p>
           <div id="displayActivityVisual" class="display-activity-visual"><span>🗺️</span></div>
+          <div id="displayLessonDetails" class="display-lesson-details hidden"></div>
           <div class="class-progress"><div><span id="displayApproved">0</span> คนพร้อมแล้ว</div><div class="progress-track"><i id="displayProgressBar"></i></div></div>
         </div>
         <aside class="leaderboard-panel">
@@ -58,6 +60,6 @@
       </section>
     </section>
   </main>
-  <script type="module" src="js/display.js?v=20260726-all-plans-responsive-1"></script>
+  <script type="module" src="js/display.js?v=20260726-plan1-teaching-flow-1"></script>
 </body>
 </html>

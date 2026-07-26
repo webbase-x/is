@@ -1,9 +1,9 @@
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-all-plans-responsive-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-plan1-teaching-flow-1";
 import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
-  GAME_STATE_EVENT, gameStateChannelName, hide,
+  GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   roomCodeFromUrl, sanitizeGameMarkup, show, toast,
-} from "./common.js?v=20260726-all-plans-responsive-1";
+} from "./common.js?v=20260726-plan1-teaching-flow-1";
 
 const state = {
   roomCode: "",
@@ -16,6 +16,8 @@ const state = {
   leaderboard: [],
   expertScoreboardSessionId: null,
   view: "screens",
+  lessonStep: null,
+  lessonTimer: null,
 };
 
 const activityMessages = {
@@ -103,21 +105,67 @@ async function refreshBoard() {
   return true;
 }
 
+function displayLessonCountdownMilliseconds() {
+  const timer = state.lessonTimer;
+  if (!timer) return null;
+  const elapsed = timer.running ? Math.max(0, Date.now() - Number(timer.issued_at || Date.now())) : 0;
+  return Math.max(0, Number(timer.remaining_ms || 0) - elapsed);
+}
+
+function displayLessonCountdownLabel() {
+  const remaining = displayLessonCountdownMilliseconds();
+  if (remaining === null) return "--:--";
+  const seconds = Math.max(0, Math.ceil(remaining / 1000));
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function updateDisplayLessonCountdown() {
+  const wrap = $("#displayLessonCountdown");
+  wrap?.classList.toggle("hidden", !state.lessonStep);
+  document.querySelectorAll("[data-lesson-countdown]").forEach(element => {
+    element.textContent = displayLessonCountdownLabel();
+    element.classList.toggle("is-expired", displayLessonCountdownMilliseconds() === 0);
+  });
+}
+
+function displayLessonDetailsMarkup(screen = {}) {
+  if (Array.isArray(screen.cards) && screen.cards.length) {
+    return `<div class="display-lesson-card-grid">${screen.cards.map(card => `<article><strong>${escapeHtml(card.word || "")}</strong><small>${escapeHtml(card.detail || "")}</small></article>`).join("")}</div>`;
+  }
+  if (Array.isArray(screen.bullets) && screen.bullets.length) {
+    return `<ul>${screen.bullets.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+  }
+  return "";
+}
+
 function renderSnapshot(leaderboard) {
   const snapshot = state.snapshot;
   const activities = activitiesForPlan(snapshot.plan_id);
   const activity = activityForKey(snapshot.current_activity_key, snapshot.plan_id);
+  const lesson = state.lessonStep;
+  const screen = lesson?.screen || {};
+  const paused = snapshot.session_status === "paused";
   $("#displayRoomCode").textContent = snapshot.room_code;
   $("#displayClassName").textContent = `${snapshot.school_name} · ${snapshot.class_label}`;
-  $("#displayStageStep").textContent = `แผนที่ ${snapshot.plan_id}${activity ? ` · ภารกิจ ${activities.findIndex(item => item.key === activity.key) + 1}/${activities.length}` : ""}`;
-  $("#displayStageTitle").textContent = snapshot.session_status === "paused" ? "พักเกมสักครู่" : activity?.title || "รอนักเรียนเข้าห้อง";
-  $("#displayStageMessage").textContent = snapshot.session_status === "paused" ? "ครูจะเปิดเกมต่อในอีกสักครู่" : activityMessages[activity?.key] || "เมื่อทุกคนพร้อม ครูจะเริ่มกิจกรรมแรก";
-  $("#displayActivityVisual").innerHTML = `<span>${snapshot.session_status === "paused" ? "⏸️" : activity?.icon || "🗺️"}</span>`;
+  $("#displayStageStep").textContent = lesson
+    ? `แผนที่ ${snapshot.plan_id} · ขั้นที่ ${lesson.stage} · ${lesson.kind === "game" ? "เกม" : "สื่อการสอน"}`
+    : `แผนที่ ${snapshot.plan_id}${activity ? ` · ภารกิจ ${activities.findIndex(item => item.key === activity.key) + 1}/${activities.length}` : ""}`;
+  $("#displayStageTitle").textContent = paused ? "พักกิจกรรมสักครู่" : screen.title || lesson?.title || activity?.title || "รอนักเรียนเข้าห้อง";
+  $("#displayStageMessage").textContent = paused ? "ครูจะดำเนินการต่อเมื่อทุกคนพร้อม" : screen.message || activityMessages[activity?.key] || "เมื่อทุกคนพร้อม ครูจะเริ่มกิจกรรมแรก";
+  $("#displayActivityVisual").innerHTML = `<span>${paused ? "⏸️" : screen.icon || lesson?.icon || activity?.icon || "🗺️"}</span>`;
+  const details = $("#displayLessonDetails");
+  const detailsMarkup = lesson ? displayLessonDetailsMarkup(screen) : "";
+  details.classList.toggle("hidden", !detailsMarkup);
+  details.innerHTML = detailsMarkup;
+  const mediaWithoutLeaderboard = lesson?.kind === "media" && !lesson.show_leaderboard;
+  $("#displayActivityView").classList.toggle("lesson-media-active", mediaWithoutLeaderboard);
   $("#displayApproved").textContent = snapshot.approved_count;
   const progress = snapshot.total_students ? Math.min(100, (snapshot.approved_count / snapshot.total_students) * 100) : 0;
   $("#displayProgressBar").style.width = `${progress}%`;
   const hideLiveRanking = snapshot.session_status === "active" && snapshot.live_ranking_enabled !== true;
-  renderLeaderboard(hideLiveRanking ? [] : leaderboard, snapshot.leaderboard_mode, hideLiveRanking);
+  $(".leaderboard-panel")?.classList.toggle("hidden", mediaWithoutLeaderboard);
+  if (!mediaWithoutLeaderboard) renderLeaderboard(hideLiveRanking ? [] : leaderboard, snapshot.leaderboard_mode, hideLiveRanking);
+  updateDisplayLessonCountdown();
   renderStudentScreens();
 }
 
@@ -338,6 +386,7 @@ function subscribeBroadcast() {
       const update = message?.payload || message;
       const session = update?.session;
       if (!session || session.id !== state.snapshot?.session_id) return;
+      const lessonChanged = update.lesson_step?.round_id && update.lesson_step.round_id !== state.lessonStep?.round_id;
       state.snapshot = {
         ...state.snapshot,
         session_status: session.status,
@@ -346,6 +395,9 @@ function subscribeBroadcast() {
         leaderboard_mode: session.leaderboard_mode,
         live_ranking_enabled: update.live_ranking_enabled !== false,
       };
+      state.lessonStep = update.lesson_step || state.lessonStep;
+      state.lessonTimer = update.lesson_timer || state.lessonTimer;
+      if (lessonChanged) setDisplayView("activity");
       // Render the command immediately; refresh scores in the background.
       renderSnapshot(state.leaderboard);
       void refreshBoard();
@@ -353,6 +405,11 @@ function subscribeBroadcast() {
     .on("broadcast", { event: EXPERT_SCOREBOARD_EVENT }, receiveExpertScoreboard)
     .subscribe(status => {
       if (status === "SUBSCRIBED") {
+        void state.broadcastChannel.send({
+          type: "broadcast",
+          event: GAME_STATE_REQUEST_EVENT,
+          payload: { session_id: state.snapshot?.session_id, role: "display" },
+        });
         void state.broadcastChannel.send({
           type: "broadcast",
           event: EXPERT_SCOREBOARD_REQUEST_EVENT,
@@ -387,6 +444,8 @@ function showClosed() {
   state.broadcastChannel?.unsubscribe();
   state.presenceChannel?.unsubscribe();
   state.studentScreens.clear();
+  state.lessonStep = null;
+  state.lessonTimer = null;
   state.studentScreenMarkupSignature = "";
   renderStudentScreens();
   $("#displayStageTitle").textContent = "จบคาบเรียนแล้ว";
@@ -413,4 +472,5 @@ const initialRoom = roomCodeFromUrl() || localStorage.getItem("thaiGameDisplayRo
 $("#displayRoomInput").value = initialRoom;
 if (initialRoom) void connectDisplay();
 setInterval(updateClock, 1000);
+setInterval(updateDisplayLessonCountdown, 1000);
 updateClock();

@@ -1,10 +1,11 @@
 import { APP_CONFIG } from "./config.js";
-import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-all-plans-responsive-1";
+import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260726-plan1-teaching-flow-1";
 import {
-  $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, gameStateChannelName, hide,
+  $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
+  lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260726-all-plans-responsive-1";
+} from "./common.js?v=20260726-plan1-teaching-flow-1";
 
 const expertStudentEmbed = new URLSearchParams(window.location.search).get("embed") === "expert-student";
 if (expertStudentEmbed) document.body.classList.add("expert-embed", "expert-student-embed");
@@ -286,6 +287,9 @@ const state = {
   presenceOnlineAt: null,
   screenWatchUntil: 0,
   screenWatchInterval: null,
+  lessonStep: null,
+  lessonTimer: null,
+  renderedLessonRoundId: null,
 };
 
 const views = {
@@ -675,7 +679,11 @@ function renderScoreRecordingState() {
 }
 
 function sessionActivities() {
-  return activitiesForPlan(state.session?.plan_id || 1);
+  const planId = state.session?.plan_id || 1;
+  const activities = activitiesForPlan(planId);
+  if (Number(planId) !== 1) return activities;
+  const included = new Set(lessonFlowForPlan(planId).map(step => step.activityKey).filter(Boolean));
+  return activities.filter(activity => included.has(activity.key));
 }
 
 function renderTimeline() {
@@ -717,7 +725,17 @@ function subscribeToSession() {
       if (!update?.session || update.session.id !== state.session.id) return;
       if (update.event_id && update.event_id === state.lastGameStateEventId) return;
       state.lastGameStateEventId = update.event_id || null;
+      if (
+        update.lesson_step?.round_id
+        && (update.lesson_step.round_id !== state.lessonStep?.round_id
+          || update.lesson_step.show_on_students !== state.lessonStep?.show_on_students)
+      ) {
+        state.renderedActivity = null;
+        state.renderedLessonRoundId = null;
+      }
       state.session = update.session;
+      state.lessonStep = update.lesson_step || state.lessonStep;
+      state.lessonTimer = update.lesson_timer || state.lessonTimer;
       renderScoreRecordingState();
       applySessionState();
     })
@@ -729,6 +747,13 @@ function subscribeToSession() {
     })
     .subscribe(status => {
       state.sessionChannelReady = status === "SUBSCRIBED";
+      if (status === "SUBSCRIBED") {
+        void state.sessionChannel.send({
+          type: "broadcast",
+          event: GAME_STATE_REQUEST_EVENT,
+          payload: { session_id: state.session.id, role: "student" },
+        });
+      }
     });
 }
 
@@ -771,6 +796,7 @@ function studentGameMirrorMarkup() {
 
 function studentScreenPresencePayload() {
   const activity = activityForKey(state.session?.current_activity_key, state.session?.plan_id);
+  const lesson = state.lessonStep;
   const identity = studentPresenceIdentity();
   const resultVisible = Boolean($("#gameCanvas .result-card"));
   const completedActivities = new Set(state.attempts.map(attempt => attempt.activity_key)).size;
@@ -780,7 +806,8 @@ function studentScreenPresencePayload() {
   if (state.session?.status === "paused") { screenState = "paused"; screenLabel = "พักเกม"; }
   else if (resultVisible) { screenState = "result"; screenLabel = "ส่งผลแล้ว"; }
   else if (state.session?.status === "active" && activity) { screenState = "playing"; screenLabel = "กำลังเล่นเกม"; }
-  const detailElement = $("#rhythmFeedback") || $("#gameCanvas .result-card p") || $("#gameCanvas .game-instruction p") || $("#gameCanvas .empty-stage p");
+  else if (state.session?.status === "active" && lesson?.kind === "media") { screenState = "playing"; screenLabel = lesson.show_on_students ? "กำลังดูสื่อ" : "ฟังคำอธิบายครู"; }
+  const detailElement = $("#rhythmFeedback") || $("#gameCanvas .result-card p") || $("#gameCanvas .game-instruction p") || $("#gameCanvas .student-lesson-media > p") || $("#gameCanvas .empty-stage p");
   const detail = (detailElement?.textContent || "กำลังทำกิจกรรม").trim().slice(0, 120);
   const score = Number($("#playerScore")?.textContent || 0);
   const progressPercent = resultVisible || currentAttempts ? 100 : activity ? 30 : 0;
@@ -793,7 +820,7 @@ function studentScreenPresencePayload() {
     screen_state: screenState,
     screen_label: screenLabel,
     activity_key: activity?.key || null,
-    activity_title: activity?.title || "รอครูเริ่มกิจกรรม",
+    activity_title: lesson?.title || activity?.title || "รอครูเริ่มกิจกรรม",
     detail,
     mode: state.session?.play_mode || "practice",
     score,
@@ -906,20 +933,85 @@ function setStudentBroadcasting(active) {
   document.body.classList.toggle("student-is-broadcasting", active);
 }
 
+function lessonCountdownMilliseconds() {
+  const timer = state.lessonTimer;
+  if (!timer) return null;
+  const elapsed = timer.running ? Math.max(0, Date.now() - Number(timer.issued_at || Date.now())) : 0;
+  return Math.max(0, Number(timer.remaining_ms || 0) - elapsed);
+}
+
+function lessonCountdownLabel() {
+  const remaining = lessonCountdownMilliseconds();
+  if (remaining === null) return "--:--";
+  const seconds = Math.max(0, Math.ceil(remaining / 1000));
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function updateStudentLessonCountdown() {
+  const output = $("#timerBadge");
+  if (output && state.lessonTimer) output.textContent = lessonCountdownLabel();
+  document.querySelectorAll("[data-lesson-countdown]").forEach(element => {
+    element.textContent = lessonCountdownLabel();
+    element.classList.toggle("is-expired", lessonCountdownMilliseconds() === 0);
+  });
+}
+
+function lessonDetailsMarkup(screen = {}) {
+  if (Array.isArray(screen.cards) && screen.cards.length) {
+    return `<div class="student-lesson-cards">${screen.cards.map(card => `<article><strong>${escapeHtml(card.word || "")}</strong><small>${escapeHtml(card.detail || "")}</small></article>`).join("")}</div>`;
+  }
+  if (Array.isArray(screen.bullets) && screen.bullets.length) {
+    return `<ul class="student-lesson-bullets">${screen.bullets.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+  }
+  return "";
+}
+
+function renderLessonMedia(step, shared) {
+  const screen = step?.screen || {};
+  const title = shared ? (screen.title || step.title) : "ดูจอหน้าชั้นและฟังคุณครู";
+  const message = shared
+    ? (screen.message || "ทำตามคำแนะนำของคุณครู")
+    : "ขั้นนี้คุณครูเลือกฉายสื่อบนจอหน้าชั้น นักเรียนเตรียมพร้อมสำหรับกิจกรรมถัดไป";
+  const icon = shared ? (screen.icon || step.icon || "📺") : "👀";
+  $("#gameCanvas").innerHTML = `<section class="student-lesson-media${shared ? " is-shared" : " is-teacher-screen"}">
+    <header><span>${escapeHtml(screen.eyebrow || `ขั้นที่ ${step.stage}`)}</span><div class="student-lesson-time">เวลาขั้นนี้ <strong data-lesson-countdown>${lessonCountdownLabel()}</strong></div></header>
+    <div class="student-lesson-visual">${escapeHtml(icon)}</div>
+    <h2>${escapeHtml(title)}</h2>
+    <p>${escapeHtml(message)}</p>
+    ${shared ? lessonDetailsMarkup(screen) : ""}
+    <small>เวลาหมดแล้วหน้าจะไม่เปลี่ยน คุณครูเป็นผู้ควบคุมขั้นถัดไป</small>
+  </section>`;
+  state.renderedLessonRoundId = step.round_id;
+  updateStudentLessonCountdown();
+}
+
 function applySessionState() {
   const activities = sessionActivities();
   const activity = activityForKey(state.session.current_activity_key, state.session.plan_id);
-  const gameIsLive = state.session.status === "active" && Boolean(activity);
-  document.body.classList.toggle("student-game-live", gameIsLive);
-  if (gameIsLive) setGameFocus(true);
-  $("#stageStep").textContent = activity ? `ภารกิจ ${activities.findIndex(item => item.key === activity.key) + 1} จาก ${activities.length}` : "เตรียมพร้อม";
-  $("#stageTitle").textContent = activity?.title || "รอครูเริ่มกิจกรรม";
+  const lesson = state.lessonStep;
+  const lessonIsActive = state.session.status === "active" && Boolean(lesson);
+  const mediaIsActive = lessonIsActive && lesson.kind === "media";
+  const gameIsLive = lessonIsActive ? lesson.kind === "game" && Boolean(activity) : state.session.status === "active" && Boolean(activity);
+  const sharedMediaIsLive = mediaIsActive && lesson.show_on_students === true;
+  document.body.classList.toggle("student-game-live", gameIsLive || sharedMediaIsLive);
+  if (gameIsLive || sharedMediaIsLive) setGameFocus(true);
+  $("#stageStep").textContent = lesson
+    ? `ขั้นที่ ${lesson.stage} · ${lesson.kind === "game" ? "เกม" : "สื่อการสอน"}`
+    : activity ? `ภารกิจ ${activities.findIndex(item => item.key === activity.key) + 1} จาก ${activities.length}` : "เตรียมพร้อม";
+  $("#stageTitle").textContent = lesson?.title || activity?.title || "รอครูเริ่มกิจกรรม";
   $("#attemptBadge").textContent = modeLabel(state.session.play_mode);
   activities.forEach(item => $(`[data-activity="${item.key}"]`, $("#activityTimeline"))?.classList.toggle("active", item.key === activity?.key));
+  updateStudentLessonCountdown();
 
   if (state.session.status === "closed") {
     cleanupRhythm();
     return resetJoin("คาบเรียนจบแล้ว ขอบคุณที่ร่วมผจญภัย!");
+  }
+  if (mediaIsActive) {
+    cleanupRhythm();
+    state.renderedActivity = null;
+    if (state.renderedLessonRoundId !== lesson.round_id) renderLessonMedia(lesson, sharedMediaIsLive);
+    return;
   }
   if (state.session.status !== "active" || !activity) {
     cleanupRhythm();
@@ -1751,11 +1843,31 @@ function renderSound() {
   });
 }
 
+function deterministicShuffle(items, seedText) {
+  const result = [...items];
+  let seed = [...String(seedText)].reduce((sum, character) => (sum * 31 + character.codePointAt(0)) >>> 0, 7);
+  const random = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const pick = Math.floor(random() * (index + 1));
+    [result[index], result[pick]] = [result[pick], result[index]];
+  }
+  return result;
+}
+
+function lessonRoundSeed(activityKey) {
+  return [state.session?.id, activityKey, state.lessonStep?.round_id || state.session?.started_at]
+    .filter(Boolean)
+    .join(":") || `preview-${activityKey}`;
+}
+
 function renderSort() {
-  const words = shuffle([
-    ...shuffle([...MAE_KO_KA]).slice(0, 6),
-    ...shuffle([...HAS_FINAL_WORDS]).slice(0, 6),
-  ]);
+  const maeKoKaWords = ["กะปิ", "เคาะ", "นาที", "บัว", "ปา", "ผีเสื้อ", "ท่า", "จำปา", "สาลี่", "โมโห"];
+  const hasFinalWords = ["ซุก", "ดับ", "ทุเรียน", "ฝัน", "ระฆัง", "ลำบาก", "วาดเขียน", "อร่อย", "ขนม", "สนุก"];
+  const maeKoKaSet = new Set(maeKoKaWords);
+  const words = deterministicShuffle([...maeKoKaWords, ...hasFinalWords], lessonRoundSeed("sort"));
   gameShell("จัดบ้านให้คำ", "ลากคำไปใส่บ้านที่ถูกต้อง หรือแตะคำแล้วแตะบ้าน", `<div class="sort-area"><div class="word-bank" id="sortWordBank"></div><div class="word-house good" data-house="none"><h3>🏡 บ้านแม่ ก กา</h3><div class="house-dropzone" id="noneHouse"></div></div><div class="word-house bad" data-house="has"><h3>🏠 บ้านมีตัวสะกด</h3><div class="house-dropzone" id="hasHouse"></div></div></div><button id="checkSort" class="button button-primary" style="margin-top:22px" disabled>ตรวจคำตอบ</button>`);
   let selected = null;
   const bank = $("#sortWordBank");
@@ -1783,7 +1895,7 @@ function renderSort() {
     house.addEventListener("click", () => { if (selected) move(selected.dataset.word); });
   });
   $("#checkSort").addEventListener("click", async () => {
-    const answers = [...document.querySelectorAll(".word-token")].map(token => ({ word: token.dataset.word, chosen: token.dataset.placed, correct: token.dataset.placed === (MAE_KO_KA.has(token.dataset.word) ? "none" : "has") }));
+    const answers = [...document.querySelectorAll(".word-token")].map(token => ({ word: token.dataset.word, chosen: token.dataset.placed, correct: token.dataset.placed === (maeKoKaSet.has(token.dataset.word) ? "none" : "has") }));
     const score = answers.filter(answer => answer.correct).length;
     const result = await submitAttempt("sort", score, answers.length, answers);
     if (result) showResult("จัดบ้านเรียบร้อย", score, answers.length, result, renderSort);
@@ -1792,20 +1904,19 @@ function renderSort() {
 
 function renderTrain() {
   const trainSentenceTexts = [
-    "ตา ไป นา","แม่ หา ปู","พ่อ ดู กี ฬา","พี่ ซื้อ ยา","อา ถือ ตะ กร้า","น้า ขี่ ม้า","ป้า เท ยา","ปู่ ตี งู","ย่า ดุ หมา","น้า ทา สี ประ ตู",
-    "หมา เห่า หมู","หมู หา ใบ ไม้","งู ชู คอ","ปู มี ขา","ไก่ ดุ หมา","กา หา ปลา","เสือ ดู หมู ป่า","ย่า ไป ป่า","ตา มี นา","แม่ พา พี่ ไป ทะ เล",
-    "อา เจอ งู","ปู ไต่ หญ้า","พ่อ ซื้อ เสื้อ สี ฟ้า","พี่ ให้ ยา น้า","อา ใส่ กำ ไล","ป้า เท ชา","หมา เห่า งู","งู ล่า หนู","อา ซื้อ ปลา ทู","เสือ ขู่ โค",
-    "ตา ถู หัว เข่า","พ่อ ดี ใจ","พี่ มี ไฝ","น้า จำ คำ ปู่","ป้า ซื้อ เงาะ","หมา ไล่ หมู ป่า","แม่ ไก่ อยู่ ใน ตะ กร้า","แม่ ไก่ ไข่ มา สี่ ห้า ใบ","แม่ ไก่ ไล่ ตี งู","หมา ใหญ่ ไล่ เห่า",
-    "ปู ม้า อยู่ ทะ เล","เต่า ดำ อยู่ ใน น้ำ","จระ เข้ อยู่ ใน น้ำ","ปลา ทู อยู่ ทะ เล","แม่ ดู ปู นา","หมา ใหญ่ ไล่ แม่ กา","หมู ป่า ไล่ ตี งู","เต่า นา อยู่ ใน ตะ กร้า"
+    "อา ซื้อ มะระ",
+    "ป้า ทำ ยำ",
+    "ปู่ ไป ศาลา",
+    "ตา หา ปู",
+    "น้า ซื้อ จำปา",
+    "พี่ ดู ผีเสื้อ",
+    "แม่ ซื้อ สาลี่",
+    "หมา มา ช้า",
+    "พี่ ขี่ ม้า สีดำ",
+    "ผู้ใหญ่ ให้ ยา แก้ไอ",
   ];
-  const roundSeed = String(state.session?.id || state.session?.room_code || "preview-round");
-  const seededShuffle = (items, seedText) => {
-    const result = [...items]; let seed = [...String(seedText)].reduce((sum, character) => (sum * 31 + character.codePointAt(0)) >>> 0, 7);
-    const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-    for (let index = result.length - 1; index > 0; index -= 1) { const pick = Math.floor(random() * (index + 1)); [result[index], result[pick]] = [result[pick], result[index]]; }
-    return result;
-  };
-  const sentences = seededShuffle(trainSentenceTexts, roundSeed).slice(0, 10).map(text => ({ words: text.split(" "), answer: text.replaceAll(" ", "") }));
+  const roundSeed = lessonRoundSeed("train");
+  const sentences = trainSentenceTexts.map(text => ({ words: text.split(" "), answer: text.replaceAll(" ", "") }));
   let index = 0;
   let score = 0;
   const answers = [];
@@ -1813,7 +1924,7 @@ function renderTrain() {
     const item = sentences[index];
     let selected = [];
     gameShell("รถไฟประโยคแม่ ก กา", "แตะโบกี้ตามลำดับเพื่อเรียงเป็นประโยค", `<div class="game-status-row"><span>ขบวน ${index + 1} / ${sentences.length}</span><span class="mini-score">คะแนน ${score}</span></div><div class="sentence-output" id="sentenceOutput">แตะคำเพื่อเริ่มต่อขบวน</div><div class="train-track" id="trainTrack"></div><div class="button-row"><button id="resetTrain" class="button button-ghost">เริ่มเรียงใหม่</button><button id="checkTrain" class="button button-primary">ตรวจประโยค</button></div>`);
-    $("#trainTrack").innerHTML = seededShuffle(item.words, roundSeed + "-" + index).map((word, position) => `<button class="train-car ${position === 0 ? "train-locomotive" : "train-wagon"}" data-word="${escapeHtml(word)}" data-position="${position}">${escapeHtml(word)}</button>`).join("");
+    $("#trainTrack").innerHTML = deterministicShuffle(item.words, `${roundSeed}-${index}`).map((word, position) => `<button class="train-car ${position === 0 ? "train-locomotive" : "train-wagon"}" data-word="${escapeHtml(word)}" data-position="${position}">${escapeHtml(word)}</button>`).join("");
     $("#trainTrack").querySelectorAll("button").forEach(button => button.addEventListener("click", () => { button.disabled = true; selected.push(button.dataset.word); $("#sentenceOutput").textContent = selected.join(""); }));
     $("#resetTrain").addEventListener("click", render);
     $("#checkTrain").addEventListener("click", async () => {
@@ -1945,6 +2056,7 @@ function resetJoin(message) {
     presenceReady: false, presenceTracked: false, screenPresenceTimer: null, screenPresencePublishing: false,
     screenPresencePending: false, presenceOnlineAt: null, lastGameStateEventId: null,
     screenWatchUntil: 0, screenWatchInterval: null,
+    lessonStep: null, lessonTimer: null, renderedLessonRoundId: null,
   });
   setView(views.login, views.waiting, views.game);
   initializeJoinFlow();
@@ -1997,6 +2109,7 @@ window.addEventListener("offline", connectionUpdate);
 window.addEventListener("beforeunload", stopCamera);
 window.addEventListener("beforeunload", cleanupRhythm);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) scheduleStudentScreenPresence(true); });
+setInterval(updateStudentLessonCountdown, 1000);
 
 async function initializeStudentPage() {
   connectionUpdate();

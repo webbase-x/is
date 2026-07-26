@@ -49,6 +49,358 @@ export const PLAN_ACTIVITIES = Object.freeze({
   ]),
 });
 
+const freezeLessonFlow = steps => Object.freeze(steps.map(step => Object.freeze({
+  ...step,
+  teacherNotes: Object.freeze([...(step.teacherNotes || [])]),
+  screen: Object.freeze({
+    ...(step.screen || {}),
+    bullets: Object.freeze([...(step.screen?.bullets || [])]),
+    cards: Object.freeze([...(step.screen?.cards || [])].map(card => Object.freeze({ ...card }))),
+  }),
+})));
+
+const PLAN_1_LESSON_FLOW = freezeLessonFlow([
+  {
+    key: "p1-song",
+    stage: 1,
+    kind: "game",
+    activityKey: "rhythm",
+    icon: "🎵",
+    title: "เพลงมาตราแม่ ก กา",
+    minutes: 4,
+    studentVisibleDefault: true,
+    teacherNotes: [
+      "ให้นักเรียนร้องตามและสังเกตคำที่เปล่งแสง",
+      "ย้ำคำเป้าหมาย: เต่า วัว เสือ หมี งู ไก่ กา ปลาโลมา ม้า ลา จระเข้",
+      "ช่วงเกมให้นักเรียนแตะคำ เลือกคำแม่ ก กา และเติมคำที่หายไป",
+    ],
+    screen: {
+      eyebrow: "ขั้นที่ 1 · กระตุ้นความสนใจ",
+      title: "ร้องเพลงมาตราแม่ ก กา",
+      message: "ร้องตาม สังเกตคำที่เปล่งแสง และเล่นภารกิจให้ตรงจังหวะ",
+      icon: "🎤",
+      bullets: ["คำเหล่านี้มีอะไรเหมือนกัน?", "ตั้งใจฟังเสียงท้ายคำ"],
+    },
+  },
+  {
+    key: "p1-song-reflect",
+    stage: 1,
+    kind: "media",
+    icon: "💭",
+    title: "คำถามกระตุ้นคิดหลังเพลง",
+    minutes: 1,
+    studentVisibleDefault: false,
+    teacherNotes: [
+      "ถามนักเรียนทั้งห้องและเปิดโอกาสให้ตอบอย่างอิสระ",
+      "ยังไม่เฉลยทันที ให้รับฟังเหตุผลของนักเรียน 2-3 คน",
+      "คำตอบที่ต้องนำไปสู่ข้อสรุป: ไม่มีเสียงพยัญชนะท้ายคำ",
+    ],
+    screen: {
+      eyebrow: "ชวนคิดหลังจบเพลง",
+      title: "คำในเพลงที่เราร้องกัน",
+      message: "มีจุดเด่นอะไรที่เหมือนกัน?",
+      icon: "🤔",
+      bullets: ["ลองออกเสียงคำว่า กา เต่า หมี และม้า", "ฟังเสียงท้ายคำให้ดี"],
+    },
+  },
+  {
+    key: "p1-flashcards",
+    stage: 2,
+    kind: "media",
+    icon: "🪪",
+    title: "บัตรคำ: คำไหนไม่มีตัวสะกด",
+    minutes: 3,
+    studentVisibleDefault: false,
+    teacherNotes: [
+      "ให้นักเรียนอ่านออกเสียงพร้อมกันทีละคำ",
+      "ชี้พยัญชนะต้น สระ ตัวสะกด และวรรณยุกต์",
+      "คำว่า ใบไม้ ให้แยกดูทีละพยางค์: ใบ มี บ สะกด ส่วน ไม้ ไม่มีตัวสะกด",
+    ],
+    screen: {
+      eyebrow: "ขั้นที่ 2 · สังเกตและเปรียบเทียบ",
+      title: "คำไหนไม่มีตัวสะกด?",
+      message: "อ่านออกเสียง แล้วสังเกตเสียงท้ายคำ",
+      icon: "🔎",
+      cards: [
+        { word: "ขา", detail: "ข + -า · ไม่มีตัวสะกด" },
+        { word: "ปี", detail: "ป + -ี · ไม่มีตัวสะกด" },
+        { word: "ดง", detail: "ด + โ-ะ + ง" },
+        { word: "โง่", detail: "ง + โ- · ไม่มีตัวสะกด" },
+        { word: "แพ", detail: "พ + แ- · ไม่มีตัวสะกด" },
+        { word: "ลิง", detail: "ล + -ิ + ง" },
+        { word: "ชี้", detail: "ช + -ี · ไม่มีตัวสะกด" },
+        { word: "ถ้ำ", detail: "ถ + -ำ · ไม่มีตัวสะกด" },
+        { word: "ยาย", detail: "ย + -า + ย" },
+        { word: "ใบไม้", detail: "ใบ มี บ สะกด · ไม้ ไม่มีตัวสะกด" },
+      ],
+    },
+  },
+  {
+    key: "p1-rule-demo",
+    stage: 2,
+    kind: "media",
+    icon: "🧠",
+    title: "สรุปหลักและสาธิตเกม",
+    minutes: 2,
+    studentVisibleDefault: false,
+    teacherNotes: [
+      "ออกเสียงตัวอย่าง: ขอ-อา-ขา ไม่มีเสียงพยัญชนะท้ายคำ",
+      "เปรียบเทียบ: ดง มี ง เป็นตัวสะกด จึงไม่ใช่แม่ ก กา",
+      "สาธิตการลากคำเข้าบ้านที่ถูกต้อง 1 รอบก่อนเริ่มเกม",
+    ],
+    screen: {
+      eyebrow: "ข้อสรุปสำคัญ",
+      title: "มาตราแม่ ก กา",
+      message: "คือคำที่ไม่มีพยัญชนะเป็นตัวสะกด",
+      icon: "🏡",
+      bullets: ["ไม่มีเสียงพยัญชนะท้ายคำ", "อ่านให้ชัด แล้วสังเกตส่วนประกอบของคำ"],
+    },
+  },
+  {
+    key: "p1-sort",
+    stage: 3,
+    kind: "game",
+    activityKey: "sort",
+    icon: "🏠",
+    title: "ด่านที่ 1 · จัดบ้านให้คำศัพท์",
+    minutes: 10,
+    studentVisibleDefault: true,
+    teacherNotes: [
+      "ให้นักเรียนจำแนกคำ 20 คำลงบ้าน 2 หลัง",
+      "สังเกตนักเรียนที่ยังแยกคำมีตัวสะกดไม่ได้และให้คำแนะนำรายบุคคล",
+      "นาฬิกาเป็นเพียงตัวช่วยกำกับเวลา ครูเป็นผู้กดไปขั้นถัดไป",
+    ],
+    screen: {
+      eyebrow: "ขั้นที่ 3 · เกมที่ 1",
+      title: "จัดบ้านให้คำศัพท์",
+      message: "แยกคำลงบ้านแม่ ก กา และบ้านคำที่มีตัวสะกด",
+      icon: "🏠",
+      bullets: ["อ่านคำก่อนทุกครั้ง", "ตรวจเสียงท้ายคำ แล้วจึงเลือกบ้าน"],
+    },
+  },
+  {
+    key: "p1-train",
+    stage: 3,
+    kind: "game",
+    activityKey: "train",
+    icon: "🚂",
+    title: "ด่านที่ 2 · รถไฟประโยคแม่ ก กา",
+    minutes: 14,
+    studentVisibleDefault: true,
+    teacherNotes: [
+      "ให้นักเรียนเรียงคำเป็นประโยค 10 ข้อจากง่ายไปยาก",
+      "ย้ำให้อ่านประโยคที่เรียงเสร็จแล้วก่อนกดตรวจ",
+      "ติดตามผลจากหน้าครูและช่วยนักเรียนที่ติดอยู่ในข้อเดิมนานเกินไป",
+    ],
+    screen: {
+      eyebrow: "ขั้นที่ 3 · เกมที่ 2",
+      title: "รถไฟประโยคแม่ ก กา",
+      message: "แตะโบกี้ตามลำดับให้เป็นประโยคที่ถูกต้อง",
+      icon: "🚂",
+      bullets: ["เรียงคำให้สื่อความหมาย", "อ่านทบทวนก่อนกดตรวจคำตอบ"],
+    },
+  },
+  {
+    key: "p1-score-check",
+    stage: 3,
+    kind: "media",
+    icon: "🏆",
+    title: "ตรวจคะแนนและช่วยเหลือรายบุคคล",
+    minutes: 1,
+    studentVisibleDefault: false,
+    showLeaderboard: true,
+    teacherNotes: [
+      "ฉายกระดานคะแนนเพื่อสร้างแรงจูงใจ",
+      "ดูรายชื่อนักเรียนที่ยังไม่ส่งคำตอบหรือคะแนนต่ำกว่าเกณฑ์",
+      "ให้คำแนะนำสั้น ๆ รายบุคคลก่อนเข้าสู่กิจกรรมกลุ่ม",
+    ],
+    screen: {
+      eyebrow: "พักตรวจความก้าวหน้า",
+      title: "นักผจญภัยกำลังไปได้ดี!",
+      message: "ครูกำลังตรวจผลและช่วยเพื่อนที่ต้องการคำแนะนำ",
+      icon: "🏆",
+      bullets: ["ปรบมือให้ความพยายามของทุกคน", "เตรียมเข้าสู่กิจกรรมกลุ่ม"],
+    },
+  },
+  {
+    key: "p1-gallery-brief",
+    stage: 4,
+    kind: "media",
+    icon: "📝",
+    title: "คำชี้แจงแกลเลอรี่ประโยคแม่ ก กา",
+    minutes: 2,
+    studentVisibleDefault: false,
+    teacherNotes: [
+      "แบ่งกลุ่มละ 3-4 คน แจกกระดาษ A4 และปากกาเมจิก",
+      "แต่ละกลุ่มเลือกคำแม่ ก กา 1 คำจากเกม แล้วแต่งประโยคใหม่",
+      "ย้ำให้เขียนตัวบรรจงและตรวจความหมายก่อนติดผลงาน",
+    ],
+    screen: {
+      eyebrow: "ขั้นที่ 4 · กิจกรรมกลุ่ม",
+      title: "แกลเลอรี่ประโยคแม่ ก กา",
+      message: "เลือก 1 คำที่กลุ่มชอบ แล้วช่วยกันแต่งประโยคใหม่",
+      icon: "🖍️",
+      bullets: ["กลุ่มละ 3-4 คน", "เขียนประโยคลงกระดาษ A4", "ตรวจคำและความหมายให้ถูกต้อง"],
+    },
+  },
+  {
+    key: "p1-gallery-compose",
+    stage: 4,
+    kind: "media",
+    icon: "✍️",
+    title: "กลุ่มช่วยกันแต่งประโยค",
+    minutes: 6,
+    studentVisibleDefault: false,
+    teacherNotes: [
+      "เดินดูทุกกลุ่ม กระตุ้นให้สมาชิกทุกคนมีส่วนร่วม",
+      "ตรวจว่าประโยคสมบูรณ์ สื่อความหมาย และใช้คำแม่ ก กา ตามโจทย์",
+      "นาฬิกาหมดเวลาแล้วไม่เปลี่ยนหน้า ครูพิจารณาความพร้อมของห้อง",
+    ],
+    screen: {
+      eyebrow: "ลงมือทำงานกลุ่ม",
+      title: "ช่วยกันคิด ช่วยกันเขียน",
+      message: "สร้างประโยคแม่ ก กา ของกลุ่มให้สมบูรณ์",
+      icon: "✍️",
+      bullets: ["ทุกคนเสนอความคิด", "อ่านตรวจประโยคก่อนนำไปติด"],
+    },
+  },
+  {
+    key: "p1-gallery-walk",
+    stage: 4,
+    kind: "media",
+    icon: "⭐",
+    title: "Gallery Walk และนำเสนอผลงาน",
+    minutes: 7,
+    studentVisibleDefault: false,
+    teacherNotes: [
+      "ให้นักเรียนเดินชมผลงานและแปะสติกเกอร์ดาวให้ประโยคที่ชอบ",
+      "ตัวแทนแต่ละกลุ่มอ่านประโยคของกลุ่มให้เพื่อนฟัง",
+      "ครูแก้ไขคำหรือประโยคที่ผิดทันทีด้วยถ้อยคำเชิงบวก",
+    ],
+    screen: {
+      eyebrow: "เดินชมแกลเลอรี่",
+      title: "อ่าน ฟัง และให้ดาว",
+      message: "ชมผลงานเพื่อน แล้วเลือกประโยคที่ชอบที่สุด",
+      icon: "🌟",
+      bullets: ["เดินอย่างเป็นระเบียบ", "อ่านประโยคของทุกกลุ่ม", "แปะดาวให้ผลงานที่ชอบ"],
+    },
+  },
+  {
+    key: "p1-review-song",
+    stage: 5,
+    kind: "game",
+    activityKey: "rhythm",
+    icon: "🎶",
+    title: "ร้องเพลงทบทวนอีกครั้ง",
+    minutes: 3,
+    studentVisibleDefault: true,
+    teacherNotes: [
+      "ร้องพร้อมกันอีกครั้งเพื่อทบทวนก่อนประเมิน",
+      "ให้นักเรียนพูดข้อสรุปตามครู: แม่ ก กา คือคำที่ไม่มีตัวสะกด",
+    ],
+    screen: {
+      eyebrow: "ขั้นที่ 5 · ทบทวน",
+      title: "ร้องเพลงแม่ ก กา อีกครั้ง",
+      message: "ร้องให้เต็มเสียง แล้วจำหลักสำคัญให้ได้",
+      icon: "🎶",
+      bullets: ["แม่ ก กา ไม่มีตัวสะกด"],
+    },
+  },
+  {
+    key: "p1-summary",
+    stage: 5,
+    kind: "media",
+    icon: "💡",
+    title: "สรุปความรู้ร่วมกัน",
+    minutes: 1,
+    studentVisibleDefault: false,
+    teacherNotes: [
+      "ให้นักเรียนช่วยกันบอกลักษณะของแม่ ก กา",
+      "เชื่อมโยงว่าเราสามารถนำคำมาเรียงเป็นประโยคสื่อความหมายได้",
+    ],
+    screen: {
+      eyebrow: "จำให้แม่น",
+      title: "มาตราแม่ ก กา",
+      message: "คำที่ไม่มีตัวสะกด และนำมาเรียงเป็นประโยคได้",
+      icon: "💡",
+      bullets: ["อ่านออกเสียง", "สังเกตตัวสะกด", "นำคำไปใช้ในประโยค"],
+    },
+  },
+  {
+    key: "p1-exit",
+    stage: 5,
+    kind: "game",
+    activityKey: "exit",
+    icon: "🗝️",
+    title: "แบบทดสอบท้ายบทเรียน",
+    minutes: 5,
+    studentVisibleDefault: true,
+    teacherNotes: [
+      "ให้นักเรียนทำ Exit Ticket บนอุปกรณ์ของตนเอง",
+      "ใช้ผลบนหน้าครูตรวจความเข้าใจด้านความรู้เรื่องลักษณะคำแม่ ก กา",
+      "นาฬิกาเป็นเพียงเวลาที่แนะนำ นักเรียนยังทำต่อได้จนกว่าครูจะเปลี่ยนขั้น",
+    ],
+    screen: {
+      eyebrow: "ประเมินความเข้าใจ",
+      title: "ไขกุญแจหีบสมบัติ",
+      message: "อ่านคำถามให้ครบ แล้วเลือกคำตอบที่ถูกต้อง",
+      icon: "🗝️",
+      bullets: ["คิดก่อนตอบ", "ตรวจคำตอบของตนเองทุกข้อ"],
+    },
+  },
+  {
+    key: "p1-worksheet",
+    stage: 5,
+    kind: "media",
+    icon: "📄",
+    title: "มอบหมายใบงานที่ 1",
+    minutes: 1,
+    studentVisibleDefault: false,
+    teacherNotes: [
+      "แจกใบงานที่ 1 เรื่องมาตราแม่ ก กา",
+      "แจ้งให้นักเรียนทำเพื่อทบทวนการจำแนกคำและการแต่งประโยค",
+      "แจ้งกำหนดส่งก่อนจบคาบ",
+    ],
+    screen: {
+      eyebrow: "ภารกิจทบทวน",
+      title: "ใบงานที่ 1 · มาตราแม่ ก กา",
+      message: "รับใบงาน ตรวจชื่อ และฟังกำหนดส่งจากคุณครู",
+      icon: "📄",
+      bullets: ["จำแนกคำ", "วงกลมคำแม่ ก กา", "เรียงคำเป็นประโยค"],
+    },
+  },
+]);
+
+export const PLAN_LESSON_FLOWS = Object.freeze({
+  1: PLAN_1_LESSON_FLOW,
+});
+
+export function lessonFlowForPlan(planId = 1) {
+  const flow = PLAN_LESSON_FLOWS[Number(planId)];
+  if (flow) return flow;
+  return freezeLessonFlow(activitiesForPlan(planId).map((activity, index) => ({
+    key: `plan-${Number(planId)}-${activity.key}`,
+    stage: index + 1,
+    kind: "game",
+    activityKey: activity.key,
+    icon: activity.icon,
+    title: activity.title,
+    minutes: activity.minutes,
+    studentVisibleDefault: true,
+    teacherNotes: [`เปิด ${activity.title} และติดตามผลจากหน้าควบคุมครู`],
+    screen: {
+      eyebrow: `กิจกรรมที่ ${index + 1}`,
+      title: activity.title,
+      message: "ฟังคำชี้แจงจากคุณครู แล้วเริ่มทำกิจกรรม",
+      icon: activity.icon,
+    },
+  })));
+}
+
+export function lessonStepForKey(stepKey, planId = 1) {
+  return lessonFlowForPlan(planId).find(step => step.key === stepKey) || null;
+}
+
 export function activitiesForPlan(planId = 1) {
   return PLAN_ACTIVITIES[Number(planId)] || ACTIVITIES;
 }
@@ -74,6 +426,7 @@ export const PLAN_TITLES = Object.freeze([
 export const AVATARS = ["⭐", "🦉", "🐯", "🐳", "🐰", "🦊", "🐼", "🦁", "🐸", "🐙", "🦋", "🚀"];
 
 export const GAME_STATE_EVENT = "game-state";
+export const GAME_STATE_REQUEST_EVENT = "game-state-request";
 // Expert sessions intentionally keep scores out of the database. These events
 // carry only the in-memory, live scoreboard for the current class session.
 export const EXPERT_SCORE_EVENT = "expert-live-score";
@@ -84,12 +437,13 @@ export function gameStateChannelName(sessionId) {
   return `game-session-${sessionId}`;
 }
 
-export function gameStatePayload(session, reason = "state-change") {
+export function gameStatePayload(session, reason = "state-change", extras = {}) {
   return {
     event_id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
     issued_at: Date.now(),
     reason,
     session,
+    ...extras,
   };
 }
 
@@ -257,14 +611,17 @@ export function shuffle(items) {
 
 export function renderPlanTimeline(container, activePlan = 1) {
   if (!container) return;
-  container.innerHTML = PLAN_TITLES.map((title, index) => `
+  container.innerHTML = PLAN_TITLES.map((title, index) => {
+    const flow = lessonFlowForPlan(index + 1);
+    return `
     <article class="plan-card ${index + 1 === activePlan ? "active" : ""}">
       <span class="plan-number">${index + 1}</span>
       <span class="lock">${index + 1 === activePlan ? "กำลังใช้" : "พร้อมใช้"}</span>
       <h3>${escapeHtml(title)}</h3>
-      <p>${activitiesForPlan(index + 1).length} กิจกรรม · ${activitiesForPlan(index + 1).reduce((sum, activity) => sum + activity.minutes, 0)} นาที</p>
+      <p>${flow.length} ขั้น · ${flow.reduce((sum, step) => sum + step.minutes, 0)} นาที</p>
     </article>
-  `).join("");
+  `;
+  }).join("");
 }
 
 export function updateConnectionBadge(element, online, label) {
