@@ -6,81 +6,224 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#5b4bdb">
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="ห้องตรวจสื่อแบบสองจอ iPad ใช้หน้าครูและหน้าของนักเรียนจริง 100% ภาษาไทย ป.2">
-  <title>ตรวจสื่อสองจอ | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260727-reviewer-links-1">
+  <meta name="description" content="โหมดผู้เชี่ยวชาญสาธารณะ ใช้ข้อมูลโรงเรียน นักเรียน ห้องเรียน และคะแนนจำลองทั้งหมด ไม่เชื่อมต่อฐานข้อมูลจริง">
+  <title>โหมดผู้เชี่ยวชาญสาธารณะ | คำไทยผจญภัย</title>
+  <link rel="stylesheet" href="styles.css?v=20260728-public-expert-sandbox-1">
 </head>
-<body class="expert-page">
+<body class="expert-page expert-public-page">
   <header class="site-header expert-header">
-    <a class="brand" href="index.html" aria-label="กลับหน้าหลัก"><span class="brand-mark" aria-hidden="true">ก</span><span><strong>คำไทยผจญภัย</strong><small>ห้องตรวจสื่อแบบสองจอ</small></span></a>
-    <div class="header-actions"><a class="button button-ghost button-small" href="guide.html">คู่มือ</a><a class="button button-ghost button-small" href="plans.html">แผนการสอน</a><a class="button button-primary button-small" href="teacher.html">เปิดจอครูจริง</a></div>
+    <a class="brand" href="index.html" aria-label="กลับหน้าหลัก">
+      <span class="brand-mark" aria-hidden="true">ก</span>
+      <span><strong>คำไทยผจญภัย</strong><small>โหมดผู้เชี่ยวชาญสาธารณะ</small></span>
+    </a>
+    <div class="header-actions">
+      <span class="expert-public-badge"><i></i> ข้อมูลจำลองเท่านั้น</span>
+      <a class="button button-ghost button-small" href="guide.html">คู่มือ</a>
+      <a class="button button-ghost button-small" href="plans.html">แผนการสอน</a>
+      <a class="button button-primary button-small" href="index.html">หน้าหลัก</a>
+    </div>
   </header>
 
   <main class="expert-real-main">
     <section class="expert-real-intro">
       <div>
-        <span class="eyebrow">โหมดผู้เชี่ยวชาญ · จอจริง 100%</span>
-        <h1>จอครูและจอนักเรียน<br><span>เหมือนหน้าใช้งานจริงทุกส่วน</span></h1>
-        <p>แต่ละกรอบเป็นจอ iPad อัตราส่วน 4:3 ที่เปิด <strong>teacher.html</strong> และ <strong>student.html</strong> โดยตรง ไม่มีการย่อ ตัด หรือเปลี่ยนองค์ประกอบของหน้าจริง ผู้เชี่ยวชาญจึงทดลองทุกขั้นตอนและทุกเกมได้จากหน้าเดียว</p>
+        <span class="eyebrow">เปิดสาธารณะ · เข้าใช้ได้ทันที · ไม่บันทึกลงฐานข้อมูล</span>
+        <h1>ทดลองจอครูและจอนักเรียน<br><span>เหมือนระบบจริง โดยไม่แตะข้อมูลจริง</span></h1>
+        <p>ทุกครั้งที่เปิดหน้านี้ ระบบจะสร้างบัญชี รหัสผ่าน รหัสห้อง โรงเรียน และรายชื่อนักเรียนสมมติชุดใหม่ ข้อมูลทั้งหมดอยู่เฉพาะในหน้านี้ เมื่อปิดหรือรีเฟรช ห้องจำลองเดิมจะสิ้นสุดทันที</p>
       </div>
       <aside class="expert-real-guide">
-        <strong>ลำดับการตรวจ</strong>
+        <strong>ลำดับการทดลอง</strong>
         <ol>
-          <li>จอครู: เปิดจากลิงก์ส่วนตัวเพื่อกรอกบัญชีและรหัสผ่านอัตโนมัติ แล้วกด “เข้าสู่ระบบ”</li>
-          <li>จอนักเรียน: กรอกรหัสห้องจริงที่ครูสร้าง หรือสแกน QR</li>
-          <li>อนุมัตินักเรียนและเริ่มกิจกรรมจากจอครู เพื่อตรวจ Realtime จริง</li>
+          <li>ดูบัญชีและรหัสห้องจำลองที่ระบบสร้างให้อัตโนมัติ</li>
+          <li>เข้าห้องจากจอนักเรียน แล้วอนุมัติจากจอครู</li>
+          <li>เลือกแผนที่ 1–8 และเริ่มเกมจากจอครู</li>
+          <li>ตอบคำถาม ดูคะแนน และประกาศผลแบบจำลอง</li>
         </ol>
       </aside>
     </section>
 
-    <section class="panel expert-real-toolbar" aria-label="บัญชีและเครื่องมือห้องตรวจสื่อ">
+    <section class="panel expert-real-toolbar expert-demo-toolbar" aria-label="ข้อมูลและเครื่องมือห้องจำลอง">
       <div class="expert-account-summary">
-        <span id="expertAccountBadge" class="expert-account-badge">บัญชีผู้ตรวจสื่อ</span>
-        <div class="expert-account-fields" aria-label="ข้อมูลเข้าสู่ระบบผู้เชี่ยวชาญ">
-          <span><small>USER</small><strong id="expertAccountEmail">expert@webbase.x</strong></span>
-          <span><small>PASSWORD</small><strong id="expertAccountPassword">กรอกด้วยตนเอง</strong></span>
+        <span class="expert-account-badge">บัญชีจำลองพร้อมใช้</span>
+        <div class="expert-account-fields" aria-label="บัญชีเข้าสู่ระบบจำลอง">
+          <span><small>USERNAME จำลอง</small><strong id="expertAccountEmail">กำลังสร้าง…</strong></span>
+          <span><small>PASSWORD จำลอง</small><strong id="expertAccountPassword">กำลังสร้าง…</strong></span>
+          <span><small>รหัสห้องใหม่</small><strong id="expertRoomCode">000000</strong></span>
         </div>
-        <small id="expertCredentialStatus">เปิดจากลิงก์ส่วนตัวเพื่อให้ระบบกรอกบัญชีและรหัสผ่านในจอครูอัตโนมัติ</small>
+        <small id="expertCredentialStatus">บัญชีนี้ไม่มีอยู่ในระบบ Auth และใช้ได้เฉพาะหน้าเว็บจำลองนี้</small>
+      </div>
+      <div class="expert-demo-data-seal">
+        <span aria-hidden="true">✓</span>
+        <div><strong>แยกจากข้อมูลจริง 100%</strong><small>ไม่อ่าน/เขียน Supabase · ไม่ใช้กล้อง · ไม่เก็บคะแนน</small></div>
       </div>
       <div class="expert-real-actions">
-        <button id="expertFillLoginButton" class="button button-primary" type="button">✉️ กรอกข้อมูลในจอครู</button>
-        <button id="expertReloadButton" class="button button-ghost" type="button">↻ โหลดสองจอใหม่</button>
-        <button id="expertFullscreenButton" class="button button-secondary" type="button">⛶ เต็มจอสองจอ</button>
+        <button id="expertResetButton" class="button button-primary" type="button">สร้างห้องจำลองใหม่</button>
+        <button id="expertAddStudentButton" class="button button-ghost" type="button">เพิ่มนักเรียนจำลอง</button>
+        <button id="expertFullscreenButton" class="button button-secondary" type="button">เต็มจอสองจอ</button>
       </div>
     </section>
 
-    <section id="expertWorkspace" class="expert-real-workspace" aria-label="จอ iPad ครูและนักเรียน">
-      <button id="expertFullscreenExitButton" class="expert-fullscreen-exit" type="button">↙ ออกจากเต็มจอ</button>
-      <article class="expert-real-device expert-real-teacher-device">
+    <div id="expertDeviceSwitcher" class="expert-device-switcher" role="tablist" aria-label="เลือกจอที่ต้องการดู">
+      <button class="active" type="button" role="tab" aria-selected="true" data-device="teacher">จอครู</button>
+      <button type="button" role="tab" aria-selected="false" data-device="student">จอนักเรียน</button>
+    </div>
+
+    <section id="expertWorkspace" class="expert-real-workspace expert-demo-workspace" aria-label="จอครูและจอนักเรียนจำลอง">
+      <button id="expertFullscreenExitButton" class="expert-fullscreen-exit" type="button">ออกจากเต็มจอ</button>
+
+      <article class="expert-real-device expert-real-teacher-device mobile-active" data-device-pane="teacher">
         <header class="expert-real-device-header">
-          <div><span class="expert-real-device-icon" aria-hidden="true">🧑‍🏫</span><div><small>iPad จอที่ 1</small><strong>จอครู · คาบเรียนปัจจุบัน</strong></div></div>
-          <span id="expertTeacherStatus" class="expert-real-status">กำลังเปิดจอจริง</span>
+          <div>
+            <span class="expert-real-device-icon" aria-hidden="true">ค</span>
+            <div><small>จอจำลองที่ 1</small><strong>จอครู · คาบเรียนปัจจุบัน</strong></div>
+          </div>
+          <span id="expertTeacherStatus" class="expert-real-status ready">เข้าสู่ระบบจำลองแล้ว</span>
         </header>
         <div class="expert-real-device-screen">
-          <iframe id="expertTeacherFrame" title="จอครูจาก teacher.html" loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          <div class="expert-demo-app expert-demo-teacher">
+            <header class="expert-demo-appbar expert-demo-teacher-bar">
+              <div><span>ก</span><div><strong>คำไทยผจญภัย</strong><small id="expertTeacherSchool">โรงเรียนจำลอง</small></div></div>
+              <div class="expert-demo-room"><small>รหัสห้อง</small><strong data-room-code>000000</strong></div>
+            </header>
+
+            <main class="expert-demo-teacher-main">
+              <section class="expert-demo-notice">
+                <span aria-hidden="true">✓</span>
+                <p><strong>เข้าสู่ระบบด้วยบัญชีจำลองสำเร็จ</strong> ข้อมูลคาบนี้อยู่ในหน่วยความจำของหน้าเว็บเท่านั้น</p>
+              </section>
+
+              <section class="expert-demo-control-card">
+                <div>
+                  <small>คาบเรียนจำลองปัจจุบัน</small>
+                  <h2 id="expertTeacherPlanTitle">แผนที่ 1 · แม่ ก กา</h2>
+                  <p id="expertTeacherClass">โรงเรียนสาธิตคำไทยผจญภัย · ป.2/จำลอง</p>
+                </div>
+                <label>เลือกแผน
+                  <select id="expertPlanSelect" aria-label="เลือกแผนการสอนจำลอง"></select>
+                </label>
+                <div class="expert-demo-control-actions">
+                  <button id="expertApproveAllButton" class="button button-success button-small" type="button">อนุมัติทั้งหมด</button>
+                  <button id="expertStartFirstActivityButton" class="button button-primary button-small" type="button">เริ่มกิจกรรมแรก</button>
+                </div>
+              </section>
+
+              <div class="expert-demo-teacher-grid">
+                <section class="expert-demo-panel">
+                  <div class="expert-demo-panel-heading"><div><small>ลำดับการสอน</small><h3>กิจกรรมในแผน</h3></div><span id="expertActivityCount">0 กิจกรรม</span></div>
+                  <div id="expertActivityList" class="expert-demo-activity-list"></div>
+                </section>
+
+                <section class="expert-demo-panel">
+                  <div class="expert-demo-panel-heading"><div><small>ห้องรอ</small><h3>นักเรียนจำลอง</h3></div><span id="expertRosterCount">0 คน</span></div>
+                  <div id="expertRoster" class="expert-demo-roster"></div>
+                </section>
+
+                <section class="expert-demo-panel expert-demo-leaderboard-panel">
+                  <div class="expert-demo-panel-heading"><div><small>ผลการแข่งขัน</small><h3>อันดับจำลอง</h3></div><span>ไม่บันทึก DB</span></div>
+                  <ol id="expertLeaderboard" class="expert-demo-leaderboard"></ol>
+                </section>
+              </div>
+            </main>
+          </div>
         </div>
-        <footer><span>iPad 1024×768 · teacher.html</span><a id="expertTeacherOpen" href="teacher.html" target="_blank" rel="noopener">เปิดเต็มแท็บ ↗</a></footer>
+        <footer><span>Sandbox จอครู · ไม่มีการเชื่อมต่อฐานข้อมูล</span><span>ข้อมูลสมมติ</span></footer>
       </article>
 
-      <article class="expert-real-device expert-real-student-device">
+      <article class="expert-real-device expert-real-student-device" data-device-pane="student">
         <header class="expert-real-device-header">
-          <div><span class="expert-real-device-icon" aria-hidden="true">🧒</span><div><small>iPad จอที่ 2</small><strong>จอนักเรียน · เข้าห้องจริง</strong></div></div>
-          <span id="expertStudentStatus" class="expert-real-status">กำลังเปิดจอจริง</span>
+          <div>
+            <span class="expert-real-device-icon" aria-hidden="true">น</span>
+            <div><small>จอจำลองที่ 2</small><strong>จอนักเรียน · อุปกรณ์ส่วนตัว</strong></div>
+          </div>
+          <span id="expertStudentStatus" class="expert-real-status ready">พร้อมเข้าห้อง</span>
         </header>
         <div class="expert-real-device-screen">
-          <iframe id="expertStudentFrame" title="จอนักเรียนจาก student.html" loading="eager" allow="camera; microphone" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          <div class="expert-demo-app expert-demo-student">
+            <header class="expert-demo-appbar expert-demo-student-bar">
+              <div><span>ก</span><div><strong>คำไทยผจญภัย</strong><small>นักเรียนจำลอง ป.2</small></div></div>
+              <span class="expert-demo-online"><i></i> เชื่อมต่อในหน้านี้</span>
+            </header>
+
+            <main class="expert-demo-student-main">
+              <section id="expertStudentJoinView" class="expert-student-view">
+                <div class="expert-demo-student-progress"><span>1</span><div><small>ทำทีละขั้นนะ</small><strong>ใส่รหัสห้อง</strong></div><i></i></div>
+                <div class="expert-demo-join-card">
+                  <span class="expert-demo-lock" aria-hidden="true">#</span>
+                  <h2>ใส่รหัสห้องเรียน</h2>
+                  <p>รหัสถูกสร้างใหม่สำหรับการทดลองครั้งนี้</p>
+                  <label for="expertStudentRoomInput">รหัสห้องเรียน 6 ตัว</label>
+                  <input id="expertStudentRoomInput" inputmode="numeric" maxlength="6" autocomplete="off" value="000000">
+                  <label for="expertStudentSelect">เลือกนักเรียนสมมติ</label>
+                  <select id="expertStudentSelect"></select>
+                  <button id="expertStudentJoinButton" class="button button-primary button-large full" type="button">เข้าห้องจำลอง</button>
+                  <small>ไม่ใช้ชื่อ รูป หรือข้อมูลของนักเรียนจริง</small>
+                </div>
+              </section>
+
+              <section id="expertStudentWaitingView" class="expert-student-view hidden" aria-live="polite">
+                <div class="expert-demo-state-card waiting">
+                  <span aria-hidden="true">…</span>
+                  <h2>ส่งคำขอเข้าห้องแล้ว</h2>
+                  <p>รอครูอนุมัติจากจอครูด้านข้าง</p>
+                  <strong id="expertWaitingStudentName">นักเรียนจำลอง</strong>
+                  <small>รหัสห้อง <b data-room-code>000000</b></small>
+                </div>
+              </section>
+
+              <section id="expertStudentLobbyView" class="expert-student-view hidden" aria-live="polite">
+                <div class="expert-demo-state-card approved">
+                  <span aria-hidden="true">✓</span>
+                  <h2>ครูอนุมัติแล้ว</h2>
+                  <p>เตรียมพร้อม รอครูเริ่มกิจกรรม</p>
+                  <strong id="expertApprovedStudentName">นักเรียนจำลอง</strong>
+                  <div class="expert-demo-lobby-meta"><span id="expertStudentPlanLabel">แผนที่ 1</span><span>คะแนน 0</span><span>ดาว 0</span></div>
+                </div>
+              </section>
+
+              <section id="expertStudentGameView" class="expert-student-view hidden" aria-live="polite">
+                <div class="expert-demo-game-top">
+                  <div><small id="expertGameMission">ภารกิจ 1 จาก 3</small><h2 id="expertGameTitle">กิจกรรมจำลอง</h2></div>
+                  <div class="expert-demo-score"><span>ดาว <b id="expertStudentStars">0</b></span><span>คะแนน <b id="expertStudentScore">0</b></span></div>
+                </div>
+                <div class="expert-demo-progress-track"><i id="expertGameProgress"></i></div>
+                <div class="expert-demo-question-card">
+                  <small id="expertQuestionNumber">ข้อ 1 / 3</small>
+                  <span id="expertQuestionIcon" aria-hidden="true">คำ</span>
+                  <h3 id="expertQuestionWord">กา</h3>
+                  <p id="expertQuestionPrompt">คำนี้อยู่ในมาตราใด?</p>
+                  <div id="expertQuestionOptions" class="expert-demo-options"></div>
+                  <p id="expertQuestionFeedback" class="expert-demo-feedback" aria-live="polite">เลือกคำตอบที่ถูกต้อง</p>
+                  <button id="expertNextQuestionButton" class="button button-primary hidden" type="button">ข้อต่อไป</button>
+                </div>
+              </section>
+
+              <section id="expertStudentResultView" class="expert-student-view hidden" aria-live="polite">
+                <div class="expert-demo-state-card result">
+                  <span aria-hidden="true">★</span>
+                  <h2>จบภารกิจแล้ว</h2>
+                  <p>ผลคะแนนจำลองจะแสดงในจอครู แต่ไม่บันทึกลงฐานข้อมูล</p>
+                  <strong><b id="expertFinalScore">0</b> คะแนน · <b id="expertFinalStars">0</b> ดาว</strong>
+                  <button id="expertPlayAgainButton" class="button button-primary" type="button">เล่นภารกิจนี้อีกครั้ง</button>
+                </div>
+              </section>
+            </main>
+          </div>
         </div>
-        <footer><span>iPad 1024×768 · student.html</span><a id="expertStudentOpen" href="student.html" target="_blank" rel="noopener">เปิดเต็มแท็บ ↗</a></footer>
+        <footer><span>Sandbox จอนักเรียน · ไม่ใช้กล้องหรือข้อมูลจริง</span><span>คะแนนชั่วคราว</span></footer>
       </article>
     </section>
 
-    <section class="expert-real-note" aria-label="ขอบเขตการตรวจ">
-      <span aria-hidden="true">🔒</span>
-      <div><strong>การทำงานเป็นของจริง แต่บัญชีผู้ตรวจสื่อไม่บันทึกคะแนน</strong><p>ผู้เชี่ยวชาญทั้ง 3 คนและอาจารย์ที่ปรึกษามีบัญชีแยกกัน จอครูและจอนักเรียนใช้พื้นที่เข้าสู่ระบบแยกกันเพื่อไม่ให้สถานะชนกัน ทุกบัญชีถูกจำกัดสิทธิ์ระดับตรวจสื่อ จัดอันดับสดได้ แต่ไม่บันทึกคะแนนหลังจบคาบ</p></div>
+    <section class="expert-real-note expert-public-note" aria-label="ขอบเขตความปลอดภัย">
+      <span aria-hidden="true">✓</span>
+      <div>
+        <strong>โหมดนี้เป็น Public Sandbox ที่แยกจากห้องเรียนจริง</strong>
+        <p>ไม่มีการเรียก Supabase Auth, Database, Realtime หรือ Storage ไม่อ่านรายชื่อโรงเรียน/นักเรียนจริง ไม่ใช้กล้อง และไม่ส่งคะแนนออกจากหน้าเว็บ เมื่อรีเฟรชหรือปิดหน้า ข้อมูลจำลองทั้งหมดจะหายไปและรหัสห้องเดิมใช้ต่อไม่ได้</p>
+      </div>
     </section>
   </main>
 
-  <footer class="site-footer">คำไทยผจญภัย · ห้องตรวจสื่อแบบสองจอ</footer>
-  <script type="module" src="js/expert.js?v=20260727-reviewer-links-1"></script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <footer class="site-footer">คำไทยผจญภัย · โหมดผู้เชี่ยวชาญสาธารณะ · ข้อมูลจำลองเท่านั้น</footer>
+  <script type="module" src="js/expert.js?v=20260728-public-expert-sandbox-1"></script>
 </body>
 </html>
