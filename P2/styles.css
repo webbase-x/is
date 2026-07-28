@@ -2722,3 +2722,115 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .mae-kon-ufo { font-size:52px; }
   .mae-kon-alien { font-size:42px; }
 }
+
+/* Online user guide */
+.guide-page {
+  background:
+    radial-gradient(circle at 8% 2%, rgba(91,75,219,.14), transparent 28%),
+    radial-gradient(circle at 92% 18%, rgba(75,183,233,.12), transparent 24%),
+    linear-gradient(145deg, #f9f9ff, #f5fbff 58%, #fffaf0);
+}
+.guide-main { width: min(1220px, 100%); margin: 0 auto; padding: clamp(28px,5vw,72px) clamp(15px,4vw,48px) 76px; }
+.guide-hero { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(285px,.65fr); align-items: center; gap: clamp(25px,5vw,70px); }
+.guide-hero-copy h1 { margin: 12px 0 18px; font-size: clamp(42px,6vw,72px); line-height: 1.08; letter-spacing: -.045em; }
+.guide-hero-copy h1 span { color: var(--purple); }
+.guide-hero-copy > p { max-width: 760px; color: var(--muted); font-size: clamp(17px,2vw,21px); line-height: 1.75; }
+.guide-actions, .guide-button-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.guide-start-card { padding: clamp(23px,3vw,34px); border: 1px solid rgba(91,75,219,.18); border-radius: 28px; background: rgba(255,255,255,.9); box-shadow: var(--shadow); }
+.guide-start-icon { width: 58px; height: 58px; display: grid; place-items: center; margin-bottom: 15px; border-radius: 18px; color: white; background: linear-gradient(145deg,#7567ee,#4c3aca); font-size: 28px; font-weight: 950; box-shadow: 0 10px 22px rgba(91,75,219,.24); }
+.guide-start-card > strong { font-size: 21px; }
+.guide-start-card ol { margin: 13px 0 0; padding-left: 23px; color: #48516c; line-height: 1.8; }
+.guide-start-card li::marker { color: var(--purple); font-weight: 950; }
+.guide-jump-nav { position: sticky; top: 92px; z-index: 20; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; margin: 42px 0 25px; padding: 9px; border: 1px solid rgba(91,75,219,.13); border-radius: 20px; background: rgba(255,255,255,.9); box-shadow: 0 11px 28px rgba(33,40,83,.08); backdrop-filter: blur(14px); }
+.guide-jump-nav a { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 13px; color: #4f48a8; font-size: 13px; font-weight: 900; }
+.guide-jump-nav a:hover { background: var(--purple-soft); }
+.guide-jump-nav span { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; color: white; background: var(--purple); font-size: 12px; }
+.guide-section { scroll-margin-top: 175px; margin-top: 25px; padding: clamp(27px,4vw,48px); border: 1px solid rgba(91,75,219,.13); border-radius: 30px; background: rgba(255,255,255,.92); box-shadow: 0 18px 50px rgba(33,40,83,.08); }
+.guide-section-tinted { background: linear-gradient(145deg,rgba(255,255,255,.96),rgba(240,238,255,.93)); }
+.guide-section-heading { max-width: 800px; margin-bottom: 26px; }
+.guide-section-heading h2 { margin: 9px 0 9px; font-size: clamp(30px,4vw,48px); line-height: 1.2; letter-spacing: -.03em; }
+.guide-section-heading p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.7; }
+.guide-role-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
+.guide-role-card { padding: 22px; border: 1px solid var(--line); border-radius: 22px; background: white; }
+.guide-role-card > span { width: 54px; height: 54px; display: grid; place-items: center; margin-bottom: 14px; border-radius: 17px; color: white; font-size: 26px; font-weight: 950; }
+.guide-role-card.teacher > span { background: var(--purple); }
+.guide-role-card.student > span { background: #2f82bd; }
+.guide-role-card.expert > span { background: #198c6b; }
+.guide-role-card small { color: var(--muted); font-weight: 900; }
+.guide-role-card h3 { margin: 4px 0 8px; font-size: 24px; }
+.guide-role-card p { min-height: 78px; margin-bottom: 16px; color: #505a73; line-height: 1.65; }
+.guide-step-list { margin: 0; padding: 0; display: grid; gap: 10px; list-style: none; }
+.guide-step-list li { display: grid; grid-template-columns: 55px minmax(0,1fr); gap: 15px; align-items: center; padding: 16px 18px; border: 1px solid var(--line); border-radius: 18px; background: white; }
+.guide-step-number { width: 50px; height: 50px; display: grid; place-items: center; border-radius: 16px; color: white; background: linear-gradient(145deg,#7567ee,#4c3aca); font-size: 20px; font-weight: 950; }
+.guide-step-list h3 { margin: 0 0 3px; font-size: 18px; }
+.guide-step-list p { margin: 0; color: #566078; line-height: 1.65; }
+.guide-callout { display: grid; grid-template-columns: 50px minmax(0,1fr); align-items: center; gap: 15px; margin-top: 18px; padding: 17px 19px; border: 1px solid #f3d47e; border-radius: 18px; background: var(--amber-soft); }
+.guide-callout > span { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; color: #5b3e00; background: #ffd660; font-size: 24px; font-weight: 950; }
+.guide-callout strong { font-size: 17px; }
+.guide-callout p { margin: 2px 0 0; color: #655522; line-height: 1.6; }
+.student-guide-flow { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; }
+.student-guide-flow article { position: relative; min-height: 190px; padding: 18px 15px; border: 1px solid var(--line); border-radius: 20px; background: linear-gradient(145deg,#fff,#f6f5ff); }
+.student-guide-flow article:not(:last-child)::after { content: "›"; position: absolute; top: 27px; right: -9px; z-index: 2; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: white; background: var(--purple); font-weight: 950; }
+.student-guide-flow article > span { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: white; background: var(--purple); font-weight: 950; }
+.student-guide-flow h3 { margin: 15px 0 7px; font-size: 18px; }
+.student-guide-flow p { margin: 0; color: #59627a; font-size: 14px; line-height: 1.6; }
+.guide-button-row { margin-top: 20px; justify-content: center; }
+.expert-guide-grid { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(250px,.75fr); gap: 20px; }
+.expert-guide-grid > ol { margin: 0; padding: 0; display: grid; gap: 10px; list-style: none; counter-reset: expert-guide; }
+.expert-guide-grid > ol li { counter-increment: expert-guide; display: grid; grid-template-columns: 46px minmax(0,1fr); gap: 13px; padding: 15px; border: 1px solid var(--line); border-radius: 17px; background: white; }
+.expert-guide-grid > ol li::before { content: counter(expert-guide); width: 42px; height: 42px; display: grid; place-items: center; grid-row: 1 / span 2; border-radius: 13px; color: white; background: #198c6b; font-weight: 950; }
+.expert-guide-grid li strong, .expert-guide-grid li span { display: block; }
+.expert-guide-grid li span { margin-top: 3px; color: var(--muted); line-height: 1.55; }
+.expert-guide-grid > aside { padding: 24px; border-radius: 22px; color: white; background: linear-gradient(145deg,#202a4b,#4335a2); box-shadow: 0 16px 38px rgba(40,35,102,.22); }
+.expert-guide-grid > aside .guide-start-icon { color: #4434bd; background: #fff0ad; }
+.expert-guide-grid > aside > strong { font-size: 24px; }
+.expert-guide-grid > aside p { color: #e0e3f2; line-height: 1.7; }
+.guide-faq { display: grid; gap: 10px; }
+.guide-faq details { border: 1px solid var(--line); border-radius: 17px; background: white; overflow: hidden; }
+.guide-faq summary { position: relative; padding: 17px 50px 17px 19px; cursor: pointer; font-size: 17px; font-weight: 900; list-style: none; }
+.guide-faq summary::-webkit-details-marker { display: none; }
+.guide-faq summary::after { content: "+"; position: absolute; top: 12px; right: 16px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; color: var(--purple); background: var(--purple-soft); font-size: 22px; }
+.guide-faq details[open] summary::after { content: "−"; }
+.guide-faq details p { margin: 0; padding: 0 19px 18px; color: #59627a; line-height: 1.7; }
+.guide-download-card { display: flex; align-items: center; justify-content: space-between; gap: 28px; margin-top: 25px; padding: clamp(25px,4vw,42px); border-radius: 28px; color: white; background: linear-gradient(135deg,#202a4b,#4b3bc7 72%); box-shadow: 0 22px 55px rgba(41,35,107,.25); }
+.guide-download-card h2 { margin: 7px 0 7px; font-size: clamp(26px,3vw,38px); }
+.guide-download-card p { max-width: 720px; margin: 0; color: #e2e4f2; line-height: 1.7; }
+.guide-download-card .eyebrow { color: #ffdd7b; }
+.guide-download-card .button { flex: 0 0 auto; color: #413004; background: linear-gradient(135deg,#ffe37a,#f7bd47); box-shadow: 0 10px 25px rgba(247,189,71,.22); }
+.student-help-link { width: fit-content; margin: 4px auto 0; padding: 5px 9px; border-radius: 9px; color: var(--purple); background: var(--purple-soft); font-size: 12px; font-weight: 900; text-decoration: underline; text-underline-offset: 3px; }
+
+@media (max-width: 900px) {
+  .guide-hero, .expert-guide-grid { grid-template-columns: 1fr; }
+  .guide-role-grid { grid-template-columns: 1fr; }
+  .guide-role-card { display: grid; grid-template-columns: 62px minmax(0,1fr) auto; column-gap: 14px; align-items: center; }
+  .guide-role-card > span { grid-row: 1 / span 4; margin: 0; }
+  .guide-role-card small, .guide-role-card h3, .guide-role-card p { grid-column: 2; min-height: 0; }
+  .guide-role-card .button { grid-column: 3; grid-row: 1 / span 4; }
+  .student-guide-flow { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .student-guide-flow article:not(:last-child)::after { display: none; }
+}
+
+@media (max-width: 680px) {
+  .guide-header .brand small { display: none; }
+  .guide-header .header-actions .button:first-child { display: none; }
+  .guide-main { padding-inline: 12px; }
+  .guide-hero-copy h1 { font-size: clamp(37px,11vw,52px); }
+  .guide-actions { align-items: stretch; flex-direction: column; }
+  .guide-actions .button { width: 100%; }
+  .guide-jump-nav { top: 75px; grid-template-columns: repeat(5,1fr); gap: 3px; margin-top: 27px; padding: 6px; border-radius: 15px; }
+  .guide-jump-nav a { min-height: 42px; padding: 4px; font-size: 0; }
+  .guide-jump-nav span { width: 30px; height: 30px; font-size: 13px; }
+  .guide-section { scroll-margin-top: 135px; padding: 21px 15px; border-radius: 22px; }
+  .guide-role-card { display: block; }
+  .guide-role-card > span { margin-bottom: 12px; }
+  .guide-role-card p { min-height: 0; }
+  .guide-role-card .button { width: 100%; }
+  .guide-step-list li { grid-template-columns: 43px minmax(0,1fr); gap: 11px; padding: 13px; }
+  .guide-step-number { width: 41px; height: 41px; border-radius: 13px; }
+  .student-guide-flow { grid-template-columns: 1fr; }
+  .student-guide-flow article { min-height: 0; }
+  .guide-button-row { align-items: stretch; flex-direction: column; }
+  .guide-button-row .button { width: 100%; }
+  .guide-download-card { align-items: stretch; flex-direction: column; }
+  .guide-download-card .button { width: 100%; }
+}
