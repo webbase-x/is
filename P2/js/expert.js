@@ -29,6 +29,7 @@ const state = {
   selectedPlanId: 1,
   lessonIndex: 0,
   currentStep: null,
+  showOnStudents: false,
 };
 
 function randomDigits(length) {
@@ -64,6 +65,7 @@ function snapshot() {
     selectedPlanId: state.selectedPlanId,
     lessonIndex: state.lessonIndex,
     currentStep: state.currentStep,
+    showOnStudents: state.showOnStudents,
   };
 }
 
@@ -119,6 +121,7 @@ function resetSession() {
   state.selectedPlanId = 1;
   state.lessonIndex = 0;
   state.currentStep = null;
+  state.showOnStudents = false;
   paintCredentials();
   loadEntryFrames();
   $("#expertTeacherStatus").textContent = "พร้อมเข้าสู่ระบบ";
@@ -296,8 +299,14 @@ window.addEventListener("message", event => {
     state.selectedPlanId = Number(payload.planId) || state.selectedPlanId;
     state.lessonIndex = Number(payload.lessonIndex) || 0;
     state.currentStep = payload.step || null;
+    state.showOnStudents = payload.showOnStudents !== false;
     if (payload.step?.kind === "game") startStudentGame(payload.step);
     else restoreStudentEntry();
+    broadcast();
+  } else if (type === "teacher-visibility") {
+    state.currentStep = payload.step || state.currentStep;
+    state.showOnStudents = Boolean(payload.showOnStudents);
+    restoreStudentEntry();
     broadcast();
   }
 });

@@ -10,6 +10,8 @@ const state = {
   candidates: [],
   players: [],
   activeStudentId: null,
+  currentStep: null,
+  showOnStudents: false,
 };
 
 document.body.classList.add("expert-embed", "expert-student-embed", "expert-level2-frame");
@@ -80,16 +82,63 @@ function showApproved(player) {
   $("#studentLiveClass").textContent = `${state.classroom} · ข้อมูลจำลอง`;
   $("#playerScore").textContent = Number(player.score || 0);
   $("#attemptBadge").textContent = "Level 2";
-  $("#timerBadge").textContent = "รอครู";
-  $("#stageStep").textContent = "เข้าห้องแล้ว";
-  $("#stageTitle").textContent = "รอครูเริ่มกิจกรรม";
+  $("#timerBadge").textContent = state.currentStep ? `${Number(state.currentStep.minutes || 0)} นาที` : "รอครู";
+  renderCurrentStep();
+}
+
+function renderCurrentStep() {
+  const step = state.currentStep;
+  if (!step || !state.showOnStudents) {
+    $("#stageStep").textContent = "เข้าห้องแล้ว";
+    $("#stageTitle").textContent = "รอครูเปิดสื่อหรือกิจกรรม";
+    $("#activityTimeline").innerHTML = `
+      <li class="active"><span>1</span><div><strong>พร้อมเรียน</strong><small>จอนี้จะเปลี่ยนตามจอควบคุมของครู</small></div></li>`;
+    $("#gameCanvas").innerHTML = `
+      <div class="empty-stage expert-student-ready-stage">
+        <span>✅</span>
+        <h2>เข้าห้องจำลองเรียบร้อย</h2>
+        <p>เมื่อครูเปิดสื่อหรือกิจกรรมสำหรับนักเรียน เนื้อหาจะแสดงที่นี่โดยอัตโนมัติ</p>
+      </div>`;
+    return;
+  }
+
+  $("#stageStep").textContent = step.screen?.eyebrow || `ขั้นที่ ${step.stage || 1}`;
+  $("#stageTitle").textContent = step.title || "กิจกรรมของนักเรียน";
   $("#activityTimeline").innerHTML = `
-    <li class="active"><span>1</span><div><strong>พร้อมเรียน</strong><small>เกมจริงจะแสดงเมื่อครูกดเริ่ม</small></div></li>`;
+    <li class="active"><span>${escapeHtml(step.icon || "📚")}</span><div><strong>${escapeHtml(step.title || "กิจกรรม")}</strong><small>กำลังแสดงจากจอครู</small></div></li>`;
+
+  if (step.kind === "results") {
+    const ranked = [...state.players]
+      .filter(player => player.status === "approved")
+      .sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+    $("#gameCanvas").innerHTML = `
+      <div class="expert-student-broadcast expert-student-results-card">
+        <span class="expert-student-broadcast-icon">🏆</span>
+        <small>ประกาศผลการแข่งขัน</small>
+        <h2>${escapeHtml(step.title || "ผลการแข่งขัน")}</h2>
+        <div class="expert-student-ranking">
+          ${ranked.map((player, index) => `
+            <p><b>${index + 1}</b><span>${escapeHtml(player.avatar || "⭐")} ${escapeHtml(player.name)}</span><strong>${Number(player.score || 0)} คะแนน</strong></p>
+          `).join("") || "<p>กำลังรอผลคะแนนจากผู้เล่น</p>"}
+        </div>
+      </div>`;
+    return;
+  }
+
+  const screen = step.screen || {};
+  const bullets = (screen.bullets || []).map(item => `<li>${escapeHtml(item)}</li>`).join("");
+  const cards = (screen.cards || []).map(card => `
+    <span><strong>${escapeHtml(card.word || "")}</strong><small>${escapeHtml(card.detail || "")}</small></span>
+  `).join("");
   $("#gameCanvas").innerHTML = `
-    <div class="empty-stage expert-student-ready-stage">
-      <span>✅</span>
-      <h2>เข้าห้องจำลองเรียบร้อย</h2>
-      <p>เมื่อครูเปิดกิจกรรม จอนี้จะเปลี่ยนเป็นเกมจริงตามแผนการสอนโดยอัตโนมัติ</p>
+    <div class="expert-student-broadcast">
+      <span class="expert-student-broadcast-icon">${escapeHtml(screen.icon || step.icon || "📚")}</span>
+      <small>${escapeHtml(screen.eyebrow || "สื่อจากคุณครู")}</small>
+      <h2>${escapeHtml(screen.title || step.title || "กิจกรรม")}</h2>
+      ${screen.message ? `<p>${escapeHtml(screen.message)}</p>` : ""}
+      ${bullets ? `<ul>${bullets}</ul>` : ""}
+      ${cards ? `<div class="expert-student-broadcast-cards">${cards}</div>` : ""}
+      <em>กำลังแสดงพร้อมจอครู · ข้อมูลจำลอง</em>
     </div>`;
 }
 
@@ -100,6 +149,8 @@ function applySnapshot(snapshot) {
   state.candidates = snapshot.candidates || [];
   state.players = snapshot.players || [];
   if (snapshot.activeStudentId) state.activeStudentId = snapshot.activeStudentId;
+  state.currentStep = snapshot.currentStep || null;
+  state.showOnStudents = Boolean(snapshot.showOnStudents);
 
   $("#roomCode").value = state.roomCode;
   renderCandidates();

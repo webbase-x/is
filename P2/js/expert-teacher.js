@@ -267,7 +267,12 @@ function renderLessonStep(notify = true) {
     </button>
   `).join("");
   startTimer();
-  if (notify) post("teacher-step", { planId: state.selectedPlanId, lessonIndex: state.lessonIndex, step });
+  if (notify) post("teacher-step", {
+    planId: state.selectedPlanId,
+    lessonIndex: state.lessonIndex,
+    step,
+    showOnStudents: $("#shareLessonToStudents").checked,
+  });
 }
 
 function renderScores() {
@@ -347,6 +352,12 @@ $("#nextActivityButton").addEventListener("click", () => {
   renderLessonStep();
 });
 $("#restartLessonTimerButton").addEventListener("click", startTimer);
+$("#shareLessonToStudents").addEventListener("change", event => {
+  post("teacher-visibility", {
+    step: currentStep(),
+    showOnStudents: event.target.checked,
+  });
+});
 $("#finishActivityButton").addEventListener("click", () => {
   const next = currentFlow()[state.lessonIndex + 1];
   if (next?.kind === "results") {
