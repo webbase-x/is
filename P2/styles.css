@@ -4252,3 +4252,457 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .expert-level2-screen { height: 72dvh; min-height: 520px; }
   .expert-level2-privacy { align-items: flex-start; font-size: 12px; }
 }
+
+/* Teacher dashboard — responsive balance for notebooks, tablets and phones.
+   The former desktop sidebar stayed active on scaled 13-inch screens, leaving
+   too little width for Thai headings and the room QR card. */
+.teacher-page,
+.teacher-page main,
+.teacher-page .dashboard-shell,
+.teacher-page .dashboard-main,
+.teacher-page .teacher-flow-shell,
+.teacher-page .teacher-flow-step {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.teacher-page .teacher-flow-header h1,
+.teacher-page .teacher-flow-step h2,
+.teacher-page .flow-qr-copy,
+.teacher-page .flow-qr-copy h2 {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.teacher-page .flow-qr-layout {
+  min-height: 0;
+}
+
+.teacher-page .flow-qr-card {
+  min-width: 0;
+}
+
+.teacher-page .flow-qr-card .session-qr-frame {
+  width: min(100%, 320px);
+}
+
+@media (max-width: 1180px) {
+  .teacher-page .dashboard-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: start;
+  }
+
+  .teacher-page .dashboard-sidebar {
+    position: sticky;
+    z-index: 30;
+    top: 68px;
+    height: auto;
+    padding: 8px clamp(8px, 2vw, 18px);
+    overflow: hidden;
+  }
+
+  .teacher-page .teacher-profile {
+    display: none;
+  }
+
+  .teacher-page .dashboard-sidebar nav {
+    display: flex;
+    gap: 6px;
+    max-width: 1220px;
+    margin: 0 auto;
+    padding-bottom: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .teacher-page .dashboard-sidebar nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .teacher-page .dashboard-sidebar nav button {
+    flex: 1 0 max-content;
+    min-height: 42px;
+    justify-content: center;
+    padding: 8px 11px;
+    white-space: nowrap;
+  }
+
+  .teacher-page .dashboard-sidebar nav button:hover {
+    transform: none;
+  }
+
+  .teacher-page .dashboard-main {
+    padding: clamp(14px, 2vw, 24px);
+  }
+
+  .teacher-page .teacher-flow-shell {
+    min-height: 0;
+  }
+
+  .teacher-page .teacher-flow-header {
+    margin-bottom: 12px;
+  }
+
+  .teacher-page .teacher-flow-header h1 {
+    font-size: clamp(27px, 3.6vw, 36px);
+  }
+
+  .teacher-page .teacher-flow-progress {
+    margin-bottom: 12px;
+  }
+
+  .teacher-page .teacher-flow-step {
+    min-height: 0;
+    padding: clamp(20px, 3vw, 34px);
+    border-radius: 24px;
+  }
+
+  .teacher-page .flow-qr-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+    gap: clamp(20px, 4vw, 42px);
+  }
+
+  .teacher-page .flow-qr-copy h2 {
+    font-size: clamp(29px, 4.2vw, 46px);
+    line-height: 1.18;
+  }
+
+  .teacher-page .flow-room-code {
+    padding: 15px 20px;
+  }
+
+  .teacher-page .flow-room-code strong {
+    font-size: clamp(38px, 6vw, 58px);
+  }
+
+  .teacher-page .flow-qr-card .session-qr-frame {
+    width: min(100%, 270px);
+  }
+
+  .teacher-page .flow-qr-card > strong {
+    font-size: 18px;
+  }
+
+  .teacher-page .flow-footer {
+    margin-top: 18px;
+    padding-top: 16px;
+  }
+}
+
+@media (max-height: 820px) and (min-width: 761px) {
+  .teacher-page .teacher-header {
+    min-height: 60px;
+    padding-block: 7px;
+  }
+
+  .teacher-page .teacher-header .brand-mark {
+    width: 42px;
+    height: 42px;
+    font-size: 22px;
+  }
+
+  .teacher-page .teacher-header .button,
+  .teacher-page .teacher-header .status-pill {
+    min-height: 36px;
+    padding-block: 7px;
+  }
+
+  .teacher-page .dashboard-sidebar {
+    top: 60px;
+  }
+
+  .teacher-page .dashboard-main {
+    padding-block: 12px 18px;
+  }
+
+  .teacher-page .teacher-flow-header {
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .teacher-page .teacher-flow-header .eyebrow {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .teacher-page .teacher-flow-header h1 {
+    margin: 1px 0;
+    font-size: clamp(24px, 3vw, 31px);
+  }
+
+  .teacher-page .teacher-flow-header p {
+    font-size: 13px;
+  }
+
+  .teacher-page .teacher-flow-progress {
+    margin-bottom: 8px;
+  }
+
+  .teacher-page .teacher-flow-progress li {
+    gap: 2px;
+    font-size: 10px;
+  }
+
+  .teacher-page .teacher-flow-progress li span {
+    width: 30px;
+    height: 30px;
+    border-width: 2px;
+  }
+
+  .teacher-page .teacher-flow-progress li::before {
+    top: 14px;
+  }
+
+  .teacher-page .teacher-flow-step {
+    padding: 18px 24px;
+  }
+
+  .teacher-page .flow-qr-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 250px);
+    gap: 24px;
+  }
+
+  .teacher-page .flow-qr-copy h2 {
+    margin-block: 4px 7px;
+    font-size: clamp(27px, 3.6vw, 39px);
+  }
+
+  .teacher-page .flow-class-context {
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+
+  .teacher-page .flow-room-code {
+    padding: 10px 16px;
+  }
+
+  .teacher-page .flow-room-code strong {
+    font-size: clamp(36px, 5.2vw, 50px);
+  }
+
+  .teacher-page .flow-security-note {
+    margin-block: 9px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .teacher-page .session-access-actions {
+    gap: 7px;
+  }
+
+  .teacher-page .session-access-actions .button {
+    min-height: 38px;
+    padding: 7px 11px;
+    font-size: 12px;
+  }
+
+  .teacher-page .flow-qr-card .session-qr-frame {
+    width: min(29dvh, 230px);
+    padding: 7px;
+    border-radius: 18px;
+  }
+
+  .teacher-page .flow-qr-card > strong {
+    margin-top: 7px;
+    font-size: 15px;
+  }
+
+  .teacher-page .flow-qr-card > small {
+    font-size: 11px;
+  }
+
+  .teacher-page .flow-footer {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+
+  .teacher-page .flow-footer .button {
+    min-height: 40px;
+    padding-block: 8px;
+  }
+}
+
+@media (max-width: 760px) {
+  .teacher-page .teacher-header {
+    min-height: 60px;
+    padding: 6px 9px;
+  }
+
+  .teacher-page .teacher-header .brand {
+    min-width: 0;
+  }
+
+  .teacher-page .teacher-header .brand-mark {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    font-size: 20px;
+  }
+
+  .teacher-page .teacher-header .brand strong {
+    font-size: 15px;
+  }
+
+  .teacher-page .teacher-header .header-actions {
+    gap: 6px;
+  }
+
+  .teacher-page .teacher-header .header-actions > a {
+    display: none;
+  }
+
+  .teacher-page .teacher-header #signOutButton {
+    min-height: 36px;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+
+  .teacher-page .dashboard-sidebar {
+    top: 60px;
+  }
+
+  .teacher-page .dashboard-sidebar nav button {
+    flex: 0 0 auto;
+  }
+
+  .teacher-page .dashboard-main {
+    padding: 14px 10px 28px;
+  }
+
+  .teacher-page .teacher-flow-header {
+    gap: 10px;
+  }
+
+  .teacher-page .teacher-flow-header h1 {
+    font-size: clamp(24px, 7vw, 30px);
+  }
+
+  .teacher-page .teacher-flow-progress {
+    overflow: hidden;
+  }
+
+  .teacher-page .teacher-flow-progress li small {
+    max-width: 56px;
+    font-size: 9px;
+    line-height: 1.15;
+  }
+
+  .teacher-page .teacher-flow-step {
+    padding: 18px 13px;
+    border-radius: 19px;
+  }
+
+  .teacher-page .flow-qr-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 17px;
+  }
+
+  .teacher-page .flow-qr-copy {
+    text-align: center;
+  }
+
+  .teacher-page .flow-qr-copy h2 {
+    font-size: clamp(27px, 8.5vw, 37px);
+  }
+
+  .teacher-page .flow-qr-card {
+    order: 0;
+  }
+
+  .teacher-page .flow-qr-card .session-qr-frame {
+    width: min(58vw, 230px);
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .teacher-page .teacher-header {
+    min-height: 52px;
+    padding-block: 5px;
+  }
+
+  .teacher-page .teacher-header .brand > span:last-child,
+  .teacher-page .teacher-header .header-actions .button {
+    display: none;
+  }
+
+  .teacher-page .dashboard-sidebar {
+    top: 52px;
+    padding-block: 5px;
+  }
+
+  .teacher-page .dashboard-sidebar nav button {
+    min-height: 36px;
+    padding-block: 5px;
+    font-size: 12px;
+  }
+
+  .teacher-page .dashboard-main {
+    padding-block: 8px 12px;
+  }
+
+  .teacher-page .teacher-flow-header {
+    display: none;
+  }
+
+  .teacher-page .teacher-flow-progress {
+    margin-bottom: 6px;
+  }
+
+  .teacher-page .teacher-flow-progress li small {
+    display: none;
+  }
+
+  .teacher-page .teacher-flow-step {
+    padding: 12px 18px;
+  }
+
+  .teacher-page .flow-qr-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
+    gap: 16px;
+  }
+
+  .teacher-page .flow-qr-copy .eyebrow,
+  .teacher-page .flow-security-note,
+  .teacher-page .flow-qr-card > small {
+    display: none;
+  }
+
+  .teacher-page .flow-qr-copy h2 {
+    font-size: clamp(23px, 3.5vw, 31px);
+  }
+
+  .teacher-page .flow-class-context {
+    margin-bottom: 7px;
+    font-size: 13px;
+  }
+
+  .teacher-page .flow-room-code {
+    padding: 7px 12px;
+  }
+
+  .teacher-page .flow-room-code strong {
+    font-size: clamp(30px, 5vw, 42px);
+  }
+
+  .teacher-page .session-access-actions .button {
+    min-height: 34px;
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .teacher-page .flow-qr-card .session-qr-frame {
+    width: min(31dvh, 155px);
+  }
+
+  .teacher-page .flow-footer {
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+
+  .teacher-page .flow-footer .button {
+    min-height: 34px;
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+}
