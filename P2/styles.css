@@ -4986,3 +4986,571 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
     padding-block: 3px;
   }
 }
+
+/* Public pages — balanced responsive layout for notebooks, tablets and phones. */
+.home-page,
+.plan-catalog-page,
+.guide-page,
+.expert-level2-page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.home-page main,
+.plan-catalog-page main,
+.guide-page main,
+.expert-level2-page main,
+.home-page section,
+.plan-catalog-page section,
+.guide-page section,
+.expert-level2-page section {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.home-page .site-header,
+.plan-catalog-page .site-header,
+.guide-page .site-header,
+.expert-level2-page .site-header {
+  width: 100%;
+  gap: 12px;
+}
+
+.home-page .brand,
+.plan-catalog-page .brand,
+.guide-page .brand,
+.expert-level2-page .brand,
+.home-page .brand > span:last-child,
+.plan-catalog-page .brand > span:last-child,
+.guide-page .brand > span:last-child,
+.expert-level2-page .brand > span:last-child {
+  min-width: 0;
+}
+
+.home-page .brand strong,
+.plan-catalog-page .brand strong,
+.guide-page .brand strong,
+.expert-level2-page .brand strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-page .hero,
+.home-page .role-section,
+.home-page .privacy-note,
+.plan-catalog-page .plan-catalog-main,
+.guide-page .guide-main,
+.expert-level2-page .expert-level2-main {
+  margin-inline: auto;
+}
+
+.home-page .hero-copy,
+.home-page .hero-visual,
+.plan-catalog-page .plan-catalog-layout,
+.plan-catalog-page .plan-catalog-list,
+.plan-catalog-page .plan-detail,
+.guide-page .guide-hero-copy,
+.guide-page .guide-start-card,
+.expert-level2-page .expert-level2-intro > *,
+.expert-level2-page .expert-level2-toolbar > * {
+  min-width: 0;
+}
+
+.home-page .hero-actions .button,
+.plan-catalog-page .header-actions .button,
+.plan-catalog-page .plan-detail-actions .button,
+.guide-page .guide-actions .button,
+.guide-page .guide-button-row .button,
+.expert-level2-page .header-actions .button,
+.expert-level2-page .expert-level2-actions .button {
+  text-align: center;
+}
+
+.plan-catalog-page .plan-detail-heading {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.plan-catalog-page .plan-detail-actions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.plan-catalog-page .plan-detail-actions .button {
+  width: 100%;
+}
+
+@media (max-width: 1000px) {
+  .home-page .hero-copy,
+  .home-page .hero-copy > p,
+  .home-page .section-heading {
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .home-page .hero-actions {
+    width: min(720px, 100%);
+    margin-inline: auto;
+    justify-content: center;
+  }
+
+  .home-page .role-section {
+    padding-inline: clamp(16px, 5vw, 42px);
+  }
+
+  .home-page .role-grid {
+    width: min(700px, 100%);
+  }
+
+  .plan-catalog-page .plan-catalog-hero {
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .plan-catalog-page .plan-catalog-hero p {
+    margin-inline: auto;
+  }
+
+  .plan-catalog-page .site-header {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-block: 10px;
+  }
+
+  .plan-catalog-page .site-header .brand {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .plan-catalog-page .site-header .header-actions {
+    width: min(760px, 100%);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .plan-catalog-page .site-header .header-actions .button {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding-inline: 8px;
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .plan-catalog-page .plan-detail-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .plan-catalog-page .plan-detail-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .plan-catalog-page .plan-detail-actions .button {
+    width: 100%;
+  }
+
+  .guide-page .guide-hero-copy {
+    text-align: center;
+  }
+
+  .guide-page .guide-hero-copy > p {
+    margin-inline: auto;
+  }
+
+  .guide-page .guide-actions {
+    width: min(700px, 100%);
+    margin-inline: auto;
+    justify-content: center;
+  }
+
+  .guide-page .guide-start-card {
+    width: min(660px, 100%);
+    margin-inline: auto;
+    text-align: left;
+  }
+
+  .expert-level2-page .expert-level2-intro {
+    text-align: center;
+  }
+
+  .expert-level2-page .expert-level2-intro h1,
+  .expert-level2-page .expert-level2-intro p {
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .home-page .site-header,
+  .plan-catalog-page .site-header,
+  .guide-page .site-header,
+  .expert-level2-page .site-header {
+    padding-inline: 12px;
+  }
+
+  .home-page .hero {
+    padding: 42px 14px 32px;
+  }
+
+  .home-page .hero h1 {
+    font-size: clamp(36px, 11vw, 45px);
+  }
+
+  .home-page .hero-actions {
+    width: min(540px, 100%);
+    align-items: stretch;
+  }
+
+  .home-page .hero-actions .button {
+    width: 100%;
+    min-height: 52px;
+  }
+
+  .home-page .hero-visual {
+    width: min(420px, 100%);
+    min-height: 350px;
+    margin: -6px auto 0;
+    transform: none;
+  }
+
+  .home-page .role-section {
+    padding-top: 48px;
+    padding-bottom: 58px;
+  }
+
+  .home-page .role-card {
+    width: 100%;
+    min-height: 0;
+  }
+
+  .home-page .privacy-note {
+    width: calc(100% - 28px);
+    margin-inline: auto;
+  }
+
+  .plan-catalog-page .site-header {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-block: 10px;
+  }
+
+  .plan-catalog-page .site-header .brand {
+    width: 100%;
+    justify-content: center;
+    text-align: left;
+  }
+
+  .plan-catalog-page .site-header .header-actions {
+    width: min(540px, 100%);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .plan-catalog-page .site-header .header-actions .button {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 7px 8px;
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .plan-catalog-page .plan-catalog-main {
+    padding-top: 30px;
+    padding-bottom: 48px;
+  }
+
+  .plan-catalog-page .plan-catalog-hero h1 {
+    font-size: clamp(36px, 11vw, 50px);
+  }
+
+  .plan-catalog-page .plan-catalog-list {
+    scroll-padding-inline: 13px;
+  }
+
+  .plan-catalog-page .plan-catalog-card {
+    flex: 0 0 calc(100vw - 26px);
+    width: calc(100vw - 26px);
+    min-width: 0;
+    scroll-snap-align: center;
+  }
+
+  .plan-catalog-page .plan-detail-heading,
+  .plan-catalog-page .plan-detail-card {
+    width: 100%;
+  }
+
+  .plan-catalog-page .plan-detail-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .plan-catalog-page .plan-detail-actions .button {
+    width: 100%;
+  }
+
+  .guide-page .guide-header {
+    flex-wrap: wrap;
+  }
+
+  .guide-page .guide-header .brand {
+    flex: 1 1 auto;
+  }
+
+  .guide-page .guide-main {
+    padding-top: 34px;
+    padding-bottom: 52px;
+  }
+
+  .guide-page .guide-hero-copy h1 {
+    font-size: clamp(36px, 10.5vw, 50px);
+  }
+
+  .guide-page .guide-actions,
+  .guide-page .guide-button-row {
+    width: min(540px, 100%);
+    margin-inline: auto;
+  }
+
+  .guide-page .guide-actions .button,
+  .guide-page .guide-button-row .button,
+  .guide-page .guide-download-card .button {
+    width: 100%;
+    min-height: 50px;
+  }
+
+  .guide-page .guide-section-heading {
+    margin-inline: auto;
+  }
+
+  .expert-level2-page .expert-header {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-block: 9px;
+  }
+
+  .expert-level2-page .expert-header .brand {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .expert-level2-page .expert-header .brand > span:last-child {
+    display: block;
+  }
+
+  .expert-level2-page .expert-header .brand strong {
+    max-width: none;
+    font-size: 15px;
+    white-space: normal;
+  }
+
+  .expert-level2-page .expert-header .header-actions {
+    width: min(420px, 100%);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .expert-level2-page .expert-header .header-actions .expert-public-badge {
+    display: none;
+  }
+
+  .expert-level2-page .expert-header .header-actions .button,
+  .expert-level2-page .expert-header .header-actions .button:first-of-type {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+  }
+
+  .expert-level2-page .expert-level2-main {
+    width: calc(100% - 14px);
+    padding-top: 18px;
+  }
+
+  .expert-level2-page .expert-level2-intro h1 {
+    font-size: clamp(29px, 9.5vw, 42px);
+  }
+
+  .expert-level2-page .expert-level2-toolbar {
+    width: 100%;
+  }
+
+  .expert-level2-page .expert-level2-actions {
+    width: 100%;
+  }
+
+  .expert-level2-page .expert-level2-actions .button {
+    min-height: 48px;
+  }
+
+  .expert-level2-page .expert-device-switcher {
+    width: 100%;
+  }
+
+  .expert-level2-page .expert-level2-privacy {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .home-page .brand strong,
+  .guide-page .brand strong {
+    font-size: 16px;
+  }
+
+  .home-page .hero-copy > p,
+  .plan-catalog-page .plan-catalog-hero p,
+  .guide-page .guide-hero-copy > p {
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .home-page .hero-visual {
+    min-height: 320px;
+  }
+
+  .plan-catalog-page .site-header .brand small {
+    display: none;
+  }
+
+  .plan-catalog-page .plan-catalog-card {
+    padding-inline: 14px;
+  }
+
+  .guide-page .guide-header {
+    justify-content: center;
+  }
+
+  .guide-page .guide-header .brand {
+    flex-basis: 100%;
+    justify-content: center;
+  }
+
+  .guide-page .guide-header .header-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .guide-page .guide-header .header-actions .button {
+    width: min(220px, 100%);
+  }
+
+  .expert-level2-page .expert-level2-credentials {
+    grid-template-columns: 1fr;
+  }
+
+  .expert-level2-page .expert-level2-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .expert-level2-page .expert-level2-actions .button:last-child {
+    grid-column: auto;
+  }
+
+  .expert-level2-page .expert-level2-screen {
+    height: min(68dvh, 620px);
+    min-height: 500px;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .home-page .site-header,
+  .plan-catalog-page .site-header,
+  .guide-page .site-header,
+  .expert-level2-page .site-header {
+    position: relative;
+    min-height: 54px;
+    padding-block: 6px;
+  }
+
+  .home-page .brand-mark,
+  .plan-catalog-page .brand-mark,
+  .guide-page .brand-mark,
+  .expert-level2-page .brand-mark {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+    font-size: 21px;
+  }
+
+  .home-page .hero {
+    grid-template-columns: minmax(0, 1.15fr) minmax(270px, .85fr);
+    gap: 18px;
+    padding: 24px 22px 30px;
+    text-align: left;
+  }
+
+  .home-page .hero-copy,
+  .home-page .hero-copy > p {
+    text-align: left;
+  }
+
+  .home-page .hero h1 {
+    font-size: clamp(32px, 6vw, 48px);
+  }
+
+  .home-page .hero-copy > p {
+    margin-bottom: 18px;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .home-page .hero-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-page .hero-actions .button {
+    min-height: 42px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .home-page .hero-visual {
+    min-height: 300px;
+  }
+
+  .plan-catalog-page .site-header,
+  .guide-page .guide-header,
+  .expert-level2-page .expert-header {
+    flex-wrap: nowrap;
+  }
+
+  .plan-catalog-page .site-header .brand,
+  .guide-page .guide-header .brand,
+  .expert-level2-page .expert-header .brand {
+    width: auto;
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .plan-catalog-page .site-header .header-actions,
+  .expert-level2-page .expert-header .header-actions {
+    width: auto;
+    display: flex;
+  }
+
+  .plan-catalog-page .site-header .header-actions .button,
+  .expert-level2-page .expert-header .header-actions .button {
+    min-height: 36px;
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .plan-catalog-page .plan-catalog-main,
+  .guide-page .guide-main,
+  .expert-level2-page .expert-level2-main {
+    padding-top: 24px;
+  }
+}
