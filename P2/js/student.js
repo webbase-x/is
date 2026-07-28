@@ -9,6 +9,8 @@ import {
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
+const expertDemoMode = studentPageQuery.get("expertDemo") === "1";
+const expertMutedPreview = expertDemoMode && studentPageQuery.get("demoMuted") === "1";
 const projectorPreviewActivityKey = studentPageQuery.get("preview") === "projector"
   ? String(studentPageQuery.get("activity") || "")
   : "";
@@ -1138,6 +1140,21 @@ async function submitAttempt(activityKey, score, maxScore, answers) {
     state.attempts.push(attempt);
     renderAttemptProgress();
     scheduleStudentScreenPresence(true);
+    if (expertDemoMode && projectorPreviewActivityKey) {
+      window.parent.postMessage({
+        source: "expert-level2",
+        role: "student",
+        type: "expert-game-result",
+        payload: {
+          playerId: studentPageQuery.get("demoPlayerId") || state.player?.id,
+          activityKey,
+          score: attempt.score,
+          maxScore: attempt.max_score,
+          percent: attempt.percent,
+          passed: attempt.passed,
+        },
+      }, window.location.origin);
+    }
     try {
       await state.sessionChannel?.send({
         type: "broadcast",
@@ -1243,6 +1260,7 @@ function rhythmClock(seconds) {
 }
 
 function playFallbackBeat(run, index) {
+  if (expertMutedPreview) return;
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return;
   run.audioContext ||= new AudioContextClass();
@@ -1297,6 +1315,7 @@ function renderRhythm() {
   updateStudentLessonCountdown();
 
   const audio = $("#rhythmAudio");
+  if (expertMutedPreview) audio.muted = true;
   const startButton = $("#startRhythm");
   const status = $("#rhythmAudioStatus");
   const feedback = $("#rhythmFeedback");
@@ -2772,6 +2791,7 @@ if ("speechSynthesis" in window) {
   speechSynthesis.addEventListener("voiceschanged", refreshThaiSpeechVoices);
 }
 function speakThai(word) {
+  if (expertMutedPreview) return;
   if (!("speechSynthesis" in window) || !word) return;
   speechSynthesis.cancel();
   refreshThaiSpeechVoices();
@@ -2789,6 +2809,7 @@ function speakThai(word) {
 
 let wheelAudioContext;
 function playWheelTick(step) {
+  if (expertMutedPreview) return;
   if (step % 2) return;
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return;
@@ -3104,10 +3125,14 @@ function initializeProjectorPreview() {
 
   const roundId = studentPageQuery.get("round") || `${Date.now()}-${Math.random()}`;
   const previewId = `projector-preview-${roundId}`;
+  const demoName = String(studentPageQuery.get("demoName") || "ครูทดลองเล่น").slice(0, 80);
+  const demoAvatar = String(studentPageQuery.get("demoAvatar") || "🎓").slice(0, 8);
+  const demoClass = String(studentPageQuery.get("demoClass") || "จอทดลองครู").slice(0, 80);
+  const demoPlayerId = String(studentPageQuery.get("demoPlayerId") || previewId).slice(0, 120);
   state.roomCode = "PREVIEW";
-  state.sessionInfo = { class_label: "จอทดลองครู" };
-  state.student = { full_name: "ครูทดลองเล่น", nickname: "ครู", avatar: "🎓", student_code: "PREVIEW" };
-  state.player = { id: previewId, student_id: previewId, session_id: previewId, status: "approved" };
+  state.sessionInfo = { class_label: demoClass };
+  state.student = { full_name: demoName, nickname: demoName, avatar: demoAvatar, student_code: "DEMO" };
+  state.player = { id: demoPlayerId, student_id: demoPlayerId, session_id: previewId, status: "approved" };
   state.session = {
     id: previewId,
     plan_id: planId,
@@ -3137,11 +3162,11 @@ function initializeProjectorPreview() {
   state.renderedLessonRoundId = null;
   state.attempts = [];
 
-  $("#playerAvatar").textContent = "🎓";
-  $("#playerName").textContent = "ครู";
-  $("#studentLiveAvatar").textContent = "🎓";
-  $("#studentLiveName").textContent = "ครูทดลองเล่น";
-  $("#studentLiveClass").textContent = "จอทดลอง · ไม่บันทึกคะแนน";
+  $("#playerAvatar").textContent = demoAvatar;
+  $("#playerName").textContent = demoName;
+  $("#studentLiveAvatar").textContent = demoAvatar;
+  $("#studentLiveName").textContent = demoName;
+  $("#studentLiveClass").textContent = `${demoClass} · ไม่บันทึกคะแนน`;
   $("#playerProfilePhoto").classList.add("hidden");
   $("#studentLiveProfilePhoto").classList.add("hidden");
   $("#playerAvatar").classList.remove("hidden");
