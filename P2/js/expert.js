@@ -242,7 +242,6 @@ function renderStudentSelect() {
 }
 
 function renderHeaders() {
-  $("#expertTeacherSchool").textContent = state.school;
   $("#expertTeacherClass").textContent = `${state.school} · ${state.classroom}`;
   $("#expertTeacherPlanTitle").textContent = `แผนที่ ${state.planId} · ${planTitle()}`;
   $("#expertStudentPlanLabel").textContent = `แผนที่ ${state.planId} · ${planTitle()}`;
@@ -546,6 +545,21 @@ document.addEventListener("fullscreenchange", () => {
   }
 });
 
+function fitMirroredScreens() {
+  $$(".expert-real-device-screen").forEach(screen => {
+    const scale = Math.max(0.1, screen.clientWidth / 1024);
+    screen.style.setProperty("--expert-demo-scale", String(scale));
+  });
+}
+
+const mirroredScreenObserver = typeof ResizeObserver === "function"
+  ? new ResizeObserver(fitMirroredScreens)
+  : null;
+
+$$(".expert-real-device-screen").forEach(screen => mirroredScreenObserver?.observe(screen));
+window.addEventListener("resize", fitMirroredScreens, { passive: true });
+
 state = createSession();
 renderAll();
 showOnly("#expertStudentJoinView");
+fitMirroredScreens();

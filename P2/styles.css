@@ -3576,3 +3576,262 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .expert-demo-state-card,
   .expert-demo-question-card { border-radius: 15px; }
 }
+
+/* Keep the public sandbox visually aligned with the real 1024 × 768
+   teacher and student pages. The page remains isolated; only the layout is
+   mirrored here. */
+.expert-demo-workspace .expert-real-device-screen {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  min-height: 0;
+  overflow: hidden;
+}
+.expert-demo-workspace .expert-demo-app {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 1024px;
+  height: 768px;
+  min-height: 768px;
+  overflow: auto;
+  transform: scale(var(--expert-demo-scale, .65));
+  transform-origin: top left;
+}
+.expert-demo-workspace .expert-demo-app.expert-embed { height: 768px; overflow: auto; }
+.expert-mirror-app-header {
+  position: relative !important;
+  top: auto !important;
+  z-index: 6;
+  width: 100%;
+  min-height: 52px !important;
+  padding: 6px 14px !important;
+}
+.expert-mirror-app-header .brand { pointer-events: none; }
+.expert-mirror-app-header .brand small { display: block !important; }
+.expert-mirror-app-header .button { display: inline-flex !important; }
+.expert-mirror-dashboard {
+  width: 100%;
+  height: 716px !important;
+  min-height: 0 !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  overflow: hidden;
+}
+.expert-mirror-dashboard .dashboard-sidebar {
+  position: static !important;
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 7px 10px !important;
+}
+.expert-mirror-dashboard .teacher-profile { display: none; }
+.expert-mirror-dashboard .dashboard-sidebar nav {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+.expert-mirror-dashboard .dashboard-sidebar nav button {
+  min-width: 0;
+  min-height: 42px !important;
+  justify-content: center;
+  padding: 6px 8px !important;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+.expert-mirror-dashboard .dashboard-sidebar nav button span {
+  margin-right: 6px !important;
+  font-size: 17px !important;
+}
+.expert-mirror-dashboard .dashboard-sidebar .nav-count-badge {
+  margin-left: 6px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  color: #231c74;
+  background: #fff;
+  font-size: 9px;
+}
+.expert-mirror-dashboard .dashboard-main {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 12px !important;
+  overflow: auto;
+}
+.expert-mirror-dashboard .teacher-flow-shell { min-height: 0 !important; }
+.expert-mirror-dashboard .teacher-flow-header {
+  display: flex !important;
+  max-width: none;
+  margin: 0 0 10px;
+}
+.expert-mirror-dashboard .teacher-flow-header h1 {
+  margin: 2px 0 3px;
+  font-size: 25px;
+}
+.expert-mirror-dashboard .teacher-flow-header p { display: block; font-size: 12px; }
+.expert-mirror-room-code {
+  min-width: 150px;
+  padding: 8px 12px;
+  border: 1px solid #ddd9fa;
+  border-radius: 13px;
+  text-align: center;
+  background: #f4f2ff;
+}
+.expert-mirror-room-code small,
+.expert-mirror-room-code strong { display: block; }
+.expert-mirror-room-code small { color: #726b99; font-size: 9px; font-weight: 900; }
+.expert-mirror-room-code strong {
+  margin-top: 1px;
+  color: #4b3bc4;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 20px;
+  letter-spacing: .13em;
+}
+.expert-mirror-dashboard .teacher-flow-progress {
+  display: grid !important;
+  max-width: none;
+  margin-bottom: 10px;
+}
+.expert-mirror-dashboard .teacher-flow-progress li span {
+  width: 29px;
+  height: 29px;
+  font-size: 11px;
+}
+.expert-mirror-dashboard .teacher-flow-progress li::before { top: 13px; }
+.expert-mirror-dashboard .teacher-flow-progress li small { display: block; font-size: 9px; }
+.expert-mirror-flow-step {
+  min-height: 0 !important;
+  max-width: none !important;
+  padding: 13px !important;
+  border-radius: 18px !important;
+}
+.expert-mirror-flow-step .expert-demo-notice {
+  margin-bottom: 9px;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+.expert-mirror-flow-step .expert-demo-control-card {
+  grid-template-columns: minmax(0, 1.25fr) minmax(250px, .75fr);
+  margin-bottom: 9px;
+  padding: 11px;
+}
+.expert-mirror-flow-step .expert-demo-control-card small { font-size: 10px; }
+.expert-mirror-flow-step .expert-demo-control-card h2 { font-size: 18px; }
+.expert-mirror-flow-step .expert-demo-control-card p { font-size: 10px; }
+.expert-mirror-flow-step .expert-demo-control-card label { font-size: 10px; }
+.expert-mirror-flow-step .expert-demo-control-card select { min-height: 38px; font-size: 11px; }
+.expert-mirror-flow-step .expert-demo-control-actions .button {
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 10px;
+}
+.expert-mirror-flow-step .expert-demo-teacher-grid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+}
+.expert-mirror-flow-step .expert-demo-panel { padding: 10px; }
+.expert-mirror-flow-step .expert-demo-panel-heading h3 { font-size: 13px; }
+.expert-mirror-flow-step .expert-demo-panel-heading small,
+.expert-mirror-flow-step .expert-demo-panel-heading > span { font-size: 9px; }
+.expert-mirror-flow-step .expert-demo-activity strong { font-size: 10px; }
+.expert-mirror-flow-step .expert-demo-activity small,
+.expert-mirror-flow-step .expert-demo-activity > i { font-size: 8px; }
+.expert-mirror-flow-step .expert-demo-roster-row strong { font-size: 9px; }
+.expert-mirror-flow-step .expert-demo-roster-row small,
+.expert-mirror-flow-step .expert-demo-roster-row button,
+.expert-mirror-flow-step .expert-demo-roster-row b { font-size: 8px; }
+.expert-mirror-flow-step .expert-demo-leaderboard li > strong { font-size: 9px; }
+.expert-mirror-flow-step .expert-demo-leaderboard li > small { font-size: 8px; }
+
+.expert-mirror-student-shell {
+  width: 100% !important;
+  max-width: none !important;
+  height: 716px;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: auto;
+}
+.expert-mirror-student-shell .expert-student-view {
+  width: min(820px, calc(100% - 40px));
+  margin: 0 auto;
+}
+.expert-mirror-student-shell #expertStudentJoinView {
+  padding: 30px 0 54px;
+}
+.expert-mirror-student-shell .expert-demo-student-progress {
+  width: 100%;
+  min-height: 82px;
+  grid-template-columns: 48px minmax(0, 1fr);
+  margin-bottom: 15px;
+  padding: 14px 20px;
+  border-radius: 20px;
+}
+.expert-mirror-student-shell .expert-demo-student-progress > span {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  font-size: 22px;
+}
+.expert-mirror-student-shell .expert-demo-student-progress small { font-size: 12px; }
+.expert-mirror-student-shell .expert-demo-student-progress strong { font-size: 19px; }
+.expert-mirror-student-shell .expert-demo-student-progress > i {
+  height: 8px;
+  margin-top: 6px;
+}
+.expert-mirror-student-shell .expert-demo-join-card {
+  width: 100%;
+  padding: 30px 42px;
+  border-radius: 24px;
+}
+.expert-mirror-student-shell .expert-demo-lock {
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  font-size: 38px;
+}
+.expert-mirror-student-shell .expert-demo-join-card h2 { font-size: 31px; }
+.expert-mirror-student-shell .expert-demo-join-card p { font-size: 14px; }
+.expert-mirror-student-shell .expert-demo-join-card label { font-size: 12px; }
+.expert-mirror-student-shell .expert-demo-join-card input {
+  min-height: 58px;
+  font-size: 30px;
+}
+.expert-mirror-student-shell .expert-demo-join-card select {
+  min-height: 46px;
+  font-size: 14px;
+}
+.expert-mirror-student-shell .expert-demo-join-card .button {
+  min-height: 50px;
+  font-size: 15px;
+}
+.expert-mirror-student-shell .expert-demo-join-card > small { font-size: 11px; }
+.expert-mirror-student-shell .centered-view {
+  min-height: 660px;
+  place-items: center;
+}
+.expert-mirror-student-shell .expert-demo-state-card {
+  width: min(620px, 100%);
+  margin: 30px auto;
+  padding: 44px;
+}
+.expert-mirror-student-shell #expertStudentGameView {
+  width: min(900px, calc(100% - 36px));
+  padding: 24px 0;
+}
+.expert-mirror-student-shell .expert-demo-question-card {
+  padding: 24px;
+}
+.expert-mirror-student-shell .expert-demo-options button {
+  min-height: 50px;
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .expert-demo-workspace .expert-real-device-screen {
+    aspect-ratio: 4 / 3;
+    min-height: 0;
+  }
+  .expert-demo-workspace .expert-demo-app {
+    width: 1024px;
+    height: 768px;
+    min-height: 768px;
+  }
+}

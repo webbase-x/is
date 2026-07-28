@@ -8,7 +8,7 @@
   <meta name="referrer" content="no-referrer">
   <meta name="description" content="โหมดผู้เชี่ยวชาญสาธารณะ ใช้ข้อมูลโรงเรียน นักเรียน ห้องเรียน และคะแนนจำลองทั้งหมด ไม่เชื่อมต่อฐานข้อมูลจริง">
   <title>โหมดผู้เชี่ยวชาญสาธารณะ | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260728-public-expert-sandbox-1">
+  <link rel="stylesheet" href="styles.css?v=20260728-expert-real-layout-2">
 </head>
 <body class="expert-page expert-public-page">
   <header class="site-header expert-header">
@@ -80,13 +80,48 @@
           <span id="expertTeacherStatus" class="expert-real-status ready">เข้าสู่ระบบจำลองแล้ว</span>
         </header>
         <div class="expert-real-device-screen">
-          <div class="expert-demo-app expert-demo-teacher">
-            <header class="expert-demo-appbar expert-demo-teacher-bar">
-              <div><span>ก</span><div><strong>คำไทยผจญภัย</strong><small id="expertTeacherSchool">โรงเรียนจำลอง</small></div></div>
-              <div class="expert-demo-room"><small>รหัสห้อง</small><strong data-room-code>000000</strong></div>
+          <div class="expert-demo-app expert-demo-teacher teacher-page expert-teacher-embed expert-embed">
+            <header class="app-header teacher-header expert-mirror-app-header">
+              <span class="brand compact light"><span class="brand-mark">ก</span><span><strong>คำไทยผจญภัย</strong><small>จอควบคุมครู</small></span></span>
+              <div class="header-actions">
+                <span class="button button-small button-dark">โหมดผู้เชี่ยวชาญ</span>
+                <span class="status-pill dark"><i></i> เชื่อมต่อแล้ว</span>
+              </div>
             </header>
 
-            <main class="expert-demo-teacher-main">
+            <main class="dashboard-shell expert-mirror-dashboard">
+              <aside class="dashboard-sidebar">
+                <div class="teacher-profile"><span>ค</span><div><small>ครูผู้สอน</small><strong>ผู้เชี่ยวชาญ (จำลอง)</strong></div></div>
+                <nav>
+                  <button class="active" type="button"><span>🎛️</span> ควบคุมคาบ</button>
+                  <button type="button"><span>📱</span> แสดงผลจอ นร. <small class="nav-count-badge">1</small></button>
+                  <button type="button"><span>👥</span> รายชื่อนักเรียน</button>
+                  <button type="button"><span>📊</span> คะแนนและรายงาน</button>
+                  <button type="button"><span>🗺️</span> แผนการเรียนรู้</button>
+                </nav>
+              </aside>
+
+              <div class="dashboard-main">
+                <section class="dashboard-panel active">
+                  <div class="teacher-flow-shell">
+                    <header class="teacher-flow-header">
+                      <div>
+                        <span class="eyebrow">คาบเรียนปัจจุบัน</span>
+                        <h1>ควบคุมการสอนและผลการแข่งขัน</h1>
+                        <p>ห้องเรียนและนักเรียนทั้งหมดเป็นข้อมูลจำลอง</p>
+                      </div>
+                      <div class="teacher-room-code expert-mirror-room-code"><small>รหัสห้องเรียน</small><strong data-room-code>000000</strong></div>
+                    </header>
+                    <ol class="teacher-flow-progress" aria-label="ขั้นตอนเปิดคาบ">
+                      <li><span>1</span><small>เลือกห้อง</small></li>
+                      <li><span>2</span><small>QR</small></li>
+                      <li class="active"><span>3</span><small>รับนักเรียน</small></li>
+                      <li><span>4</span><small>เลือกแผน</small></li>
+                      <li><span>5</span><small>แข่งขัน</small></li>
+                      <li><span>6</span><small>สรุปผล</small></li>
+                    </ol>
+
+                    <section class="teacher-flow-step expert-mirror-flow-step">
               <section class="expert-demo-notice">
                 <span aria-hidden="true">✓</span>
                 <p><strong>เข้าสู่ระบบด้วยบัญชีจำลองสำเร็จ</strong> ข้อมูลคาบนี้อยู่ในหน่วยความจำของหน้าเว็บเท่านั้น</p>
@@ -123,6 +158,10 @@
                   <ol id="expertLeaderboard" class="expert-demo-leaderboard"></ol>
                 </section>
               </div>
+                    </section>
+                  </div>
+                </section>
+              </div>
             </main>
           </div>
         </div>
@@ -138,30 +177,30 @@
           <span id="expertStudentStatus" class="expert-real-status ready">พร้อมเข้าห้อง</span>
         </header>
         <div class="expert-real-device-screen">
-          <div class="expert-demo-app expert-demo-student">
-            <header class="expert-demo-appbar expert-demo-student-bar">
-              <div><span>ก</span><div><strong>คำไทยผจญภัย</strong><small>นักเรียนจำลอง ป.2</small></div></div>
-              <span class="expert-demo-online"><i></i> เชื่อมต่อในหน้านี้</span>
+          <div class="expert-demo-app expert-demo-student student-page expert-student-embed expert-embed">
+            <header class="app-header expert-mirror-app-header">
+              <span class="brand compact"><span class="brand-mark">ก</span><span><strong>คำไทยผจญภัย</strong><small>มาตราตัวสะกด ภาษาไทย ป.2</small></span></span>
+              <span class="status-pill"><i></i> เชื่อมต่อแล้ว</span>
             </header>
 
-            <main class="expert-demo-student-main">
-              <section id="expertStudentJoinView" class="expert-student-view">
-                <div class="expert-demo-student-progress"><span>1</span><div><small>ทำทีละขั้นนะ</small><strong>ใส่รหัสห้อง</strong></div><i></i></div>
-                <div class="expert-demo-join-card">
-                  <span class="expert-demo-lock" aria-hidden="true">#</span>
+            <main class="app-shell student-shell expert-demo-student-main expert-mirror-student-shell">
+              <section id="expertStudentJoinView" class="view student-onboarding expert-student-view">
+                <div class="student-progress expert-demo-student-progress"><span>1</span><div><small>ทำทีละขั้นนะ</small><strong>ใส่รหัสห้อง</strong></div><i></i></div>
+                <div class="panel student-step-card expert-demo-join-card">
+                  <span class="expert-demo-lock" aria-hidden="true">🔐</span>
                   <h2>ใส่รหัสห้องเรียน</h2>
                   <p>รหัสถูกสร้างใหม่สำหรับการทดลองครั้งนี้</p>
                   <label for="expertStudentRoomInput">รหัสห้องเรียน 6 ตัว</label>
-                  <input id="expertStudentRoomInput" inputmode="numeric" maxlength="6" autocomplete="off" value="000000">
+                  <input id="expertStudentRoomInput" class="room-code-input student-room-code" inputmode="numeric" maxlength="6" autocomplete="off" value="000000">
                   <label for="expertStudentSelect">เลือกนักเรียนสมมติ</label>
                   <select id="expertStudentSelect"></select>
-                  <button id="expertStudentJoinButton" class="button button-primary button-large full" type="button">เข้าห้องจำลอง</button>
+                  <button id="expertStudentJoinButton" class="button button-primary student-next-button full" type="button">เข้าห้องจำลอง</button>
                   <small>ไม่ใช้ชื่อ รูป หรือข้อมูลของนักเรียนจริง</small>
                 </div>
               </section>
 
-              <section id="expertStudentWaitingView" class="expert-student-view hidden" aria-live="polite">
-                <div class="expert-demo-state-card waiting">
+              <section id="expertStudentWaitingView" class="view centered-view expert-student-view hidden" aria-live="polite">
+                <div class="panel waiting-card expert-demo-state-card waiting">
                   <span aria-hidden="true">…</span>
                   <h2>ส่งคำขอเข้าห้องแล้ว</h2>
                   <p>รอครูอนุมัติจากจอครูด้านข้าง</p>
@@ -170,8 +209,8 @@
                 </div>
               </section>
 
-              <section id="expertStudentLobbyView" class="expert-student-view hidden" aria-live="polite">
-                <div class="expert-demo-state-card approved">
+              <section id="expertStudentLobbyView" class="view centered-view expert-student-view hidden" aria-live="polite">
+                <div class="panel waiting-card expert-demo-state-card approved">
                   <span aria-hidden="true">✓</span>
                   <h2>ครูอนุมัติแล้ว</h2>
                   <p>เตรียมพร้อม รอครูเริ่มกิจกรรม</p>
@@ -180,7 +219,7 @@
                 </div>
               </section>
 
-              <section id="expertStudentGameView" class="expert-student-view hidden" aria-live="polite">
+              <section id="expertStudentGameView" class="view expert-student-view hidden" aria-live="polite">
                 <div class="expert-demo-game-top">
                   <div><small id="expertGameMission">ภารกิจ 1 จาก 3</small><h2 id="expertGameTitle">กิจกรรมจำลอง</h2></div>
                   <div class="expert-demo-score"><span>ดาว <b id="expertStudentStars">0</b></span><span>คะแนน <b id="expertStudentScore">0</b></span></div>
@@ -197,8 +236,8 @@
                 </div>
               </section>
 
-              <section id="expertStudentResultView" class="expert-student-view hidden" aria-live="polite">
-                <div class="expert-demo-state-card result">
+              <section id="expertStudentResultView" class="view centered-view expert-student-view hidden" aria-live="polite">
+                <div class="panel waiting-card expert-demo-state-card result">
                   <span aria-hidden="true">★</span>
                   <h2>จบภารกิจแล้ว</h2>
                   <p>ผลคะแนนจำลองจะแสดงในจอครู แต่ไม่บันทึกลงฐานข้อมูล</p>
@@ -224,6 +263,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <footer class="site-footer">คำไทยผจญภัย · โหมดผู้เชี่ยวชาญสาธารณะ · ข้อมูลจำลองเท่านั้น</footer>
-  <script type="module" src="js/expert.js?v=20260728-public-expert-sandbox-1"></script>
+  <script type="module" src="js/expert.js?v=20260728-expert-real-layout-4"></script>
 </body>
 </html>
