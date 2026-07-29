@@ -5,7 +5,7 @@ import {
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260727-plan8-mae-kon-1";
+} from "./common.js?v=20260729-plan1-core-plan2-time-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -1125,7 +1125,7 @@ function renderActivity(key) {
     renderLivePlanActivity(key);
     return;
   }
-  const renderers = { rhythm: renderRhythm, wheel: renderWheel, sound: renderSound, sort: renderSort, train: renderTrain, vote: renderVote, exit: renderExit };
+  const renderers = { rhythm: renderRhythm, sort: renderSort, train: renderTrain, exit: renderExit };
   renderers[key]?.();
 }
 

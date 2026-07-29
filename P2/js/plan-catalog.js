@@ -49,7 +49,7 @@ export const PLAN_CATALOG = Object.freeze([
     unitDuration: "8 ชั่วโมง",
     published: true,
     liveReady: true,
-    activityKeys: ["rhythm", "wheel", "sound", "sort", "train", "vote", "exit"],
+    activityKeys: ["rhythm", "sort", "train", "exit"],
     document: "plan/01.docx",
     worksheet: "worksheet-plans.html?plan=1",
     mediaStatus: "ไฟล์เพลงและเกมโต้ตอบ",
