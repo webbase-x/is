@@ -13,7 +13,7 @@ const configs={
 4:{title:"ใบงานที่ 4 มาตราแม่เกยและแม่เกอว",words:"กล้วย　แมว　ร่ม　ถ้วย　ดาว　กบ　ป้าย　แก้ว　นก　ยาย",left:"แม่เกย: ย สะกด",right:"แม่เกอว: ว สะกด",summary:"แม่เกยมีตัว ______ สะกด ส่วนแม่เกอวมีตัว ______ สะกด"},
 5:{title:"ใบงานที่ 5 มาตราแม่กก",words:"นก　แมว　เลข　เมฆ　ส้ม　สุข　จาน　สุนัข　ลูก　กล้วย",left:"ตรงมาตรา: ก",right:"ไม่ตรงมาตรา: ข ค ฆ",summary:"แม่กกออกเสียงเหมือนตัว ______ สะกด"},
 6:{title:"ใบงานที่ 6 มาตราแม่กด",words:"มด　ช้าง　รถ　เห็ด　ดาว　โกรธ　ปาก　กระดาษ　เป็ด　กล้วย",left:"ตรงมาตรา: ด",right:"ไม่ตรงมาตรา: ตัวอื่น",summary:"แม่กดออกเสียงเหมือนตัว ______ สะกด"},
-7:{title:"ใบงานที่ 7 มาตราแม่กบ",words:"กบ　ช้าง　รูป　ดาบ　มด　ภาพ　ส้ม　ยีราฟ　จับ　ดาว",left:"ตรงมาตรา: บ",right:"ไม่ตรงมาตรา: ป พ ฟ ภ",summary:"แม่กบออกเสียงเหมือนตัว ______ สะกด"},
-8:{title:"ใบงานที่ 8 มาตราแม่กน",words:"บ้าน　ช้าง　ของขวัญ　คุณ　มด　ทหาร　ดาว　พยาบาล　จาน　ปลาวาฬ",left:"ตรงมาตรา: น",right:"ไม่ตรงมาตรา: ญ ณ ร ล ฬ",summary:"แม่กนออกเสียงเหมือนตัว ______ สะกด"}};
+7:{title:"ใบงานที่ 7 มาตราแม่กน",words:"บ้าน　ช้าง　ของขวัญ　คุณ　มด　ทหาร　ดาว　พยาบาล　จาน　ปลาวาฬ",left:"ตรงมาตรา: น",right:"ไม่ตรงมาตรา: ณ ญ ร ล ฬ",summary:"แม่กนออกเสียงเหมือนตัว ______ สะกด"},
+8:{title:"ใบงานที่ 8 มาตราแม่กบ",words:"กบ　ช้าง　รูป　ดาบ　มด　ภาพ　ส้ม　ยีราฟ　จับ　ดาว",left:"ตรงมาตรา: บ",right:"ไม่ตรงมาตรา: ป พ ฟ ภ",summary:"แม่กบออกเสียงเหมือนตัว ______ สะกด"}};
 const plan=Number(new URLSearchParams(location.search).get("plan"))||4,c=configs[plan]||configs[4];document.title=c.title;document.querySelector("#title").textContent=c.title;document.querySelector("#words").textContent=c.words;document.querySelector("#leftTitle").textContent=c.left;document.querySelector("#rightTitle").textContent=c.right;document.querySelector("#sortInstruction").textContent=c.sortInstruction||"นำเฉพาะคำที่วงกลมในตอนที่ 1 มาแยกประเภทลงในช่องให้ถูกต้อง";document.querySelector("#summary").textContent=c.summary;
 </script></body></html>

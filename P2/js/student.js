@@ -5,7 +5,7 @@ import {
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260729-plan1-core-plan2-time-1";
+} from "./common.js?v=20260729-plan-order-7-8-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -183,13 +183,13 @@ const LIVE_PLAN_GAME_DATA = Object.freeze({
     ],
     exit: [
       { prompt:"คำมาตราแม่กดมีลักษณะอย่างไร", options:["ออกเสียงท้ายเหมือน ด สะกด","มี ด เป็นตัวสะกดเท่านั้น","ไม่มีตัวสะกด"], answer:"ออกเสียงท้ายเหมือน ด สะกด" },
-      { prompt:"ข้อใดเป็นกลุ่มตัวสะกดในมาตราแม่กด", options:["ด จ ช ต ถ ท ธ ศ ษ ส","ก ข ค ฆ","บ ป พ ฟ ภ"], answer:"ด จ ช ต ถ ท ธ ศ ษ ส" },
+      { prompt:"ข้อใดเป็นกลุ่มตัวสะกดในมาตราแม่กด", options:["จ ช ซ ฎ ฏ ฐ ฑ ฒ ด ต ถ ท ธ ศ ษ ส","ก ข ค ฆ","บ ป พ ฟ ภ"], answer:"จ ช ซ ฎ ฏ ฐ ฑ ฒ ด ต ถ ท ธ ศ ษ ส" },
       { prompt:"คำใดเป็นแม่กดสะกดตรงมาตรา", options:["สด","รถ","โกรธ"], answer:"สด" },
       { prompt:"คำใดเป็นแม่กดสะกดไม่ตรงมาตรา", options:["รถ","ลม","ปีก"], answer:"รถ" },
       { prompt:"ข้อใดเป็นคำมาตราแม่กดทั้ง 2 คำ", options:["โทษ, ชาติ","ส้ม, หวัด","ปลา, อิฐ"], answer:"โทษ, ชาติ" },
     ],
   },
-  7: {
+  8: {
     title: "มาตราแม่กบ", targetLabel: "แม่กบ", rule: "ออกเสียงเหมือน บ สะกด เขียนด้วย บ ป พ ฟ หรือ ภ",
     target: [["กระสอบ","🧺"],["ตะเกียบ","🥢"],["บีบ","🤏"],["มอบ","🎁"],["ระเบียบ","📋"],["กลับ","↩️"],["ครอบ","🔔"],["หลับ","😴"],["เหยียบ","🦶"],["เคารพ","🙏"]],
     compare: [["จาน","🍽️"],["ส้ม","🍊"],["ปลา","🐟"],["ถ้วย","🥣"],["ดาว","⭐"],["ทุ่ง","🌾"],["บัว","🪷"],["ร่ม","☂️"],["ยาว","📏"],["นก","🐦"]],
@@ -207,14 +207,14 @@ const LIVE_PLAN_GAME_DATA = Object.freeze({
     ],
     exit: [
       { prompt:"คำมาตราแม่กบมีลักษณะอย่างไร", options:["ออกเสียงท้ายเหมือน บ สะกด","มี บ เป็นตัวสะกดเท่านั้น","ไม่มีตัวสะกด"], answer:"ออกเสียงท้ายเหมือน บ สะกด" },
-      { prompt:"พยัญชนะใดใช้สะกดคำมาตราแม่กบได้", options:["บ ป พ ฟ ภ","ด จ ช ต ถ","น ญ ณ ร ล"], answer:"บ ป พ ฟ ภ" },
+      { prompt:"พยัญชนะใดใช้สะกดคำมาตราแม่กบได้", options:["บ ป พ ฟ ภ","ด จ ช ต ถ","น ณ ญ ร ล"], answer:"บ ป พ ฟ ภ" },
       { prompt:"คำใดเป็นแม่กบสะกดตรงมาตรา", options:["ดาบ","รูป","ภาพ"], answer:"ดาบ" },
       { prompt:"คำใดเป็นแม่กบสะกดไม่ตรงมาตรา", options:["รูป","มด","ปีก"], answer:"รูป" },
       { prompt:"ข้อใดเป็นคำมาตราแม่กบทั้ง 2 คำ", options:["ภาพ, ยีราฟ","ส้ม, หลับ","ปลา, อาชีพ"], answer:"ภาพ, ยีราฟ" },
     ],
   },
-  8: {
-    title: "มาตราแม่กน", targetLabel: "แม่กน", rule: "ออกเสียงเหมือน น สะกด เขียนด้วย น ญ ณ ร ล หรือ ฬ",
+  7: {
+    title: "มาตราแม่กน", targetLabel: "แม่กน", rule: "ออกเสียงเหมือน น สะกด เขียนด้วย น ณ ญ ร ล หรือ ฬ",
     target: [["ค้อน","🔨"],["เดือน","🌙"],["ห่าน","🪿"],["อ้วน","🙂"],["ฝุ่น","🌫️"],["หนอน","🐛"],["กุญแจ","🔑"],["คูณ","✖️"],["โจร","🥷"],["ผล","🍎"]],
     compare: [["ธง","🚩"],["ส้ม","🍊"],["ปลา","🐟"],["ถ้วย","🥣"],["ดาว","⭐"],["ทุ่ง","🌾"],["บัว","🪷"],["ร่ม","☂️"],["นก","🐦"],["กบ","🐸"]],
     secondary: [
@@ -231,7 +231,7 @@ const LIVE_PLAN_GAME_DATA = Object.freeze({
     ],
     exit: [
       { prompt:"คำมาตราแม่กนมีลักษณะอย่างไร", options:["ออกเสียงท้ายเหมือน น สะกด","มี น เป็นตัวสะกดเท่านั้น","ไม่มีตัวสะกด"], answer:"ออกเสียงท้ายเหมือน น สะกด" },
-      { prompt:"พยัญชนะใดใช้สะกดคำมาตราแม่กนได้", options:["น ญ ณ ร ล ฬ","บ ป พ ฟ ภ","ก ข ค ฆ"], answer:"น ญ ณ ร ล ฬ" },
+      { prompt:"พยัญชนะใดใช้สะกดคำมาตราแม่กนได้", options:["น ณ ญ ร ล ฬ","บ ป พ ฟ ภ","ก ข ค ฆ"], answer:"น ณ ญ ร ล ฬ" },
       { prompt:"คำใดเป็นแม่กนสะกดตรงมาตรา", options:["บาน","คุณ","ทหาร"], answer:"บาน" },
       { prompt:"คำใดเป็นแม่กนสะกดไม่ตรงมาตรา", options:["คุณ","ดาบ","ปีก"], answer:"คุณ" },
       { prompt:"ข้อใดเป็นคำมาตราแม่กนทั้ง 2 คำ", options:["ทหาร, ผล","ส้ม, เดือน","ปลา, พยาบาล"], answer:"ทหาร, ผล" },
@@ -2616,19 +2616,19 @@ function renderLivePlanActivity(activityKey) {
     renderMaeKotTreasure(activityKey, data, activity);
     return;
   }
-  if (planId === 7 && activityKey === "island-supply") {
+  if (planId === 8 && activityKey === "island-supply") {
     renderMaeKopSupply(activityKey, data, activity);
     return;
   }
-  if (planId === 7 && activityKey === "island-puzzle") {
+  if (planId === 8 && activityKey === "island-puzzle") {
     renderMaeKopIslandPuzzle(activityKey, data, activity);
     return;
   }
-  if (planId === 8 && activityKey === "space-fuel") {
+  if (planId === 7 && activityKey === "space-fuel") {
     renderMaeKonFuel(activityKey, data, activity);
     return;
   }
-  if (planId === 8 && activityKey === "alien-scan") {
+  if (planId === 7 && activityKey === "alien-scan") {
     renderMaeKonAlienScan(activityKey, data, activity);
     return;
   }

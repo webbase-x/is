@@ -1,9 +1,9 @@
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260727-plan8-mae-kon-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260729-plan-order-7-8-1";
 import {
   activitiesForPlan,
   escapeHtml,
   lessonFlowForPlan,
-} from "./common.js?v=20260729-plan1-core-plan2-time-1";
+} from "./common.js?v=20260729-plan-order-7-8-1";
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];

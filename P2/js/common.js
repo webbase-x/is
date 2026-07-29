@@ -35,14 +35,14 @@ export const PLAN_ACTIVITIES = Object.freeze({
     { key: "exit", icon: "🏆", title: "ด่านดาวพิชิตแม่กด", short: "แบบทดสอบท้ายคาบ", minutes: 5 },
   ]),
   7: freezeActivitySet([
-    { key: "island-supply", icon: "⛵", title: "เก็บเสบียงแม่กบ", short: "เก็บเสบียง", minutes: 10 },
-    { key: "island-puzzle", icon: "🏝️", title: "ไขปริศนาชาวเกาะ", short: "ปริศนาชาวเกาะ", minutes: 15 },
-    { key: "exit", icon: "🏆", title: "ด่านดาวพิชิตแม่กบ", short: "แบบทดสอบท้ายคาบ", minutes: 5 },
-  ]),
-  8: freezeActivitySet([
     { key: "space-fuel", icon: "🚀", title: "เติมเชื้อเพลิงยานแม่กน", short: "เติมเชื้อเพลิง", minutes: 10 },
     { key: "alien-scan", icon: "🛸", title: "สแกนรหัสลับต่างดาว", short: "สแกนรหัสลับ", minutes: 15 },
     { key: "exit", icon: "🏆", title: "ด่านดาวพิชิตแม่กน", short: "แบบทดสอบท้ายคาบ", minutes: 5 },
+  ]),
+  8: freezeActivitySet([
+    { key: "island-supply", icon: "⛵", title: "เก็บเสบียงแม่กบ", short: "เก็บเสบียง", minutes: 10 },
+    { key: "island-puzzle", icon: "🏝️", title: "ไขปริศนาชาวเกาะ", short: "ปริศนาชาวเกาะ", minutes: 15 },
+    { key: "exit", icon: "🏆", title: "ด่านดาวพิชิตแม่กบ", short: "แบบทดสอบท้ายคาบ", minutes: 5 },
   ]),
 });
 
@@ -1407,7 +1407,7 @@ const PLAN_6_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
   },
   {
     key: "p6-rule-demo", stage: 2, kind: "media", icon: "💡", title: "สรุปหลักและสาธิตล่าสมบัติแม่กด", minutes: 2, studentVisibleDefault: false,
-    teacherNotes: ["สรุปว่า คำที่ออกเสียงเหมือน ด สะกด ไม่ว่าจะเขียนด้วยพยัญชนะรูปใด เป็นแม่กด", "ย้ำตัวสะกดแม่กด ได้แก่ ด จ ช ซ ฎ ฏ ฐ ฑ ฒ ต ถ ท ธ ศ ษ ส", "สาธิตเก็บคำแม่กดลงหีบ 1 รอบ และส่งคำมาตราอื่นผ่านไป"],
+    teacherNotes: ["สรุปว่า คำที่ออกเสียงเหมือน ด สะกด ไม่ว่าจะเขียนด้วยพยัญชนะรูปใด เป็นแม่กด", "ย้ำตัวสะกดแม่กด ได้แก่ จ ช ซ ฎ ฏ ฐ ฑ ฒ ด ต ถ ท ธ ศ ษ ส", "สาธิตเก็บคำแม่กดลงหีบ 1 รอบ และส่งคำมาตราอื่นผ่านไป"],
     screen: { eyebrow: "กติกาที่ต้องจำ", title: "แม่กด ฟังเสียง /ด/ ท้ายคำ", message: "ด สะกดตรงมาตรา · พยัญชนะต่างรูปที่ออกเสียง /ด/ คือสะกดไม่ตรงมาตรา", icon: "💎", bullets: ["มด → แม่กดตรงมาตรา", "รถ → แม่กดไม่ตรงมาตรา", "ปีก → แม่กก"] },
   },
   {
@@ -1459,17 +1459,17 @@ const PLAN_6_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
 
 const PLAN_7_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
   {
-    key: "p7-song", stage: 1, kind: "media", icon: "🎵", title: "เพลงมาตราแม่กบ", minutes: 4, studentVisibleDefault: true,
+    key: "p8-song", stage: 1, kind: "media", icon: "🎵", title: "เพลงมาตราแม่กบ", minutes: 4, studentVisibleDefault: true,
     teacherNotes: ["เปิดเพลงมาตราแม่กบวน 2 รอบ ให้นักเรียนยืนร้องและปรบมือตามจังหวะ", "รอบแรกสร้างความคุ้นเคยกับทำนองและคำศัพท์", "รอบที่สองปรบมือเน้นทุกคำที่ออกเสียงเหมือนมี บ สะกด"],
     screen: { eyebrow: "ขั้นที่ 1 · กระตุ้นความสนใจ", title: "ร้องเพลงมาตราแม่กบ", message: "รอบแรก ร้องตามจังหวะ · รอบสอง ปรบมือเน้นคำที่ออกเสียงเหมือนมี บ สะกด", icon: "🎤", presentation: "video", videoId: "GQu_HZA0sKY", bullets: ["ตั้งใจฟังเสียงท้ายคำ", "พบเสียง /บ/ ท้ายคำแล้วปรบมือให้ดังขึ้น"] },
   },
   {
-    key: "p7-song-reflect", stage: 1, kind: "media", icon: "💭", title: "คำถามกระตุ้นคิดหลังเพลง", minutes: 1, studentVisibleDefault: false,
+    key: "p8-song-reflect", stage: 1, kind: "media", icon: "💭", title: "คำถามกระตุ้นคิดหลังเพลง", minutes: 1, studentVisibleDefault: false,
     teacherNotes: ["ถามว่า “คำว่า ดาบ กับคำว่า รูป ออกเสียงท้ายคำเหมือนกันหรือไม่”", "ถามต่อว่า “ทั้งสองคำเขียนตัวสะกดเหมือนกันหรือไม่”", "เชื่อมคำตอบไปสู่คำแม่กบที่เขียนด้วย บ ป พ ฟ ภ"],
     screen: { eyebrow: "ชวนคิดหลังจบเพลง", title: "ดาบ กับ รูป เหมือนและต่างกันอย่างไร?", message: "เสียงท้ายเหมือน /บ/ แต่เขียนตัวสะกดต่างกัน", icon: "❓", bullets: ["ดาบ ใช้ บ สะกดตรงมาตรา", "รูป ใช้ ป สะกดไม่ตรงมาตรา"] },
   },
   {
-    key: "p7-flashcards", stage: 2, kind: "media", icon: "🗂️", title: "แฟลชการ์ดคำแม่กบและคำเปรียบเทียบ", minutes: 3, studentVisibleDefault: false,
+    key: "p8-flashcards", stage: 2, kind: "media", icon: "🗂️", title: "แฟลชการ์ดคำแม่กบและคำเปรียบเทียบ", minutes: 3, studentVisibleDefault: false,
     teacherNotes: ["ฉายแฟลชการ์ดเต็มจอทีละคำ ให้นักเรียนอ่านพร้อมกันและบอกความหมายสั้น ๆ", "ชี้พยัญชนะต้น สระ ตัวสะกด และบอกว่าสะกดตรงหรือไม่ตรงมาตรา", "เปรียบเทียบ ปีก และ มด เพื่อทบทวนแม่กกและแม่กด"],
     screen: {
       eyebrow: "ขั้นที่ 2 · เชื่อมโยงความรู้เดิม", title: "คำไหนออกเสียงเหมือนมี บ สะกด?", message: "อ่านออกเสียง บอกความหมาย แล้วสังเกตรูปตัวสะกด", icon: "🔎", presentation: "flashcards",
@@ -1488,70 +1488,70 @@ const PLAN_7_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
     },
   },
   {
-    key: "p7-rule-demo", stage: 2, kind: "media", icon: "💡", title: "สรุปหลักและสาธิตเก็บเสบียงแม่กบ", minutes: 2, studentVisibleDefault: false,
+    key: "p8-rule-demo", stage: 2, kind: "media", icon: "💡", title: "สรุปหลักและสาธิตเก็บเสบียงแม่กบ", minutes: 2, studentVisibleDefault: false,
     teacherNotes: ["สรุปว่า คำที่ออกเสียงเหมือน บ สะกด และเขียนด้วย บ ป พ ฟ ภ เป็นแม่กบ", "ย้ำว่า บ สะกดตรงมาตรา ส่วน ป พ ฟ ภ สะกดไม่ตรงมาตรา", "สาธิตเก็บคำแม่กบขึ้นเรือ 1 รอบ และส่งคำมาตราอื่นผ่านไป"],
     screen: { eyebrow: "กติกาที่ต้องจำ", title: "แม่กบ ฟังเสียง /บ/ ท้ายคำ", message: "บ สะกดตรงมาตรา · ป พ ฟ ภ สะกดไม่ตรงมาตรา", icon: "⛵", bullets: ["ดาบ → แม่กบตรงมาตรา", "รูป → แม่กบไม่ตรงมาตรา", "ปีก → แม่กก"] },
   },
   {
-    key: "p7-island-supply", stage: 3, kind: "game", activityKey: "island-supply", icon: "⛵", title: "ด่านที่ 1 · เก็บเสบียงแม่กบ", minutes: 10, studentVisibleDefault: true,
+    key: "p8-island-supply", stage: 3, kind: "game", activityKey: "island-supply", icon: "⛵", title: "ด่านที่ 1 · เก็บเสบียงแม่กบ", minutes: 10, studentVisibleDefault: true,
     teacherNotes: ["ให้นักเรียนเลือกคำแม่กบจากคำทั้งหมด 20 คำ ซึ่งไม่ซ้ำกับแฟลชการ์ด", "เก็บถูกเรือเรืองแสงและได้คะแนน เก็บผิดเรือสั่นพร้อมอธิบายเหตุผล", "ติดตามคะแนนและช่วยนักเรียนที่ยังฟังเสียงท้ายคำไม่ชัด"],
     screen: { eyebrow: "ขั้นที่ 3 · ลงมือเล่นเกม", title: "เก็บเสบียงแม่กบ", message: "เลือกเฉพาะคำที่ออกเสียงเหมือนมี บ สะกดขึ้นเรือ", icon: "🚢", bullets: ["คำทั้งหมด 20 คำ", "คำแม่กบ 10 คำ", "คำมาตราอื่น 10 คำ"] },
   },
   {
-    key: "p7-island-puzzle", stage: 3, kind: "game", activityKey: "island-puzzle", icon: "🏝️", title: "ด่านที่ 2 · ไขปริศนาชาวเกาะ", minutes: 15, studentVisibleDefault: true,
+    key: "p8-island-puzzle", stage: 3, kind: "game", activityKey: "island-puzzle", icon: "🏝️", title: "ด่านที่ 2 · ไขปริศนาชาวเกาะ", minutes: 15, studentVisibleDefault: true,
     teacherNotes: ["ให้นักเรียนลากหรือแตะบล็อกคำมาเรียงเป็นประโยคสมบูรณ์ จำนวน 10 ข้อ", "ทุกประโยคมีคำแม่กบอย่างน้อย 1 คำ และมีคำตอบที่ถูกเพียงรูปแบบเดียว", "ระบบเน้นคำแม่กบและอ่านประโยคให้ฟังเมื่อตอบถูก"],
     screen: { eyebrow: "ขั้นที่ 3 · ไขปริศนาประโยค", title: "ไขปริศนาชาวเกาะ", message: "ลากหรือแตะคำตามลำดับให้เป็นประโยคที่ถูกต้อง", icon: "🏝️", bullets: ["มีทั้งหมด 10 ประโยค", "สังเกตคำแม่กบตัวหนา", "ทุกข้อมีคำตอบเดียว"] },
   },
   {
-    key: "p7-island-map-brief", stage: 4, kind: "media", icon: "🗺️", title: "ชี้แจงแผนผังเกาะแม่กบ", minutes: 2, studentVisibleDefault: false,
+    key: "p8-island-map-brief", stage: 4, kind: "media", icon: "🗺️", title: "ชี้แจงแผนผังเกาะแม่กบ", minutes: 2, studentVisibleDefault: false,
     teacherNotes: ["แบ่งนักเรียนกลุ่มละ 3-4 คน แจกกระดาษฟลิปชาร์ตและสีเทียน", "ให้แต่ละกลุ่มเลือกคำแม่กบจากเกมอย่างน้อย 6 คำ", "อธิบายการแยกชายหาด บ สะกด กับยอดเขา ป พ ฟ ภ สะกด"],
     screen: { eyebrow: "ขั้นที่ 4 · ต่อยอดจากผลเกม", title: "แผนผังเกาะแม่กบ", message: "รวบรวมคำแม่กบอย่างน้อย 6 คำ แล้วแยกเป็น 2 บริเวณ", icon: "🗺️", bullets: ["ชายหาด: บ สะกดตรงมาตรา", "ยอดเขา: ป พ ฟ ภ สะกดไม่ตรงมาตรา", "วงกลมตัวสะกดทุกคำ"] },
   },
   {
-    key: "p7-island-map-create", stage: 4, kind: "media", icon: "✍️", title: "สร้างแผนผังเกาะแม่กบ", minutes: 8, studentVisibleDefault: false,
+    key: "p8-island-map-create", stage: 4, kind: "media", icon: "✍️", title: "สร้างแผนผังเกาะแม่กบ", minutes: 8, studentVisibleDefault: false,
     teacherNotes: ["ให้สมาชิกแบ่งหน้าที่กันเลือกคำ เขียนคำ ตรวจตัวสะกด และตกแต่งเกาะ", "เดินตรวจการจำแนกและเตรียมฟังการอ่านของนักเรียนคนที่ 11-13", "ตรวจให้ทุกคำเขียนด้วยตัวบรรจงและวงกลมตัวสะกดแล้ว"],
     screen: { eyebrow: "ลงมือสร้างผลงาน", title: "วางคำลงพื้นที่เกาะให้ถูก", message: "ช่วยกันตรวจเสียงท้ายและรูปตัวสะกด ก่อนนำแผนผังไปติด", icon: "🖍️", bullets: ["อย่างน้อย 6 คำ", "แบ่งชายหาดและยอดเขา", "เตรียมอ่านคำให้เพื่อนฟัง"] },
   },
   {
-    key: "p7-gallery-walk", stage: 4, kind: "media", icon: "⭐", title: "เดินชมเกาะและอ่านออกเสียง", minutes: 5, studentVisibleDefault: false,
+    key: "p8-gallery-walk", stage: 4, kind: "media", icon: "⭐", title: "เดินชมเกาะและอ่านออกเสียง", minutes: 5, studentVisibleDefault: false,
     teacherNotes: ["ให้นักเรียนเดินชมผลงานและติดดาวให้แผนผังที่ชอบที่สุด", "ให้ตัวแทนแต่ละกลุ่มอ่านคำแม่กบของกลุ่มให้เพื่อนฟัง", "ครูฟังนักเรียนคนที่ 11-13 อ่านรายบุคคลและบันทึกผลสะสมให้ครบ 13 คน"],
     screen: { eyebrow: "Gallery Walk", title: "อ่าน ชื่นชม และมอบดาว", message: "เดินชมแผนผังทุกกลุ่ม แล้วฟังตัวแทนอ่านคำแม่กบ", icon: "🌟", bullets: ["ชมทุกผลงาน", "ติดดาวตามกติกา", "ออกเสียงท้าย /บ/ ให้ชัด"] },
   },
   {
-    key: "p7-review-song", stage: 5, kind: "media", icon: "🎵", title: "ร้องเพลงแม่กบทบทวน", minutes: 2, studentVisibleDefault: true,
+    key: "p8-review-song", stage: 5, kind: "media", icon: "🎵", title: "ร้องเพลงแม่กบทบทวน", minutes: 2, studentVisibleDefault: true,
     teacherNotes: ["เปิดเพลงมาตราแม่กบอีก 1 รอบ ให้นักเรียนร้องและปรบมือเน้นเสียง /บ/ ท้ายคำ", "ทบทวนว่าแม่กบเขียนด้วย บ ป พ ฟ และ ภ"],
     screen: { eyebrow: "ขั้นที่ 5 · สรุปและประเมินผล", title: "ร้องเพลงแม่กบอีกครั้ง", message: "ร้องพร้อมกัน และปรบมือเน้นคำที่ออกเสียงเหมือนมี บ สะกด", icon: "🎤", presentation: "video", videoId: "GQu_HZA0sKY" },
   },
   {
-    key: "p7-summary", stage: 5, kind: "media", icon: "💡", title: "สรุปความรู้มาตราแม่กบ", minutes: 1, studentVisibleDefault: false,
-    teacherNotes: ["ให้นักเรียนช่วยกันบอกลักษณะของมาตราแม่กบ", "ย้ำว่า บ สะกดตรงมาตรา ส่วน ป พ ฟ ภ สะกดไม่ตรงมาตรา"],
+    key: "p8-summary", stage: 5, kind: "media", icon: "💡", title: "สรุปมาตราแม่กบและภาพรวมทั้งหน่วย", minutes: 1, studentVisibleDefault: false,
+    teacherNotes: ["ให้นักเรียนช่วยกันบอกลักษณะของมาตราแม่กบ", "ย้ำว่า บ สะกดตรงมาตรา ส่วน ป พ ฟ ภ สะกดไม่ตรงมาตรา", "ทบทวนว่าเรียนครบแม่ ก กา และมาตราตัวสะกดทั้ง 8 มาตราแล้ว"],
     screen: { eyebrow: "จำให้แม่น", title: "แม่กบ ออกเสียงท้าย /บ/", message: "เขียนด้วย บ ป พ ฟ หรือ ภ ก็อยู่ในมาตราแม่กบ", icon: "💡", bullets: ["บ: ดาบ หยิบ", "ป: รูป", "พ: ภาพ อาชีพ", "ฟ: ยีราฟ"] },
   },
   {
-    key: "p7-exit", stage: 5, kind: "game", activityKey: "exit", icon: "🏆", title: "แบบทดสอบท้ายบทเรียนแม่กบ", minutes: 5, studentVisibleDefault: true,
+    key: "p8-exit", stage: 5, kind: "game", activityKey: "exit", icon: "🏆", title: "แบบทดสอบท้ายบทเรียนแม่กบ", minutes: 5, studentVisibleDefault: true,
     teacherNotes: ["ให้นักเรียนทำ Exit Ticket จำนวน 5 ข้อ", "เกณฑ์ผ่าน 3 จาก 5 ข้อ ผู้ผ่านได้รับสติกเกอร์ดาวดิจิทัล", "ฉายคะแนนรวมและเหรียญรางวัลหลังนักเรียนทำเสร็จ"],
     screen: { eyebrow: "ประเมินความเข้าใจ", title: "ด่านดาวพิชิตแม่กบ", message: "ตอบให้ถูกอย่างน้อย 3 จาก 5 ข้อ เพื่อรับดาวดิจิทัล", icon: "🏆", bullets: ["ฟังเสียงท้ายคำ", "สังเกตรูปตัวสะกด", "ตรวจคำตอบก่อนเลือก"] },
   },
   {
-    key: "p7-worksheet", stage: 5, kind: "media", icon: "📄", title: "มอบหมายใบงานที่ 7", minutes: 2, studentVisibleDefault: false,
-    teacherNotes: ["แจกใบงานที่ 7 เรื่องมาตราแม่กบ", "แจ้งวิธีทำและกำหนดส่ง เพื่อทบทวนการจำแนกและเขียนสะกดคำ", "ปิดคาบด้วยการชื่นชมความมุ่งมั่นและความร่วมมือของนักเรียน"],
-    screen: { eyebrow: "ภารกิจทบทวน", title: "ใบงานที่ 7 · มาตราแม่กบ", message: "รับใบงาน ตรวจชื่อ และฟังกำหนดส่งจากคุณครู", icon: "📄", bullets: ["จำแนกคำขึ้นเรือ", "วงกลมคำแม่กบ", "เรียงคำเป็นประโยค"] },
+    key: "p8-worksheet", stage: 5, kind: "media", icon: "📄", title: "มอบหมายใบงานที่ 8 และแจ้งทดสอบหลังเรียน", minutes: 2, studentVisibleDefault: false,
+    teacherNotes: ["แจกใบงานที่ 8 เรื่องมาตราแม่กบ", "แจ้งวิธีทำและกำหนดส่ง เพื่อทบทวนการจำแนกและเขียนสะกดคำ", "แจ้งกำหนดการทดสอบวัดผลสัมฤทธิ์หลังเรียนของหน่วยการเรียนรู้"],
+    screen: { eyebrow: "ภารกิจทบทวน", title: "ใบงานที่ 8 · มาตราแม่กบ", message: "รับใบงาน ตรวจชื่อ ฟังกำหนดส่งและกำหนดทดสอบหลังเรียน", icon: "📄", bullets: ["จำแนกคำขึ้นเรือ", "วงกลมคำแม่กบ", "เรียงคำเป็นประโยค"] },
   },
 ]));
 
 const PLAN_8_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
   {
-    key: "p8-song", stage: 1, kind: "media", icon: "🎵", title: "เพลงมาตราแม่กน", minutes: 4, studentVisibleDefault: true,
+    key: "p7-song", stage: 1, kind: "media", icon: "🎵", title: "เพลงมาตราแม่กน", minutes: 4, studentVisibleDefault: true,
     teacherNotes: ["เปิดเพลงมาตราแม่กนวน 2 รอบ ให้นักเรียนยืนร้องและปรบมือตามจังหวะ", "รอบแรกสร้างความคุ้นเคยกับทำนองและคำศัพท์", "รอบที่สองปรบมือเน้นคำที่ออกเสียงเหมือนมี น สะกด"],
     screen: { eyebrow: "ขั้นที่ 1 · กระตุ้นความสนใจ", title: "ร้องเพลงมาตราแม่กน", message: "รอบแรก ร้องตามจังหวะ · รอบสอง ปรบมือเน้นคำที่ออกเสียงเหมือนมี น สะกด", icon: "🎤", presentation: "video", videoId: "kP_W_88VNmo", bullets: ["ตั้งใจฟังเสียงท้ายคำ", "พบเสียง /น/ ท้ายคำแล้วปรบมือให้ดังขึ้น"] },
   },
   {
-    key: "p8-song-reflect", stage: 1, kind: "media", icon: "💭", title: "คำถามกระตุ้นคิดหลังเพลง", minutes: 1, studentVisibleDefault: false,
-    teacherNotes: ["ถามว่า “คำว่า บาน กับคำว่า ทหาร ออกเสียงท้ายคำเหมือนกันหรือไม่”", "ถามต่อว่า “ทั้งสองคำเขียนตัวสะกดเหมือนกันหรือไม่”", "เชื่อมคำตอบไปสู่คำแม่กนที่เขียนด้วย น ญ ณ ร ล ฬ"],
+    key: "p7-song-reflect", stage: 1, kind: "media", icon: "💭", title: "คำถามกระตุ้นคิดหลังเพลง", minutes: 1, studentVisibleDefault: false,
+    teacherNotes: ["ถามว่า “คำว่า บาน กับคำว่า ทหาร ออกเสียงท้ายคำเหมือนกันหรือไม่”", "ถามต่อว่า “ทั้งสองคำเขียนตัวสะกดเหมือนกันหรือไม่”", "เชื่อมคำตอบไปสู่คำแม่กนที่เขียนด้วย น ณ ญ ร ล ฬ"],
     screen: { eyebrow: "ชวนคิดหลังจบเพลง", title: "บาน กับ ทหาร เหมือนและต่างกันอย่างไร?", message: "เสียงท้ายเหมือน /น/ แต่เขียนตัวสะกดต่างกัน", icon: "❓", bullets: ["บาน ใช้ น สะกดตรงมาตรา", "ทหาร ใช้ ร สะกดไม่ตรงมาตรา"] },
   },
   {
-    key: "p8-flashcards", stage: 2, kind: "media", icon: "🗂️", title: "แฟลชการ์ดคำแม่กนและคำเปรียบเทียบ", minutes: 3, studentVisibleDefault: false,
+    key: "p7-flashcards", stage: 2, kind: "media", icon: "🗂️", title: "แฟลชการ์ดคำแม่กนและคำเปรียบเทียบ", minutes: 3, studentVisibleDefault: false,
     teacherNotes: ["ฉายแฟลชการ์ดเต็มจอทีละคำ ให้นักเรียนอ่านพร้อมกันและบอกความหมายสั้น ๆ", "ชี้พยัญชนะต้น สระ ตัวสะกด และบอกว่าสะกดตรงหรือไม่ตรงมาตรา", "เปรียบเทียบ ปีก และ ดาบ เพื่อทบทวนแม่กกและแม่กบ"],
     screen: {
       eyebrow: "ขั้นที่ 2 · เชื่อมโยงความรู้เดิม", title: "คำไหนออกเสียงเหมือนมี น สะกด?", message: "อ่านออกเสียง บอกความหมาย แล้วสังเกตรูปตัวสะกด", icon: "🔎", presentation: "flashcards",
@@ -1570,54 +1570,54 @@ const PLAN_8_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
     },
   },
   {
-    key: "p8-rule-demo", stage: 2, kind: "media", icon: "💡", title: "สรุปหลักและสาธิตเติมเชื้อเพลิง", minutes: 2, studentVisibleDefault: false,
-    teacherNotes: ["สรุปว่า คำที่ออกเสียงเหมือน น สะกด และเขียนด้วย น ญ ณ ร ล ฬ เป็นแม่กน", "ย้ำว่า น สะกดตรงมาตรา ส่วน ญ ณ ร ล ฬ สะกดไม่ตรงมาตรา", "สาธิตเติมคำแม่กนลงถังเชื้อเพลิง 1 รอบ และส่งคำมาตราอื่นผ่านไป"],
-    screen: { eyebrow: "กติกาที่ต้องจำ", title: "แม่กน ฟังเสียง /น/ ท้ายคำ", message: "น สะกดตรงมาตรา · ญ ณ ร ล ฬ สะกดไม่ตรงมาตรา", icon: "🚀", bullets: ["บาน → แม่กนตรงมาตรา", "ทหาร → แม่กนไม่ตรงมาตรา", "ปีก → แม่กก"] },
+    key: "p7-rule-demo", stage: 2, kind: "media", icon: "💡", title: "สรุปหลักและสาธิตเติมเชื้อเพลิง", minutes: 2, studentVisibleDefault: false,
+    teacherNotes: ["สรุปว่า คำที่ออกเสียงเหมือน น สะกด และเขียนด้วย น ณ ญ ร ล ฬ เป็นแม่กน", "ย้ำว่า น สะกดตรงมาตรา ส่วน ณ ญ ร ล ฬ สะกดไม่ตรงมาตรา", "สาธิตเติมคำแม่กนลงถังเชื้อเพลิง 1 รอบ และส่งคำมาตราอื่นผ่านไป"],
+    screen: { eyebrow: "กติกาที่ต้องจำ", title: "แม่กน ฟังเสียง /น/ ท้ายคำ", message: "น สะกดตรงมาตรา · ณ ญ ร ล ฬ สะกดไม่ตรงมาตรา", icon: "🚀", bullets: ["บาน → แม่กนตรงมาตรา", "ทหาร → แม่กนไม่ตรงมาตรา", "ปีก → แม่กก"] },
   },
   {
-    key: "p8-space-fuel", stage: 3, kind: "game", activityKey: "space-fuel", icon: "🚀", title: "ด่านที่ 1 · เติมเชื้อเพลิงยานแม่กน", minutes: 10, studentVisibleDefault: true,
+    key: "p7-space-fuel", stage: 3, kind: "game", activityKey: "space-fuel", icon: "🚀", title: "ด่านที่ 1 · เติมเชื้อเพลิงยานแม่กน", minutes: 10, studentVisibleDefault: true,
     teacherNotes: ["ให้นักเรียนเลือกคำแม่กนจากคำทั้งหมด 20 คำ ซึ่งไม่ซ้ำกับแฟลชการ์ด", "เลือกถูกยานเรืองแสงและได้คะแนน เลือกผิดยานสั่นพร้อมอธิบายเหตุผล", "ติดตามคะแนนและช่วยนักเรียนที่ยังฟังเสียงท้ายคำไม่ชัด"],
     screen: { eyebrow: "ขั้นที่ 3 · ลงมือเล่นเกม", title: "เติมเชื้อเพลิงยานแม่กน", message: "เลือกเฉพาะคำที่ออกเสียงเหมือนมี น สะกดเติมลงถัง", icon: "🚀", bullets: ["คำทั้งหมด 20 คำ", "คำแม่กน 10 คำ", "คำมาตราอื่น 10 คำ"] },
   },
   {
-    key: "p8-alien-scan", stage: 3, kind: "game", activityKey: "alien-scan", icon: "🛸", title: "ด่านที่ 2 · สแกนรหัสลับต่างดาว", minutes: 15, studentVisibleDefault: true,
+    key: "p7-alien-scan", stage: 3, kind: "game", activityKey: "alien-scan", icon: "🛸", title: "ด่านที่ 2 · สแกนรหัสลับต่างดาว", minutes: 15, studentVisibleDefault: true,
     teacherNotes: ["ให้นักเรียนอ่านคำใบ้ความหมาย แล้วเลือกรูปเขียนที่ถูกต้องจาก 3 ตัวเลือก จำนวน 10 ข้อ", "ตัวเลือกออกเสียงเหมือนกันแต่ใช้ตัวสะกดต่างกัน ทุกข้อมีคำตอบเดียว", "ระบบเฉลยพร้อมเหตุผลทันที เพื่อฝึกจำรูปเขียนของคำแม่กน"],
-    screen: { eyebrow: "ขั้นที่ 3 · สแกนรูปเขียน", title: "สแกนรหัสลับต่างดาว", message: "อ่านความหมาย แล้วเลือกรูปเขียนของคำให้ถูกต้อง", icon: "🛸", bullets: ["มีทั้งหมด 10 ข้อ", "สังเกตตัวสะกด น ญ ณ ร ล", "อ่านเฉลยหลังตอบทุกข้อ"] },
+    screen: { eyebrow: "ขั้นที่ 3 · สแกนรูปเขียน", title: "สแกนรหัสลับต่างดาว", message: "อ่านความหมาย แล้วเลือกรูปเขียนของคำให้ถูกต้อง", icon: "🛸", bullets: ["มีทั้งหมด 10 ข้อ", "สังเกตตัวสะกด น ณ ญ ร ล", "อ่านเฉลยหลังตอบทุกข้อ"] },
   },
   {
-    key: "p8-star-map-brief", stage: 4, kind: "media", icon: "🪐", title: "ชี้แจงแผนที่ดาวแม่กน", minutes: 2, studentVisibleDefault: false,
-    teacherNotes: ["แบ่งนักเรียนกลุ่มละ 3-4 คน แจกกระดาษฟลิปชาร์ตและสีเทียน", "ให้แต่ละกลุ่มเลือกคำแม่กนจากเกมอย่างน้อย 6 คำ", "อธิบายการแยกวงใน น สะกด กับวงนอก ญ ณ ร ล ฬ สะกด"],
-    screen: { eyebrow: "ขั้นที่ 4 · ต่อยอดจากผลเกม", title: "แผนที่ดาวแม่กน", message: "รวบรวมคำแม่กนอย่างน้อย 6 คำ แล้วแยกเป็น 2 วงโคจร", icon: "🪐", bullets: ["วงใน: น สะกดตรงมาตรา", "วงนอก: ญ ณ ร ล ฬ สะกดไม่ตรงมาตรา", "วงกลมตัวสะกดทุกคำ"] },
+    key: "p7-star-map-brief", stage: 4, kind: "media", icon: "🪐", title: "ชี้แจงแผนที่ดาวแม่กน", minutes: 2, studentVisibleDefault: false,
+    teacherNotes: ["แบ่งนักเรียนกลุ่มละ 3-4 คน แจกกระดาษฟลิปชาร์ตและสีเทียน", "ให้แต่ละกลุ่มเลือกคำแม่กนจากเกมอย่างน้อย 6 คำ", "อธิบายการแยกวงใน น สะกด กับวงนอก ณ ญ ร ล ฬ สะกด"],
+    screen: { eyebrow: "ขั้นที่ 4 · ต่อยอดจากผลเกม", title: "แผนที่ดาวแม่กน", message: "รวบรวมคำแม่กนอย่างน้อย 6 คำ แล้วแยกเป็น 2 วงโคจร", icon: "🪐", bullets: ["วงใน: น สะกดตรงมาตรา", "วงนอก: ณ ญ ร ล ฬ สะกดไม่ตรงมาตรา", "วงกลมตัวสะกดทุกคำ"] },
   },
   {
-    key: "p8-star-map-create", stage: 4, kind: "media", icon: "✍️", title: "สร้างแผนที่ดาวแม่กน", minutes: 8, studentVisibleDefault: false,
+    key: "p7-star-map-create", stage: 4, kind: "media", icon: "✍️", title: "สร้างแผนที่ดาวแม่กน", minutes: 8, studentVisibleDefault: false,
     teacherNotes: ["ให้สมาชิกแบ่งหน้าที่กันเลือกคำ เขียนคำ ตรวจตัวสะกด และตกแต่งแผนที่ดาว", "เดินตรวจการจำแนกและการเขียนสะกดคำของแต่ละกลุ่ม", "ตรวจให้ทุกคำเขียนด้วยตัวบรรจงและวงกลมตัวสะกดแล้ว"],
     screen: { eyebrow: "ลงมือสร้างผลงาน", title: "วางคำลงวงโคจรให้ถูก", message: "ช่วยกันตรวจเสียงท้ายและรูปตัวสะกด ก่อนนำแผนที่ดาวไปติด", icon: "🖍️", bullets: ["อย่างน้อย 6 คำ", "แบ่งสองวงโคจรให้ชัด", "เตรียมอ่านและบอกความหมาย"] },
   },
   {
-    key: "p8-gallery-walk", stage: 4, kind: "media", icon: "⭐", title: "เดินชมแผนที่ดาวและอ่านออกเสียง", minutes: 5, studentVisibleDefault: false,
+    key: "p7-gallery-walk", stage: 4, kind: "media", icon: "⭐", title: "เดินชมแผนที่ดาวและอ่านออกเสียง", minutes: 5, studentVisibleDefault: false,
     teacherNotes: ["ให้นักเรียนเดินชมผลงานและติดดาวให้แผนที่ที่ชอบที่สุด", "ให้ตัวแทนแต่ละกลุ่มอ่านคำวงโคจรละ 1 คำ ระบุตัวสะกดและบอกความหมาย", "ครูตรวจการเขียนสะกดและแก้ไขทันทีเมื่อพบข้อผิดพลาด"],
     screen: { eyebrow: "Gallery Walk", title: "อ่าน ชื่นชม และมอบดาว", message: "เดินชมแผนที่ดาวทุกกลุ่ม แล้วฟังตัวแทนอ่านคำแม่กน", icon: "🌟", bullets: ["ชมทุกผลงาน", "ติดดาวตามกติกา", "ออกเสียงท้าย /น/ ให้ชัด"] },
   },
   {
-    key: "p8-review-song", stage: 5, kind: "media", icon: "🎵", title: "ร้องเพลงแม่กนทบทวน", minutes: 2, studentVisibleDefault: true,
-    teacherNotes: ["เปิดเพลงมาตราแม่กนอีก 1 รอบ ให้นักเรียนร้องและปรบมือเน้นเสียง /น/ ท้ายคำ", "ทบทวนว่าแม่กนเขียนด้วย น ญ ณ ร ล และ ฬ"],
+    key: "p7-review-song", stage: 5, kind: "media", icon: "🎵", title: "ร้องเพลงแม่กนทบทวน", minutes: 2, studentVisibleDefault: true,
+    teacherNotes: ["เปิดเพลงมาตราแม่กนอีก 1 รอบ ให้นักเรียนร้องและปรบมือเน้นเสียง /น/ ท้ายคำ", "ทบทวนว่าแม่กนเขียนด้วย น ณ ญ ร ล และ ฬ"],
     screen: { eyebrow: "ขั้นที่ 5 · สรุปและประเมินผล", title: "ร้องเพลงแม่กนอีกครั้ง", message: "ร้องพร้อมกัน และปรบมือเน้นคำที่ออกเสียงเหมือนมี น สะกด", icon: "🎤", presentation: "video", videoId: "kP_W_88VNmo" },
   },
   {
-    key: "p8-summary", stage: 5, kind: "media", icon: "💡", title: "สรุปมาตราแม่กนและภาพรวมทั้งหน่วย", minutes: 1, studentVisibleDefault: false,
-    teacherNotes: ["ให้นักเรียนช่วยกันบอกลักษณะของมาตราแม่กน", "ย้ำว่าเรียนครบแม่ ก กา และมาตราตัวสะกด 8 มาตรา รวมเป็น 9 แม่แล้ว"],
-    screen: { eyebrow: "จำให้แม่น", title: "แม่กน ออกเสียงท้าย /น/", message: "เขียนด้วย น ญ ณ ร ล หรือ ฬ ก็อยู่ในมาตราแม่กน", icon: "💡", bullets: ["น: บาน ฝัน", "ญ: เชิญ สำคัญ", "ณ: คุณ คูณ", "ร: ทหาร อาหาร", "ล: ผล พยาบาล"] },
+    key: "p7-summary", stage: 5, kind: "media", icon: "💡", title: "สรุปความรู้มาตราแม่กน", minutes: 1, studentVisibleDefault: false,
+    teacherNotes: ["ให้นักเรียนช่วยกันบอกลักษณะของมาตราแม่กน", "ย้ำว่า น สะกดตรงมาตรา ส่วน ณ ญ ร ล ฬ สะกดไม่ตรงมาตรา"],
+    screen: { eyebrow: "จำให้แม่น", title: "แม่กน ออกเสียงท้าย /น/", message: "เขียนด้วย น ณ ญ ร ล หรือ ฬ ก็อยู่ในมาตราแม่กน", icon: "💡", bullets: ["น: บาน ฝัน", "ณ: คุณ คูณ", "ญ: เชิญ สำคัญ", "ร: ทหาร อาหาร", "ล: ผล พยาบาล"] },
   },
   {
-    key: "p8-exit", stage: 5, kind: "game", activityKey: "exit", icon: "🏆", title: "แบบทดสอบท้ายบทเรียนแม่กน", minutes: 5, studentVisibleDefault: true,
+    key: "p7-exit", stage: 5, kind: "game", activityKey: "exit", icon: "🏆", title: "แบบทดสอบท้ายบทเรียนแม่กน", minutes: 5, studentVisibleDefault: true,
     teacherNotes: ["ให้นักเรียนทำ Exit Ticket จำนวน 5 ข้อ", "เกณฑ์ผ่าน 3 จาก 5 ข้อ ผู้ผ่านได้รับสติกเกอร์ดาวดิจิทัล", "ฉายคะแนนรวมและเหรียญรางวัลหลังนักเรียนทำเสร็จ"],
     screen: { eyebrow: "ประเมินความเข้าใจ", title: "ด่านดาวพิชิตแม่กน", message: "ตอบให้ถูกอย่างน้อย 3 จาก 5 ข้อ เพื่อรับดาวดิจิทัล", icon: "🏆", bullets: ["ฟังเสียงท้ายคำ", "สังเกตรูปตัวสะกด", "ตรวจคำตอบก่อนเลือก"] },
   },
   {
-    key: "p8-worksheet", stage: 5, kind: "media", icon: "📄", title: "มอบหมายใบงานที่ 8 และแจ้งทดสอบหลังเรียน", minutes: 2, studentVisibleDefault: false,
-    teacherNotes: ["แจกใบงานที่ 8 เรื่องมาตราแม่กน และแจ้งกำหนดส่ง", "แจ้งกำหนดการทดสอบวัดผลสัมฤทธิ์หลังเรียนของหน่วยการเรียนรู้", "ปิดคาบด้วยการชื่นชมความมุ่งมั่นและความร่วมมือของนักเรียน"],
-    screen: { eyebrow: "ภารกิจทบทวน", title: "ใบงานที่ 8 · มาตราแม่กน", message: "รับใบงาน ตรวจชื่อ ฟังกำหนดส่งและกำหนดทดสอบหลังเรียน", icon: "📄", bullets: ["จำแนกคำเข้ายาน", "วงกลมคำแม่กน", "เรียงคำเป็นประโยค"] },
+    key: "p7-worksheet", stage: 5, kind: "media", icon: "📄", title: "มอบหมายใบงานที่ 7", minutes: 2, studentVisibleDefault: false,
+    teacherNotes: ["แจกใบงานที่ 7 เรื่องมาตราแม่กน และแจ้งกำหนดส่ง", "แจ้งวิธีทำเพื่อทบทวนการจำแนกและเขียนสะกดคำ", "ปิดคาบด้วยการชื่นชมความมุ่งมั่นและความร่วมมือของนักเรียน"],
+    screen: { eyebrow: "ภารกิจทบทวน", title: "ใบงานที่ 7 · มาตราแม่กน", message: "รับใบงาน ตรวจชื่อ และฟังกำหนดส่งจากคุณครู", icon: "📄", bullets: ["จำแนกคำเข้ายาน", "วงกลมคำแม่กน", "เรียงคำเป็นประโยค"] },
   },
 ]));
 
@@ -1628,8 +1628,8 @@ export const PLAN_LESSON_FLOWS = Object.freeze({
   4: PLAN_4_LESSON_FLOW,
   5: PLAN_5_LESSON_FLOW,
   6: PLAN_6_LESSON_FLOW,
-  7: PLAN_7_LESSON_FLOW,
-  8: PLAN_8_LESSON_FLOW,
+  7: PLAN_8_LESSON_FLOW,
+  8: PLAN_7_LESSON_FLOW,
 });
 
 export function lessonFlowForPlan(planId = 1) {
@@ -1676,8 +1676,8 @@ export const PLAN_TITLES = Object.freeze([
   "มาตราแม่เกยและแม่เกอว",
   "มาตราแม่กก",
   "มาตราแม่กด",
-  "มาตราแม่กบ",
   "มาตราแม่กน",
+  "มาตราแม่กบ",
 ]);
 
 export const AVATARS = ["⭐", "🦉", "🐯", "🐳", "🐰", "🦊", "🐼", "🦁", "🐸", "🐙", "🦋", "🚀"];

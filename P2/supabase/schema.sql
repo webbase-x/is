@@ -1029,8 +1029,8 @@ insert into public.lesson_plans(id, sequence_no, title, published) values
   (4, 4, 'มาตราแม่เกยและแม่เกอว', true),
   (5, 5, 'มาตราแม่กก', true),
   (6, 6, 'มาตราแม่กด', true),
-  (7, 7, 'มาตราแม่กบ', true),
-  (8, 8, 'มาตราแม่กน', true)
+  (7, 7, 'มาตราแม่กน', true),
+  (8, 8, 'มาตราแม่กบ', true)
 on conflict (id) do update set title = excluded.title, published = excluded.published;
 
 insert into storage.buckets(id, name, public, file_size_limit, allowed_mime_types)

@@ -1,7 +1,18 @@
-import { $ } from "./common.js?v=20260729-plan1-core-plan2-time-1";
-import { PLAN_CATALOG, getPlanById } from "./plan-catalog.js?v=20260729-plan1-core-plan2-time-1";
+import { $ } from "./common.js?v=20260729-plan-order-7-8-1";
+import { PLAN_CATALOG, getPlanById } from "./plan-catalog.js?v=20260729-plan-order-7-8-1";
 
 let activePlanId = "01";
+
+const PLAN_FINAL_CONSONANTS = Object.freeze({
+  1: "ไม่มีตัวสะกด",
+  2: "ง",
+  3: "ม",
+  4: "ย / ว",
+  5: "ก ข ค ฆ",
+  6: "จ ช ซ ฎ ฏ ฐ ฑ ฒ ด ต ถ ท ธ ศ ษ ส",
+  7: "น ณ ญ ร ล ฬ",
+  8: "บ ป พ ฟ ภ",
+});
 
 function wordChips(words, tone) {
   return words.map(word => `<span class="plan-word-chip ${tone}">${word}</span>`).join("");
@@ -41,7 +52,7 @@ function renderPlanDetail(plan) {
   const worksheetAction = plan.worksheet ? `<a class="button button-ghost" href="${plan.worksheet}" target="_blank" rel="noopener">📝 เปิดใบงาน ${plan.sequence}</a>` : "";
   stage.innerHTML = `
     <section class="plan-detail-heading">
-      <div><span class="eyebrow">แผนการจัดการเรียนรู้ที่ ${plan.sequence}</span><h2>${plan.title}</h2><p>${plan.course}</p><p>${plan.grade}</p><p>${plan.unit} · เวลา ${plan.duration} · หน่วยรวม ${plan.unitDuration}</p></div>
+      <div><span class="eyebrow">แผนการจัดการเรียนรู้ที่ ${plan.sequence}</span><h2>${plan.title}</h2><p><strong>รูปพยัญชนะสะกด:</strong> ${PLAN_FINAL_CONSONANTS[plan.sequence]}</p><p>${plan.course}</p><p>${plan.grade}</p><p>${plan.unit} · เวลา ${plan.duration} · หน่วยรวม ${plan.unitDuration}</p></div>
       <div class="plan-detail-actions">${gameAction}${worksheetAction}${documentAction}<a class="button button-ghost" href="teacher.html">เปิดห้องเรียนสด</a><a class="button button-ghost" href="expert.html?plan=${plan.id}">ห้องตรวจสื่อผู้เชี่ยวชาญ</a></div>
     </section>
     <article class="plan-detail-card plan-live-ready"><h3>สถานะการใช้งาน</h3><p>✅ ห้องเรียนสดพร้อม ${plan.activityKeys.length} กิจกรรม · ✅ ใบงานพร้อม · ${plan.document ? "✅ เอกสารต้นฉบับรวมในชุด" : "⚠️ ยังไม่มีเอกสารต้นฉบับในชุด"} · สื่อประกอบ: ${plan.mediaStatus || "สื่อในเว็บ"}</p></article>
@@ -62,7 +73,7 @@ function renderPlanCards() {
   list.innerHTML = PLAN_CATALOG.map(plan => `<button class="plan-catalog-card ${plan.id === activePlanId ? "active" : ""} ${plan.published ? "is-ready" : "is-waiting"}" data-plan-id="${plan.id}" type="button">
     <span class="plan-catalog-number">${String(plan.sequence).padStart(2, "0")}</span>
     <span class="plan-catalog-status">${plan.liveReady ? "ห้องสดพร้อม" : plan.published ? "สื่อเดี่ยวพร้อม" : "รอข้อมูล"}</span>
-    <strong>${plan.title}</strong><small>${plan.published ? `${plan.activityKeys.length} กิจกรรม · ${plan.duration}` : "เพิ่มเอกสารและรายละเอียดภายหลัง"}</small>
+    <strong>${plan.title}</strong><small>ตัวสะกด: ${PLAN_FINAL_CONSONANTS[plan.sequence]}</small><small>${plan.published ? `${plan.activityKeys.length} กิจกรรม · ${plan.duration}` : "เพิ่มเอกสารและรายละเอียดภายหลัง"}</small>
   </button>`).join("");
   list.querySelectorAll("[data-plan-id]").forEach(button => button.addEventListener("click", () => {
     activePlanId = button.dataset.planId;
