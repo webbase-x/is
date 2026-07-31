@@ -1,15 +1,15 @@
 import { APP_CONFIG } from "./config.js";
 import { supabase } from "./supabase.js?v=20260727-reviewer-links-1";
 import { isReviewerEmail, reviewerByEmail } from "./reviewer-access.js?v=20260727-reviewer-links-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260729-plan-order-7-8-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260731-achievement-tests-1";
 import {
   $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260729-plan-order-7-8-1";
+} from "./common.js?v=20260731-achievement-tests-1";
 
-const TEACHER_BUILD_VERSION = "20260727-reviewer-links-1";
+const TEACHER_BUILD_VERSION = "20260731-achievement-tests-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 

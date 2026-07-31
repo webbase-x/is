@@ -5,7 +5,8 @@ import {
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260729-plan-order-7-8-1";
+} from "./common.js?v=20260731-achievement-tests-1";
+import { ACHIEVEMENT_TEST_QUESTIONS } from "./achievement-test.js?v=20260731-achievement-tests-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -1121,12 +1122,43 @@ function applySessionState() {
 
 function renderActivity(key) {
   cleanupRhythm();
+  if (key === "pretest" || key === "posttest") {
+    renderAchievementTest(key);
+    return;
+  }
   if (Number(state.session?.plan_id || 1) !== 1) {
     renderLivePlanActivity(key);
     return;
   }
   const renderers = { rhythm: renderRhythm, sort: renderSort, train: renderTrain, exit: renderExit };
   renderers[key]?.();
+}
+
+function renderAchievementTest(activityKey) {
+  const isPosttest = activityKey === "posttest";
+  const phase = isPosttest ? "หลังเรียน" : "ก่อนเรียน";
+  const activity = activityForKey(activityKey, state.session?.plan_id);
+  const questions = shuffle(ACHIEVEMENT_TEST_QUESTIONS).map(question => ({
+    ...question,
+    options: shuffle(question.options),
+  }));
+  runQuestionGame({
+    key: activityKey,
+    title: activity?.title || `แบบทดสอบ${phase}`,
+    instruction: `แบบทดสอบวัดผลสัมฤทธิ์${phase} เรื่องมาตราตัวสะกด · 20 ข้อ · ไม่มีเฉลยระหว่างทำ`,
+    questions,
+    revealCorrectness: false,
+    resultTitle: `ส่งแบบทดสอบ${phase}แล้ว`,
+    renderPrompt: (question, container) => {
+      container.innerHTML = `<article class="live-plan-question achievement-test-question">
+        <span class="live-plan-question-icon" aria-hidden="true">${isPosttest ? "🎓" : "📝"}</span>
+        <small>แบบทดสอบ${phase} · ข้อที่ ${question.id}</small>
+        <h2>${escapeHtml(question.prompt)}</h2>
+      </article>`;
+    },
+    choices: question => question.options,
+    replay: () => renderAchievementTest(activityKey),
+  });
 }
 
 function gameShell(title, instruction, content) {
@@ -1713,7 +1745,7 @@ function renderRhythm() {
   queueMicrotask(() => void startRhythmAutomatically());
 }
 
-function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay }) {
+function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay, revealCorrectness = true, resultTitle = "ทำภารกิจสำเร็จ" }) {
   let index = 0;
   let score = 0;
   const answers = [];
@@ -1726,15 +1758,16 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
       const chosen = button.dataset.value;
       const correct = chosen === question.answer;
       if (correct) score += 1;
-      answers.push({ prompt: question.word || question.prompt, chosen, correct });
-      button.classList.add(correct ? "correct" : "wrong");
+      answers.push({ question_id: question.id || index + 1, prompt: question.word || question.prompt, chosen, correct });
+      if (revealCorrectness) button.classList.add(correct ? "correct" : "wrong");
+      else button.classList.add("selected");
       [...$("#questionChoices").children].forEach(item => item.disabled = true);
       setTimeout(async () => {
         index += 1;
         if (index < questions.length) render();
         else {
           const result = await submitAttempt(key, score, questions.length, answers);
-          if (result) showResult("ทำภารกิจสำเร็จ", score, questions.length, result, replay);
+          if (result) showResult(resultTitle, score, questions.length, result, replay);
         }
       }, 650);
     }));

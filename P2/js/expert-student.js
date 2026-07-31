@@ -1,4 +1,4 @@
-import { escapeHtml } from "./common.js?v=20260729-plan-order-7-8-1";
+import { escapeHtml } from "./common.js?v=20260731-achievement-tests-1";
 
 const $ = selector => document.querySelector(selector);
 const parentOrigin = window.location.origin;
