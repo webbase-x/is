@@ -1,15 +1,15 @@
 import { APP_CONFIG } from "./config.js";
 import { supabase } from "./supabase.js?v=20260727-reviewer-links-1";
 import { isReviewerEmail, reviewerByEmail } from "./reviewer-access.js?v=20260727-reviewer-links-1";
-import { PLAN_CATALOG } from "./plan-catalog.js?v=20260731-achievement-tests-1";
+import { PLAN_CATALOG } from "./plan-catalog.js?v=20260731-assessment-research-1";
 import {
-  $, $$, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, modeLabel, playerStatusLabel,
+  $, $$, assessmentActivityForPhase, activitiesForPlan, activityForKey, downloadCsv, escapeHtml, hide, isAssessmentSession, modeLabel, playerStatusLabel,
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260731-achievement-tests-1";
+} from "./common.js?v=20260731-assessment-research-1";
 
-const TEACHER_BUILD_VERSION = "20260731-achievement-tests-1";
+const TEACHER_BUILD_VERSION = "20260731-assessment-research-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -69,6 +69,8 @@ const state = {
   rosterCounts: new Map(),
   flowStep: "class",
   selectedPlanId: null,
+  selectedAssessmentPhase: null,
+  assessmentReport: [],
   playerSelfieUrls: new Map(),
   lobbyPage: 1,
   lobbyZoomStep: 0,
@@ -97,7 +99,38 @@ const state = {
   lessonCardIndex: 0,
 };
 
+function assessmentStepForSession(session = state.session) {
+  const activity = assessmentActivityForPhase(session?.assessment_phase);
+  if (!activity) return null;
+  const minutes = Number(session?.assessment_duration_minutes) || activity.minutes;
+  const phase = activity.phase === "posttest" ? "หลังเรียน" : "ก่อนเรียน";
+  return {
+    key: `assessment-${activity.phase}`,
+    stage: "ประเมิน",
+    kind: "assessment",
+    activityKey: activity.key,
+    icon: activity.icon,
+    title: activity.title,
+    minutes,
+    studentVisibleDefault: true,
+    teacherNotes: [
+      `นักเรียนทำแบบทดสอบ${phase} 20 ข้อด้วยตนเองภายใน ${minutes} นาที`,
+      "ระบบสลับลำดับข้อและตัวเลือกบนจอแต่ละคน แต่บันทึกรหัสข้อเดิมเพื่อเทียบผลได้ถูกต้อง",
+      "หลังจบแบบทดสอบไม่ประกาศอันดับ คะแนนจะปรากฏในรายงานครูและส่งออกเป็นตารางได้",
+    ],
+    screen: {
+      eyebrow: `การประเมิน${phase}`,
+      title: activity.title,
+      message: `กำลังรับคำตอบ 20 ข้อ · เหลือเวลา ${minutes} นาที · ไม่มีการแสดงอันดับ`,
+      icon: activity.icon,
+      bullets: ["ทำด้วยตนเอง", "ไม่มีเฉลยระหว่างทำ", "บันทึกเพื่อเปรียบเทียบผลก่อน–หลังเรียน"],
+    },
+  };
+}
+
 function currentActivities(planId = state.session?.plan_id || state.selectedPlanId || 1) {
+  const assessment = assessmentStepForSession();
+  if (assessment) return [assessmentActivityForPhase(state.session.assessment_phase)];
   const activities = activitiesForPlan(planId);
   if (Number(planId) !== 1) return activities;
   const included = new Set(currentLessonFlow(planId).map(step => step.activityKey).filter(Boolean));
@@ -105,10 +138,14 @@ function currentActivities(planId = state.session?.plan_id || state.selectedPlan
 }
 
 function currentLessonFlow(planId = state.session?.plan_id || state.selectedPlanId || 1) {
+  const assessment = assessmentStepForSession();
+  if (assessment) return [assessment];
   return lessonFlowForPlan(planId);
 }
 
 function currentLessonStep() {
+  const assessment = assessmentStepForSession();
+  if (assessment) return assessment;
   return lessonStepForKey(state.lessonStepKey, state.session?.plan_id || state.selectedPlanId || 1);
 }
 
@@ -426,11 +463,12 @@ function updateSelectedClassRosterNote() {
 function renderPlanChoices() {
   const container = $("#planChoices");
   if (!container) return;
+  renderAssessmentChoices();
   container.innerHTML = state.plans.map(plan => {
     const flow = lessonFlowForPlan(plan.id);
     const totalMinutes = flow.reduce((sum, item) => sum + item.minutes, 0);
     return `
-    <button type="button" class="flow-plan-choice ${Number(state.selectedPlanId) === Number(plan.id) ? "selected" : ""}" data-plan-id="${plan.id}" ${plan.published ? "" : "disabled"}>
+    <button type="button" class="flow-plan-choice ${!state.selectedAssessmentPhase && Number(state.selectedPlanId) === Number(plan.id) ? "selected" : ""}" data-plan-id="${plan.id}" ${plan.published ? "" : "disabled"}>
       <span>${plan.published ? `แผน ${plan.sequence_no}` : "🔒"}</span>
       <strong>${escapeHtml(plan.title)}</strong>
       <small>${plan.published ? `${flow.length} ขั้น · สื่อและเกม ${totalMinutes} นาที` : "ยังไม่เปิดใช้งาน"}</small>
@@ -438,16 +476,43 @@ function renderPlanChoices() {
   `;
   }).join("");
   container.querySelectorAll("[data-plan-id]").forEach(button => button.addEventListener("click", () => selectPlan(Number(button.dataset.planId))));
-  if (state.selectedPlanId) selectPlan(Number(state.selectedPlanId), false);
+  if (state.selectedAssessmentPhase) selectAssessment(state.selectedAssessmentPhase, false);
+  else if (state.selectedPlanId) selectPlan(Number(state.selectedPlanId), false);
+}
+
+function renderAssessmentChoices() {
+  ["pretest", "posttest"].forEach(phase => {
+    const activity = assessmentActivityForPhase(phase);
+    const button = $(`[data-assessment-phase="${phase}"]`);
+    if (!button || !activity) return;
+    button.classList.toggle("selected", state.selectedAssessmentPhase === phase);
+    button.innerHTML = `<span>${activity.icon}</span><strong>${escapeHtml(activity.title)}</strong><small>${phase === "pretest" ? "ทำก่อนเริ่มแผนที่ 1" : "ทำหลังเรียนครบแผนที่ 8"} · 20 ข้อ</small>`;
+  });
+}
+
+function selectAssessment(phase, rerender = true) {
+  const activity = assessmentActivityForPhase(phase);
+  if (!activity) return;
+  state.selectedAssessmentPhase = phase;
+  $("#selectedPlanTitle").textContent = `${activity.title} · คาบประเมินแยกจากแผนการสอน`;
+  $("#activityPreview").innerHTML = `<article><span>${activity.icon}</span><div><small>การประเมินผลสัมฤทธิ์ · ไม่จัดอันดับ</small><strong>${escapeHtml(activity.title)} 20 ข้อ</strong><em>ครูกำหนดเวลาทำได้ด้านล่าง</em></div></article>`;
+  $("#planSettings")?.classList.add("hidden");
+  $("#assessmentDurationPanel")?.classList.remove("hidden");
+  $("#startPlanButton").textContent = `▶ เริ่ม${activity.title}`;
+  if (rerender) renderPlanChoices();
 }
 
 function selectPlan(planId, rerender = true) {
   const plan = state.plans.find(item => Number(item.id) === Number(planId) && item.published);
   if (!plan) return;
+  state.selectedAssessmentPhase = null;
   state.selectedPlanId = plan.id;
   $("#planSelect").value = plan.id;
   $("#selectedPlanTitle").textContent = `แผนที่ ${plan.sequence_no} · ${plan.title}`;
   $("#activityPreview").innerHTML = lessonFlowForPlan(plan.id).map((step, index) => `<article><span>${step.icon}</span><div><small>${step.kind === "game" ? "เกมนักเรียน" : step.kind === "results" ? "ประกาศผลการแข่งขัน" : "สื่อ/คำสั่งครู"} · ลำดับ ${index + 1}</small><strong>${escapeHtml(step.title)}</strong><em>${step.kind === "results" ? "หลังจบเกม" : `${step.minutes} นาที`}</em></div></article>`).join("");
+  $("#planSettings")?.classList.remove("hidden");
+  $("#assessmentDurationPanel")?.classList.add("hidden");
+  $("#startPlanButton").textContent = "▶ เริ่มขั้นแรก";
   if (rerender) renderPlanChoices();
 }
 
@@ -604,7 +669,11 @@ async function showLiveSession(step = "qr") {
   if (state.lateJoinMode) state.lateJoinResumeStatus = "paused";
   syncLateJoinControls();
   renderLiveModeSwitch();
-  selectPlan(Number(state.session.plan_id || state.selectedPlanId), false);
+  if (isAssessmentSession(state.session)) {
+    state.selectedAssessmentPhase = state.session.assessment_phase;
+  } else {
+    selectPlan(Number(state.session.plan_id || state.selectedPlanId), false);
+  }
   restoreLessonFlowState();
   renderActivityControls();
   subscribeToSession();
@@ -646,6 +715,13 @@ async function renderStudentAccess() {
 
 function renderActivityControls() {
   const flow = currentLessonFlow();
+  if (isAssessmentSession(state.session)) {
+    const step = flow[0];
+    $("#activityControls").innerHTML = `<div class="activity-control lesson-flow-control active assessment-flow-control"><span>${escapeHtml(step.icon)}</span><span><small>คาบประเมินผลสัมฤทธิ์</small><strong>${escapeHtml(step.title)}</strong><em>${step.minutes} นาที · 20 ข้อ · ไม่จัดอันดับ</em></span><i>กำลังรับคำตอบ</i></div>`;
+    renderCurrentLessonStep();
+    updateNextActivityButton();
+    return;
+  }
   const activeIndex = Math.max(0, flow.findIndex(step => step.key === state.lessonStepKey));
   $("#activityControls").innerHTML = flow.map((step, index) => `
     <button class="activity-control lesson-flow-control ${step.key === state.lessonStepKey ? "active" : ""} ${index < activeIndex ? "done" : ""}" data-lesson-step="${escapeHtml(step.key)}">
@@ -712,12 +788,15 @@ function renderProjectorLessonContent(step) {
   const activity = step?.activityKey ? activityForKey(step.activityKey, planId) : null;
   const lessonStageVisible = state.flowStep === "live";
   const showGame = lessonStageVisible && state.session?.status === "active" && step?.kind === "game" && Boolean(activity);
-  const showResults = lessonStageVisible && step?.kind === "results" && Boolean(activity);
+  const showResults = lessonStageVisible && (step?.kind === "results" || step?.kind === "assessment") && Boolean(activity);
+  const showAssessment = step?.kind === "assessment";
 
   media.classList.toggle("hidden", showGame || showResults);
   gamePreview.classList.toggle("hidden", !showGame);
   results.classList.toggle("hidden", !showResults);
-  modeLabel.textContent = showResults
+  modeLabel.textContent = showAssessment
+    ? "📝 กำลังรับคำตอบแบบทดสอบ · ไม่แสดงอันดับ"
+    : showResults
     ? "✨ ประกาศผลการแข่งขัน ✨"
     : showGame
       ? "เกมตัวอย่าง · ไม่บันทึกคะแนน"
@@ -763,12 +842,14 @@ function renderCurrentLessonStep() {
   $("#lessonStageLabel").textContent = step ? `ขั้นที่ ${step.stage} · รายการ ${index + 1} จาก ${flow.length}` : "ลำดับการสอน";
   $("#lessonStepTitle").textContent = step?.title || "เลือกขั้นการสอน";
   $("#lessonStepMeta").textContent = step
-    ? step.kind === "results"
+    ? step.kind === "assessment"
+      ? `${step.minutes} นาที · แบบทดสอบ 20 ข้อ · ไม่จัดอันดับ`
+      : step.kind === "results"
       ? "ลำดับถัดไปหลังจบเกม · ประกาศอันดับบนจอโปรเจกเตอร์"
       : `${step.minutes} นาที · ${step.kind === "game" ? "เกมบนจอนักเรียน" : "สื่อหรือคำสั่งสำหรับครู"}`
     : "สื่อ เกม และคำสั่งจะเรียงตามแผนการสอน 60 นาที";
-  $("#lessonStepKind").textContent = step?.kind === "game" ? "🎮 เกมนักเรียน" : step?.kind === "results" ? "🏆 ประกาศผล" : "📺 สื่อ/คำสั่ง";
-  $("#lessonStepKind").classList.toggle("is-game", step?.kind === "game");
+  $("#lessonStepKind").textContent = step?.kind === "assessment" ? "📝 แบบทดสอบ" : step?.kind === "game" ? "🎮 เกมนักเรียน" : step?.kind === "results" ? "🏆 ประกาศผล" : "📺 สื่อ/คำสั่ง";
+  $("#lessonStepKind").classList.toggle("is-game", step?.kind === "game" || step?.kind === "assessment");
   $("#lessonStepKind").classList.toggle("is-results", step?.kind === "results");
   $("#lessonTeacherNotes").innerHTML = step?.teacherNotes?.length
     ? step.teacherNotes.map(note => `<li>${escapeHtml(note)}</li>`).join("")
@@ -782,17 +863,22 @@ function renderCurrentLessonStep() {
   });
   const shareLabel = $("#shareLessonToStudentsLabel");
   const shareInput = $("#shareLessonToStudents");
-  const isGame = step?.kind === "game";
+  const isAssessment = step?.kind === "assessment";
+  const isGame = step?.kind === "game" || isAssessment;
   const isResults = step?.kind === "results";
   shareLabel.classList.toggle("is-forced", isGame || isResults);
   shareInput.disabled = !step || isGame || isResults;
   shareInput.checked = Boolean(step && (isGame || (!isResults && state.lessonShareStudents)));
-  shareLabel.querySelector("strong").textContent = isGame
+  shareLabel.querySelector("strong").textContent = isAssessment
+    ? "แบบทดสอบแสดงบนจอนักเรียนทุกคน"
+    : isGame
     ? "เกมนี้แสดงบนจอนักเรียนทุกคน"
     : isResults
       ? "ผลการแข่งขันแสดงบนจอโปรเจกเตอร์"
       : "แสดงสื่อนี้บนจอนักเรียนด้วย";
-  shareLabel.querySelector("small").textContent = isGame
+  shareLabel.querySelector("small").textContent = isAssessment
+    ? "ไม่มีเฉลยและไม่มีการแสดงอันดับ ผลส่งให้ครูเป็นตาราง"
+    : isGame
     ? "นักเรียนต้องใช้หน้าจอของตนเองเพื่อทำภารกิจ"
     : isResults
       ? "จอนักเรียนหยุดรอ ส่วนครูประกาศอันดับจากหน้าจอนี้"
@@ -801,9 +887,9 @@ function renderCurrentLessonStep() {
   const previousStep = index > 0 ? flow[index - 1] : null;
   $("#previousLessonStepButton").innerHTML = `<span class="lesson-nav-title">${escapeHtml(previousStep?.title || "เริ่มต้น")}</span><span class="lesson-nav-direction">← ขั้นก่อนหน้า</span>`;
   $("#previousLessonStepButton").title = previousStep ? `ย้อนกลับไป: ${previousStep.title}` : "นี่คือรายการแรก";
-  $("#restartLessonTimerButton").disabled = !step || isResults;
+  $("#restartLessonTimerButton").disabled = !step || isResults || isAssessment;
   $("#finishActivityButton").classList.toggle("hidden", !isGame);
-  $("#pauseSessionButton")?.classList.toggle("hidden", isResults);
+  $("#pauseSessionButton")?.classList.toggle("hidden", isResults || isAssessment);
   renderProjectorLessonContent(step);
 }
 
@@ -853,6 +939,9 @@ function activityTimerStorageKey() {
 }
 
 function activityDurationMs(stepKey = state.lessonStepKey) {
+  if (isAssessmentSession(state.session) && state.session?.assessment_ends_at) {
+    return Math.max(0, Date.parse(state.session.assessment_ends_at) - Date.now());
+  }
   const step = lessonStepForKey(stepKey, state.session?.plan_id);
   return (step ? Number(step.minutes) : 10) * 60 * 1000;
 }
@@ -970,6 +1059,7 @@ function restoreActivityTimer() {
 }
 
 async function startSelectedPlan() {
+  if (state.selectedAssessmentPhase) return startAssessment(state.selectedAssessmentPhase);
   if (!state.selectedPlanId) return toast("กรุณาเลือกแผนการสอน", "warning");
   const button = $("#startPlanButton");
   button.disabled = true;
@@ -985,6 +1075,53 @@ async function startSelectedPlan() {
   } finally {
     button.disabled = false;
     button.textContent = "▶ เริ่มขั้นแรก";
+  }
+}
+
+function assessmentDurationMinutes() {
+  const field = $("#assessmentDuration");
+  const value = Math.round(Number(field?.value) || 20);
+  const normalized = Math.max(1, Math.min(180, value));
+  if (field) field.value = normalized;
+  return normalized;
+}
+
+async function startAssessment(phase) {
+  const activity = assessmentActivityForPhase(phase);
+  if (!activity || !state.session) return toast("ไม่พบแบบทดสอบที่เลือก", "warning");
+  const button = $("#startPlanButton");
+  button.disabled = true;
+  button.textContent = "กำลังเปิดแบบทดสอบ...";
+  try {
+    const { data, error } = await supabase.rpc("start_class_assessment", {
+      p_session_id: state.session.id,
+      p_assessment_phase: phase,
+      p_duration_minutes: assessmentDurationMinutes(),
+    });
+    if (error) throw error;
+    state.session = data;
+    state.selectedAssessmentPhase = phase;
+    state.lessonStepKey = `assessment-${phase}`;
+    state.lessonRoundId = crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+    state.lessonShareStudents = true;
+    state.lessonCardIndex = 0;
+    state.celebrationActivityKey = null;
+    state.celebrationReason = null;
+    state.lessonTimerExpired = false;
+    saveLessonFlowState();
+    startActivityTimer(state.lessonStepKey, true);
+    renderActivityControls();
+    renderLiveModeSwitch();
+    renderLiveResults();
+    $("#pauseSessionButton").textContent = "พักแบบทดสอบ";
+    await broadcastDisplay("assessment-started");
+    setTeacherFlowStep("live");
+    toast(`เริ่ม${activity.title}แล้ว · เวลาทำ ${state.session.assessment_duration_minutes} นาที`, "success");
+  } catch (error) {
+    toast(error.message || "เริ่มแบบทดสอบไม่สำเร็จ", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = activity ? `▶ เริ่ม${activity.title}` : "▶ เริ่มขั้นแรก";
   }
 }
 
@@ -1037,6 +1174,11 @@ function updateNextActivityButton() {
   if (!button || !state.session) return;
   const flow = currentLessonFlow();
   const index = flow.findIndex(item => item.key === state.lessonStepKey);
+  if (flow[index]?.kind === "assessment") {
+    button.innerHTML = `<span class="lesson-nav-direction">จบแบบทดสอบ →</span><span class="lesson-nav-title">เปิดรายงานคะแนน</span>`;
+    button.title = "หยุดรับคำตอบและเปิดรายงานครูโดยไม่มีการจัดอันดับ";
+    return;
+  }
   const nextStep = flow[Math.max(index + 1, 0)] || flow[0];
   const nextTitle = index >= flow.length - 1 ? "สรุปผลคาบเรียน" : nextStep?.title || "ดำเนินการสอนต่อ";
   button.innerHTML = `<span class="lesson-nav-direction">ถัดไป →</span><span class="lesson-nav-title">${escapeHtml(nextTitle)}</span>`;
@@ -1048,7 +1190,7 @@ function updateNextActivityButton() {
 async function goToNextActivity() {
   const flow = currentLessonFlow();
   const index = flow.findIndex(item => item.key === state.lessonStepKey);
-  if (flow[index]?.kind === "game") {
+  if (["game", "assessment"].includes(flow[index]?.kind)) {
     await finishActivity("manual");
     return;
   }
@@ -1066,6 +1208,7 @@ async function goToPreviousLessonStep() {
 function restartLessonTimer() {
   const step = currentLessonStep();
   if (!step) return;
+  if (step.kind === "assessment") return toast("เวลาแบบทดสอบกำหนดจากตอนเริ่มคาบ จึงเริ่มเวลาใหม่ไม่ได้", "warning");
   startActivityTimer(step.key, true);
   void broadcastDisplay("lesson-timer-restarted");
   toast(`เริ่มเวลา ${step.minutes} นาทีใหม่แล้ว`, "success");
@@ -1073,7 +1216,7 @@ function restartLessonTimer() {
 
 function setLessonStudentVisibility(visible) {
   const step = currentLessonStep();
-  if (!step || step.kind === "game") return;
+  if (!step || ["game", "assessment"].includes(step.kind)) return;
   state.lessonShareStudents = Boolean(visible);
   saveLessonFlowState();
   renderCurrentLessonStep();
@@ -1659,6 +1802,9 @@ async function refreshSessionData() {
   renderLiveResults();
   renderStudentScreens();
   renderReport();
+  if (isAssessmentSession(state.session) && state.session.status === "paused" && sessionRecordsScores()) {
+    await loadAssessmentReport();
+  }
   if (state.flowStep === "summary") renderSummary();
   void finishWhenEveryoneSubmitted();
   void broadcastDisplay();
@@ -1965,6 +2111,21 @@ function renderCelebration(entries) {
     </div>`;
 }
 
+function renderAssessmentProgress() {
+  const activityKey = state.session?.assessment_phase;
+  const submittedPlayerIds = new Set(state.attempts
+    .filter(attempt => attempt.activity_key === activityKey)
+    .map(attempt => attempt.session_player_id));
+  const students = state.players.filter(player => player.status === "approved");
+  return `<section class="assessment-progress-panel">
+    <div class="assessment-progress-heading"><span>📝</span><div><small>ติดตามการส่งคำตอบแบบเรียลไทม์</small><h4>ส่งแล้ว ${submittedPlayerIds.size} จาก ${students.length} คน</h4><p>ระบบไม่แสดงคะแนนหรืออันดับบนจอรวม</p></div></div>
+    <div class="assessment-progress-list">${students.length ? students.map(player => {
+      const submitted = submittedPlayerIds.has(player.id);
+      return `<div class="assessment-progress-row ${submitted ? "is-submitted" : ""}"><span>${submitted ? "✓" : "…"}</span><strong>${escapeHtml(player.student?.full_name || player.student?.nickname || "นักเรียน")}</strong><small>${submitted ? "ส่งคำตอบแล้ว" : "กำลังทำแบบทดสอบ"}</small></div>`;
+    }).join("") : "<p>ยังไม่มีนักเรียนที่อนุมัติ</p>"}</div>
+  </section>`;
+}
+
 function renderLiveResults() {
   const container = $("#liveResults");
   const arena = $("#competitionArena");
@@ -1976,9 +2137,29 @@ function renderLiveResults() {
   const scoresRecorded = sessionRecordsScores();
   const entries = currentCompetitionEntries();
   const lessonStep = currentLessonStep();
+  const assessment = isAssessmentSession(state.session);
   const resultCount = entries.filter(entry => entry.percent !== null).length;
   const isCelebrating = state.celebrationActivityKey === state.session.current_activity_key;
   arena?.classList.toggle("is-celebrating", isCelebrating);
+  if (assessment) {
+    const submittedCount = state.attempts.filter(attempt => attempt.activity_key === state.session.assessment_phase).length;
+    const approvedCount = state.players.filter(player => player.status === "approved").length;
+    const finished = state.session.status === "paused";
+    arena?.classList.remove("is-celebrating");
+    if (liveBadge) {
+      liveBadge.classList.toggle("is-finished", finished);
+      liveBadge.innerHTML = finished ? "✓ รับคำตอบแล้ว" : "<i></i> กำลังทำแบบทดสอบ";
+    }
+    if (finishButton) {
+      finishButton.disabled = finished || state.finishingActivity || !state.session.current_activity_key;
+      finishButton.textContent = state.finishingActivity ? "กำลังจบแบบทดสอบ..." : finished ? "✓ แบบทดสอบจบแล้ว" : "⏹ จบแบบทดสอบและเปิดรายงาน";
+    }
+    if (status) status.textContent = finished
+      ? `รับคำตอบแล้ว ${submittedCount}/${approvedCount} คน · คะแนนอยู่ในรายงานครู ไม่มีการจัดอันดับ`
+      : `ส่งคำตอบแล้ว ${submittedCount}/${approvedCount} คน · ระบบไม่แสดงคะแนนและอันดับ`;
+    container.innerHTML = renderAssessmentProgress();
+    return;
+  }
   if (liveBadge) {
     liveBadge.classList.toggle("is-finished", isCelebrating);
     liveBadge.innerHTML = isCelebrating ? "🏆 ผลประกาศแล้ว" : scoresRecorded ? "<i></i> LIVE" : "🧪 LIVE";
@@ -2048,6 +2229,7 @@ function playVictorySound() {
 
 async function finishActivity(reason = "manual") {
   if (!state.session?.current_activity_key || state.finishingActivity || state.celebrationActivityKey) return;
+  const assessment = isAssessmentSession(state.session);
   const finishedActivityKey = state.session.current_activity_key;
   const flow = currentLessonFlow();
   const gameIndex = flow.findIndex(step => step.key === state.lessonStepKey && step.kind === "game");
@@ -2057,13 +2239,28 @@ async function finishActivity(reason = "manual") {
   prepareVictoryAudio();
   state.finishingActivity = true;
   renderLiveResults();
-  const { data, error } = await supabase.from("class_sessions").update({ status: "paused" }).eq("id", state.session.id).select().single();
+  const { data, error } = await supabase.from("class_sessions").update({
+    status: "paused",
+    ...(assessment ? { ended_at: new Date().toISOString() } : {}),
+  }).eq("id", state.session.id).select().single();
   if (error) {
     state.finishingActivity = false;
     renderLiveResults();
     return toast(error.message, "error");
   }
   state.session = data;
+  if (assessment) {
+    state.celebrationActivityKey = null;
+    state.celebrationReason = null;
+    state.finishingActivity = false;
+    stopActivityTimer({ clearSaved: true, label: "จบแบบทดสอบ" });
+    renderActivityControls();
+    renderLiveResults();
+    await broadcastDisplay("assessment-finished");
+    await loadAssessmentReport();
+    toast("จบแบบทดสอบแล้ว · เปิดรายงานครูเพื่อดาวน์โหลดตารางคะแนน", "success");
+    return;
+  }
   state.celebrationActivityKey = finishedActivityKey;
   state.celebrationReason = reason;
   state.finishingActivity = false;
@@ -2396,8 +2593,200 @@ function bestAttemptsForPlayer(playerId) {
   return grouped;
 }
 
+function mean(values) {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function sampleStandardDeviation(values) {
+  if (values.length < 2) return 0;
+  const average = mean(values);
+  return Math.sqrt(values.reduce((sum, value) => sum + ((value - average) ** 2), 0) / (values.length - 1));
+}
+
+function logGamma(value) {
+  const coefficients = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+  let x = value;
+  let y = value;
+  let temp = x + 5.5;
+  temp -= (x + 0.5) * Math.log(temp);
+  let series = 1.000000000190015;
+  coefficients.forEach(coefficient => { y += 1; series += coefficient / y; });
+  return -temp + Math.log(2.5066282746310005 * series / x);
+}
+
+function betaFraction(a, b, x) {
+  const maxIterations = 100;
+  const epsilon = 3e-7;
+  const minimum = 1e-30;
+  let c = 1;
+  let d = 1 - ((a + b) * x / (a + 1));
+  if (Math.abs(d) < minimum) d = minimum;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= maxIterations; m += 1) {
+    const doubled = 2 * m;
+    let numerator = m * (b - m) * x / ((a + doubled - 1) * (a + doubled));
+    d = 1 + (numerator * d);
+    if (Math.abs(d) < minimum) d = minimum;
+    c = 1 + (numerator / c);
+    if (Math.abs(c) < minimum) c = minimum;
+    d = 1 / d;
+    h *= d * c;
+    numerator = -(a + m) * (a + b + m) * x / ((a + doubled) * (a + doubled + 1));
+    d = 1 + (numerator * d);
+    if (Math.abs(d) < minimum) d = minimum;
+    c = 1 + (numerator / c);
+    if (Math.abs(c) < minimum) c = minimum;
+    d = 1 / d;
+    const delta = d * c;
+    h *= delta;
+    if (Math.abs(delta - 1) < epsilon) break;
+  }
+  return h;
+}
+
+function regularizedBeta(x, a, b) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const factor = Math.exp((a * Math.log(x)) + (b * Math.log(1 - x)) - logGamma(a) - logGamma(b) + logGamma(a + b));
+  return x < (a + 1) / (a + b + 2)
+    ? factor * betaFraction(a, b, x) / a
+    : 1 - (factor * betaFraction(b, a, 1 - x) / b);
+}
+
+function pairedTest(valuesBefore, valuesAfter) {
+  const differences = valuesAfter.map((value, index) => value - valuesBefore[index]);
+  const count = differences.length;
+  const differenceMean = mean(differences);
+  const differenceSd = sampleStandardDeviation(differences);
+  if (count < 2) return { count, differenceMean, differenceSd, t: null, p: null, significant: null };
+  if (differenceSd === 0) {
+    const p = differenceMean === 0 ? 1 : 0;
+    return { count, differenceMean, differenceSd, t: differenceMean === 0 ? 0 : (differenceMean > 0 ? Infinity : -Infinity), p, significant: p < .05 };
+  }
+  const t = differenceMean / (differenceSd / Math.sqrt(count));
+  const degreesOfFreedom = count - 1;
+  const x = degreesOfFreedom / (degreesOfFreedom + (t * t));
+  const beta = regularizedBeta(x, degreesOfFreedom / 2, .5);
+  const cdf = t >= 0 ? 1 - (beta / 2) : beta / 2;
+  const p = Math.min(1, Math.max(0, 2 * Math.min(cdf, 1 - cdf)));
+  return { count, differenceMean, differenceSd, t, p, significant: p < .05 };
+}
+
+function numberText(value, digits = 2) {
+  return Number.isFinite(value) ? value.toFixed(digits) : "—";
+}
+
+function assessmentComparisonRows() {
+  return state.assessmentReport.map(row => ({
+    ...row,
+    preScore: row.pre_score === null || row.pre_score === undefined ? null : Number(row.pre_score),
+    preMax: row.pre_max_score === null || row.pre_max_score === undefined ? null : Number(row.pre_max_score),
+    postScore: row.post_score === null || row.post_score === undefined ? null : Number(row.post_score),
+    postMax: row.post_max_score === null || row.post_max_score === undefined ? null : Number(row.post_max_score),
+  }));
+}
+
+function assessmentStatistics(rows = assessmentComparisonRows()) {
+  const paired = rows.filter(row => Number.isFinite(row.preScore) && Number.isFinite(row.postScore));
+  const before = paired.map(row => row.preScore);
+  const after = paired.map(row => row.postScore);
+  const maxScore = Math.max(20, ...paired.map(row => Math.max(row.preMax || 0, row.postMax || 0)));
+  const preMean = mean(before);
+  const postMean = mean(after);
+  return {
+    paired,
+    maxScore,
+    preMean,
+    postMean,
+    preSd: sampleStandardDeviation(before),
+    postSd: sampleStandardDeviation(after),
+    growthPoints: postMean - preMean,
+    growthPercent: maxScore ? ((postMean - preMean) / maxScore) * 100 : 0,
+    test: pairedTest(before, after),
+  };
+}
+
+async function loadAssessmentReport() {
+  const classId = state.session?.class_id || $("#classSelect")?.value;
+  if (!classId || !sessionRecordsScores()) {
+    state.assessmentReport = [];
+    renderReport();
+    return;
+  }
+  const { data, error } = await supabase.rpc("get_assessment_comparison", { p_class_id: classId });
+  if (error) {
+    console.warn("โหลดรายงานก่อน–หลังเรียนไม่สำเร็จ", error.code);
+    return;
+  }
+  state.assessmentReport = data || [];
+  renderReport();
+}
+
+function renderAssessmentResearchReport() {
+  const rows = assessmentComparisonRows();
+  const stats = assessmentStatistics(rows);
+  const className = state.classes.find(item => item.id === state.session?.class_id)?.label || "ห้องเรียนปัจจุบัน";
+  const significance = stats.test.significant === null
+    ? "ต้องมีข้อมูลครบคู่ตั้งแต่ 2 คนจึงคำนวณ paired t-test ได้"
+    : stats.test.significant
+      ? "แตกต่างอย่างมีนัยสำคัญทางสถิติที่ระดับ .05"
+      : "ไม่พบความแตกต่างอย่างมีนัยสำคัญทางสถิติที่ระดับ .05";
+  const tText = stats.test.t === null ? "—" : (Number.isFinite(stats.test.t) ? numberText(stats.test.t, 3) : "∞");
+  const pText = stats.test.p === null ? "—" : stats.test.p < .001 ? "< .001" : numberText(stats.test.p, 3);
+  const table = rows.length
+    ? `<div class="table-wrap"><table class="assessment-individual-table"><thead><tr><th>ลำดับ</th><th>เลขที่/รหัส</th><th>ชื่อ–นามสกุล</th><th>ก่อนเรียน</th><th>หลังเรียน</th><th>ผลต่าง</th></tr></thead><tbody>${rows.map((row, index) => {
+      const difference = Number.isFinite(row.preScore) && Number.isFinite(row.postScore) ? row.postScore - row.preScore : null;
+      return `<tr><td>${index + 1}</td><td>${escapeHtml(row.student_code || "—")}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${row.preScore === null ? "ยังไม่ทำ" : `${row.preScore}/${row.preMax || 20}`}</td><td>${row.postScore === null ? "ยังไม่ทำ" : `${row.postScore}/${row.postMax || 20}`}</td><td>${difference === null ? "—" : `${difference > 0 ? "+" : ""}${difference}`}</td></tr>`;
+    }).join("")}</tbody></table></div>`
+    : `<p class="assessment-report-empty">ยังไม่มีคะแนนก่อนเรียนหรือหลังเรียนที่บันทึกไว้สำหรับห้องนี้</p>`;
+  return `<section class="assessment-research-report">
+    <div class="assessment-report-heading"><div><span class="eyebrow">รายงานวิจัย · คะแนนก่อนเรียน–หลังเรียน</span><h2>${escapeHtml(className)}</h2><p>ผลสอบไม่มีการจัดอันดับ แสดงเรียงตามเลขที่/รหัสนักเรียน</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-assessment="individual">ดาวน์โหลดตารางรายบุคคล CSV</button><button type="button" class="button button-ghost" data-export-assessment="summary">ดาวน์โหลดตารางสรุป CSV</button></div></div>
+    <div class="assessment-stat-grid"><article><small>ข้อมูลครบคู่</small><strong>${stats.paired.length} คน</strong><span>คะแนนเต็ม ${stats.maxScore}</span></article><article><small>ก่อนเรียน</small><strong>${numberText(stats.preMean)}</strong><span>S.D. ${numberText(stats.preSd)}</span></article><article><small>หลังเรียน</small><strong>${numberText(stats.postMean)}</strong><span>S.D. ${numberText(stats.postSd)}</span></article><article><small>พัฒนาการเฉลี่ย</small><strong>${numberText(stats.growthPoints)} คะแนน</strong><span>${numberText(stats.growthPercent)}% ของคะแนนเต็ม</span></article></div>
+    <section class="assessment-test-summary"><strong>paired t-test: t(${Math.max(0, stats.test.count - 1)}) = ${tText}, p = ${pText}</strong><span>${significance}</span></section>
+    ${table}
+  </section>`;
+}
+
+function exportAssessmentReport(kind = "individual") {
+  if (!state.session) return toast("ยังไม่มีคาบเรียนให้ส่งออกรายงาน", "warning");
+  const rows = assessmentComparisonRows();
+  const stats = assessmentStatistics(rows);
+  const className = state.classes.find(item => item.id === state.session.class_id)?.label || "";
+  if (kind === "summary") {
+    const test = stats.test;
+    downloadCsv(`สรุปผลสัมฤทธิ์-${className || state.session.room_code}.csv`, [
+      ["ตารางสรุปผลสัมฤทธิ์ก่อนเรียนและหลังเรียน"],
+      ["ห้องเรียน", className],
+      ["จำนวนข้อมูลครบคู่", stats.paired.length],
+      ["คะแนนเต็ม", stats.maxScore],
+      [],
+      ["รายการ", "ก่อนเรียน", "หลังเรียน", "ผลต่าง/ผลทดสอบ"],
+      ["ค่าเฉลี่ย (Mean)", numberText(stats.preMean), numberText(stats.postMean), numberText(stats.growthPoints)],
+      ["ส่วนเบี่ยงเบนมาตรฐาน (S.D.)", numberText(stats.preSd), numberText(stats.postSd), numberText(test.differenceSd)],
+      ["ร้อยละของคะแนนเต็ม", numberText(stats.maxScore ? (stats.preMean / stats.maxScore) * 100 : 0), numberText(stats.maxScore ? (stats.postMean / stats.maxScore) * 100 : 0), numberText(stats.growthPercent)],
+      ["paired t-test", "", "", test.t === null ? "ข้อมูลไม่พอ" : `t(${test.count - 1}) = ${Number.isFinite(test.t) ? numberText(test.t, 3) : "∞"}, p ${test.p < .001 ? "< .001" : `= ${numberText(test.p, 3)}`}`],
+      ["สรุปที่ระดับ .05", "", "", test.significant === null ? "ต้องมีข้อมูลครบคู่ตั้งแต่ 2 คน" : (test.significant ? "แตกต่างอย่างมีนัยสำคัญ" : "ไม่แตกต่างอย่างมีนัยสำคัญ")],
+    ]);
+    return;
+  }
+  const csvRows = [["ลำดับ", "ห้อง", "เลขที่/รหัส", "ชื่อ-นามสกุล", "คะแนนก่อนเรียน", "คะแนนเต็มก่อนเรียน", "คะแนนหลังเรียน", "คะแนนเต็มหลังเรียน", "ผลต่าง (หลัง-ก่อน)"]];
+  rows.forEach((row, index) => csvRows.push([
+    index + 1, className, row.student_code || "", row.full_name || "", row.preScore ?? "", row.preMax ?? "", row.postScore ?? "", row.postMax ?? "",
+    Number.isFinite(row.preScore) && Number.isFinite(row.postScore) ? row.postScore - row.preScore : "",
+  ]));
+  downloadCsv(`ตารางคะแนนก่อนหลัง-${className || state.session.room_code}.csv`, csvRows);
+}
+
 function renderReport() {
   if (!state.session) return;
+  if (isAssessmentSession(state.session)) {
+    $("#reportContent").innerHTML = sessionRecordsScores()
+      ? renderAssessmentResearchReport()
+      : `<p class="flow-score-recording-notice">🧪 คาบตรวจสื่อไม่บันทึกคะแนน จึงไม่มีรายงานวิจัยให้ส่งออก</p>`;
+    $("#reportContent").querySelectorAll("[data-export-assessment]").forEach(button => button.addEventListener("click", () => exportAssessmentReport(button.dataset.exportAssessment)));
+    return;
+  }
   const expertNotice = !sessionRecordsScores()
     ? `<p class="flow-score-recording-notice">🧪 แสดงผลสดระหว่างคาบเท่านั้น · ไม่มีการบันทึกคะแนนลงฐานข้อมูล</p>`
     : "";
@@ -2413,6 +2802,7 @@ function renderReport() {
 
 function exportCurrentReport() {
   if (!state.session) return toast("ยังไม่มีคาบเรียนให้ส่งออก", "warning");
+  if (isAssessmentSession(state.session)) return exportAssessmentReport("individual");
   if (!sessionRecordsScores()) return toast("คะแนนสดของคาบตรวจสื่อไม่สามารถส่งออกรายงานได้", "warning");
   const rows = [["ห้อง", "เลขประจำตัว", "ชื่อ-นามสกุล", "ชื่อเล่น", "กิจกรรม", "ครั้งที่", "คะแนน", "คะแนนเต็ม", "ร้อยละ", "ผ่าน", "เวลา"]];
   state.attempts.forEach(attempt => {
@@ -2437,6 +2827,7 @@ function switchPanel(panelId) {
     stopStudentScreenWatch();
     renderStudentScreens();
   } else stopStudentScreenWatch();
+  if (panelId === "reportsPanel" && isAssessmentSession(state.session) && sessionRecordsScores()) void loadAssessmentReport();
 }
 
 $("#teacherLoginForm").addEventListener("submit", signIn);
@@ -2479,6 +2870,7 @@ $("#qrNextButton").addEventListener("click", () => setTeacherFlowStep("lobby"));
 $("#lobbyBackButton").addEventListener("click", handleLobbyBack);
 $("#lobbyNextButton").addEventListener("click", handleLobbyNext);
 $("#planBackButton").addEventListener("click", () => setTeacherFlowStep("lobby"));
+$$('[data-assessment-phase]').forEach(button => button.addEventListener("click", () => selectAssessment(button.dataset.assessmentPhase)));
 $("#startPlanButton").addEventListener("click", startSelectedPlan);
 $("#finishActivityButton").addEventListener("click", () => finishActivity("manual"));
 $("#previousLessonStepButton").addEventListener("click", goToPreviousLessonStep);

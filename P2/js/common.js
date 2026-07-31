@@ -7,11 +7,23 @@ export const ACTIVITIES = Object.freeze([
 
 const freezeActivitySet = activities => Object.freeze(activities.map(activity => Object.freeze(activity)));
 
+// การวัดผลเป็นคาบแยกต่างหาก ไม่ใช่กิจกรรมภายในแผนการสอนใดแผนหนึ่ง
+// จึงคงรหัสข้อสอบเดียวกันไว้สำหรับเปรียบเทียบก่อนเรียน–หลังเรียนได้เสมอ
+export const ASSESSMENT_ACTIVITIES = freezeActivitySet([
+  { key: "pretest", icon: "📝", title: "แบบทดสอบก่อนเรียน", short: "ก่อนเรียน 20 ข้อ", minutes: 20, phase: "pretest", noRanking: true },
+  { key: "posttest", icon: "🎓", title: "แบบทดสอบหลังเรียน", short: "หลังเรียน 20 ข้อ", minutes: 20, phase: "posttest", noRanking: true },
+]);
+
+export function assessmentActivityForPhase(phase) {
+  return ASSESSMENT_ACTIVITIES.find(activity => activity.phase === phase) || null;
+}
+
+export function isAssessmentSession(session) {
+  return Boolean(assessmentActivityForPhase(session?.assessment_phase));
+}
+
 export const PLAN_ACTIVITIES = Object.freeze({
-  1: freezeActivitySet([
-    { key: "pretest", icon: "📝", title: "แบบทดสอบก่อนเรียน", short: "ก่อนเรียน 20 ข้อ", minutes: 20 },
-    ...ACTIVITIES,
-  ]),
+  1: ACTIVITIES,
   2: freezeActivitySet([
     { key: "mae-kong-box", icon: "📦", title: "กล่องคำแม่กง", short: "กล่องคำ", minutes: 10 },
     { key: "mae-kong-rocket", icon: "🚀", title: "จรวดประโยคพุ่งทะยาน", short: "จรวดประโยค", minutes: 15 },
@@ -46,7 +58,6 @@ export const PLAN_ACTIVITIES = Object.freeze({
     { key: "island-supply", icon: "⛵", title: "เก็บเสบียงแม่กบ", short: "เก็บเสบียง", minutes: 10 },
     { key: "island-puzzle", icon: "🏝️", title: "ไขปริศนาชาวเกาะ", short: "ปริศนาชาวเกาะ", minutes: 15 },
     { key: "exit", icon: "🏆", title: "ด่านดาวพิชิตแม่กบ", short: "แบบทดสอบท้ายคาบ", minutes: 5 },
-    { key: "posttest", icon: "🎓", title: "แบบทดสอบหลังเรียน", short: "หลังเรียน 20 ข้อ", minutes: 20 },
   ]),
 });
 
@@ -90,28 +101,6 @@ const addCompetitionResultSteps = steps => steps.flatMap(step => {
 });
 
 const PLAN_1_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
-  {
-    key: "p1-pretest",
-    stage: 1,
-    kind: "game",
-    activityKey: "pretest",
-    icon: "📝",
-    title: "แบบทดสอบวัดผลสัมฤทธิ์ก่อนเรียน",
-    minutes: 20,
-    studentVisibleDefault: true,
-    teacherNotes: [
-      "ให้นักเรียนทำแบบทดสอบ 20 ข้อด้วยตนเองก่อนเริ่มหน่วยการเรียนรู้",
-      "ข้อสอบสลับลำดับข้อและตัวเลือกบนจอของแต่ละคน และไม่มีเฉลยระหว่างทำ",
-      "บันทึกผลด้วยชื่อกิจกรรม ‘pretest’ เพื่อเปรียบเทียบกับแบบทดสอบหลังเรียน ‘posttest’",
-    ],
-    screen: {
-      eyebrow: "ก่อนเริ่มหน่วยการเรียนรู้",
-      title: "แบบทดสอบก่อนเรียน · มาตราตัวสะกด",
-      message: "อ่านโจทย์ทีละข้อ เลือกคำตอบที่ถูกต้องที่สุด และทำให้ครบ 20 ข้อ",
-      icon: "📝",
-      bullets: ["ทำด้วยตนเอง", "ไม่มีเฉลยระหว่างทำ", "ผลใช้เปรียบเทียบพัฒนาการ"],
-    },
-  },
   {
     key: "p1-song",
     stage: 1,
@@ -1563,15 +1552,6 @@ const PLAN_7_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
     teacherNotes: ["แจกใบงานที่ 8 เรื่องมาตราแม่กบ", "แจ้งวิธีทำและกำหนดส่ง เพื่อทบทวนการจำแนกและเขียนสะกดคำ", "แจ้งกำหนดการทดสอบวัดผลสัมฤทธิ์หลังเรียนของหน่วยการเรียนรู้"],
     screen: { eyebrow: "ภารกิจทบทวน", title: "ใบงานที่ 8 · มาตราแม่กบ", message: "รับใบงาน ตรวจชื่อ ฟังกำหนดส่งและกำหนดทดสอบหลังเรียน", icon: "📄", bullets: ["จำแนกคำขึ้นเรือ", "วงกลมคำแม่กบ", "เรียงคำเป็นประโยค"] },
   },
-  {
-    key: "p8-posttest", stage: 5, kind: "game", activityKey: "posttest", icon: "🎓", title: "แบบทดสอบวัดผลสัมฤทธิ์หลังเรียน", minutes: 20, studentVisibleDefault: true,
-    teacherNotes: [
-      "ให้นักเรียนทำแบบทดสอบ 20 ข้อหลังเรียนครบทั้งหน่วย",
-      "ข้อสอบสลับลำดับข้อและตัวเลือกบนจอของแต่ละคน และไม่มีเฉลยระหว่างทำ",
-      "เปรียบเทียบผล ‘posttest’ กับ ‘pretest’ ในรายงานผลเพื่อดูพัฒนาการรายบุคคล",
-    ],
-    screen: { eyebrow: "หลังเรียนครบทั้งหน่วย", title: "แบบทดสอบหลังเรียน · มาตราตัวสะกด", message: "แสดงความรู้ที่ได้เรียนมา ทำแบบทดสอบให้ครบ 20 ข้อ", icon: "🎓", bullets: ["ทำด้วยตนเอง", "ไม่มีเฉลยระหว่างทำ", "ใช้เปรียบเทียบกับผลก่อนเรียน"] },
-  },
 ]));
 
 const PLAN_8_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
@@ -1700,6 +1680,7 @@ export function activitiesForPlan(planId = 1) {
 export function activityForKey(activityKey, planId) {
   const planActivities = activitiesForPlan(planId);
   return planActivities.find(activity => activity.key === activityKey)
+    || ASSESSMENT_ACTIVITIES.find(activity => activity.key === activityKey)
     || Object.values(PLAN_ACTIVITIES).flat().find(activity => activity.key === activityKey)
     || null;
 }

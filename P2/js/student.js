@@ -1,12 +1,12 @@
 import { APP_CONFIG } from "./config.js";
 import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-reviewer-links-1";
 import {
-  $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
+  $, assessmentActivityForPhase, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide, isAssessmentSession,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260731-achievement-tests-1";
-import { ACHIEVEMENT_TEST_QUESTIONS } from "./achievement-test.js?v=20260731-achievement-tests-1";
+} from "./common.js?v=20260731-assessment-research-1";
+import { ACHIEVEMENT_TEST_QUESTIONS } from "./achievement-test.js?v=20260731-assessment-research-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -738,6 +738,10 @@ function renderScoreRecordingState() {
 }
 
 function sessionActivities() {
+  if (isAssessmentSession(state.session)) {
+    const activity = assessmentActivityForPhase(state.session.assessment_phase);
+    return activity ? [activity] : [];
+  }
   const planId = state.session?.plan_id || 1;
   const activities = activitiesForPlan(planId);
   if (Number(planId) !== 1) return activities;
@@ -1078,17 +1082,20 @@ function renderLessonMedia(step, shared) {
 function applySessionState() {
   const activities = sessionActivities();
   const activity = activityForKey(state.session.current_activity_key, state.session.plan_id);
-  const lesson = state.lessonStep;
+  const assessment = isAssessmentSession(state.session);
+  const lesson = assessment ? null : state.lessonStep;
   const lessonIsActive = state.session.status === "active" && Boolean(lesson);
   const mediaIsActive = lessonIsActive && lesson.kind === "media";
   const gameIsLive = lessonIsActive ? lesson.kind === "game" && Boolean(activity) : state.session.status === "active" && Boolean(activity);
   const sharedMediaIsLive = mediaIsActive && lesson.show_on_students === true;
   document.body.classList.toggle("student-game-live", gameIsLive || sharedMediaIsLive);
   if (gameIsLive || sharedMediaIsLive) setGameFocus(true);
-  $("#stageStep").textContent = lesson
+  $("#stageStep").textContent = assessment
+    ? `แบบทดสอบ${state.session.assessment_phase === "posttest" ? "หลังเรียน" : "ก่อนเรียน"} · 20 ข้อ`
+    : lesson
     ? `ขั้นที่ ${lesson.stage} · ${lesson.kind === "game" ? "เกม" : "สื่อการสอน"}`
     : activity ? `ภารกิจ ${activities.findIndex(item => item.key === activity.key) + 1} จาก ${activities.length}` : "เตรียมพร้อม";
-  $("#stageTitle").textContent = lesson?.title || activity?.title || "รอครูเริ่มกิจกรรม";
+  $("#stageTitle").textContent = assessment ? activity?.title || "แบบทดสอบวัดผลสัมฤทธิ์" : lesson?.title || activity?.title || "รอครูเริ่มกิจกรรม";
   $("#attemptBadge").textContent = modeLabel(state.session.play_mode);
   activities.forEach(item => $(`[data-activity="${item.key}"]`, $("#activityTimeline"))?.classList.toggle("active", item.key === activity?.key));
   updateStudentLessonCountdown();
@@ -1157,7 +1164,11 @@ function renderAchievementTest(activityKey) {
       </article>`;
     },
     choices: question => question.options,
-    replay: () => renderAchievementTest(activityKey),
+    replay: null,
+    deadlineAt: state.session?.assessment_ends_at || null,
+    timeoutTitle: "หมดเวลาทำแบบทดสอบแล้ว",
+    hideScoreWhilePlaying: true,
+    resultMessage: "ระบบส่งคำตอบให้คุณครูแล้ว · ไม่มีการจัดอันดับผลสอบ",
   });
 }
 
@@ -1241,7 +1252,7 @@ function createExpertAttempt(activityKey, score, maxScore, answers) {
   };
 }
 
-function showResult(title, score, maxScore, result, replay) {
+function showResult(title, score, maxScore, result, replay, options = {}) {
   cleanupRhythm();
   const percent = result?.percent ?? Math.round((score / maxScore) * 100);
   const scoreNotice = sessionRecordsScores()
@@ -1249,7 +1260,10 @@ function showResult(title, score, maxScore, result, replay) {
     : projectorPreviewActivityKey
       ? "<p>📽️ นี่คือผลทดลองบนจอครู คะแนนไม่ถูกบันทึกและไม่กระทบผลนักเรียน</p>"
       : "<p>🧪 คะแนนนี้ใช้จัดอันดับสดในคาบ แต่จะไม่บันทึกหลังจบคาบ</p>";
-  $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2><p>ได้ <strong>${score} / ${maxScore}</strong> คะแนน (${percent}%)</p><p>${result?.passed ? "ผ่านด่านแล้ว เก่งมาก!" : "ลองทบทวนแล้วพยายามใหม่นะ"}</p>${scoreNotice}<button id="replayButton" class="button button-primary">เล่นอีกครั้ง</button></div></div>`;
+  const personalScore = options.hideScore ? "" : `<p>ได้ <strong>${score} / ${maxScore}</strong> คะแนน (${percent}%)</p>`;
+  const resultMessage = options.message || (result?.passed ? "ผ่านด่านแล้ว เก่งมาก!" : "ลองทบทวนแล้วพยายามใหม่นะ");
+  const replayButton = typeof replay === "function" ? `<button id="replayButton" class="button button-primary">เล่นอีกครั้ง</button>` : "";
+  $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2>${personalScore}<p>${escapeHtml(resultMessage)}</p>${scoreNotice}${replayButton}</div></div>`;
   $("#replayButton")?.addEventListener("click", replay);
 }
 
@@ -1745,16 +1759,51 @@ function renderRhythm() {
   queueMicrotask(() => void startRhythmAutomatically());
 }
 
-function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay, revealCorrectness = true, resultTitle = "ทำภารกิจสำเร็จ" }) {
+function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay, revealCorrectness = true, resultTitle = "ทำภารกิจสำเร็จ", deadlineAt = null, timeoutTitle = "หมดเวลาแล้ว", hideScoreWhilePlaying = false, resultMessage = "", hideResultScore = false }) {
   let index = 0;
   let score = 0;
   const answers = [];
+  const deadline = deadlineAt ? Date.parse(deadlineAt) : NaN;
+  let completed = false;
+  let countdownTimer = null;
+
+  const stopCountdown = () => {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  };
+
+  const submit = async (titleForResult = resultTitle) => {
+    if (completed) return;
+    completed = true;
+    stopCountdown();
+    const result = await submitAttempt(key, score, questions.length, answers);
+    if (result) showResult(titleForResult, score, questions.length, result, replay, { message: resultMessage, hideScore: hideResultScore });
+  };
+
+  const updateCountdown = () => {
+    if (!Number.isFinite(deadline) || completed) return;
+    if (state.session?.status !== "active" || state.session?.current_activity_key !== key) return stopCountdown();
+    const remaining = Math.max(0, deadline - Date.now());
+    const output = $("#questionCountdown");
+    if (output) {
+      const seconds = Math.ceil(remaining / 1000);
+      output.textContent = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+    }
+    if (remaining <= 0) {
+      $("#questionChoices")?.querySelectorAll("button").forEach(button => { button.disabled = true; });
+      void submit(timeoutTitle);
+    }
+  };
+
   const render = () => {
     const question = questions[index];
-    gameShell(title, instruction, `<div class="game-status-row"><span>ข้อ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div><div id="questionPrompt"></div><div class="choice-grid" id="questionChoices"></div>`);
+    const countdown = Number.isFinite(deadline) ? `<span class="mini-score">เหลือ <strong id="questionCountdown">--:--</strong></span>` : "";
+    const scoreLabel = hideScoreWhilePlaying ? `ตอบแล้ว ${index} ข้อ` : `คะแนน ${score}`;
+    gameShell(title, instruction, `<div class="game-status-row"><span>ข้อ ${index + 1} / ${questions.length}</span><span class="mini-score">${scoreLabel}</span>${countdown}</div><div id="questionPrompt"></div><div class="choice-grid" id="questionChoices"></div>`);
     renderPrompt(question, $("#questionPrompt"));
     $("#questionChoices").innerHTML = choices(question).map(choice => `<button class="choice-button" data-value="${escapeHtml(choice.value)}">${escapeHtml(choice.label)}</button>`).join("");
     [...$("#questionChoices").children].forEach(button => button.addEventListener("click", async () => {
+      if (completed) return;
       const chosen = button.dataset.value;
       const correct = chosen === question.answer;
       if (correct) score += 1;
@@ -1765,14 +1814,16 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
       setTimeout(async () => {
         index += 1;
         if (index < questions.length) render();
-        else {
-          const result = await submitAttempt(key, score, questions.length, answers);
-          if (result) showResult(resultTitle, score, questions.length, result, replay);
-        }
+        else await submit(resultTitle);
       }, 650);
     }));
+    updateCountdown();
   };
   render();
+  if (Number.isFinite(deadline)) {
+    countdownTimer = setInterval(updateCountdown, 250);
+    updateCountdown();
+  }
 }
 
 function renderMaeKongBox(activityKey, data, activity, options = {}) {

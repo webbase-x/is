@@ -1,5 +1,5 @@
-import { $ } from "./common.js?v=20260731-achievement-tests-1";
-import { PLAN_CATALOG, getPlanById } from "./plan-catalog.js?v=20260731-achievement-tests-1";
+import { $ } from "./common.js?v=20260731-assessment-research-1";
+import { PLAN_CATALOG, getPlanById } from "./plan-catalog.js?v=20260731-assessment-research-1";
 
 let activePlanId = "01";
 

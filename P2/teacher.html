@@ -162,12 +162,24 @@
               <section class="teacher-flow-step hidden" data-flow-step="plan">
                 <div class="flow-section-heading"><div><span class="eyebrow">ขั้นที่ 4 จาก 6</span><h2>เลือกแผนการสอน</h2><p>แตะแผนเพื่อดูเกมทั้งหมดก่อนเริ่ม</p></div></div>
                 <input id="planSelect" type="hidden">
+                <section class="assessment-choice-section" aria-labelledby="assessmentChoiceTitle">
+                  <div><span class="eyebrow">การประเมินผลสัมฤทธิ์ · แยกจากแผน 1–8</span><h3 id="assessmentChoiceTitle">แบบทดสอบก่อนเรียน</h3><p>ทำก่อนเริ่มแผนที่ 1 · 20 ข้อ · ไม่ประกาศอันดับ</p></div>
+                  <button type="button" class="assessment-choice" data-assessment-phase="pretest"></button>
+                </section>
                 <div id="planChoices" class="flow-plan-grid"></div>
+                <section class="assessment-choice-section assessment-choice-section-post" aria-labelledby="postAssessmentChoiceTitle">
+                  <div><span class="eyebrow">หลังเรียนครบทั้งหน่วย</span><h3 id="postAssessmentChoiceTitle">แบบทดสอบหลังเรียน</h3><p>ทำหลังแผนที่ 8 · 20 ข้อ · ใช้เทียบผลกับคะแนนก่อนเรียน</p></div>
+                  <button type="button" class="assessment-choice" data-assessment-phase="posttest"></button>
+                </section>
                 <details class="panel flow-activity-preview flow-collapsible" open>
                   <summary><span><span class="eyebrow">เกมในแผน</span><strong id="selectedPlanTitle">กรุณาเลือกแผน</strong></span><span class="flow-collapsible-label" aria-hidden="true"></span></summary>
                   <div id="activityPreview" class="flow-game-list"></div>
                 </details>
-                <details class="panel flow-settings">
+                <section id="assessmentDurationPanel" class="panel assessment-duration-panel hidden">
+                  <div><span class="eyebrow">ตั้งเวลาแบบทดสอบ</span><strong>กำหนดเวลาทำโดยครู</strong><small>เวลาจะเริ่มพร้อมกันเมื่อครูกดเริ่มแบบทดสอบ</small></div>
+                  <label>นาที<input id="assessmentDuration" type="number" min="1" max="180" value="20"></label>
+                </section>
+                <details id="planSettings" class="panel flow-settings">
                   <summary>⚙️ ตั้งค่ารอบ คะแนน และกระดานคะแนน</summary>
                   <div class="form-grid four">
                     <label>ประเภทการเล่น<select id="playMode"><option value="practice">ทดลอง</option><option value="real">จริง</option></select></label>
@@ -367,8 +379,8 @@
   <script type="module">
     const query = new URLSearchParams(window.location.search);
     const modulePath = query.get("expertDemo") === "1"
-      ? "./js/expert-teacher.js?v=20260731-achievement-tests-1"
-      : "./js/teacher.js?v=20260731-achievement-tests-1";
+      ? "./js/expert-teacher.js?v=20260731-assessment-research-1"
+      : "./js/teacher.js?v=20260731-assessment-research-1";
     import(modulePath);
   </script>
 </body>
