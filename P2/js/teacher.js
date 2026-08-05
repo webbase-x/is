@@ -7,7 +7,7 @@ import {
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260731-assessment-research-1";
+} from "./common.js?v=20260805-emoji-images-1";
 
 const TEACHER_BUILD_VERSION = "20260731-assessment-research-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;

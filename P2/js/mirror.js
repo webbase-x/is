@@ -1,4 +1,4 @@
-import { sanitizeGameMarkup } from "./common.js";
+import { sanitizeGameMarkup } from "./common.js?v=20260805-emoji-images-1";
 
 const canvas = document.querySelector("#gameCanvas");
 let lastMarkup = "";

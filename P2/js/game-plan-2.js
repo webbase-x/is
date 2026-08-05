@@ -1,3 +1,5 @@
+import "./emoji.js?v=20260805-emoji-images-1";
+
 const $ = selector => document.querySelector(selector);
 const words = shuffle([
   { word:"กอง", emoji:"🪙", target:true }, { word:"ก้าง", emoji:"🐟", target:true },

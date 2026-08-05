@@ -1,3 +1,5 @@
+import "./emoji.js?v=20260805-emoji-images-1";
+
 export const ACTIVITIES = Object.freeze([
   { key: "rhythm", icon: "🎵", title: "เพลง มาตรา ก กา", short: "เพลง มาตรา", minutes: 5 },
   { key: "sort", icon: "🏠", title: "จัดบ้านให้คำ", short: "จัดบ้าน", minutes: 10 },

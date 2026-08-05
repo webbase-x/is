@@ -5,7 +5,7 @@ import {
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260731-assessment-research-1";
+} from "./common.js?v=20260805-emoji-images-1";
 import { ACHIEVEMENT_TEST_QUESTIONS } from "./achievement-test.js?v=20260731-assessment-research-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
@@ -241,7 +241,8 @@ const LIVE_PLAN_GAME_DATA = Object.freeze({
 });
 function emojiAsset(emoji, label = "") {
   const codepoints = [...emoji].map(character => character.codePointAt(0)).filter(code => code !== 0xfe0e && code !== 0xfe0f).map(code => code.toString(16)).join("-");
-  return `<img class="word-picture" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codepoints}.svg" alt="${escapeHtml(label)}" loading="eager" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="word-picture-fallback" aria-hidden="true" hidden>${emoji}</span>`;
+  const fallback = escapeHtml(String(label || "?").trim().slice(0, 1) || "?");
+  return `<img class="word-picture" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/${codepoints}.svg" alt="${escapeHtml(label)}" loading="eager" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="word-picture-fallback" aria-hidden="true" hidden>${fallback}</span>`;
 }
 const WHEEL_SPIN_DURATION = 3000;
 const RHYTHM_CUE_TEMPLATE = Object.freeze([

@@ -1,3 +1,5 @@
+import "./emoji.js?v=20260805-emoji-images-1";
+
 const $ = selector => document.querySelector(selector);
 const sortWords = shuffle([
   ["กล้วย","แม่เกย","🍌"],["กลาย","แม่เกย","🔄"],["จ่าย","แม่เกย","💵"],["เฉย","แม่เกย","🙂"],["ด้าย","แม่เกย","🧵"],

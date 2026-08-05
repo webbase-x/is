@@ -3,7 +3,7 @@ import {
   activitiesForPlan,
   escapeHtml,
   lessonFlowForPlan,
-} from "./common.js?v=20260731-assessment-research-1";
+} from "./common.js?v=20260805-emoji-images-1";
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];

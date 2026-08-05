@@ -1,3 +1,5 @@
+import "./emoji.js?v=20260805-emoji-images-1";
+
 const $=selector=>document.querySelector(selector);
 const sortWords=shuffle([
   {word:"ก้ม",emoji:"🙇",target:true},{word:"จิ้ม",emoji:"👉",target:true},{word:"ตอม",emoji:"🪰",target:true},{word:"ทีม",emoji:"👥",target:true},{word:"ยอม",emoji:"🤝",target:true},

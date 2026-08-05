@@ -1,3 +1,5 @@
+import "./emoji.js?v=20260805-emoji-images-1";
+
 const $=selector=>document.querySelector(selector);
 const commonOther=["ช้าง","มด","ดาว","ส้ม"];
 const CONFIGS={

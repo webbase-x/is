@@ -1,5 +1,5 @@
 import { supabase, isMissingSchema } from "./supabase.js";
-import { $, updateConnectionBadge } from "./common.js";
+import { $, updateConnectionBadge } from "./common.js?v=20260805-emoji-images-1";
 
 async function checkSystem() {
   const badge = $("#systemStatus");
