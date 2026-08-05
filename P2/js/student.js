@@ -749,6 +749,72 @@ function sessionActivities() {
   return activities.filter(activity => included.has(activity.key));
 }
 
+function lessonStepFromSession(session, realtimeStep = state.lessonStep) {
+  if (!session) return null;
+  const assessment = assessmentActivityForPhase(session.assessment_phase);
+  if (assessment) {
+    if (realtimeStep?.activity_key === assessment.key && realtimeStep.kind === "assessment") return realtimeStep;
+    return {
+      key: `assessment-${assessment.key}`,
+      round_id: `session-${session.id}-${assessment.key}`,
+      stage: 1,
+      kind: "assessment",
+      activity_key: assessment.key,
+      title: assessment.title,
+      icon: assessment.icon,
+      minutes: Number(session.assessment_duration_minutes || assessment.minutes || 20),
+      show_on_students: true,
+    };
+  }
+
+  const activityKey = String(session.current_activity_key || "");
+  if (!activityKey) {
+    // Media steps do not have a current_activity_key in the durable session
+    // record. Keep a valid Realtime media step, otherwise wait for the
+    // teacher's state reply instead of reusing an unrelated game.
+    return realtimeStep?.kind === "media" && session.status === "active" ? realtimeStep : null;
+  }
+  if (
+    realtimeStep?.activity_key === activityKey
+    && ["game", "results"].includes(realtimeStep.kind)
+  ) return realtimeStep;
+
+  // A student can miss a transient Broadcast while reconnecting. Rebuild the
+  // active game from class_sessions so every game still opens immediately.
+  const flowStep = lessonFlowForPlan(session.plan_id || 1)
+    .find(step => step.kind === "game" && step.activityKey === activityKey);
+  const activity = activityForKey(activityKey, session.plan_id);
+  if (!flowStep && !activity) return null;
+  return {
+    key: flowStep?.key || `session-game-${activityKey}`,
+    round_id: `session-${session.id}-${activityKey}-${session.started_at || "active"}`,
+    stage: flowStep?.stage || 1,
+    kind: "game",
+    activity_key: activityKey,
+    title: flowStep?.title || activity?.title || "กิจกรรม",
+    icon: flowStep?.icon || activity?.icon || "🎮",
+    minutes: Number(flowStep?.minutes || activity?.minutes || 0),
+    show_on_students: true,
+    screen: flowStep?.screen || null,
+  };
+}
+
+function applySessionSnapshot(nextSession, realtimeStep, lessonTimer) {
+  const previousSession = state.session;
+  const activityChanged = previousSession?.current_activity_key !== nextSession?.current_activity_key;
+  const planChanged = Number(previousSession?.plan_id || 0) !== Number(nextSession?.plan_id || 0);
+  state.session = nextSession;
+  state.lessonStep = lessonStepFromSession(nextSession, planChanged ? null : realtimeStep);
+  if (lessonTimer !== undefined) state.lessonTimer = lessonTimer;
+  if (activityChanged || planChanged) {
+    state.renderedActivity = null;
+    state.renderedLessonRoundId = null;
+  }
+  if (planChanged) renderTimeline();
+  renderScoreRecordingState();
+  applySessionState();
+}
+
 function renderTimeline() {
   $("#activityTimeline").innerHTML = sessionActivities().map((activity, index) => `
     <li data-activity="${activity.key}"><span>${activity.icon}</span><strong>${index + 1}. ${escapeHtml(activity.short)}</strong></li>
@@ -797,17 +863,11 @@ function subscribeToSession() {
         state.renderedActivity = null;
         state.renderedLessonRoundId = null;
       }
-      state.session = update.session;
-      state.lessonStep = update.lesson_step || state.lessonStep;
-      state.lessonTimer = update.lesson_timer || state.lessonTimer;
-      renderScoreRecordingState();
-      applySessionState();
+      applySessionSnapshot(update.session, update.lesson_step, update.lesson_timer);
     })
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "class_sessions", filter: `id=eq.${state.session.id}` }, payload => {
       // Durable fallback for reconnects; Broadcast is the immediate render path.
-      state.session = payload.new;
-      renderScoreRecordingState();
-      applySessionState();
+      applySessionSnapshot(payload.new, state.lessonStep);
     })
     .subscribe(status => {
       state.sessionChannelReady = status === "SUBSCRIBED";
@@ -1138,7 +1198,12 @@ function renderActivity(key) {
     return;
   }
   const renderers = { rhythm: renderRhythm, sort: renderSort, train: renderTrain, exit: renderExit };
-  renderers[key]?.();
+  const renderer = renderers[key];
+  if (renderer) {
+    renderer();
+    return;
+  }
+  $("#gameCanvas").innerHTML = `<div class="empty-stage"><span>🧭</span><h2>ยังไม่พบกิจกรรมนี้</h2><p>จอนักเรียนเชื่อมต่อแล้ว กรุณาให้ครูเริ่มกิจกรรมอีกครั้ง</p></div>`;
 }
 
 function renderAchievementTest(activityKey) {

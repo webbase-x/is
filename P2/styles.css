@@ -2431,6 +2431,155 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
 .classroom-stage-expanded .lesson-step-actions { min-height: 61px; margin-top: 8px; padding-top: 8px; }
 .classroom-stage-expanded .competition-finale { min-height: 0; }
 
+/* Projection mode: show only the current activity. The exit control floats
+   above the stage so the teacher can return to classroom controls at any time. */
+.classroom-stage-panel.classroom-stage-expanded {
+  display: block;
+  padding: 0;
+  background: #fff;
+}
+.classroom-stage-expanded .lesson-step-heading {
+  position: fixed;
+  z-index: 95;
+  top: max(10px,env(safe-area-inset-top));
+  right: max(10px,env(safe-area-inset-right));
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+}
+.classroom-stage-expanded .lesson-step-heading > div:first-child,
+.classroom-stage-expanded .lesson-step-heading #lessonStepKind,
+.classroom-stage-expanded .lesson-step-heading #finishActivityButton,
+.classroom-stage-expanded .lesson-step-heading #toggleTeacherNotesButton {
+  display: none;
+}
+.classroom-stage-expanded .classroom-stage-heading-actions {
+  display: block;
+  pointer-events: auto;
+}
+.classroom-stage-expanded #competitionFullscreenButton {
+  min-height: 42px;
+  padding: 9px 14px;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.45);
+  border-radius: 13px;
+  background: rgba(22,27,51,.88);
+  box-shadow: 0 10px 28px rgba(13,18,44,.28);
+  backdrop-filter: blur(12px);
+}
+.classroom-stage-expanded .classroom-stage-body {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  display: block;
+  margin: 0;
+}
+.classroom-stage-expanded .lesson-teacher-notes,
+.classroom-stage-expanded .lesson-step-actions,
+.classroom-stage-expanded .lesson-projector-header,
+.classroom-stage-expanded .projector-preview-badge {
+  display: none;
+}
+.classroom-stage-expanded .lesson-projector-display,
+.classroom-stage-expanded .lesson-projector-viewport,
+.classroom-stage-expanded .lesson-projector-media,
+.classroom-stage-expanded .lesson-game-preview,
+.classroom-stage-expanded .lesson-game-preview iframe,
+.classroom-stage-expanded .lesson-results-stage {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.classroom-stage-expanded .lesson-projector-viewport {
+  background: #fff;
+}
+
+/* A single viewport contract for every live game. Game-specific scenes and
+   choices shrink on short screens instead of pushing content past the frame. */
+.student-page.student-game-live #gameCanvas,
+.student-page.student-game-live #gameCanvas > .game-inner,
+.student-page.student-game-live #gameCanvas > .game-layout,
+.student-page.student-game-live .game-play-area {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  max-height: 100dvh;
+}
+.student-page.student-game-live .game-play-area > * {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-height: 800px) {
+  .student-page.student-game-live .game-instruction {
+    min-height: 54px;
+    padding-block: 6px;
+  }
+  .student-page.student-game-live .game-play-area {
+    padding: 7px 10px;
+  }
+  .student-page.student-game-live .game-status-row {
+    margin-bottom: 6px;
+  }
+  .student-page.student-game-live .live-plan-question {
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 9px 14px;
+    border-radius: 18px;
+  }
+  .student-page.student-game-live .live-plan-question-icon {
+    width: clamp(48px,10vh,74px);
+    height: clamp(48px,10vh,74px);
+    border-radius: 18px;
+    font-size: clamp(30px,7vh,48px);
+  }
+  .student-page.student-game-live .live-plan-question h2 {
+    font-size: clamp(25px,5.5vh,39px);
+  }
+  .student-page.student-game-live .choice-grid {
+    gap: 8px;
+  }
+  .student-page.student-game-live .choice-button {
+    min-height: 50px;
+    padding: 8px 12px;
+    font-size: clamp(17px,3.4vh,23px);
+  }
+  .student-page.student-game-live .mae-kong-conveyor,
+  .student-page.student-game-live .mae-kong-rocket-scene,
+  .student-page.student-game-live .mae-kom-picture-scene,
+  .student-page.student-game-live .mae-kop-island-scene,
+  .student-page.student-game-live .mae-kon-space-scene,
+  .student-page.student-game-live .mae-kon-scan-scene {
+    min-height: min(31dvh,220px);
+  }
+  .student-page.student-game-live .mae-kok-door,
+  .student-page.student-game-live .mae-kok-word-card,
+  .student-page.student-game-live .mae-kot-chest,
+  .student-page.student-game-live .mae-kot-word-card,
+  .student-page.student-game-live .mae-kop-boat,
+  .student-page.student-game-live .mae-kop-word-card,
+  .student-page.student-game-live .mae-kon-rocket,
+  .student-page.student-game-live .mae-kon-word-card {
+    min-height: clamp(88px,20dvh,150px);
+  }
+  .student-page.student-game-live .mae-kok-key-button,
+  .student-page.student-game-live .mae-kot-choice,
+  .student-page.student-game-live .mae-kop-choice,
+  .student-page.student-game-live .mae-kon-choice,
+  .student-page.student-game-live .mae-kon-scan-options button {
+    min-height: clamp(58px,12dvh,92px);
+  }
+  .student-page.student-game-live .mae-kon-clue {
+    min-height: clamp(72px,15dvh,112px);
+    padding: 9px 12px;
+  }
+}
+
 .flow-activity-controls .lesson-flow-control { min-height: 82px; grid-template-columns: 42px minmax(0,1fr) auto; text-align: left; }
 .lesson-flow-control > span:first-child { font-size: 28px; }
 .lesson-flow-control > span:nth-child(2) { min-width: 0; }
@@ -5593,4 +5742,27 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .game-canvas::-webkit-scrollba
   .expert-level2-page .expert-level2-main {
     padding-top: 24px;
   }
+}
+
+/* Keep the clean projector stage authoritative over compact-layout rules
+   declared earlier in this stylesheet. */
+.classroom-stage-panel.classroom-stage-expanded {
+  display: block;
+  grid-template-rows: none;
+  padding: 0;
+}
+.classroom-stage-expanded .lesson-step-heading {
+  min-height: 0;
+  padding: 0;
+}
+.classroom-stage-expanded .classroom-stage-body {
+  width: 100%;
+  height: 100dvh;
+  display: block;
+  margin: 0;
+}
+.classroom-stage-expanded .lesson-step-actions,
+.classroom-stage-expanded .lesson-teacher-notes,
+.classroom-stage-expanded .lesson-projector-header {
+  display: none;
 }

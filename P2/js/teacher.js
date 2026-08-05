@@ -264,6 +264,7 @@ function renderScoreRecordingNotice() {
 
 function setTeacherFlowStep(step) {
   if (!FLOW_STEPS.includes(step)) return;
+  if (step !== "live") setClassroomStageExpanded(false);
   state.flowStep = step;
   show($("#teacherFlowProgress"));
   hide($("#resumeSessionView"));
@@ -1116,6 +1117,7 @@ async function startAssessment(phase) {
     $("#pauseSessionButton").textContent = "พักแบบทดสอบ";
     await broadcastDisplay("assessment-started");
     setTeacherFlowStep("live");
+    setClassroomStageExpanded(true);
     toast(`เริ่ม${activity.title}แล้ว · เวลาทำ ${state.session.assessment_duration_minutes} นาที`, "success");
   } catch (error) {
     toast(error.message || "เริ่มแบบทดสอบไม่สำเร็จ", "error");
@@ -1165,6 +1167,7 @@ async function startLessonStep(stepKey, options = {}) {
   renderLiveResults();
   $("#pauseSessionButton").textContent = "พักกิจกรรม";
   await broadcastDisplay("lesson-step-started");
+  setClassroomStageExpanded(true);
   if (!options.silent) toast(`เปิด ${step.title} แล้ว`, "success");
   return true;
 }
@@ -2282,14 +2285,19 @@ async function finishActivity(reason = "manual") {
   if (state.flowStep === "live") $("#lessonStepPanel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function toggleCompetitionExpanded() {
+function setClassroomStageExpanded(expanded) {
   const arena = $("#lessonStepPanel");
   const button = $("#competitionFullscreenButton");
-  const expanded = !arena.classList.contains("classroom-stage-expanded");
+  if (!arena || !button) return;
   arena.classList.toggle("classroom-stage-expanded", expanded);
   document.body.classList.toggle("competition-overlay-open", expanded);
   button.setAttribute("aria-pressed", String(expanded));
   button.innerHTML = expanded ? "✕ <span>ออกจากจอฉาย</span>" : "⛶ <span>ฉายเต็มจอ</span>";
+}
+
+function toggleCompetitionExpanded() {
+  const arena = $("#lessonStepPanel");
+  setClassroomStageExpanded(!arena?.classList.contains("classroom-stage-expanded"));
 }
 
 function toggleTeacherNotes() {
