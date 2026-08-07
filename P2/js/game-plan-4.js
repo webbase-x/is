@@ -170,7 +170,7 @@ function renderResult() {
   const skillSummary = skill.length ? `${Math.round(skill.filter(answer => answer.correct).length / skill.length * 100)}%` : "ยังไม่ได้ทำ";
   const passed = exitCorrect >= 3;
   $("#missionLabel").textContent = "จบการผจญภัย"; $("#missionTitle").textContent = "สรุปผล"; $("#roundLabel").textContent = "สำเร็จ"; $("#progressBar").style.width = "100%";
-  $("#stage").innerHTML = `<section class="result"><div class="result-medal">${passed ? "🏆" : "🌟"}</div><h2>${passed ? "ผู้พิชิตคู่หู ย ว" : "ฝึกอีกนิดนะ"}</h2><p>แบบทดสอบท้ายคาบถูก ${exitCorrect}/5 · ภารกิจหลัก ${skillSummary}</p><div class="result-score">⭐ คะแนนรวม ${state.score}</div><p>${passed ? "ได้รับสติกเกอร์ดาวดิจิทัล!" : "เกณฑ์ผ่านคืออย่างน้อย 3 ข้อ"}</p><button id="restartButton" class="primary-button">เล่นอีกครั้ง ↻</button></section>`;
+  $("#stage").innerHTML = `<section class="result"><div class="result-medal">${passed ? "🏆" : "🌟"}</div><h2>${passed ? "ผ่านเกณฑ์แล้ว เก่งมาก!" : "ฝึกอีกนิดนะ"}</h2><p>แบบทดสอบท้ายคาบถูก ${exitCorrect}/5 · กิจกรรมหลัก ${skillSummary}</p><div class="result-score">⭐ คะแนนรวม ${state.score}</div><p>${passed ? "ได้รับดาวแล้ว!" : "เกณฑ์ผ่านคืออย่างน้อย 3 ข้อ"}</p><button id="restartButton" class="primary-button">เล่นอีกครั้ง ↻</button></section>`;
   $("#restartButton").onclick = () => {
     sortWords.splice(0,sortWords.length,...shuffle(sortWords));
     Object.assign(state,{ mission:0,index:0,score:0,answers:[],busy:false,selected:[],firstTry:true });
@@ -188,7 +188,7 @@ const slides = [
   () => `<span class="slide-icon">🏅</span><h2>กระดาน<em>คะแนนรวม</em></h2><p>ฉายหลังจบแต่ละภารกิจ ชื่นชมความพยายาม และช่วยนักเรียนที่ยังสับสน</p><div class="slide-actions"><a class="primary-button" href="display.html">เปิดกระดานคะแนน</a><a class="secondary-button" href="teacher.html">ดูรายละเอียดนักเรียน</a></div>`,
   () => `<span class="slide-icon">🖍️</span><h2>กิจกรรม<br><em>ภาพคู่หูของฉัน</em></h2><p>เลือกแม่เกย 2 คำ และแม่เกอว 2 คำ วาดภาพ เขียนคำ แล้ววงกลมตัวสะกด</p><div id="classTimer" class="timer-card">15:00</div><div class="slide-actions"><button id="timerStart" class="primary-button">▶ เริ่มจับเวลา</button><button id="timerReset" class="secondary-button">↻ เริ่มใหม่</button></div>`,
   () => `<span class="slide-icon">🗝️</span><h2>สรุปและ<br><em>แบบทดสอบท้ายคาบ</em></h2><div class="rule-card">แม่เกยมี <strong>ย</strong> สะกด · แม่เกอวมี <strong>ว</strong> สะกด</div><p>ทำแบบทดสอบ 5 ข้อ เกณฑ์ผ่านอย่างน้อย 3 ข้อ</p><button id="launchExit" class="primary-button">เปิดแบบทดสอบท้ายคาบ</button>`,
-  () => `<span class="slide-icon">🎉</span><h2>ผู้พิชิต<br><em>คู่หู ย ว</em></h2><div class="award-row">🥇 🥈 🥉</div><p>ฉายผลการแข่งขัน มอบดาวดิจิทัล แล้วแจกใบงานที่ 4</p><div class="slide-actions"><a class="primary-button" href="display.html">ฉายผลท้ายคาบ</a><a class="secondary-button" href="worksheet-plan-4.html" target="_blank">พิมพ์ใบงานที่ 4</a></div>`,
+  () => `<span class="slide-icon">🎉</span><h2>ปรบมือให้<br><em>เพื่อนทุกคน</em></h2><div class="award-row">🥇 🥈 🥉</div><p>ฉายผลการแข่งขัน มอบดาว แล้วแจกใบงานที่ 4</p><div class="slide-actions"><a class="primary-button" href="display.html">ฉายผลท้ายคาบ</a><a class="secondary-button" href="worksheet-plan-4.html" target="_blank">พิมพ์ใบงานที่ 4</a></div>`,
 ];
 function renderNav() {
   $("#lessonSteps").innerHTML = lessonTitles.map((title,index) => `<li class="${index === state.slide ? "active" : ""}" data-slide="${index}">${index + 1}. ${title}</li>`).join("");

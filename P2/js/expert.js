@@ -1,4 +1,4 @@
-import { escapeHtml } from "./common.js?v=20260805-emoji-images-1";
+import { escapeHtml } from "./common.js?v=20260807-primary-copy-1";
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];

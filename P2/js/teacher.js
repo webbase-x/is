@@ -7,10 +7,10 @@ import {
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260805-emoji-images-1";
-import { classTeamGoal } from "./gamification.js?v=20260807-theory-alignment-1";
+} from "./common.js?v=20260807-primary-copy-1";
+import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 
-const TEACHER_BUILD_VERSION = "20260807-theory-alignment-1";
+const TEACHER_BUILD_VERSION = "20260807-primary-copy-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -2090,21 +2090,21 @@ function renderClassTeamGoal(entries) {
   const goal = classTeamGoal(entries, Number(state.session?.pass_percent || 80));
   if (!goal.total) return "";
   const remaining = Math.max(0, goal.required - goal.mastered);
-  return `<section class="class-team-goal ${goal.unlocked ? "is-unlocked" : ""}" aria-label="เป้าหมายร่วมของทั้งห้อง">
+  return `<section class="class-team-goal ${goal.unlocked ? "is-unlocked" : ""}" aria-label="เป้าหมายของทั้งห้อง">
     <span class="class-team-goal-icon">${goal.unlocked ? "🤝🌟" : "🤝"}</span>
     <div class="class-team-goal-copy">
-      <small>ภารกิจร่วมมือ · เป้าหมายทั้งห้อง</small>
-      <strong>${goal.unlocked ? "ปลดล็อกตราพลังทีมแล้ว!" : `ช่วยกันผ่านด่านอีก ${remaining} คน`}</strong>
+      <small>ช่วยกันทั้งห้อง</small>
+      <strong>${goal.unlocked ? "ห้องของเราทำเป้าหมายสำเร็จแล้ว!" : `ถ้ามีเพื่อนผ่านเพิ่มอีก ${remaining} คน ห้องของเราจะทำเป้าหมายสำเร็จ`}</strong>
       <p>ผ่านเกณฑ์แล้ว ${goal.mastered}/${goal.total} คน · ส่งคำตอบแล้ว ${goal.submitted}/${goal.total} คน</p>
     </div>
     <div class="class-team-goal-progress"><i style="width:${goal.progress}%"></i></div>
-    <em>${goal.progress}% ของเป้าหมายร่วม</em>
+    <em>ทำได้ ${goal.progress}% ของเป้าหมาย</em>
   </section>`;
 }
 
 function renderPodiumPlace(entry, rank) {
   const labels = ["ชนะเลิศ", "รองชนะเลิศอันดับ 1", "รองชนะเลิศอันดับ 2"];
-  if (!entry) return `<article class="podium-place podium-place-${rank} is-empty"><div class="podium-person"><span>⭐</span><strong>รอผู้เข้าแข่งขัน</strong></div><div class="podium-block"><strong>${rank}</strong><small>อันดับ</small></div></article>`;
+  if (!entry) return `<article class="podium-place podium-place-${rank} is-empty"><div class="podium-person"><span>⭐</span><strong>รอผู้เล่น</strong></div><div class="podium-block"><strong>${rank}</strong><small>อันดับ</small></div></article>`;
   return `<article class="podium-place podium-place-${rank}">
     <div class="podium-person"><span class="podium-medal">${rankMedal(rank)}</span>${competitionProfileMarkup(entry, "podium-avatar")}<strong>${escapeHtml(entry.name)}</strong><em>${Math.round(entry.percent)}%</em><small>${labels[rank - 1]}</small></div>
     <div class="podium-block"><strong>${rank}</strong><small>อันดับ</small></div>
@@ -2118,7 +2118,7 @@ function renderCelebration(entries) {
   const runnersUp = ranked.slice(3);
   const reasonLabel = ({ all_submitted: "นักเรียนส่งครบทุกคน", time_up: "หมดเวลา", manual: "คุณครูจบเกม" })[state.celebrationReason] || "จบเกม";
   return `<div class="competition-celebration" aria-hidden="true">${celebrationConfetti()}</div>
-    <div class="celebration-title"><span>✨ ${reasonLabel} · ประกาศผลการแข่งขัน ✨</span><h4>${escapeHtml(activityForKey(state.session.current_activity_key, state.session.plan_id)?.title || "เกมนี้")}</h4><p>ขอเสียงปรบมือให้ผู้เข้าแข่งขันทุกคน</p></div>
+    <div class="celebration-title"><span>✨ ${reasonLabel} · ประกาศผลการแข่งขัน ✨</span><h4>${escapeHtml(activityForKey(state.session.current_activity_key, state.session.plan_id)?.title || "เกมนี้")}</h4><p>ขอเสียงปรบมือให้เพื่อนทุกคน</p></div>
     ${renderClassTeamGoal(entries)}
     <div class="competition-finale">
       <section class="podium-stage" aria-label="แท่นรับรางวัลอันดับ 1 ถึง 3">

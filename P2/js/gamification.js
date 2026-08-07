@@ -1,8 +1,8 @@
 export const MASTERY_LEVELS = Object.freeze([
-  Object.freeze({ key: "explorer", min: 0, title: "นักสำรวจคำ", icon: "🧭", message: "รู้จุดที่ต้องฝึกแล้ว ลองใหม่ได้เสมอ" }),
-  Object.freeze({ key: "practitioner", min: 50, title: "นักฝึกคำ", icon: "🌱", message: "กำลังพัฒนา อีกนิดเดียวจะผ่านด่าน" }),
-  Object.freeze({ key: "master", min: 80, title: "ผู้พิชิตคำ", icon: "🏅", message: "ผ่านเกณฑ์ความรู้ของด่านนี้แล้ว" }),
-  Object.freeze({ key: "perfect", min: 100, title: "ปรมาจารย์น้อย", icon: "🌟", message: "ทำได้ถูกต้องครบทุกข้อ" }),
+  Object.freeze({ key: "explorer", min: 0, title: "เริ่มฝึก", icon: "🧭", message: "รู้แล้วว่าควรฝึกตรงไหน ลองใหม่ได้นะ" }),
+  Object.freeze({ key: "practitioner", min: 50, title: "กำลังพัฒนา", icon: "🌱", message: "ทำได้ดีขึ้นแล้ว ฝึกอีกนิดนะ" }),
+  Object.freeze({ key: "master", min: 80, title: "ทำได้ดี", icon: "🏅", message: "ทำคะแนนผ่านเกณฑ์ของกิจกรรมแล้ว" }),
+  Object.freeze({ key: "perfect", min: 100, title: "ยอดเยี่ยม", icon: "🌟", message: "ตอบถูกครบทุกข้อเลย" }),
 ]);
 
 const ASSESSMENT_KEYS = new Set(["pretest", "posttest"]);
@@ -41,11 +41,11 @@ export function earnedBadgesForAttempt(attempt = {}) {
   const answers = parsedAnswers(attempt.answers);
   const firstTryPerfect = percent === 100 && answers.every(answer => Number(answer?.tries || 1) <= 1);
   const badges = [
-    { key: "completed", icon: "🎯", title: "กล้าลงมือ", detail: "ทำภารกิจจนจบ" },
+    { key: "completed", icon: "🎯", title: "ทำกิจกรรมครบ", detail: "ทำกิจกรรมจนจบ" },
   ];
-  if (passed) badges.push({ key: "passed", icon: "🏅", title: "ผู้พิชิตด่าน", detail: "ผ่านเกณฑ์ของกิจกรรม" });
-  if (firstTryPerfect) badges.push({ key: "perfect", icon: "🌟", title: "แม่นยำไร้พลาด", detail: "ตอบถูกครบในการลองครั้งแรก" });
-  if (attemptNo > 1 && passed) badges.push({ key: "persistent", icon: "💪", title: "ไม่ยอมแพ้", detail: "ฝึกซ้ำจนผ่านด่าน" });
+  if (passed) badges.push({ key: "passed", icon: "🏅", title: "ผ่านเกณฑ์", detail: "ทำคะแนนถึงเกณฑ์ของกิจกรรม" });
+  if (firstTryPerfect) badges.push({ key: "perfect", icon: "🌟", title: "ตอบถูกทุกข้อ", detail: "ตอบถูกครบตั้งแต่ครั้งแรก" });
+  if (attemptNo > 1 && passed) badges.push({ key: "persistent", icon: "💪", title: "พยายามจนสำเร็จ", detail: "ลองใหม่จนทำคะแนนผ่านเกณฑ์" });
   return badges;
 }
 
@@ -75,7 +75,7 @@ export function learningHintForQuestion(question = {}) {
   if (question.hint) return String(question.hint);
   if (question.explanation) return String(question.explanation);
   const focus = String(question.word || question.prompt || "คำนี้").trim();
-  return `ยังไม่ถูก ลองอีกครั้งนะ · อ่าน “${focus}” ช้า ๆ แล้วสังเกตพยัญชนะหรือเสียงท้ายคำ`;
+  return `ยังไม่ถูกนะ อ่าน “${focus}” ช้า ๆ แล้วฟังเสียงท้ายคำ จากนั้นลองตอบอีกครั้ง`;
 }
 
 export function classTeamGoal(entries = [], passPercent = 80) {

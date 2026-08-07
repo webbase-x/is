@@ -5,14 +5,14 @@ import {
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260805-emoji-images-1";
+} from "./common.js?v=20260807-primary-copy-1";
 import { ACHIEVEMENT_TEST_QUESTIONS } from "./achievement-test.js?v=20260731-assessment-research-1";
 import {
   collectAchievementBadges,
   earnedBadgesForAttempt,
   learningHintForQuestion,
   masteryLevelForPercent,
-} from "./gamification.js?v=20260807-theory-alignment-1";
+} from "./gamification.js?v=20260807-primary-copy-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -1337,7 +1337,7 @@ function showResult(title, score, maxScore, result, replay, options = {}) {
       ? "<p>📽️ นี่คือผลทดลองบนจอครู คะแนนไม่ถูกบันทึกและไม่กระทบผลนักเรียน</p>"
       : "<p>🧪 คะแนนนี้ใช้จัดอันดับสดในคาบ แต่จะไม่บันทึกหลังจบคาบ</p>";
   const personalScore = options.hideScore ? "" : `<p>ได้ <strong>${score} / ${maxScore}</strong> คะแนน (${percent}%)</p>`;
-  const resultMessage = options.message || (result?.passed ? "ผ่านด่านแล้ว เก่งมาก!" : "ลองทบทวนแล้วพยายามใหม่นะ");
+  const resultMessage = options.message || (result?.passed ? "ผ่านเกณฑ์แล้ว เก่งมาก!" : "ฝึกอีกนิด แล้วลองใหม่นะ");
   const replayButton = typeof replay === "function" ? `<button id="replayButton" class="button button-primary">เล่นอีกครั้ง</button>` : "";
   const gamification = options.suppressGamification
     ? ""
@@ -1352,19 +1352,19 @@ function showResult(title, score, maxScore, result, replay, options = {}) {
       const badgeCount = collectAchievementBadges(state.attempts, Number(state.session?.pass_percent || 80)).length;
       const nextLabel = level.next
         ? `อีก ${Math.max(0, level.next.min - Math.round(percent))}% ถึงระดับ “${level.next.title}”`
-        : "พิชิตระดับสูงสุดแล้ว";
+        : "ทำได้ถึงระดับสูงสุดแล้ว";
       return `
-        <section class="mastery-level-card" aria-label="ระดับความก้าวหน้า">
+        <section class="mastery-level-card" aria-label="ระดับของผู้เล่น">
           <span>${level.icon}</span>
-          <div><small>ระดับความก้าวหน้า</small><strong>${escapeHtml(level.title)}</strong><p>${escapeHtml(level.message)}</p></div>
+          <div><small>ระดับของหนู</small><strong>${escapeHtml(level.title)}</strong><p>${escapeHtml(level.message)}</p></div>
           <div class="mastery-level-progress"><i style="width:${level.progress}%"></i></div>
           <em>${escapeHtml(nextLabel)}</em>
         </section>
-        <section class="earned-badge-panel" aria-label="ตราความสำเร็จ">
-          <div><small>ตราที่ได้รับรอบนี้</small><strong>สะสมแล้ว ${badgeCount} ตรา</strong></div>
+        <section class="earned-badge-panel" aria-label="รางวัลที่ได้รับ">
+          <div><small>รางวัลที่ได้รอบนี้</small><strong>ได้แล้ว ${badgeCount} รางวัล</strong></div>
           <div class="earned-badge-list">${badges.map(badge => `<article><span>${badge.icon}</span><strong>${escapeHtml(badge.title)}</strong><small>${escapeHtml(badge.detail)}</small></article>`).join("")}</div>
         </section>
-        <p class="team-contribution-note">🤝 การผ่านด่านของหนูช่วยเติมพลังเป้าหมายร่วมของทั้งห้อง</p>`;
+        <p class="team-contribution-note">🤝 คะแนนของหนูช่วยให้ห้องของเราทำเป้าหมายร่วมกัน</p>`;
     })();
   $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2>${personalScore}<p>${escapeHtml(resultMessage)}</p>${gamification}${scoreNotice}${replayButton}</div></div>`;
   $("#replayButton")?.addEventListener("click", replay);
@@ -1909,10 +1909,10 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
     const countdown = Number.isFinite(deadline) ? `<span class="mini-score">เหลือ <strong id="questionCountdown">--:--</strong></span>` : "";
     const scoreLabel = hideScoreWhilePlaying ? `ตอบแล้ว ${index} ข้อ` : `คะแนน ${score}`;
     const level = index < Math.ceil(questions.length / 3)
-      ? { icon: "🌱", label: "ด่านอุ่นเครื่อง" }
+      ? { icon: "🌱", label: "ช่วงเริ่มฝึก" }
       : index < Math.ceil((questions.length * 2) / 3)
-        ? { icon: "🧠", label: "ด่านฝึกใช้" }
-        : { icon: "🏆", label: "ด่านพิชิต" };
+        ? { icon: "🧠", label: "ช่วงฝึกทำ" }
+        : { icon: "🏆", label: "ช่วงท้าย" };
     const levelMarkup = suppressGamification ? "" : `<span class="challenge-level-chip">${level.icon} ${level.label}</span>`;
     const feedbackMarkup = suppressGamification ? "" : `<p id="questionLearningFeedback" class="question-learning-feedback" aria-live="polite">เลือกคำตอบที่คิดว่าถูกที่สุด</p>`;
     gameShell(title, instruction, `<div class="game-status-row"><span>ข้อ ${index + 1} / ${questions.length}</span>${levelMarkup}<span class="mini-score">${scoreLabel}</span>${countdown}</div><div id="questionPrompt"></div>${feedbackMarkup}<div class="choice-grid" id="questionChoices"></div>`);
@@ -1950,9 +1950,9 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
         if (feedback) {
           feedback.textContent = correct
             ? tries === 1
-              ? "ถูกต้อง! สังเกตได้แม่นยำมาก"
-              : "ถูกต้องหลังใช้คำใบ้ ความพยายามทำให้เรียนรู้ได้"
-            : `คำตอบที่ถูกคือ “${correctChoice?.label || question.answer}” · ลองอ่านและสังเกตเสียงท้ายอีกครั้ง`;
+              ? "ถูกต้อง เก่งมาก!"
+              : "ถูกต้องแล้ว ความพยายามช่วยให้เราเก่งขึ้น"
+            : `คำตอบที่ถูกคือ “${correctChoice?.label || question.answer}” ลองอ่านและฟังเสียงท้ายคำอีกครั้งนะ`;
         }
       } else {
         button.classList.add("selected");
@@ -1987,7 +1987,7 @@ function renderMaeKongBox(activityKey, data, activity, options = {}) {
 
   const render = () => {
     const item = items[index];
-    gameShell(activity.title, `อ่านคำ แล้วลากเฉพาะคำ${label}ลงกล่อง ส่วนคำอื่นให้ส่งต่อ`, `
+    gameShell(activity.title, `อ่านคำ แล้วเลือกว่าคำนี้เป็นคำ${label}หรือไม่`, `
       <section class="mae-kong-box-game">
         <div class="game-status-row"><span>คำที่ ${index + 1} / ${items.length}</span><span class="mini-score">คะแนน ${score}</span></div>
         <div class="mae-kong-conveyor" aria-label="สายพานคำ">
@@ -2002,10 +2002,10 @@ function renderMaeKongBox(activityKey, data, activity, options = {}) {
           <strong>กล่องคำ${label}</strong>
           <small>วางเฉพาะคำที่มี ${finalLetter} เป็นตัวสะกด</small>
         </div>
-        <p class="mae-kong-feedback" data-kong-feedback>พิจารณาตัวสะกดให้ดีก่อนตอบ</p>
+        <p class="mae-kong-feedback" data-kong-feedback>ดูตัวสะกดให้ดีก่อนตอบนะ</p>
         <div class="mae-kong-action-row">
-          <button class="button button-primary" type="button" data-kong-answer="target">ใส่กล่อง${label}</button>
-          <button class="button button-ghost" type="button" data-kong-answer="other">ส่งคำนี้ต่อ</button>
+          <button class="button button-primary" type="button" data-kong-answer="target">เป็นคำ${label}</button>
+          <button class="button button-ghost" type="button" data-kong-answer="other">ไม่ใช่คำ${label}</button>
         </div>
       </section>`);
 
@@ -2422,7 +2422,7 @@ function renderMaeKokCave(activityKey, data, activity) {
 
   const render = () => {
     const question = questions[index];
-    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าจะใช้คำนี้ไขประตูแม่กกหรือส่งต่อ", `
+    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าคำนี้เป็นคำแม่กกหรือไม่", `
       <section class="mae-kok-cave-game">
         <div class="game-status-row"><span>คำที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
         <div class="mae-kok-cave-scene" data-kok-scene>
@@ -2435,8 +2435,8 @@ function renderMaeKokCave(activityKey, data, activity) {
         </div>
         <p class="mae-kong-feedback" data-kok-feedback>คำนี้ออกเสียงท้ายเหมือนมี ก สะกดหรือไม่?</p>
         <div class="mae-kok-action-grid">
-          <button type="button" class="mae-kok-key-button target" data-kok-answer="target"><span>🗝️</span><strong>ใช้ไขประตู</strong><small>คำมาตราแม่กก</small></button>
-          <button type="button" class="mae-kok-key-button other" data-kok-answer="other"><span>➡️</span><strong>ส่งคำนี้ต่อ</strong><small>คำมาตราอื่น</small></button>
+          <button type="button" class="mae-kok-key-button target" data-kok-answer="target"><span>🗝️</span><strong>เป็นคำแม่กก</strong><small>มีเสียง ก ท้ายคำ</small></button>
+          <button type="button" class="mae-kok-key-button other" data-kok-answer="other"><span>✖️</span><strong>ไม่ใช่คำแม่กก</strong><small>ไม่มีเสียง ก ท้ายคำ</small></button>
         </div>
       </section>`);
 
@@ -2484,7 +2484,7 @@ function renderMaeKotTreasure(activityKey, data, activity) {
 
   const render = () => {
     const question = questions[index];
-    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าจะเก็บลงหีบแม่กดหรือส่งคำนี้ผ่านไป", `
+    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าคำนี้เป็นคำแม่กดหรือไม่", `
       <section class="mae-kot-treasure-game">
         <div class="game-status-row"><span>คำที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
         <div class="mae-kot-treasure-scene" data-kot-scene>
@@ -2497,8 +2497,8 @@ function renderMaeKotTreasure(activityKey, data, activity) {
         </div>
         <p class="mae-kong-feedback" data-kot-feedback>คำนี้ออกเสียงท้ายเหมือนมี ด สะกดหรือไม่?</p>
         <div class="mae-kot-action-grid">
-          <button type="button" class="mae-kot-choice target" data-kot-answer="target"><span>💰</span><strong>เก็บลงหีบ</strong><small>คำมาตราแม่กด</small></button>
-          <button type="button" class="mae-kot-choice other" data-kot-answer="other"><span>➡️</span><strong>ส่งคำนี้ผ่าน</strong><small>คำมาตราอื่น</small></button>
+          <button type="button" class="mae-kot-choice target" data-kot-answer="target"><span>💰</span><strong>เป็นคำแม่กด</strong><small>มีเสียง ด ท้ายคำ</small></button>
+          <button type="button" class="mae-kot-choice other" data-kot-answer="other"><span>✖️</span><strong>ไม่ใช่คำแม่กด</strong><small>ไม่มีเสียง ด ท้ายคำ</small></button>
         </div>
       </section>`);
 
@@ -2546,7 +2546,7 @@ function renderMaeKopSupply(activityKey, data, activity) {
 
   const render = () => {
     const question = questions[index];
-    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าจะเก็บเป็นเสบียงขึ้นเรือหรือส่งคำนี้ผ่านไป", `
+    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าคำนี้เป็นคำแม่กบหรือไม่", `
       <section class="mae-kop-supply-game">
         <div class="game-status-row"><span>คำที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
         <div class="mae-kop-supply-scene" data-kop-scene>
@@ -2559,8 +2559,8 @@ function renderMaeKopSupply(activityKey, data, activity) {
         </div>
         <p class="mae-kong-feedback" data-kop-feedback>คำนี้ออกเสียงท้ายเหมือนมี บ สะกดหรือไม่?</p>
         <div class="mae-kop-action-grid">
-          <button type="button" class="mae-kop-choice target" data-kop-answer="target"><span>📦</span><strong>เก็บขึ้นเรือ</strong><small>คำมาตราแม่กบ</small></button>
-          <button type="button" class="mae-kop-choice other" data-kop-answer="other"><span>➡️</span><strong>ส่งคำนี้ผ่าน</strong><small>คำมาตราอื่น</small></button>
+          <button type="button" class="mae-kop-choice target" data-kop-answer="target"><span>📦</span><strong>เป็นคำแม่กบ</strong><small>มีเสียง บ ท้ายคำ</small></button>
+          <button type="button" class="mae-kop-choice other" data-kop-answer="other"><span>✖️</span><strong>ไม่ใช่คำแม่กบ</strong><small>ไม่มีเสียง บ ท้ายคำ</small></button>
         </div>
       </section>`);
 
@@ -2612,7 +2612,7 @@ function renderMaeKopIslandPuzzle(activityKey, data, activity) {
     firstTry = true;
     gameShell(activity.title, "แตะหรือลากคำตามลำดับให้เป็นประโยค แล้วไขปริศนาชาวเกาะ", `
       <section class="mae-kop-island-game">
-        <div class="game-status-row"><span>ปริศนา ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="game-status-row"><span>ประโยคที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
         <div class="mae-kop-island-scene">
           <span class="mae-kop-island" aria-hidden="true">🏝️</span>
           <span class="mae-kop-riddle-emoji" aria-hidden="true">${question.emoji}</span>
@@ -2673,7 +2673,7 @@ function renderMaeKopIslandPuzzle(activityKey, data, activity) {
       answers.push({ prompt: question.answer, chosen: response, correct: firstTry });
       output.classList.add("is-correct");
       $(".mae-kop-island")?.classList.add("is-solved");
-      feedback.textContent = "ประโยคถูกต้อง ไขปริศนาสำเร็จ!";
+      feedback.textContent = "เรียงประโยคถูกต้อง เก่งมาก!";
       speakThai(question.answer);
       setTimeout(async () => {
         index += 1;
@@ -2701,7 +2701,7 @@ function renderMaeKonFuel(activityKey, data, activity) {
   const render = () => {
     const question = questions[index];
     const fuel = Math.round((index / questions.length) * 100);
-    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าจะเติมคำนี้ลงถังเชื้อเพลิงหรือส่งผ่านไป", `
+    gameShell(activity.title, "ฟังเสียงท้ายคำ แล้วเลือกว่าคำนี้เป็นคำแม่กนหรือไม่", `
       <section class="mae-kon-fuel-game">
         <div class="game-status-row"><span>คำที่ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
         <div class="mae-kon-space-scene" data-kon-scene>
@@ -2716,8 +2716,8 @@ function renderMaeKonFuel(activityKey, data, activity) {
         </div>
         <p class="mae-kong-feedback" data-kon-feedback>คำนี้ออกเสียงท้ายเหมือนมี น สะกดหรือไม่?</p>
         <div class="mae-kon-action-grid">
-          <button type="button" class="mae-kon-choice target" data-kon-answer="target"><span>⛽</span><strong>เติมเชื้อเพลิง</strong><small>คำมาตราแม่กน</small></button>
-          <button type="button" class="mae-kon-choice other" data-kon-answer="other"><span>➡️</span><strong>ส่งคำนี้ผ่าน</strong><small>คำมาตราอื่น</small></button>
+          <button type="button" class="mae-kon-choice target" data-kon-answer="target"><span>⛽</span><strong>เป็นคำแม่กน</strong><small>มีเสียง น ท้ายคำ</small></button>
+          <button type="button" class="mae-kon-choice other" data-kon-answer="other"><span>✖️</span><strong>ไม่ใช่คำแม่กน</strong><small>ไม่มีเสียง น ท้ายคำ</small></button>
         </div>
       </section>`);
 
@@ -2762,15 +2762,15 @@ function renderMaeKonAlienScan(activityKey, data, activity) {
   const render = () => {
     const question = questions[index];
     busy = false;
-    gameShell(activity.title, "อ่านคำใบ้ แล้วสแกนเลือกรูปเขียนของคำให้ถูกต้อง", `
+    gameShell(activity.title, "อ่านคำใบ้ แล้วเลือกคำที่เขียนถูกต้อง", `
       <section class="mae-kon-scan-game">
-        <div class="game-status-row"><span>รหัส ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
+        <div class="game-status-row"><span>ข้อ ${index + 1} / ${questions.length}</span><span class="mini-score">คะแนน ${score}</span></div>
         <div class="mae-kon-scan-scene" data-kon-scan-scene>
           <span class="mae-kon-ufo" aria-hidden="true">🛸</span>
           <span class="mae-kon-alien" aria-hidden="true">${question.emoji}</span>
-          <article class="mae-kon-clue"><small>คำใบ้จากต่างดาว</small><strong>${escapeHtml(question.prompt)}</strong></article>
+          <article class="mae-kon-clue"><small>อ่านคำใบ้</small><strong>${escapeHtml(question.prompt)}</strong></article>
           <div class="mae-kon-scan-options">${shuffle(question.options).map(option => `<button type="button" data-kon-scan-answer="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join("")}</div>
-          <p class="mae-kong-feedback" data-kon-scan-feedback>สังเกตตัวสะกดให้ละเอียดก่อนเลือก</p>
+          <p class="mae-kong-feedback" data-kon-scan-feedback>ดูตัวสะกดให้ดีก่อนเลือกนะ</p>
         </div>
       </section>`);
 
@@ -2795,7 +2795,7 @@ function renderMaeKonAlienScan(activityKey, data, activity) {
         if (index < questions.length) render();
         else {
           const result = await submitAttempt(activityKey, score, questions.length, answers);
-          if (result) showResult("ปลดล็อกรหัสต่างดาวครบแล้ว", score, questions.length, result, () => renderMaeKonAlienScan(activityKey, data, activity));
+          if (result) showResult("ตอบครบทุกข้อแล้ว", score, questions.length, result, () => renderMaeKonAlienScan(activityKey, data, activity));
         }
       }, 1350);
     }));
@@ -3004,7 +3004,7 @@ function renderWheel() {
         if (index < questions.length) renderQuestion();
         else {
           const result = await submitAttempt("wheel", score, questions.length, answers);
-          if (result) showResult("พิชิตวงล้อคำมหัศจรรย์", score, questions.length, result, renderWheel);
+          if (result) showResult("เล่นวงล้อครบแล้ว", score, questions.length, result, renderWheel);
         }
       }, 1050);
     }));

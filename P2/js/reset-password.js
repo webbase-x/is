@@ -1,5 +1,5 @@
 import { supabase } from "./supabase.js";
-import { $, hide, show, toast } from "./common.js?v=20260805-emoji-images-1";
+import { $, hide, show, toast } from "./common.js?v=20260807-primary-copy-1";
 
 const requestForm = $("#requestResetForm");
 const updateForm = $("#updatePasswordForm");
