@@ -8,8 +8,9 @@ import {
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
 } from "./common.js?v=20260805-emoji-images-1";
+import { classTeamGoal } from "./gamification.js?v=20260807-theory-alignment-1";
 
-const TEACHER_BUILD_VERSION = "20260731-assessment-research-1";
+const TEACHER_BUILD_VERSION = "20260807-theory-alignment-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -2085,6 +2086,22 @@ function celebrationConfetti() {
   }).join("");
 }
 
+function renderClassTeamGoal(entries) {
+  const goal = classTeamGoal(entries, Number(state.session?.pass_percent || 80));
+  if (!goal.total) return "";
+  const remaining = Math.max(0, goal.required - goal.mastered);
+  return `<section class="class-team-goal ${goal.unlocked ? "is-unlocked" : ""}" aria-label="เป้าหมายร่วมของทั้งห้อง">
+    <span class="class-team-goal-icon">${goal.unlocked ? "🤝🌟" : "🤝"}</span>
+    <div class="class-team-goal-copy">
+      <small>ภารกิจร่วมมือ · เป้าหมายทั้งห้อง</small>
+      <strong>${goal.unlocked ? "ปลดล็อกตราพลังทีมแล้ว!" : `ช่วยกันผ่านด่านอีก ${remaining} คน`}</strong>
+      <p>ผ่านเกณฑ์แล้ว ${goal.mastered}/${goal.total} คน · ส่งคำตอบแล้ว ${goal.submitted}/${goal.total} คน</p>
+    </div>
+    <div class="class-team-goal-progress"><i style="width:${goal.progress}%"></i></div>
+    <em>${goal.progress}% ของเป้าหมายร่วม</em>
+  </section>`;
+}
+
 function renderPodiumPlace(entry, rank) {
   const labels = ["ชนะเลิศ", "รองชนะเลิศอันดับ 1", "รองชนะเลิศอันดับ 2"];
   if (!entry) return `<article class="podium-place podium-place-${rank} is-empty"><div class="podium-person"><span>⭐</span><strong>รอผู้เข้าแข่งขัน</strong></div><div class="podium-block"><strong>${rank}</strong><small>อันดับ</small></div></article>`;
@@ -2102,6 +2119,7 @@ function renderCelebration(entries) {
   const reasonLabel = ({ all_submitted: "นักเรียนส่งครบทุกคน", time_up: "หมดเวลา", manual: "คุณครูจบเกม" })[state.celebrationReason] || "จบเกม";
   return `<div class="competition-celebration" aria-hidden="true">${celebrationConfetti()}</div>
     <div class="celebration-title"><span>✨ ${reasonLabel} · ประกาศผลการแข่งขัน ✨</span><h4>${escapeHtml(activityForKey(state.session.current_activity_key, state.session.plan_id)?.title || "เกมนี้")}</h4><p>ขอเสียงปรบมือให้ผู้เข้าแข่งขันทุกคน</p></div>
+    ${renderClassTeamGoal(entries)}
     <div class="competition-finale">
       <section class="podium-stage" aria-label="แท่นรับรางวัลอันดับ 1 ถึง 3">
         <div class="podium-list">${podiumOrder.map(([entry, rank]) => renderPodiumPlace(entry, rank)).join("")}</div>
@@ -2198,7 +2216,7 @@ function renderLiveResults() {
   }
   container.innerHTML = isCelebrating
     ? renderCelebration(entries)
-    : `${renderLiveRanking(entries)}${state.session.current_activity_key === "vote" ? renderLiveVoteBoard() : ""}`;
+    : `${renderClassTeamGoal(entries)}${renderLiveRanking(entries)}${state.session.current_activity_key === "vote" ? renderLiveVoteBoard() : ""}`;
 }
 
 let victoryAudioContext;

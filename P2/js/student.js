@@ -7,6 +7,12 @@ import {
   updateConnectionBadge,
 } from "./common.js?v=20260805-emoji-images-1";
 import { ACHIEVEMENT_TEST_QUESTIONS } from "./achievement-test.js?v=20260731-assessment-research-1";
+import {
+  collectAchievementBadges,
+  earnedBadgesForAttempt,
+  learningHintForQuestion,
+  masteryLevelForPercent,
+} from "./gamification.js?v=20260807-theory-alignment-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -839,7 +845,9 @@ function renderAttemptProgress() {
     if (!best || Number(attempt.score) > Number(best.score)) bestByActivity.set(attempt.activity_key, attempt);
   });
   const total = [...bestByActivity.values()].reduce((sum, attempt) => sum + Number(attempt.score || 0), 0);
+  const badgeCount = collectAchievementBadges(state.attempts, Number(state.session?.pass_percent || 80)).length;
   $("#playerScore").textContent = total;
+  $("#playerScoreLabel").textContent = `${sessionRecordsScores() ? "คะแนนสะสม" : "คะแนนสด"} · ${badgeCount} ตรา`;
   sessionActivities().forEach(activity => {
     const item = $(`[data-activity="${activity.key}"]`, $("#activityTimeline"));
     item?.classList.toggle("done", bestByActivity.has(activity.key));
@@ -1234,7 +1242,9 @@ function renderAchievementTest(activityKey) {
     deadlineAt: state.session?.assessment_ends_at || null,
     timeoutTitle: "หมดเวลาทำแบบทดสอบแล้ว",
     hideScoreWhilePlaying: true,
+    hideResultScore: true,
     resultMessage: "ระบบส่งคำตอบให้คุณครูแล้ว · ไม่มีการจัดอันดับผลสอบ",
+    suppressGamification: true,
   });
 }
 
@@ -1329,7 +1339,34 @@ function showResult(title, score, maxScore, result, replay, options = {}) {
   const personalScore = options.hideScore ? "" : `<p>ได้ <strong>${score} / ${maxScore}</strong> คะแนน (${percent}%)</p>`;
   const resultMessage = options.message || (result?.passed ? "ผ่านด่านแล้ว เก่งมาก!" : "ลองทบทวนแล้วพยายามใหม่นะ");
   const replayButton = typeof replay === "function" ? `<button id="replayButton" class="button button-primary">เล่นอีกครั้ง</button>` : "";
-  $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2>${personalScore}<p>${escapeHtml(resultMessage)}</p>${scoreNotice}${replayButton}</div></div>`;
+  const gamification = options.suppressGamification
+    ? ""
+    : (() => {
+      const level = masteryLevelForPercent(percent);
+      const badges = earnedBadgesForAttempt({
+        ...result,
+        percent,
+        answers: result?.answers || options.answers || [],
+        passPercent: Number(state.session?.pass_percent || 80),
+      });
+      const badgeCount = collectAchievementBadges(state.attempts, Number(state.session?.pass_percent || 80)).length;
+      const nextLabel = level.next
+        ? `อีก ${Math.max(0, level.next.min - Math.round(percent))}% ถึงระดับ “${level.next.title}”`
+        : "พิชิตระดับสูงสุดแล้ว";
+      return `
+        <section class="mastery-level-card" aria-label="ระดับความก้าวหน้า">
+          <span>${level.icon}</span>
+          <div><small>ระดับความก้าวหน้า</small><strong>${escapeHtml(level.title)}</strong><p>${escapeHtml(level.message)}</p></div>
+          <div class="mastery-level-progress"><i style="width:${level.progress}%"></i></div>
+          <em>${escapeHtml(nextLabel)}</em>
+        </section>
+        <section class="earned-badge-panel" aria-label="ตราความสำเร็จ">
+          <div><small>ตราที่ได้รับรอบนี้</small><strong>สะสมแล้ว ${badgeCount} ตรา</strong></div>
+          <div class="earned-badge-list">${badges.map(badge => `<article><span>${badge.icon}</span><strong>${escapeHtml(badge.title)}</strong><small>${escapeHtml(badge.detail)}</small></article>`).join("")}</div>
+        </section>
+        <p class="team-contribution-note">🤝 การผ่านด่านของหนูช่วยเติมพลังเป้าหมายร่วมของทั้งห้อง</p>`;
+    })();
+  $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2>${personalScore}<p>${escapeHtml(resultMessage)}</p>${gamification}${scoreNotice}${replayButton}</div></div>`;
   $("#replayButton")?.addEventListener("click", replay);
 }
 
@@ -1825,7 +1862,7 @@ function renderRhythm() {
   queueMicrotask(() => void startRhythmAutomatically());
 }
 
-function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay, revealCorrectness = true, resultTitle = "ทำภารกิจสำเร็จ", deadlineAt = null, timeoutTitle = "หมดเวลาแล้ว", hideScoreWhilePlaying = false, resultMessage = "", hideResultScore = false }) {
+function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay, revealCorrectness = true, resultTitle = "ทำภารกิจสำเร็จ", deadlineAt = null, timeoutTitle = "หมดเวลาแล้ว", hideScoreWhilePlaying = false, resultMessage = "", hideResultScore = false, suppressGamification = false }) {
   let index = 0;
   let score = 0;
   const answers = [];
@@ -1843,7 +1880,12 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
     completed = true;
     stopCountdown();
     const result = await submitAttempt(key, score, questions.length, answers);
-    if (result) showResult(titleForResult, score, questions.length, result, replay, { message: resultMessage, hideScore: hideResultScore });
+    if (result) showResult(titleForResult, score, questions.length, result, replay, {
+      message: resultMessage,
+      hideScore: hideResultScore,
+      suppressGamification,
+      answers,
+    });
   };
 
   const updateCountdown = () => {
@@ -1863,25 +1905,64 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
 
   const render = () => {
     const question = questions[index];
+    let tries = 0;
     const countdown = Number.isFinite(deadline) ? `<span class="mini-score">เหลือ <strong id="questionCountdown">--:--</strong></span>` : "";
     const scoreLabel = hideScoreWhilePlaying ? `ตอบแล้ว ${index} ข้อ` : `คะแนน ${score}`;
-    gameShell(title, instruction, `<div class="game-status-row"><span>ข้อ ${index + 1} / ${questions.length}</span><span class="mini-score">${scoreLabel}</span>${countdown}</div><div id="questionPrompt"></div><div class="choice-grid" id="questionChoices"></div>`);
+    const level = index < Math.ceil(questions.length / 3)
+      ? { icon: "🌱", label: "ด่านอุ่นเครื่อง" }
+      : index < Math.ceil((questions.length * 2) / 3)
+        ? { icon: "🧠", label: "ด่านฝึกใช้" }
+        : { icon: "🏆", label: "ด่านพิชิต" };
+    const levelMarkup = suppressGamification ? "" : `<span class="challenge-level-chip">${level.icon} ${level.label}</span>`;
+    const feedbackMarkup = suppressGamification ? "" : `<p id="questionLearningFeedback" class="question-learning-feedback" aria-live="polite">เลือกคำตอบที่คิดว่าถูกที่สุด</p>`;
+    gameShell(title, instruction, `<div class="game-status-row"><span>ข้อ ${index + 1} / ${questions.length}</span>${levelMarkup}<span class="mini-score">${scoreLabel}</span>${countdown}</div><div id="questionPrompt"></div>${feedbackMarkup}<div class="choice-grid" id="questionChoices"></div>`);
     renderPrompt(question, $("#questionPrompt"));
-    $("#questionChoices").innerHTML = choices(question).map(choice => `<button class="choice-button" data-value="${escapeHtml(choice.value)}">${escapeHtml(choice.label)}</button>`).join("");
+    const currentChoices = choices(question);
+    $("#questionChoices").innerHTML = currentChoices.map(choice => `<button class="choice-button" data-value="${escapeHtml(choice.value)}">${escapeHtml(choice.label)}</button>`).join("");
     [...$("#questionChoices").children].forEach(button => button.addEventListener("click", async () => {
       if (completed) return;
       const chosen = button.dataset.value;
       const correct = chosen === question.answer;
+      tries += 1;
+      const feedback = $("#questionLearningFeedback");
+      if (revealCorrectness && !correct && tries === 1) {
+        button.classList.add("wrong");
+        button.disabled = true;
+        if (feedback) feedback.textContent = learningHintForQuestion(question);
+        if (navigator.vibrate) navigator.vibrate([80, 45, 80]);
+        return;
+      }
+
       if (correct) score += 1;
-      answers.push({ question_id: question.id || index + 1, prompt: question.word || question.prompt, chosen, correct });
-      if (revealCorrectness) button.classList.add(correct ? "correct" : "wrong");
-      else button.classList.add("selected");
-      [...$("#questionChoices").children].forEach(item => item.disabled = true);
+      answers.push({
+        question_id: question.id || index + 1,
+        prompt: question.word || question.prompt,
+        chosen,
+        correct,
+        tries,
+      });
+      const buttons = [...$("#questionChoices").children];
+      if (revealCorrectness) {
+        button.classList.add(correct ? "correct" : "wrong");
+        const correctChoice = currentChoices.find(choice => String(choice.value) === String(question.answer));
+        const correctButton = buttons.find(item => item.dataset.value === String(question.answer));
+        correctButton?.classList.add("correct");
+        if (feedback) {
+          feedback.textContent = correct
+            ? tries === 1
+              ? "ถูกต้อง! สังเกตได้แม่นยำมาก"
+              : "ถูกต้องหลังใช้คำใบ้ ความพยายามทำให้เรียนรู้ได้"
+            : `คำตอบที่ถูกคือ “${correctChoice?.label || question.answer}” · ลองอ่านและสังเกตเสียงท้ายอีกครั้ง`;
+        }
+      } else {
+        button.classList.add("selected");
+      }
+      buttons.forEach(item => { item.disabled = true; });
       setTimeout(async () => {
         index += 1;
         if (index < questions.length) render();
         else await submit(resultTitle);
-      }, 650);
+      }, revealCorrectness ? 1050 : 650);
     }));
     updateCountdown();
   };
