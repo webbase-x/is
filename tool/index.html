@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#5b3fd0">
   <meta name="description" content="เครื่องมืออำนวยความสะดวกในการสอนของเพลินภาษา">
   <title>เครื่องมือครู | เพลินภาษา</title>
-  <link rel="stylesheet" href="styles.css?v=20260722-2">
+  <link rel="stylesheet" href="styles.css?v=20260811-1">
 </head>
 <body>
   <header class="topbar">
@@ -17,8 +17,24 @@
 
   <main class="shell">
     <section class="intro">
-      <div><span class="eyebrow">ใช้งานได้ทุกระดับชั้น</span><h2>สร้างสื่อในไม่กี่คลิก<br><em>พร้อมใช้หน้าชั้นเรียน</em></h2><p>เครื่องมือทุกชิ้นทำงานในเบราว์เซอร์ ข้อมูลคำศัพท์และรายชื่อผู้ชนะบันทึกไว้เฉพาะเครื่องนี้ ไม่ต้องใช้ฐานข้อมูล</p></div>
+      <div><span class="eyebrow">ใช้งานได้ทุกระดับชั้น</span><h2>สร้างสื่อในไม่กี่คลิก<br><em>พร้อมใช้หน้าชั้นเรียน</em></h2><p>เครื่องมือทุกชิ้นทำงานในเบราว์เซอร์ ข้อมูลจะบันทึกไว้ในเครื่องตามปกติ และเลือกเชื่อมบัญชีเพื่อเปิดใช้ต่อจากเครื่องอื่นได้</p></div>
       <div class="intro-orbit" aria-hidden="true"><i>ก</i><b>✦</b><span>บิงโก<br>วงล้อ</span></div>
+    </section>
+
+
+    <section class="cloud-panel" aria-labelledby="cloudTitle">
+      <div class="cloud-copy"><span class="eyebrow">บันทึกข้ามอุปกรณ์</span><h2 id="cloudTitle">☁ เก็บชุดเครื่องมือไว้ใช้ภายหลัง</h2><p>เข้าสู่ระบบเพื่อบันทึกคำศัพท์ ตาราง วงล้อ และรายชื่อผู้ชนะ แล้วเปิดต่อจากโทรศัพท์หรือคอมพิวเตอร์เครื่องอื่นได้</p></div>
+      <div id="cloudSignedOut" class="cloud-auth">
+        <label>อีเมล<input id="cloudEmail" type="email" autocomplete="email" placeholder="teacher@example.com"></label>
+        <label>รหัสผ่าน<input id="cloudPassword" type="password" minlength="6" autocomplete="current-password" placeholder="อย่างน้อย 6 ตัวอักษร"></label>
+        <div class="cloud-actions"><button id="cloudSignIn" class="primary-button" type="button">เข้าสู่ระบบ</button><button id="cloudSignUp" class="outline-button" type="button">สร้างบัญชี</button></div>
+      </div>
+      <div id="cloudSignedIn" class="cloud-saves" hidden>
+        <div class="cloud-user-row"><span>เข้าสู่ระบบ: <strong id="cloudUserEmail"></strong></span><button id="cloudSignOut" type="button">ออกจากระบบ</button></div>
+        <div class="cloud-save-row"><label>ชื่อชุดที่บันทึก<input id="cloudSaveName" maxlength="80" value="ชุดสอนของฉัน"></label><button id="cloudSave" class="primary-button" type="button">☁ บันทึกชุดปัจจุบัน</button></div>
+        <div class="cloud-load-row"><label>ชุดที่เคยบันทึก<select id="cloudSaveList"><option value="">ยังไม่มีข้อมูล</option></select></label><button id="cloudLoad" class="outline-button" type="button">เปิดชุดนี้</button><button id="cloudDelete" type="button">ลบ</button></div>
+      </div>
+      <p id="cloudMessage" class="form-message" role="status"></p>
     </section>
 
     <section class="tool-directory" aria-labelledby="directoryTitle">
@@ -64,7 +80,8 @@
     </section>
   </main>
   <footer>เพลินภาษา · เครื่องมือครู · เพิ่มเครื่องมือใหม่ได้จากรายการในไฟล์ <code>app.js</code></footer>
-  <script src="app.js?v=20260722-2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="app.js?v=20260811-1"></script>
   <script src="../emoji-fallback.js" defer></script>
 </body>
 </html>
