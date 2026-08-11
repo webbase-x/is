@@ -25,9 +25,8 @@
     <section class="cloud-panel" aria-labelledby="cloudTitle">
       <div class="cloud-copy"><span class="eyebrow">บันทึกข้ามอุปกรณ์</span><h2 id="cloudTitle">☁ เก็บชุดเครื่องมือไว้ใช้ภายหลัง</h2><p>เข้าสู่ระบบเพื่อบันทึกคำศัพท์ ตาราง วงล้อ และรายชื่อผู้ชนะ แล้วเปิดต่อจากโทรศัพท์หรือคอมพิวเตอร์เครื่องอื่นได้</p></div>
       <div id="cloudSignedOut" class="cloud-auth">
-        <label>อีเมล<input id="cloudEmail" type="email" autocomplete="email" placeholder="teacher@example.com"></label>
-        <label>รหัสผ่าน<input id="cloudPassword" type="password" minlength="6" autocomplete="current-password" placeholder="อย่างน้อย 6 ตัวอักษร"></label>
-        <div class="cloud-actions"><button id="cloudSignIn" class="primary-button" type="button">เข้าสู่ระบบ</button><button id="cloudSignUp" class="outline-button" type="button">สร้างบัญชี</button></div>
+        <button id="cloudGoogleSignIn" class="google-login-button" type="button"><span aria-hidden="true">G</span> เข้าสู่ระบบด้วย Google</button>
+        <small>ใช้บัญชี Google เดียวกันเพื่อเปิดข้อมูลจากทุกอุปกรณ์</small>
       </div>
       <div id="cloudSignedIn" class="cloud-saves" hidden>
         <div class="cloud-user-row"><span>เข้าสู่ระบบ: <strong id="cloudUserEmail"></strong></span><button id="cloudSignOut" type="button">ออกจากระบบ</button></div>
@@ -81,7 +80,7 @@
   </main>
   <footer>เพลินภาษา · เครื่องมือครู · เพิ่มเครื่องมือใหม่ได้จากรายการในไฟล์ <code>app.js</code></footer>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-  <script src="app.js?v=20260811-2"></script>
+  <script src="app.js?v=20260811-3"></script>
   <script src="../emoji-fallback.js" defer></script>
 </body>
 </html>
