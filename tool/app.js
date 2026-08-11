@@ -118,20 +118,15 @@ async function refreshCloudAuth() {
   document.querySelector('#cloudUserEmail').textContent = session?.user?.email || '';
   if (signedIn) await refreshCloudSaves();
 }
-document.querySelector('#cloudSignIn').addEventListener('click', async () => {
-  const email = document.querySelector('#cloudEmail').value.trim(); const password = document.querySelector('#cloudPassword').value;
-  if (!email || password.length < 6) { setCloudMessage('กรอกอีเมลและรหัสผ่านอย่างน้อย 6 ตัวอักษร', true); return; }
-  setCloudMessage('กำลังเข้าสู่ระบบ…'); const { error } = await cloudClient.auth.signInWithPassword({ email, password });
-  if (error) { setCloudMessage('เข้าสู่ระบบไม่สำเร็จ: ' + error.message, true); return; }
-  setCloudMessage('เข้าสู่ระบบแล้ว'); await refreshCloudAuth();
-});
-document.querySelector('#cloudSignUp').addEventListener('click', async () => {
-  const email = document.querySelector('#cloudEmail').value.trim(); const password = document.querySelector('#cloudPassword').value;
-  if (!email || password.length < 6) { setCloudMessage('กรอกอีเมลและรหัสผ่านอย่างน้อย 6 ตัวอักษร', true); return; }
-  setCloudMessage('กำลังสร้างบัญชี…'); const { data, error } = await cloudClient.auth.signUp({ email, password, options: { emailRedirectTo: location.href.split('#')[0] } });
-  if (error) { setCloudMessage('สร้างบัญชีไม่สำเร็จ: ' + error.message, true); return; }
-  setCloudMessage(data.session ? 'สร้างบัญชีและเข้าสู่ระบบแล้ว' : 'สร้างบัญชีแล้ว กรุณาเปิดอีเมลเพื่อยืนยันบัญชี');
-  await refreshCloudAuth();
+document.querySelector('#cloudGoogleSignIn').addEventListener('click', async () => {
+  if (!cloudClient) { setCloudMessage('ไม่สามารถเชื่อมต่อระบบเข้าสู่ระบบได้', true); return; }
+  setCloudMessage('กำลังเปิดหน้าเข้าสู่ระบบ Google…');
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { error } = await cloudClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo, queryParams: { prompt: 'select_account' } }
+  });
+  if (error) setCloudMessage('เข้าสู่ระบบด้วย Google ไม่สำเร็จ: ' + error.message, true);
 });
 document.querySelector('#cloudSignOut').addEventListener('click', async () => { await cloudClient.auth.signOut(); setCloudMessage('ออกจากระบบแล้ว'); await refreshCloudAuth(); });
 document.querySelector('#cloudSave').addEventListener('click', async () => {
