@@ -147,12 +147,10 @@ document.querySelector('#cloudLoad').addEventListener('click', async () => {
   setCloudMessage('กำลังเปิดข้อมูล…'); const { data, error } = await cloudClient.from('toolkit_saves').select('name,data').eq('id', id).single();
   if (error) { setCloudMessage('เปิดข้อมูลไม่สำเร็จ: ' + error.message, true); return; }
   state = {...state, ...data.data}; saveState();
-  wordInput.value = (state.bingoWords || defaultWords).join('
-'); boardSize.value = state.lastBoardSize || '4'; playerCount.value = state.lastPlayers || 10;
+  wordInput.value = (state.bingoWords || defaultWords).join('\n'); boardSize.value = state.lastBoardSize || '4'; playerCount.value = state.lastPlayers || 10;
   currentBoards = Array.isArray(state.currentBoards) ? state.currentBoards : []; bingoBoards.innerHTML = currentBoards.length ? '' : '<div class="empty-state">ชุดนี้ยังไม่มีตารางที่สร้างไว้</div>';
   if (currentBoards.length) renderBoards(Number(boardSize.value)); boardSummary.textContent = currentBoards.length ? currentBoards.length + ' ตาราง · ' + boardSize.value + ' × ' + boardSize.value : 'รอสร้างตาราง'; printBoards.disabled = !currentBoards.length;
-  wheelWords = state.wheelWords || state.bingoWords || defaultWords; called = state.calledWords || []; soundEnabled = state.soundEnabled !== false; wheelWordsInput.value = wheelWords.join('
-');
+  wheelWords = state.wheelWords || state.bingoWords || defaultWords; called = state.calledWords || []; soundEnabled = state.soundEnabled !== false; wheelWordsInput.value = wheelWords.join('\n');
   selectedWord.textContent = called.at(-1) || 'พร้อม!'; drawWheel(); renderCalled(); renderWinners();
   document.querySelector('#soundToggle').setAttribute('aria-pressed', String(soundEnabled)); document.querySelector('#soundToggle').textContent = soundEnabled ? '🔊 เสียง' : '🔇 ปิดเสียง';
   setCloudMessage('เปิดชุด “' + data.name + '” แล้ว');
