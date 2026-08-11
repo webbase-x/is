@@ -1,4 +1,7 @@
 const STORAGE_KEY = 'plern-thai-teacher-toolkit-v1';
+const SUPABASE_URL = 'https://xnpzkhjodokvcgzovlxx.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_r0M5jKyJcrQAKstRlmYOdQ_J_0aLofN';
+const cloudClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const defaultWords = ['ภูผา','ใบโบก','ใบบัว','พ่อ','แม่','ตา','ดูแล','หา','รัก','ดีใจ','หู','งา','ขา','หาง','งวง','ได้'];
 const tools = [
   {id:'bingo-tool',icon:'▦',title:'สร้างสื่อปิงโก',description:'สร้างตารางคำศัพท์เฉพาะชั้นเรียน กำหนดจำนวนผู้เล่นและพิมพ์เป็น PDF',action:'เปิดเครื่องมือ →'},
@@ -22,7 +25,7 @@ const bingoBoards = document.querySelector('#bingoBoards');
 const bingoMessage = document.querySelector('#bingoMessage');
 const boardSummary = document.querySelector('#boardSummary');
 const printBoards = document.querySelector('#printBoards');
-let currentBoards = [];
+let currentBoards = Array.isArray(state.currentBoards) ? state.currentBoards : [];
 wordInput.value = (state.bingoWords || defaultWords).join('\n');
 
 function buildBoards(words, size, players) {
@@ -41,7 +44,7 @@ function renderBoards(size) {
 document.querySelector('#bingoForm').addEventListener('submit', event => {
   event.preventDefault(); const words = parseWords(wordInput.value); const size = Number(boardSize.value); const players = Math.min(60, Math.max(1, Number(playerCount.value) || 1)); const required = size ** 2;
   if (words.length < required) { bingoMessage.textContent = `ตาราง ${size} × ${size} ต้องมีอย่างน้อย ${required} คำ (ตอนนี้มี ${words.length} คำ)`; printBoards.disabled = true; return; }
-  currentBoards = buildBoards(words, size, players); state.bingoWords = words; state.lastBoardSize = size; state.lastPlayers = players; saveState(); renderBoards(size);
+  currentBoards = buildBoards(words, size, players); state.currentBoards = currentBoards; state.bingoWords = words; state.lastBoardSize = size; state.lastPlayers = players; saveState(); renderBoards(size);
   bingoMessage.textContent = currentBoards.length < players ? `สร้างได้ ${currentBoards.length} ตารางที่ไม่ซ้ำจากคำที่มี` : '';
   boardSummary.textContent = `${currentBoards.length} ตาราง · ${size} × ${size}`; printBoards.disabled = !currentBoards.length;
 });
@@ -81,4 +84,84 @@ document.querySelector('#newRound').addEventListener('click', () => { called = [
 document.querySelector('#soundToggle').addEventListener('click', event => { soundEnabled = !soundEnabled; event.currentTarget.setAttribute('aria-pressed', String(soundEnabled)); event.currentTarget.textContent = soundEnabled ? '🔊 เสียง' : '🔇 ปิดเสียง'; persistWheel(); });
 document.querySelector('#winnerForm').addEventListener('submit', event => { event.preventDefault(); const input = document.querySelector('#winnerName'); const name = input.value.trim(); if (!name) { input.focus(); return; } const word = selectedWord.textContent === 'พร้อม!' ? 'ยังไม่ได้หมุนคำ' : selectedWord.textContent; state.winners = [{name,word,time:new Intl.DateTimeFormat('th-TH',{dateStyle:'short',timeStyle:'short'}).format(new Date())},...(state.winners || [])].slice(0,30); saveState(); input.value = ''; renderWinners(); playTone(784,.12,0,'sine'); playTone(1046,.28,.13,'sine'); });
 document.querySelector('#clearWinners').addEventListener('click', () => { if (!state.winners?.length || !confirm('ล้างประวัติผู้ชนะที่บันทึกในเครื่องนี้หรือไม่?')) return; state.winners = []; saveState(); renderWinners(); });
-boardSize.value = state.lastBoardSize || '4'; playerCount.value = state.lastPlayers || 10; document.querySelector('#soundToggle').setAttribute('aria-pressed', String(soundEnabled)); document.querySelector('#soundToggle').textContent = soundEnabled ? '🔊 เสียง' : '🔇 ปิดเสียง'; drawWheel(); renderCalled(); renderWinners();
+boardSize.value = state.lastBoardSize || '4'; playerCount.value = state.lastPlayers || 10; document.querySelector('#soundToggle').setAttribute('aria-pressed', String(soundEnabled)); document.querySelector('#soundToggle').textContent = soundEnabled ? '🔊 เสียง' : '🔇 ปิดเสียง'; drawWheel(); renderCalled(); renderWinners(); if (currentBoards.length) { renderBoards(Number(boardSize.value)); boardSummary.textContent = currentBoards.length + ' ตาราง · ' + boardSize.value + ' × ' + boardSize.value; printBoards.disabled = false; }
+
+const cloudSignedOut = document.querySelector('#cloudSignedOut');
+const cloudSignedIn = document.querySelector('#cloudSignedIn');
+const cloudMessage = document.querySelector('#cloudMessage');
+const cloudSaveList = document.querySelector('#cloudSaveList');
+const setCloudMessage = (message, isError = false) => { cloudMessage.textContent = message; cloudMessage.classList.toggle('is-error', isError); };
+
+function buildCloudPayload() {
+  return {
+    bingoWords: parseWords(wordInput.value),
+    lastBoardSize: Number(boardSize.value),
+    lastPlayers: Number(playerCount.value) || 1,
+    currentBoards,
+    wheelWords: parseWords(wheelWordsInput.value),
+    calledWords: called,
+    soundEnabled,
+    winners: state.winners || []
+  };
+}
+async function refreshCloudSaves() {
+  if (!cloudClient) return;
+  const { data, error } = await cloudClient.from('toolkit_saves').select('id,name,updated_at').order('updated_at', { ascending: false });
+  if (error) { setCloudMessage('โหลดรายการบันทึกไม่สำเร็จ: ' + error.message, true); return; }
+  cloudSaveList.innerHTML = data.length ? data.map(item => '<option value="' + item.id + '">' + escapeHtml(item.name) + ' · ' + new Intl.DateTimeFormat('th-TH',{dateStyle:'short',timeStyle:'short'}).format(new Date(item.updated_at)) + '</option>').join('') : '<option value="">ยังไม่มีข้อมูล</option>';
+}
+async function refreshCloudAuth() {
+  if (!cloudClient) { setCloudMessage('ไม่สามารถเชื่อมต่อระบบบันทึกออนไลน์ได้', true); return; }
+  const { data: { session } } = await cloudClient.auth.getSession();
+  const signedIn = Boolean(session?.user);
+  cloudSignedOut.hidden = signedIn; cloudSignedIn.hidden = !signedIn;
+  document.querySelector('#cloudUserEmail').textContent = session?.user?.email || '';
+  if (signedIn) await refreshCloudSaves();
+}
+document.querySelector('#cloudSignIn').addEventListener('click', async () => {
+  const email = document.querySelector('#cloudEmail').value.trim(); const password = document.querySelector('#cloudPassword').value;
+  if (!email || password.length < 6) { setCloudMessage('กรอกอีเมลและรหัสผ่านอย่างน้อย 6 ตัวอักษร', true); return; }
+  setCloudMessage('กำลังเข้าสู่ระบบ…'); const { error } = await cloudClient.auth.signInWithPassword({ email, password });
+  if (error) { setCloudMessage('เข้าสู่ระบบไม่สำเร็จ: ' + error.message, true); return; }
+  setCloudMessage('เข้าสู่ระบบแล้ว'); await refreshCloudAuth();
+});
+document.querySelector('#cloudSignUp').addEventListener('click', async () => {
+  const email = document.querySelector('#cloudEmail').value.trim(); const password = document.querySelector('#cloudPassword').value;
+  if (!email || password.length < 6) { setCloudMessage('กรอกอีเมลและรหัสผ่านอย่างน้อย 6 ตัวอักษร', true); return; }
+  setCloudMessage('กำลังสร้างบัญชี…'); const { data, error } = await cloudClient.auth.signUp({ email, password, options: { emailRedirectTo: location.href.split('#')[0] } });
+  if (error) { setCloudMessage('สร้างบัญชีไม่สำเร็จ: ' + error.message, true); return; }
+  setCloudMessage(data.session ? 'สร้างบัญชีและเข้าสู่ระบบแล้ว' : 'สร้างบัญชีแล้ว กรุณาเปิดอีเมลเพื่อยืนยันบัญชี');
+  await refreshCloudAuth();
+});
+document.querySelector('#cloudSignOut').addEventListener('click', async () => { await cloudClient.auth.signOut(); setCloudMessage('ออกจากระบบแล้ว'); await refreshCloudAuth(); });
+document.querySelector('#cloudSave').addEventListener('click', async () => {
+  const name = document.querySelector('#cloudSaveName').value.trim(); if (!name) { setCloudMessage('กรุณาตั้งชื่อชุดที่จะบันทึก', true); return; }
+  const { data: { user } } = await cloudClient.auth.getUser(); if (!user) { setCloudMessage('กรุณาเข้าสู่ระบบก่อนบันทึก', true); return; }
+  const payload = buildCloudPayload(); state = {...state, ...payload}; saveState(); setCloudMessage('กำลังบันทึก…');
+  const { error } = await cloudClient.from('toolkit_saves').upsert({ user_id:user.id, name, data:payload, updated_at:new Date().toISOString() }, { onConflict:'user_id,name' });
+  if (error) { setCloudMessage('บันทึกไม่สำเร็จ: ' + error.message, true); return; }
+  setCloudMessage('บันทึก “' + name + '” แล้ว เปิดใช้จากเครื่องอื่นได้'); await refreshCloudSaves();
+});
+document.querySelector('#cloudLoad').addEventListener('click', async () => {
+  const id = cloudSaveList.value; if (!id) return;
+  setCloudMessage('กำลังเปิดข้อมูล…'); const { data, error } = await cloudClient.from('toolkit_saves').select('name,data').eq('id', id).single();
+  if (error) { setCloudMessage('เปิดข้อมูลไม่สำเร็จ: ' + error.message, true); return; }
+  state = {...state, ...data.data}; saveState();
+  wordInput.value = (state.bingoWords || defaultWords).join('
+'); boardSize.value = state.lastBoardSize || '4'; playerCount.value = state.lastPlayers || 10;
+  currentBoards = Array.isArray(state.currentBoards) ? state.currentBoards : []; bingoBoards.innerHTML = currentBoards.length ? '' : '<div class="empty-state">ชุดนี้ยังไม่มีตารางที่สร้างไว้</div>';
+  if (currentBoards.length) renderBoards(Number(boardSize.value)); boardSummary.textContent = currentBoards.length ? currentBoards.length + ' ตาราง · ' + boardSize.value + ' × ' + boardSize.value : 'รอสร้างตาราง'; printBoards.disabled = !currentBoards.length;
+  wheelWords = state.wheelWords || state.bingoWords || defaultWords; called = state.calledWords || []; soundEnabled = state.soundEnabled !== false; wheelWordsInput.value = wheelWords.join('
+');
+  selectedWord.textContent = called.at(-1) || 'พร้อม!'; drawWheel(); renderCalled(); renderWinners();
+  document.querySelector('#soundToggle').setAttribute('aria-pressed', String(soundEnabled)); document.querySelector('#soundToggle').textContent = soundEnabled ? '🔊 เสียง' : '🔇 ปิดเสียง';
+  setCloudMessage('เปิดชุด “' + data.name + '” แล้ว');
+});
+document.querySelector('#cloudDelete').addEventListener('click', async () => {
+  const id = cloudSaveList.value; if (!id || !confirm('ลบชุดที่บันทึกนี้หรือไม่?')) return;
+  const { error } = await cloudClient.from('toolkit_saves').delete().eq('id', id);
+  if (error) { setCloudMessage('ลบไม่สำเร็จ: ' + error.message, true); return; }
+  setCloudMessage('ลบชุดที่บันทึกแล้ว'); await refreshCloudSaves();
+});
+cloudClient?.auth.onAuthStateChange(() => window.setTimeout(refreshCloudAuth, 0));
+refreshCloudAuth();
