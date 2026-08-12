@@ -33,20 +33,54 @@ function Formula({ children, source }: { children: React.ReactNode; source: stri
   return <div className="formula"><div>{children}</div><small>แนวทางอ้างอิง: {source}</small></div>;
 }
 
+const THAI_DIGITS: Record<string, string> = { "๐": "0", "๑": "1", "๒": "2", "๓": "3", "๔": "4", "๕": "5", "๖": "6", "๗": "7", "๘": "8", "๙": "9" };
+
+function normalizeDigits(value: string) {
+  return value.replace(/[๐-๙]/g, (digit) => THAI_DIGITS[digit]);
+}
+
+function inferIocItemCount(rows: unknown[][]) {
+  const text = normalizeDigits(rows.flat().map((cell) => String(cell ?? "")).join(" "));
+  const explicitCounts = [...text.matchAll(/(?:จำนวน|รวม|แบบทดสอบ)?\s*(\d{1,3})\s*ข้อ/g)]
+    .map((match) => Number(match[1]))
+    .filter((count) => count >= 3 && count <= 200);
+  if (explicitCounts.length) return Math.max(...explicitCounts);
+
+  const leadingNumbers = rows.flatMap((row) => {
+    const first = normalizeDigits(String(row.find((cell) => String(cell ?? "").trim()) ?? "").trim());
+    const match = first.match(/^(\d{1,3})(?:[.)]|\s|$)/);
+    return match ? [Number(match[1])] : [];
+  });
+  let best = 0;
+  leadingNumbers.forEach((number, start) => {
+    if (number !== 1) return;
+    let expected = 1;
+    for (let index = start; index < leadingNumbers.length; index += 1) {
+      if (leadingNumbers[index] === expected) expected += 1;
+    }
+    best = Math.max(best, expected - 1);
+  });
+  return best >= 3 ? Math.min(best, 200) : 5;
+}
+
 function IocView({ imported }: { imported?: ImportedProjectData | null }) {
-  const importedRows = imported?.rows.map((row) => row.map((cell) => Number(cell)).filter((value) => [-1, 0, 1].includes(value))).filter((row) => row.length) ?? [];
-  const importedWidth = importedRows.length ? Math.max(...importedRows.map((row) => row.length)) : 3;
+  const needsOcrVerification = Boolean(imported?.warning?.includes("OCR"));
+  const importedRows = needsOcrVerification ? [] : imported?.rows.map((row) => row.map((cell) => Number(cell)).filter((value) => [-1, 0, 1].includes(value))).filter((row) => row.length) ?? [];
+  const importedWidth = importedRows.length ? Math.max(...importedRows.map((row) => row.length)) : imported ? 1 : 3;
+  const importedItemCount = imported && needsOcrVerification ? inferIocItemCount(imported.rows) : 5;
   const [experts, setExperts] = useState(Array.from({ length: importedWidth }, (_, index) => `ผู้เชี่ยวชาญ ${index + 1}`));
-  const [rows, setRows] = useState<Array<Array<number | null>>>(importedRows.length ? importedRows.map((row) => Array.from({ length: importedWidth }, (_, index) => row[index] ?? null)) : Array.from({ length: 5 }, () => [1, 1, 1]));
+  const [rows, setRows] = useState<Array<Array<number | null>>>(importedRows.length ? importedRows.map((row) => Array.from({ length: importedWidth }, (_, index) => row[index] ?? null)) : Array.from({ length: importedItemCount }, () => imported ? Array(importedWidth).fill(null) : [1, 1, 1]));
   const results = calculateIoc(rows);
   const average = mean(results.flatMap((r) => r.ioc === null ? [] : [r.ioc]));
-  const setRating = (row: number, col: number, value: number) => setRows((current) => current.map((r, ri) => ri === row ? r.map((v, ci) => ci === col ? value : v) : r));
+  const setRating = (row: number, col: number, value: number | null) => setRows((current) => current.map((r, ri) => ri === row ? r.map((v, ci) => ci === col ? value : v) : r));
   const addExpert = () => { setExperts((x) => [...x, `ผู้เชี่ยวชาญ ${x.length + 1}`]); setRows((x) => x.map((r) => [...r, null])); };
   const addItem = () => setRows((x) => [...x, Array(experts.length).fill(null)]);
+  const resizeItems = (count: number) => setRows((current) => Array.from({ length: Math.max(1, Math.min(300, count)) }, (_, index) => current[index] ?? Array(experts.length).fill(null)));
   return <Page title="ความตรงเชิงเนื้อหา (IOC)" subtitle="ประเมินความสอดคล้องรายข้อจากผู้เชี่ยวชาญจำนวนเท่าใดก็ได้" badge="แนะนำ ≥ 3 คน">
+    {needsOcrVerification && <div className="import-warning ioc-verification"><b>ยังไม่คำนวณคะแนนจาก OCR อัตโนมัติ</b><span>ไฟล์สแกนอาจมีตัวเลข +1, 0 และ -1 อยู่ในคำชี้แจง และ OCR ไม่สามารถยืนยันตำแหน่งเครื่องหมายในช่องคะแนนได้ ระบบจึงสร้างตารางเปล่าไว้ให้ตรวจตามเอกสาร เพื่อป้องกันค่า IOC ผิดพลาด</span></div>}
     <div className="metrics"><Metric label="จำนวนข้อ" value={`${rows.length}`} /><Metric label="ผู้เชี่ยวชาญ" value={`${experts.length}`} tone="violet" /><Metric label="IOC เฉลี่ย" value={fmt(average, 2)} tone="green" /><Metric label="ผ่านเกณฑ์" value={`${results.filter(r => r.passed).length}/${rows.length}`} tone="amber" /></div>
-    <section className="panel"><div className="panel-head"><div><h3>ตารางให้คะแนน</h3><p>+1 สอดคล้อง · 0 ไม่แน่ใจ · -1 ไม่สอดคล้อง</p></div><div className="actions"><button className="secondary" onClick={addExpert}>+ ผู้เชี่ยวชาญ</button><button onClick={addItem}>+ เพิ่มข้อ</button></div></div>
-      <div className="table-wrap"><table><thead><tr><th>ข้อ</th>{experts.map((e, i) => <th key={i}><input className="head-input" value={e} onChange={(ev) => setExperts(experts.map((x, j) => j === i ? ev.target.value : x))} /></th>)}<th>IOC</th><th>ผล</th></tr></thead><tbody>{rows.map((row, ri) => <tr key={ri}><td>{ri + 1}</td>{row.map((value, ci) => <td key={ci}><select aria-label={`ข้อ ${ri + 1} ${experts[ci]}`} value={value ?? ""} onChange={(e) => setRating(ri, ci, Number(e.target.value))}><option value="">—</option><option value="1">+1</option><option value="0">0</option><option value="-1">-1</option></select></td>)}<td><b>{fmt(results[ri].ioc, 2)}</b></td><td><span className={results[ri].passed ? "pill pass" : "pill revise"}>{results[ri].passed ? "ใช้ได้" : "ปรับปรุง"}</span></td></tr>)}</tbody></table></div>
+    <section className="panel"><div className="panel-head"><div><h3>ตารางให้คะแนน</h3><p>+1 สอดคล้อง · 0 ไม่แน่ใจ · -1 ไม่สอดคล้อง</p></div><div className="actions ioc-actions"><label>จำนวนข้อ<input type="number" min={1} max={300} value={rows.length} onChange={(event) => resizeItems(Number(event.target.value) || 1)} /></label><button className="secondary" onClick={addExpert}>+ ผู้เชี่ยวชาญ</button><button onClick={addItem}>+ เพิ่มข้อ</button></div></div>
+      <div className="table-wrap"><table><thead><tr><th>ข้อ</th>{experts.map((e, i) => <th key={i}><input className="head-input" value={e} onChange={(ev) => setExperts(experts.map((x, j) => j === i ? ev.target.value : x))} /></th>)}<th>IOC</th><th>ผล</th></tr></thead><tbody>{rows.map((row, ri) => <tr key={ri}><td>{ri + 1}</td>{row.map((value, ci) => <td key={ci}><select aria-label={`ข้อ ${ri + 1} ${experts[ci]}`} value={value ?? ""} onChange={(e) => setRating(ri, ci, e.target.value === "" ? null : Number(e.target.value))}><option value="">—</option><option value="1">+1</option><option value="0">0</option><option value="-1">-1</option></select></td>)}<td><b>{fmt(results[ri].ioc, 2)}</b></td><td><span className={results[ri].ioc === null ? "pill revise" : results[ri].passed ? "pill pass" : "pill revise"}>{results[ri].ioc === null ? "รอคะแนน" : results[ri].passed ? "ใช้ได้" : "ปรับปรุง"}</span></td></tr>)}</tbody></table></div>
     </section><Formula source="Rovinelli & Hambleton; แนวทางการสร้างเครื่องมือวิจัยทางการศึกษา">IOC = ΣR / N โดยคำนวณจากคะแนนที่มีข้อมูลจริงในแต่ละข้อ และแสดง N รายข้อเพื่อการตรวจสอบ</Formula>
   </Page>;
 }
@@ -114,8 +148,9 @@ function flattenRows(rows: unknown[][]) {
   return rows.flatMap((row) => row.map((cell) => String(cell ?? "").trim()).filter(Boolean)).join(", ");
 }
 
-function ImportedDataPanel({ data }: { data: ImportedProjectData }) {
-  return <section className="panel imported-data"><div className="panel-head"><div><span className="step-label">งานย่อย</span><h3>{data.workTitle}</h3><p>{data.sourceName} · {data.rangeLabel} · {data.rows.length} แถว</p></div></div>{data.warning && <div className="import-warning">{data.warning}</div>}<div className="table-wrap"><table><tbody>{data.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}><td>{rowIndex + 1}</td>{row.slice(0, 12).map((cell, cellIndex) => <td key={cellIndex}>{String(cell ?? "")}</td>)}</tr>)}</tbody></table></div><p className="data-note">ข้อมูลตัวเลขถูกเพิ่มลงในช่องของเครื่องมือแล้ว คุณสามารถตรวจและแก้ไขก่อนคำนวณได้</p></section>;
+function ImportedDataPanel({ data, view }: { data: ImportedProjectData; view: View }) {
+  const needsIocVerification = view === "ioc" && Boolean(data.warning?.includes("OCR"));
+  return <section className="panel imported-data"><div className="panel-head"><div><span className="step-label">งานย่อย</span><h3>{data.workTitle}</h3><p>{data.sourceName} · {data.rangeLabel} · {data.rows.length} แถว</p></div></div>{data.warning && <div className="import-warning">{data.warning}</div>}<div className="table-wrap"><table><tbody>{data.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}><td>{rowIndex + 1}</td>{row.slice(0, 12).map((cell, cellIndex) => <td key={cellIndex}>{String(cell ?? "")}</td>)}</tr>)}</tbody></table></div><p className="data-note">{needsIocVerification ? "ข้อความ OCR ใช้เป็นข้อมูลอ้างอิงเท่านั้น คะแนนยังไม่ถูกนำไปคำนวณจนกว่าคุณจะยืนยันในตาราง" : "ข้อมูลตัวเลขถูกเพิ่มลงในช่องของเครื่องมือแล้ว คุณสามารถตรวจและแก้ไขก่อนคำนวณได้"}</p></section>;
 }
 
 export default function ResearchStatsApp({ project, onBack }: { project: ResearchProject; onBack?: () => void }) {
@@ -123,5 +158,5 @@ export default function ResearchStatsApp({ project, onBack }: { project: Researc
   const dataKey = imported?.id ?? 0;
   const content = useMemo(() => ({ home: <HomeView open={setView} />, ioc: <IocView key={`ioc-${dataKey}`} imported={imported} />, descriptive: <DescriptiveView key={`descriptive-${dataKey}`} imported={imported} />, quality: <DescriptiveView key={`quality-${dataKey}`} quality imported={imported} />, item: <ItemView key={`item-${dataKey}`} imported={imported} />, reliability: <ReliabilityView key={`reliability-${dataKey}`} imported={imported} />, paired: <PairedView key={`paired-${dataKey}`} imported={imported} />, efficiency: <EfficiencyView key={`efficiency-${dataKey}`} imported={imported} />, references: <ReferencesView /> }[view]), [view, imported, dataKey]);
   const currentTool = NAV.find((item) => item.id === view)?.label ?? "งานวิเคราะห์";
-  return <div className="app-shell"><aside className={menu ? "sidebar open" : "sidebar"}><div className="brand"><div className="brand-mark">R</div><div><b>Research<span>Stat</span></b><small>สถิติงานวิจัยการศึกษา</small></div></div>{onBack && <button className="back-project" onClick={onBack}>← กลับไปที่โครงการ</button>}<nav>{NAV.map(item => <div key={item.id}>{item.group && <div className="nav-group">{item.group}</div>}<button className={view === item.id ? "active" : ""} onClick={() => { setView(item.id); setMenu(false); }}><span>{item.icon}</span>{item.label}</button></div>)}</nav><div className="privacy"><b>ข้อมูลของคุณเป็นส่วนตัว</b><p>รุ่นนี้ประมวลผลคะแนนในอุปกรณ์ ไม่ส่งข้อมูลดิบออกไป</p></div></aside><main className="main"><div className="topbar"><button className="menu-btn" onClick={() => setMenu(!menu)}>☰</button><div className="project"><span>โครงการ</span><b>{project.title}</b></div><div className="top-actions">{view !== "home" && view !== "references" && <button className="import-project-button" onClick={() => setShowImporter(true)}>↥ นำเข้าจากไฟล์โครงการ</button>}<span className="version-chip">รุ่นคำนวณ 1.3</span><span className="avatar">พ</span></div></div><div className="content">{imported && view !== "home" && view !== "references" && <ImportedDataPanel data={imported}/>} {content}</div><footer>ResearchStat · เครื่องมือช่วยคำนวณ ไม่แทนการพิจารณาของนักวิจัยและอาจารย์ที่ปรึกษา</footer></main>{menu && <button className="overlay" aria-label="ปิดเมนู" onClick={() => setMenu(false)} />}<ProjectDataImporter project={project} analysisType={view} suggestedTitle={`${currentTool} – งานที่ 1`} open={showImporter} onClose={() => setShowImporter(false)} onImport={setImported}/></div>;
+  return <div className="app-shell"><aside className={menu ? "sidebar open" : "sidebar"}><div className="brand"><div className="brand-mark">R</div><div><b>Research<span>Stat</span></b><small>สถิติงานวิจัยการศึกษา</small></div></div>{onBack && <button className="back-project" onClick={onBack}>← กลับไปที่โครงการ</button>}<nav>{NAV.map(item => <div key={item.id}>{item.group && <div className="nav-group">{item.group}</div>}<button className={view === item.id ? "active" : ""} onClick={() => { setView(item.id); setMenu(false); }}><span>{item.icon}</span>{item.label}</button></div>)}</nav><div className="privacy"><b>ข้อมูลของคุณเป็นส่วนตัว</b><p>รุ่นนี้ประมวลผลคะแนนในอุปกรณ์ ไม่ส่งข้อมูลดิบออกไป</p></div></aside><main className="main"><div className="topbar"><button className="menu-btn" onClick={() => setMenu(!menu)}>☰</button><div className="project"><span>โครงการ</span><b>{project.title}</b></div><div className="top-actions">{view !== "home" && view !== "references" && <button className="import-project-button" onClick={() => setShowImporter(true)}>↥ นำเข้าจากไฟล์โครงการ</button>}<span className="version-chip">รุ่นคำนวณ 1.4</span><span className="avatar">พ</span></div></div><div className="content">{imported && view !== "home" && view !== "references" && <ImportedDataPanel data={imported} view={view}/>} {content}</div><footer>ResearchStat · เครื่องมือช่วยคำนวณ ไม่แทนการพิจารณาของนักวิจัยและอาจารย์ที่ปรึกษา</footer></main>{menu && <button className="overlay" aria-label="ปิดเมนู" onClick={() => setMenu(false)} />}<ProjectDataImporter project={project} analysisType={view} suggestedTitle={`${currentTool} – งานที่ 1`} open={showImporter} onClose={() => setShowImporter(false)} onImport={setImported}/></div>;
 }
