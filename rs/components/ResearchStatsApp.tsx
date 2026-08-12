@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ProjectDataImporter, { type ImportedProjectData } from "./ProjectDataImporter";
+import type { ResearchProject } from "../lib/supabase/types";
 import {
   analyzeItem, calculateE1E2, calculateIoc, cronbachAlpha, defaultFiveLevelBands,
   interpretQuality, kr20, mean, median, pairedTTest, parseMatrix, parseNumbers,
@@ -31,9 +33,11 @@ function Formula({ children, source }: { children: React.ReactNode; source: stri
   return <div className="formula"><div>{children}</div><small>แนวทางอ้างอิง: {source}</small></div>;
 }
 
-function IocView() {
-  const [experts, setExperts] = useState(["ผู้เชี่ยวชาญ 1", "ผู้เชี่ยวชาญ 2", "ผู้เชี่ยวชาญ 3"]);
-  const [rows, setRows] = useState<Array<Array<number | null>>>(Array.from({ length: 5 }, () => [1, 1, 1]));
+function IocView({ imported }: { imported?: ImportedProjectData | null }) {
+  const importedRows = imported?.rows.map((row) => row.map((cell) => Number(cell)).filter((value) => [-1, 0, 1].includes(value))).filter((row) => row.length) ?? [];
+  const importedWidth = importedRows.length ? Math.max(...importedRows.map((row) => row.length)) : 3;
+  const [experts, setExperts] = useState(Array.from({ length: importedWidth }, (_, index) => `ผู้เชี่ยวชาญ ${index + 1}`));
+  const [rows, setRows] = useState<Array<Array<number | null>>>(importedRows.length ? importedRows.map((row) => Array.from({ length: importedWidth }, (_, index) => row[index] ?? null)) : Array.from({ length: 5 }, () => [1, 1, 1]));
   const results = calculateIoc(rows);
   const average = mean(results.flatMap((r) => r.ioc === null ? [] : [r.ioc]));
   const setRating = (row: number, col: number, value: number) => setRows((current) => current.map((r, ri) => ri === row ? r.map((v, ci) => ci === col ? value : v) : r));
@@ -47,8 +51,8 @@ function IocView() {
   </Page>;
 }
 
-function DescriptiveView({ quality = false }: { quality?: boolean }) {
-  const [text, setText] = useState("5, 5, 4, 4, 5, 4, 5, 3, 4, 5");
+function DescriptiveView({ quality = false, imported }: { quality?: boolean; imported?: ImportedProjectData | null }) {
+  const [text, setText] = useState(imported ? flattenRows(imported.rows) : "5, 5, 4, 4, 5, 4, 5, 3, 4, 5");
   const values = parseNumbers(text); const avg = mean(values); const sd = sampleStandardDeviation(values);
   return <Page title={quality ? "การแปลผลระดับคุณภาพ" : "สถิติพรรณนา"} subtitle={quality ? "คำนวณค่าเฉลี่ยและแปลผลมาตราส่วนประมาณค่า 5 ระดับ" : "ค่าเฉลี่ย มัธยฐาน และส่วนเบี่ยงเบนมาตรฐานของกลุ่มตัวอย่าง"} badge="ตรวจสอบข้อมูลดิบได้">
     <section className="split"><div className="panel"><h3>วางคะแนน</h3><p>คั่นด้วยช่องว่าง เครื่องหมายจุลภาค หรือขึ้นบรรทัดใหม่</p><textarea value={text} onChange={(e) => setText(e.target.value)} rows={10} /><div className="data-note">อ่านได้ {values.length} ค่า</div></div>
@@ -57,26 +61,29 @@ function DescriptiveView({ quality = false }: { quality?: boolean }) {
   </Page>;
 }
 
-function ItemView() {
-  const [upper, setUpper] = useState(22), [lower, setLower] = useState(12), [size, setSize] = useState(25);
+function ItemView({ imported }: { imported?: ImportedProjectData | null }) {
+  const importedValues = imported ? parseNumbers(flattenRows(imported.rows)) : [];
+  const [upper, setUpper] = useState(importedValues[0] ?? 22), [lower, setLower] = useState(importedValues[1] ?? 12), [size, setSize] = useState(importedValues[2] ?? 25);
   const result = analyzeItem(upper, lower, size);
   return <Page title="ความยากและอำนาจจำแนก" subtitle="วิเคราะห์ข้อสอบด้วยเทคนิคกลุ่มสูง–กลุ่มต่ำ" badge="Classical Test Theory"><section className="split"><div className="panel form-grid"><label>กลุ่มสูงตอบถูก<input type="number" value={upper} onChange={e => setUpper(+e.target.value)} /></label><label>กลุ่มต่ำตอบถูก<input type="number" value={lower} onChange={e => setLower(+e.target.value)} /></label><label>จำนวนคนต่อกลุ่ม<input type="number" value={size} onChange={e => setSize(+e.target.value)} /></label></div><div className="metrics compact"><Metric label="ค่าความยาก (p)" value={fmt(result.difficulty)} note={result.difficultyLabel} /><Metric label="อำนาจจำแนก (r)" value={fmt(result.discrimination)} note={result.discriminationLabel} tone="green" /></div></section><Formula source="แนวคิดการวิเคราะห์ข้อสอบแบบอิงกลุ่ม; พิชิต ฤทธิ์จรูญ และตำราการวัดผลการศึกษา">p = (RU+RL)/(2n) และ r = (RU-RL)/n</Formula></Page>;
 }
 
-function ReliabilityView() {
-  const [text, setText] = useState("1,1,1,0,1\n1,0,1,1,1\n1,1,1,1,1\n0,0,1,0,1\n1,1,0,1,1\n0,1,0,0,1");
+function ReliabilityView({ imported }: { imported?: ImportedProjectData | null }) {
+  const [text, setText] = useState(imported ? imported.rows.map((row) => row.join(",")).join("\n") : "1,1,1,0,1\n1,0,1,1,1\n1,1,1,1,1\n0,0,1,0,1\n1,1,0,1,1\n0,1,0,0,1");
   const matrix = parseMatrix(text); const alpha = cronbachAlpha(matrix); const binary = matrix.length > 0 && matrix.every(r => r.every(v => v === 0 || v === 1)); const kr = binary ? kr20(matrix) : null;
   return <Page title="ความเชื่อมั่นของเครื่องมือ" subtitle="รองรับ Cronbach’s alpha และ KR-20" badge="วางข้อมูลรายคน × รายข้อ"><section className="split"><div className="panel"><h3>เมทริกซ์คะแนน</h3><p>1 บรรทัด = ผู้ตอบ 1 คน · แต่ละคอลัมน์ = ข้อคำถาม</p><textarea rows={11} value={text} onChange={e => setText(e.target.value)} /><div className="data-note">{matrix.length} คน × {matrix[0]?.length ?? 0} ข้อ</div></div><div className="metrics compact"><Metric label="Cronbach’s α" value={fmt(alpha)} note="แบบมาตรประมาณค่า/หลายระดับ" tone="violet" /><Metric label="KR-20" value={binary ? fmt(kr) : "ต้องเป็น 0/1"} note="แบบทดสอบให้คะแนนถูก–ผิด" tone="green" /></div></section><Formula source="Kuder & Richardson (1937); Cronbach (1951); ตำราการวัดผลทางการศึกษา">ระบบใช้ความแปรปรวนรายข้อและความแปรปรวนของคะแนนรวม พร้อมตรวจรูปแบบข้อมูลก่อนคำนวณ</Formula></Page>;
 }
 
-function PairedView() {
-  const [pre, setPre] = useState("10, 12, 11, 14, 9, 13, 12, 10"), [post, setPost] = useState("16, 17, 15, 18, 14, 17, 16, 15");
+function PairedView({ imported }: { imported?: ImportedProjectData | null }) {
+  const importedPairs = imported?.rows.map((row) => row.map(Number).filter(Number.isFinite)).filter((row) => row.length >= 2) ?? [];
+  const [pre, setPre] = useState(importedPairs.length ? importedPairs.map((row) => row[0]).join(", ") : "10, 12, 11, 14, 9, 13, 12, 10"), [post, setPost] = useState(importedPairs.length ? importedPairs.map((row) => row[1]).join(", ") : "16, 17, 15, 18, 14, 17, 16, 15");
   const result = pairedTTest(parseNumbers(pre), parseNumbers(post));
   return <Page title="เปรียบเทียบก่อน–หลังเรียน" subtitle="Paired-samples t-test และขนาดอิทธิพล Cohen’s dz" badge="ข้อมูลเป็นคู่"><section className="panel two-text"><label>คะแนนก่อนเรียน<textarea rows={7} value={pre} onChange={e => setPre(e.target.value)} /></label><label>คะแนนหลังเรียน<textarea rows={7} value={post} onChange={e => setPost(e.target.value)} /></label></section><div className="metrics"><Metric label="n" value={`${result?.n ?? 0}`} /><Metric label="ก่อนเรียน x̄" value={fmt(result?.preMean)} /><Metric label="หลังเรียน x̄" value={fmt(result?.postMean)} tone="green" /><Metric label="ผลต่างเฉลี่ย" value={fmt(result?.meanDifference)} tone="amber" /><Metric label="t (df)" value={result ? `${fmt(result.t)} (${result.df})` : "—"} tone="violet" /><Metric label="Cohen’s dz" value={fmt(result?.cohenDz)} tone="green" /></div><Formula source="Student’s t distribution; Cohen (1988) สำหรับแนวคิดขนาดอิทธิพล">t = d̄ / (Sᵈ/√n) ระบบไม่รายงานนัยสำคัญจนกว่าจะยืนยันเงื่อนไขและระดับ α</Formula></Page>;
 }
 
-function EfficiencyView() {
-  const [process, setProcess] = useState("72, 68, 75, 70, 74"), [post, setPost] = useState("25, 26, 24, 27, 28"), [pmax, setPmax] = useState(80), [tmax, setTmax] = useState(30);
+function EfficiencyView({ imported }: { imported?: ImportedProjectData | null }) {
+  const importedPairs = imported?.rows.map((row) => row.map(Number).filter(Number.isFinite)).filter((row) => row.length >= 2) ?? [];
+  const [process, setProcess] = useState(importedPairs.length ? importedPairs.map((row) => row[0]).join(", ") : "72, 68, 75, 70, 74"), [post, setPost] = useState(importedPairs.length ? importedPairs.map((row) => row[1]).join(", ") : "25, 26, 24, 27, 28"), [pmax, setPmax] = useState(80), [tmax, setTmax] = useState(30);
   const result = calculateE1E2(parseNumbers(process), pmax, parseNumbers(post), tmax);
   return <Page title="ประสิทธิภาพนวัตกรรม E1/E2" subtitle="คำนวณประสิทธิภาพกระบวนการและผลลัพธ์" badge="กำหนดเกณฑ์ได้"><section className="panel two-text"><label>คะแนนระหว่างเรียนของแต่ละคน<textarea rows={6} value={process} onChange={e => setProcess(e.target.value)} /><span>คะแนนเต็ม <input type="number" value={pmax} onChange={e => setPmax(+e.target.value)} /></span></label><label>คะแนนหลังเรียนของแต่ละคน<textarea rows={6} value={post} onChange={e => setPost(e.target.value)} /><span>คะแนนเต็ม <input type="number" value={tmax} onChange={e => setTmax(+e.target.value)} /></span></label></section><div className="metrics"><Metric label="E1" value={`${fmt(result?.e1, 2)}%`} tone="blue" /><Metric label="E2" value={`${fmt(result?.e2, 2)}%`} tone="green" /><Metric label="รายงานผล" value={result ? `${fmt(result.e1, 2)}/${fmt(result.e2, 2)}` : "—"} tone="violet" /></div><Formula source="ชัยยงค์ พรหมวงศ์: แนวคิดการทดสอบประสิทธิภาพสื่อหรือชุดการสอน">E1 = (ΣX/N)/A × 100 และ E2 = (ΣF/N)/B × 100</Formula></Page>;
 }
@@ -103,8 +110,17 @@ function toolDescription(id: View) { return ({ ioc: "ตรวจความส
 
 function Page({ title, subtitle, badge, children }: { title: string; subtitle: string; badge: string; children: React.ReactNode }) { return <><header className="page-head"><div><div className="breadcrumb">ระบบวิเคราะห์ <span>/</span> {title}</div><h1>{title}</h1><p>{subtitle}</p></div><span className="status-badge"><i />{badge}</span></header>{children}</>; }
 
-export default function ResearchStatsApp({ projectTitle = "งานวิจัยมาตราตัวสะกด", onBack }: { projectTitle?: string; onBack?: () => void }) {
-  const [view, setView] = useState<View>("home"); const [menu, setMenu] = useState(false);
-  const content = useMemo(() => ({ home: <HomeView open={setView} />, ioc: <IocView />, descriptive: <DescriptiveView />, quality: <DescriptiveView quality />, item: <ItemView />, reliability: <ReliabilityView />, paired: <PairedView />, efficiency: <EfficiencyView />, references: <ReferencesView /> }[view]), [view]);
-  return <div className="app-shell"><aside className={menu ? "sidebar open" : "sidebar"}><div className="brand"><div className="brand-mark">R</div><div><b>Research<span>Stat</span></b><small>สถิติงานวิจัยการศึกษา</small></div></div>{onBack && <button className="back-project" onClick={onBack}>← กลับไปที่โครงการ</button>}<nav>{NAV.map(item => <div key={item.id}>{item.group && <div className="nav-group">{item.group}</div>}<button className={view === item.id ? "active" : ""} onClick={() => { setView(item.id); setMenu(false); }}><span>{item.icon}</span>{item.label}</button></div>)}</nav><div className="privacy"><b>ข้อมูลของคุณเป็นส่วนตัว</b><p>รุ่นนี้ประมวลผลคะแนนในอุปกรณ์ ไม่ส่งข้อมูลดิบออกไป</p></div></aside><main className="main"><div className="topbar"><button className="menu-btn" onClick={() => setMenu(!menu)}>☰</button><div className="project"><span>โครงการ</span><b>{projectTitle}</b></div><div className="top-actions"><span className="version-chip">รุ่นคำนวณ 1.1</span><span className="avatar">พ</span></div></div><div className="content">{content}</div><footer>ResearchStat · เครื่องมือช่วยคำนวณ ไม่แทนการพิจารณาของนักวิจัยและอาจารย์ที่ปรึกษา</footer></main>{menu && <button className="overlay" aria-label="ปิดเมนู" onClick={() => setMenu(false)} />}</div>;
+function flattenRows(rows: unknown[][]) {
+  return rows.flatMap((row) => row.map((cell) => String(cell ?? "").trim()).filter(Boolean)).join(", ");
+}
+
+function ImportedDataPanel({ data }: { data: ImportedProjectData }) {
+  return <section className="panel imported-data"><div className="panel-head"><div><h3>ข้อมูลที่นำเข้าจากโครงการ</h3><p>{data.sourceName} · {data.rangeLabel} · {data.rows.length} แถว</p></div></div><div className="table-wrap"><table><tbody>{data.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}><td>{rowIndex + 1}</td>{row.slice(0, 12).map((cell, cellIndex) => <td key={cellIndex}>{String(cell ?? "")}</td>)}</tr>)}</tbody></table></div><p className="data-note">ข้อมูลตัวเลขถูกเพิ่มลงในช่องของเครื่องมือแล้ว คุณสามารถตรวจและแก้ไขก่อนคำนวณได้</p></section>;
+}
+
+export default function ResearchStatsApp({ project, onBack }: { project: ResearchProject; onBack?: () => void }) {
+  const [view, setView] = useState<View>("home"); const [menu, setMenu] = useState(false); const [showImporter, setShowImporter] = useState(false); const [imported, setImported] = useState<ImportedProjectData | null>(null);
+  const dataKey = imported?.id ?? 0;
+  const content = useMemo(() => ({ home: <HomeView open={setView} />, ioc: <IocView key={`ioc-${dataKey}`} imported={imported} />, descriptive: <DescriptiveView key={`descriptive-${dataKey}`} imported={imported} />, quality: <DescriptiveView key={`quality-${dataKey}`} quality imported={imported} />, item: <ItemView key={`item-${dataKey}`} imported={imported} />, reliability: <ReliabilityView key={`reliability-${dataKey}`} imported={imported} />, paired: <PairedView key={`paired-${dataKey}`} imported={imported} />, efficiency: <EfficiencyView key={`efficiency-${dataKey}`} imported={imported} />, references: <ReferencesView /> }[view]), [view, imported, dataKey]);
+  return <div className="app-shell"><aside className={menu ? "sidebar open" : "sidebar"}><div className="brand"><div className="brand-mark">R</div><div><b>Research<span>Stat</span></b><small>สถิติงานวิจัยการศึกษา</small></div></div>{onBack && <button className="back-project" onClick={onBack}>← กลับไปที่โครงการ</button>}<nav>{NAV.map(item => <div key={item.id}>{item.group && <div className="nav-group">{item.group}</div>}<button className={view === item.id ? "active" : ""} onClick={() => { setView(item.id); setMenu(false); }}><span>{item.icon}</span>{item.label}</button></div>)}</nav><div className="privacy"><b>ข้อมูลของคุณเป็นส่วนตัว</b><p>รุ่นนี้ประมวลผลคะแนนในอุปกรณ์ ไม่ส่งข้อมูลดิบออกไป</p></div></aside><main className="main"><div className="topbar"><button className="menu-btn" onClick={() => setMenu(!menu)}>☰</button><div className="project"><span>โครงการ</span><b>{project.title}</b></div><div className="top-actions">{view !== "home" && view !== "references" && <button className="import-project-button" onClick={() => setShowImporter(true)}>↥ นำเข้าจากไฟล์โครงการ</button>}<span className="version-chip">รุ่นคำนวณ 1.2</span><span className="avatar">พ</span></div></div><div className="content">{imported && view !== "home" && view !== "references" && <ImportedDataPanel data={imported}/>} {content}</div><footer>ResearchStat · เครื่องมือช่วยคำนวณ ไม่แทนการพิจารณาของนักวิจัยและอาจารย์ที่ปรึกษา</footer></main>{menu && <button className="overlay" aria-label="ปิดเมนู" onClick={() => setMenu(false)} />}<ProjectDataImporter project={project} open={showImporter} onClose={() => setShowImporter(false)} onImport={setImported}/></div>;
 }

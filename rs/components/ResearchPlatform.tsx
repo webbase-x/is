@@ -29,6 +29,6 @@ export default function ResearchPlatform() {
 
   if (!ready) return <div className="app-loading"><div className="brand-mark">R</div><span>กำลังเปิดพื้นที่ทำงาน…</span></div>;
   if (!user && !demo) return <LoginScreen onDemo={() => setDemo(true)}/>;
-  if (analysisProject) return <ResearchStatsApp projectTitle={analysisProject.title} onBack={() => setAnalysisProject(null)}/>;
+  if (analysisProject) return <ResearchStatsApp project={analysisProject} onBack={() => setAnalysisProject(null)}/>;
   return <ProjectManager user={user} demo={demo} onAnalyze={setAnalysisProject} onSignOut={signOut}/>;
 }

@@ -91,11 +91,44 @@ export default function ProjectManager({ user, demo, onAnalyze, onSignOut }: {
     if (error) setNotice(error.message); else setPreview({ file, url: data.signedUrl });
   }
 
+  async function deleteFile(file: ResearchFile) {
+    if (!window.confirm(`ลบไฟล์ “${file.original_name}” และชุดข้อมูลที่สร้างจากไฟล์นี้หรือไม่?`)) return;
+    setBusy(true); setNotice("");
+    if (demo) { setFiles((items) => items.filter((item) => item.id !== file.id)); setBusy(false); return; }
+    const supabase = getSupabaseClient(); if (!supabase) return;
+    const { error: storageError } = await supabase.storage.from("research-documents").remove([file.storage_path]);
+    if (storageError) { setNotice(storageError.message); setBusy(false); return; }
+    const { error } = await supabase.from("research_files").delete().eq("id", file.id);
+    if (error) setNotice(error.message); else { setFiles((items) => items.filter((item) => item.id !== file.id)); setNotice("ลบไฟล์เรียบร้อยแล้ว"); }
+    setBusy(false);
+  }
+
+  async function deleteProject() {
+    if (!current || !window.confirm(`ลบโครงการ “${current.title}” พร้อมไฟล์ ชุดข้อมูล และผลวิเคราะห์ทั้งหมดหรือไม่?`)) return;
+    setBusy(true); setNotice("");
+    if (demo) {
+      const next = projects.filter((item) => item.id !== current.id); setProjects(next); setCurrent(next[0] ?? null); setFiles([]); setBusy(false); return;
+    }
+    const supabase = getSupabaseClient(); if (!supabase || !user) return;
+    const { data: storedFiles } = await supabase.from("research_files").select("storage_path").eq("project_id", current.id);
+    const paths = (storedFiles ?? []).map((file) => file.storage_path);
+    if (paths.length) {
+      const { error: storageError } = await supabase.storage.from("research-documents").remove(paths);
+      if (storageError) { setNotice(storageError.message); setBusy(false); return; }
+    }
+    const deletedId = current.id;
+    const { error } = await supabase.from("research_projects").delete().eq("id", deletedId);
+    if (error) setNotice(error.message); else {
+      const next = projects.filter((item) => item.id !== deletedId); setProjects(next); setCurrent(next[0] ?? null); setFiles([]); setNotice("ลบโครงการเรียบร้อยแล้ว");
+    }
+    setBusy(false);
+  }
+
   return <div className="workspace-page"><header className="workspace-bar"><div className="login-brand"><div className="brand-mark">R</div><b>Research<span>Stat</span></b></div><div className="workspace-user"><div><b>{demo ? "ผู้ใช้ตัวอย่าง" : user?.user_metadata?.full_name || user?.email}</b><span>{demo ? "โหมดทดลอง" : user?.email}</span></div><button onClick={onSignOut}>ออกจากระบบ</button></div></header>
     <main className="workspace-main"><section className="workspace-title"><div><span>MY RESEARCH</span><h1>โครงการของฉัน</h1><p>สร้างโครงการ แยกชุดข้อมูล และเรียกดูเอกสารย้อนหลังได้จากที่เดียว</p></div><button className="primary-action" onClick={() => setShowNew(true)}>+ เพิ่มโครงการ</button></section>
     {notice && <div className="workspace-notice">{notice}</div>}
     <section className="project-layout"><aside className="project-list"><div className="section-heading"><h2>โครงการทั้งหมด</h2><span>{projects.length}</span></div>{projects.length === 0 ? <div className="empty-small">ยังไม่มีโครงการ<br/><button onClick={() => setShowNew(true)}>สร้างโครงการแรก</button></div> : projects.map((project) => <button key={project.id} className={current?.id === project.id ? "project-row active" : "project-row"} onClick={() => setCurrent(project)}><span className="project-letter">{project.title.charAt(0)}</span><div><b>{project.title}</b><small>{project.description || "ไม่มีคำอธิบาย"}</small></div><i>›</i></button>)}</aside>
-      <section className="project-detail">{current ? <><header><div><span>โครงการที่เลือก</span><h2>{current.title}</h2><p>{current.description || "ยังไม่มีคำอธิบายโครงการ"}</p></div><button onClick={() => onAnalyze(current)}>เปิดเครื่องมือวิเคราะห์ →</button></header><div className="detail-stats"><div><b>{files.length}</b><span>ไฟล์ข้อมูล</span></div><div><b>{files.filter(f => f.preview_json).length}</b><span>ชุดตาราง</span></div><div><b>{new Date(current.updated_at).toLocaleDateString("th-TH")}</b><span>แก้ไขล่าสุด</span></div></div><div className="file-section"><div className="section-heading"><div><h2>ไฟล์และชุดข้อมูล</h2><p>PDF, Excel และ CSV ที่ยืนยันแล้ว</p></div><button onClick={() => setShowImport(true)}>+ เพิ่มไฟล์</button></div>{files.length === 0 ? <div className="empty-files"><span>⇧</span><b>ยังไม่มีไฟล์ในโครงการนี้</b><p>เพิ่ม PDF, Excel หรือ CSV แล้วตรวจสอบตัวอย่างก่อนยืนยัน</p><button onClick={() => setShowImport(true)}>เลือกไฟล์</button></div> : <div className="file-list">{files.map(file => <article key={file.id}><div className={file.preview_json ? "doc-icon sheet" : "doc-icon pdf"}>{file.preview_json ? "XLS" : "PDF"}</div><div><b>{file.original_name}</b><span>{(file.size_bytes / 1024).toFixed(1)} KB · {new Date(file.created_at).toLocaleString("th-TH")}</span></div><button onClick={() => openPreview(file)}>ดูข้อมูล</button></article>)}</div>}</div></> : <div className="empty-files"><b>เลือกหรือสร้างโครงการเพื่อเริ่มต้น</b></div>}</section></section></main>
+      <section className="project-detail">{current ? <><header><div><span>โครงการที่เลือก</span><h2>{current.title}</h2><p>{current.description || "ยังไม่มีคำอธิบายโครงการ"}</p></div><div className="project-actions"><button className="danger-action" disabled={busy} onClick={() => void deleteProject()}>ลบโครงการ</button><button onClick={() => onAnalyze(current)}>เปิดเครื่องมือวิเคราะห์ →</button></div></header><div className="detail-stats"><div><b>{files.length}</b><span>ไฟล์ข้อมูล</span></div><div><b>{files.filter(f => f.preview_json).length}</b><span>ชุดตาราง</span></div><div><b>{new Date(current.updated_at).toLocaleDateString("th-TH")}</b><span>แก้ไขล่าสุด</span></div></div><div className="file-section"><div className="section-heading"><div><h2>ไฟล์และชุดข้อมูล</h2><p>PDF, Excel และ CSV ที่ยืนยันแล้ว</p></div><button onClick={() => setShowImport(true)}>+ เพิ่มไฟล์</button></div>{files.length === 0 ? <div className="empty-files"><span>⇧</span><b>ยังไม่มีไฟล์ในโครงการนี้</b><p>เพิ่ม PDF, Excel หรือ CSV แล้วตรวจสอบตัวอย่างก่อนยืนยัน</p><button onClick={() => setShowImport(true)}>เลือกไฟล์</button></div> : <div className="file-list">{files.map(file => <article key={file.id}><div className={file.preview_json ? "doc-icon sheet" : "doc-icon pdf"}>{file.preview_json ? "XLS" : "PDF"}</div><div><b>{file.original_name}</b><span>{(file.size_bytes / 1024).toFixed(1)} KB · {new Date(file.created_at).toLocaleString("th-TH")}</span></div><div className="file-actions"><button onClick={() => openPreview(file)}>ดูข้อมูล</button><button className="danger-action" disabled={busy} onClick={() => void deleteFile(file)}>ลบ</button></div></article>)}</div>}</div></> : <div className="empty-files"><b>เลือกหรือสร้างโครงการเพื่อเริ่มต้น</b></div>}</section></section></main>
     {showNew && <NewProjectDialog busy={busy} onClose={() => setShowNew(false)} onSave={createProject}/>}<FileImportDialog open={showImport} busy={busy} onClose={() => setShowImport(false)} onConfirm={confirmFile}/>{preview && <SavedPreview preview={preview} onClose={() => setPreview(null)}/>}</div>;
 }
 
