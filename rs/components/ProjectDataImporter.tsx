@@ -30,8 +30,9 @@ export interface ImportedProjectData {
   rows: unknown[][];
   warning?: string;
   iocRatings?: Array<{ item: number; rating: -1 | 0 | 1 }>;
-  ocrItems?: Array<{ item: number; page: number; details: string; rating: -1 | 0 | 1 | null }>;
+  ocrItems?: Array<{ item: number; page: number | null; details: string; rating: -1 | 0 | 1 | null; numberStatus?: "พบเลขข้อ" | "อนุมานลำดับ" | "ไม่พบเลขข้อ" }>;
   targetExpert?: number;
+  expectedItemCount?: number;
   sourceRange?: { from: number; to: number; unit: "หน้า" | "แถว" };
 }
 
@@ -42,7 +43,7 @@ type LoadedSource = {
   total: number;
 };
 
-type OcrItem = { item: number | null; page: number; details: string; rating: -1 | 0 | 1 | null };
+type OcrItem = { item: number | null; page: number; details: string; rating: -1 | 0 | 1 | null; numberStatus: "พบเลขข้อ" | "อนุมานลำดับ" };
 
 function parseTsvWords(tsv: string | null) {
   if (!tsv) return [];
@@ -53,7 +54,7 @@ function parseTsvWords(tsv: string | null) {
   });
 }
 
-function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: number): OcrItem[] {
+function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: number, numberTsv: string | null): OcrItem[] {
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) return [];
   const { width, height } = canvas;
@@ -107,7 +108,8 @@ function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: num
   }
   if (ratingRules.length !== 4 || horizontalRules.length < 2) return [];
 
-  const words = parseTsvWords(tsv);
+  const numberWords = parseTsvWords(numberTsv).filter((word) => /^\D*[0-9๐-๙]{1,3}\D*$/.test(word.text));
+  const words = [...parseTsvWords(tsv), ...numberWords];
   const detected: OcrItem[] = [];
   for (let index = 0; index < horizontalRules.length - 1; index += 1) {
     const top = horizontalRules[index], bottom = horizontalRules[index + 1];
@@ -133,13 +135,7 @@ function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: num
       .filter((word) => word !== itemWord && word.text && word.left < ratingRules[0] && word.top + word.height / 2 > top && word.top + word.height / 2 < bottom)
       .sort((a, b) => Math.abs(a.top - b.top) > 5 ? a.top - b.top : a.left - b.left)
       .map((word) => word.text).join(" ").replace(/\s+/g, " ").trim();
-    detected.push({ item: itemMatch ? Number(itemMatch[0]) : null, page, details, rating: hasConfidentMark ? ([1, 0, -1] as const)[winner.column] : null });
-  }
-  for (let index = 0; index < detected.length; index += 1) {
-    if (detected[index].item !== null) continue;
-    const nextKnown = detected.findIndex((entry, nextIndex) => nextIndex > index && entry.item !== null);
-    if (nextKnown >= 0) detected[index].item = detected[nextKnown].item! - (nextKnown - index);
-    else if (index > 0 && detected[index - 1].item !== null) detected[index].item = detected[index - 1].item! + 1;
+    detected.push({ item: itemMatch ? Number(itemMatch[0]) : null, page, details, rating: hasConfidentMark ? ([1, 0, -1] as const)[winner.column] : null, numberStatus: itemMatch ? "พบเลขข้อ" : "อนุมานลำดับ" });
   }
   return detected;
 }
@@ -164,6 +160,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   const [showUpload, setShowUpload] = useState(false);
   const [workTitle, setWorkTitle] = useState("");
   const [targetExpert, setTargetExpert] = useState(1);
+  const [expectedItemCount, setExpectedItemCount] = useState(30);
 
   useEffect(() => {
     if (!open) return;
@@ -180,7 +177,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   if (!open) return null;
 
   function closeDialog() {
-    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle(""); setTargetExpert(1);
+    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle(""); setTargetExpert(1); setExpectedItemCount(30);
     onClose();
   }
 
@@ -301,7 +298,18 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
                 await page.render({ canvas, canvasContext: context, viewport }).promise;
                 const result = await ocrWorker.recognize(canvas, {}, { text: true, tsv: analysisType === "ioc" });
                 const ocrRows = ocrTextToRows(result.data.text);
-                if (analysisType === "ioc") detectedIocItems.push(...detectIocItems(canvas, result.data.tsv, pageNumber));
+                if (analysisType === "ioc") {
+                  setProgress(`กำลังค้นหาเลขข้อหน้า ${pageNumber} จาก ${to}`);
+                  const numberCanvas = document.createElement("canvas");
+                  numberCanvas.width = Math.ceil(canvas.width * 0.16); numberCanvas.height = canvas.height;
+                  const numberContext = numberCanvas.getContext("2d", { alpha: false });
+                  if (numberContext) numberContext.drawImage(canvas, 0, 0, numberCanvas.width, canvas.height, 0, 0, numberCanvas.width, canvas.height);
+                  await ocrWorker.setParameters({ tessedit_char_whitelist: "0123456789๐๑๒๓๔๕๖๗๘๙", tessedit_pageseg_mode: "11" as never });
+                  const numberResult = await ocrWorker.recognize(numberCanvas, {}, { text: true, tsv: true });
+                  await ocrWorker.setParameters({ tessedit_char_whitelist: "", tessedit_pageseg_mode: "3" as never });
+                  detectedIocItems.push(...detectIocItems(canvas, result.data.tsv, pageNumber, numberResult.data.tsv));
+                  numberCanvas.width = 1; numberCanvas.height = 1;
+                }
                 canvas.width = 1;
                 canvas.height = 1;
                 if (ocrRows.length) {
@@ -324,22 +332,25 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         if (!rows.length && failedPages.length) throw new Error(`อ่านหน้า ${failedPages.join(", ")} ไม่สำเร็จ${lastPageError ? `: ${lastPageError}` : ""}`);
         const warnings: string[] = [];
         if (ocrPages.length) warnings.push(`ใช้ OCR กับหน้า: ${ocrPages.join(", ")}`);
-        const ratedCount = detectedIocItems.filter((item) => item.rating !== null).length;
-        if (detectedIocItems.length) warnings.push(`พบรายการ IOC ${detectedIocItems.length} แถว และอ่านคะแนนได้ ${ratedCount} แถว กรุณาตรวจยืนยัน`);
+        const numberedItems = detectedIocItems.filter((item) => item.item !== null && item.item >= 1 && item.item <= expectedItemCount);
+        const foundNumbers = new Set(numberedItems.map((item) => item.item)).size;
+        const ratedCount = numberedItems.filter((item) => item.rating !== null).length;
+        warnings.push(`ค้นหาเลขข้อ 1–${expectedItemCount}: พบ ${foundNumbers} ข้อ และอ่านคะแนนได้ ${ratedCount} ข้อ กรุณาตรวจยืนยัน`);
         if (failedPages.length) warnings.push(`ข้ามหน้าที่อ่านไม่ได้: ${failedPages.join(", ")}`);
         extractionWarning = warnings.length ? warnings.join(" · ") : undefined;
       }
       if (!rows.length) { setError("ไม่พบข้อความหรือตารางในช่วงที่เลือก แม้ลอง OCR แล้ว กรุณาตรวจสอบว่าภาพคมชัดหรือเลือกช่วงหน้าอื่น"); return; }
       const title = workTitle.trim() || suggestedTitle;
       const rangeLabel = mode === "all" ? `${source.unit} ${from}–${to} (ทั้งหมด)` : `${source.unit} ${from}–${to}`;
-      let nextItem = 1;
-      const ocrItems = detectedIocItems.flatMap((entry) => {
-        const item = entry.item && entry.item > 0 ? entry.item : nextItem;
-        nextItem = item + 1;
-        return item <= 300 ? [{ ...entry, item }] : [];
-      });
+      const validDetected = detectedIocItems.filter((entry) => entry.item !== null && entry.item >= 1 && entry.item <= expectedItemCount);
+      const detectedByNumber = new Map<number, OcrItem>();
+      validDetected.forEach((entry) => { if (!detectedByNumber.has(entry.item!)) detectedByNumber.set(entry.item!, entry); });
+      const ocrItems = analysisType === "ioc" ? Array.from({ length: expectedItemCount }, (_, index) => {
+        const item = index + 1; const found = detectedByNumber.get(item);
+        return found ? { ...found, item } : { item, page: null, details: "ไม่พบเลขข้อนี้ในช่วงหน้าที่เลือก", rating: null, numberStatus: "ไม่พบเลขข้อ" as const };
+      }) : [];
       const iocRatings = ocrItems.flatMap((entry) => entry.rating === null ? [] : [{ item: entry.item, rating: entry.rating }]);
-      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined, ocrItems: ocrItems.length ? ocrItems : undefined, targetExpert: analysisType === "ioc" ? targetExpert : undefined, sourceRange: { from, to, unit: source.unit } });
+      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined, ocrItems: ocrItems.length ? ocrItems : undefined, targetExpert: analysisType === "ioc" ? targetExpert : undefined, expectedItemCount: analysisType === "ioc" ? expectedItemCount : undefined, sourceRange: { from, to, unit: source.unit } });
       closeDialog();
     } catch (extractError) {
       const detail = extractError instanceof Error ? extractError.message : String(extractError);
@@ -352,6 +363,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     <header><div><span className="step-label">PROJECT DATA</span><h2>นำข้อมูลจากไฟล์โครงการ</h2><p>เลือกไฟล์และช่วงข้อมูลที่จะเพิ่มในเครื่องมือปัจจุบัน</p></div><button className="close-button" onClick={closeDialog}>×</button></header>
     <label className="work-title-field">ชื่องานย่อยในโครงการ<input value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} placeholder={suggestedTitle}/><small>ตัวอย่าง: IOC แบบทดสอบผลสัมฤทธิ์ – ผู้เชี่ยวชาญ 1</small></label>
     {analysisType === "ioc" && <label className="work-title-field">นำเข้าคะแนนสำหรับผู้เชี่ยวชาญคนที่<input type="number" min={1} max={30} value={targetExpert} onChange={(event) => setTargetExpert(Math.max(1, Math.min(30, Number(event.target.value) || 1)))}/><small>คะแนนที่ตรวจพบจะถูกใส่ในคอลัมน์ของผู้เชี่ยวชาญคนนี้</small></label>}
+    {analysisType === "ioc" && <label className="work-title-field required-count">แบบประเมินนี้มีทั้งหมดกี่ข้อ<input type="number" min={1} max={300} value={expectedItemCount} onChange={(event) => setExpectedItemCount(Math.max(1, Math.min(300, Number(event.target.value) || 1)))}/><small>ระบบจะค้นหาเลขข้อ 1–{expectedItemCount} ทีละข้อ และรายงานเลขที่หาไม่พบโดยไม่เดาจากข้อความอื่น</small></label>}
     <div className="source-file-head"><b>ไฟล์ข้อมูล</b><button type="button" onClick={() => setShowUpload(true)}>+ เพิ่มไฟล์ใหม่</button></div>
     {files.length === 0 ? <div className="source-empty">โครงการนี้ยังไม่มีไฟล์ กด “เพิ่มไฟล์ใหม่” เพื่อเริ่มต้น</div> : <>
       <label><span className="sr-only">เลือกไฟล์ข้อมูล</span><select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
