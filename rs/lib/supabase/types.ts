@@ -23,10 +23,9 @@ export interface ResearchFile {
 
 export interface FileDraft {
   file: File;
-  kind: "pdf" | "spreadsheet";
+  kind: "pdf" | "image" | "spreadsheet";
   objectUrl?: string;
   sheet?: string;
   columns: string[];
   rows: unknown[][];
 }
-

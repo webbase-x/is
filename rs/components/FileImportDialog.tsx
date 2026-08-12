@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FileDraft } from "../lib/supabase/types";
 
-const ACCEPT = ".pdf,.xlsx,.xls,.csv";
+const ACCEPT = ".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.csv";
 const MAX_SIZE = 25 * 1024 * 1024;
 
 export default function FileImportDialog({
@@ -30,7 +30,11 @@ export default function FileImportDialog({
       setDraft({ file, kind: "pdf", objectUrl: URL.createObjectURL(file), columns: [], rows: [] });
       return;
     }
-    if (!["xlsx", "xls", "csv"].includes(extension ?? "")) { setError("รองรับเฉพาะ PDF, Excel และ CSV"); return; }
+    if (["png", "jpg", "jpeg", "webp"].includes(extension ?? "")) {
+      setDraft({ file, kind: "image", objectUrl: URL.createObjectURL(file), columns: [], rows: [] });
+      return;
+    }
+    if (!["xlsx", "xls", "csv"].includes(extension ?? "")) { setError("รองรับ PDF, รูปภาพ, Excel และ CSV"); return; }
     try {
       const XLSX = await import("xlsx");
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
@@ -46,9 +50,9 @@ export default function FileImportDialog({
 
   return <div className="modal-backdrop" role="presentation"><section className="import-modal" role="dialog" aria-modal="true" aria-label="นำเข้าข้อมูล">
     <header><div><span className="step-label">ตรวจสอบก่อนบันทึก</span><h2>นำเข้าไฟล์ข้อมูล</h2><p>ไฟล์จะยังไม่ถูกบันทึกจนกว่าคุณจะกดยืนยัน</p></div><button className="close-button" onClick={onClose} aria-label="ปิด">×</button></header>
-    {!draft ? <button className="dropzone" onClick={() => inputRef.current?.click()}><span className="upload-symbol">⇧</span><b>เลือกไฟล์จากเครื่อง</b><small>PDF, XLSX, XLS หรือ CSV · สูงสุด 25 MB</small><input ref={inputRef} type="file" accept={ACCEPT} hidden onChange={(e) => readFile(e.target.files?.[0])}/></button> : <>
-      <div className="file-summary"><div className={`file-type ${draft.kind}`}>{draft.kind === "pdf" ? "PDF" : "XLS"}</div><div><b>{draft.file.name}</b><span>{(draft.file.size / 1024).toFixed(1)} KB{draft.sheet ? ` · ชีต ${draft.sheet}` : ""}</span></div><button onClick={() => { setDraft(null); if (inputRef.current) inputRef.current.value = ""; }}>เปลี่ยนไฟล์</button></div>
-      <div className="preview-frame">{draft.kind === "pdf" ? <iframe title="ตัวอย่าง PDF" src={draft.objectUrl}/> : <SpreadsheetPreview columns={draft.columns} rows={draft.rows}/>}</div>
+    {!draft ? <button className="dropzone" onClick={() => inputRef.current?.click()}><span className="upload-symbol">⇧</span><b>เลือกไฟล์จากเครื่อง</b><small>PDF, PNG, JPG, WEBP, XLSX, XLS หรือ CSV · สูงสุด 25 MB</small><input ref={inputRef} type="file" accept={ACCEPT} hidden onChange={(e) => readFile(e.target.files?.[0])}/></button> : <>
+      <div className="file-summary"><div className={`file-type ${draft.kind}`}>{draft.kind === "pdf" ? "PDF" : draft.kind === "image" ? "IMG" : "XLS"}</div><div><b>{draft.file.name}</b><span>{(draft.file.size / 1024).toFixed(1)} KB{draft.sheet ? ` · ชีต ${draft.sheet}` : ""}</span></div><button onClick={() => { setDraft(null); if (inputRef.current) inputRef.current.value = ""; }}>เปลี่ยนไฟล์</button></div>
+      <div className="preview-frame">{draft.kind === "pdf" ? <iframe title="ตัวอย่าง PDF" src={draft.objectUrl}/> : draft.kind === "image" ? <img src={draft.objectUrl} alt="ตัวอย่างรูปภาพ"/> : <SpreadsheetPreview columns={draft.columns} rows={draft.rows}/>}</div>
       {draft.kind === "spreadsheet" && <div className="preview-info">แสดงตัวอย่างสูงสุด 100 แถว · พบ {draft.columns.length} คอลัมน์ และ {draft.rows.length} แถวในตัวอย่าง</div>}
     </>}
     {error && <div className="import-error">{error}</div>}
