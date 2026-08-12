@@ -389,6 +389,7 @@ function IocView({
                     />
                   </th>
                 ))}
+                <th>∑R</th>
                 <th>IOC</th>
                 <th>ผล</th>
               </tr>
@@ -419,6 +420,9 @@ function IocView({
                       </select>
                     </td>
                   ))}
+                  <td>
+                    <b>{results[ri].sum}</b>
+                  </td>
                   <td>
                     <b>{fmt(results[ri].ioc, 2)}</b>
                   </td>
@@ -1468,6 +1472,17 @@ export default function ResearchStatsApp({
   const toolAnalyses = analyses.filter(
     (analysis) => analysis.analysis_type === view,
   );
+  const latestSavedAnalysis = toolAnalyses[0] ?? null;
+  const displayedFileName =
+    activeAnalysis?.title ||
+    latestSavedAnalysis?.title ||
+    imported?.workTitle ||
+    imported?.sourceName ||
+    "ยังไม่มีชื่อจากการถอดความ";
+  const displayedFileLabel =
+    activeAnalysis || latestSavedAnalysis
+      ? "ไฟล์ล่าสุดที่บันทึก"
+      : "ชื่อจากการถอดความ";
   return (
     <div className="app-shell">
       <aside className={menu ? "sidebar open" : "sidebar"}>
@@ -1552,6 +1567,9 @@ export default function ResearchStatsApp({
                 placeholder="ชื่องานวิเคราะห์"
               />
               <button onClick={() => void saveAnalysis()}>บันทึกงาน</button>
+              <span className="filebar-current">
+                {displayedFileLabel}: <b>{displayedFileName}</b>
+              </span>
               {saveStatus && <span>{saveStatus}</span>}
             </section>
           )}
