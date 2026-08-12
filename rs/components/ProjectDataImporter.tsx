@@ -9,6 +9,13 @@ const PDF_JS_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mj
 const PDF_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs";
 const newId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+function ocrTextToRows(text: string) {
+  return text.split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split(/\t+|\s{2,}/).map((cell) => cell.trim()).filter(Boolean));
+}
+
 async function loadPdfJs() {
   const pdfjs = await import(/* @vite-ignore */ PDF_JS_URL);
   pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
@@ -141,12 +148,15 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         const { getDocument } = await loadPdfJs();
         const pdf = await getDocument({ data: source.buffer.slice(0) }).promise;
         const failedPages: number[] = [];
+        const ocrPages: number[] = [];
         let lastPageError = "";
+        let ocrWorker: Awaited<ReturnType<(typeof import("tesseract.js"))["createWorker"]>> | null = null;
         try {
           for (let pageNumber = from; pageNumber <= to; pageNumber += 1) {
             setProgress(`กำลังอ่านข้อความหน้า ${pageNumber} จาก ${to}`);
+            let page: Awaited<ReturnType<typeof pdf.getPage>> | null = null;
             try {
-              const page = await pdf.getPage(pageNumber);
+              page = await pdf.getPage(pageNumber);
               const text = await page.getTextContent();
               const positioned = text.items.flatMap((item) => {
                 if (!("str" in item) || !("transform" in item)) return [];
@@ -159,21 +169,55 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
                 const line = lines.find((candidate) => Math.abs(candidate.y - item.y) <= 2);
                 if (line) line.cells.push(item.text); else lines.push({ y: item.y, cells: [item.text] });
               });
-              rows.push(...lines.map((line) => line.cells));
-              if (typeof page.cleanup === "function") page.cleanup();
+              if (lines.length) {
+                rows.push(...lines.map((line) => line.cells));
+              } else {
+                setProgress(`กำลังเตรียม OCR ไทย–อังกฤษ หน้า ${pageNumber} จาก ${to}`);
+                if (!ocrWorker) {
+                  const { createWorker } = await import("tesseract.js");
+                  ocrWorker = await createWorker(["tha", "eng"], 1, {
+                    logger: (message) => {
+                      if (message.status !== "recognizing text") return;
+                      const percent = Math.round((message.progress || 0) * 100);
+                      setProgress(`กำลัง OCR หน้า ${pageNumber} จาก ${to} — ${percent}%`);
+                    },
+                  });
+                }
+                const viewport = page.getViewport({ scale: 2 });
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.ceil(viewport.width);
+                canvas.height = Math.ceil(viewport.height);
+                const context = canvas.getContext("2d", { alpha: false });
+                if (!context) throw new Error("เบราว์เซอร์ไม่รองรับการสร้างภาพสำหรับ OCR");
+                await page.render({ canvas, canvasContext: context, viewport }).promise;
+                const result = await ocrWorker.recognize(canvas);
+                const ocrRows = ocrTextToRows(result.data.text);
+                canvas.width = 1;
+                canvas.height = 1;
+                if (ocrRows.length) {
+                  rows.push(...ocrRows);
+                  ocrPages.push(pageNumber);
+                }
+              }
             } catch (pageError) {
               failedPages.push(pageNumber);
               lastPageError = pageError instanceof Error ? pageError.message : String(pageError);
               console.error("[ResearchStat] PDF page extraction failed", { pageNumber, error: pageError });
+            } finally {
+              if (page && typeof page.cleanup === "function") page.cleanup();
             }
           }
         } finally {
+          if (ocrWorker && typeof ocrWorker.terminate === "function") await ocrWorker.terminate();
           if (typeof pdf.destroy === "function") await pdf.destroy();
         }
         if (!rows.length && failedPages.length) throw new Error(`อ่านหน้า ${failedPages.join(", ")} ไม่สำเร็จ${lastPageError ? `: ${lastPageError}` : ""}`);
-        if (failedPages.length) extractionWarning = `ข้ามหน้าที่อ่านไม่ได้: ${failedPages.join(", ")}`;
+        const warnings: string[] = [];
+        if (ocrPages.length) warnings.push(`ใช้ OCR กับหน้า: ${ocrPages.join(", ")}`);
+        if (failedPages.length) warnings.push(`ข้ามหน้าที่อ่านไม่ได้: ${failedPages.join(", ")}`);
+        extractionWarning = warnings.length ? warnings.join(" · ") : undefined;
       }
-      if (!rows.length) { setError("ไม่พบข้อความหรือตารางในช่วงที่เลือก หากเป็น PDF สแกนภาพจะต้องใช้ OCR ก่อน"); return; }
+      if (!rows.length) { setError("ไม่พบข้อความหรือตารางในช่วงที่เลือก แม้ลอง OCR แล้ว กรุณาตรวจสอบว่าภาพคมชัดหรือเลือกช่วงหน้าอื่น"); return; }
       const title = workTitle.trim() || suggestedTitle;
       const rangeLabel = mode === "all" ? `${source.unit}ทั้งหมด` : `${source.unit} ${from}–${to}`;
       const supabase = getSupabaseClient();
@@ -205,7 +249,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     {files.length === 0 ? <div className="source-empty">โครงการนี้ยังไม่มีไฟล์ กด “เพิ่มไฟล์ใหม่” เพื่อเริ่มต้น</div> : <>
       <label><span className="sr-only">เลือกไฟล์ข้อมูล</span><select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
       {selectedFile && !source && busy && <div className="source-status">กำลังอ่าน {selectedFile.original_name}…</div>}
-      {source && <div className="source-range"><b>พบ {source.total} {source.unit}</b><label className="radio-row"><input type="radio" checked={mode === "all"} onChange={() => setMode("all")}/> ใช้{source.unit}ทั้งหมด</label><label className="radio-row"><input type="radio" checked={mode === "range"} onChange={() => setMode("range")}/> กำหนดช่วง{source.unit}</label>{mode === "range" && <div className="range-inputs"><label>จาก{source.unit}<input type="number" min={1} max={source.total} value={start} onChange={(e) => setStart(Number(e.target.value))}/></label><label>ถึง{source.unit}<input type="number" min={1} max={source.total} value={end} onChange={(e) => setEnd(Number(e.target.value))}/></label></div>}</div>}
+      {source && <div className="source-range"><b>พบ {source.total} {source.unit}</b>{source.unit === "หน้า" && <small>PDF สแกนภาพจะใช้ OCR ภาษาไทย–อังกฤษอัตโนมัติ</small>}<label className="radio-row"><input type="radio" checked={mode === "all"} onChange={() => setMode("all")}/> ใช้{source.unit}ทั้งหมด</label><label className="radio-row"><input type="radio" checked={mode === "range"} onChange={() => setMode("range")}/> กำหนดช่วง{source.unit}</label>{mode === "range" && <div className="range-inputs"><label>จาก{source.unit}<input type="number" min={1} max={source.total} value={start} onChange={(e) => setStart(Number(e.target.value))}/></label><label>ถึง{source.unit}<input type="number" min={1} max={source.total} value={end} onChange={(e) => setEnd(Number(e.target.value))}/></label></div>}</div>}
     </>}
     {(error || progress) && <div className={error ? "import-error" : "source-status"}>{error || progress}</div>}
     <footer><button className="secondary-action" onClick={closeDialog}>ยกเลิก</button><button className="primary-action" disabled={!source || busy} onClick={() => void extractRows()}>{busy ? "กำลังอ่าน…" : "นำข้อมูลเข้าเครื่องมือ"}</button></footer>
