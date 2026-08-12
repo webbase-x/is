@@ -158,12 +158,13 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
             try {
               page = await pdf.getPage(pageNumber);
               const text = await page.getTextContent();
-              const positioned = text.items.flatMap((item) => {
-                if (!("str" in item) || !("transform" in item)) return [];
-                const value = String(item.str ?? "").trim();
-                if (!value || !item.transform || typeof item.transform[4] !== "number") return [];
-                return [{ text: value, x: Number(item.transform[4]) || 0, y: Number(item.transform[5]) || 0 }];
-              }).sort((a, b) => Math.abs(b.y - a.y) > 2 ? b.y - a.y : a.x - b.x);
+              const positioned: Array<{ text: string; x: number; y: number }> = text.items.flatMap((item: unknown) => {
+                if (!item || typeof item !== "object" || !("str" in item) || !("transform" in item)) return [];
+                const pdfItem = item as { str?: unknown; transform?: unknown[] };
+                const value = String(pdfItem.str ?? "").trim();
+                if (!value || !pdfItem.transform || typeof pdfItem.transform[4] !== "number") return [];
+                return [{ text: value, x: Number(pdfItem.transform[4]) || 0, y: Number(pdfItem.transform[5]) || 0 }];
+              }).sort((a: { text: string; x: number; y: number }, b: { text: string; x: number; y: number }) => Math.abs(b.y - a.y) > 2 ? b.y - a.y : a.x - b.x);
               const lines: Array<{ y: number; cells: string[] }> = [];
               positioned.forEach((item) => {
                 const line = lines.find((candidate) => Math.abs(candidate.y - item.y) <= 2);
