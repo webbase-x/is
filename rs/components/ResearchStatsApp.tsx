@@ -329,6 +329,8 @@ function IocView({
                         new TextRun({
                           text: String(cell),
                           bold: rowIndex === 0,
+                          noProof: true,
+                          font: "TH Sarabun New",
                         }),
                       ],
                     }),
@@ -347,10 +349,20 @@ function IocView({
                 new TextRun({
                   text: "ตารางสรุปผลการตรวจสอบความตรงเชิงเนื้อหา (IOC)",
                   bold: true,
+                  noProof: true,
+                  font: "TH Sarabun New",
                 }),
               ],
             }),
-            new Paragraph(title),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: title,
+                  noProof: true,
+                  font: "TH Sarabun New",
+                }),
+              ],
+            }),
             table,
           ],
         },

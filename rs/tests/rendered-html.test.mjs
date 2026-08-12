@@ -47,4 +47,8 @@ test("IOC workspace shows sum, IOC, and result columns", async () => {
   }
   assert.match(source, /className="app-shell" lang="th"/);
   assert.doesNotMatch(source, /spellCheck=\{false\}/);
+  assert.ok(
+    (source.match(/noProof: true/g) ?? []).length >= 3,
+    "DOCX title, subtitle, and table cells must suppress false proofing marks",
+  );
 });
