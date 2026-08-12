@@ -1536,7 +1536,7 @@ export default function ResearchStatsApp({
                 </button>
               </>
             )}
-            <span className="version-chip">รุ่นคำนวณ 1.8</span>
+            <span className="version-chip">รุ่นคำนวณ 1.9</span>
             <span className="avatar">พ</span>
           </div>
         </div>

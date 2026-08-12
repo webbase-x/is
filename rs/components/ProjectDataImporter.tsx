@@ -140,6 +140,53 @@ function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: num
   return detected;
 }
 
+function reconcileIocItems(detected: OcrItem[], expectedItemCount: number) {
+  const rows = detected.map((entry) => ({ ...entry }));
+  const anchors = rows.flatMap((entry, index) =>
+    entry.item !== null && entry.item >= 1 && entry.item <= expectedItemCount
+      ? [{ index, item: entry.item }]
+      : [],
+  );
+
+  rows.forEach((entry, index) => {
+    if (entry.item !== null) return;
+    if (!anchors.length) {
+      const sequentialItem = index + 1;
+      if (sequentialItem <= expectedItemCount) {
+        entry.item = sequentialItem;
+        entry.numberStatus = "อนุมานลำดับ";
+      }
+      return;
+    }
+
+    const nearest = anchors.reduce((best, anchor) =>
+      Math.abs(anchor.index - index) < Math.abs(best.index - index) ? anchor : best,
+    );
+    const sequentialItem = nearest.item + (index - nearest.index);
+    if (sequentialItem >= 1 && sequentialItem <= expectedItemCount) {
+      entry.item = sequentialItem;
+      entry.numberStatus = "อนุมานลำดับ";
+    }
+  });
+
+  const byNumber = new Map<number, OcrItem>();
+  rows.forEach((entry) => {
+    if (entry.item === null || entry.item < 1 || entry.item > expectedItemCount) return;
+    const current = byNumber.get(entry.item);
+    if (!current || (current.numberStatus !== "พบเลขข้อ" && entry.numberStatus === "พบเลขข้อ")) {
+      byNumber.set(entry.item, entry);
+    }
+  });
+
+  return Array.from({ length: expectedItemCount }, (_, index) => {
+    const item = index + 1;
+    const found = byNumber.get(item);
+    return found
+      ? { ...found, item }
+      : { item, page: null, details: "ไม่พบเลขข้อนี้ในช่วงหน้าที่เลือก", rating: null, numberStatus: "ไม่พบเลขข้อ" as const };
+  });
+}
+
 export default function ProjectDataImporter({ project, analysisType, suggestedTitle, open, onClose, onImport }: {
   project: ResearchProject;
   analysisType: string;
@@ -332,23 +379,19 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         if (!rows.length && failedPages.length) throw new Error(`อ่านหน้า ${failedPages.join(", ")} ไม่สำเร็จ${lastPageError ? `: ${lastPageError}` : ""}`);
         const warnings: string[] = [];
         if (ocrPages.length) warnings.push(`ใช้ OCR กับหน้า: ${ocrPages.join(", ")}`);
-        const numberedItems = detectedIocItems.filter((item) => item.item !== null && item.item >= 1 && item.item <= expectedItemCount);
-        const foundNumbers = new Set(numberedItems.map((item) => item.item)).size;
-        const ratedCount = numberedItems.filter((item) => item.rating !== null).length;
-        warnings.push(`ค้นหาเลขข้อ 1–${expectedItemCount}: พบ ${foundNumbers} ข้อ และอ่านคะแนนได้ ${ratedCount} ข้อ กรุณาตรวจยืนยัน`);
+        const reconciledItems = reconcileIocItems(detectedIocItems, expectedItemCount);
+        const foundItems = reconciledItems.filter((item) => item.numberStatus !== "ไม่พบเลขข้อ");
+        const exactCount = foundItems.filter((item) => item.numberStatus === "พบเลขข้อ").length;
+        const inferredCount = foundItems.filter((item) => item.numberStatus === "อนุมานลำดับ").length;
+        const ratedCount = foundItems.filter((item) => item.rating !== null).length;
+        warnings.push(`ค้นหาเลขข้อ 1–${expectedItemCount}: พบเลขโดยตรง ${exactCount} ข้อ จับคู่จากลำดับแถวตาราง ${inferredCount} ข้อ และอ่านคะแนนได้ ${ratedCount} ข้อ กรุณาตรวจยืนยัน`);
         if (failedPages.length) warnings.push(`ข้ามหน้าที่อ่านไม่ได้: ${failedPages.join(", ")}`);
         extractionWarning = warnings.length ? warnings.join(" · ") : undefined;
       }
       if (!rows.length) { setError("ไม่พบข้อความหรือตารางในช่วงที่เลือก แม้ลอง OCR แล้ว กรุณาตรวจสอบว่าภาพคมชัดหรือเลือกช่วงหน้าอื่น"); return; }
       const title = workTitle.trim() || suggestedTitle;
       const rangeLabel = mode === "all" ? `${source.unit} ${from}–${to} (ทั้งหมด)` : `${source.unit} ${from}–${to}`;
-      const validDetected = detectedIocItems.filter((entry) => entry.item !== null && entry.item >= 1 && entry.item <= expectedItemCount);
-      const detectedByNumber = new Map<number, OcrItem>();
-      validDetected.forEach((entry) => { if (!detectedByNumber.has(entry.item!)) detectedByNumber.set(entry.item!, entry); });
-      const ocrItems = analysisType === "ioc" ? Array.from({ length: expectedItemCount }, (_, index) => {
-        const item = index + 1; const found = detectedByNumber.get(item);
-        return found ? { ...found, item } : { item, page: null, details: "ไม่พบเลขข้อนี้ในช่วงหน้าที่เลือก", rating: null, numberStatus: "ไม่พบเลขข้อ" as const };
-      }) : [];
+      const ocrItems = analysisType === "ioc" ? reconcileIocItems(detectedIocItems, expectedItemCount) : [];
       const iocRatings = ocrItems.flatMap((entry) => entry.rating === null ? [] : [{ item: entry.item, rating: entry.rating }]);
       onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined, ocrItems: ocrItems.length ? ocrItems : undefined, targetExpert: analysisType === "ioc" ? targetExpert : undefined, expectedItemCount: analysisType === "ioc" ? expectedItemCount : undefined, sourceRange: { from, to, unit: source.unit } });
       closeDialog();
@@ -363,7 +406,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     <header><div><span className="step-label">PROJECT DATA</span><h2>นำข้อมูลจากไฟล์โครงการ</h2><p>เลือกไฟล์และช่วงข้อมูลที่จะเพิ่มในเครื่องมือปัจจุบัน</p></div><button className="close-button" onClick={closeDialog}>×</button></header>
     <label className="work-title-field">ชื่องานย่อยในโครงการ<input value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} placeholder={suggestedTitle}/><small>ตัวอย่าง: IOC แบบทดสอบผลสัมฤทธิ์ – ผู้เชี่ยวชาญ 1</small></label>
     {analysisType === "ioc" && <label className="work-title-field">นำเข้าคะแนนสำหรับผู้เชี่ยวชาญคนที่<input type="number" min={1} max={30} value={targetExpert} onChange={(event) => setTargetExpert(Math.max(1, Math.min(30, Number(event.target.value) || 1)))}/><small>คะแนนที่ตรวจพบจะถูกใส่ในคอลัมน์ของผู้เชี่ยวชาญคนนี้</small></label>}
-    {analysisType === "ioc" && <label className="work-title-field required-count">แบบประเมินนี้มีทั้งหมดกี่ข้อ<input type="number" min={1} max={300} value={expectedItemCount} onChange={(event) => setExpectedItemCount(Math.max(1, Math.min(300, Number(event.target.value) || 1)))}/><small>ระบบจะค้นหาเลขข้อ 1–{expectedItemCount} ทีละข้อ และรายงานเลขที่หาไม่พบโดยไม่เดาจากข้อความอื่น</small></label>}
+    {analysisType === "ioc" && <label className="work-title-field required-count">แบบประเมินนี้มีทั้งหมดกี่ข้อ<input type="number" min={1} max={300} value={expectedItemCount} onChange={(event) => setExpectedItemCount(Math.max(1, Math.min(300, Number(event.target.value) || 1)))}/><small>ระบบจะค้นหาเลขข้อ 1–{expectedItemCount} และใช้ลำดับแถวในตารางช่วยจับคู่เมื่อ OCR อ่านเลขไม่ชัด โดยแสดงสถานะให้ตรวจสอบ</small></label>}
     <div className="source-file-head"><b>ไฟล์ข้อมูล</b><button type="button" onClick={() => setShowUpload(true)}>+ เพิ่มไฟล์ใหม่</button></div>
     {files.length === 0 ? <div className="source-empty">โครงการนี้ยังไม่มีไฟล์ กด “เพิ่มไฟล์ใหม่” เพื่อเริ่มต้น</div> : <>
       <label><span className="sr-only">เลือกไฟล์ข้อมูล</span><select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
