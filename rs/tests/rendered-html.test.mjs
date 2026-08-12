@@ -51,4 +51,6 @@ test("IOC workspace shows sum, IOC, and result columns", async () => {
     (source.match(/noProof: true/g) ?? []).length >= 3,
     "DOCX title, subtitle, and table cells must suppress false proofing marks",
   );
+  assert.match(source, /ผู้จัดทำระบบ: ครูไพรัช อินควรชุม/);
+  assert.match(source, /โรงเรียนเทศบาล 1 ถนนนครนอก · เทศบาลนครสงขลา/);
 });

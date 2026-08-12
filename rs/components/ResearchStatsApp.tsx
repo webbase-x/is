@@ -1700,8 +1700,11 @@ export default function ResearchStatsApp({
           {content}
         </div>
         <footer>
-          ResearchStat · เครื่องมือช่วยคำนวณ
-          ไม่แทนการพิจารณาของนักวิจัยและอาจารย์ที่ปรึกษา
+          <span>
+            ResearchStat · เครื่องมือช่วยคำนวณ ไม่แทนการพิจารณาของนักวิจัยและอาจารย์ที่ปรึกษา
+          </span>
+          <b>ผู้จัดทำระบบ: ครูไพรัช อินควรชุม</b>
+          <span>โรงเรียนเทศบาล 1 ถนนนครนอก · เทศบาลนครสงขลา</span>
         </footer>
       </main>
       {showLibrary && isTool && (
