@@ -29,18 +29,35 @@ const clearImportResultAfterSave = `
   const syncImportedPanel = () => {
     const filebar = document.querySelector('.analysis-filebar');
     const importedPanel = document.querySelector('.imported-data');
-    if (!filebar || !importedPanel) return;
+    if (!importedPanel) return;
 
-    const saved = Array.from(filebar.querySelectorAll('span')).some(
-      (element) => element.textContent?.trim() === 'บันทึกแล้ว',
+    const saved = Boolean(
+      filebar &&
+      Array.from(filebar.querySelectorAll('span')).some(
+        (element) => element.textContent?.trim() === 'บันทึกแล้ว',
+      ),
     );
 
-    importedPanel.style.display = saved ? 'none' : '';
+    if (saved) {
+      importedPanel.setAttribute('hidden', '');
+      importedPanel.setAttribute('aria-hidden', 'true');
+      importedPanel.style.setProperty('display', 'none', 'important');
+    } else {
+      importedPanel.removeAttribute('hidden');
+      importedPanel.removeAttribute('aria-hidden');
+      importedPanel.style.removeProperty('display');
+    }
   };
 
-  const observer = new MutationObserver(syncImportedPanel);
-  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-  syncImportedPanel();
+  const run = () => requestAnimationFrame(syncImportedPanel);
+  run();
+
+  const observer = new MutationObserver(run);
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
 })();
 `;
 
