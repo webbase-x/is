@@ -29,6 +29,7 @@ export interface ImportedProjectData {
   rangeLabel: string;
   rows: unknown[][];
   warning?: string;
+  iocRatings?: Array<{ item: number; rating: -1 | 0 | 1 }>;
 }
 
 type LoadedSource = {
@@ -37,6 +38,103 @@ type LoadedSource = {
   unit: "หน้า" | "แถว";
   total: number;
 };
+
+type OcrRating = { item: number | null; rating: -1 | 0 | 1 };
+
+function parseTsvWords(tsv: string | null) {
+  if (!tsv) return [];
+  return tsv.split("\n").slice(1).flatMap((line) => {
+    const fields = line.split("\t");
+    if (fields.length < 12) return [];
+    return [{ left: Number(fields[6]), top: Number(fields[7]), width: Number(fields[8]), height: Number(fields[9]), text: fields.slice(11).join("\t").trim() }];
+  });
+}
+
+function detectIocRatings(canvas: HTMLCanvasElement, tsv: string | null): OcrRating[] {
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return [];
+  const { width, height } = canvas;
+  const pixels = context.getImageData(0, 0, width, height).data;
+  const neutralDark = (x: number, y: number) => {
+    const index = (y * width + x) * 4;
+    const r = pixels[index], g = pixels[index + 1], b = pixels[index + 2];
+    return (r * 299 + g * 587 + b * 114) / 1000 < 220 && Math.max(r, g, b) - Math.min(r, g, b) < 55;
+  };
+  const blueInk = (x: number, y: number) => {
+    const index = (y * width + x) * 4;
+    const r = pixels[index], g = pixels[index + 1], b = pixels[index + 2];
+    return b > 80 && b - r > 30 && b - g > 12;
+  };
+  const clusterPeaks = (values: Array<{ at: number; score: number }>) => {
+    const groups: Array<Array<{ at: number; score: number }>> = [];
+    values.forEach((value) => {
+      const group = groups.at(-1);
+      if (!group || value.at - group.at(-1)!.at > 3) groups.push([value]); else group.push(value);
+    });
+    return groups.map((group) => group.reduce((best, value) => value.score > best.score ? value : best).at);
+  };
+  const horizontalScores: Array<{ at: number; score: number }> = [];
+  for (let y = 0; y < height; y += 1) {
+    let run = 0, best = 0, last = -10;
+    for (let x = 0; x < width; x += 1) if (neutralDark(x, y)) {
+      run = x - last <= 3 ? run + (x - last) : 1;
+      best = Math.max(best, run); last = x;
+    }
+    if (best > width * 0.38) horizontalScores.push({ at: y, score: best });
+  }
+  const verticalScores: Array<{ at: number; score: number }> = [];
+  for (let x = Math.floor(width * 0.45); x < width; x += 1) {
+    let run = 0, best = 0, last = -10;
+    for (let y = 0; y < height; y += 1) if (neutralDark(x, y)) {
+      run = y - last <= 3 ? run + (y - last) : 1;
+      best = Math.max(best, run); last = y;
+    }
+    if (best > height * 0.14) verticalScores.push({ at: x, score: best });
+  }
+  const horizontalRules = clusterPeaks(horizontalScores).sort((a, b) => a - b);
+  const verticalRules = clusterPeaks(verticalScores).sort((a, b) => a - b);
+  let ratingRules: number[] = [];
+  let bestSpan = Number.POSITIVE_INFINITY;
+  for (let index = 0; index <= verticalRules.length - 4; index += 1) {
+    const group = verticalRules.slice(index, index + 4);
+    const gaps = group.slice(1).map((value, gapIndex) => value - group[gapIndex]);
+    const valid = group[0] > width * 0.5 && gaps.every((gap) => gap > width * 0.018 && gap < width * 0.12);
+    const span = group[3] - group[0];
+    if (valid && span < bestSpan) { ratingRules = group; bestSpan = span; }
+  }
+  if (ratingRules.length !== 4 || horizontalRules.length < 2) return [];
+
+  const words = parseTsvWords(tsv);
+  const detected: OcrRating[] = [];
+  for (let index = 0; index < horizontalRules.length - 1; index += 1) {
+    const top = horizontalRules[index], bottom = horizontalRules[index + 1];
+    if (bottom - top < height * 0.035) continue;
+    const evidence = [0, 1, 2].map((column) => {
+      let blue = 0, dark = 0;
+      for (let y = top + 3; y < bottom - 3; y += 1) for (let x = ratingRules[column] + 3; x < ratingRules[column + 1] - 3; x += 1) {
+        if (blueInk(x, y)) blue += 1;
+        else if (neutralDark(x, y)) dark += 1;
+      }
+      return { score: blue * 4 + dark, blue, dark };
+    });
+    const ranked = evidence.map((value, column) => ({ ...value, column })).sort((a, b) => b.score - a.score);
+    const winner = ranked[0];
+    if (!(winner.blue >= 5 || winner.dark >= Math.max(12, (bottom - top) * 0.08)) || winner.score < ranked[1].score * 1.2) continue;
+    const itemWord = words.find((word) => {
+      const normalized = word.text.replace(/[๐-๙]/g, (digit) => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit).toString());
+      return word.left < width * 0.14 && word.top + word.height / 2 > top && word.top + word.height / 2 < bottom && /^\D*\d{1,3}\D*$/.test(normalized);
+    });
+    const itemMatch = itemWord?.text.replace(/[๐-๙]/g, (digit) => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit).toString()).match(/\d{1,3}/);
+    detected.push({ item: itemMatch ? Number(itemMatch[0]) : null, rating: ([1, 0, -1] as const)[winner.column] });
+  }
+  for (let index = 0; index < detected.length; index += 1) {
+    if (detected[index].item !== null) continue;
+    const nextKnown = detected.findIndex((entry, nextIndex) => nextIndex > index && entry.item !== null);
+    if (nextKnown >= 0) detected[index].item = detected[nextKnown].item! - (nextKnown - index);
+    else if (index > 0 && detected[index - 1].item !== null) detected[index].item = detected[index - 1].item! + 1;
+  }
+  return detected;
+}
 
 export default function ProjectDataImporter({ project, analysisType, suggestedTitle, open, onClose, onImport }: {
   project: ResearchProject;
@@ -138,6 +236,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     try {
       let rows: unknown[][] = [];
       let extractionWarning: string | undefined;
+      const detectedIocRatings: OcrRating[] = [];
       if (source.unit === "แถว") {
         const XLSX = await import("xlsx");
         const workbook = XLSX.read(source.buffer, { type: "array", cellDates: true });
@@ -191,8 +290,9 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
                 const context = canvas.getContext("2d", { alpha: false });
                 if (!context) throw new Error("เบราว์เซอร์ไม่รองรับการสร้างภาพสำหรับ OCR");
                 await page.render({ canvas, canvasContext: context, viewport }).promise;
-                const result = await ocrWorker.recognize(canvas);
+                const result = await ocrWorker.recognize(canvas, {}, { text: true, tsv: analysisType === "ioc" });
                 const ocrRows = ocrTextToRows(result.data.text);
+                if (analysisType === "ioc") detectedIocRatings.push(...detectIocRatings(canvas, result.data.tsv));
                 canvas.width = 1;
                 canvas.height = 1;
                 if (ocrRows.length) {
@@ -215,6 +315,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         if (!rows.length && failedPages.length) throw new Error(`อ่านหน้า ${failedPages.join(", ")} ไม่สำเร็จ${lastPageError ? `: ${lastPageError}` : ""}`);
         const warnings: string[] = [];
         if (ocrPages.length) warnings.push(`ใช้ OCR กับหน้า: ${ocrPages.join(", ")}`);
+        if (detectedIocRatings.length) warnings.push(`ตรวจพบเครื่องหมายในช่องคะแนน ${detectedIocRatings.length} ข้อ กรุณาตรวจยืนยัน`);
         if (failedPages.length) warnings.push(`ข้ามหน้าที่อ่านไม่ได้: ${failedPages.join(", ")}`);
         extractionWarning = warnings.length ? warnings.join(" · ") : undefined;
       }
@@ -234,7 +335,13 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         result_json: {},
       }).select("id").single();
       if (saveError || !analysis) { setError(saveError?.message || "บันทึกชื่องานย่อยไม่สำเร็จ"); return; }
-      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning });
+      let nextItem = 1;
+      const iocRatings = detectedIocRatings.flatMap((entry) => {
+        const item = entry.item && entry.item > 0 ? entry.item : nextItem;
+        nextItem = item + 1;
+        return item <= 300 ? [{ item, rating: entry.rating }] : [];
+      });
+      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined });
       closeDialog();
     } catch (extractError) {
       const detail = extractError instanceof Error ? extractError.message : String(extractError);
