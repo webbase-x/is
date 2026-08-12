@@ -24,6 +24,26 @@ export const metadata: Metadata = {
   },
 };
 
+const clearImportResultAfterSave = `
+(() => {
+  const syncImportedPanel = () => {
+    const filebar = document.querySelector('.analysis-filebar');
+    const importedPanel = document.querySelector('.imported-data');
+    if (!filebar || !importedPanel) return;
+
+    const saved = Array.from(filebar.querySelectorAll('span')).some(
+      (element) => element.textContent?.trim() === 'บันทึกแล้ว',
+    );
+
+    importedPanel.style.display = saved ? 'none' : '';
+  };
+
+  const observer = new MutationObserver(syncImportedPanel);
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  syncImportedPanel();
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,6 +55,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <script dangerouslySetInnerHTML={{ __html: clearImportResultAfterSave }} />
       </body>
     </html>
   );
