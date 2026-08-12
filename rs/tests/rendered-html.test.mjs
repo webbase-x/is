@@ -45,5 +45,6 @@ test("IOC workspace shows sum, IOC, and result columns", async () => {
   for (const format of ["CSV", "XLSX", "DOCX", "PDF", "PNG"]) {
     assert.match(source, new RegExp(`aria-label="[^"]*${format}`));
   }
-  assert.match(source, /className="app-shell" spellCheck=\{false\} lang="th"/);
+  assert.match(source, /className="app-shell" lang="th"/);
+  assert.doesNotMatch(source, /spellCheck=\{false\}/);
 });
