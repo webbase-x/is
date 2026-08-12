@@ -66,6 +66,25 @@ alter table public.research_files enable row level security;
 alter table public.research_datasets enable row level security;
 alter table public.research_analyses enable row level security;
 
+-- This Supabase project also supports anonymous sign-ins for another app.
+-- Anonymous users carry the authenticated Postgres role, so add restrictive
+-- policies to keep the ResearchStat workspace limited to permanent accounts.
+create policy research_projects_permanent_users_only on public.research_projects as restrictive for all to authenticated
+using ((select (auth.jwt()->>'is_anonymous')::boolean) is false)
+with check ((select (auth.jwt()->>'is_anonymous')::boolean) is false);
+create policy research_members_permanent_users_only on public.research_project_members as restrictive for all to authenticated
+using ((select (auth.jwt()->>'is_anonymous')::boolean) is false)
+with check ((select (auth.jwt()->>'is_anonymous')::boolean) is false);
+create policy research_files_permanent_users_only on public.research_files as restrictive for all to authenticated
+using ((select (auth.jwt()->>'is_anonymous')::boolean) is false)
+with check ((select (auth.jwt()->>'is_anonymous')::boolean) is false);
+create policy research_datasets_permanent_users_only on public.research_datasets as restrictive for all to authenticated
+using ((select (auth.jwt()->>'is_anonymous')::boolean) is false)
+with check ((select (auth.jwt()->>'is_anonymous')::boolean) is false);
+create policy research_analyses_permanent_users_only on public.research_analyses as restrictive for all to authenticated
+using ((select (auth.jwt()->>'is_anonymous')::boolean) is false)
+with check ((select (auth.jwt()->>'is_anonymous')::boolean) is false);
+
 create policy research_projects_select on public.research_projects for select to authenticated using ((select auth.uid()) = owner_id);
 create policy research_projects_insert on public.research_projects for insert to authenticated with check ((select auth.uid()) = owner_id);
 create policy research_projects_update on public.research_projects for update to authenticated using ((select auth.uid()) = owner_id) with check ((select auth.uid()) = owner_id);
@@ -107,3 +126,6 @@ create policy research_docs_select on storage.objects for select to authenticate
 create policy research_docs_insert on storage.objects for insert to authenticated with check (bucket_id='research-documents' and (storage.foldername(name))[1]=(select auth.uid()::text));
 create policy research_docs_update on storage.objects for update to authenticated using (bucket_id='research-documents' and owner_id=(select auth.uid()::text)) with check (bucket_id='research-documents' and owner_id=(select auth.uid()::text));
 create policy research_docs_delete on storage.objects for delete to authenticated using (bucket_id='research-documents' and owner_id=(select auth.uid()::text));
+create policy research_docs_permanent_users_only on storage.objects as restrictive for all to authenticated
+using (bucket_id <> 'research-documents' or (select (auth.jwt()->>'is_anonymous')::boolean) is false)
+with check (bucket_id <> 'research-documents' or (select (auth.jwt()->>'is_anonymous')::boolean) is false);
