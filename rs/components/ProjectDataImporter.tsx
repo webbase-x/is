@@ -18,6 +18,7 @@ async function loadPdfJs() {
 
 export interface ImportedProjectData {
   id: number;
+  workTitle: string;
   sourceName: string;
   rangeLabel: string;
   rows: unknown[][];
@@ -30,8 +31,10 @@ type LoadedSource = {
   total: number;
 };
 
-export default function ProjectDataImporter({ project, open, onClose, onImport }: {
+export default function ProjectDataImporter({ project, analysisType, suggestedTitle, open, onClose, onImport }: {
   project: ResearchProject;
+  analysisType: string;
+  suggestedTitle: string;
   open: boolean;
   onClose: () => void;
   onImport: (data: ImportedProjectData) => void;
@@ -46,6 +49,7 @@ export default function ProjectDataImporter({ project, open, onClose, onImport }
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [showUpload, setShowUpload] = useState(false);
+  const [workTitle, setWorkTitle] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -62,7 +66,7 @@ export default function ProjectDataImporter({ project, open, onClose, onImport }
   if (!open) return null;
 
   function closeDialog() {
-    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all");
+    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle("");
     onClose();
   }
 
@@ -151,7 +155,22 @@ export default function ProjectDataImporter({ project, open, onClose, onImport }
         await pdf.destroy();
       }
       if (!rows.length) { setError("ไม่พบข้อความหรือตารางในช่วงที่เลือก หากเป็น PDF สแกนภาพจะต้องใช้ OCR ก่อน"); return; }
-      onImport({ id: Date.now(), sourceName: source.file.original_name, rangeLabel: mode === "all" ? `${source.unit}ทั้งหมด` : `${source.unit} ${from}–${to}`, rows });
+      const title = workTitle.trim() || suggestedTitle;
+      const rangeLabel = mode === "all" ? `${source.unit}ทั้งหมด` : `${source.unit} ${from}–${to}`;
+      const supabase = getSupabaseClient();
+      if (!supabase) { setError("ไม่พบการเชื่อมต่อ Supabase"); return; }
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) { setError("กรุณาเข้าสู่ระบบใหม่ก่อนบันทึกงานย่อย"); return; }
+      const { data: analysis, error: saveError } = await supabase.from("research_analyses").insert({
+        project_id: project.id,
+        owner_id: authData.user.id,
+        analysis_type: analysisType,
+        title,
+        input_json: { source_file_id: source.file.id, source_name: source.file.original_name, range_label: rangeLabel, row_count: rows.length },
+        result_json: {},
+      }).select("id").single();
+      if (saveError || !analysis) { setError(saveError?.message || "บันทึกชื่องานย่อยไม่สำเร็จ"); return; }
+      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows });
       closeDialog();
     } catch {
       setError("ดึงข้อมูลจากไฟล์ไม่สำเร็จ กรุณาลองเลือกช่วงที่สั้นลงหรือตรวจสอบรูปแบบไฟล์");
@@ -160,6 +179,7 @@ export default function ProjectDataImporter({ project, open, onClose, onImport }
 
   return <div className="modal-backdrop"><section className="small-modal source-modal" role="dialog" aria-modal="true" aria-label="นำข้อมูลจากไฟล์โครงการ">
     <header><div><span className="step-label">PROJECT DATA</span><h2>นำข้อมูลจากไฟล์โครงการ</h2><p>เลือกไฟล์และช่วงข้อมูลที่จะเพิ่มในเครื่องมือปัจจุบัน</p></div><button className="close-button" onClick={closeDialog}>×</button></header>
+    <label className="work-title-field">ชื่องานย่อยในโครงการ<input value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} placeholder={suggestedTitle}/><small>ตัวอย่าง: IOC แบบทดสอบผลสัมฤทธิ์ – ผู้เชี่ยวชาญ 1</small></label>
     <div className="source-file-head"><b>ไฟล์ข้อมูล</b><button type="button" onClick={() => setShowUpload(true)}>+ เพิ่มไฟล์ใหม่</button></div>
     {files.length === 0 ? <div className="source-empty">โครงการนี้ยังไม่มีไฟล์ กด “เพิ่มไฟล์ใหม่” เพื่อเริ่มต้น</div> : <>
       <label><span className="sr-only">เลือกไฟล์ข้อมูล</span><select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
