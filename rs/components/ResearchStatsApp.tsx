@@ -431,19 +431,24 @@ function IocView({
             <button onClick={addItem}>+ เพิ่มข้อ</button>
             <div className="export-icons" aria-label="ส่งออกผล IOC">
               <button className="export-icon csv" onClick={exportCsv} title="ส่งออก CSV" aria-label="ส่งออก CSV">
-                <ExportIcon format="CSV" />
+                <ExportIcon format="C" />
+                <span>CSV</span>
               </button>
               <button className="export-icon xlsx" onClick={() => void exportXlsx()} title="ส่งออก XLSX" aria-label="ส่งออก XLSX">
-                <ExportIcon format="XLS" />
+                <ExportIcon format="X" />
+                <span>XLSX</span>
               </button>
               <button className="export-icon docx" onClick={() => void exportDocx()} title="ส่งออก DOCX" aria-label="ส่งออก DOCX">
-                <ExportIcon format="DOC" />
+                <ExportIcon format="W" />
+                <span>DOCX</span>
               </button>
               <button className="export-icon pdf" onClick={() => void exportPdf()} title="ส่งออก PDF" aria-label="ส่งออก PDF">
                 <ExportIcon format="PDF" />
+                <span>PDF</span>
               </button>
               <button className="export-icon image" onClick={exportPng} title="บันทึกเป็นรูป PNG" aria-label="บันทึกเป็นรูป PNG">
-                <ExportIcon format="IMG" />
+                <ExportIcon format="▧" />
+                <span>PNG</span>
               </button>
             </div>
           </div>
