@@ -283,7 +283,7 @@ function IocView({
   }, [experts, rows]);
   const exportCsv = () => {
     const lines = [
-      ["ข้อ", ...experts, "ผลรวม", "IOC", "ผล"],
+      ["ข้อ", ...experts, "∑R", "IOC", "ผล"],
       ...rows.map((row, index) => [
         index + 1,
         ...row.map((value) => value ?? ""),
@@ -1037,7 +1037,7 @@ function exportIocPng(
   rows: Array<Array<number | null>>,
   results: ReturnType<typeof calculateIoc>,
 ) {
-  const columns = ["ข้อ", ...experts, "รวม", "IOC", "ผล"];
+  const columns = ["ข้อ", ...experts, "∑R", "IOC", "ผล"];
   const widths = [70, ...experts.map(() => 145), 80, 90, 120];
   const width = widths.reduce((sum, value) => sum + value, 0);
   const rowHeight = 48;
