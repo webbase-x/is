@@ -1157,7 +1157,7 @@ function ImportedDataPanel({
               <b>{data.expectedItemCount ?? items.length} ข้อ</b>
             </article>
             <article>
-              <span>พบเลขข้อจริง</span>
+              <span>พบ/นับแถวข้อ</span>
               <b>
                 {uniqueItems.length}/{data.expectedItemCount ?? items.length}
               </b>
@@ -1253,7 +1253,7 @@ function ImportedDataPanel({
       )}
       <p className="data-note">
         {needsIocVerification
-          ? `ระบบค้นหาเลขข้อ 1–${data.expectedItemCount ?? items.length} ตามจำนวนที่ผู้ใช้กำหนด โดยไม่นำตัวเลขในคำชี้แจงมาแทนเลขข้อ กรุณาตรวจแถวที่ระบุว่าไม่พบเลขข้อ`
+          ? `ระบบตรวจทีละหน้า โดยใช้คอลัมน์แรกเป็นเลขข้อและตรวจตำแหน่งรอยปากกาในช่อง +1, 0 และ -1 กรุณาตรวจรายการที่ระบุว่า “นับจากแถวตาราง” หรือ “ไม่พบเลขข้อ”`
           : `นำเข้าจาก ${range} จำนวน ${data.rows.length} รายการ คุณสามารถตรวจและแก้ไขก่อนคำนวณได้`}
       </p>
     </section>
@@ -1536,7 +1536,7 @@ export default function ResearchStatsApp({
                 </button>
               </>
             )}
-            <span className="version-chip">รุ่นคำนวณ 1.9</span>
+            <span className="version-chip">รุ่นคำนวณ 2.0</span>
             <span className="avatar">พ</span>
           </div>
         </div>

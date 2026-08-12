@@ -30,7 +30,7 @@ export interface ImportedProjectData {
   rows: unknown[][];
   warning?: string;
   iocRatings?: Array<{ item: number; rating: -1 | 0 | 1 }>;
-  ocrItems?: Array<{ item: number; page: number | null; details: string; rating: -1 | 0 | 1 | null; numberStatus?: "พบเลขข้อ" | "อนุมานลำดับ" | "ไม่พบเลขข้อ" }>;
+  ocrItems?: Array<{ item: number; page: number | null; details: string; rating: -1 | 0 | 1 | null; numberStatus?: "พบเลขข้อ" | "นับจากแถวตาราง" | "อนุมานลำดับ" | "ไม่พบเลขข้อ" }>;
   targetExpert?: number;
   expectedItemCount?: number;
   sourceRange?: { from: number; to: number; unit: "หน้า" | "แถว" };
@@ -43,7 +43,23 @@ type LoadedSource = {
   total: number;
 };
 
-type OcrItem = { item: number | null; page: number; details: string; rating: -1 | 0 | 1 | null; numberStatus: "พบเลขข้อ" | "อนุมานลำดับ" };
+type OcrItem = {
+  item: number | null;
+  page: number;
+  details: string;
+  rating: -1 | 0 | 1 | null;
+  numberStatus: "พบเลขข้อ" | "นับจากแถวตาราง";
+  rowTop: number;
+  rowBottom: number;
+  itemLeft: number;
+  itemRight: number;
+};
+
+function normalizeOcrDigits(value: string) {
+  return value.replace(/[๐-๙]/g, (digit) =>
+    "๐๑๒๓๔๕๖๗๘๙".indexOf(digit).toString(),
+  );
+}
 
 function parseTsvWords(tsv: string | null) {
   if (!tsv) return [];
@@ -54,7 +70,7 @@ function parseTsvWords(tsv: string | null) {
   });
 }
 
-function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: number, numberTsv: string | null): OcrItem[] {
+function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: number): OcrItem[] {
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) return [];
   const { width, height } = canvas;
@@ -87,7 +103,7 @@ function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: num
     if (best > width * 0.38) horizontalScores.push({ at: y, score: best });
   }
   const verticalScores: Array<{ at: number; score: number }> = [];
-  for (let x = Math.floor(width * 0.45); x < width; x += 1) {
+  for (let x = 0; x < width; x += 1) {
     let run = 0, best = 0, last = -10;
     for (let y = 0; y < height; y += 1) if (neutralDark(x, y)) {
       run = y - last <= 3 ? run + (y - last) : 1;
@@ -97,6 +113,17 @@ function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: num
   }
   const horizontalRules = clusterPeaks(horizontalScores).sort((a, b) => a - b);
   const verticalRules = clusterPeaks(verticalScores).sort((a, b) => a - b);
+  const leftRules = verticalRules.filter((rule) => rule < width * 0.25);
+  let itemLeft = 0;
+  let itemRight = width * 0.14;
+  for (let index = 0; index < leftRules.length - 1; index += 1) {
+    const gap = leftRules[index + 1] - leftRules[index];
+    if (leftRules[index] < width * 0.08 && gap > width * 0.025 && gap < width * 0.16) {
+      itemLeft = leftRules[index];
+      itemRight = leftRules[index + 1];
+      break;
+    }
+  }
   let ratingRules: number[] = [];
   let bestSpan = Number.POSITIVE_INFINITY;
   for (let index = 0; index <= verticalRules.length - 4; index += 1) {
@@ -108,12 +135,21 @@ function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: num
   }
   if (ratingRules.length !== 4 || horizontalRules.length < 2) return [];
 
-  const numberWords = parseTsvWords(numberTsv).filter((word) => /^\D*[0-9๐-๙]{1,3}\D*$/.test(word.text));
-  const words = [...parseTsvWords(tsv), ...numberWords];
+  const words = parseTsvWords(tsv);
   const detected: OcrItem[] = [];
   for (let index = 0; index < horizontalRules.length - 1; index += 1) {
     const top = horizontalRules[index], bottom = horizontalRules[index + 1];
     if (bottom - top < height * 0.035) continue;
+    const rowWords = words.filter((word) =>
+      word.text && word.top + word.height / 2 > top && word.top + word.height / 2 < bottom,
+    );
+    const rowText = rowWords.map((word) => word.text).join(" ");
+    const scoreHeaderCells = rowWords.filter((word) => {
+      const center = word.left + word.width / 2;
+      const normalized = normalizeOcrDigits(word.text).replace(/\s+/g, "");
+      return center > ratingRules[0] && center < ratingRules[3] && /^(?:\+1|0|-1)$/.test(normalized);
+    }).length;
+    if (scoreHeaderCells >= 2 || (/ความคิดเห็น/.test(rowText) && /ผู้เชี่ยวชาญ/.test(rowText))) continue;
     const evidence = [0, 1, 2].map((column) => {
       let blue = 0, dark = 0;
       for (let y = top + 3; y < bottom - 3; y += 1) for (let x = ratingRules[column] + 3; x < ratingRules[column + 1] - 3; x += 1) {
@@ -126,47 +162,64 @@ function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: num
     const winner = ranked[0];
     const hasConfidentMark = (winner.blue >= 5 || winner.dark >= Math.max(12, (bottom - top) * 0.08)) && winner.score >= ranked[1].score * 1.2;
     const itemWord = words.find((word) => {
-      const normalized = word.text.replace(/[๐-๙]/g, (digit) => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit).toString());
-      return word.left < width * 0.14 && word.top + word.height / 2 > top && word.top + word.height / 2 < bottom && /^\D*\d{1,3}\D*$/.test(normalized);
+      const normalized = normalizeOcrDigits(word.text);
+      const center = word.left + word.width / 2;
+      return center > itemLeft && center < itemRight && word.top + word.height / 2 > top && word.top + word.height / 2 < bottom && /^\D*\d{1,3}\D*$/.test(normalized);
     });
-    const itemMatch = itemWord?.text.replace(/[๐-๙]/g, (digit) => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit).toString()).match(/\d{1,3}/);
-    if (!itemWord && !hasConfidentMark) continue;
-    const details = words
-      .filter((word) => word !== itemWord && word.text && word.left < ratingRules[0] && word.top + word.height / 2 > top && word.top + word.height / 2 < bottom)
+    const itemMatch = itemWord ? normalizeOcrDigits(itemWord.text).match(/\d{1,3}/) : null;
+    const details = rowWords
+      .filter((word) => word !== itemWord && word.left < ratingRules[0])
       .sort((a, b) => Math.abs(a.top - b.top) > 5 ? a.top - b.top : a.left - b.left)
       .map((word) => word.text).join(" ").replace(/\s+/g, " ").trim();
-    detected.push({ item: itemMatch ? Number(itemMatch[0]) : null, page, details, rating: hasConfidentMark ? ([1, 0, -1] as const)[winner.column] : null, numberStatus: itemMatch ? "พบเลขข้อ" : "อนุมานลำดับ" });
+    detected.push({
+      item: itemMatch ? Number(itemMatch[0]) : null,
+      page,
+      details,
+      rating: hasConfidentMark ? ([1, 0, -1] as const)[winner.column] : null,
+      numberStatus: itemMatch ? "พบเลขข้อ" : "นับจากแถวตาราง",
+      rowTop: top,
+      rowBottom: bottom,
+      itemLeft,
+      itemRight,
+    });
   }
   return detected;
 }
 
 function reconcileIocItems(detected: OcrItem[], expectedItemCount: number) {
   const rows = detected.map((entry) => ({ ...entry }));
-  const anchors = rows.flatMap((entry, index) =>
-    entry.item !== null && entry.item >= 1 && entry.item <= expectedItemCount
-      ? [{ index, item: entry.item }]
-      : [],
-  );
+  const pages = [...new Set(rows.map((entry) => entry.page))].sort((a, b) => a - b);
+  let nextItem = 1;
 
-  rows.forEach((entry, index) => {
-    if (entry.item !== null) return;
-    if (!anchors.length) {
-      const sequentialItem = index + 1;
-      if (sequentialItem <= expectedItemCount) {
-        entry.item = sequentialItem;
-        entry.numberStatus = "อนุมานลำดับ";
-      }
-      return;
-    }
-
-    const nearest = anchors.reduce((best, anchor) =>
-      Math.abs(anchor.index - index) < Math.abs(best.index - index) ? anchor : best,
+  pages.forEach((page) => {
+    const pageRows = rows.filter((entry) => entry.page === page);
+    const anchors = pageRows.flatMap((entry, index) =>
+      entry.item !== null && entry.item >= 1 && entry.item <= expectedItemCount
+        ? [{ index, item: entry.item }]
+        : [],
     );
-    const sequentialItem = nearest.item + (index - nearest.index);
-    if (sequentialItem >= 1 && sequentialItem <= expectedItemCount) {
-      entry.item = sequentialItem;
-      entry.numberStatus = "อนุมานลำดับ";
-    }
+
+    pageRows.forEach((entry, index) => {
+      if (entry.item !== null) return;
+      let numberedItem = nextItem + index;
+      if (anchors.length) {
+        const nearest = anchors.reduce((best, anchor) =>
+          Math.abs(anchor.index - index) < Math.abs(best.index - index) ? anchor : best,
+        );
+        numberedItem = nearest.item + (index - nearest.index);
+      }
+      if (numberedItem >= 1 && numberedItem <= expectedItemCount) {
+        entry.item = numberedItem;
+        entry.numberStatus = "นับจากแถวตาราง";
+      }
+    });
+
+    const validItems = pageRows.flatMap((entry) =>
+      entry.item !== null && entry.item >= 1 && entry.item <= expectedItemCount
+        ? [entry.item]
+        : [],
+    );
+    if (validItems.length) nextItem = Math.max(...validItems) + 1;
   });
 
   const byNumber = new Map<number, OcrItem>();
@@ -182,7 +235,7 @@ function reconcileIocItems(detected: OcrItem[], expectedItemCount: number) {
     const item = index + 1;
     const found = byNumber.get(item);
     return found
-      ? { ...found, item }
+      ? { ...found, item, rowTop: undefined, rowBottom: undefined, itemLeft: undefined, itemRight: undefined }
       : { item, page: null, details: "ไม่พบเลขข้อนี้ในช่วงหน้าที่เลือก", rating: null, numberStatus: "ไม่พบเลขข้อ" as const };
   });
 }
@@ -346,16 +399,38 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
                 const result = await ocrWorker.recognize(canvas, {}, { text: true, tsv: analysisType === "ioc" });
                 const ocrRows = ocrTextToRows(result.data.text);
                 if (analysisType === "ioc") {
-                  setProgress(`กำลังค้นหาเลขข้อหน้า ${pageNumber} จาก ${to}`);
-                  const numberCanvas = document.createElement("canvas");
-                  numberCanvas.width = Math.ceil(canvas.width * 0.16); numberCanvas.height = canvas.height;
-                  const numberContext = numberCanvas.getContext("2d", { alpha: false });
-                  if (numberContext) numberContext.drawImage(canvas, 0, 0, numberCanvas.width, canvas.height, 0, 0, numberCanvas.width, canvas.height);
+                  const pageItems = detectIocItems(canvas, result.data.tsv, pageNumber);
+                  const unreadNumbers = pageItems.filter((entry) => entry.item === null);
                   await ocrWorker.setParameters({ tessedit_char_whitelist: "0123456789๐๑๒๓๔๕๖๗๘๙", tessedit_pageseg_mode: "11" as never });
-                  const numberResult = await ocrWorker.recognize(numberCanvas, {}, { text: true, tsv: true });
+                  for (let rowIndex = 0; rowIndex < unreadNumbers.length; rowIndex += 1) {
+                    const entry = unreadNumbers[rowIndex];
+                    setProgress(`กำลังอ่านเลขข้อหน้า ${pageNumber} แถว ${rowIndex + 1}/${unreadNumbers.length}`);
+                    const padding = 4;
+                    const sourceX = Math.max(0, Math.floor(entry.itemLeft + padding));
+                    const sourceY = Math.max(0, Math.floor(entry.rowTop + padding));
+                    const sourceWidth = Math.max(12, Math.floor(entry.itemRight - entry.itemLeft - padding * 2));
+                    const sourceHeight = Math.max(12, Math.floor(entry.rowBottom - entry.rowTop - padding * 2));
+                    const numberCanvas = document.createElement("canvas");
+                    numberCanvas.width = sourceWidth * 3;
+                    numberCanvas.height = sourceHeight * 3;
+                    const numberContext = numberCanvas.getContext("2d", { alpha: false });
+                    if (!numberContext) continue;
+                    numberContext.fillStyle = "white";
+                    numberContext.fillRect(0, 0, numberCanvas.width, numberCanvas.height);
+                    numberContext.imageSmoothingEnabled = false;
+                    numberContext.drawImage(canvas, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, numberCanvas.width, numberCanvas.height);
+                    const numberResult = await ocrWorker.recognize(numberCanvas, {}, { text: true });
+                    const numberMatch = normalizeOcrDigits(numberResult.data.text).match(/\d{1,3}/);
+                    const detectedNumber = numberMatch ? Number(numberMatch[0]) : null;
+                    if (detectedNumber !== null && detectedNumber >= 1 && detectedNumber <= expectedItemCount) {
+                      entry.item = detectedNumber;
+                      entry.numberStatus = "พบเลขข้อ";
+                    }
+                    numberCanvas.width = 1;
+                    numberCanvas.height = 1;
+                  }
                   await ocrWorker.setParameters({ tessedit_char_whitelist: "", tessedit_pageseg_mode: "3" as never });
-                  detectedIocItems.push(...detectIocItems(canvas, result.data.tsv, pageNumber, numberResult.data.tsv));
-                  numberCanvas.width = 1; numberCanvas.height = 1;
+                  detectedIocItems.push(...pageItems);
                 }
                 canvas.width = 1;
                 canvas.height = 1;
@@ -382,9 +457,9 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         const reconciledItems = reconcileIocItems(detectedIocItems, expectedItemCount);
         const foundItems = reconciledItems.filter((item) => item.numberStatus !== "ไม่พบเลขข้อ");
         const exactCount = foundItems.filter((item) => item.numberStatus === "พบเลขข้อ").length;
-        const inferredCount = foundItems.filter((item) => item.numberStatus === "อนุมานลำดับ").length;
+        const inferredCount = foundItems.filter((item) => item.numberStatus === "นับจากแถวตาราง").length;
         const ratedCount = foundItems.filter((item) => item.rating !== null).length;
-        warnings.push(`ค้นหาเลขข้อ 1–${expectedItemCount}: พบเลขโดยตรง ${exactCount} ข้อ จับคู่จากลำดับแถวตาราง ${inferredCount} ข้อ และอ่านคะแนนได้ ${ratedCount} ข้อ กรุณาตรวจยืนยัน`);
+        warnings.push(`ตรวจทีละหน้า: อ่านเลขจากคอลัมน์ข้อได้ ${exactCount} ข้อ นับจากแถวตาราง ${inferredCount} ข้อ และพบรอยปากกาในช่อง +1/0/-1 จำนวน ${ratedCount} ข้อ กรุณาตรวจยืนยัน`);
         if (failedPages.length) warnings.push(`ข้ามหน้าที่อ่านไม่ได้: ${failedPages.join(", ")}`);
         extractionWarning = warnings.length ? warnings.join(" · ") : undefined;
       }
@@ -406,7 +481,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     <header><div><span className="step-label">PROJECT DATA</span><h2>นำข้อมูลจากไฟล์โครงการ</h2><p>เลือกไฟล์และช่วงข้อมูลที่จะเพิ่มในเครื่องมือปัจจุบัน</p></div><button className="close-button" onClick={closeDialog}>×</button></header>
     <label className="work-title-field">ชื่องานย่อยในโครงการ<input value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} placeholder={suggestedTitle}/><small>ตัวอย่าง: IOC แบบทดสอบผลสัมฤทธิ์ – ผู้เชี่ยวชาญ 1</small></label>
     {analysisType === "ioc" && <label className="work-title-field">นำเข้าคะแนนสำหรับผู้เชี่ยวชาญคนที่<input type="number" min={1} max={30} value={targetExpert} onChange={(event) => setTargetExpert(Math.max(1, Math.min(30, Number(event.target.value) || 1)))}/><small>คะแนนที่ตรวจพบจะถูกใส่ในคอลัมน์ของผู้เชี่ยวชาญคนนี้</small></label>}
-    {analysisType === "ioc" && <label className="work-title-field required-count">แบบประเมินนี้มีทั้งหมดกี่ข้อ<input type="number" min={1} max={300} value={expectedItemCount} onChange={(event) => setExpectedItemCount(Math.max(1, Math.min(300, Number(event.target.value) || 1)))}/><small>ระบบจะค้นหาเลขข้อ 1–{expectedItemCount} และใช้ลำดับแถวในตารางช่วยจับคู่เมื่อ OCR อ่านเลขไม่ชัด โดยแสดงสถานะให้ตรวจสอบ</small></label>}
+    {analysisType === "ioc" && <label className="work-title-field required-count">แบบประเมินนี้มีทั้งหมดกี่ข้อ<input type="number" min={1} max={300} value={expectedItemCount} onChange={(event) => setExpectedItemCount(Math.max(1, Math.min(300, Number(event.target.value) || 1)))}/><small>ระบบตรวจทีละหน้า: อ่านเลขจากคอลัมน์ข้อ แล้วตรวจรอยปากกาในคอลัมน์ +1, 0 และ -1 ของแต่ละแถว</small></label>}
     <div className="source-file-head"><b>ไฟล์ข้อมูล</b><button type="button" onClick={() => setShowUpload(true)}>+ เพิ่มไฟล์ใหม่</button></div>
     {files.length === 0 ? <div className="source-empty">โครงการนี้ยังไม่มีไฟล์ กด “เพิ่มไฟล์ใหม่” เพื่อเริ่มต้น</div> : <>
       <label><span className="sr-only">เลือกไฟล์ข้อมูล</span><select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
