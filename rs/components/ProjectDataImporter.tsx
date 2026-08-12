@@ -83,7 +83,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         const pdf = await getDocument({ data: buffer.slice(0) }).promise;
         setSource({ file, buffer, unit: "หน้า", total: pdf.numPages });
         setEnd(pdf.numPages);
-        await pdf.destroy();
+        if (typeof pdf.destroy === "function") await pdf.destroy();
       } else {
         const XLSX = await import("xlsx");
         const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
@@ -160,7 +160,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
                 if (line) line.cells.push(item.text); else lines.push({ y: item.y, cells: [item.text] });
               });
               rows.push(...lines.map((line) => line.cells));
-              page.cleanup();
+              if (typeof page.cleanup === "function") page.cleanup();
             } catch (pageError) {
               failedPages.push(pageNumber);
               lastPageError = pageError instanceof Error ? pageError.message : String(pageError);
@@ -168,7 +168,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
             }
           }
         } finally {
-          await pdf.destroy();
+          if (typeof pdf.destroy === "function") await pdf.destroy();
         }
         if (!rows.length && failedPages.length) throw new Error(`อ่านหน้า ${failedPages.join(", ")} ไม่สำเร็จ${lastPageError ? `: ${lastPageError}` : ""}`);
         if (failedPages.length) extractionWarning = `ข้ามหน้าที่อ่านไม่ได้: ${failedPages.join(", ")}`;
