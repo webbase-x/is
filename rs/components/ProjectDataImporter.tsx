@@ -30,7 +30,9 @@ export interface ImportedProjectData {
   rows: unknown[][];
   warning?: string;
   iocRatings?: Array<{ item: number; rating: -1 | 0 | 1 }>;
+  ocrItems?: Array<{ item: number; page: number; details: string; rating: -1 | 0 | 1 | null }>;
   targetExpert?: number;
+  sourceRange?: { from: number; to: number; unit: "หน้า" | "แถว" };
 }
 
 type LoadedSource = {
@@ -40,7 +42,7 @@ type LoadedSource = {
   total: number;
 };
 
-type OcrRating = { item: number | null; rating: -1 | 0 | 1 };
+type OcrItem = { item: number | null; page: number; details: string; rating: -1 | 0 | 1 | null };
 
 function parseTsvWords(tsv: string | null) {
   if (!tsv) return [];
@@ -51,7 +53,7 @@ function parseTsvWords(tsv: string | null) {
   });
 }
 
-function detectIocRatings(canvas: HTMLCanvasElement, tsv: string | null): OcrRating[] {
+function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: number): OcrItem[] {
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) return [];
   const { width, height } = canvas;
@@ -106,7 +108,7 @@ function detectIocRatings(canvas: HTMLCanvasElement, tsv: string | null): OcrRat
   if (ratingRules.length !== 4 || horizontalRules.length < 2) return [];
 
   const words = parseTsvWords(tsv);
-  const detected: OcrRating[] = [];
+  const detected: OcrItem[] = [];
   for (let index = 0; index < horizontalRules.length - 1; index += 1) {
     const top = horizontalRules[index], bottom = horizontalRules[index + 1];
     if (bottom - top < height * 0.035) continue;
@@ -120,13 +122,18 @@ function detectIocRatings(canvas: HTMLCanvasElement, tsv: string | null): OcrRat
     });
     const ranked = evidence.map((value, column) => ({ ...value, column })).sort((a, b) => b.score - a.score);
     const winner = ranked[0];
-    if (!(winner.blue >= 5 || winner.dark >= Math.max(12, (bottom - top) * 0.08)) || winner.score < ranked[1].score * 1.2) continue;
+    const hasConfidentMark = (winner.blue >= 5 || winner.dark >= Math.max(12, (bottom - top) * 0.08)) && winner.score >= ranked[1].score * 1.2;
     const itemWord = words.find((word) => {
       const normalized = word.text.replace(/[๐-๙]/g, (digit) => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit).toString());
       return word.left < width * 0.14 && word.top + word.height / 2 > top && word.top + word.height / 2 < bottom && /^\D*\d{1,3}\D*$/.test(normalized);
     });
     const itemMatch = itemWord?.text.replace(/[๐-๙]/g, (digit) => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit).toString()).match(/\d{1,3}/);
-    detected.push({ item: itemMatch ? Number(itemMatch[0]) : null, rating: ([1, 0, -1] as const)[winner.column] });
+    if (!itemWord && !hasConfidentMark) continue;
+    const details = words
+      .filter((word) => word !== itemWord && word.text && word.left < ratingRules[0] && word.top + word.height / 2 > top && word.top + word.height / 2 < bottom)
+      .sort((a, b) => Math.abs(a.top - b.top) > 5 ? a.top - b.top : a.left - b.left)
+      .map((word) => word.text).join(" ").replace(/\s+/g, " ").trim();
+    detected.push({ item: itemMatch ? Number(itemMatch[0]) : null, page, details, rating: hasConfidentMark ? ([1, 0, -1] as const)[winner.column] : null });
   }
   for (let index = 0; index < detected.length; index += 1) {
     if (detected[index].item !== null) continue;
@@ -238,7 +245,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     try {
       let rows: unknown[][] = [];
       let extractionWarning: string | undefined;
-      const detectedIocRatings: OcrRating[] = [];
+      const detectedIocItems: OcrItem[] = [];
       if (source.unit === "แถว") {
         const XLSX = await import("xlsx");
         const workbook = XLSX.read(source.buffer, { type: "array", cellDates: true });
@@ -294,7 +301,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
                 await page.render({ canvas, canvasContext: context, viewport }).promise;
                 const result = await ocrWorker.recognize(canvas, {}, { text: true, tsv: analysisType === "ioc" });
                 const ocrRows = ocrTextToRows(result.data.text);
-                if (analysisType === "ioc") detectedIocRatings.push(...detectIocRatings(canvas, result.data.tsv));
+                if (analysisType === "ioc") detectedIocItems.push(...detectIocItems(canvas, result.data.tsv, pageNumber));
                 canvas.width = 1;
                 canvas.height = 1;
                 if (ocrRows.length) {
@@ -317,20 +324,22 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         if (!rows.length && failedPages.length) throw new Error(`อ่านหน้า ${failedPages.join(", ")} ไม่สำเร็จ${lastPageError ? `: ${lastPageError}` : ""}`);
         const warnings: string[] = [];
         if (ocrPages.length) warnings.push(`ใช้ OCR กับหน้า: ${ocrPages.join(", ")}`);
-        if (detectedIocRatings.length) warnings.push(`ตรวจพบเครื่องหมายในช่องคะแนน ${detectedIocRatings.length} ข้อ กรุณาตรวจยืนยัน`);
+        const ratedCount = detectedIocItems.filter((item) => item.rating !== null).length;
+        if (detectedIocItems.length) warnings.push(`พบรายการ IOC ${detectedIocItems.length} แถว และอ่านคะแนนได้ ${ratedCount} แถว กรุณาตรวจยืนยัน`);
         if (failedPages.length) warnings.push(`ข้ามหน้าที่อ่านไม่ได้: ${failedPages.join(", ")}`);
         extractionWarning = warnings.length ? warnings.join(" · ") : undefined;
       }
       if (!rows.length) { setError("ไม่พบข้อความหรือตารางในช่วงที่เลือก แม้ลอง OCR แล้ว กรุณาตรวจสอบว่าภาพคมชัดหรือเลือกช่วงหน้าอื่น"); return; }
       const title = workTitle.trim() || suggestedTitle;
-      const rangeLabel = mode === "all" ? `${source.unit}ทั้งหมด` : `${source.unit} ${from}–${to}`;
+      const rangeLabel = mode === "all" ? `${source.unit} ${from}–${to} (ทั้งหมด)` : `${source.unit} ${from}–${to}`;
       let nextItem = 1;
-      const iocRatings = detectedIocRatings.flatMap((entry) => {
+      const ocrItems = detectedIocItems.flatMap((entry) => {
         const item = entry.item && entry.item > 0 ? entry.item : nextItem;
         nextItem = item + 1;
-        return item <= 300 ? [{ item, rating: entry.rating }] : [];
+        return item <= 300 ? [{ ...entry, item }] : [];
       });
-      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined, targetExpert: analysisType === "ioc" ? targetExpert : undefined });
+      const iocRatings = ocrItems.flatMap((entry) => entry.rating === null ? [] : [{ item: entry.item, rating: entry.rating }]);
+      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined, ocrItems: ocrItems.length ? ocrItems : undefined, targetExpert: analysisType === "ioc" ? targetExpert : undefined, sourceRange: { from, to, unit: source.unit } });
       closeDialog();
     } catch (extractError) {
       const detail = extractError instanceof Error ? extractError.message : String(extractError);
