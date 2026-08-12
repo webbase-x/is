@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import * as XLSX from "xlsx";
 import FileImportDialog from "./FileImportDialog";
 import { getSupabaseClient } from "../lib/supabase/client";
 import type { FileDraft, ResearchFile, ResearchProject } from "../lib/supabase/types";
@@ -85,6 +84,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         setEnd(pdf.numPages);
         await pdf.destroy();
       } else {
+        const XLSX = await import("xlsx");
         const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
         const firstSheet = workbook.SheetNames[0];
         const raw = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[firstSheet], { header: 1, defval: "", raw: false });
@@ -130,6 +130,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     try {
       let rows: unknown[][] = [];
       if (source.unit === "แถว") {
+        const XLSX = await import("xlsx");
         const workbook = XLSX.read(source.buffer, { type: "array", cellDates: true });
         const firstSheet = workbook.SheetNames[0];
         const raw = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[firstSheet], { header: 1, defval: "", raw: false });

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import * as XLSX from "xlsx";
 import type { FileDraft } from "../lib/supabase/types";
 
 const ACCEPT = ".pdf,.xlsx,.xls,.csv";
@@ -33,6 +32,7 @@ export default function FileImportDialog({
     }
     if (!["xlsx", "xls", "csv"].includes(extension ?? "")) { setError("รองรับเฉพาะ PDF, Excel และ CSV"); return; }
     try {
+      const XLSX = await import("xlsx");
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
       const sheet = workbook.SheetNames[0];
       const raw = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheet], { header: 1, defval: "", raw: false });
@@ -59,4 +59,3 @@ export default function FileImportDialog({
 function SpreadsheetPreview({ columns, rows }: { columns: string[]; rows: unknown[][] }) {
   return <div className="sheet-preview"><table><thead><tr><th>#</th>{columns.map((column, i) => <th key={i}>{column}</th>)}</tr></thead><tbody>{rows.slice(0, 30).map((row, ri) => <tr key={ri}><td>{ri + 1}</td>{columns.map((_, ci) => <td key={ci}>{String(row[ci] ?? "")}</td>)}</tr>)}</tbody></table></div>;
 }
-
