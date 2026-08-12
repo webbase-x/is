@@ -115,7 +115,7 @@ function flattenRows(rows: unknown[][]) {
 }
 
 function ImportedDataPanel({ data }: { data: ImportedProjectData }) {
-  return <section className="panel imported-data"><div className="panel-head"><div><span className="step-label">งานย่อย</span><h3>{data.workTitle}</h3><p>{data.sourceName} · {data.rangeLabel} · {data.rows.length} แถว</p></div></div><div className="table-wrap"><table><tbody>{data.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}><td>{rowIndex + 1}</td>{row.slice(0, 12).map((cell, cellIndex) => <td key={cellIndex}>{String(cell ?? "")}</td>)}</tr>)}</tbody></table></div><p className="data-note">ข้อมูลตัวเลขถูกเพิ่มลงในช่องของเครื่องมือแล้ว คุณสามารถตรวจและแก้ไขก่อนคำนวณได้</p></section>;
+  return <section className="panel imported-data"><div className="panel-head"><div><span className="step-label">งานย่อย</span><h3>{data.workTitle}</h3><p>{data.sourceName} · {data.rangeLabel} · {data.rows.length} แถว</p></div></div>{data.warning && <div className="import-warning">{data.warning}</div>}<div className="table-wrap"><table><tbody>{data.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}><td>{rowIndex + 1}</td>{row.slice(0, 12).map((cell, cellIndex) => <td key={cellIndex}>{String(cell ?? "")}</td>)}</tr>)}</tbody></table></div><p className="data-note">ข้อมูลตัวเลขถูกเพิ่มลงในช่องของเครื่องมือแล้ว คุณสามารถตรวจและแก้ไขก่อนคำนวณได้</p></section>;
 }
 
 export default function ResearchStatsApp({ project, onBack }: { project: ResearchProject; onBack?: () => void }) {

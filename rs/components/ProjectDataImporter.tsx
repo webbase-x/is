@@ -21,6 +21,7 @@ export interface ImportedProjectData {
   sourceName: string;
   rangeLabel: string;
   rows: unknown[][];
+  warning?: string;
 }
 
 type LoadedSource = {
@@ -129,6 +130,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     setBusy(true); setError("");
     try {
       let rows: unknown[][] = [];
+      let extractionWarning: string | undefined;
       if (source.unit === "แถว") {
         const XLSX = await import("xlsx");
         const workbook = XLSX.read(source.buffer, { type: "array", cellDates: true });
@@ -138,22 +140,38 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
       } else {
         const { getDocument } = await loadPdfJs();
         const pdf = await getDocument({ data: source.buffer.slice(0) }).promise;
-        for (let pageNumber = from; pageNumber <= to; pageNumber += 1) {
-          setProgress(`กำลังอ่านข้อความหน้า ${pageNumber} จาก ${to}`);
-          const page = await pdf.getPage(pageNumber);
-          const text = await page.getTextContent();
-          const positioned = text.items.flatMap((item) => {
-            if (!("str" in item) || !("transform" in item) || !item.str.trim()) return [];
-            return [{ text: item.str.trim(), x: item.transform[4], y: item.transform[5] }];
-          }).sort((a, b) => Math.abs(b.y - a.y) > 2 ? b.y - a.y : a.x - b.x);
-          const lines: Array<{ y: number; cells: string[] }> = [];
-          positioned.forEach((item) => {
-            const line = lines.find((candidate) => Math.abs(candidate.y - item.y) <= 2);
-            if (line) line.cells.push(item.text); else lines.push({ y: item.y, cells: [item.text] });
-          });
-          rows.push(...lines.map((line) => line.cells));
+        const failedPages: number[] = [];
+        let lastPageError = "";
+        try {
+          for (let pageNumber = from; pageNumber <= to; pageNumber += 1) {
+            setProgress(`กำลังอ่านข้อความหน้า ${pageNumber} จาก ${to}`);
+            try {
+              const page = await pdf.getPage(pageNumber);
+              const text = await page.getTextContent();
+              const positioned = text.items.flatMap((item) => {
+                if (!("str" in item) || !("transform" in item)) return [];
+                const value = String(item.str ?? "").trim();
+                if (!value || !item.transform || typeof item.transform[4] !== "number") return [];
+                return [{ text: value, x: Number(item.transform[4]) || 0, y: Number(item.transform[5]) || 0 }];
+              }).sort((a, b) => Math.abs(b.y - a.y) > 2 ? b.y - a.y : a.x - b.x);
+              const lines: Array<{ y: number; cells: string[] }> = [];
+              positioned.forEach((item) => {
+                const line = lines.find((candidate) => Math.abs(candidate.y - item.y) <= 2);
+                if (line) line.cells.push(item.text); else lines.push({ y: item.y, cells: [item.text] });
+              });
+              rows.push(...lines.map((line) => line.cells));
+              page.cleanup();
+            } catch (pageError) {
+              failedPages.push(pageNumber);
+              lastPageError = pageError instanceof Error ? pageError.message : String(pageError);
+              console.error("[ResearchStat] PDF page extraction failed", { pageNumber, error: pageError });
+            }
+          }
+        } finally {
+          await pdf.destroy();
         }
-        await pdf.destroy();
+        if (!rows.length && failedPages.length) throw new Error(`อ่านหน้า ${failedPages.join(", ")} ไม่สำเร็จ${lastPageError ? `: ${lastPageError}` : ""}`);
+        if (failedPages.length) extractionWarning = `ข้ามหน้าที่อ่านไม่ได้: ${failedPages.join(", ")}`;
       }
       if (!rows.length) { setError("ไม่พบข้อความหรือตารางในช่วงที่เลือก หากเป็น PDF สแกนภาพจะต้องใช้ OCR ก่อน"); return; }
       const title = workTitle.trim() || suggestedTitle;
@@ -171,10 +189,12 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         result_json: {},
       }).select("id").single();
       if (saveError || !analysis) { setError(saveError?.message || "บันทึกชื่องานย่อยไม่สำเร็จ"); return; }
-      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows });
+      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning });
       closeDialog();
-    } catch {
-      setError("ดึงข้อมูลจากไฟล์ไม่สำเร็จ กรุณาลองเลือกช่วงที่สั้นลงหรือตรวจสอบรูปแบบไฟล์");
+    } catch (extractError) {
+      const detail = extractError instanceof Error ? extractError.message : String(extractError);
+      console.error("[ResearchStat] Project data extraction failed", extractError);
+      setError(`ดึงข้อมูลจากไฟล์ไม่สำเร็จ: ${detail || "กรุณาตรวจสอบรูปแบบไฟล์"}`);
     } finally { setBusy(false); setProgress(""); }
   }
 
