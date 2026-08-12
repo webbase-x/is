@@ -61,6 +61,69 @@ function normalizeOcrDigits(value: string) {
   );
 }
 
+function columnLabelToIndex(value: string) {
+  const label = value.trim().toUpperCase().replace(/[^A-Z]/g, "");
+  if (!label) return -1;
+  return [...label].reduce((total, letter) => total * 26 + letter.charCodeAt(0) - 64, 0) - 1;
+}
+
+function indexToColumnLabel(index: number) {
+  let value = index + 1;
+  let label = "";
+  while (value > 0) {
+    value -= 1;
+    label = String.fromCharCode(65 + (value % 26)) + label;
+    value = Math.floor(value / 26);
+  }
+  return label;
+}
+
+function titleFromRows(rows: unknown[][]) {
+  return rows
+    .map((row) => row.map((cell) => String(cell ?? "").trim()).filter(Boolean).join(" ").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(" – ")
+    .slice(0, 240);
+}
+
+function inferSpreadsheetMapping(rows: unknown[][]) {
+  const normalizedRows = rows.slice(0, 40).map((row) => row.map((cell) => normalizeOcrDigits(String(cell ?? "")).replace(/\s+/g, "").toLowerCase()));
+  let headerRow = -1;
+  let plus = -1;
+  let zero = -1;
+  let minus = -1;
+  normalizedRows.forEach((row, rowIndex) => {
+    if (headerRow >= 0) return;
+    const nextPlus = row.findIndex((cell) => /^\+?1$/.test(cell));
+    const nextZero = row.findIndex((cell) => cell === "0");
+    const nextMinus = row.findIndex((cell) => /^-1$/.test(cell));
+    if (nextPlus >= 0 && nextZero >= 0 && nextMinus >= 0) {
+      headerRow = rowIndex;
+      plus = nextPlus;
+      zero = nextZero;
+      minus = nextMinus;
+    }
+  });
+  const startRowIndex = headerRow >= 0 ? headerRow + 1 : 2;
+  const firstDataRow = rows.slice(startRowIndex, startRowIndex + 10).find((row) => row.some((cell) => /^\s*[0-9๐-๙]{1,3}\s*$/.test(String(cell ?? ""))));
+  const item = firstDataRow?.findIndex((cell) => /^\s*[0-9๐-๙]{1,3}\s*$/.test(String(cell ?? ""))) ?? 0;
+  return {
+    startRow: startRowIndex + 1,
+    firstItem: firstDataRow && item >= 0 ? Number(normalizeOcrDigits(String(firstDataRow[item]))) || 1 : 1,
+    itemColumn: indexToColumnLabel(Math.max(0, item)),
+    detailColumn: indexToColumnLabel(Math.max(0, item + 1)),
+    plusColumn: indexToColumnLabel(plus >= 0 ? plus : 3),
+    zeroColumn: indexToColumnLabel(zero >= 0 ? zero : 4),
+    minusColumn: indexToColumnLabel(minus >= 0 ? minus : 5),
+  };
+}
+
+function hasSpreadsheetMark(value: unknown) {
+  const text = String(value ?? "").trim().toLowerCase();
+  return Boolean(text) && !["-", "—", "ไม่มี", "none", "false"].includes(text);
+}
+
 function parseTsvWords(tsv: string | null) {
   if (!tsv) return [];
   return tsv.split("\n").slice(1).flatMap((line) => {
@@ -261,6 +324,13 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   const [workTitle, setWorkTitle] = useState("");
   const [targetExpert, setTargetExpert] = useState(1);
   const [expectedItemCount, setExpectedItemCount] = useState(30);
+  const [tableStartRow, setTableStartRow] = useState(3);
+  const [firstItemNumber, setFirstItemNumber] = useState(1);
+  const [itemColumn, setItemColumn] = useState("A");
+  const [detailColumn, setDetailColumn] = useState("B");
+  const [plusColumn, setPlusColumn] = useState("D");
+  const [zeroColumn, setZeroColumn] = useState("E");
+  const [minusColumn, setMinusColumn] = useState("F");
 
   useEffect(() => {
     if (!open) return;
@@ -277,7 +347,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   if (!open) return null;
 
   function closeDialog() {
-    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle(""); setTargetExpert(1); setExpectedItemCount(30);
+    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle(""); setTargetExpert(1); setExpectedItemCount(30); setTableStartRow(3); setFirstItemNumber(1); setItemColumn("A"); setDetailColumn("B"); setPlusColumn("D"); setZeroColumn("E"); setMinusColumn("F");
     onClose();
   }
 
@@ -292,6 +362,50 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
       if (file.mime_type === "application/pdf" || file.original_name.toLowerCase().endsWith(".pdf")) {
         const { getDocument } = await loadPdfJs();
         const pdf = await getDocument({ data: buffer.slice(0) }).promise;
+        const firstPage = await pdf.getPage(1);
+        const firstText = await firstPage.getTextContent();
+        const positionedHeader: Array<{ text: string; x: number; y: number }> = firstText.items.flatMap((item: unknown): Array<{ text: string; x: number; y: number }> => {
+          if (!item || typeof item !== "object" || !("str" in item) || !("transform" in item)) return [];
+          const pdfItem = item as { str?: unknown; transform?: unknown[] };
+          if (!pdfItem.transform || typeof pdfItem.transform[4] !== "number" || typeof pdfItem.transform[5] !== "number") return [];
+          return [{ text: String(pdfItem.str ?? "").trim(), x: Number(pdfItem.transform[4]), y: Number(pdfItem.transform[5]) }];
+        }).filter((item: { text: string; x: number; y: number }) => item.text).sort((a: { text: string; x: number; y: number }, b: { text: string; x: number; y: number }) => Math.abs(b.y - a.y) > 2 ? b.y - a.y : a.x - b.x);
+        const firstLines: Array<{ y: number; cells: string[] }> = [];
+        positionedHeader.forEach((item) => {
+          const line = firstLines.find((candidate) => Math.abs(candidate.y - item.y) <= 2);
+          if (line) line.cells.push(item.text); else firstLines.push({ y: item.y, cells: [item.text] });
+        });
+        let suggestedFromHeader = titleFromRows(firstLines.map((line) => line.cells));
+        if (!suggestedFromHeader) {
+          setProgress("กำลังอ่านหัวกระดาษ 2 บรรทัดแรก…");
+          const viewport = firstPage.getViewport({ scale: 2 });
+          const pageCanvas = document.createElement("canvas");
+          pageCanvas.width = Math.ceil(viewport.width);
+          pageCanvas.height = Math.ceil(viewport.height);
+          const pageContext = pageCanvas.getContext("2d", { alpha: false });
+          if (pageContext) {
+            await firstPage.render({ canvas: pageCanvas, canvasContext: pageContext, viewport }).promise;
+            const headerCanvas = document.createElement("canvas");
+            headerCanvas.width = pageCanvas.width;
+            headerCanvas.height = Math.ceil(pageCanvas.height * 0.35);
+            const headerContext = headerCanvas.getContext("2d", { alpha: false });
+            if (headerContext) {
+              headerContext.drawImage(pageCanvas, 0, 0, headerCanvas.width, headerCanvas.height, 0, 0, headerCanvas.width, headerCanvas.height);
+              const { createWorker } = await import("tesseract.js");
+              const titleWorker = await createWorker(["tha", "eng"]);
+              try {
+                const titleResult = await titleWorker.recognize(headerCanvas, {}, { text: true });
+                suggestedFromHeader = titleFromRows(ocrTextToRows(titleResult.data.text));
+              } finally {
+                await titleWorker.terminate();
+              }
+            }
+            headerCanvas.width = 1;
+          }
+          pageCanvas.width = 1;
+        }
+        if (!workTitle.trim() && suggestedFromHeader) setWorkTitle(suggestedFromHeader);
+        if (typeof firstPage.cleanup === "function") firstPage.cleanup();
         setSource({ file, buffer, unit: "หน้า", total: pdf.numPages });
         setEnd(pdf.numPages);
         if (typeof pdf.destroy === "function") await pdf.destroy();
@@ -300,6 +414,16 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
         const firstSheet = workbook.SheetNames[0];
         const raw = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[firstSheet], { header: 1, defval: "", raw: false });
+        const mapping = inferSpreadsheetMapping(raw);
+        setTableStartRow(mapping.startRow);
+        setFirstItemNumber(mapping.firstItem);
+        setItemColumn(mapping.itemColumn);
+        setDetailColumn(mapping.detailColumn);
+        setPlusColumn(mapping.plusColumn);
+        setZeroColumn(mapping.zeroColumn);
+        setMinusColumn(mapping.minusColumn);
+        const suggestedFromHeader = titleFromRows(raw);
+        if (!workTitle.trim() && suggestedFromHeader) setWorkTitle(suggestedFromHeader);
         setSource({ file, buffer, unit: "แถว", total: Math.max(raw.length, 1) });
         setEnd(Math.max(raw.length, 1));
       }
@@ -349,6 +473,38 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         const firstSheet = workbook.SheetNames[0];
         const raw = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[firstSheet], { header: 1, defval: "", raw: false });
         rows = raw.slice(from - 1, to);
+        if (analysisType === "ioc") {
+          const itemIndex = columnLabelToIndex(itemColumn);
+          const detailIndex = columnLabelToIndex(detailColumn);
+          const scoreIndexes = [plusColumn, zeroColumn, minusColumn].map(columnLabelToIndex);
+          if ([itemIndex, detailIndex, ...scoreIndexes].some((index) => index < 0)) {
+            throw new Error("กรุณาระบุคอลัมน์ Excel เป็นตัวอักษร เช่น A, B, D, E, F");
+          }
+          const startIndex = Math.max(0, tableStartRow - 1);
+          const spreadsheetItems = raw.slice(startIndex).flatMap((row, offset) => {
+            const fallbackItem = firstItemNumber + offset;
+            if (fallbackItem > expectedItemCount) return [];
+            const readItem = Number(normalizeOcrDigits(String(row[itemIndex] ?? "")).match(/\d{1,3}/)?.[0] ?? "");
+            const item = readItem >= 1 && readItem <= expectedItemCount ? readItem : fallbackItem;
+            const marked = scoreIndexes.map((index) => hasSpreadsheetMark(row[index]));
+            const markedCount = marked.filter(Boolean).length;
+            const rating = markedCount === 1 ? ([1, 0, -1] as const)[marked.findIndex(Boolean)] : null;
+            return [{
+              item,
+              page: tableStartRow + offset,
+              details: String(row[detailIndex] ?? "").trim(),
+              rating,
+              numberStatus: readItem === item ? "พบเลขข้อ" as const : "นับจากแถวตาราง" as const,
+              rowTop: 0,
+              rowBottom: 0,
+              itemLeft: 0,
+              itemRight: 0,
+            }];
+          });
+          detectedIocItems.push(...spreadsheetItems);
+          const conflicts = spreadsheetItems.filter((item) => item.rating === null).length;
+          extractionWarning = `อ่านตาราง Excel จากแถว ${tableStartRow}: เลขข้อ ${itemColumn} · รายละเอียด ${detailColumn} · +1 ${plusColumn} · 0 ${zeroColumn} · -1 ${minusColumn} · ต้องตรวจคะแนน ${conflicts} ข้อ`;
+        }
       } else {
         const { getDocument } = await loadPdfJs();
         const pdf = await getDocument({ data: source.buffer.slice(0) }).promise;
@@ -464,7 +620,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         extractionWarning = warnings.length ? warnings.join(" · ") : undefined;
       }
       if (!rows.length) { setError("ไม่พบข้อความหรือตารางในช่วงที่เลือก แม้ลอง OCR แล้ว กรุณาตรวจสอบว่าภาพคมชัดหรือเลือกช่วงหน้าอื่น"); return; }
-      const title = workTitle.trim() || suggestedTitle;
+      const title = workTitle.trim() || titleFromRows(rows) || suggestedTitle;
       const rangeLabel = mode === "all" ? `${source.unit} ${from}–${to} (ทั้งหมด)` : `${source.unit} ${from}–${to}`;
       const ocrItems = analysisType === "ioc" ? reconcileIocItems(detectedIocItems, expectedItemCount) : [];
       const iocRatings = ocrItems.flatMap((entry) => entry.rating === null ? [] : [{ item: entry.item, rating: entry.rating }]);
@@ -479,14 +635,15 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
 
   return <div className="modal-backdrop"><section className="small-modal source-modal" role="dialog" aria-modal="true" aria-label="นำข้อมูลจากไฟล์โครงการ">
     <header><div><span className="step-label">PROJECT DATA</span><h2>นำข้อมูลจากไฟล์โครงการ</h2><p>เลือกไฟล์และช่วงข้อมูลที่จะเพิ่มในเครื่องมือปัจจุบัน</p></div><button className="close-button" onClick={closeDialog}>×</button></header>
-    <label className="work-title-field">ชื่องานย่อยในโครงการ<input value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} placeholder={suggestedTitle}/><small>ตัวอย่าง: IOC แบบทดสอบผลสัมฤทธิ์ – ผู้เชี่ยวชาญ 1</small></label>
+    <label className="work-title-field">ชื่องานย่อยในโครงการ<input value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} placeholder={suggestedTitle}/><small>ระบบนำข้อความ 2 บรรทัดแรกจากหัวกระดาษมาตั้งชื่อให้อัตโนมัติ และคุณแก้ไขได้</small></label>
     {analysisType === "ioc" && <label className="work-title-field">นำเข้าคะแนนสำหรับผู้เชี่ยวชาญคนที่<input type="number" min={1} max={30} value={targetExpert} onChange={(event) => setTargetExpert(Math.max(1, Math.min(30, Number(event.target.value) || 1)))}/><small>คะแนนที่ตรวจพบจะถูกใส่ในคอลัมน์ของผู้เชี่ยวชาญคนนี้</small></label>}
     {analysisType === "ioc" && <label className="work-title-field required-count">แบบประเมินนี้มีทั้งหมดกี่ข้อ<input type="number" min={1} max={300} value={expectedItemCount} onChange={(event) => setExpectedItemCount(Math.max(1, Math.min(300, Number(event.target.value) || 1)))}/><small>ระบบตรวจทีละหน้า: อ่านเลขจากคอลัมน์ข้อ แล้วตรวจรอยปากกาในคอลัมน์ +1, 0 และ -1 ของแต่ละแถว</small></label>}
     <div className="source-file-head"><b>ไฟล์ข้อมูล</b><button type="button" onClick={() => setShowUpload(true)}>+ เพิ่มไฟล์ใหม่</button></div>
     {files.length === 0 ? <div className="source-empty">โครงการนี้ยังไม่มีไฟล์ กด “เพิ่มไฟล์ใหม่” เพื่อเริ่มต้น</div> : <>
       <label><span className="sr-only">เลือกไฟล์ข้อมูล</span><select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
       {selectedFile && !source && busy && <div className="source-status">กำลังอ่าน {selectedFile.original_name}…</div>}
-      {source && <div className="source-range"><b>พบ {source.total} {source.unit}</b>{source.unit === "หน้า" && <small>PDF สแกนภาพจะใช้ OCR ภาษาไทย–อังกฤษอัตโนมัติ</small>}<label className="radio-row"><input type="radio" checked={mode === "all"} onChange={() => setMode("all")}/> ใช้{source.unit}ทั้งหมด</label><label className="radio-row"><input type="radio" checked={mode === "range"} onChange={() => setMode("range")}/> กำหนดช่วง{source.unit}</label>{mode === "range" && <div className="range-inputs"><label>จาก{source.unit}<input type="number" min={1} max={source.total} value={start} onChange={(e) => setStart(Number(e.target.value))}/></label><label>ถึง{source.unit}<input type="number" min={1} max={source.total} value={end} onChange={(e) => setEnd(Number(e.target.value))}/></label></div>}</div>}
+      {source && <div className="source-range"><b>พบ {source.total} {source.unit}</b>{source.unit === "หน้า" && <small>PDF สแกนภาพจะใช้ OCR ภาษาไทย–อังกฤษอัตโนมัติ หากต้องการกำหนดแถวและคอลัมน์แน่นอน แนะนำแปลงเป็น Excel ก่อน</small>}<label className="radio-row"><input type="radio" checked={mode === "all"} onChange={() => setMode("all")}/> ใช้{source.unit}ทั้งหมด</label><label className="radio-row"><input type="radio" checked={mode === "range"} onChange={() => setMode("range")}/> กำหนดช่วง{source.unit}</label>{mode === "range" && <div className="range-inputs"><label>จาก{source.unit}<input type="number" min={1} max={source.total} value={start} onChange={(e) => setStart(Number(e.target.value))}/></label><label>ถึง{source.unit}<input type="number" min={1} max={source.total} value={end} onChange={(e) => setEnd(Number(e.target.value))}/></label></div>}</div>}
+      {source && source.unit === "แถว" && analysisType === "ioc" && <section className="excel-ioc-map"><div><b>กำหนดตำแหน่งตาราง IOC ใน Excel</b><small>ตรวจค่าที่ระบบเสนอและแก้ไขให้ตรงกับไฟล์จริงก่อนนำเข้า</small></div><div className="excel-map-grid"><label>เลขข้อแรก<input type="number" min={1} max={expectedItemCount} value={firstItemNumber} onChange={(event) => setFirstItemNumber(Math.max(1, Number(event.target.value) || 1))}/></label><label>เริ่มที่แถว<input type="number" min={1} max={source.total} value={tableStartRow} onChange={(event) => setTableStartRow(Math.max(1, Number(event.target.value) || 1))}/></label><label>คอลัมน์เลขข้อ<input value={itemColumn} onChange={(event) => setItemColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์รายละเอียด<input value={detailColumn} onChange={(event) => setDetailColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์ +1<input value={plusColumn} onChange={(event) => setPlusColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์ 0<input value={zeroColumn} onChange={(event) => setZeroColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์ -1<input value={minusColumn} onChange={(event) => setMinusColumn(event.target.value.toUpperCase())}/></label></div><p>ตัวอย่าง: ข้อ {firstItemNumber} เริ่มแถว {tableStartRow} · เลขข้อ {itemColumn || "—"} · รายละเอียด {detailColumn || "—"} · คะแนน +1={plusColumn || "—"}, 0={zeroColumn || "—"}, -1={minusColumn || "—"}</p></section>}
     </>}
     {(error || progress) && <div className={error ? "import-error" : "source-status"}>{error || progress}</div>}
     <footer><button className="secondary-action" onClick={closeDialog}>ยกเลิก</button><button className="primary-action" disabled={!source || busy} onClick={() => void extractRows()}>{busy ? "กำลังอ่าน…" : "นำข้อมูลเข้าเครื่องมือ"}</button></footer>

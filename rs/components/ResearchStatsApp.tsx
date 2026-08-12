@@ -180,7 +180,7 @@ function IocView({
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
   title: string;
 }) {
-  const needsOcrVerification = Boolean(imported?.warning?.includes("OCR"));
+  const needsOcrVerification = Boolean(imported?.warning?.includes("OCR") || imported?.ocrItems?.length || imported?.iocRatings?.length);
   const detectedRatings = imported?.iocRatings ?? [];
   const detectedItems = imported?.ocrItems ?? [];
   const importedRows = needsOcrVerification
@@ -1118,7 +1118,7 @@ function ImportedDataPanel({
   view: View;
 }) {
   const needsIocVerification =
-    view === "ioc" && Boolean(data.warning?.includes("OCR"));
+    view === "ioc" && Boolean(data.warning?.includes("OCR") || data.ocrItems?.length || data.iocRatings?.length);
   const items = data.ocrItems ?? [];
   const foundItems = items.filter(
     (item) => item.numberStatus !== "ไม่พบเลขข้อ",
@@ -1180,7 +1180,7 @@ function ImportedDataPanel({
               <thead>
                 <tr>
                   <th>ข้อ</th>
-                  <th>หน้า</th>
+                  <th>{data.sourceRange?.unit === "แถว" ? "แถว" : "หน้า"}</th>
                   <th>ผลค้นหาเลขข้อ</th>
                   <th>รายละเอียดที่ OCR อ่านได้</th>
                   <th>คะแนน</th>
@@ -1536,7 +1536,7 @@ export default function ResearchStatsApp({
                 </button>
               </>
             )}
-            <span className="version-chip">รุ่นคำนวณ 2.0</span>
+            <span className="version-chip">รุ่นคำนวณ 2.1</span>
             <span className="avatar">พ</span>
           </div>
         </div>
