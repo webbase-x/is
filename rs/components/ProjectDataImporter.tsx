@@ -34,6 +34,7 @@ export interface ImportedProjectData {
   targetExpert?: number;
   expectedItemCount?: number;
   sourceRange?: { from: number; to: number; unit: "หน้า" | "แถว" };
+  iocColumnMap?: IocColumnMap;
 }
 
 type LoadedSource = {
@@ -44,16 +45,15 @@ type LoadedSource = {
   total: number;
 };
 
-type VisualMapKey = "item" | "detail" | "plus" | "zero" | "minus";
-type VisualPoint = { x: number; y: number };
-type VisualMap = Partial<Record<VisualMapKey, VisualPoint>>;
-
-const VISUAL_MAP_LABELS: Record<VisualMapKey, string> = {
-  item: "เลขข้อแรก",
-  detail: "รายละเอียด",
-  plus: "+1",
-  zero: "0",
-  minus: "-1",
+export type IocColumnMap = {
+  totalColumns: number;
+  itemColumn: number;
+  detailFromColumn: number;
+  detailToColumn: number;
+  plusColumn: number;
+  zeroColumn: number;
+  minusColumn: number;
+  suggestionColumn?: number;
 };
 
 async function sourcePageToCanvas(source: LoadedSource, pageNumber: number, scale = 2) {
@@ -176,7 +176,7 @@ function parseTsvWords(tsv: string | null) {
   });
 }
 
-function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: number, visualMap?: VisualMap): OcrItem[] {
+function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: number, columnMap: IocColumnMap): OcrItem[] {
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) return [];
   const { width, height } = canvas;
@@ -219,52 +219,32 @@ function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: num
   }
   const horizontalRules = clusterPeaks(horizontalScores).sort((a, b) => a - b);
   const verticalRules = clusterPeaks(verticalScores).sort((a, b) => a - b);
-  const leftRules = verticalRules.filter((rule) => rule < width * 0.25);
-  let itemLeft = 0;
-  let itemRight = width * 0.14;
-  for (let index = 0; index < leftRules.length - 1; index += 1) {
-    const gap = leftRules[index + 1] - leftRules[index];
-    if (leftRules[index] < width * 0.08 && gap > width * 0.025 && gap < width * 0.16) {
-      itemLeft = leftRules[index];
-      itemRight = leftRules[index + 1];
-      break;
+  let columnRules: number[] = [];
+  let bestCoverage = 0;
+  for (let index = 0; index <= verticalRules.length - (columnMap.totalColumns + 1); index += 1) {
+    const group = verticalRules.slice(index, index + columnMap.totalColumns + 1);
+    const gaps = group.slice(1).map((value, gapIndex) => value - group[gapIndex]);
+    const coverage = group.at(-1)! - group[0];
+    const valid = group[0] < width * 0.2 && group.at(-1)! > width * 0.7 && coverage > width * 0.55 && gaps.every((gap) => gap > width * 0.012);
+    if (valid && coverage > bestCoverage) {
+      columnRules = group;
+      bestCoverage = coverage;
     }
   }
-  let ratingRules: number[] = [];
-  const mappedCenters = visualMap?.plus && visualMap.zero && visualMap.minus
-    ? [visualMap.plus.x * width, visualMap.zero.x * width, visualMap.minus.x * width]
-    : [];
-  if (mappedCenters.length === 3 && mappedCenters[0] < mappedCenters[1] && mappedCenters[1] < mappedCenters[2]) {
-    ratingRules = [
-      Math.max(0, mappedCenters[0] - (mappedCenters[1] - mappedCenters[0]) / 2),
-      (mappedCenters[0] + mappedCenters[1]) / 2,
-      (mappedCenters[1] + mappedCenters[2]) / 2,
-      Math.min(width, mappedCenters[2] + (mappedCenters[2] - mappedCenters[1]) / 2),
-    ];
-  }
-  let bestSpan = Number.POSITIVE_INFINITY;
-  for (let index = 0; ratingRules.length !== 4 && index <= verticalRules.length - 4; index += 1) {
-    const group = verticalRules.slice(index, index + 4);
-    const gaps = group.slice(1).map((value, gapIndex) => value - group[gapIndex]);
-    const valid = group[0] > width * 0.5 && gaps.every((gap) => gap > width * 0.018 && gap < width * 0.12);
-    const span = group[3] - group[0];
-    if (valid && span < bestSpan) { ratingRules = group; bestSpan = span; }
-  }
-  if (visualMap?.item && visualMap.detail) {
-    const itemCenter = visualMap.item.x * width;
-    const detailCenter = visualMap.detail.x * width;
-    const halfGap = Math.abs(detailCenter - itemCenter) / 2;
-    itemLeft = Math.max(0, itemCenter - halfGap);
-    itemRight = Math.min(width, itemCenter + halfGap);
-  }
-  if (ratingRules.length !== 4 || horizontalRules.length < 2) return [];
+  if (columnRules.length !== columnMap.totalColumns + 1 || horizontalRules.length < 2) return [];
+  const boundsFor = (column: number) => [columnRules[column - 1], columnRules[column]] as const;
+  const [itemLeft, itemRight] = boundsFor(columnMap.itemColumn);
+  const detailLeft = columnRules[columnMap.detailFromColumn - 1];
+  const detailRight = columnRules[columnMap.detailToColumn];
+  const scoreBounds = [columnMap.plusColumn, columnMap.zeroColumn, columnMap.minusColumn].map(boundsFor);
+  const scoreLeft = Math.min(...scoreBounds.map((bounds) => bounds[0]));
+  const scoreRight = Math.max(...scoreBounds.map((bounds) => bounds[1]));
 
   const words = parseTsvWords(tsv);
   const detected: OcrItem[] = [];
   for (let index = 0; index < horizontalRules.length - 1; index += 1) {
     const top = horizontalRules[index], bottom = horizontalRules[index + 1];
     if (bottom - top < height * 0.035) continue;
-    if (visualMap?.item && bottom < visualMap.item.y * height) continue;
     const rowWords = words.filter((word) =>
       word.text && word.top + word.height / 2 > top && word.top + word.height / 2 < bottom,
     );
@@ -272,12 +252,12 @@ function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: num
     const scoreHeaderCells = rowWords.filter((word) => {
       const center = word.left + word.width / 2;
       const normalized = normalizeOcrDigits(word.text).replace(/\s+/g, "");
-      return center > ratingRules[0] && center < ratingRules[3] && /^(?:\+1|0|-1)$/.test(normalized);
+      return center > scoreLeft && center < scoreRight && /^(?:\+1|0|-1)$/.test(normalized);
     }).length;
     if (scoreHeaderCells >= 2 || (/ความคิดเห็น/.test(rowText) && /ผู้เชี่ยวชาญ/.test(rowText))) continue;
     const evidence = [0, 1, 2].map((column) => {
       let blue = 0, dark = 0;
-      for (let y = top + 3; y < bottom - 3; y += 1) for (let x = ratingRules[column] + 3; x < ratingRules[column + 1] - 3; x += 1) {
+      for (let y = top + 3; y < bottom - 3; y += 1) for (let x = scoreBounds[column][0] + 3; x < scoreBounds[column][1] - 3; x += 1) {
         if (blueInk(x, y)) blue += 1;
         else if (neutralDark(x, y)) dark += 1;
       }
@@ -292,8 +272,9 @@ function detectIocItems(canvas: HTMLCanvasElement, tsv: string | null, page: num
       return center > itemLeft && center < itemRight && word.top + word.height / 2 > top && word.top + word.height / 2 < bottom && /^\D*\d{1,3}\D*$/.test(normalized);
     });
     const itemMatch = itemWord ? normalizeOcrDigits(itemWord.text).match(/\d{1,3}/) : null;
+    if (!itemWord && !hasConfidentMark) continue;
     const details = rowWords
-      .filter((word) => word !== itemWord && word.left < ratingRules[0])
+      .filter((word) => word !== itemWord && word.left + word.width / 2 > detailLeft && word.left + word.width / 2 < detailRight)
       .sort((a, b) => Math.abs(a.top - b.top) > 5 ? a.top - b.top : a.left - b.left)
       .map((word) => word.text).join(" ").replace(/\s+/g, " ").trim();
     detected.push({
@@ -395,8 +376,14 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   const [minusColumn, setMinusColumn] = useState("F");
   const [mappingPage, setMappingPage] = useState(1);
   const [mappingPreview, setMappingPreview] = useState("");
-  const [visualMap, setVisualMap] = useState<VisualMap>({});
-  const [activeMapKey, setActiveMapKey] = useState<VisualMapKey>("item");
+  const [totalImageColumns, setTotalImageColumns] = useState(7);
+  const [imageItemColumn, setImageItemColumn] = useState(1);
+  const [imageDetailFrom, setImageDetailFrom] = useState(2);
+  const [imageDetailTo, setImageDetailTo] = useState(3);
+  const [imagePlusColumn, setImagePlusColumn] = useState(4);
+  const [imageZeroColumn, setImageZeroColumn] = useState(5);
+  const [imageMinusColumn, setImageMinusColumn] = useState(6);
+  const [imageSuggestionColumn, setImageSuggestionColumn] = useState(7);
 
   useEffect(() => {
     if (!open) return;
@@ -410,11 +397,25 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   }, [open, project.id]);
 
   const selectedFile = useMemo(() => files.find((file) => file.id === selectedId), [files, selectedId]);
-  const visualMapComplete = (Object.keys(VISUAL_MAP_LABELS) as VisualMapKey[]).every((key) => Boolean(visualMap[key]));
+  const iocColumnMap = useMemo<IocColumnMap>(() => ({
+    totalColumns: totalImageColumns,
+    itemColumn: imageItemColumn,
+    detailFromColumn: imageDetailFrom,
+    detailToColumn: imageDetailTo,
+    plusColumn: imagePlusColumn,
+    zeroColumn: imageZeroColumn,
+    minusColumn: imageMinusColumn,
+    suggestionColumn: imageSuggestionColumn || undefined,
+  }), [totalImageColumns, imageItemColumn, imageDetailFrom, imageDetailTo, imagePlusColumn, imageZeroColumn, imageMinusColumn, imageSuggestionColumn]);
+  const columnMapValid = totalImageColumns >= 5 && totalImageColumns <= 20
+    && [imageItemColumn, imageDetailFrom, imageDetailTo, imagePlusColumn, imageZeroColumn, imageMinusColumn].every((value) => Number.isInteger(value) && value >= 1 && value <= totalImageColumns)
+    && imageDetailFrom <= imageDetailTo
+    && new Set([imagePlusColumn, imageZeroColumn, imageMinusColumn]).size === 3
+    && (!imageSuggestionColumn || imageSuggestionColumn <= totalImageColumns);
   if (!open) return null;
 
   function closeDialog() {
-    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle(""); setTargetExpert(1); setExpectedItemCount(30); setTableStartRow(3); setFirstItemNumber(1); setItemColumn("A"); setDetailColumn("B"); setPlusColumn("D"); setZeroColumn("E"); setMinusColumn("F"); setMappingPage(1); setMappingPreview(""); setVisualMap({}); setActiveMapKey("item");
+    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle(""); setTargetExpert(1); setExpectedItemCount(30); setTableStartRow(3); setFirstItemNumber(1); setItemColumn("A"); setDetailColumn("B"); setPlusColumn("D"); setZeroColumn("E"); setMinusColumn("F"); setMappingPage(1); setMappingPreview(""); setTotalImageColumns(7); setImageItemColumn(1); setImageDetailFrom(2); setImageDetailTo(3); setImagePlusColumn(4); setImageZeroColumn(5); setImageMinusColumn(6); setImageSuggestionColumn(7);
     onClose();
   }
 
@@ -538,18 +539,6 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     } finally { setBusy(false); setProgress(""); }
   }
 
-  function setVisualPosition(event: React.MouseEvent<HTMLDivElement>) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const point = {
-      x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
-      y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)),
-    };
-    setVisualMap((current) => ({ ...current, [activeMapKey]: point }));
-    const order: VisualMapKey[] = ["item", "detail", "plus", "zero", "minus"];
-    const nextIndex = order.indexOf(activeMapKey) + 1;
-    if (nextIndex < order.length) setActiveMapKey(order[nextIndex]);
-  }
-
   async function uploadNewFile(draft: FileDraft) {
     const supabase = getSupabaseClient();
     if (!supabase) { setError("ไม่พบการเชื่อมต่อ Supabase"); return; }
@@ -583,8 +572,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     setBusy(true); setError("");
     try {
       if (analysisType === "ioc" && source.kind !== "spreadsheet") {
-        const missingPoints = (Object.keys(VISUAL_MAP_LABELS) as VisualMapKey[]).filter((key) => !visualMap[key]);
-        if (missingPoints.length) throw new Error(`กรุณาคลิกกำหนดตำแหน่งให้ครบ: ${missingPoints.map((key) => VISUAL_MAP_LABELS[key]).join(", ")}`);
+        if (!columnMapValid) throw new Error("กรุณาตรวจจำนวนคอลัมน์และหมายเลขคอลัมน์ IOC ให้ถูกต้อง");
       }
       let rows: unknown[][] = [];
       let extractionWarning: string | undefined;
@@ -639,7 +627,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
           const result = await ocrWorker.recognize(canvas, {}, { text: true, tsv: analysisType === "ioc" });
           rows = ocrTextToRows(result.data.text);
           if (analysisType === "ioc") {
-            const pageItems = detectIocItems(canvas, result.data.tsv, 1, visualMap);
+            const pageItems = detectIocItems(canvas, result.data.tsv, 1, iocColumnMap);
             const unreadNumbers = pageItems.filter((entry) => entry.item === null);
             await ocrWorker.setParameters({ tessedit_char_whitelist: "0123456789๐๑๒๓๔๕๖๗๘๙", tessedit_pageseg_mode: "11" as never });
             for (const entry of unreadNumbers) {
@@ -673,7 +661,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         }
         const reconciledItems = reconcileIocItems(detectedIocItems, expectedItemCount, firstItemNumber);
         const ratedCount = reconciledItems.filter((item) => item.rating !== null).length;
-        extractionWarning = `ใช้ตำแหน่งที่ผู้ใช้กำหนดบนรูปภาพ และพบรอยปากกาในช่อง +1/0/-1 จำนวน ${ratedCount} ข้อ กรุณาตรวจยืนยัน`;
+        extractionWarning = `ตรวจหัวตารางและ ${totalImageColumns} คอลัมน์ย่อยบนรูปภาพ: ข้อ=${imageItemColumn} · รายละเอียด=${imageDetailFrom}–${imageDetailTo} · +1=${imagePlusColumn} · 0=${imageZeroColumn} · -1=${imageMinusColumn} · อ่านคะแนนได้ ${ratedCount} ข้อ`;
       } else {
         const { getDocument } = await loadPdfJs();
         const pdf = await getDocument({ data: source.buffer.slice(0) }).promise;
@@ -724,7 +712,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
                 const result = await ocrWorker.recognize(canvas, {}, { text: true, tsv: analysisType === "ioc" });
                 const ocrRows = ocrTextToRows(result.data.text);
                 if (analysisType === "ioc") {
-                  const pageItems = detectIocItems(canvas, result.data.tsv, pageNumber, visualMap);
+                  const pageItems = detectIocItems(canvas, result.data.tsv, pageNumber, iocColumnMap);
                   const unreadNumbers = pageItems.filter((entry) => entry.item === null);
                   await ocrWorker.setParameters({ tessedit_char_whitelist: "0123456789๐๑๒๓๔๕๖๗๘๙", tessedit_pageseg_mode: "11" as never });
                   for (let rowIndex = 0; rowIndex < unreadNumbers.length; rowIndex += 1) {
@@ -784,7 +772,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         const exactCount = foundItems.filter((item) => item.numberStatus === "พบเลขข้อ").length;
         const inferredCount = foundItems.filter((item) => item.numberStatus === "นับจากแถวตาราง").length;
         const ratedCount = foundItems.filter((item) => item.rating !== null).length;
-        warnings.push(`ตรวจทีละหน้า: อ่านเลขจากคอลัมน์ข้อได้ ${exactCount} ข้อ นับจากแถวตาราง ${inferredCount} ข้อ และพบรอยปากกาในช่อง +1/0/-1 จำนวน ${ratedCount} ข้อ กรุณาตรวจยืนยัน`);
+        warnings.push(`ตรวจหัวตารางใหม่ทุกหน้า (${totalImageColumns} คอลัมน์ย่อย): ข้อ=${imageItemColumn} · รายละเอียด=${imageDetailFrom}–${imageDetailTo} · +1=${imagePlusColumn} · 0=${imageZeroColumn} · -1=${imageMinusColumn} · อ่านเลขโดยตรง ${exactCount} ข้อ · นับจากแถว ${inferredCount} ข้อ · อ่านคะแนนได้ ${ratedCount} ข้อ`);
         if (failedPages.length) warnings.push(`ข้ามหน้าที่อ่านไม่ได้: ${failedPages.join(", ")}`);
         extractionWarning = warnings.length ? warnings.join(" · ") : undefined;
       }
@@ -793,7 +781,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
       const rangeLabel = mode === "all" ? `${source.unit} ${from}–${to} (ทั้งหมด)` : `${source.unit} ${from}–${to}`;
       const ocrItems = analysisType === "ioc" ? reconcileIocItems(detectedIocItems, expectedItemCount, firstItemNumber) : [];
       const iocRatings = ocrItems.flatMap((entry) => entry.rating === null ? [] : [{ item: entry.item, rating: entry.rating }]);
-      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined, ocrItems: ocrItems.length ? ocrItems : undefined, targetExpert: analysisType === "ioc" ? targetExpert : undefined, expectedItemCount: analysisType === "ioc" ? expectedItemCount : undefined, sourceRange: { from, to, unit: source.unit } });
+      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined, ocrItems: ocrItems.length ? ocrItems : undefined, targetExpert: analysisType === "ioc" ? targetExpert : undefined, expectedItemCount: analysisType === "ioc" ? expectedItemCount : undefined, sourceRange: { from, to, unit: source.unit }, iocColumnMap: analysisType === "ioc" && source.unit === "หน้า" ? iocColumnMap : undefined });
       closeDialog();
     } catch (extractError) {
       const detail = extractError instanceof Error ? extractError.message : String(extractError);
@@ -811,11 +799,11 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
     {files.length === 0 ? <div className="source-empty">โครงการนี้ยังไม่มีไฟล์ กด “เพิ่มไฟล์ใหม่” เพื่อเริ่มต้น</div> : <>
       <label><span className="sr-only">เลือกไฟล์ข้อมูล</span><select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
       {selectedFile && !source && busy && <div className="source-status">กำลังอ่าน {selectedFile.original_name}…</div>}
-      {source && <div className="source-range"><b>พบ {source.total} {source.unit}</b>{source.unit === "หน้า" && <small>คลิกกำหนดคอลัมน์บนภาพด้านล่าง ระบบจะใช้ตำแหน่งนั้นอ่านเลขข้อและรอยปากกา</small>}<label className="radio-row"><input type="radio" checked={mode === "all"} onChange={() => setMode("all")}/> ใช้{source.unit}ทั้งหมด</label><label className="radio-row"><input type="radio" checked={mode === "range"} onChange={() => setMode("range")}/> กำหนดช่วง{source.unit}</label>{mode === "range" && <div className="range-inputs"><label>จาก{source.unit}<input type="number" min={1} max={source.total} value={start} onChange={(e) => setStart(Number(e.target.value))}/></label><label>ถึง{source.unit}<input type="number" min={1} max={source.total} value={end} onChange={(e) => setEnd(Number(e.target.value))}/></label></div>}</div>}
-      {source && source.unit === "หน้า" && analysisType === "ioc" && <section className="visual-ioc-map"><div className="visual-map-head"><div><b>กำหนดตำแหน่งบน {source.kind === "image" ? "รูปภาพ" : "PDF"}</b><small>เลือกหัวข้อแล้วคลิกตรงกลางเซลล์บนภาพ เริ่มจากช่องเลขข้อแรก</small></div><button type="button" onClick={() => { setVisualMap({}); setActiveMapKey("item"); }}>ล้างตำแหน่ง</button></div><div className="visual-map-settings"><label>เลขข้อแรกในช่วง<input type="number" min={1} max={expectedItemCount} value={firstItemNumber} onChange={(event) => setFirstItemNumber(Math.max(1, Number(event.target.value) || 1))}/></label>{source.kind === "pdf" && <label>หน้าตัวอย่าง<input type="number" min={1} max={source.total} value={mappingPage} onChange={(event) => { const page = Math.max(1, Math.min(source.total, Number(event.target.value) || 1)); setMappingPage(page); void showMappingPage(source, page); }}/></label>}</div><div className="visual-map-buttons">{(Object.keys(VISUAL_MAP_LABELS) as VisualMapKey[]).map((key) => <button type="button" key={key} className={`${activeMapKey === key ? "active" : ""} ${visualMap[key] ? "done" : ""}`} onClick={() => setActiveMapKey(key)}><span>{visualMap[key] ? "✓" : "○"}</span>{VISUAL_MAP_LABELS[key]}</button>)}</div>{mappingPreview ? <div className="visual-map-image" onClick={setVisualPosition} role="button" tabIndex={0} aria-label={`คลิกกำหนดตำแหน่ง ${VISUAL_MAP_LABELS[activeMapKey]}`}><img src={mappingPreview} alt={`หน้าตัวอย่างสำหรับกำหนดตำแหน่ง ${VISUAL_MAP_LABELS[activeMapKey]}`}/>{(Object.entries(visualMap) as Array<[VisualMapKey, VisualPoint]>).map(([key, point]) => <span key={key} className={`visual-marker marker-${key}`} style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}>{VISUAL_MAP_LABELS[key]}</span>)}</div> : <div className="source-status">กำลังเตรียมภาพตัวอย่าง…</div>}<p className={visualMapComplete ? "map-ready" : "map-pending"}>{visualMapComplete ? `กำหนดครบแล้ว ระบบจะใช้ตำแหน่งนี้ตรวจช่วงหน้า ${mode === "all" ? `1–${source.total}` : `${start}–${end}`}` : `ตำแหน่งที่กำลังรอ: ${VISUAL_MAP_LABELS[activeMapKey]}`}</p></section>}
+      {source && <div className="source-range"><b>พบ {source.total} {source.unit}</b>{source.unit === "หน้า" && <small>ระบบค้นหาหัวตารางและเส้นแบ่งคอลัมน์ใหม่ทุกหน้า แล้วอ่านรอยปากกาตามหมายเลขคอลัมน์ย่อยที่กำหนด</small>}<label className="radio-row"><input type="radio" checked={mode === "all"} onChange={() => setMode("all")}/> ใช้{source.unit}ทั้งหมด</label><label className="radio-row"><input type="radio" checked={mode === "range"} onChange={() => setMode("range")}/> กำหนดช่วง{source.unit}</label>{mode === "range" && <div className="range-inputs"><label>จาก{source.unit}<input type="number" min={1} max={source.total} value={start} onChange={(e) => setStart(Number(e.target.value))}/></label><label>ถึง{source.unit}<input type="number" min={1} max={source.total} value={end} onChange={(e) => setEnd(Number(e.target.value))}/></label></div>}</div>}
+      {source && source.unit === "หน้า" && analysisType === "ioc" && <section className="visual-ioc-map"><div className="visual-map-head"><div><b>โครงสร้างคอลัมน์ IOC ใน {source.kind === "image" ? "รูปภาพ" : "PDF"}</b><small>ระบบค้นหาเส้นและหัวตารางใหม่ทุกหน้า แล้วนับคอลัมน์ย่อยจากซ้ายไปขวา</small></div></div><div className="column-map-grid"><label>คอลัมน์ย่อยทั้งหมด<input type="number" min={5} max={20} value={totalImageColumns} onChange={(event) => setTotalImageColumns(Math.max(5, Math.min(20, Number(event.target.value) || 5)))}/></label><label>เลขข้อแรกในช่วง<input type="number" min={1} max={expectedItemCount} value={firstItemNumber} onChange={(event) => setFirstItemNumber(Math.max(1, Number(event.target.value) || 1))}/></label><label>ข้อ อยู่คอลัมน์<input type="number" min={1} max={totalImageColumns} value={imageItemColumn} onChange={(event) => setImageItemColumn(Number(event.target.value) || 1)}/></label><label>รายละเอียด เริ่มคอลัมน์<input type="number" min={1} max={totalImageColumns} value={imageDetailFrom} onChange={(event) => setImageDetailFrom(Number(event.target.value) || 1)}/></label><label>รายละเอียด ถึงคอลัมน์<input type="number" min={1} max={totalImageColumns} value={imageDetailTo} onChange={(event) => setImageDetailTo(Number(event.target.value) || 1)}/></label><label>+1 อยู่คอลัมน์ย่อย<input type="number" min={1} max={totalImageColumns} value={imagePlusColumn} onChange={(event) => setImagePlusColumn(Number(event.target.value) || 1)}/></label><label>0 อยู่คอลัมน์ย่อย<input type="number" min={1} max={totalImageColumns} value={imageZeroColumn} onChange={(event) => setImageZeroColumn(Number(event.target.value) || 1)}/></label><label>-1 อยู่คอลัมน์ย่อย<input type="number" min={1} max={totalImageColumns} value={imageMinusColumn} onChange={(event) => setImageMinusColumn(Number(event.target.value) || 1)}/></label><label>ข้อเสนอแนะ (0=ไม่มี)<input type="number" min={0} max={totalImageColumns} value={imageSuggestionColumn} onChange={(event) => setImageSuggestionColumn(Math.max(0, Number(event.target.value) || 0))}/></label>{source.kind === "pdf" && <label>หน้าตัวอย่าง<input type="number" min={1} max={source.total} value={mappingPage} onChange={(event) => { const page = Math.max(1, Math.min(source.total, Number(event.target.value) || 1)); setMappingPage(page); void showMappingPage(source, page); }}/></label>}</div><p className={columnMapValid ? "map-ready" : "map-pending"}>{columnMapValid ? `กำหนดแล้ว: ${totalImageColumns} คอลัมน์ · ข้อ=${imageItemColumn} · รายละเอียด=${imageDetailFrom}–${imageDetailTo} · +1=${imagePlusColumn} · 0=${imageZeroColumn} · -1=${imageMinusColumn}${imageSuggestionColumn ? ` · ข้อเสนอแนะ=${imageSuggestionColumn}` : ""}` : "หมายเลขคอลัมน์ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง"}</p>{mappingPreview ? <div className="column-map-preview"><img src={mappingPreview} alt="หน้าตัวอย่างสำหรับตรวจโครงสร้างตาราง"/></div> : <div className="source-status">กำลังเตรียมภาพตัวอย่าง…</div>}<p>หัวตารางแบบรวมเซลล์ไม่นับเป็นคอลัมน์เพิ่ม ให้นับเฉพาะคอลัมน์ย่อยจริงใต้หัวตาราง</p></section>}
       {source && source.unit === "แถว" && analysisType === "ioc" && <section className="excel-ioc-map"><div><b>กำหนดตำแหน่งตาราง IOC ใน Excel</b><small>ตรวจค่าที่ระบบเสนอและแก้ไขให้ตรงกับไฟล์จริงก่อนนำเข้า</small></div><div className="excel-map-grid"><label>เลขข้อแรก<input type="number" min={1} max={expectedItemCount} value={firstItemNumber} onChange={(event) => setFirstItemNumber(Math.max(1, Number(event.target.value) || 1))}/></label><label>เริ่มที่แถว<input type="number" min={1} max={source.total} value={tableStartRow} onChange={(event) => setTableStartRow(Math.max(1, Number(event.target.value) || 1))}/></label><label>คอลัมน์เลขข้อ<input value={itemColumn} onChange={(event) => setItemColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์รายละเอียด<input value={detailColumn} onChange={(event) => setDetailColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์ +1<input value={plusColumn} onChange={(event) => setPlusColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์ 0<input value={zeroColumn} onChange={(event) => setZeroColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์ -1<input value={minusColumn} onChange={(event) => setMinusColumn(event.target.value.toUpperCase())}/></label></div><p>ตัวอย่าง: ข้อ {firstItemNumber} เริ่มแถว {tableStartRow} · เลขข้อ {itemColumn || "—"} · รายละเอียด {detailColumn || "—"} · คะแนน +1={plusColumn || "—"}, 0={zeroColumn || "—"}, -1={minusColumn || "—"}</p></section>}
     </>}
     {(error || progress) && <div className={error ? "import-error" : "source-status"}>{error || progress}</div>}
-    <footer><button className="secondary-action" onClick={closeDialog}>ยกเลิก</button><button className="primary-action" disabled={!source || busy || (analysisType === "ioc" && source.unit === "หน้า" && !visualMapComplete)} onClick={() => void extractRows()}>{busy ? "กำลังอ่าน…" : "นำข้อมูลเข้าเครื่องมือ"}</button></footer>
+    <footer><button className="secondary-action" onClick={closeDialog}>ยกเลิก</button><button className="primary-action" disabled={!source || busy || (analysisType === "ioc" && source.unit === "หน้า" && !columnMapValid)} onClick={() => void extractRows()}>{busy ? "กำลังอ่าน…" : "นำข้อมูลเข้าเครื่องมือ"}</button></footer>
   </section><FileImportDialog open={showUpload} busy={busy} onClose={() => setShowUpload(false)} onConfirm={uploadNewFile}/></div>;
 }
