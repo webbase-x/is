@@ -30,6 +30,7 @@ export interface ImportedProjectData {
   rows: unknown[][];
   warning?: string;
   iocRatings?: Array<{ item: number; rating: -1 | 0 | 1 }>;
+  targetExpert?: number;
 }
 
 type LoadedSource = {
@@ -155,6 +156,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   const [error, setError] = useState("");
   const [showUpload, setShowUpload] = useState(false);
   const [workTitle, setWorkTitle] = useState("");
+  const [targetExpert, setTargetExpert] = useState(1);
 
   useEffect(() => {
     if (!open) return;
@@ -171,7 +173,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   if (!open) return null;
 
   function closeDialog() {
-    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle("");
+    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle(""); setTargetExpert(1);
     onClose();
   }
 
@@ -322,26 +324,13 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
       if (!rows.length) { setError("ไม่พบข้อความหรือตารางในช่วงที่เลือก แม้ลอง OCR แล้ว กรุณาตรวจสอบว่าภาพคมชัดหรือเลือกช่วงหน้าอื่น"); return; }
       const title = workTitle.trim() || suggestedTitle;
       const rangeLabel = mode === "all" ? `${source.unit}ทั้งหมด` : `${source.unit} ${from}–${to}`;
-      const supabase = getSupabaseClient();
-      if (!supabase) { setError("ไม่พบการเชื่อมต่อ Supabase"); return; }
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) { setError("กรุณาเข้าสู่ระบบใหม่ก่อนบันทึกงานย่อย"); return; }
-      const { data: analysis, error: saveError } = await supabase.from("research_analyses").insert({
-        project_id: project.id,
-        owner_id: authData.user.id,
-        analysis_type: analysisType,
-        title,
-        input_json: { source_file_id: source.file.id, source_name: source.file.original_name, range_label: rangeLabel, row_count: rows.length },
-        result_json: {},
-      }).select("id").single();
-      if (saveError || !analysis) { setError(saveError?.message || "บันทึกชื่องานย่อยไม่สำเร็จ"); return; }
       let nextItem = 1;
       const iocRatings = detectedIocRatings.flatMap((entry) => {
         const item = entry.item && entry.item > 0 ? entry.item : nextItem;
         nextItem = item + 1;
         return item <= 300 ? [{ item, rating: entry.rating }] : [];
       });
-      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined });
+      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined, targetExpert: analysisType === "ioc" ? targetExpert : undefined });
       closeDialog();
     } catch (extractError) {
       const detail = extractError instanceof Error ? extractError.message : String(extractError);
@@ -353,6 +342,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   return <div className="modal-backdrop"><section className="small-modal source-modal" role="dialog" aria-modal="true" aria-label="นำข้อมูลจากไฟล์โครงการ">
     <header><div><span className="step-label">PROJECT DATA</span><h2>นำข้อมูลจากไฟล์โครงการ</h2><p>เลือกไฟล์และช่วงข้อมูลที่จะเพิ่มในเครื่องมือปัจจุบัน</p></div><button className="close-button" onClick={closeDialog}>×</button></header>
     <label className="work-title-field">ชื่องานย่อยในโครงการ<input value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} placeholder={suggestedTitle}/><small>ตัวอย่าง: IOC แบบทดสอบผลสัมฤทธิ์ – ผู้เชี่ยวชาญ 1</small></label>
+    {analysisType === "ioc" && <label className="work-title-field">นำเข้าคะแนนสำหรับผู้เชี่ยวชาญคนที่<input type="number" min={1} max={30} value={targetExpert} onChange={(event) => setTargetExpert(Math.max(1, Math.min(30, Number(event.target.value) || 1)))}/><small>คะแนนที่ตรวจพบจะถูกใส่ในคอลัมน์ของผู้เชี่ยวชาญคนนี้</small></label>}
     <div className="source-file-head"><b>ไฟล์ข้อมูล</b><button type="button" onClick={() => setShowUpload(true)}>+ เพิ่มไฟล์ใหม่</button></div>
     {files.length === 0 ? <div className="source-empty">โครงการนี้ยังไม่มีไฟล์ กด “เพิ่มไฟล์ใหม่” เพื่อเริ่มต้น</div> : <>
       <label><span className="sr-only">เลือกไฟล์ข้อมูล</span><select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
