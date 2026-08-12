@@ -281,21 +281,22 @@ function IocView({
       },
     );
   }, [experts, rows]);
+  const exportRows = () => [
+    ["ข้อ", ...experts, "∑R", "IOC", "ผล"],
+    ...rows.map((row, index) => [
+      index + 1,
+      ...row.map((value) => value ?? ""),
+      results[index].sum,
+      results[index].ioc?.toFixed(2) ?? "",
+      results[index].ioc === null
+        ? "รอคะแนน"
+        : results[index].passed
+          ? "ใช้ได้"
+          : "ปรับปรุง",
+    ]),
+  ];
   const exportCsv = () => {
-    const lines = [
-      ["ข้อ", ...experts, "∑R", "IOC", "ผล"],
-      ...rows.map((row, index) => [
-        index + 1,
-        ...row.map((value) => value ?? ""),
-        results[index].sum,
-        results[index].ioc?.toFixed(2) ?? "",
-        results[index].ioc === null
-          ? "รอคะแนน"
-          : results[index].passed
-            ? "ใช้ได้"
-            : "ปรับปรุง",
-      ]),
-    ]
+    const lines = exportRows()
       .map((line) =>
         line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","),
       )
@@ -304,6 +305,71 @@ function IocView({
       new Blob(["\ufeff", lines], { type: "text/csv;charset=utf-8" }),
       `${safeFilename(title)}.csv`,
     );
+  };
+  const exportXlsx = async () => {
+    const xlsx = await import("xlsx");
+    const workbook = xlsx.utils.book_new();
+    const sheet = xlsx.utils.aoa_to_sheet(exportRows());
+    xlsx.utils.book_append_sheet(workbook, sheet, "IOC");
+    xlsx.writeFile(workbook, `${safeFilename(title)}.xlsx`);
+  };
+  const exportDocx = async () => {
+    const { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun } =
+      await import(/* @vite-ignore */ DOCX_JS_URL);
+    const table = new Table({
+      rows: exportRows().map(
+        (row, rowIndex) =>
+          new TableRow({
+            children: row.map(
+              (cell) =>
+                new TableCell({
+                  children: [
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: String(cell),
+                          bold: rowIndex === 0,
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+            ),
+          }),
+      ),
+    });
+    const document = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "ตารางสรุปผลการตรวจสอบความตรงเชิงเนื้อหา (IOC)",
+                  bold: true,
+                }),
+              ],
+            }),
+            new Paragraph(title),
+            table,
+          ],
+        },
+      ],
+    });
+    downloadFile(await Packer.toBlob(document), `${safeFilename(title)}.docx`);
+  };
+  const exportPdf = async () => {
+    const canvas = createIocCanvas(title, experts, rows, results);
+    if (!canvas) return;
+    const { jsPDF } = await import(/* @vite-ignore */ JSPDF_JS_URL);
+    const pdf = new jsPDF({
+      orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+      unit: "px",
+      format: [canvas.width, canvas.height],
+      hotfixes: ["px_scaling"],
+    });
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, canvas.width, canvas.height);
+    pdf.save(`${safeFilename(title)}.pdf`);
   };
   const exportPng = () => exportIocPng(title, experts, rows, results);
   return (
@@ -363,10 +429,23 @@ function IocView({
               + ผู้เชี่ยวชาญ
             </button>
             <button onClick={addItem}>+ เพิ่มข้อ</button>
-            <button className="secondary" onClick={exportCsv}>
-              ส่งออก CSV
-            </button>
-            <button onClick={exportPng}>บันทึกเป็นรูป</button>
+            <div className="export-icons" aria-label="ส่งออกผล IOC">
+              <button className="export-icon csv" onClick={exportCsv} title="ส่งออก CSV" aria-label="ส่งออก CSV">
+                <ExportIcon format="CSV" />
+              </button>
+              <button className="export-icon xlsx" onClick={() => void exportXlsx()} title="ส่งออก XLSX" aria-label="ส่งออก XLSX">
+                <ExportIcon format="XLS" />
+              </button>
+              <button className="export-icon docx" onClick={() => void exportDocx()} title="ส่งออก DOCX" aria-label="ส่งออก DOCX">
+                <ExportIcon format="DOC" />
+              </button>
+              <button className="export-icon pdf" onClick={() => void exportPdf()} title="ส่งออก PDF" aria-label="ส่งออก PDF">
+                <ExportIcon format="PDF" />
+              </button>
+              <button className="export-icon image" onClick={exportPng} title="บันทึกเป็นรูป PNG" aria-label="บันทึกเป็นรูป PNG">
+                <ExportIcon format="IMG" />
+              </button>
+            </div>
           </div>
         </div>
         <div className="table-wrap">
@@ -1035,7 +1114,10 @@ function downloadFile(blob: Blob, filename: string) {
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-function exportIocPng(
+const DOCX_JS_URL = "https://cdn.jsdelivr.net/npm/docx@9.5.1/+esm";
+const JSPDF_JS_URL = "https://cdn.jsdelivr.net/npm/jspdf@3.0.3/+esm";
+
+function createIocCanvas(
   title: string,
   experts: string[],
   rows: Array<Array<number | null>>,
@@ -1050,7 +1132,7 @@ function exportIocPng(
   canvas.width = Math.max(900, width + 80);
   canvas.height = top + (rows.length + 1) * rowHeight + 80;
   const context = canvas.getContext("2d");
-  if (!context) return;
+  if (!context) return null;
   context.fillStyle = "white";
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "#17213a";
@@ -1109,9 +1191,31 @@ function exportIocPng(
       cellX += widths[index];
     });
   });
+  return canvas;
+}
+function exportIocPng(
+  title: string,
+  experts: string[],
+  rows: Array<Array<number | null>>,
+  results: ReturnType<typeof calculateIoc>,
+) {
+  const canvas = createIocCanvas(title, experts, rows, results);
+  if (!canvas) return;
   canvas.toBlob((blob) => {
     if (blob) downloadFile(blob, `${safeFilename(title)}.png`);
   }, "image/png");
+}
+
+function ExportIcon({ format }: { format: string }) {
+  return (
+    <svg viewBox="0 0 36 36" aria-hidden="true">
+      <path d="M8 3h14l7 7v23H8z" />
+      <path className="fold" d="M22 3v8h7" />
+      <text x="18" y="25" textAnchor="middle">
+        {format}
+      </text>
+    </svg>
+  );
 }
 
 function ImportedDataPanel({

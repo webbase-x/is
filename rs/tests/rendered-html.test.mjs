@@ -42,4 +42,7 @@ test("IOC workspace shows sum, IOC, and result columns", async () => {
   assert.match(source, /<th>∑R<\/th>\s*<th>IOC<\/th>\s*<th>ผล<\/th>/);
   assert.match(source, /ไฟล์ล่าสุดที่บันทึก/);
   assert.match(source, /ชื่อจากการถอดความ/);
+  for (const format of ["CSV", "XLSX", "DOCX", "PDF", "PNG"]) {
+    assert.match(source, new RegExp(`aria-label="[^"]*${format}`));
+  }
 });
