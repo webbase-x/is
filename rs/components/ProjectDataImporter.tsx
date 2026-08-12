@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+import FileImportDialog from "./FileImportDialog";
 import { getSupabaseClient } from "../lib/supabase/client";
-import type { ResearchFile, ResearchProject } from "../lib/supabase/types";
+import type { FileDraft, ResearchFile, ResearchProject } from "../lib/supabase/types";
 
 const PDF_JS_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs";
 const PDF_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs";
+const newId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 async function loadPdfJs() {
   const pdfjs = await import(/* @vite-ignore */ PDF_JS_URL);
@@ -43,6 +45,7 @@ export default function ProjectDataImporter({ project, open, onClose, onImport }
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
+  const [showUpload, setShowUpload] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -89,6 +92,32 @@ export default function ProjectDataImporter({ project, open, onClose, onImport }
     } finally { setBusy(false); setProgress(""); }
   }
 
+  async function uploadNewFile(draft: FileDraft) {
+    const supabase = getSupabaseClient();
+    if (!supabase) { setError("ไม่พบการเชื่อมต่อ Supabase"); return; }
+    setBusy(true); setError("");
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    const user = authData.user;
+    if (authError || !user) { setError("กรุณาเข้าสู่ระบบใหม่ก่อนเพิ่มไฟล์"); setBusy(false); return; }
+    const safeName = draft.file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
+    const path = `${user.id}/${project.id}/${newId()}-${safeName}`;
+    const { error: uploadError } = await supabase.storage.from("research-documents").upload(path, draft.file, { upsert: false, contentType: draft.file.type });
+    if (uploadError) { setError(uploadError.message); setBusy(false); return; }
+    const previewJson = draft.kind === "spreadsheet" ? { columns: draft.columns, rows: draft.rows, sheet: draft.sheet } : null;
+    const { data: savedFile, error: fileError } = await supabase.from("research_files").insert({ project_id: project.id, owner_id: user.id, storage_path: path, original_name: draft.file.name, mime_type: draft.file.type || "application/octet-stream", size_bytes: draft.file.size, preview_json: previewJson }).select().single();
+    if (fileError || !savedFile) {
+      await supabase.storage.from("research-documents").remove([path]);
+      setError(fileError?.message || "บันทึกข้อมูลไฟล์ไม่สำเร็จ"); setBusy(false); return;
+    }
+    if (draft.kind === "spreadsheet") {
+      const { error: datasetError } = await supabase.from("research_datasets").insert({ project_id: project.id, owner_id: user.id, source_file_id: savedFile.id, name: draft.file.name, columns_json: draft.columns, rows_json: draft.rows });
+      if (datasetError) setError(`เพิ่มไฟล์แล้ว แต่สร้างชุดตารางไม่สำเร็จ: ${datasetError.message}`);
+    }
+    setFiles((items) => [savedFile, ...items]);
+    setShowUpload(false); setBusy(false); setProgress("เพิ่มไฟล์ลงในโครงการแล้ว กำลังเปิดไฟล์…");
+    await loadSource(savedFile);
+  }
+
   async function extractRows() {
     if (!source) return;
     const from = mode === "all" ? 1 : Math.max(1, Math.min(start, source.total));
@@ -131,12 +160,13 @@ export default function ProjectDataImporter({ project, open, onClose, onImport }
 
   return <div className="modal-backdrop"><section className="small-modal source-modal" role="dialog" aria-modal="true" aria-label="นำข้อมูลจากไฟล์โครงการ">
     <header><div><span className="step-label">PROJECT DATA</span><h2>นำข้อมูลจากไฟล์โครงการ</h2><p>เลือกไฟล์และช่วงข้อมูลที่จะเพิ่มในเครื่องมือปัจจุบัน</p></div><button className="close-button" onClick={closeDialog}>×</button></header>
-    {files.length === 0 ? <div className="source-empty">โครงการนี้ยังไม่มีไฟล์ กรุณากลับไปเพิ่มไฟล์ก่อน</div> : <>
-      <label>ไฟล์ข้อมูล<select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
+    <div className="source-file-head"><b>ไฟล์ข้อมูล</b><button type="button" onClick={() => setShowUpload(true)}>+ เพิ่มไฟล์ใหม่</button></div>
+    {files.length === 0 ? <div className="source-empty">โครงการนี้ยังไม่มีไฟล์ กด “เพิ่มไฟล์ใหม่” เพื่อเริ่มต้น</div> : <>
+      <label><span className="sr-only">เลือกไฟล์ข้อมูล</span><select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
       {selectedFile && !source && busy && <div className="source-status">กำลังอ่าน {selectedFile.original_name}…</div>}
       {source && <div className="source-range"><b>พบ {source.total} {source.unit}</b><label className="radio-row"><input type="radio" checked={mode === "all"} onChange={() => setMode("all")}/> ใช้{source.unit}ทั้งหมด</label><label className="radio-row"><input type="radio" checked={mode === "range"} onChange={() => setMode("range")}/> กำหนดช่วง{source.unit}</label>{mode === "range" && <div className="range-inputs"><label>จาก{source.unit}<input type="number" min={1} max={source.total} value={start} onChange={(e) => setStart(Number(e.target.value))}/></label><label>ถึง{source.unit}<input type="number" min={1} max={source.total} value={end} onChange={(e) => setEnd(Number(e.target.value))}/></label></div>}</div>}
     </>}
     {(error || progress) && <div className={error ? "import-error" : "source-status"}>{error || progress}</div>}
     <footer><button className="secondary-action" onClick={closeDialog}>ยกเลิก</button><button className="primary-action" disabled={!source || busy} onClick={() => void extractRows()}>{busy ? "กำลังอ่าน…" : "นำข้อมูลเข้าเครื่องมือ"}</button></footer>
-  </section></div>;
+  </section><FileImportDialog open={showUpload} busy={busy} onClose={() => setShowUpload(false)} onConfirm={uploadNewFile}/></div>;
 }
