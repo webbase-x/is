@@ -1593,7 +1593,7 @@ export default function ResearchStatsApp({
       ? "ไฟล์ล่าสุดที่บันทึก"
       : "ชื่อจากการถอดความ";
   return (
-    <div className="app-shell">
+    <div className="app-shell" spellCheck={false} lang="th">
       <aside className={menu ? "sidebar open" : "sidebar"}>
         <div className="brand">
           <div className="brand-mark">R</div>
