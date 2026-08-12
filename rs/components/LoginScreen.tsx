@@ -14,9 +14,12 @@ export default function LoginScreen({ onDemo }: { onDemo: () => void }) {
       return;
     }
     setLoading(true);
+    const redirectPath = window.location.pathname.endsWith("/")
+      ? window.location.pathname
+      : `${window.location.pathname}/`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: new URL(redirectPath, window.location.origin).href },
     });
     if (error) { setMessage(error.message); setLoading(false); }
   }
