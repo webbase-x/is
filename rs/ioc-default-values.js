@@ -10,21 +10,22 @@
       .ioc-default-control {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
+        gap: 7px;
+        min-height: 36px;
+        padding: 4px 7px 4px 9px;
         border: 1px solid #d9e2f2;
-        border-radius: 10px;
+        border-radius: 9px;
         background: #f8fbff;
         color: #263653;
-        font-size: 13px;
+        font-size: 10px;
         font-weight: 600;
         white-space: nowrap;
       }
       .ioc-default-control span { color: #52627d; }
       .ioc-default-control select {
-        min-width: 76px;
-        height: 32px;
-        padding: 0 26px 0 9px;
+        min-width: 94px;
+        height: 28px;
+        padding: 0 22px 0 8px;
         border: 1px solid #cbd7ea;
         border-radius: 7px;
         background: #fff;
@@ -36,8 +37,8 @@
         outline: 2px solid rgba(49, 99, 220, .18);
         border-color: #3163dc;
       }
-      @media (max-width: 900px) {
-        .ioc-default-control { width: 100%; justify-content: space-between; }
+      @media (max-width: 520px) {
+        .ioc-default-control { justify-content: space-between; }
       }
     `;
     document.head.appendChild(style);

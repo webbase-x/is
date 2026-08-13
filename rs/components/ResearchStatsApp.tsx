@@ -419,29 +419,33 @@ function IocView({
         />
       </div>
       <section className="panel">
-        <div className="panel-head">
-          <div>
+        <div className="panel-head ioc-panel-head">
+          <div className="ioc-panel-title">
             <h3>ตารางให้คะแนน</h3>
             <p>+1 สอดคล้อง · 0 ไม่แน่ใจ · -1 ไม่สอดคล้อง</p>
           </div>
-          <div className="actions ioc-actions">
-            <label>
-              จำนวนข้อ
-              <input
-                type="number"
-                min={1}
-                max={300}
-                value={rows.length}
-                onChange={(event) =>
-                  resizeItems(Number(event.target.value) || 1)
-                }
-              />
-            </label>
-            <button className="secondary" onClick={addExpert}>
-              + ผู้เชี่ยวชาญ
-            </button>
-            <button onClick={addItem}>+ เพิ่มข้อ</button>
-            <div className="export-icons" aria-label="ส่งออกผล IOC">
+          <div className="ioc-toolbar">
+            <div className="actions ioc-actions" aria-label="ตั้งค่าตาราง IOC">
+              <label className="ioc-item-count">
+                จำนวนข้อ
+                <input
+                  type="number"
+                  min={1}
+                  max={300}
+                  value={rows.length}
+                  onChange={(event) =>
+                    resizeItems(Number(event.target.value) || 1)
+                  }
+                />
+              </label>
+              <button className="secondary" onClick={addExpert}>
+                + ผู้เชี่ยวชาญ
+              </button>
+              <button onClick={addItem}>+ เพิ่มข้อ</button>
+            </div>
+            <div className="ioc-export-group">
+              <span className="ioc-group-label">ส่งออกผล</span>
+              <div className="export-icons" aria-label="ส่งออกผล IOC">
               <button className="export-icon csv" onClick={exportCsv} title="ส่งออก CSV" aria-label="ส่งออก CSV">
                 <ExportIcon format="C" />
                 <span>CSV</span>
@@ -462,6 +466,7 @@ function IocView({
                 <ExportIcon format="▧" />
                 <span>PNG</span>
               </button>
+              </div>
             </div>
           </div>
         </div>
