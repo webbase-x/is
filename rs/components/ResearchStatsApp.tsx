@@ -174,13 +174,19 @@ function IocView({
   initial,
   onChange,
   title,
+  editable,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
   title: string;
+  editable: boolean;
 }) {
-  const needsOcrVerification = Boolean(imported?.warning?.includes("OCR") || imported?.ocrItems?.length || imported?.iocRatings?.length);
+  const needsOcrVerification = Boolean(
+    imported?.warning?.includes("OCR") ||
+    imported?.ocrItems?.length ||
+    imported?.iocRatings?.length,
+  );
   const detectedRatings = imported?.iocRatings ?? [];
   const detectedItems = imported?.ocrItems ?? [];
   const importedRows = needsOcrVerification
@@ -380,7 +386,14 @@ function IocView({
       format: [canvas.width, canvas.height],
       hotfixes: ["px_scaling"],
     });
-    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, canvas.width, canvas.height);
+    pdf.addImage(
+      canvas.toDataURL("image/png"),
+      "PNG",
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
     pdf.save(`${safeFilename(title)}.pdf`);
   };
   const exportPng = () => exportIocPng(title, experts, rows, results);
@@ -429,6 +442,7 @@ function IocView({
               <label className="ioc-item-count">
                 จำนวนข้อ
                 <input
+                  disabled={!editable}
                   type="number"
                   min={1}
                   max={300}
@@ -438,34 +452,65 @@ function IocView({
                   }
                 />
               </label>
-              <button className="secondary" onClick={addExpert}>
+              <button
+                className="secondary"
+                disabled={!editable}
+                onClick={addExpert}
+              >
                 + ผู้เชี่ยวชาญ
               </button>
-              <button onClick={addItem}>+ เพิ่มข้อ</button>
+              <button disabled={!editable} onClick={addItem}>
+                + เพิ่มข้อ
+              </button>
             </div>
             <div className="ioc-export-group">
               <span className="ioc-group-label">ส่งออกผล</span>
               <div className="export-icons" aria-label="ส่งออกผล IOC">
-              <button className="export-icon csv" onClick={exportCsv} title="ส่งออก CSV" aria-label="ส่งออก CSV">
-                <ExportIcon format="C" />
-                <span>CSV</span>
-              </button>
-              <button className="export-icon xlsx" onClick={() => void exportXlsx()} title="ส่งออก XLSX" aria-label="ส่งออก XLSX">
-                <ExportIcon format="X" />
-                <span>XLSX</span>
-              </button>
-              <button className="export-icon docx" onClick={() => void exportDocx()} title="ส่งออก DOCX" aria-label="ส่งออก DOCX">
-                <ExportIcon format="W" />
-                <span>DOCX</span>
-              </button>
-              <button className="export-icon pdf" onClick={() => void exportPdf()} title="ส่งออก PDF" aria-label="ส่งออก PDF">
-                <ExportIcon format="PDF" />
-                <span>PDF</span>
-              </button>
-              <button className="export-icon image" onClick={exportPng} title="บันทึกเป็นรูป PNG" aria-label="บันทึกเป็นรูป PNG">
-                <ExportIcon format="▧" />
-                <span>PNG</span>
-              </button>
+                <button
+                  className="export-icon csv"
+                  onClick={exportCsv}
+                  title="ส่งออก CSV"
+                  aria-label="ส่งออก CSV"
+                >
+                  <ExportIcon format="C" />
+                  <span>CSV</span>
+                </button>
+                <button
+                  className="export-icon xlsx"
+                  onClick={() => void exportXlsx()}
+                  title="ส่งออก XLSX"
+                  aria-label="ส่งออก XLSX"
+                >
+                  <ExportIcon format="X" />
+                  <span>XLSX</span>
+                </button>
+                <button
+                  className="export-icon docx"
+                  onClick={() => void exportDocx()}
+                  title="ส่งออก DOCX"
+                  aria-label="ส่งออก DOCX"
+                >
+                  <ExportIcon format="W" />
+                  <span>DOCX</span>
+                </button>
+                <button
+                  className="export-icon pdf"
+                  onClick={() => void exportPdf()}
+                  title="ส่งออก PDF"
+                  aria-label="ส่งออก PDF"
+                >
+                  <ExportIcon format="PDF" />
+                  <span>PDF</span>
+                </button>
+                <button
+                  className="export-icon image"
+                  onClick={exportPng}
+                  title="บันทึกเป็นรูป PNG"
+                  aria-label="บันทึกเป็นรูป PNG"
+                >
+                  <ExportIcon format="▧" />
+                  <span>PNG</span>
+                </button>
               </div>
             </div>
           </div>
@@ -478,6 +523,7 @@ function IocView({
                 {experts.map((e, i) => (
                   <th key={i}>
                     <input
+                      disabled={!editable}
                       className="head-input"
                       value={e}
                       onChange={(ev) =>
@@ -502,6 +548,7 @@ function IocView({
                   {row.map((value, ci) => (
                     <td key={ci}>
                       <select
+                        disabled={!editable}
                         aria-label={`ข้อ ${ri + 1} ${experts[ci]}`}
                         value={value ?? ""}
                         onChange={(e) =>
@@ -1248,7 +1295,12 @@ function ImportedDataPanel({
   view: View;
 }) {
   const needsIocVerification =
-    view === "ioc" && Boolean(data.warning?.includes("OCR") || data.ocrItems?.length || data.iocRatings?.length);
+    view === "ioc" &&
+    Boolean(
+      data.warning?.includes("OCR") ||
+      data.ocrItems?.length ||
+      data.iocRatings?.length,
+    );
   const items = data.ocrItems ?? [];
   const foundItems = items.filter(
     (item) => item.numberStatus !== "ไม่พบเลขข้อ",
@@ -1392,9 +1444,11 @@ function ImportedDataPanel({
 
 export default function ResearchStatsApp({
   project,
+  initialAnalysisId,
   onBack,
 }: {
   project: ResearchProject;
+  initialAnalysisId?: string | null;
   onBack?: () => void;
 }) {
   const [view, setView] = useState<View>("home");
@@ -1412,7 +1466,9 @@ export default function ResearchStatsApp({
   const [workspaceResult, setWorkspaceResult] = useState<WorkspaceData>({});
   const [revision, setRevision] = useState(0);
   const [saveStatus, setSaveStatus] = useState("");
+  const [editingSaved, setEditingSaved] = useState(false);
   const isTool = !["home", "references"].includes(view);
+  const iocLocked = view === "ioc" && Boolean(activeAnalysis) && !editingSaved;
   useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
@@ -1421,8 +1477,26 @@ export default function ResearchStatsApp({
       .select("*")
       .eq("project_id", project.id)
       .order("created_at", { ascending: false })
-      .then(({ data }) => setAnalyses((data ?? []) as AnalysisRecord[]));
-  }, [project.id]);
+      .then(({ data }) => {
+        const loaded = (data ?? []) as AnalysisRecord[];
+        setAnalyses(loaded);
+        const requested = loaded.find(
+          (analysis) => analysis.id === initialAnalysisId,
+        );
+        if (requested) {
+          setView(requested.analysis_type);
+          setActiveAnalysis(requested);
+          setAnalysisTitle(requested.title);
+          setWorkspaceInitial(requested.input_json?.workspace ?? {});
+          setWorkspaceDraft(requested.input_json?.workspace ?? {});
+          setWorkspaceResult(requested.result_json ?? {});
+          setImported(requested.input_json?.source ?? null);
+          setRevision((value) => value + 1);
+          setSaveStatus("เปิดงานเดิมแล้ว");
+          setEditingSaved(false);
+        }
+      });
+  }, [project.id, initialAnalysisId]);
   const handleDraft = useCallback(
     (data: WorkspaceData, result: WorkspaceData) => {
       setWorkspaceDraft(data);
@@ -1444,6 +1518,7 @@ export default function ResearchStatsApp({
       setRevision((value) => value + 1);
       setShowLibrary(false);
       setSaveStatus("");
+      setEditingSaved(true);
     },
     [view],
   );
@@ -1457,6 +1532,7 @@ export default function ResearchStatsApp({
     setRevision((value) => value + 1);
     setShowLibrary(false);
     setSaveStatus("เปิดงานเดิมแล้ว");
+    setEditingSaved(false);
   };
   const chooseView = (nextView: View) => {
     setView(nextView);
@@ -1464,6 +1540,7 @@ export default function ResearchStatsApp({
     if (!["home", "references"].includes(nextView)) {
       setShowLibrary(true);
       setActiveAnalysis(null);
+      setEditingSaved(true);
       setWorkspaceInitial({});
       setImported(null);
     }
@@ -1521,6 +1598,7 @@ export default function ResearchStatsApp({
       setAnalyses((items) => [saved, ...items]);
     }
     setSaveStatus("บันทึกแล้ว");
+    setEditingSaved(false);
   };
   const dataKey = `${revision}-${imported?.id ?? 0}`;
   const currentTool =
@@ -1534,6 +1612,7 @@ export default function ResearchStatsApp({
           initial={workspaceInitial}
           onChange={handleDraft}
           title={analysisTitle}
+          editable={!activeAnalysis || editingSaved}
         />
       ),
       descriptive: (
@@ -1685,6 +1764,7 @@ export default function ResearchStatsApp({
           {isTool && (
             <section className="analysis-filebar">
               <input
+                disabled={iocLocked}
                 value={analysisTitle}
                 onChange={(event) => {
                   setAnalysisTitle(event.target.value);
@@ -1692,7 +1772,27 @@ export default function ResearchStatsApp({
                 }}
                 placeholder="ชื่องานวิเคราะห์"
               />
-              <button onClick={() => void saveAnalysis()}>บันทึกงาน</button>
+              <button disabled={iocLocked} onClick={() => void saveAnalysis()}>
+                บันทึกงาน
+              </button>
+              {view === "ioc" && activeAnalysis && (
+                <label className="edit-switch">
+                  <input
+                    type="checkbox"
+                    checked={editingSaved}
+                    onChange={(event) => {
+                      setEditingSaved(event.target.checked);
+                      setSaveStatus(
+                        event.target.checked
+                          ? "เปิดให้แก้ไขแล้ว"
+                          : "ล็อกการแก้ไขแล้ว",
+                      );
+                    }}
+                  />
+                  <span aria-hidden="true" />
+                  <b>{editingSaved ? "กำลังแก้ไข" : "เปิดเพื่อแก้ไข"}</b>
+                </label>
+              )}
               <span className="filebar-current">
                 {displayedFileLabel}: <b>{displayedFileName}</b>
               </span>
@@ -1706,7 +1806,8 @@ export default function ResearchStatsApp({
         </div>
         <footer>
           <span>
-            ResearchStat · เครื่องมือช่วยคำนวณ ไม่แทนการพิจารณาของนักวิจัยและอาจารย์ที่ปรึกษา
+            ResearchStat · เครื่องมือช่วยคำนวณ
+            ไม่แทนการพิจารณาของนักวิจัยและอาจารย์ที่ปรึกษา
           </span>
           <b>ผู้จัดทำระบบ: ครูไพรัช อินควรชุม</b>
           <span>โรงเรียนเทศบาล 1 ถนนนครนอก · เทศบาลนครสงขลา</span>
