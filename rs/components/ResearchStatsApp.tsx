@@ -16,10 +16,19 @@ import {
   kr20,
   mean,
   median,
+  oneSampleTTest,
+  oneSampleWilcoxonTest,
   pairedTTest,
+  pairedWilcoxonTest,
   parseMatrix,
   parseNumbers,
   sampleStandardDeviation,
+  type AlternativeHypothesis,
+  type ComparisonTest,
+  type NormalityAssessment,
+  type OneSampleTResult,
+  type PairedResult,
+  type WilcoxonResult,
 } from "../lib/statistics";
 
 type View =
@@ -83,6 +92,13 @@ const fmt = (value: number | null | undefined, digits = 3) =>
   value === null || value === undefined || !Number.isFinite(value)
     ? "—"
     : value.toFixed(digits);
+
+const fmtP = (value: number | null | undefined) =>
+  value === null || value === undefined || !Number.isFinite(value)
+    ? "—"
+    : value < 0.001
+      ? "< .001"
+      : value.toFixed(3).replace(/^0/, "");
 
 function Metric({
   label,
@@ -847,6 +863,74 @@ function ReliabilityView({
   );
 }
 
+type ComparisonMode = "paired" | "criterion";
+type TestResult = PairedResult | OneSampleTResult | WilcoxonResult;
+
+function isAlternative(value: unknown): value is AlternativeHypothesis {
+  return ["greater", "less", "two-sided"].includes(String(value));
+}
+
+function isTestMethod(value: unknown): value is ComparisonTest {
+  return value === "t-test" || value === "wilcoxon";
+}
+
+function HypothesisSelect({
+  value,
+  onChange,
+  mode,
+}: {
+  value: AlternativeHypothesis;
+  onChange: (value: AlternativeHypothesis) => void;
+  mode: ComparisonMode;
+}) {
+  const target = mode === "paired" ? "ก่อนเรียน" : "เกณฑ์";
+  return (
+    <label>
+      สมมติฐานทางสถิติ
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as AlternativeHypothesis)}
+      >
+        <option value="greater">ทางเดียว: หลังเรียนสูงกว่า{target}</option>
+        <option value="less">ทางเดียว: หลังเรียนต่ำกว่า{target}</option>
+        <option value="two-sided">สองทาง: คะแนนแตกต่างกัน</option>
+      </select>
+    </label>
+  );
+}
+
+function normalityRecommendation(normality?: NormalityAssessment) {
+  if (!normality) return "กรอกข้อมูลให้ครบเพื่อรับคำแนะนำ";
+  const method =
+    normality.recommendedTest === "t-test"
+      ? "t-test"
+      : "Wilcoxon signed-rank test";
+  const testResult =
+    normality.pValue === null
+      ? normality.note
+      : `${normality.note} (Jarque–Bera p = ${fmtP(normality.pValue)})`;
+  return `ระบบแนะนำ ${method}: ${testResult}`;
+}
+
+function hypothesisConclusion(
+  result: TestResult | null,
+  mode: ComparisonMode,
+) {
+  if (!result || result.significant === null) {
+    return "ยังสรุปผลไม่ได้ โปรดตรวจจำนวนข้อมูลและความแปรปรวน";
+  }
+  const target = mode === "paired" ? "คะแนนก่อนเรียน" : "เกณฑ์ที่กำหนด";
+  const direction =
+    result.alternative === "greater"
+      ? `คะแนนหลังเรียนสูงกว่า${target}`
+      : result.alternative === "less"
+        ? `คะแนนหลังเรียนต่ำกว่า${target}`
+        : `คะแนนหลังเรียนแตกต่างจาก${target}`;
+  return result.significant
+    ? `${direction}อย่างมีนัยสำคัญทางสถิติที่ระดับ ${result.alpha}`
+    : `ยังไม่พบว่า${direction}อย่างมีนัยสำคัญทางสถิติที่ระดับ ${result.alpha}`;
+}
+
 function PairedView({
   imported,
   initial,
@@ -856,10 +940,11 @@ function PairedView({
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
 }) {
-  const importedPairs =
+  const importedRows =
     imported?.rows
       .map((row) => row.map(Number).filter(Number.isFinite))
-      .filter((row) => row.length >= 2) ?? [];
+      .filter((row) => row.length) ?? [];
+  const importedPairs = importedRows.filter((row) => row.length >= 2);
   const [pre, setPre] = useState(
       typeof initial?.pre === "string"
         ? initial.pre
@@ -872,58 +957,352 @@ function PairedView({
         ? initial.post
         : importedPairs.length
           ? importedPairs.map((row) => row[1]).join(", ")
-          : "16, 17, 15, 18, 14, 17, 16, 15",
+          : importedRows.length
+            ? importedRows.map((row) => row.at(-1)).join(", ")
+            : "16, 17, 15, 18, 14, 17, 16, 15",
+    ),
+    [mode, setMode] = useState<ComparisonMode>(
+      initial?.mode === "criterion" ? "criterion" : "paired",
+    ),
+    [pairedMethod, setPairedMethod] = useState<ComparisonTest>(
+      isTestMethod(initial?.pairedMethod) ? initial.pairedMethod : "t-test",
+    ),
+    [criterionMethod, setCriterionMethod] = useState<ComparisonTest>(
+      isTestMethod(initial?.criterionMethod)
+        ? initial.criterionMethod
+        : "t-test",
+    ),
+    [pairedAlternative, setPairedAlternative] =
+      useState<AlternativeHypothesis>(
+        isAlternative(initial?.pairedAlternative)
+          ? initial.pairedAlternative
+          : "greater",
+      ),
+    [criterionAlternative, setCriterionAlternative] =
+      useState<AlternativeHypothesis>(
+        isAlternative(initial?.criterionAlternative)
+          ? initial.criterionAlternative
+          : "greater",
+      ),
+    [alpha, setAlpha] = useState(Number(initial?.alpha ?? 0.05)),
+    [criterionMode, setCriterionMode] = useState<"percent" | "raw">(
+      initial?.criterionMode === "raw" ? "raw" : "percent",
+    ),
+    [maximumScore, setMaximumScore] = useState(
+      Number(initial?.maximumScore ?? 30),
+    ),
+    [criterionPercent, setCriterionPercent] = useState(
+      Number(initial?.criterionPercent ?? 80),
+    ),
+    [criterionRaw, setCriterionRaw] = useState(
+      Number(initial?.criterionRaw ?? 24),
     );
-  const result = pairedTTest(parseNumbers(pre), parseNumbers(post));
+
+  const preValues = useMemo(() => parseNumbers(pre), [pre]);
+  const postValues = useMemo(() => parseNumbers(post), [post]);
+  const criterionScore =
+    criterionMode === "percent"
+      ? (criterionPercent / 100) * maximumScore
+      : criterionRaw;
+  const pairedResult = useMemo(
+    () =>
+      pairedMethod === "t-test"
+        ? pairedTTest(preValues, postValues, pairedAlternative, alpha)
+        : pairedWilcoxonTest(preValues, postValues, pairedAlternative, alpha),
+    [preValues, postValues, pairedMethod, pairedAlternative, alpha],
+  );
+  const criterionResult = useMemo(
+    () =>
+      criterionMethod === "t-test"
+        ? oneSampleTTest(
+            postValues,
+            criterionScore,
+            criterionAlternative,
+            alpha,
+          )
+        : oneSampleWilcoxonTest(
+            postValues,
+            criterionScore,
+            criterionAlternative,
+            alpha,
+          ),
+    [postValues, criterionScore, criterionMethod, criterionAlternative, alpha],
+  );
+  const activeResult = mode === "paired" ? pairedResult : criterionResult;
+  const activeMethod = mode === "paired" ? pairedMethod : criterionMethod;
+  const pairedLengthMismatch =
+    mode === "paired" && preValues.length !== postValues.length;
+
   useEffect(() => {
-    onChange({ pre, post }, (result ?? {}) as WorkspaceData);
-  }, [pre, post]);
+    onChange(
+      {
+        pre,
+        post,
+        mode,
+        pairedMethod,
+        criterionMethod,
+        pairedAlternative,
+        criterionAlternative,
+        alpha,
+        criterionMode,
+        maximumScore,
+        criterionPercent,
+        criterionRaw,
+      },
+      {
+        mode,
+        criterionScore,
+        ...(activeResult ?? {}),
+      } as WorkspaceData,
+    );
+  }, [
+    pre,
+    post,
+    mode,
+    pairedMethod,
+    criterionMethod,
+    pairedAlternative,
+    criterionAlternative,
+    alpha,
+    criterionMode,
+    maximumScore,
+    criterionPercent,
+    criterionRaw,
+    criterionScore,
+    activeResult,
+    onChange,
+  ]);
+
+  const isTTest = activeMethod === "t-test";
+  const wilcoxonResult = !isTTest
+    ? (activeResult as WilcoxonResult | null)
+    : null;
+  const tResult = isTTest
+    ? (activeResult as PairedResult | OneSampleTResult | null)
+    : null;
+  const pairedTResult = mode === "paired" && isTTest
+    ? (tResult as PairedResult | null)
+    : null;
+  const oneSampleResult = mode === "criterion" && isTTest
+    ? (tResult as OneSampleTResult | null)
+    : null;
+
   return (
     <Page
-      title="เปรียบเทียบก่อน–หลังเรียน"
-      subtitle="Paired-samples t-test และขนาดอิทธิพล Cohen’s dz"
-      badge="ข้อมูลเป็นคู่"
+      title="ทดสอบก่อนเรียน–หลังเรียน"
+      subtitle="เลือกสถิติพาราเมตริกหรือไม่อิงพารามิเตอร์ และเปรียบเทียบคะแนนหลังเรียนกับเกณฑ์"
+      badge="เลือกวิธีทดสอบได้"
     >
-      <section className="panel two-text">
+      <div className="analysis-tabs" role="tablist" aria-label="ประเภทการเปรียบเทียบ">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "paired"}
+          className={mode === "paired" ? "active" : ""}
+          onClick={() => setMode("paired")}
+        >
+          ก่อนเรียน–หลังเรียน
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "criterion"}
+          className={mode === "criterion" ? "active" : ""}
+          onClick={() => setMode("criterion")}
+        >
+          หลังเรียนเทียบเกณฑ์
+        </button>
+      </div>
+
+      <section className="panel analysis-controls">
         <label>
-          คะแนนก่อนเรียน
-          <textarea
-            rows={7}
-            value={pre}
-            onChange={(e) => setPre(e.target.value)}
-          />
+          วิธีทดสอบ
+          <select
+            value={activeMethod}
+            onChange={(event) => {
+              const selected = event.target.value as ComparisonTest;
+              if (mode === "paired") setPairedMethod(selected);
+              else setCriterionMethod(selected);
+            }}
+          >
+            <option value="t-test">
+              {mode === "paired" ? "Paired-samples t-test" : "One-sample t-test"}
+            </option>
+            <option value="wilcoxon">
+              {mode === "paired"
+                ? "Wilcoxon signed-rank test"
+                : "One-sample Wilcoxon signed-rank test"}
+            </option>
+          </select>
         </label>
+        <HypothesisSelect
+          mode={mode}
+          value={mode === "paired" ? pairedAlternative : criterionAlternative}
+          onChange={
+            mode === "paired" ? setPairedAlternative : setCriterionAlternative
+          }
+        />
+        <label>
+          ระดับนัยสำคัญ (α)
+          <select
+            value={alpha}
+            onChange={(event) => setAlpha(Number(event.target.value))}
+          >
+            <option value={0.05}>.05</option>
+            <option value={0.01}>.01</option>
+            <option value={0.1}>.10</option>
+          </select>
+        </label>
+      </section>
+
+      {mode === "criterion" && (
+        <section className="panel criterion-controls">
+          <label>
+            รูปแบบเกณฑ์
+            <select
+              value={criterionMode}
+              onChange={(event) =>
+                setCriterionMode(event.target.value as "percent" | "raw")
+              }
+            >
+              <option value="percent">ร้อยละของคะแนนเต็ม</option>
+              <option value="raw">คะแนนดิบ</option>
+            </select>
+          </label>
+          {criterionMode === "percent" ? (
+            <>
+              <label>
+                เกณฑ์ (ร้อยละ)
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={criterionPercent}
+                  onChange={(event) => setCriterionPercent(Number(event.target.value))}
+                />
+              </label>
+              <label>
+                คะแนนเต็ม
+                <input
+                  type="number"
+                  min="0.01"
+                  value={maximumScore}
+                  onChange={(event) => setMaximumScore(Number(event.target.value))}
+                />
+              </label>
+            </>
+          ) : (
+            <label>
+              เกณฑ์คะแนนดิบ
+              <input
+                type="number"
+                value={criterionRaw}
+                onChange={(event) => setCriterionRaw(Number(event.target.value))}
+              />
+            </label>
+          )}
+          <div className="criterion-value">
+            <span>เกณฑ์ที่ใช้คำนวณ</span>
+            <strong>{fmt(criterionScore, 2)} คะแนน</strong>
+          </div>
+        </section>
+      )}
+
+      <section className={`panel two-text ${mode === "criterion" ? "single-score" : ""}`}>
+        {mode === "paired" && (
+          <label>
+            คะแนนก่อนเรียน
+            <textarea
+              rows={7}
+              value={pre}
+              onChange={(event) => setPre(event.target.value)}
+            />
+          </label>
+        )}
         <label>
           คะแนนหลังเรียน
           <textarea
             rows={7}
             value={post}
-            onChange={(e) => setPost(e.target.value)}
+            onChange={(event) => setPost(event.target.value)}
           />
         </label>
       </section>
-      <div className="metrics">
-        <Metric label="n" value={`${result?.n ?? 0}`} />
-        <Metric label="ก่อนเรียน x̄" value={fmt(result?.preMean)} />
-        <Metric
-          label="หลังเรียน x̄"
-          value={fmt(result?.postMean)}
-          tone="green"
-        />
-        <Metric
-          label="ผลต่างเฉลี่ย"
-          value={fmt(result?.meanDifference)}
-          tone="amber"
-        />
-        <Metric
-          label="t (df)"
-          value={result ? `${fmt(result.t)} (${result.df})` : "—"}
-          tone="violet"
-        />
-        <Metric label="Cohen’s dz" value={fmt(result?.cohenDz)} tone="green" />
+
+      {pairedLengthMismatch && (
+        <div className="notice analysis-warning">
+          <b>จำนวนข้อมูลไม่เท่ากัน</b>
+          <p>
+            คะแนนก่อนเรียนมี {preValues.length} ค่า แต่คะแนนหลังเรียนมี {postValues.length} ค่า
+            ต้องมีข้อมูลของนักเรียนคนเดียวกันครบทั้งสองครั้ง
+          </p>
+        </div>
+      )}
+
+      <div className="notice analysis-recommendation">
+        <b>คำแนะนำจากการกระจายข้อมูล</b>
+        <p>{normalityRecommendation(activeResult?.normality)}</p>
+        {activeResult?.normality.recommendedTest !== activeMethod && (
+          <small>
+            ขณะนี้ผู้ใช้เลือก {isTTest ? "t-test" : "Wilcoxon"} ซึ่งต่างจากคำแนะนำ
+            ระบบยังคงคำนวณตามวิธีที่ผู้ใช้เลือก
+          </small>
+        )}
       </div>
-      <Formula source="Student’s t distribution; Cohen (1988) สำหรับแนวคิดขนาดอิทธิพล">
-        t = d̄ / (Sᵈ/√n) ระบบไม่รายงานนัยสำคัญจนกว่าจะยืนยันเงื่อนไขและระดับ α
+
+      <div className="metrics analysis-metrics">
+        <Metric label="n" value={`${activeResult?.n ?? 0}`} />
+        {mode === "paired" ? (
+          <>
+            <Metric label="ก่อนเรียน x̄" value={fmt(pairedTResult?.preMean ?? mean(preValues))} />
+            <Metric label="หลังเรียน x̄" value={fmt(pairedTResult?.postMean ?? mean(postValues))} tone="green" />
+            <Metric label="ผลต่างเฉลี่ย" value={fmt(pairedTResult?.meanDifference ?? (mean(postValues) ?? 0) - (mean(preValues) ?? 0))} tone="amber" />
+          </>
+        ) : (
+          <>
+            <Metric label="หลังเรียน x̄" value={fmt(oneSampleResult?.mean ?? mean(postValues))} tone="green" />
+            <Metric label="มัธยฐาน" value={fmt(oneSampleResult?.median ?? median(postValues))} />
+            <Metric label="เกณฑ์" value={fmt(criterionScore)} tone="amber" />
+          </>
+        )}
+        {isTTest ? (
+          <>
+            <Metric
+              label="t (df)"
+              value={tResult ? `${fmt(tResult.t)} (${tResult.df})` : "—"}
+              tone="violet"
+            />
+            <Metric
+              label={mode === "paired" ? "Cohen’s dz" : "Cohen’s d"}
+              value={fmt(mode === "paired" ? pairedTResult?.cohenDz : oneSampleResult?.cohenD)}
+              tone="green"
+            />
+          </>
+        ) : (
+          <>
+            <Metric label="W+ / W−" value={wilcoxonResult ? `${fmt(wilcoxonResult.wPlus, 1)} / ${fmt(wilcoxonResult.wMinus, 1)}` : "—"} tone="violet" />
+            <Metric label="Rank-biserial r" value={fmt(wilcoxonResult?.rankBiserial)} tone="green" />
+          </>
+        )}
+        <Metric label="p-value" value={fmtP(activeResult?.pValue)} tone="violet" />
+        <Metric
+          label="ผลการทดสอบ"
+          value={activeResult?.significant ? "มีนัยสำคัญ" : activeResult?.significant === false ? "ไม่มีนัยสำคัญ" : "—"}
+          tone={activeResult?.significant ? "green" : "amber"}
+          note={hypothesisConclusion(activeResult, mode)}
+        />
+      </div>
+
+      <Formula source="Student’s t distribution; Wilcoxon (1945); Cohen (1988); Jarque & Bera (1987)">
+        {mode === "paired" && isTTest && "Paired t-test: t = d̄ / (Sᵈ/√n) โดย d = คะแนนหลังเรียน − คะแนนก่อนเรียน"}
+        {mode === "criterion" && isTTest && "One-sample t-test: t = (x̄ − μ₀) / (S/√n) โดย μ₀ คือคะแนนเกณฑ์"}
+        {!isTTest && "Wilcoxon signed-rank: จัดอันดับค่าสัมบูรณ์ของผลต่าง แล้วเปรียบเทียบผลรวมอันดับด้านบวกและด้านลบ"}
+        {!isTTest && (
+          <small>
+            Wilcoxon signed-rank ควรใช้เมื่อการแจกแจงของผลต่างมีความสมมาตร
+            ระบบใช้ exact probability เมื่อ n ≤ 30 และ normal approximation เมื่อ n มากกว่า 30
+          </small>
+        )}
       </Formula>
     </Page>
   );
@@ -1042,6 +1421,16 @@ function ReferencesView() {
     ],
     ["KR-20", "Kuder & Richardson (1937)", "ความเชื่อมั่นของแบบทดสอบสองค่า"],
     ["Cronbach’s alpha", "Cronbach (1951)", "ความสอดคล้องภายในของมาตรวัด"],
+    [
+      "Wilcoxon signed-rank",
+      "Wilcoxon (1945)",
+      "เปรียบเทียบข้อมูลเป็นคู่หรือค่ามัธยฐานกับเกณฑ์โดยใช้อันดับของผลต่าง",
+    ],
+    [
+      "Jarque–Bera",
+      "Jarque & Bera (1987)",
+      "ประเมินการแจกแจงปกติจากความเบ้และความโด่งเพื่อช่วยแนะนำวิธีทดสอบ",
+    ],
     ["Effect size", "Cohen (1988)", "ขนาดอิทธิพลของความแตกต่าง"],
     ["E1/E2", "ชัยยงค์ พรหมวงศ์", "ประสิทธิภาพกระบวนการและผลลัพธ์ของสื่อ"],
   ];
@@ -1126,7 +1515,7 @@ function toolDescription(id: View) {
         quality: "แปลผลแบบประเมินมาตราส่วน 5 ระดับ",
         item: "วิเคราะห์คุณภาพข้อสอบรายข้อ",
         reliability: "คำนวณ α และ KR-20",
-        paired: "ทดสอบคะแนนของกลุ่มเดียวกันสองครั้ง",
+        paired: "เปรียบเทียบก่อน–หลังเรียนและหลังเรียนกับเกณฑ์",
         efficiency: "ประเมินประสิทธิภาพนวัตกรรม",
       } as Partial<Record<View, string>>
     )[id] ?? ""
@@ -1756,7 +2145,7 @@ export default function ResearchStatsApp({
                 </button>
               </>
             )}
-            <span className="version-chip">รุ่นคำนวณ 2.3</span>
+              <span className="version-chip">รุ่นคำนวณ 2.4</span>
             <span className="avatar">พ</span>
           </div>
         </div>
