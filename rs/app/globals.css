@@ -631,6 +631,96 @@ input:focus {
   width: 90px;
   padding: 7px;
 }
+.analysis-tabs {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #eef2f9;
+}
+.analysis-tabs button {
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 16px;
+  background: transparent;
+  color: #69758d;
+  font-size: 11px;
+  font-weight: 800;
+}
+.analysis-tabs button.active {
+  background: white;
+  color: #315fe9;
+  box-shadow: 0 2px 8px rgba(31, 50, 90, 0.08);
+}
+.analysis-controls,
+.criterion-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+.analysis-controls label,
+.criterion-controls label {
+  display: grid;
+  gap: 7px;
+  color: #59647b;
+  font-size: 11px;
+  font-weight: 700;
+}
+.analysis-controls select,
+.criterion-controls select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+}
+.criterion-controls {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.criterion-value {
+  min-height: 62px;
+  display: grid;
+  align-content: center;
+  padding: 9px 12px;
+  border: 1px solid #dfe6fa;
+  border-radius: 10px;
+  background: #f7f9ff;
+}
+.criterion-value span {
+  color: #7a849a;
+  font-size: 9px;
+  font-weight: 700;
+}
+.criterion-value strong {
+  margin-top: 3px;
+  color: #315bd2;
+  font-size: 15px;
+}
+.two-text.single-score {
+  grid-template-columns: minmax(0, 1fr);
+}
+.two-text.single-score label {
+  max-width: 720px;
+}
+.analysis-recommendation {
+  margin-bottom: 18px;
+  border-color: #cfe0ff;
+  background: #f3f7ff;
+  color: #36558f;
+}
+.analysis-recommendation small {
+  display: block;
+  margin-top: 7px;
+  font-size: 10px;
+}
+.analysis-warning {
+  margin-bottom: 18px;
+}
+.analysis-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 .ref-list article {
   display: flex;
   gap: 15px;
@@ -1517,6 +1607,14 @@ footer {
   .form-grid {
     grid-template-columns: 1fr;
   }
+  .analysis-controls,
+  .criterion-controls {
+    grid-template-columns: 1fr;
+  }
+  .analysis-tabs {
+    display: grid;
+    width: 100%;
+  }
   .overlay {
     display: block;
     position: fixed;
@@ -1542,6 +1640,9 @@ footer {
   }
   .hero-card h2 {
     font-size: 18px;
+  }
+  .analysis-tabs {
+    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 900px) {
