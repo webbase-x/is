@@ -676,6 +676,109 @@ input:focus {
   min-height: 40px;
   padding: 8px 10px;
 }
+.method-select-field {
+  position: relative;
+  display: grid;
+  gap: 7px;
+  color: #59647b;
+  font-size: 11px;
+  font-weight: 700;
+}
+.method-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #d9dfeb;
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  text-align: left;
+}
+.method-select-trigger:focus-visible {
+  outline: 3px solid #dce6ff;
+  border-color: #6d8bec;
+}
+.method-select-trigger i {
+  color: #75809a;
+  font-size: 14px;
+  font-style: normal;
+  transition: transform 0.16s ease;
+}
+.method-select-trigger[aria-expanded="true"] i {
+  transform: rotate(180deg);
+}
+.method-options {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(430px, calc(100vw - 48px));
+  padding: 7px;
+  border: 1px solid #dbe2f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 16px 38px rgba(22, 35, 70, 0.18);
+}
+.method-option {
+  display: grid;
+  gap: 0;
+  width: 100%;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 9px;
+  color: #34415c;
+  background: transparent;
+  text-align: left;
+}
+.method-option + .method-option {
+  margin-top: 3px;
+}
+.method-option:hover,
+.method-option:focus-visible {
+  background: #f1f5ff;
+  outline: none;
+}
+.method-option.selected {
+  color: #284fbf;
+  background: #f5f7ff;
+}
+.method-option-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.method-option-title b {
+  font-size: 12px;
+}
+.method-option-title i {
+  color: #8290b2;
+  font-size: 12px;
+  font-style: normal;
+}
+.method-option-help {
+  max-height: 0;
+  margin-top: 0;
+  overflow: hidden;
+  color: #596985;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.65;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition: max-height 0.18s ease, margin-top 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+}
+.method-option:hover .method-option-help,
+.method-option:focus-visible .method-option-help {
+  max-height: 72px;
+  margin-top: 6px;
+  opacity: 1;
+  transform: translateY(0);
+}
 .analysis-controls select.selection-required {
   border-color: #e0a12e;
   background: #fffaf0;
