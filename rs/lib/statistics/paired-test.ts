@@ -1,18 +1,23 @@
 import { mean, median, sampleStandardDeviation } from "./descriptive";
 
 export type AlternativeHypothesis = "greater" | "less" | "two-sided";
-export type ComparisonTest = "t-test" | "wilcoxon";
+export type ComparisonTest = "t-test" | "wilcoxon" | "sign-test";
+export type DistributionShape = "approximately-symmetric" | "asymmetric" | "undetermined";
 
 export interface NormalityAssessment {
   n: number;
-  test: "Jarque–Bera";
+  test: "Shapiro–Wilk";
   statistic: number | null;
   pValue: number | null;
   skewness: number | null;
   excessKurtosis: number | null;
+  bowleySkewness: number | null;
+  outlierCount: number;
+  shape: DistributionShape;
   normalAt05: boolean | null;
   recommendedTest: ComparisonTest;
   note: string;
+  warnings: string[];
 }
 
 interface SignificanceResult {
@@ -50,14 +55,34 @@ export interface OneSampleTResult extends SignificanceResult {
 
 export interface WilcoxonResult extends SignificanceResult {
   method: "paired-wilcoxon" | "one-sample-wilcoxon";
+  totalN: number;
   n: number;
   zeroDifferences: number;
+  positiveCount: number;
+  negativeCount: number;
+  tiedDifferences: number;
   wPlus: number;
   wMinus: number;
   statistic: number;
   z: number | null;
+  effectR: number | null;
   rankBiserial: number | null;
-  probabilityMethod: "exact" | "normal-approximation";
+  probabilityMethod: "exact-conditional" | "normal-approximation";
+  normality: NormalityAssessment;
+}
+
+export interface SignTestResult extends SignificanceResult {
+  method: "paired-sign-test" | "one-sample-sign-test";
+  totalN: number;
+  n: number;
+  zeroDifferences: number;
+  positiveCount: number;
+  negativeCount: number;
+  statistic: number;
+  positiveProportion: number;
+  signEffect: number;
+  probabilityMethod: "exact-binomial";
+  medianDifference: number;
   normality: NormalityAssessment;
 }
 
@@ -80,6 +105,128 @@ function erf(value: number) {
 }
 
 const normalCdf = (value: number) => 0.5 * (1 + erf(value / Math.SQRT2));
+
+/** Acklam's rational approximation of the standard-normal quantile. */
+export function standardNormalQuantile(probability: number) {
+  if (probability <= 0) return Number.NEGATIVE_INFINITY;
+  if (probability >= 1) return Number.POSITIVE_INFINITY;
+  const a = [
+    -3.969683028665376e1,
+    2.209460984245205e2,
+    -2.759285104469687e2,
+    1.38357751867269e2,
+    -3.066479806614716e1,
+    2.506628277459239,
+  ];
+  const b = [
+    -5.447609879822406e1,
+    1.615858368580409e2,
+    -1.556989798598866e2,
+    6.680131188771972e1,
+    -1.328068155288572e1,
+  ];
+  const c = [
+    -7.784894002430293e-3,
+    -3.223964580411365e-1,
+    -2.400758277161838,
+    -2.549732539343734,
+    4.374664141464968,
+    2.938163982698783,
+  ];
+  const d = [
+    7.784695709041462e-3,
+    3.224671290700398e-1,
+    2.445134137142996,
+    3.754408661907416,
+  ];
+  const low = 0.02425;
+  const high = 1 - low;
+  if (probability < low) {
+    const q = Math.sqrt(-2 * Math.log(probability));
+    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  if (probability > high) {
+    const q = Math.sqrt(-2 * Math.log(1 - probability));
+    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  const q = probability - 0.5;
+  const r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+    (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
+
+function polynomial(coefficients: number[], value: number) {
+  return coefficients.reduceRight((result, coefficient) => result * value + coefficient, 0);
+}
+
+/** Royston's AS R94 approximation used for the Shapiro–Wilk W test. */
+export function shapiroWilk(values: number[]) {
+  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+  const n = sorted.length;
+  if (n < 3 || n > 5000 || sorted[n - 1] - sorted[0] <= EPSILON) {
+    return { statistic: null, pValue: null };
+  }
+  const half = Math.floor(n / 2);
+  const coefficients = Array.from({ length: half }, (_, index) =>
+    standardNormalQuantile((index + 1 - 0.375) / (n + 0.25)),
+  );
+  const sumSquares = 2 * coefficients.reduce((sum, value) => sum + value * value, 0);
+  const rootSumSquares = Math.sqrt(sumSquares);
+  const inverseRootN = 1 / Math.sqrt(n);
+  const c1 = [0, 0.221157, -0.147981, -2.07119, 4.434685, -2.706056];
+  const c2 = [0, 0.042981, -0.293762, -1.752461, 5.682633, -3.582633];
+  const originalFirst = coefficients[0];
+  const first = polynomial(c1, inverseRootN) - originalFirst / rootSumSquares;
+  let start = 1;
+  let factor: number;
+  coefficients[0] = first;
+  if (n > 5) {
+    const originalSecond = coefficients[1];
+    const second = polynomial(c2, inverseRootN) - originalSecond / rootSumSquares;
+    factor = Math.sqrt(
+      (sumSquares - 2 * originalFirst ** 2 - 2 * originalSecond ** 2) /
+        (1 - 2 * first ** 2 - 2 * second ** 2),
+    );
+    coefficients[1] = second;
+    start = 2;
+  } else {
+    factor = Math.sqrt((sumSquares - 2 * originalFirst ** 2) / (1 - 2 * first ** 2));
+  }
+  for (let index = start; index < coefficients.length; index += 1) {
+    coefficients[index] /= -factor;
+  }
+  if (n === 3) coefficients[0] = Math.SQRT1_2;
+  const numerator = coefficients.reduce(
+    (sum, coefficient, index) => sum + coefficient * (sorted[n - 1 - index] - sorted[index]),
+    0,
+  );
+  const average = mean(sorted)!;
+  const denominator = sorted.reduce((sum, value) => sum + (value - average) ** 2, 0);
+  const statistic = clampProbability((numerator * numerator) / denominator);
+  let pValue: number;
+  if (n === 3) {
+    pValue = clampProbability((6 / Math.PI) * (Math.asin(Math.sqrt(statistic)) - Math.PI / 3));
+  } else {
+    let transformed = Math.log1p(-statistic);
+    let location: number;
+    let scale: number;
+    if (n <= 11) {
+      const gamma = polynomial([-2.273, 0.459], n);
+      if (transformed >= gamma) return { statistic, pValue: 0 };
+      transformed = -Math.log(gamma - transformed);
+      location = polynomial([0.544, -0.39978, 0.025054, -0.0006714], n);
+      scale = Math.exp(polynomial([1.3822, -0.77857, 0.062767, -0.0020322], n));
+    } else {
+      const logN = Math.log(n);
+      location = polynomial([-1.5861, -0.31082, -0.083751, 0.0038915], logN);
+      scale = Math.exp(polynomial([-0.4803, -0.082676, 0.0030302], logN));
+    }
+    pValue = clampProbability(1 - normalCdf((transformed - location) / scale));
+  }
+  return { statistic, pValue };
+}
 
 function logGamma(value: number): number {
   const coefficients = [
@@ -171,54 +318,113 @@ function sanitizedAlpha(alpha: number) {
 export function assessNormality(values: number[]): NormalityAssessment {
   const clean = values.filter(Number.isFinite);
   const n = clean.length;
-  if (n < 8) {
+  const sorted = [...clean].sort((a, b) => a - b);
+  const quantile = (probability: number) => {
+    if (!sorted.length) return null;
+    const position = (sorted.length - 1) * probability;
+    const lower = Math.floor(position);
+    const upper = Math.ceil(position);
+    if (lower === upper) return sorted[lower];
+    return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
+  };
+  const q1 = quantile(0.25);
+  const q2 = quantile(0.5);
+  const q3 = quantile(0.75);
+  const iqr = q1 === null || q3 === null ? null : q3 - q1;
+  const outlierCount = iqr === null || iqr <= EPSILON
+    ? 0
+    : clean.filter((value) => value < q1! - 1.5 * iqr || value > q3! + 1.5 * iqr).length;
+  const bowleySkewness =
+    q1 === null || q2 === null || q3 === null || iqr === null || iqr <= EPSILON
+      ? null
+      : (q3 + q1 - 2 * q2) / iqr;
+  const baseWarnings: string[] = [];
+  if (n < 8) baseWarnings.push("กลุ่มตัวอย่างน้อยกว่า 8 ค่า การประเมินรูปทรงการแจกแจงมีความไม่แน่นอนสูง");
+  if (outlierCount) baseWarnings.push(`พบค่าผิดปกติตามเกณฑ์ 1.5×IQR จำนวน ${outlierCount} ค่า`);
+
+  if (!n) {
     return {
       n,
-      test: "Jarque–Bera",
+      test: "Shapiro–Wilk",
       statistic: null,
       pValue: null,
       skewness: null,
       excessKurtosis: null,
+      bowleySkewness,
+      outlierCount,
+      shape: "undetermined",
       normalAt05: null,
-      recommendedTest: "wilcoxon",
-      note: "ข้อมูลน้อยกว่า 8 ค่า จึงยังประเมินการกระจายแบบปกติได้ไม่มั่นคง",
+      recommendedTest: "sign-test",
+      note: "ยังไม่มีข้อมูลเพียงพอสำหรับประเมินการแจกแจง",
+      warnings: baseWarnings,
     };
   }
   const average = mean(clean)!;
   const centered = clean.map((value) => value - average);
   const secondMoment = centered.reduce((sum, value) => sum + value ** 2, 0) / n;
   if (secondMoment <= EPSILON) {
+    const warnings = [...baseWarnings, "ข้อมูลไม่มีความแปรปรวน"];
     return {
       n,
-      test: "Jarque–Bera",
+      test: "Shapiro–Wilk",
       statistic: null,
       pValue: null,
       skewness: 0,
       excessKurtosis: null,
+      bowleySkewness,
+      outlierCount,
+      shape: "undetermined",
       normalAt05: false,
-      recommendedTest: "wilcoxon",
+      recommendedTest: "sign-test",
       note: "ข้อมูลไม่มีความแปรปรวนเพียงพอสำหรับการทดสอบการกระจาย",
+      warnings,
     };
   }
   const thirdMoment = centered.reduce((sum, value) => sum + value ** 3, 0) / n;
   const fourthMoment = centered.reduce((sum, value) => sum + value ** 4, 0) / n;
   const skewness = thirdMoment / secondMoment ** 1.5;
   const excessKurtosis = fourthMoment / secondMoment ** 2 - 3;
-  const statistic = (n / 6) * (skewness ** 2 + excessKurtosis ** 2 / 4);
-  const pValue = Math.exp(-statistic / 2);
-  const normalAt05 = pValue >= 0.05;
+  const shapiro = shapiroWilk(clean);
+  const statistic = shapiro.statistic;
+  const pValue = shapiro.pValue;
+  const normalAt05 = pValue === null ? null : pValue >= 0.05;
+  const asymmetric =
+    Math.abs(skewness) > 1 ||
+    (bowleySkewness !== null && Math.abs(bowleySkewness) > 0.3);
+  const shape: DistributionShape = asymmetric
+    ? "asymmetric"
+    : n >= 5
+      ? "approximately-symmetric"
+      : "undetermined";
+  const outlierProblem = outlierCount > 0;
+  const recommendedTest: ComparisonTest =
+    asymmetric
+      ? "sign-test"
+      : normalAt05 === true && !outlierProblem
+        ? "t-test"
+        : "wilcoxon";
+  const warnings = [...baseWarnings];
+  if (asymmetric) warnings.push("การแจกแจงของผลต่างมีแนวโน้มไม่สมมาตร จึงควรพิจารณา Sign Test");
+  if (n < 20) warnings.push("กลุ่มตัวอย่างขนาดเล็ก ควรพิจารณา Shapiro–Wilk ร่วมกับ Q–Q plot ความสมมาตร และค่าผิดปกติ");
+  const note = normalAt05 === null
+    ? "จำนวนข้อมูลยังน้อย จึงใช้ความสมมาตรและค่าผิดปกติประกอบคำแนะนำ"
+    : normalAt05
+      ? "ยังไม่พบหลักฐานว่าข้อมูลเบี่ยงเบนจากการแจกแจงปกติที่ระดับ .05"
+      : "พบหลักฐานว่าข้อมูลเบี่ยงเบนจากการแจกแจงปกติที่ระดับ .05";
   return {
     n,
-    test: "Jarque–Bera",
+    test: "Shapiro–Wilk",
     statistic,
     pValue,
     skewness,
     excessKurtosis,
+    bowleySkewness,
+    outlierCount,
+    shape,
     normalAt05,
-    recommendedTest: normalAt05 ? "t-test" : "wilcoxon",
-    note: normalAt05
-      ? "ยังไม่พบหลักฐานว่าข้อมูลเบี่ยงเบนจากการแจกแจงปกติที่ระดับ .05"
-      : "พบหลักฐานว่าข้อมูลเบี่ยงเบนจากการแจกแจงปกติที่ระดับ .05",
+    recommendedTest,
+    note,
+    warnings,
   };
 }
 
@@ -343,25 +549,31 @@ function signedRankTest(
   const wMinus = totalRank - wPlus;
   const expected = totalRank / 2;
   const n = nonZero.length;
-  const tieCorrection = tieSizes.reduce(
-    (sum, size) => sum + size * (size - 1) * (2 * size + 5),
-    0,
-  );
-  const variance = (n * (n + 1) * (2 * n + 1) - tieCorrection) / 24;
+  const positiveCount = nonZero.filter((value) => value > 0).length;
+  const negativeCount = n - positiveCount;
+  // Conditional variance of W+ after assigning midranks. This is equivalent
+  // to the Wilcoxon tie correction and remains valid when absolute differences repeat.
+  const variance = ranks.reduce((sum, rank) => sum + rank * rank, 0) / 4;
   const standardDeviation = variance > 0 ? Math.sqrt(variance) : null;
-  const z = standardDeviation ? (wPlus - expected) / standardDeviation : null;
-  const probabilityMethod = n <= 30 ? "exact" : "normal-approximation";
+  const differenceFromExpected = wPlus - expected;
+  const z = standardDeviation
+    ? alternative === "greater"
+      ? (differenceFromExpected - 0.5) / standardDeviation
+      : alternative === "less"
+        ? (differenceFromExpected + 0.5) / standardDeviation
+        : Math.sign(differenceFromExpected) *
+          (Math.max(0, Math.abs(differenceFromExpected) - 0.5) / standardDeviation)
+    : null;
+  const probabilityMethod = n <= 30 ? "exact-conditional" : "normal-approximation";
   let pValue: number | null;
-  if (probabilityMethod === "exact") {
+  if (probabilityMethod === "exact-conditional") {
     pValue = exactSignedRankProbability(ranks, wPlus, alternative);
-  } else if (standardDeviation) {
-    if (alternative === "greater") {
-      pValue = 1 - normalCdf((wPlus - expected - 0.5) / standardDeviation);
-    } else if (alternative === "less") {
-      pValue = normalCdf((wPlus - expected + 0.5) / standardDeviation);
-    } else {
-      pValue = 2 * (1 - normalCdf(Math.max(0, Math.abs(wPlus - expected) - 0.5) / standardDeviation));
-    }
+  } else if (z !== null) {
+    pValue = alternative === "greater"
+      ? 1 - normalCdf(z)
+      : alternative === "less"
+        ? normalCdf(z)
+        : 2 * (1 - normalCdf(Math.abs(z)));
     pValue = clampProbability(pValue);
   } else {
     pValue = null;
@@ -369,18 +581,75 @@ function signedRankTest(
   const validAlpha = sanitizedAlpha(alpha);
   return {
     method,
+    totalN: clean.length,
     n,
     zeroDifferences: clean.length - nonZero.length,
+    positiveCount,
+    negativeCount,
+    tiedDifferences: tieSizes.reduce((sum, size) => sum + (size > 1 ? size : 0), 0),
     wPlus,
     wMinus,
     statistic: Math.min(wPlus, wMinus),
     z,
+    effectR: z === null ? null : Math.min(1, Math.abs(z) / Math.sqrt(n)),
     rankBiserial: totalRank > 0 ? (wPlus - wMinus) / totalRank : null,
     probabilityMethod,
     pValue,
     alpha: validAlpha,
     alternative,
     significant: pValue === null ? null : pValue < validAlpha,
+    normality: assessNormality(clean),
+  };
+}
+
+function binomialHalfCdf(k: number, n: number) {
+  if (k < 0) return 0;
+  if (k >= n) return 1;
+  return regularizedBeta(0.5, n - k, k + 1);
+}
+
+function exactSignProbability(
+  positiveCount: number,
+  n: number,
+  alternative: AlternativeHypothesis,
+) {
+  const lower = binomialHalfCdf(positiveCount, n);
+  const upper = 1 - binomialHalfCdf(positiveCount - 1, n);
+  if (alternative === "greater") return clampProbability(upper);
+  if (alternative === "less") return clampProbability(lower);
+  return clampProbability(2 * Math.min(lower, upper));
+}
+
+function signTest(
+  differences: number[],
+  method: SignTestResult["method"],
+  alternative: AlternativeHypothesis,
+  alpha: number,
+): SignTestResult | null {
+  const clean = differences.filter(Number.isFinite);
+  const nonZero = clean.filter((value) => Math.abs(value) > EPSILON);
+  if (!nonZero.length) return null;
+  const positiveCount = nonZero.filter((value) => value > 0).length;
+  const negativeCount = nonZero.length - positiveCount;
+  const n = nonZero.length;
+  const pValue = exactSignProbability(positiveCount, n, alternative);
+  const validAlpha = sanitizedAlpha(alpha);
+  return {
+    method,
+    totalN: clean.length,
+    n,
+    zeroDifferences: clean.length - n,
+    positiveCount,
+    negativeCount,
+    statistic: Math.min(positiveCount, negativeCount),
+    positiveProportion: positiveCount / n,
+    signEffect: (positiveCount - negativeCount) / n,
+    probabilityMethod: "exact-binomial",
+    medianDifference: median(clean)!,
+    pValue,
+    alpha: validAlpha,
+    alternative,
+    significant: pValue < validAlpha,
     normality: assessNormality(clean),
   };
 }
@@ -410,6 +679,36 @@ export function oneSampleWilcoxonTest(
   return signedRankTest(
     values.map((value) => value - criterion),
     "one-sample-wilcoxon",
+    alternative,
+    alpha,
+  );
+}
+
+export function pairedSignTest(
+  pre: number[],
+  post: number[],
+  alternative: AlternativeHypothesis = "greater",
+  alpha = 0.05,
+) {
+  if (pre.length !== post.length || !pre.length) return null;
+  return signTest(
+    post.map((value, index) => value - pre[index]),
+    "paired-sign-test",
+    alternative,
+    alpha,
+  );
+}
+
+export function oneSampleSignTest(
+  values: number[],
+  criterion: number,
+  alternative: AlternativeHypothesis = "greater",
+  alpha = 0.05,
+) {
+  if (!Number.isFinite(criterion)) return null;
+  return signTest(
+    values.map((value) => value - criterion),
+    "one-sample-sign-test",
     alternative,
     alpha,
   );
