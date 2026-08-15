@@ -1010,6 +1010,112 @@ function isTestMethod(value: unknown): value is ComparisonTest {
   return value === "t-test" || value === "wilcoxon" || value === "sign-test";
 }
 
+const METHOD_HELP: Record<ComparisonMode, Array<{
+  value: ComparisonTest;
+  label: string;
+  description: string;
+}>> = {
+  paired: [
+    {
+      value: "t-test",
+      label: "Paired-samples t-test",
+      description: "ใช้เปรียบเทียบค่าเฉลี่ยคะแนนก่อน–หลังของคนกลุ่มเดิม เมื่อผลต่างใกล้เคียงปกติและไม่มีค่าผิดปกติรุนแรง",
+    },
+    {
+      value: "wilcoxon",
+      label: "Wilcoxon signed-rank test",
+      description: "ใช้เปรียบเทียบอันดับของผลต่างคะแนนคู่ เมื่อข้อมูลไม่ปกติแต่ผลต่างยังค่อนข้างสมมาตร",
+    },
+    {
+      value: "sign-test",
+      label: "Paired Sign Test",
+      description: "ใช้เปรียบเทียบจำนวนผลต่างบวกและลบ เหมาะเมื่อผลต่างเบ้หรือไม่สมมาตร โดยไม่ใช้ขนาดของผลต่าง",
+    },
+  ],
+  criterion: [
+    {
+      value: "t-test",
+      label: "One-sample t-test",
+      description: "ใช้ทดสอบว่าค่าเฉลี่ยคะแนนหลังเรียนต่างจากเกณฑ์หรือไม่ เมื่อผลต่างจากเกณฑ์ใกล้เคียงปกติ",
+    },
+    {
+      value: "wilcoxon",
+      label: "One-sample Wilcoxon signed-rank test",
+      description: "ใช้ทดสอบอันดับของผลต่างระหว่างคะแนนกับเกณฑ์ เมื่อข้อมูลไม่ปกติแต่ผลต่างยังค่อนข้างสมมาตร",
+    },
+    {
+      value: "sign-test",
+      label: "One-sample Sign Test",
+      description: "ใช้ทดสอบจำนวนคะแนนที่สูงหรือต่ำกว่าเกณฑ์ เหมาะเมื่อข้อมูลเบ้หรือไม่สมมาตร โดยไม่ใช้ระยะห่างจากเกณฑ์",
+    },
+  ],
+};
+
+function TestMethodSelect({
+  mode,
+  value,
+  onChange,
+}: {
+  mode: ComparisonMode;
+  value: ComparisonTest;
+  onChange: (value: ComparisonTest) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const methods = METHOD_HELP[mode];
+  const selected = methods.find((method) => method.value === value) ?? methods[0];
+
+  return (
+    <div
+      className="method-select-field"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+    >
+      <span id="test-method-label">วิธีทดสอบ</span>
+      <button
+        type="button"
+        className="method-select-trigger"
+        role="combobox"
+        aria-labelledby="test-method-label"
+        aria-controls="test-method-options"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span>{selected.label}</span>
+        <i aria-hidden="true">⌄</i>
+      </button>
+      {open && (
+        <div id="test-method-options" className="method-options" role="listbox" aria-label="วิธีทดสอบ">
+          {methods.map((method) => (
+            <button
+              key={method.value}
+              type="button"
+              role="option"
+              aria-selected={method.value === value}
+              aria-describedby={`method-help-${mode}-${method.value}`}
+              className={`method-option${method.value === value ? " selected" : ""}`}
+              title={method.description}
+              onClick={() => {
+                onChange(method.value);
+                setOpen(false);
+              }}
+            >
+              <span className="method-option-title">
+                <b>{method.label}</b>
+                <i aria-hidden="true">ⓘ</i>
+              </span>
+              <span id={`method-help-${mode}-${method.value}`} className="method-option-help">
+                {method.description}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HypothesisSelect({
   value,
   onChange,
@@ -1571,31 +1677,14 @@ function PairedView({
       </div>
 
       <section className="panel analysis-controls">
-        <label>
-          วิธีทดสอบ
-          <select
-            value={activeMethod}
-            onChange={(event) => {
-              const selected = event.target.value as ComparisonTest;
-              if (mode === "paired") setPairedMethod(selected);
-              else setCriterionMethod(selected);
-            }}
-          >
-            <option value="t-test">
-              {mode === "paired" ? "Paired-samples t-test" : "One-sample t-test"}
-            </option>
-            <option value="wilcoxon">
-              {mode === "paired"
-                ? "Wilcoxon signed-rank test"
-                : "One-sample Wilcoxon signed-rank test"}
-            </option>
-            <option value="sign-test">
-              {mode === "paired"
-                ? "Paired Sign Test"
-                : "One-sample Sign Test"}
-            </option>
-          </select>
-        </label>
+        <TestMethodSelect
+          mode={mode}
+          value={activeMethod}
+          onChange={(selected) => {
+            if (mode === "paired") setPairedMethod(selected);
+            else setCriterionMethod(selected);
+          }}
+        />
         <HypothesisSelect
           mode={mode}
           value={mode === "paired" ? pairedAlternative : criterionAlternative}
