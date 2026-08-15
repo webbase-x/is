@@ -912,6 +912,29 @@ function normalityRecommendation(normality?: NormalityAssessment) {
   return `ระบบแนะนำ ${method}: ${testResult}`;
 }
 
+type SampleSizeBand = "very-small" | "small" | "large";
+
+function sampleSizeBand(n: number): SampleSizeBand {
+  if (n < 8) return "very-small";
+  if (n < 30) return "small";
+  return "large";
+}
+
+function currentSampleGuidance(n: number, mode: ComparisonMode) {
+  const distributionTarget =
+    mode === "paired" ? "ผลต่างคะแนนหลังเรียน − ก่อนเรียน" : "คะแนนหลังเรียน";
+  if (n < 3) {
+    return `มีข้อมูลเพียง ${n} ${mode === "paired" ? "คู่" : "คน"} ยังไม่เพียงพอสำหรับการทดสอบสมมติฐานอย่างเหมาะสม`;
+  }
+  if (n < 8) {
+    return `กลุ่มตัวอย่างเล็กมาก (n = ${n}) การตรวจการแจกแจงมีพลังต่ำ ต้องพิจารณา${distributionTarget}และค่าผิดปกติร่วมกับลักษณะข้อมูล`;
+  }
+  if (n < 30) {
+    return `กลุ่มตัวอย่างขนาดเล็ก (n = ${n}) เลือก t-test เมื่อ${distributionTarget}ใกล้เคียงปกติและไม่มีค่าผิดปกติรุนแรง มิฉะนั้นพิจารณา Wilcoxon`;
+  }
+  return `กลุ่มตัวอย่างตั้งแต่ 30 ขึ้นไป (n = ${n}) t-test มักทนต่อการเบี่ยงเบนจากปกติระดับเล็กน้อยได้ แต่ยังต้องตรวจค่าผิดปกติและความเบ้รุนแรง`;
+}
+
 function hypothesisConclusion(
   result: TestResult | null,
   mode: ComparisonMode,
@@ -1032,6 +1055,11 @@ function PairedView({
   const activeMethod = mode === "paired" ? pairedMethod : criterionMethod;
   const pairedLengthMismatch =
     mode === "paired" && preValues.length !== postValues.length;
+  const activeSampleSize =
+    mode === "paired"
+      ? Math.min(preValues.length, postValues.length)
+      : postValues.length;
+  const activeSampleBand = sampleSizeBand(activeSampleSize);
 
   useEffect(() => {
     onChange(
@@ -1240,7 +1268,7 @@ function PairedView({
       )}
 
       <div className="notice analysis-recommendation">
-        <b>คำแนะนำจากการกระจายข้อมูล</b>
+        <b>คำแนะนำเบื้องต้นจากการกระจายข้อมูล</b>
         <p>{normalityRecommendation(activeResult?.normality)}</p>
         {activeResult?.normality.recommendedTest !== activeMethod && (
           <small>
@@ -1249,6 +1277,53 @@ function PairedView({
           </small>
         )}
       </div>
+
+      <section className="panel sample-size-guide" aria-labelledby="sample-size-guide-title">
+        <div className="sample-size-guide-head">
+          <div>
+            <span className="eyebrow">แนวทางเลือกสถิติ</span>
+            <h3 id="sample-size-guide-title">กลุ่มตัวอย่างเท่าไรจึงเลือกใช้สถิติใด?</h3>
+          </div>
+          <span className="sample-size-current">
+            ข้อมูลปัจจุบัน n = {activeSampleSize}{mode === "paired" ? " คู่" : " คน"}
+          </span>
+        </div>
+        <p className="sample-size-summary">{currentSampleGuidance(activeSampleSize, mode)}</p>
+        <div className="sample-size-grid">
+          <article className={activeSampleBand === "very-small" ? "active" : ""}>
+            <b>n น้อยกว่า 8</b>
+            <strong>กลุ่มเล็กมาก</strong>
+            <p>
+              ยังตัดสินการแจกแจงได้ไม่มั่นคง ใช้ t-test ได้เมื่อข้อมูลเชิงปริมาณ
+              ผลต่างค่อนข้างสมมาตรและไม่มีค่าผิดปกติชัดเจน หากเป็นข้อมูลอันดับ
+              หรือสมมติฐานของ t-test ไม่ผ่าน ให้พิจารณา Wilcoxon
+            </p>
+          </article>
+          <article className={activeSampleBand === "small" ? "active" : ""}>
+            <b>n = 8–29</b>
+            <strong>กลุ่มขนาดเล็ก</strong>
+            <p>
+              เลือก t-test เมื่อผลต่างใกล้เคียงการแจกแจงปกติและไม่มี outlier รุนแรง
+              เลือก Wilcoxon เมื่อข้อมูลเป็นอันดับ เบ้มาก หรือมีค่าผิดปกติ
+              โดยผลต่างควรมีรูปทรงใกล้เคียงสมมาตร
+            </p>
+          </article>
+          <article className={activeSampleBand === "large" ? "active" : ""}>
+            <b>n ตั้งแต่ 30 ขึ้นไป</b>
+            <strong>กลุ่มขนาดกลาง–ใหญ่</strong>
+            <p>
+              t-test มักเป็นตัวเลือกหลักเมื่อต้องการทดสอบค่าเฉลี่ยและไม่มี outlier รุนแรง
+              แม้ข้อมูลเบี่ยงเบนจากปกติเล็กน้อย ส่วน Wilcoxon เหมาะเมื่อเป็นข้อมูลอันดับ
+              หรือยังเบ้/มีค่าผิดปกติรุนแรง
+            </p>
+          </article>
+        </div>
+        <div className="sample-size-caution">
+          <b>สำคัญ:</b> ไม่มีกฎว่า n &lt; 30 ต้องใช้ Wilcoxon และ n ≥ 30 ต้องใช้ t-test เสมอ
+          ต้องพิจารณาระดับการวัด การแจกแจงของ{mode === "paired" ? "ผลต่างรายคู่" : "คะแนนหลังเรียน"}
+          ค่าผิดปกติ และสมมติฐานการวิจัยร่วมกัน และควรกำหนดทางเดียวหรือสองทางก่อนดูผลการทดสอบ
+        </div>
+      </section>
 
       <div className="metrics analysis-metrics">
         <Metric label="n" value={`${activeResult?.n ?? 0}`} />
@@ -2145,7 +2220,7 @@ export default function ResearchStatsApp({
                 </button>
               </>
             )}
-              <span className="version-chip">รุ่นคำนวณ 2.4</span>
+              <span className="version-chip">รุ่นคำนวณ 2.5</span>
             <span className="avatar">พ</span>
           </div>
         </div>
