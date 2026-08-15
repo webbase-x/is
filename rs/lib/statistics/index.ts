@@ -5,4 +5,6 @@ export * from "./quality";
 export * from "./item-analysis";
 export * from "./reliability";
 export * from "./paired-test";
+export * from "./wilcoxon";
 export * from "./efficiency";
+

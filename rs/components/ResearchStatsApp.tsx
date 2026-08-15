@@ -16,6 +16,7 @@ import {
   kr20,
   mean,
   median,
+  oneSampleWilcoxon,
   pairedTTest,
   parseMatrix,
   parseNumbers,
@@ -30,6 +31,7 @@ type View =
   | "item"
   | "reliability"
   | "paired"
+  | "wilcoxon"
   | "efficiency"
   | "references";
 type WorkspaceData = Record<string, unknown>;
@@ -43,45 +45,46 @@ type AnalysisRecord = {
 };
 
 const NAV: Array<{ id: View; label: string; icon: string; group?: string }> = [
-  { id: "home", label: "ภาพรวม", icon: "⌂" },
+  { id: "home", label: "เธ เธฒเธเธฃเธงเธก", icon: "โ" },
   {
     id: "ioc",
-    label: "ความตรงเชิงเนื้อหา (IOC)",
-    icon: "✓",
-    group: "ตรวจสอบเครื่องมือ",
+    label: "เธเธงเธฒเธกเธ•เธฃเธเน€เธเธดเธเน€เธเธทเนเธญเธซเธฒ (IOC)",
+    icon: "โ“",
+    group: "เธ•เธฃเธงเธเธชเธญเธเน€เธเธฃเธทเนเธญเธเธกเธทเธญ",
   },
   {
     id: "descriptive",
-    label: "ค่าเฉลี่ยและ S.D.",
-    icon: "x̄",
-    group: "สถิติพรรณนา",
+    label: "เธเนเธฒเน€เธเธฅเธตเนเธขเนเธฅเธฐ S.D.",
+    icon: "xฬ",
+    group: "เธชเธ–เธดเธ•เธดเธเธฃเธฃเธ“เธเธฒ",
   },
-  { id: "quality", label: "ระดับคุณภาพ 5 ระดับ", icon: "★" },
+  { id: "quality", label: "เธฃเธฐเธ”เธฑเธเธเธธเธ“เธ เธฒเธ 5 เธฃเธฐเธ”เธฑเธ", icon: "โ…" },
   {
     id: "item",
-    label: "ความยาก–อำนาจจำแนก",
+    label: "เธเธงเธฒเธกเธขเธฒเธโ€“เธญเธณเธเธฒเธเธเธณเนเธเธ",
     icon: "P",
-    group: "คุณภาพแบบทดสอบ",
+    group: "เธเธธเธ“เธ เธฒเธเนเธเธเธ—เธ”เธชเธญเธ",
   },
-  { id: "reliability", label: "ความเชื่อมั่น", icon: "α" },
+  { id: "reliability", label: "เธเธงเธฒเธกเน€เธเธทเนเธญเธกเธฑเนเธ", icon: "ฮฑ" },
   {
     id: "paired",
-    label: "ก่อนเรียน–หลังเรียน",
+    label: "เธเนเธญเธเน€เธฃเธตเธขเธโ€“เธซเธฅเธฑเธเน€เธฃเธตเธขเธ",
     icon: "t",
-    group: "ทดสอบสมมติฐาน",
+    group: "เธ—เธ”เธชเธญเธเธชเธกเธกเธ•เธดเธเธฒเธ",
   },
-  { id: "efficiency", label: "ประสิทธิภาพ E1/E2", icon: "%" },
+  { id: "wilcoxon", label: "Wilcoxon 1 เธเธฅเธธเนเธก", icon: "W" },
+  { id: "efficiency", label: "เธเธฃเธฐเธชเธดเธ—เธเธดเธ เธฒเธ E1/E2", icon: "%" },
   {
     id: "references",
-    label: "สูตรและเอกสารอ้างอิง",
-    icon: "§",
-    group: "เอกสาร",
+    label: "เธชเธนเธ•เธฃเนเธฅเธฐเน€เธญเธเธชเธฒเธฃเธญเนเธฒเธเธญเธดเธ",
+    icon: "ยง",
+    group: "เน€เธญเธเธชเธฒเธฃ",
   },
 ];
 
 const fmt = (value: number | null | undefined, digits = 3) =>
   value === null || value === undefined || !Number.isFinite(value)
-    ? "—"
+    ? "โ€”"
     : value.toFixed(digits);
 
 function Metric({
@@ -114,26 +117,26 @@ function Formula({
   return (
     <div className="formula">
       <div>{children}</div>
-      <small>แนวทางอ้างอิง: {source}</small>
+      <small>เนเธเธงเธ—เธฒเธเธญเนเธฒเธเธญเธดเธ: {source}</small>
     </div>
   );
 }
 
 const THAI_DIGITS: Record<string, string> = {
-  "๐": "0",
-  "๑": "1",
-  "๒": "2",
-  "๓": "3",
-  "๔": "4",
-  "๕": "5",
-  "๖": "6",
-  "๗": "7",
-  "๘": "8",
-  "๙": "9",
+  "เน": "0",
+  "เน‘": "1",
+  "เน’": "2",
+  "เน“": "3",
+  "เน”": "4",
+  "เน•": "5",
+  "เน–": "6",
+  "เน—": "7",
+  "เน": "8",
+  "เน": "9",
 };
 
 function normalizeDigits(value: string) {
-  return value.replace(/[๐-๙]/g, (digit) => THAI_DIGITS[digit]);
+  return value.replace(/[เน-เน]/g, (digit) => THAI_DIGITS[digit]);
 }
 
 function inferIocItemCount(rows: unknown[][]) {
@@ -144,7 +147,7 @@ function inferIocItemCount(rows: unknown[][]) {
       .join(" "),
   );
   const explicitCounts = [
-    ...text.matchAll(/(?:จำนวน|รวม|แบบทดสอบ)?\s*(\d{1,3})\s*ข้อ/g),
+    ...text.matchAll(/(?:เธเธณเธเธงเธ|เธฃเธงเธก|เนเธเธเธ—เธ”เธชเธญเธ)?\s*(\d{1,3})\s*เธเนเธญ/g),
   ]
     .map((match) => Number(match[1]))
     .filter((count) => count >= 3 && count <= 200);
@@ -227,7 +230,7 @@ function IocView({
     initialExperts ??
       Array.from(
         { length: importedWidth },
-        (_, index) => `ผู้เชี่ยวชาญ ${index + 1}`,
+        (_, index) => `เธเธนเนเน€เธเธตเนเธขเธงเธเธฒเธ ${index + 1}`,
       ),
   );
   const [rows, setRows] = useState<Array<Array<number | null>>>(() => {
@@ -264,7 +267,7 @@ function IocView({
       ),
     );
   const addExpert = () => {
-    setExperts((x) => [...x, `ผู้เชี่ยวชาญ ${x.length + 1}`]);
+    setExperts((x) => [...x, `เธเธนเนเน€เธเธตเนเธขเธงเธเธฒเธ ${x.length + 1}`]);
     setRows((x) => x.map((r) => [...r, null]));
   };
   const addItem = () =>
@@ -288,17 +291,17 @@ function IocView({
     );
   }, [experts, rows]);
   const exportRows = () => [
-    ["ข้อ", ...experts, "∑R", "IOC", "ผล"],
+    ["เธเนเธญ", ...experts, "โ‘R", "IOC", "เธเธฅ"],
     ...rows.map((row, index) => [
       index + 1,
       ...row.map((value) => value ?? ""),
       results[index].sum,
       results[index].ioc?.toFixed(2) ?? "",
       results[index].ioc === null
-        ? "รอคะแนน"
+        ? "เธฃเธญเธเธฐเนเธเธ"
         : results[index].passed
-          ? "ใช้ได้"
-          : "ปรับปรุง",
+          ? "เนเธเนเนเธ”เน"
+          : "เธเธฃเธฑเธเธเธฃเธธเธ",
     ]),
   ];
   const exportCsv = () => {
@@ -353,7 +356,7 @@ function IocView({
             new Paragraph({
               children: [
                 new TextRun({
-                  text: "ตารางสรุปผลการตรวจสอบความตรงเชิงเนื้อหา (IOC)",
+                  text: "เธ•เธฒเธฃเธฒเธเธชเธฃเธธเธเธเธฅเธเธฒเธฃเธ•เธฃเธงเธเธชเธญเธเธเธงเธฒเธกเธ•เธฃเธเน€เธเธดเธเน€เธเธทเนเธญเธซเธฒ (IOC)",
                   bold: true,
                   noProof: true,
                   font: "TH Sarabun New",
@@ -399,34 +402,34 @@ function IocView({
   const exportPng = () => exportIocPng(title, experts, rows, results);
   return (
     <Page
-      title="ความตรงเชิงเนื้อหา (IOC)"
-      subtitle="ประเมินความสอดคล้องรายข้อจากผู้เชี่ยวชาญจำนวนเท่าใดก็ได้"
-      badge="แนะนำ ≥ 3 คน"
+      title="เธเธงเธฒเธกเธ•เธฃเธเน€เธเธดเธเน€เธเธทเนเธญเธซเธฒ (IOC)"
+      subtitle="เธเธฃเธฐเน€เธกเธดเธเธเธงเธฒเธกเธชเธญเธ”เธเธฅเนเธญเธเธฃเธฒเธขเธเนเธญเธเธฒเธเธเธนเนเน€เธเธตเนเธขเธงเธเธฒเธเธเธณเธเธงเธเน€เธ—เนเธฒเนเธ”เธเนเนเธ”เน"
+      badge="เนเธเธฐเธเธณ โฅ 3 เธเธ"
     >
       {needsOcrVerification && (
         <div className="import-warning ioc-verification">
           <b>
             {detectedRatings.length
-              ? `อ่านตำแหน่งเครื่องหมายได้ ${detectedRatings.length} ข้อ`
-              : "ยังไม่พบเครื่องหมายในช่องคะแนน"}
+              ? `เธญเนเธฒเธเธ•เธณเนเธซเธเนเธเน€เธเธฃเธทเนเธญเธเธซเธกเธฒเธขเนเธ”เน ${detectedRatings.length} เธเนเธญ`
+              : "เธขเธฑเธเนเธกเนเธเธเน€เธเธฃเธทเนเธญเธเธซเธกเธฒเธขเนเธเธเนเธญเธเธเธฐเนเธเธ"}
           </b>
           <span>
             {detectedRatings.length
-              ? "ระบบจับคู่รอยปากกากับช่อง +1, 0 หรือ -1 และเลขข้อจากตารางแล้ว กรุณาเทียบกับภาพต้นฉบับและแก้ไขช่องที่คลาดเคลื่อนก่อนใช้ผล"
-              : "OCR อ่านข้อความได้ แต่ยังยืนยันตำแหน่งรอยปากกาในตารางไม่ได้ ระบบจึงสร้างตารางว่างไว้ให้กรอกตามเอกสาร เพื่อป้องกันค่า IOC ผิดพลาด"}
+              ? "เธฃเธฐเธเธเธเธฑเธเธเธนเนเธฃเธญเธขเธเธฒเธเธเธฒเธเธฑเธเธเนเธญเธ +1, 0 เธซเธฃเธทเธญ -1 เนเธฅเธฐเน€เธฅเธเธเนเธญเธเธฒเธเธ•เธฒเธฃเธฒเธเนเธฅเนเธง เธเธฃเธธเธ“เธฒเน€เธ—เธตเธขเธเธเธฑเธเธ เธฒเธเธ•เนเธเธเธเธฑเธเนเธฅเธฐเนเธเนเนเธเธเนเธญเธเธ—เธตเนเธเธฅเธฒเธ”เน€เธเธฅเธทเนเธญเธเธเนเธญเธเนเธเนเธเธฅ"
+              : "OCR เธญเนเธฒเธเธเนเธญเธเธงเธฒเธกเนเธ”เน เนเธ•เนเธขเธฑเธเธขเธทเธเธขเธฑเธเธ•เธณเนเธซเธเนเธเธฃเธญเธขเธเธฒเธเธเธฒเนเธเธ•เธฒเธฃเธฒเธเนเธกเนเนเธ”เน เธฃเธฐเธเธเธเธถเธเธชเธฃเนเธฒเธเธ•เธฒเธฃเธฒเธเธงเนเธฒเธเนเธงเนเนเธซเนเธเธฃเธญเธเธ•เธฒเธกเน€เธญเธเธชเธฒเธฃ เน€เธเธทเนเธญเธเนเธญเธเธเธฑเธเธเนเธฒ IOC เธเธดเธ”เธเธฅเธฒเธ”"}
           </span>
         </div>
       )}
       <div className="metrics">
-        <Metric label="จำนวนข้อ" value={`${rows.length}`} />
+        <Metric label="เธเธณเธเธงเธเธเนเธญ" value={`${rows.length}`} />
         <Metric
-          label="ผู้เชี่ยวชาญ"
+          label="เธเธนเนเน€เธเธตเนเธขเธงเธเธฒเธ"
           value={`${experts.length}`}
           tone="violet"
         />
-        <Metric label="IOC เฉลี่ย" value={fmt(average, 2)} tone="green" />
+        <Metric label="IOC เน€เธเธฅเธตเนเธข" value={fmt(average, 2)} tone="green" />
         <Metric
-          label="ผ่านเกณฑ์"
+          label="เธเนเธฒเธเน€เธเธ“เธ‘เน"
           value={`${results.filter((r) => r.passed).length}/${rows.length}`}
           tone="amber"
         />
@@ -434,13 +437,13 @@ function IocView({
       <section className="panel">
         <div className="panel-head ioc-panel-head">
           <div className="ioc-panel-title">
-            <h3>ตารางให้คะแนน</h3>
-            <p>+1 สอดคล้อง · 0 ไม่แน่ใจ · -1 ไม่สอดคล้อง</p>
+            <h3>เธ•เธฒเธฃเธฒเธเนเธซเนเธเธฐเนเธเธ</h3>
+            <p>+1 เธชเธญเธ”เธเธฅเนเธญเธ ยท 0 เนเธกเนเนเธเนเนเธ ยท -1 เนเธกเนเธชเธญเธ”เธเธฅเนเธญเธ</p>
           </div>
           <div className="ioc-toolbar">
-            <div className="actions ioc-actions" aria-label="ตั้งค่าตาราง IOC">
+            <div className="actions ioc-actions" aria-label="เธ•เธฑเนเธเธเนเธฒเธ•เธฒเธฃเธฒเธ IOC">
               <label className="ioc-item-count">
-                จำนวนข้อ
+                เธเธณเธเธงเธเธเนเธญ
                 <input
                   disabled={!editable}
                   type="number"
@@ -457,20 +460,20 @@ function IocView({
                 disabled={!editable}
                 onClick={addExpert}
               >
-                + ผู้เชี่ยวชาญ
+                + เธเธนเนเน€เธเธตเนเธขเธงเธเธฒเธ
               </button>
               <button disabled={!editable} onClick={addItem}>
-                + เพิ่มข้อ
+                + เน€เธเธดเนเธกเธเนเธญ
               </button>
             </div>
             <div className="ioc-export-group">
-              <span className="ioc-group-label">ส่งออกผล</span>
-              <div className="export-icons" aria-label="ส่งออกผล IOC">
+              <span className="ioc-group-label">เธชเนเธเธญเธญเธเธเธฅ</span>
+              <div className="export-icons" aria-label="เธชเนเธเธญเธญเธเธเธฅ IOC">
                 <button
                   className="export-icon csv"
                   onClick={exportCsv}
-                  title="ส่งออก CSV"
-                  aria-label="ส่งออก CSV"
+                  title="เธชเนเธเธญเธญเธ CSV"
+                  aria-label="เธชเนเธเธญเธญเธ CSV"
                 >
                   <ExportIcon format="C" />
                   <span>CSV</span>
@@ -478,8 +481,8 @@ function IocView({
                 <button
                   className="export-icon xlsx"
                   onClick={() => void exportXlsx()}
-                  title="ส่งออก XLSX"
-                  aria-label="ส่งออก XLSX"
+                  title="เธชเนเธเธญเธญเธ XLSX"
+                  aria-label="เธชเนเธเธญเธญเธ XLSX"
                 >
                   <ExportIcon format="X" />
                   <span>XLSX</span>
@@ -487,8 +490,8 @@ function IocView({
                 <button
                   className="export-icon docx"
                   onClick={() => void exportDocx()}
-                  title="ส่งออก DOCX"
-                  aria-label="ส่งออก DOCX"
+                  title="เธชเนเธเธญเธญเธ DOCX"
+                  aria-label="เธชเนเธเธญเธญเธ DOCX"
                 >
                   <ExportIcon format="W" />
                   <span>DOCX</span>
@@ -496,8 +499,8 @@ function IocView({
                 <button
                   className="export-icon pdf"
                   onClick={() => void exportPdf()}
-                  title="ส่งออก PDF"
-                  aria-label="ส่งออก PDF"
+                  title="เธชเนเธเธญเธญเธ PDF"
+                  aria-label="เธชเนเธเธญเธญเธ PDF"
                 >
                   <ExportIcon format="PDF" />
                   <span>PDF</span>
@@ -505,10 +508,10 @@ function IocView({
                 <button
                   className="export-icon image"
                   onClick={exportPng}
-                  title="บันทึกเป็นรูป PNG"
-                  aria-label="บันทึกเป็นรูป PNG"
+                  title="เธเธฑเธเธ—เธถเธเน€เธเนเธเธฃเธนเธ PNG"
+                  aria-label="เธเธฑเธเธ—เธถเธเน€เธเนเธเธฃเธนเธ PNG"
                 >
-                  <ExportIcon format="▧" />
+                  <ExportIcon format="โ–ง" />
                   <span>PNG</span>
                 </button>
               </div>
@@ -519,7 +522,7 @@ function IocView({
           <table>
             <thead>
               <tr>
-                <th>ข้อ</th>
+                <th>เธเนเธญ</th>
                 {experts.map((e, i) => (
                   <th key={i}>
                     <input
@@ -536,9 +539,9 @@ function IocView({
                     />
                   </th>
                 ))}
-                <th>∑R</th>
+                <th>โ‘R</th>
                 <th>IOC</th>
-                <th>ผล</th>
+                <th>เธเธฅ</th>
               </tr>
             </thead>
             <tbody>
@@ -549,7 +552,7 @@ function IocView({
                     <td key={ci}>
                       <select
                         disabled={!editable}
-                        aria-label={`ข้อ ${ri + 1} ${experts[ci]}`}
+                        aria-label={`เธเนเธญ ${ri + 1} ${experts[ci]}`}
                         value={value ?? ""}
                         onChange={(e) =>
                           setRating(
@@ -561,7 +564,7 @@ function IocView({
                           )
                         }
                       >
-                        <option value="">—</option>
+                        <option value="">โ€”</option>
                         <option value="1">+1</option>
                         <option value="0">0</option>
                         <option value="-1">-1</option>
@@ -585,10 +588,10 @@ function IocView({
                       }
                     >
                       {results[ri].ioc === null
-                        ? "รอคะแนน"
+                        ? "เธฃเธญเธเธฐเนเธเธ"
                         : results[ri].passed
-                          ? "ใช้ได้"
-                          : "ปรับปรุง"}
+                          ? "เนเธเนเนเธ”เน"
+                          : "เธเธฃเธฑเธเธเธฃเธธเธ"}
                     </span>
                   </td>
                 </tr>
@@ -597,9 +600,9 @@ function IocView({
           </table>
         </div>
       </section>
-      <Formula source="Rovinelli & Hambleton; แนวทางการสร้างเครื่องมือวิจัยทางการศึกษา">
-        IOC = ΣR / N โดยคำนวณจากคะแนนที่มีข้อมูลจริงในแต่ละข้อ และแสดง N
-        รายข้อเพื่อการตรวจสอบ
+      <Formula source="Rovinelli & Hambleton; เนเธเธงเธ—เธฒเธเธเธฒเธฃเธชเธฃเนเธฒเธเน€เธเธฃเธทเนเธญเธเธกเธทเธญเธงเธดเธเธฑเธขเธ—เธฒเธเธเธฒเธฃเธจเธถเธเธฉเธฒ">
+        IOC = ฮฃR / N เนเธ”เธขเธเธณเธเธงเธ“เธเธฒเธเธเธฐเนเธเธเธ—เธตเนเธกเธตเธเนเธญเธกเธนเธฅเธเธฃเธดเธเนเธเนเธ•เนเธฅเธฐเธเนเธญ เนเธฅเธฐเนเธชเธ”เธ N
+        เธฃเธฒเธขเธเนเธญเน€เธเธทเนเธญเธเธฒเธฃเธ•เธฃเธงเธเธชเธญเธ
       </Formula>
     </Page>
   );
@@ -640,43 +643,43 @@ function DescriptiveView({
   }, [text]);
   return (
     <Page
-      title={quality ? "การแปลผลระดับคุณภาพ" : "สถิติพรรณนา"}
+      title={quality ? "เธเธฒเธฃเนเธเธฅเธเธฅเธฃเธฐเธ”เธฑเธเธเธธเธ“เธ เธฒเธ" : "เธชเธ–เธดเธ•เธดเธเธฃเธฃเธ“เธเธฒ"}
       subtitle={
         quality
-          ? "คำนวณค่าเฉลี่ยและแปลผลมาตราส่วนประมาณค่า 5 ระดับ"
-          : "ค่าเฉลี่ย มัธยฐาน และส่วนเบี่ยงเบนมาตรฐานของกลุ่มตัวอย่าง"
+          ? "เธเธณเธเธงเธ“เธเนเธฒเน€เธเธฅเธตเนเธขเนเธฅเธฐเนเธเธฅเธเธฅเธกเธฒเธ•เธฃเธฒเธชเนเธงเธเธเธฃเธฐเธกเธฒเธ“เธเนเธฒ 5 เธฃเธฐเธ”เธฑเธ"
+          : "เธเนเธฒเน€เธเธฅเธตเนเธข เธกเธฑเธเธขเธเธฒเธ เนเธฅเธฐเธชเนเธงเธเน€เธเธตเนเธขเธเน€เธเธเธกเธฒเธ•เธฃเธเธฒเธเธเธญเธเธเธฅเธธเนเธกเธ•เธฑเธงเธญเธขเนเธฒเธ"
       }
-      badge="ตรวจสอบข้อมูลดิบได้"
+      badge="เธ•เธฃเธงเธเธชเธญเธเธเนเธญเธกเธนเธฅเธ”เธดเธเนเธ”เน"
     >
       <section className="split">
         <div className="panel">
-          <h3>วางคะแนน</h3>
-          <p>คั่นด้วยช่องว่าง เครื่องหมายจุลภาค หรือขึ้นบรรทัดใหม่</p>
+          <h3>เธงเธฒเธเธเธฐเนเธเธ</h3>
+          <p>เธเธฑเนเธเธ”เนเธงเธขเธเนเธญเธเธงเนเธฒเธ เน€เธเธฃเธทเนเธญเธเธซเธกเธฒเธขเธเธธเธฅเธ เธฒเธ เธซเธฃเธทเธญเธเธถเนเธเธเธฃเธฃเธ—เธฑเธ”เนเธซเธกเน</p>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={10}
           />
-          <div className="data-note">อ่านได้ {values.length} ค่า</div>
+          <div className="data-note">เธญเนเธฒเธเนเธ”เน {values.length} เธเนเธฒ</div>
         </div>
         <div>
           <div className="metrics compact">
-            <Metric label="จำนวน (n)" value={`${values.length}`} />
-            <Metric label="ค่าเฉลี่ย (x̄)" value={fmt(avg)} tone="green" />
-            <Metric label="S.D. (ตัวอย่าง)" value={fmt(sd)} tone="violet" />
+            <Metric label="เธเธณเธเธงเธ (n)" value={`${values.length}`} />
+            <Metric label="เธเนเธฒเน€เธเธฅเธตเนเธข (xฬ)" value={fmt(avg)} tone="green" />
+            <Metric label="S.D. (เธ•เธฑเธงเธญเธขเนเธฒเธ)" value={fmt(sd)} tone="violet" />
             <Metric
-              label={quality ? "ระดับคุณภาพ" : "มัธยฐาน"}
+              label={quality ? "เธฃเธฐเธ”เธฑเธเธเธธเธ“เธ เธฒเธ" : "เธกเธฑเธเธขเธเธฒเธ"}
               value={quality ? interpretQuality(avg) : fmt(median(values))}
               tone="amber"
             />
           </div>
           {quality && (
             <section className="panel bands">
-              <h3>เกณฑ์แปลผลที่ใช้</h3>
+              <h3>เน€เธเธ“เธ‘เนเนเธเธฅเธเธฅเธ—เธตเนเนเธเน</h3>
               {defaultFiveLevelBands.map((b) => (
                 <div key={b.label}>
                   <span>
-                    {b.min.toFixed(2)}–{b.max.toFixed(2)}
+                    {b.min.toFixed(2)}โ€“{b.max.toFixed(2)}
                   </span>
                   <b>{b.label}</b>
                 </div>
@@ -685,8 +688,8 @@ function DescriptiveView({
           )}
         </div>
       </section>
-      <Formula source="บุญชม ศรีสะอาด และตำราสถิติทางการศึกษา; โปรดระบุฉบับที่ใช้อ้างอิงในงานวิจัย">
-        x̄ = Σx / n และ S.D. ตัวอย่าง = √[Σ(x-x̄)²/(n-1)]
+      <Formula source="เธเธธเธเธเธก เธจเธฃเธตเธชเธฐเธญเธฒเธ” เนเธฅเธฐเธ•เธณเธฃเธฒเธชเธ–เธดเธ•เธดเธ—เธฒเธเธเธฒเธฃเธจเธถเธเธฉเธฒ; เนเธเธฃเธ”เธฃเธฐเธเธธเธเธเธฑเธเธ—เธตเนเนเธเนเธญเนเธฒเธเธญเธดเธเนเธเธเธฒเธเธงเธดเธเธฑเธข">
+        xฬ = ฮฃx / n เนเธฅเธฐ S.D. เธ•เธฑเธงเธญเธขเนเธฒเธ = โ[ฮฃ(x-xฬ)ยฒ/(n-1)]
       </Formula>
     </Page>
   );
@@ -719,14 +722,14 @@ function ItemView({
   }, [upper, lower, size]);
   return (
     <Page
-      title="ความยากและอำนาจจำแนก"
-      subtitle="วิเคราะห์ข้อสอบด้วยเทคนิคกลุ่มสูง–กลุ่มต่ำ"
+      title="เธเธงเธฒเธกเธขเธฒเธเนเธฅเธฐเธญเธณเธเธฒเธเธเธณเนเธเธ"
+      subtitle="เธงเธดเน€เธเธฃเธฒเธฐเธซเนเธเนเธญเธชเธญเธเธ”เนเธงเธขเน€เธ—เธเธเธดเธเธเธฅเธธเนเธกเธชเธนเธโ€“เธเธฅเธธเนเธกเธ•เนเธณ"
       badge="Classical Test Theory"
     >
       <section className="split">
         <div className="panel form-grid">
           <label>
-            กลุ่มสูงตอบถูก
+            เธเธฅเธธเนเธกเธชเธนเธเธ•เธญเธเธ–เธนเธ
             <input
               type="number"
               value={upper}
@@ -734,7 +737,7 @@ function ItemView({
             />
           </label>
           <label>
-            กลุ่มต่ำตอบถูก
+            เธเธฅเธธเนเธกเธ•เนเธณเธ•เธญเธเธ–เธนเธ
             <input
               type="number"
               value={lower}
@@ -742,7 +745,7 @@ function ItemView({
             />
           </label>
           <label>
-            จำนวนคนต่อกลุ่ม
+            เธเธณเธเธงเธเธเธเธ•เนเธญเธเธฅเธธเนเธก
             <input
               type="number"
               value={size}
@@ -752,20 +755,20 @@ function ItemView({
         </div>
         <div className="metrics compact">
           <Metric
-            label="ค่าความยาก (p)"
+            label="เธเนเธฒเธเธงเธฒเธกเธขเธฒเธ (p)"
             value={fmt(result.difficulty)}
             note={result.difficultyLabel}
           />
           <Metric
-            label="อำนาจจำแนก (r)"
+            label="เธญเธณเธเธฒเธเธเธณเนเธเธ (r)"
             value={fmt(result.discrimination)}
             note={result.discriminationLabel}
             tone="green"
           />
         </div>
       </section>
-      <Formula source="แนวคิดการวิเคราะห์ข้อสอบแบบอิงกลุ่ม; พิชิต ฤทธิ์จรูญ และตำราการวัดผลการศึกษา">
-        p = (RU+RL)/(2n) และ r = (RU-RL)/n
+      <Formula source="เนเธเธงเธเธดเธ”เธเธฒเธฃเธงเธดเน€เธเธฃเธฒเธฐเธซเนเธเนเธญเธชเธญเธเนเธเธเธญเธดเธเธเธฅเธธเนเธก; เธเธดเธเธดเธ• เธคเธ—เธเธดเนเธเธฃเธนเธ เนเธฅเธฐเธ•เธณเธฃเธฒเธเธฒเธฃเธงเธฑเธ”เธเธฅเธเธฒเธฃเธจเธถเธเธฉเธฒ">
+        p = (RU+RL)/(2n) เนเธฅเธฐ r = (RU-RL)/n
       </Formula>
     </Page>
   );
@@ -807,41 +810,41 @@ function ReliabilityView({
   }, [text]);
   return (
     <Page
-      title="ความเชื่อมั่นของเครื่องมือ"
-      subtitle="รองรับ Cronbach’s alpha และ KR-20"
-      badge="วางข้อมูลรายคน × รายข้อ"
+      title="เธเธงเธฒเธกเน€เธเธทเนเธญเธกเธฑเนเธเธเธญเธเน€เธเธฃเธทเนเธญเธเธกเธทเธญ"
+      subtitle="เธฃเธญเธเธฃเธฑเธ Cronbachโ€s alpha เนเธฅเธฐ KR-20"
+      badge="เธงเธฒเธเธเนเธญเธกเธนเธฅเธฃเธฒเธขเธเธ ร— เธฃเธฒเธขเธเนเธญ"
     >
       <section className="split">
         <div className="panel">
-          <h3>เมทริกซ์คะแนน</h3>
-          <p>1 บรรทัด = ผู้ตอบ 1 คน · แต่ละคอลัมน์ = ข้อคำถาม</p>
+          <h3>เน€เธกเธ—เธฃเธดเธเธเนเธเธฐเนเธเธ</h3>
+          <p>1 เธเธฃเธฃเธ—เธฑเธ” = เธเธนเนเธ•เธญเธ 1 เธเธ ยท เนเธ•เนเธฅเธฐเธเธญเธฅเธฑเธกเธเน = เธเนเธญเธเธณเธ–เธฒเธก</p>
           <textarea
             rows={11}
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
           <div className="data-note">
-            {matrix.length} คน × {matrix[0]?.length ?? 0} ข้อ
+            {matrix.length} เธเธ ร— {matrix[0]?.length ?? 0} เธเนเธญ
           </div>
         </div>
         <div className="metrics compact">
           <Metric
-            label="Cronbach’s α"
+            label="Cronbachโ€s ฮฑ"
             value={fmt(alpha)}
-            note="แบบมาตรประมาณค่า/หลายระดับ"
+            note="เนเธเธเธกเธฒเธ•เธฃเธเธฃเธฐเธกเธฒเธ“เธเนเธฒ/เธซเธฅเธฒเธขเธฃเธฐเธ”เธฑเธ"
             tone="violet"
           />
           <Metric
             label="KR-20"
-            value={binary ? fmt(kr) : "ต้องเป็น 0/1"}
-            note="แบบทดสอบให้คะแนนถูก–ผิด"
+            value={binary ? fmt(kr) : "เธ•เนเธญเธเน€เธเนเธ 0/1"}
+            note="เนเธเธเธ—เธ”เธชเธญเธเนเธซเนเธเธฐเนเธเธเธ–เธนเธโ€“เธเธดเธ”"
             tone="green"
           />
         </div>
       </section>
-      <Formula source="Kuder & Richardson (1937); Cronbach (1951); ตำราการวัดผลทางการศึกษา">
-        ระบบใช้ความแปรปรวนรายข้อและความแปรปรวนของคะแนนรวม
-        พร้อมตรวจรูปแบบข้อมูลก่อนคำนวณ
+      <Formula source="Kuder & Richardson (1937); Cronbach (1951); เธ•เธณเธฃเธฒเธเธฒเธฃเธงเธฑเธ”เธเธฅเธ—เธฒเธเธเธฒเธฃเธจเธถเธเธฉเธฒ">
+        เธฃเธฐเธเธเนเธเนเธเธงเธฒเธกเนเธเธฃเธเธฃเธงเธเธฃเธฒเธขเธเนเธญเนเธฅเธฐเธเธงเธฒเธกเนเธเธฃเธเธฃเธงเธเธเธญเธเธเธฐเนเธเธเธฃเธงเธก
+        เธเธฃเนเธญเธกเธ•เธฃเธงเธเธฃเธนเธเนเธเธเธเนเธญเธกเธนเธฅเธเนเธญเธเธเธณเธเธงเธ“
       </Formula>
     </Page>
   );
@@ -880,13 +883,13 @@ function PairedView({
   }, [pre, post]);
   return (
     <Page
-      title="เปรียบเทียบก่อน–หลังเรียน"
-      subtitle="Paired-samples t-test และขนาดอิทธิพล Cohen’s dz"
-      badge="ข้อมูลเป็นคู่"
+      title="เน€เธเธฃเธตเธขเธเน€เธ—เธตเธขเธเธเนเธญเธโ€“เธซเธฅเธฑเธเน€เธฃเธตเธขเธ"
+      subtitle="Paired-samples t-test เนเธฅเธฐเธเธเธฒเธ”เธญเธดเธ—เธเธดเธเธฅ Cohenโ€s dz"
+      badge="เธเนเธญเธกเธนเธฅเน€เธเนเธเธเธนเน"
     >
       <section className="panel two-text">
         <label>
-          คะแนนก่อนเรียน
+          เธเธฐเนเธเธเธเนเธญเธเน€เธฃเธตเธขเธ
           <textarea
             rows={7}
             value={pre}
@@ -894,7 +897,7 @@ function PairedView({
           />
         </label>
         <label>
-          คะแนนหลังเรียน
+          เธเธฐเนเธเธเธซเธฅเธฑเธเน€เธฃเธตเธขเธ
           <textarea
             rows={7}
             value={post}
@@ -904,26 +907,131 @@ function PairedView({
       </section>
       <div className="metrics">
         <Metric label="n" value={`${result?.n ?? 0}`} />
-        <Metric label="ก่อนเรียน x̄" value={fmt(result?.preMean)} />
+        <Metric label="เธเนเธญเธเน€เธฃเธตเธขเธ xฬ" value={fmt(result?.preMean)} />
         <Metric
-          label="หลังเรียน x̄"
+          label="เธซเธฅเธฑเธเน€เธฃเธตเธขเธ xฬ"
           value={fmt(result?.postMean)}
           tone="green"
         />
         <Metric
-          label="ผลต่างเฉลี่ย"
+          label="เธเธฅเธ•เนเธฒเธเน€เธเธฅเธตเนเธข"
           value={fmt(result?.meanDifference)}
           tone="amber"
         />
         <Metric
           label="t (df)"
-          value={result ? `${fmt(result.t)} (${result.df})` : "—"}
+          value={result ? `${fmt(result.t)} (${result.df})` : "โ€”"}
           tone="violet"
         />
-        <Metric label="Cohen’s dz" value={fmt(result?.cohenDz)} tone="green" />
+        <Metric label="Cohenโ€s dz" value={fmt(result?.cohenDz)} tone="green" />
       </div>
-      <Formula source="Student’s t distribution; Cohen (1988) สำหรับแนวคิดขนาดอิทธิพล">
-        t = d̄ / (Sᵈ/√n) ระบบไม่รายงานนัยสำคัญจนกว่าจะยืนยันเงื่อนไขและระดับ α
+      <Formula source="Studentโ€s t distribution; Cohen (1988) เธชเธณเธซเธฃเธฑเธเนเธเธงเธเธดเธ”เธเธเธฒเธ”เธญเธดเธ—เธเธดเธเธฅ">
+        t = dฬ / (Sแต/โn) เธฃเธฐเธเธเนเธกเนเธฃเธฒเธขเธเธฒเธเธเธฑเธขเธชเธณเธเธฑเธเธเธเธเธงเนเธฒเธเธฐเธขเธทเธเธขเธฑเธเน€เธเธทเนเธญเธเนเธเนเธฅเธฐเธฃเธฐเธ”เธฑเธ ฮฑ
+      </Formula>
+    </Page>
+  );
+}
+
+function OneSampleWilcoxonView({
+  imported,
+  initial,
+  onChange,
+}: {
+  imported?: ImportedProjectData | null;
+  initial?: WorkspaceData;
+  onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+}) {
+  const importedScores =
+    imported?.rows.flatMap((row) => row.map(Number).filter(Number.isFinite)) ?? [];
+  const [scores, setScores] = useState(
+    typeof initial?.scores === "string"
+      ? initial.scores
+      : importedScores.length
+        ? importedScores.join(", ")
+        : "12, 14, 15, 11, 16, 13, 17, 14, 12, 15",
+  );
+  const [hypothesizedMedian, setHypothesizedMedian] = useState(
+    Number(initial?.hypothesizedMedian ?? 10),
+  );
+  const result = oneSampleWilcoxon(
+    parseNumbers(scores),
+    hypothesizedMedian,
+  );
+  useEffect(() => {
+    onChange(
+      { scores, hypothesizedMedian },
+      (result ?? {}) as WorkspaceData,
+    );
+  }, [scores, hypothesizedMedian]);
+
+  const conclusion = !result
+    ? "เธเธฃเธญเธเธเธฐเนเธเธเธญเธขเนเธฒเธเธเนเธญเธข 2 เธเนเธฒ เนเธฅเธฐเธ•เนเธญเธเธกเธตเธเนเธฒเธ—เธตเนเธ•เนเธฒเธเธเธฒเธเธกเธฑเธเธขเธเธฒเธเธชเธกเธกเธ•เธดเธเธฒเธเธญเธขเนเธฒเธเธเนเธญเธข 2 เธเนเธฒ"
+    : result.pValue < 0.05
+      ? "เธเธฅเนเธ•เธเธ•เนเธฒเธเธเธฒเธเธกเธฑเธเธขเธเธฒเธเธชเธกเธกเธ•เธดเธเธฒเธเธญเธขเนเธฒเธเธกเธตเธเธฑเธขเธชเธณเธเธฑเธเธ—เธตเนเธฃเธฐเธ”เธฑเธ .05"
+      : "เธขเธฑเธเนเธกเนเธเธเธเธงเธฒเธกเนเธ•เธเธ•เนเธฒเธเธเธฒเธเธกเธฑเธเธขเธเธฒเธเธชเธกเธกเธ•เธดเธเธฒเธเธญเธขเนเธฒเธเธกเธตเธเธฑเธขเธชเธณเธเธฑเธเธ—เธตเนเธฃเธฐเธ”เธฑเธ .05";
+
+  return (
+    <Page
+      title="One-Sample Wilcoxon"
+      subtitle="เธ—เธ”เธชเธญเธเธกเธฑเธเธขเธเธฒเธเธเธญเธเธเธฅเธธเนเธกเธ•เธฑเธงเธญเธขเนเธฒเธเธซเธเธถเนเธเธเธฅเธธเนเธกเธ”เนเธงเธข Wilcoxon signed-rank test เนเธเธเธชเธญเธเธ—เธฒเธ"
+      badge="เธเนเธญเธกเธนเธฅเธญเธขเนเธฒเธเธเนเธญเธขเธฃเธฐเธ”เธฑเธเธญเธฑเธเธ”เธฑเธ"
+    >
+      <section className="panel two-text">
+        <label>
+          เธเธฐเนเธเธเธเธญเธเธเธฅเธธเนเธกเธ•เธฑเธงเธญเธขเนเธฒเธ
+          <textarea
+            rows={7}
+            value={scores}
+            onChange={(event) => setScores(event.target.value)}
+            placeholder="เธเธฑเนเธเธ”เนเธงเธขเธเธธเธฅเธ เธฒเธ เธเนเธญเธเธงเนเธฒเธ เธซเธฃเธทเธญเธเธถเนเธเธเธฃเธฃเธ—เธฑเธ”เนเธซเธกเน"
+          />
+          <span>เธเธฑเนเธเธ•เธฑเธงเน€เธฅเธเธ”เนเธงเธขเธเธธเธฅเธ เธฒเธ เธเนเธญเธเธงเนเธฒเธ เธซเธฃเธทเธญเธเธถเนเธเธเธฃเธฃเธ—เธฑเธ”เนเธซเธกเน</span>
+        </label>
+        <label>
+          เธกเธฑเธเธขเธเธฒเธเธชเธกเธกเธ•เธดเธเธฒเธ (Mโ€)
+          <input
+            type="number"
+            step="any"
+            value={hypothesizedMedian}
+            onChange={(event) => setHypothesizedMedian(Number(event.target.value))}
+          />
+          <span>เธฃเธฐเธเธเธ—เธ”เธชเธญเธ Hโ€: median = Mโ€ เนเธเธเธชเธญเธเธ—เธฒเธ</span>
+        </label>
+      </section>
+      <div className="metrics">
+        <Metric label="n เธ—เธตเนเนเธเนเธ—เธ”เธชเธญเธ" value={`${result?.n ?? 0}`} />
+        <Metric
+          label="เธกเธฑเธเธขเธเธฒเธเธ•เธฑเธงเธญเธขเนเธฒเธ"
+          value={fmt(result?.sampleMedian)}
+          tone="green"
+        />
+        <Metric label="W+ / Wโ’" value={result ? `${fmt(result.wPlus, 1)} / ${fmt(result.wMinus, 1)}` : "โ€”"} tone="violet" />
+        <Metric label="W" value={fmt(result?.w, 1)} tone="amber" />
+        <Metric
+          label="p-value (เธชเธญเธเธ—เธฒเธ)"
+          value={fmt(result?.pValue, 4)}
+          note={result ? result.method : undefined}
+          tone="blue"
+        />
+        <Metric
+          label="Rank-biserial r"
+          value={fmt(result?.rankBiserial)}
+          tone="green"
+        />
+      </div>
+      <section className="panel">
+        <h3>เธชเธฃเธธเธเธเธฅ</h3>
+        <p>{conclusion}</p>
+        {result && (
+          <p className="data-note">
+            เธ•เธฑเธ”เธเนเธฒเธ—เธตเนเธ•เนเธฒเธเธเธฒเธ Mโ€ เน€เธ—เนเธฒเธเธฑเธ 0 เธญเธญเธ {result.excludedZeros} เธเนเธฒ; 
+            median เธเธญเธเธเธฅเธ•เนเธฒเธ = {fmt(result.medianDifference)}
+            {result.z !== null ? `; z = ${fmt(result.z)}` : ""}
+          </p>
+        )}
+      </section>
+      <Formula source="Wilcoxon (1945); เนเธเนเธเธฒเธฃเธเธฑเธ”เธญเธฑเธเธ”เธฑเธเธเนเธฒเธชเธฑเธกเธเธนเธฃเธ“เนเธเธญเธเธเธฅเธ•เนเธฒเธ เนเธฅเธฐเธฃเธฒเธขเธเธฒเธเธเนเธฒ p เนเธเธเธชเธญเธเธ—เธฒเธ">
+        W = min(W+, Wโ’) เนเธ”เธขเธเธฑเธ”เธญเธฑเธเธ”เธฑเธ |X โ’ Mโ€| เนเธฅเธฐเธ•เธฑเธ”เธเธฅเธ•เนเธฒเธเธ—เธตเนเน€เธ—เนเธฒเธเธฑเธ 0 เธญเธญเธ
       </Formula>
     </Page>
   );
@@ -969,20 +1077,20 @@ function EfficiencyView({
   }, [process, post, pmax, tmax]);
   return (
     <Page
-      title="ประสิทธิภาพนวัตกรรม E1/E2"
-      subtitle="คำนวณประสิทธิภาพกระบวนการและผลลัพธ์"
-      badge="กำหนดเกณฑ์ได้"
+      title="เธเธฃเธฐเธชเธดเธ—เธเธดเธ เธฒเธเธเธงเธฑเธ•เธเธฃเธฃเธก E1/E2"
+      subtitle="เธเธณเธเธงเธ“เธเธฃเธฐเธชเธดเธ—เธเธดเธ เธฒเธเธเธฃเธฐเธเธงเธเธเธฒเธฃเนเธฅเธฐเธเธฅเธฅเธฑเธเธเน"
+      badge="เธเธณเธซเธเธ”เน€เธเธ“เธ‘เนเนเธ”เน"
     >
       <section className="panel two-text">
         <label>
-          คะแนนระหว่างเรียนของแต่ละคน
+          เธเธฐเนเธเธเธฃเธฐเธซเธงเนเธฒเธเน€เธฃเธตเธขเธเธเธญเธเนเธ•เนเธฅเธฐเธเธ
           <textarea
             rows={6}
             value={process}
             onChange={(e) => setProcess(e.target.value)}
           />
           <span>
-            คะแนนเต็ม{" "}
+            เธเธฐเนเธเธเน€เธ•เนเธก{" "}
             <input
               type="number"
               value={pmax}
@@ -991,14 +1099,14 @@ function EfficiencyView({
           </span>
         </label>
         <label>
-          คะแนนหลังเรียนของแต่ละคน
+          เธเธฐเนเธเธเธซเธฅเธฑเธเน€เธฃเธตเธขเธเธเธญเธเนเธ•เนเธฅเธฐเธเธ
           <textarea
             rows={6}
             value={post}
             onChange={(e) => setPost(e.target.value)}
           />
           <span>
-            คะแนนเต็ม{" "}
+            เธเธฐเนเธเธเน€เธ•เนเธก{" "}
             <input
               type="number"
               value={tmax}
@@ -1011,13 +1119,13 @@ function EfficiencyView({
         <Metric label="E1" value={`${fmt(result?.e1, 2)}%`} tone="blue" />
         <Metric label="E2" value={`${fmt(result?.e2, 2)}%`} tone="green" />
         <Metric
-          label="รายงานผล"
-          value={result ? `${fmt(result.e1, 2)}/${fmt(result.e2, 2)}` : "—"}
+          label="เธฃเธฒเธขเธเธฒเธเธเธฅ"
+          value={result ? `${fmt(result.e1, 2)}/${fmt(result.e2, 2)}` : "โ€”"}
           tone="violet"
         />
       </div>
-      <Formula source="ชัยยงค์ พรหมวงศ์: แนวคิดการทดสอบประสิทธิภาพสื่อหรือชุดการสอน">
-        E1 = (ΣX/N)/A × 100 และ E2 = (ΣF/N)/B × 100
+      <Formula source="เธเธฑเธขเธขเธเธเน เธเธฃเธซเธกเธงเธเธจเน: เนเธเธงเธเธดเธ”เธเธฒเธฃเธ—เธ”เธชเธญเธเธเธฃเธฐเธชเธดเธ—เธเธดเธ เธฒเธเธชเธทเนเธญเธซเธฃเธทเธญเธเธธเธ”เธเธฒเธฃเธชเธญเธ">
+        E1 = (ฮฃX/N)/A ร— 100 เนเธฅเธฐ E2 = (ฮฃF/N)/B ร— 100
       </Formula>
     </Page>
   );
@@ -1028,28 +1136,28 @@ function ReferencesView() {
     [
       "IOC",
       "Rovinelli & Hambleton",
-      "ความสอดคล้องระหว่างข้อคำถามกับวัตถุประสงค์",
+      "เธเธงเธฒเธกเธชเธญเธ”เธเธฅเนเธญเธเธฃเธฐเธซเธงเนเธฒเธเธเนเธญเธเธณเธ–เธฒเธกเธเธฑเธเธงเธฑเธ•เธ–เธธเธเธฃเธฐเธชเธเธเน",
     ],
     [
-      "สถิติพรรณนา",
-      "บุญชม ศรีสะอาด",
-      "ค่าเฉลี่ย ส่วนเบี่ยงเบนมาตรฐาน และการใช้สถิติในการวิจัย",
+      "เธชเธ–เธดเธ•เธดเธเธฃเธฃเธ“เธเธฒ",
+      "เธเธธเธเธเธก เธจเธฃเธตเธชเธฐเธญเธฒเธ”",
+      "เธเนเธฒเน€เธเธฅเธตเนเธข เธชเนเธงเธเน€เธเธตเนเธขเธเน€เธเธเธกเธฒเธ•เธฃเธเธฒเธ เนเธฅเธฐเธเธฒเธฃเนเธเนเธชเธ–เธดเธ•เธดเนเธเธเธฒเธฃเธงเธดเธเธฑเธข",
     ],
     [
-      "คุณภาพเครื่องมือ",
-      "พิชิต ฤทธิ์จรูญ",
-      "การสร้างและตรวจสอบเครื่องมือวัดและประเมินผล",
+      "เธเธธเธ“เธ เธฒเธเน€เธเธฃเธทเนเธญเธเธกเธทเธญ",
+      "เธเธดเธเธดเธ• เธคเธ—เธเธดเนเธเธฃเธนเธ",
+      "เธเธฒเธฃเธชเธฃเนเธฒเธเนเธฅเธฐเธ•เธฃเธงเธเธชเธญเธเน€เธเธฃเธทเนเธญเธเธกเธทเธญเธงเธฑเธ”เนเธฅเธฐเธเธฃเธฐเน€เธกเธดเธเธเธฅ",
     ],
-    ["KR-20", "Kuder & Richardson (1937)", "ความเชื่อมั่นของแบบทดสอบสองค่า"],
-    ["Cronbach’s alpha", "Cronbach (1951)", "ความสอดคล้องภายในของมาตรวัด"],
-    ["Effect size", "Cohen (1988)", "ขนาดอิทธิพลของความแตกต่าง"],
-    ["E1/E2", "ชัยยงค์ พรหมวงศ์", "ประสิทธิภาพกระบวนการและผลลัพธ์ของสื่อ"],
+    ["KR-20", "Kuder & Richardson (1937)", "เธเธงเธฒเธกเน€เธเธทเนเธญเธกเธฑเนเธเธเธญเธเนเธเธเธ—เธ”เธชเธญเธเธชเธญเธเธเนเธฒ"],
+    ["Cronbachโ€s alpha", "Cronbach (1951)", "เธเธงเธฒเธกเธชเธญเธ”เธเธฅเนเธญเธเธ เธฒเธขเนเธเธเธญเธเธกเธฒเธ•เธฃเธงเธฑเธ”"],
+    ["Effect size", "Cohen (1988)", "เธเธเธฒเธ”เธญเธดเธ—เธเธดเธเธฅเธเธญเธเธเธงเธฒเธกเนเธ•เธเธ•เนเธฒเธ"],
+    ["E1/E2", "เธเธฑเธขเธขเธเธเน เธเธฃเธซเธกเธงเธเธจเน", "เธเธฃเธฐเธชเธดเธ—เธเธดเธ เธฒเธเธเธฃเธฐเธเธงเธเธเธฒเธฃเนเธฅเธฐเธเธฅเธฅเธฑเธเธเนเธเธญเธเธชเธทเนเธญ"],
   ];
   return (
     <Page
-      title="สูตรและเอกสารอ้างอิง"
-      subtitle="แสดงที่มาของวิธีคำนวณเพื่อให้ตรวจสอบและเขียนรายงานได้ถูกต้อง"
-      badge="โปร่งใส ตรวจสอบได้"
+      title="เธชเธนเธ•เธฃเนเธฅเธฐเน€เธญเธเธชเธฒเธฃเธญเนเธฒเธเธญเธดเธ"
+      subtitle="เนเธชเธ”เธเธ—เธตเนเธกเธฒเธเธญเธเธงเธดเธเธตเธเธณเธเธงเธ“เน€เธเธทเนเธญเนเธซเนเธ•เธฃเธงเธเธชเธญเธเนเธฅเธฐเน€เธเธตเธขเธเธฃเธฒเธขเธเธฒเธเนเธ”เนเธ–เธนเธเธ•เนเธญเธ"
+      badge="เนเธเธฃเนเธเนเธช เธ•เธฃเธงเธเธชเธญเธเนเธ”เน"
     >
       <section className="panel ref-list">
         {refs.map(([name, author, desc]) => (
@@ -1064,11 +1172,11 @@ function ReferencesView() {
         ))}
       </section>
       <div className="notice">
-        <b>ข้อควรระวังทางวิชาการ</b>
+        <b>เธเนเธญเธเธงเธฃเธฃเธฐเธงเธฑเธเธ—เธฒเธเธงเธดเธเธฒเธเธฒเธฃ</b>
         <p>
-          ชื่อผู้แต่งไม่ได้หมายความว่าสูตรมาตรฐานเป็นกรรมสิทธิ์ของผู้แต่งรายนั้น
-          ควรอ้างอิงหนังสือ ฉบับพิมพ์ และเลขหน้าที่ผู้วิจัยใช้จริง แอปจะจัดทำ
-          “บันทึกวิธีวิเคราะห์” ให้แนบในภาคผนวกได้ในรุ่นส่งออกรายงาน
+          เธเธทเนเธญเธเธนเนเนเธ•เนเธเนเธกเนเนเธ”เนเธซเธกเธฒเธขเธเธงเธฒเธกเธงเนเธฒเธชเธนเธ•เธฃเธกเธฒเธ•เธฃเธเธฒเธเน€เธเนเธเธเธฃเธฃเธกเธชเธดเธ—เธเธดเนเธเธญเธเธเธนเนเนเธ•เนเธเธฃเธฒเธขเธเธฑเนเธ
+          เธเธงเธฃเธญเนเธฒเธเธญเธดเธเธซเธเธฑเธเธชเธทเธญ เธเธเธฑเธเธเธดเธกเธเน เนเธฅเธฐเน€เธฅเธเธซเธเนเธฒเธ—เธตเนเธเธนเนเธงเธดเธเธฑเธขเนเธเนเธเธฃเธดเธ เนเธญเธเธเธฐเธเธฑเธ”เธ—เธณ
+          โ€เธเธฑเธเธ—เธถเธเธงเธดเธเธตเธงเธดเน€เธเธฃเธฒเธฐเธซเนโ€ เนเธซเนเนเธเธเนเธเธ เธฒเธเธเธเธงเธเนเธ”เนเนเธเธฃเธธเนเธเธชเนเธเธญเธญเธเธฃเธฒเธขเธเธฒเธ
         </p>
       </div>
     </Page>
@@ -1079,22 +1187,22 @@ function HomeView({ open }: { open: (view: View) => void }) {
   const cards = NAV.filter((n) => !["home", "references"].includes(n.id));
   return (
     <Page
-      title="เลือกการวิเคราะห์"
-      subtitle="เครื่องมือสถิติสำหรับงานวิจัยทางการศึกษา พร้อมสูตร เกณฑ์ และข้อมูลตรวจสอบ"
+      title="เน€เธฅเธทเธญเธเธเธฒเธฃเธงเธดเน€เธเธฃเธฒเธฐเธซเน"
+      subtitle="เน€เธเธฃเธทเนเธญเธเธกเธทเธญเธชเธ–เธดเธ•เธดเธชเธณเธซเธฃเธฑเธเธเธฒเธเธงเธดเธเธฑเธขเธ—เธฒเธเธเธฒเธฃเธจเธถเธเธฉเธฒ เธเธฃเนเธญเธกเธชเธนเธ•เธฃ เน€เธเธ“เธ‘เน เนเธฅเธฐเธเนเธญเธกเธนเธฅเธ•เธฃเธงเธเธชเธญเธ"
       badge="Research Toolkit"
     >
       <section className="hero-card">
         <div>
-          <span className="eyebrow">โครงการปัจจุบัน</span>
-          <h2>มาตราตัวสะกด ชั้นประถมศึกษาปีที่ 2</h2>
+          <span className="eyebrow">เนเธเธฃเธเธเธฒเธฃเธเธฑเธเธเธธเธเธฑเธ</span>
+          <h2>เธกเธฒเธ•เธฃเธฒเธ•เธฑเธงเธชเธฐเธเธ” เธเธฑเนเธเธเธฃเธฐเธ–เธกเธจเธถเธเธฉเธฒเธเธตเธ—เธตเน 2</h2>
           <p>
-            เริ่มจากเลือกประเภทการวิเคราะห์
-            ระบบจะแสดงผลพร้อมสูตรและข้อมูลสำหรับตรวจสอบย้อนกลับ
+            เน€เธฃเธดเนเธกเธเธฒเธเน€เธฅเธทเธญเธเธเธฃเธฐเน€เธ เธ—เธเธฒเธฃเธงเธดเน€เธเธฃเธฒเธฐเธซเน
+            เธฃเธฐเธเธเธเธฐเนเธชเธ”เธเธเธฅเธเธฃเนเธญเธกเธชเธนเธ•เธฃเนเธฅเธฐเธเนเธญเธกเธนเธฅเธชเธณเธซเธฃเธฑเธเธ•เธฃเธงเธเธชเธญเธเธขเนเธญเธเธเธฅเธฑเธ
           </p>
         </div>
         <div className="hero-stat">
-          <strong>7</strong>
-          <span>เครื่องมือพร้อมใช้</span>
+          <strong>8</strong>
+          <span>เน€เธเธฃเธทเนเธญเธเธกเธทเธญเธเธฃเนเธญเธกเนเธเน</span>
         </div>
       </section>
       <div className="tool-grid">
@@ -1108,7 +1216,7 @@ function HomeView({ open }: { open: (view: View) => void }) {
             <div>
               <h3>{card.label}</h3>
               <p>{toolDescription(card.id)}</p>
-              <small>เปิดเครื่องมือ →</small>
+              <small>เน€เธเธดเธ”เน€เธเธฃเธทเนเธญเธเธกเธทเธญ โ’</small>
             </div>
           </button>
         ))}
@@ -1121,13 +1229,14 @@ function toolDescription(id: View) {
   return (
     (
       {
-        ioc: "ตรวจความสอดคล้องรายข้อจากผู้เชี่ยวชาญ",
-        descriptive: "สรุปแนวโน้มและการกระจายของข้อมูล",
-        quality: "แปลผลแบบประเมินมาตราส่วน 5 ระดับ",
-        item: "วิเคราะห์คุณภาพข้อสอบรายข้อ",
-        reliability: "คำนวณ α และ KR-20",
-        paired: "ทดสอบคะแนนของกลุ่มเดียวกันสองครั้ง",
-        efficiency: "ประเมินประสิทธิภาพนวัตกรรม",
+        ioc: "เธ•เธฃเธงเธเธเธงเธฒเธกเธชเธญเธ”เธเธฅเนเธญเธเธฃเธฒเธขเธเนเธญเธเธฒเธเธเธนเนเน€เธเธตเนเธขเธงเธเธฒเธ",
+        descriptive: "เธชเธฃเธธเธเนเธเธงเนเธเนเธกเนเธฅเธฐเธเธฒเธฃเธเธฃเธฐเธเธฒเธขเธเธญเธเธเนเธญเธกเธนเธฅ",
+        quality: "เนเธเธฅเธเธฅเนเธเธเธเธฃเธฐเน€เธกเธดเธเธกเธฒเธ•เธฃเธฒเธชเนเธงเธ 5 เธฃเธฐเธ”เธฑเธ",
+        item: "เธงเธดเน€เธเธฃเธฒเธฐเธซเนเธเธธเธ“เธ เธฒเธเธเนเธญเธชเธญเธเธฃเธฒเธขเธเนเธญ",
+        reliability: "เธเธณเธเธงเธ“ ฮฑ เนเธฅเธฐ KR-20",
+        paired: "เธ—เธ”เธชเธญเธเธเธฐเนเธเธเธเธญเธเธเธฅเธธเนเธกเน€เธ”เธตเธขเธงเธเธฑเธเธชเธญเธเธเธฃเธฑเนเธ",
+        wilcoxon: "เธ—เธ”เธชเธญเธเธกเธฑเธเธขเธเธฒเธเธเธญเธเธเนเธญเธกเธนเธฅเธซเธเธถเนเธเธเธฅเธธเนเธกเนเธเธเนเธกเนเธญเธดเธเธเธฒเธฃเนเธเธเนเธเธเธเธเธ•เธด",
+        efficiency: "เธเธฃเธฐเน€เธกเธดเธเธเธฃเธฐเธชเธดเธ—เธเธดเธ เธฒเธเธเธงเธฑเธ•เธเธฃเธฃเธก",
       } as Partial<Record<View, string>>
     )[id] ?? ""
   );
@@ -1149,7 +1258,7 @@ function Page({
       <header className="page-head">
         <div>
           <div className="breadcrumb">
-            ระบบวิเคราะห์ <span>/</span> {title}
+            เธฃเธฐเธเธเธงเธดเน€เธเธฃเธฒเธฐเธซเน <span>/</span> {title}
           </div>
           <h1>{title}</h1>
           <p>{subtitle}</p>
@@ -1192,7 +1301,7 @@ function createIocCanvas(
   rows: Array<Array<number | null>>,
   results: ReturnType<typeof calculateIoc>,
 ) {
-  const columns = ["ข้อ", ...experts, "∑R", "IOC", "ผล"];
+  const columns = ["เธเนเธญ", ...experts, "โ‘R", "IOC", "เธเธฅ"];
   const widths = [70, ...experts.map(() => 145), 80, 90, 120];
   const width = widths.reduce((sum, value) => sum + value, 0);
   const rowHeight = 48;
@@ -1206,13 +1315,13 @@ function createIocCanvas(
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "#17213a";
   context.font = "bold 26px Tahoma, sans-serif";
-  context.fillText("ตารางสรุปผลการตรวจสอบความตรงเชิงเนื้อหา (IOC)", 40, 48);
+  context.fillText("เธ•เธฒเธฃเธฒเธเธชเธฃเธธเธเธเธฅเธเธฒเธฃเธ•เธฃเธงเธเธชเธญเธเธเธงเธฒเธกเธ•เธฃเธเน€เธเธดเธเน€เธเธทเนเธญเธซเธฒ (IOC)", 40, 48);
   context.font = "18px Tahoma, sans-serif";
   context.fillText(title, 40, 82);
   context.font = "14px Tahoma, sans-serif";
   context.fillStyle = "#65708a";
   context.fillText(
-    `จำนวน ${rows.length} ข้อ · ผู้เชี่ยวชาญ ${experts.length} คน · สร้างโดย ResearchStat`,
+    `เธเธณเธเธงเธ ${rows.length} เธเนเธญ ยท เธเธนเนเน€เธเธตเนเธขเธงเธเธฒเธ ${experts.length} เธเธ ยท เธชเธฃเนเธฒเธเนเธ”เธข ResearchStat`,
     40,
     112,
   );
@@ -1234,15 +1343,15 @@ function createIocCanvas(
     const values = [
       rowIndex + 1,
       ...row.map((value) =>
-        value === null ? "—" : value === 1 ? "+1" : String(value),
+        value === null ? "โ€”" : value === 1 ? "+1" : String(value),
       ),
       results[rowIndex].sum,
-      results[rowIndex].ioc?.toFixed(2) ?? "—",
+      results[rowIndex].ioc?.toFixed(2) ?? "โ€”",
       results[rowIndex].ioc === null
-        ? "รอคะแนน"
+        ? "เธฃเธญเธเธฐเนเธเธ"
         : results[rowIndex].passed
-          ? "ใช้ได้"
-          : "ปรับปรุง",
+          ? "เนเธเนเนเธ”เน"
+          : "เธเธฃเธฑเธเธเธฃเธธเธ",
     ];
     values.forEach((value, index) => {
       const y = top + (rowIndex + 1) * rowHeight;
@@ -1303,26 +1412,26 @@ function ImportedDataPanel({
     );
   const items = data.ocrItems ?? [];
   const foundItems = items.filter(
-    (item) => item.numberStatus !== "ไม่พบเลขข้อ",
+    (item) => item.numberStatus !== "เนเธกเนเธเธเน€เธฅเธเธเนเธญ",
   );
   const uniqueItems = [...new Set(foundItems.map((item) => item.item))].sort(
     (a, b) => a - b,
   );
   const missing = items
-    .filter((item) => item.numberStatus === "ไม่พบเลขข้อ")
+    .filter((item) => item.numberStatus === "เนเธกเนเธเธเน€เธฅเธเธเนเธญ")
     .map((item) => item.item);
   const range = data.sourceRange
-    ? `${data.sourceRange.unit} ${data.sourceRange.from}–${data.sourceRange.to}`
+    ? `${data.sourceRange.unit} ${data.sourceRange.from}โ€“${data.sourceRange.to}`
     : data.rangeLabel;
   return (
     <section className="panel imported-data">
       <div className="panel-head">
         <div>
-          <span className="step-label">ผลตรวจสอบการนำเข้า</span>
+          <span className="step-label">เธเธฅเธ•เธฃเธงเธเธชเธญเธเธเธฒเธฃเธเธณเน€เธเนเธฒ</span>
           <h3>{data.workTitle}</h3>
           <p>
-            {data.sourceName} · {range} · กำหนดไว้{" "}
-            {data.expectedItemCount ?? items.length} ข้อ
+            {data.sourceName} ยท {range} ยท เธเธณเธซเธเธ”เนเธงเน{" "}
+            {data.expectedItemCount ?? items.length} เธเนเธญ
           </p>
         </div>
       </div>
@@ -1331,21 +1440,21 @@ function ImportedDataPanel({
         <>
           <div className="ocr-summary">
             <article>
-              <span>ช่วงที่ค้นหา</span>
+              <span>เธเนเธงเธเธ—เธตเนเธเนเธเธซเธฒ</span>
               <b>{range}</b>
             </article>
             <article>
-              <span>จำนวนข้อที่กำหนด</span>
-              <b>{data.expectedItemCount ?? items.length} ข้อ</b>
+              <span>เธเธณเธเธงเธเธเนเธญเธ—เธตเนเธเธณเธซเธเธ”</span>
+              <b>{data.expectedItemCount ?? items.length} เธเนเธญ</b>
             </article>
             <article>
-              <span>พบ/นับแถวข้อ</span>
+              <span>เธเธ/เธเธฑเธเนเธ–เธงเธเนเธญ</span>
               <b>
                 {uniqueItems.length}/{data.expectedItemCount ?? items.length}
               </b>
             </article>
             <article>
-              <span>อ่านคะแนนได้</span>
+              <span>เธญเนเธฒเธเธเธฐเนเธเธเนเธ”เน</span>
               <b>
                 {items.filter((item) => item.rating !== null).length}/
                 {data.expectedItemCount ?? items.length}
@@ -1354,18 +1463,18 @@ function ImportedDataPanel({
           </div>
           {missing.length > 0 && (
             <div className="import-error">
-              ไม่พบเลขข้อ: {missing.join(", ")}
+              เนเธกเนเธเธเน€เธฅเธเธเนเธญ: {missing.join(", ")}
             </div>
           )}
           <div className="table-wrap ocr-item-table">
             <table>
               <thead>
                 <tr>
-                  <th>ข้อ</th>
-                  <th>{data.sourceRange?.unit === "แถว" ? "แถว" : "หน้า"}</th>
-                  <th>ผลค้นหาเลขข้อ</th>
-                  <th>รายละเอียดที่ OCR อ่านได้</th>
-                  <th>คะแนน</th>
+                  <th>เธเนเธญ</th>
+                  <th>{data.sourceRange?.unit === "เนเธ–เธง" ? "เนเธ–เธง" : "เธซเธเนเธฒ"}</th>
+                  <th>เธเธฅเธเนเธเธซเธฒเน€เธฅเธเธเนเธญ</th>
+                  <th>เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธ—เธตเน OCR เธญเนเธฒเธเนเธ”เน</th>
+                  <th>เธเธฐเนเธเธ</th>
                 </tr>
               </thead>
               <tbody>
@@ -1375,7 +1484,7 @@ function ImportedDataPanel({
                     <tr
                       key={`${item.item}-${index}`}
                       className={
-                        item.numberStatus === "ไม่พบเลขข้อ"
+                        item.numberStatus === "เนเธกเนเธเธเน€เธฅเธเธเนเธญ"
                           ? "ocr-missing-row"
                           : ""
                       }
@@ -1383,19 +1492,19 @@ function ImportedDataPanel({
                       <td>
                         <b>{item.item}</b>
                       </td>
-                      <td>{item.page ?? "—"}</td>
+                      <td>{item.page ?? "โ€”"}</td>
                       <td>
                         <span
                           className={
-                            item.numberStatus === "ไม่พบเลขข้อ"
+                            item.numberStatus === "เนเธกเนเธเธเน€เธฅเธเธเนเธญ"
                               ? "ocr-number missing"
                               : "ocr-number found"
                           }
                         >
-                          {item.numberStatus ?? "พบเลขข้อ"}
+                          {item.numberStatus ?? "เธเธเน€เธฅเธเธเนเธญ"}
                         </span>
                       </td>
-                      <td>{item.details || "— อ่านรายละเอียดไม่ชัด —"}</td>
+                      <td>{item.details || "โ€” เธญเนเธฒเธเธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เนเธกเนเธเธฑเธ” โ€”"}</td>
                       <td>
                         <span
                           className={
@@ -1405,7 +1514,7 @@ function ImportedDataPanel({
                           }
                         >
                           {item.rating === null
-                            ? "ไม่พบ"
+                            ? "เนเธกเนเธเธ"
                             : item.rating === 1
                               ? "+1"
                               : item.rating}
@@ -1435,8 +1544,8 @@ function ImportedDataPanel({
       )}
       <p className="data-note">
         {needsIocVerification
-          ? `ระบบตรวจทีละหน้า โดยใช้คอลัมน์แรกเป็นเลขข้อและตรวจตำแหน่งรอยปากกาในช่อง +1, 0 และ -1 กรุณาตรวจรายการที่ระบุว่า “นับจากแถวตาราง” หรือ “ไม่พบเลขข้อ”`
-          : `นำเข้าจาก ${range} จำนวน ${data.rows.length} รายการ คุณสามารถตรวจและแก้ไขก่อนคำนวณได้`}
+          ? `เธฃเธฐเธเธเธ•เธฃเธงเธเธ—เธตเธฅเธฐเธซเธเนเธฒ เนเธ”เธขเนเธเนเธเธญเธฅเธฑเธกเธเนเนเธฃเธเน€เธเนเธเน€เธฅเธเธเนเธญเนเธฅเธฐเธ•เธฃเธงเธเธ•เธณเนเธซเธเนเธเธฃเธญเธขเธเธฒเธเธเธฒเนเธเธเนเธญเธ +1, 0 เนเธฅเธฐ -1 เธเธฃเธธเธ“เธฒเธ•เธฃเธงเธเธฃเธฒเธขเธเธฒเธฃเธ—เธตเนเธฃเธฐเธเธธเธงเนเธฒ โ€เธเธฑเธเธเธฒเธเนเธ–เธงเธ•เธฒเธฃเธฒเธโ€ เธซเธฃเธทเธญ โ€เนเธกเนเธเธเน€เธฅเธเธเนเธญโ€`
+          : `เธเธณเน€เธเนเธฒเธเธฒเธ ${range} เธเธณเธเธงเธ ${data.rows.length} เธฃเธฒเธขเธเธฒเธฃ เธเธธเธ“เธชเธฒเธกเธฒเธฃเธ–เธ•เธฃเธงเธเนเธฅเธฐเนเธเนเนเธเธเนเธญเธเธเธณเธเธงเธ“เนเธ”เน`}
       </p>
     </section>
   );
@@ -1492,7 +1601,7 @@ export default function ResearchStatsApp({
           setWorkspaceResult(requested.result_json ?? {});
           setImported(requested.input_json?.source ?? null);
           setRevision((value) => value + 1);
-          setSaveStatus("เปิดงานเดิมแล้ว");
+          setSaveStatus("เน€เธเธดเธ”เธเธฒเธเน€เธ”เธดเธกเนเธฅเนเธง");
           setEditingSaved(false);
         }
       });
@@ -1508,9 +1617,9 @@ export default function ResearchStatsApp({
   const startNew = useCallback(
     (nextView = view) => {
       const label =
-        NAV.find((item) => item.id === nextView)?.label ?? "งานวิเคราะห์";
+        NAV.find((item) => item.id === nextView)?.label ?? "เธเธฒเธเธงเธดเน€เธเธฃเธฒเธฐเธซเน";
       setActiveAnalysis(null);
-      setAnalysisTitle(`${label} – งานใหม่`);
+      setAnalysisTitle(`${label} โ€“ เธเธฒเธเนเธซเธกเน`);
       setWorkspaceInitial({});
       setWorkspaceDraft({});
       setWorkspaceResult({});
@@ -1531,7 +1640,7 @@ export default function ResearchStatsApp({
     setImported(analysis.input_json?.source ?? null);
     setRevision((value) => value + 1);
     setShowLibrary(false);
-    setSaveStatus("เปิดงานเดิมแล้ว");
+    setSaveStatus("เน€เธเธดเธ”เธเธฒเธเน€เธ”เธดเธกเนเธฅเนเธง");
     setEditingSaved(false);
   };
   const chooseView = (nextView: View) => {
@@ -1548,13 +1657,13 @@ export default function ResearchStatsApp({
   const saveAnalysis = async () => {
     const supabase = getSupabaseClient();
     if (!supabase) {
-      setSaveStatus("ไม่พบการเชื่อมต่อ Supabase");
+      setSaveStatus("เนเธกเนเธเธเธเธฒเธฃเน€เธเธทเนเธญเธกเธ•เนเธญ Supabase");
       return;
     }
-    setSaveStatus("กำลังบันทึก…");
+    setSaveStatus("เธเธณเธฅเธฑเธเธเธฑเธเธ—เธถเธโ€ฆ");
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) {
-      setSaveStatus("กรุณาเข้าสู่ระบบใหม่");
+      setSaveStatus("เธเธฃเธธเธ“เธฒเน€เธเนเธฒเธชเธนเนเธฃเธฐเธเธเนเธซเธกเน");
       return;
     }
     const payload = {
@@ -1563,7 +1672,7 @@ export default function ResearchStatsApp({
       analysis_type: view,
       title:
         analysisTitle.trim() ||
-        `${NAV.find((item) => item.id === view)?.label} – งานวิเคราะห์`,
+        `${NAV.find((item) => item.id === view)?.label} โ€“ เธเธฒเธเธงเธดเน€เธเธฃเธฒเธฐเธซเน`,
       input_json: { workspace: workspaceDraft, source: imported },
       result_json: workspaceResult,
     };
@@ -1575,7 +1684,7 @@ export default function ResearchStatsApp({
         .select()
         .single();
       if (error || !data) {
-        setSaveStatus(error?.message || "บันทึกไม่สำเร็จ");
+        setSaveStatus(error?.message || "เธเธฑเธเธ—เธถเธเนเธกเนเธชเธณเน€เธฃเนเธ");
         return;
       }
       const saved = data as AnalysisRecord;
@@ -1590,19 +1699,19 @@ export default function ResearchStatsApp({
         .select()
         .single();
       if (error || !data) {
-        setSaveStatus(error?.message || "บันทึกไม่สำเร็จ");
+        setSaveStatus(error?.message || "เธเธฑเธเธ—เธถเธเนเธกเนเธชเธณเน€เธฃเนเธ");
         return;
       }
       const saved = data as AnalysisRecord;
       setActiveAnalysis(saved);
       setAnalyses((items) => [saved, ...items]);
     }
-    setSaveStatus("บันทึกแล้ว");
+    setSaveStatus("เธเธฑเธเธ—เธถเธเนเธฅเนเธง");
     setEditingSaved(false);
   };
   const dataKey = `${revision}-${imported?.id ?? 0}`;
   const currentTool =
-    NAV.find((item) => item.id === view)?.label ?? "งานวิเคราะห์";
+    NAV.find((item) => item.id === view)?.label ?? "เธเธฒเธเธงเธดเน€เธเธฃเธฒเธฐเธซเน";
   const toolContent = (
     {
       ioc: (
@@ -1656,6 +1765,14 @@ export default function ResearchStatsApp({
           onChange={handleDraft}
         />
       ),
+      wilcoxon: (
+        <OneSampleWilcoxonView
+          key={`wilcoxon-${dataKey}`}
+          imported={imported}
+          initial={workspaceInitial}
+          onChange={handleDraft}
+        />
+      ),
       efficiency: (
         <EfficiencyView
           key={`efficiency-${dataKey}`}
@@ -1683,11 +1800,11 @@ export default function ResearchStatsApp({
     latestSavedAnalysis?.title ||
     imported?.workTitle ||
     imported?.sourceName ||
-    "ยังไม่มีชื่อจากการถอดความ";
+    "เธขเธฑเธเนเธกเนเธกเธตเธเธทเนเธญเธเธฒเธเธเธฒเธฃเธ–เธญเธ”เธเธงเธฒเธก";
   const displayedFileLabel =
     activeAnalysis || latestSavedAnalysis
-      ? "ไฟล์ล่าสุดที่บันทึก"
-      : "ชื่อจากการถอดความ";
+      ? "เนเธเธฅเนเธฅเนเธฒเธชเธธเธ”เธ—เธตเนเธเธฑเธเธ—เธถเธ"
+      : "เธเธทเนเธญเธเธฒเธเธเธฒเธฃเธ–เธญเธ”เธเธงเธฒเธก";
   return (
     <div className="app-shell" lang="th">
       <aside className={menu ? "sidebar open" : "sidebar"}>
@@ -1697,12 +1814,12 @@ export default function ResearchStatsApp({
             <b>
               Research<span>Stat</span>
             </b>
-            <small>สถิติงานวิจัยการศึกษา</small>
+            <small>เธชเธ–เธดเธ•เธดเธเธฒเธเธงเธดเธเธฑเธขเธเธฒเธฃเธจเธถเธเธฉเธฒ</small>
           </div>
         </div>
         {onBack && (
           <button className="back-project" onClick={onBack}>
-            ← กลับไปที่โครงการ
+            โ เธเธฅเธฑเธเนเธเธ—เธตเนเนเธเธฃเธเธเธฒเธฃ
           </button>
         )}
         <nav>
@@ -1720,17 +1837,17 @@ export default function ResearchStatsApp({
           ))}
         </nav>
         <div className="privacy">
-          <b>ข้อมูลของคุณเป็นส่วนตัว</b>
-          <p>รุ่นนี้ประมวลผลคะแนนในอุปกรณ์ ไม่ส่งข้อมูลดิบออกไป</p>
+          <b>เธเนเธญเธกเธนเธฅเธเธญเธเธเธธเธ“เน€เธเนเธเธชเนเธงเธเธ•เธฑเธง</b>
+          <p>เธฃเธธเนเธเธเธตเนเธเธฃเธฐเธกเธงเธฅเธเธฅเธเธฐเนเธเธเนเธเธญเธธเธเธเธฃเธ“เน เนเธกเนเธชเนเธเธเนเธญเธกเธนเธฅเธ”เธดเธเธญเธญเธเนเธ</p>
         </div>
       </aside>
       <main className="main">
         <div className="topbar">
           <button className="menu-btn" onClick={() => setMenu(!menu)}>
-            ☰
+            โฐ
           </button>
           <div className="project">
-            <span>โครงการ</span>
+            <span>เนเธเธฃเธเธเธฒเธฃ</span>
             <b>{project.title}</b>
           </div>
           <div className="top-actions">
@@ -1740,24 +1857,24 @@ export default function ResearchStatsApp({
                   className="import-project-button"
                   onClick={() => startNew()}
                 >
-                  ＋ สร้างไฟล์ใหม่
+                  ๏ผ เธชเธฃเนเธฒเธเนเธเธฅเนเนเธซเธกเน
                 </button>
                 <button
                   className="import-project-button"
                   onClick={() => setShowLibrary(true)}
                 >
-                  ▤ เปิดรายการเดิม
+                  โ–ค เน€เธเธดเธ”เธฃเธฒเธขเธเธฒเธฃเน€เธ”เธดเธก
                 </button>
                 <button
                   className="import-project-button"
                   onClick={() => setShowImporter(true)}
                 >
-                  ↥ นำเข้าจากไฟล์
+                  โฅ เธเธณเน€เธเนเธฒเธเธฒเธเนเธเธฅเน
                 </button>
               </>
             )}
-            <span className="version-chip">รุ่นคำนวณ 2.3</span>
-            <span className="avatar">พ</span>
+            <span className="version-chip">เธฃเธธเนเธเธเธณเธเธงเธ“ 2.3</span>
+            <span className="avatar">เธ</span>
           </div>
         </div>
         <div className="content">
@@ -1770,10 +1887,10 @@ export default function ResearchStatsApp({
                   setAnalysisTitle(event.target.value);
                   setSaveStatus("");
                 }}
-                placeholder="ชื่องานวิเคราะห์"
+                placeholder="เธเธทเนเธญเธเธฒเธเธงเธดเน€เธเธฃเธฒเธฐเธซเน"
               />
               <button disabled={iocLocked} onClick={() => void saveAnalysis()}>
-                บันทึกงาน
+                เธเธฑเธเธ—เธถเธเธเธฒเธ
               </button>
               {view === "ioc" && activeAnalysis && (
                 <label className="edit-switch">
@@ -1784,13 +1901,13 @@ export default function ResearchStatsApp({
                       setEditingSaved(event.target.checked);
                       setSaveStatus(
                         event.target.checked
-                          ? "เปิดให้แก้ไขแล้ว"
-                          : "ล็อกการแก้ไขแล้ว",
+                          ? "เน€เธเธดเธ”เนเธซเนเนเธเนเนเธเนเธฅเนเธง"
+                          : "เธฅเนเธญเธเธเธฒเธฃเนเธเนเนเธเนเธฅเนเธง",
                       );
                     }}
                   />
                   <span aria-hidden="true" />
-                  <b>{editingSaved ? "กำลังแก้ไข" : "เปิดเพื่อแก้ไข"}</b>
+                  <b>{editingSaved ? "เธเธณเธฅเธฑเธเนเธเนเนเธ" : "เน€เธเธดเธ”เน€เธเธทเนเธญเนเธเนเนเธ"}</b>
                 </label>
               )}
               <span className="filebar-current">
@@ -1806,11 +1923,11 @@ export default function ResearchStatsApp({
         </div>
         <footer>
           <span>
-            ResearchStat · เครื่องมือช่วยคำนวณ
-            ไม่แทนการพิจารณาของนักวิจัยและอาจารย์ที่ปรึกษา
+            ResearchStat ยท เน€เธเธฃเธทเนเธญเธเธกเธทเธญเธเนเธงเธขเธเธณเธเธงเธ“
+            เนเธกเนเนเธ—เธเธเธฒเธฃเธเธดเธเธฒเธฃเธ“เธฒเธเธญเธเธเธฑเธเธงเธดเธเธฑเธขเนเธฅเธฐเธญเธฒเธเธฒเธฃเธขเนเธ—เธตเนเธเธฃเธถเธเธฉเธฒ
           </span>
-          <b>ผู้จัดทำระบบ: ครูไพรัช อินควรชุม</b>
-          <span>โรงเรียนเทศบาล 1 ถนนนครนอก · เทศบาลนครสงขลา</span>
+          <b>เธเธนเนเธเธฑเธ”เธ—เธณเธฃเธฐเธเธ: เธเธฃเธนเนเธเธฃเธฑเธ เธญเธดเธเธเธงเธฃเธเธธเธก</b>
+          <span>เนเธฃเธเน€เธฃเธตเธขเธเน€เธ—เธจเธเธฒเธฅ 1 เธ–เธเธเธเธเธฃเธเธญเธ ยท เน€เธ—เธจเธเธฒเธฅเธเธเธฃเธชเธเธเธฅเธฒ</span>
         </footer>
       </main>
       {showLibrary && isTool && (
@@ -1820,25 +1937,25 @@ export default function ResearchStatsApp({
               <div>
                 <span className="step-label">ANALYSIS FILES</span>
                 <h2>{currentTool}</h2>
-                <p>เริ่มงานใหม่หรือเปิดงานเดิมเพื่อแก้ไขต่อ</p>
+                <p>เน€เธฃเธดเนเธกเธเธฒเธเนเธซเธกเนเธซเธฃเธทเธญเน€เธเธดเธ”เธเธฒเธเน€เธ”เธดเธกเน€เธเธทเนเธญเนเธเนเนเธเธ•เนเธญ</p>
               </div>
               <button
                 className="close-button"
                 onClick={() => setShowLibrary(false)}
               >
-                ×
+                ร—
               </button>
             </header>
             <button className="new-analysis-card" onClick={() => startNew()}>
-              ＋
+              ๏ผ
               <span>
-                <b>สร้างไฟล์ใหม่</b>
+                <b>เธชเธฃเนเธฒเธเนเธเธฅเนเนเธซเธกเน</b>
                 <small>
-                  เริ่มแบบฟอร์มใหม่ โดย IOC เริ่มต้นผู้เชี่ยวชาญ 3 คน
+                  เน€เธฃเธดเนเธกเนเธเธเธเธญเธฃเนเธกเนเธซเธกเน เนเธ”เธข IOC เน€เธฃเธดเนเธกเธ•เนเธเธเธนเนเน€เธเธตเนเธขเธงเธเธฒเธ 3 เธเธ
                 </small>
               </span>
             </button>
-            <h3>รายการเดิม ({toolAnalyses.length})</h3>
+            <h3>เธฃเธฒเธขเธเธฒเธฃเน€เธ”เธดเธก ({toolAnalyses.length})</h3>
             <div className="analysis-list">
               {toolAnalyses.length ? (
                 toolAnalyses.map((analysis) => (
@@ -1852,12 +1969,12 @@ export default function ResearchStatsApp({
                         {new Date(analysis.created_at).toLocaleString("th-TH")}
                       </small>
                     </span>
-                    <i>เปิด →</i>
+                    <i>เน€เธเธดเธ” โ’</i>
                   </button>
                 ))
               ) : (
                 <div className="source-empty">
-                  ยังไม่มีงานเดิมในเครื่องมือนี้
+                  เธขเธฑเธเนเธกเนเธกเธตเธเธฒเธเน€เธ”เธดเธกเนเธเน€เธเธฃเธทเนเธญเธเธกเธทเธญเธเธตเน
                 </div>
               )}
             </div>
@@ -1867,14 +1984,14 @@ export default function ResearchStatsApp({
       {menu && (
         <button
           className="overlay"
-          aria-label="ปิดเมนู"
+          aria-label="เธเธดเธ”เน€เธกเธเธน"
           onClick={() => setMenu(false)}
         />
       )}
       <ProjectDataImporter
         project={project}
         analysisType={view}
-        suggestedTitle={analysisTitle || `${currentTool} – งานที่ 1`}
+        suggestedTitle={analysisTitle || `${currentTool} โ€“ เธเธฒเธเธ—เธตเน 1`}
         open={showImporter}
         onClose={() => setShowImporter(false)}
         onImport={(data) => {
@@ -1888,3 +2005,4 @@ export default function ResearchStatsApp({
     </div>
   );
 }
+
