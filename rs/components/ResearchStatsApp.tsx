@@ -1679,99 +1679,309 @@ function ExpertMediaQualityView({
   );
 }
 
+type TestMatrixItemResult = {
+  item: number;
+  upperCorrect: number;
+  lowerCorrect: number;
+  difficulty: number | null;
+  discrimination: number | null;
+  difficultyLabel: string;
+  discriminationLabel: string;
+  selected: boolean;
+};
+
+function analyzeTestMatrix(matrix: number[][]) {
+  const itemCount = matrix[0]?.length ?? 0;
+  const valid =
+    matrix.length > 0 &&
+    itemCount > 0 &&
+    matrix.every(
+      (row) =>
+        row.length === itemCount &&
+        row.every((value) => value === 0 || value === 1),
+    );
+  if (!valid) {
+    return {
+      valid: false,
+      respondentCount: matrix.length,
+      itemCount,
+      groupSize: 0,
+      upperIndexes: [] as number[],
+      lowerIndexes: [] as number[],
+      totals: [] as number[],
+      items: [] as TestMatrixItemResult[],
+      selectedItems: [] as number[],
+    };
+  }
+  const totals = matrix.map((row) =>
+    row.reduce((total, value) => total + value, 0),
+  );
+  const ranked = totals
+    .map((total, index) => ({ total, index }))
+    .sort((a, b) => b.total - a.total || a.index - b.index);
+  const groupSize = Math.max(1, Math.round(matrix.length * 0.27));
+  const upperIndexes = ranked.slice(0, groupSize).map((entry) => entry.index);
+  const lowerIndexes = ranked.slice(-groupSize).map((entry) => entry.index);
+  const items = Array.from({ length: itemCount }, (_, column) => {
+    const upperCorrect = upperIndexes.reduce(
+      (total, rowIndex) => total + matrix[rowIndex][column],
+      0,
+    );
+    const lowerCorrect = lowerIndexes.reduce(
+      (total, rowIndex) => total + matrix[rowIndex][column],
+      0,
+    );
+    const result = analyzeItem(upperCorrect, lowerCorrect, groupSize);
+    return {
+      item: column + 1,
+      upperCorrect,
+      lowerCorrect,
+      ...result,
+      selected:
+        result.difficulty !== null &&
+        result.difficulty >= 0.2 &&
+        result.difficulty <= 0.8 &&
+        result.discrimination !== null &&
+        result.discrimination >= 0.2,
+    };
+  });
+  return {
+    valid: true,
+    respondentCount: matrix.length,
+    itemCount,
+    groupSize,
+    upperIndexes,
+    lowerIndexes,
+    totals,
+    items,
+    selectedItems: items
+      .filter((item) => item.selected)
+      .map((item) => item.item),
+  };
+}
+
+function selectedTestMatrix(matrix: number[][], selectedItems: number[]) {
+  return matrix.map((row) =>
+    selectedItems.map((itemNumber) => row[itemNumber - 1]),
+  );
+}
+
+const DEFAULT_SHARED_TEST_TEXT =
+  "1,1,1,0,1\n1,0,1,1,1\n1,1,1,1,1\n0,0,1,0,1\n1,1,0,1,1\n0,1,0,0,1";
+
+function parseSharedTestMatrix(text: string) {
+  const numericRows = text
+    .trim()
+    .split(/\n+/)
+    .map((line) => line.trim().split(/[\s,;\t]+/))
+    .filter((tokens) => tokens.length > 0 && Number.isFinite(Number(tokens[0])))
+    .map((tokens) =>
+      tokens.map(Number).filter((value) => Number.isFinite(value)),
+    )
+    .filter((row) => row.length > 0);
+  if (!numericRows.length) return [];
+  const rowsWithSequenceNumber = numericRows.filter(
+    (row, index) => row[0] === index + 1,
+  ).length;
+  const hasSequenceNumber =
+    rowsWithSequenceNumber >= Math.ceil(numericRows.length * 0.8);
+  const candidates = numericRows.map((row) =>
+    hasSequenceNumber ? row.slice(1) : row,
+  );
+  const binaryPrefixLengths = candidates.map((row) => {
+    const firstNonBinary = row.findIndex(
+      (value) => value !== 0 && value !== 1,
+    );
+    return firstNonBinary < 0 ? row.length : firstNonBinary;
+  });
+  const widthCounts = new Map<number, number>();
+  binaryPrefixLengths.forEach((width) => {
+    if (width > 0) widthCounts.set(width, (widthCounts.get(width) ?? 0) + 1);
+  });
+  const targetWidth = [...widthCounts.entries()]
+    .sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? 0;
+  if (!targetWidth) return [];
+  return candidates
+    .filter(
+      (row) =>
+        row.length >= targetWidth &&
+        row.slice(0, targetWidth).every((value) => value === 0 || value === 1),
+    )
+    .map((row) => row.slice(0, targetWidth));
+}
+
+function sharedTestTextFromWorkspace(workspace?: WorkspaceData | null) {
+  if (typeof workspace?.testMatrix === "string") {
+    return workspace.testMatrix;
+  }
+  if (typeof workspace?.text === "string") {
+    const matrix = parseSharedTestMatrix(workspace.text);
+    const binary =
+      matrix.length > 0 &&
+      matrix.every((row) =>
+        row.every((value) => value === 0 || value === 1),
+      );
+    if (binary) return workspace.text;
+  }
+  return "";
+}
+
 function ItemView({
   imported,
   initial,
   onChange,
   title,
   editable,
+  sharedTestText,
+  onSharedTestTextChange,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
   title: string;
   editable: boolean;
+  sharedTestText: string;
+  onSharedTestTextChange: (value: string) => void;
 }) {
-  const importedValues = imported
-    ? parseNumbers(flattenRows(imported.rows))
+  const matrix = parseSharedTestMatrix(sharedTestText);
+  const analysis = analyzeTestMatrix(matrix);
+  const selectedMatrix = analysis.valid
+    ? selectedTestMatrix(matrix, analysis.selectedItems)
     : [];
-  const [upper, setUpper] = useState(
-      Number(initial?.upper ?? importedValues[0] ?? 22),
-    ),
-    [lower, setLower] = useState(
-      Number(initial?.lower ?? importedValues[1] ?? 12),
-    ),
-    [size, setSize] = useState(
-      Number(initial?.size ?? importedValues[2] ?? 25),
-    );
-  const result = analyzeItem(upper, lower, size);
+  const reliability = selectedMatrix[0]?.length ? kr20(selectedMatrix) : null;
+  const exportRows: ExportCell[][] = [
+    ["ข้อ", "RU", "RL", "p", "แปลผล p", "r", "แปลผล r", "สถานะ"],
+    ...analysis.items.map((item) => [
+      item.item,
+      item.upperCorrect,
+      item.lowerCorrect,
+      fmt(item.difficulty, 4),
+      item.difficultyLabel,
+      fmt(item.discrimination, 3),
+      item.discriminationLabel,
+      item.selected ? "คัดเลือก" : "ไม่คัดเลือก",
+    ]),
+    [""],
+    ["จำนวนผู้สอบ", analysis.respondentCount],
+    ["จำนวนข้อฉบับร่าง", analysis.itemCount],
+    ["จำนวนคนต่อกลุ่ม 27%", analysis.groupSize],
+    ["จำนวนข้อที่ผ่าน", analysis.selectedItems.length],
+    ["ข้อที่คัดเลือก", analysis.selectedItems.join(", ")],
+    ["KR-20 ของข้อที่คัดเลือก", fmt(reliability, 3)],
+  ];
   useEffect(() => {
-    onChange({ upper, lower, size }, result as unknown as WorkspaceData);
-  }, [upper, lower, size]);
+    onChange(
+      {
+        testMatrix: sharedTestText,
+        groupPercentage: 0.27,
+        selectedItems: analysis.selectedItems,
+      },
+      {
+        valid: analysis.valid,
+        respondentCount: analysis.respondentCount,
+        itemCount: analysis.itemCount,
+        groupSize: analysis.groupSize,
+        upperRespondents: analysis.upperIndexes.map((index) => index + 1),
+        lowerRespondents: analysis.lowerIndexes.map((index) => index + 1),
+        items: analysis.items,
+        selectedItems: analysis.selectedItems,
+        selectedItemCount: analysis.selectedItems.length,
+        kr20: reliability,
+      },
+    );
+  }, [sharedTestText]);
   return (
     <Page
       title="ความยากและอำนาจจำแนก"
-      subtitle="วิเคราะห์ข้อสอบด้วยเทคนิคกลุ่มสูง–กลุ่มต่ำ"
-      badge="Classical Test Theory"
+      subtitle="ใช้ Matrix กลางร่วมกับหน้าความเชื่อมั่น และวิเคราะห์ทุกข้ออัตโนมัติ"
+      badge="ข้อมูลร่วม · กลุ่มสูง–ต่ำ 27%"
     >
       <section className="panel result-export-panel">
         <ResultExportToolbar
           title={title || "ผลความยากและอำนาจจำแนก"}
           sheetName="ความยาก-อำนาจจำแนก"
-          rows={[
-            ["รายการ", "ผล"],
-            ["กลุ่มสูงตอบถูก", upper],
-            ["กลุ่มต่ำตอบถูก", lower],
-            ["จำนวนคนต่อกลุ่ม", size],
-            ["ค่าความยาก (p)", fmt(result.difficulty)],
-            ["แปลผลความยาก", result.difficultyLabel],
-            ["อำนาจจำแนก (r)", fmt(result.discrimination)],
-            ["แปลผลอำนาจจำแนก", result.discriminationLabel],
-          ]}
+          rows={exportRows}
         />
       </section>
       <section className="split">
-        <div className="panel form-grid">
-          <label>
-            กลุ่มสูงตอบถูก
-            <input
-              disabled={!editable}
-              type="number"
-              value={upper}
-              onChange={(e) => setUpper(+e.target.value)}
-            />
-          </label>
-          <label>
-            กลุ่มต่ำตอบถูก
-            <input
-              disabled={!editable}
-              type="number"
-              value={lower}
-              onChange={(e) => setLower(+e.target.value)}
-            />
-          </label>
-          <label>
-            จำนวนคนต่อกลุ่ม
-            <input
-              disabled={!editable}
-              type="number"
-              value={size}
-              onChange={(e) => setSize(+e.target.value)}
-            />
-          </label>
+        <div className="panel">
+          <h3>Matrix คะแนนกลางของโครงการ</h3>
+          <p>1 บรรทัด = ผู้สอบ 1 คน · 1 คอลัมน์ = ข้อสอบ 1 ข้อ · ใช้เฉพาะ 0 และ 1</p>
+          <textarea
+            disabled={!editable}
+            rows={12}
+            value={sharedTestText}
+            onChange={(event) => onSharedTestTextChange(event.target.value)}
+          />
+          <div className="data-note">
+            {analysis.valid
+              ? analysis.respondentCount +
+                " คน × " +
+                analysis.itemCount +
+                " ข้อ · กลุ่มละ " +
+                analysis.groupSize +
+                " คน"
+              : "ข้อมูลต้องเป็น Matrix 0/1 ที่ทุกแถวมีจำนวนข้อเท่ากัน"}
+          </div>
         </div>
         <div className="metrics compact">
           <Metric
-            label="ค่าความยาก (p)"
-            value={fmt(result.difficulty)}
-            note={result.difficultyLabel}
+            label="ข้อฉบับร่าง"
+            value={analysis.itemCount + " ข้อ"}
+            note={analysis.respondentCount + " คน"}
           />
           <Metric
-            label="อำนาจจำแนก (r)"
-            value={fmt(result.discrimination)}
-            note={result.discriminationLabel}
+            label="ข้อที่ผ่าน"
+            value={analysis.selectedItems.length + " ข้อ"}
+            note={
+              analysis.selectedItems.length
+                ? "ข้อ " + analysis.selectedItems.join(", ")
+                : "ยังไม่มีข้อผ่านเกณฑ์"
+            }
             tone="green"
           />
+          <Metric
+            label="KR-20 ที่ส่งต่อ"
+            value={fmt(reliability)}
+            tone="violet"
+          />
+        </div>
+      </section>
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <span className="eyebrow">คำนวณจาก Matrix เดียวกัน</span>
+            <h3>ผลวิเคราะห์รายข้อ</h3>
+            <p>ระบบเรียงคะแนนรวม เลือกกลุ่มสูงและต่ำร้อยละ 27 แล้วคำนวณ RU, RL, p และ r</p>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ข้อ</th><th>RU</th><th>RL</th><th>p</th><th>ระดับ p</th>
+                <th>r</th><th>ระดับ r</th><th>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.items.map((item) => (
+                <tr key={item.item}>
+                  <td><b>{item.item}</b></td>
+                  <td>{item.upperCorrect}</td>
+                  <td>{item.lowerCorrect}</td>
+                  <td>{fmt(item.difficulty, 4)}</td>
+                  <td>{item.difficultyLabel}</td>
+                  <td>{fmt(item.discrimination, 3)}</td>
+                  <td>{item.discriminationLabel}</td>
+                  <td>
+                    <span className={item.selected ? "pill pass" : "pill revise"}>
+                      {item.selected ? "คัดเลือก" : "ไม่คัดเลือก"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
       <Formula source="แนวคิดการวิเคราะห์ข้อสอบแบบอิงกลุ่ม; พิชิต ฤทธิ์จรูญ และตำราการวัดผลการศึกษา">
@@ -1787,53 +1997,108 @@ function ReliabilityView({
   onChange,
   title,
   editable,
+  sharedTestText,
+  onSharedTestTextChange,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
   title: string;
   editable: boolean;
+  sharedTestText: string;
+  onSharedTestTextChange: (value: string) => void;
 }) {
-  const [text, setText] = useState(
-    typeof initial?.text === "string"
-      ? initial.text
-      : imported
-        ? imported.rows.map((row) => row.join(",")).join("\n")
-        : "1,1,1,0,1\n1,0,1,1,1\n1,1,1,1,1\n0,0,1,0,1\n1,1,0,1,1\n0,1,0,0,1",
+  const legacyMatrix =
+    typeof initial?.text === "string" ? parseMatrix(initial.text) : [];
+  const legacyIsScale =
+    legacyMatrix.length > 0 &&
+    legacyMatrix.some((row) =>
+      row.some((value) => value !== 0 && value !== 1),
+    );
+  const [reliabilityMode, setReliabilityMode] = useState<"test" | "scale">(
+    initial?.reliabilityMode === "scale" || legacyIsScale ? "scale" : "test",
   );
-  const matrix = parseMatrix(text);
-  const alpha = cronbachAlpha(matrix);
+  const [scaleText, setScaleText] = useState(
+    typeof initial?.scaleText === "string"
+      ? initial.scaleText
+      : legacyIsScale && typeof initial?.text === "string"
+        ? initial.text
+        : "3,3,3,2,3\n3,2,3,2,3\n3,3,2,3,3\n2,2,2,2,2\n3,3,3,3,3",
+  );
+  const testMatrix = parseSharedTestMatrix(sharedTestText);
+  const analysis = analyzeTestMatrix(testMatrix);
+  const selectedMatrix = analysis.valid
+    ? selectedTestMatrix(testMatrix, analysis.selectedItems)
+    : [];
+  const scaleMatrix = parseMatrix(scaleText);
+  const activeMatrix =
+    reliabilityMode === "test" ? selectedMatrix : scaleMatrix;
+  const alpha = activeMatrix[0]?.length ? cronbachAlpha(activeMatrix) : null;
   const binary =
-    matrix.length > 0 &&
-    matrix.every((r) => r.every((v) => v === 0 || v === 1));
-  const kr = binary ? kr20(matrix) : null;
+    reliabilityMode === "test" &&
+    selectedMatrix.length > 0 &&
+    selectedMatrix.every((row) =>
+      row.every((value) => value === 0 || value === 1),
+    );
+  const kr = binary ? kr20(selectedMatrix) : null;
   const reliabilityRows: ExportCell[][] = [
     ["รายการ", "ผล"],
-    ["จำนวนผู้ตอบ", matrix.length],
-    ["จำนวนข้อ", matrix[0]?.length ?? 0],
+    ["ประเภทข้อมูล", reliabilityMode === "test" ? "แบบทดสอบ 0/1" : "แบบสอบถามหลายระดับ"],
+    ["จำนวนผู้ตอบ", activeMatrix.length],
+    ["จำนวนข้อ", activeMatrix[0]?.length ?? 0],
+    ...(reliabilityMode === "test"
+      ? [
+          ["จำนวนข้อฉบับร่าง", analysis.itemCount],
+          ["ข้อที่ใช้คำนวณ", analysis.selectedItems.join(", ")],
+        ]
+      : []),
     ["Cronbach’s alpha", fmt(alpha)],
-    ["KR-20", binary ? fmt(kr) : "ข้อมูลไม่ใช่ 0/1"],
+    ["KR-20", reliabilityMode === "test" ? fmt(kr) : "ใช้ Cronbach’s alpha"],
     ["", ""],
-    ["ผู้ตอบ", ...Array.from({ length: matrix[0]?.length ?? 0 }, (_, index) => `ข้อ ${index + 1}`)],
-    ...matrix.map((row, index) => [index + 1, ...row]),
+    [
+      "ผู้ตอบ",
+      ...Array.from(
+        { length: activeMatrix[0]?.length ?? 0 },
+        (_, index) =>
+          reliabilityMode === "test"
+            ? "ข้อ " + analysis.selectedItems[index]
+            : "ข้อ " + (index + 1),
+      ),
+    ],
+    ...activeMatrix.map((row, index) => [index + 1, ...row]),
   ];
   useEffect(() => {
     onChange(
-      { text },
       {
-        respondents: matrix.length,
-        items: matrix[0]?.length ?? 0,
+        reliabilityMode,
+        testMatrix: sharedTestText,
+        scaleText,
+        groupPercentage: 0.27,
+        selectedItems: analysis.selectedItems,
+      },
+      {
+        reliabilityMode,
+        respondents: activeMatrix.length,
+        draftItems:
+          reliabilityMode === "test" ? analysis.itemCount : undefined,
+        items: activeMatrix[0]?.length ?? 0,
+        selectedItems:
+          reliabilityMode === "test" ? analysis.selectedItems : [],
         alpha,
         kr20: kr,
         binary,
       },
     );
-  }, [text]);
+  }, [reliabilityMode, scaleText, sharedTestText]);
   return (
     <Page
       title="ความเชื่อมั่นของเครื่องมือ"
-      subtitle="รองรับ Cronbach’s alpha และ KR-20"
-      badge="วางข้อมูลรายคน × รายข้อ"
+      subtitle={
+        reliabilityMode === "test"
+          ? "รับข้อที่ผ่าน p และ r จาก Matrix กลางโดยอัตโนมัติ"
+          : "คำนวณ Cronbach’s alpha จากแบบสอบถามหลายระดับ"
+      }
+      badge={reliabilityMode === "test" ? "ข้อมูลร่วมกับหน้า P" : "ข้อมูลแยกของแบบสอบถาม"}
     >
       <section className="panel result-export-panel">
         <ResultExportToolbar
@@ -1844,29 +2109,76 @@ function ReliabilityView({
       </section>
       <section className="split">
         <div className="panel">
+          <label>
+            ประเภทเครื่องมือ
+            <select
+              disabled={!editable}
+              value={reliabilityMode}
+              onChange={(event) =>
+                setReliabilityMode(event.target.value as "test" | "scale")
+              }
+            >
+              <option value="test">แบบทดสอบ 0/1 · ใช้ Matrix ร่วมกับหน้า P</option>
+              <option value="scale">แบบสอบถามหลายระดับ · Cronbach’s alpha</option>
+            </select>
+          </label>
           <h3>เมทริกซ์คะแนน</h3>
-          <p>1 บรรทัด = ผู้ตอบ 1 คน · แต่ละคอลัมน์ = ข้อคำถาม</p>
+          <p>
+            {reliabilityMode === "test"
+              ? "Matrix เดียวกับหน้า P · แก้ไขที่หน้านี้แล้วหน้า P จะเปลี่ยนตามทันที"
+              : "1 บรรทัด = ผู้ตอบ 1 คน · แต่ละคอลัมน์ = ข้อคำถาม"}
+          </p>
           <textarea
             disabled={!editable}
             rows={11}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+            value={reliabilityMode === "test" ? sharedTestText : scaleText}
+            onChange={(event) =>
+              reliabilityMode === "test"
+                ? onSharedTestTextChange(event.target.value)
+                : setScaleText(event.target.value)
+            }
           />
           <div className="data-note">
-            {matrix.length} คน × {matrix[0]?.length ?? 0} ข้อ
+            {reliabilityMode === "test"
+              ? analysis.respondentCount +
+                " คน × " +
+                analysis.itemCount +
+                " ข้อฉบับร่าง · ใช้คำนวณจริง " +
+                analysis.selectedItems.length +
+                " ข้อ"
+              : scaleMatrix.length +
+                " คน × " +
+                (scaleMatrix[0]?.length ?? 0) +
+                " ข้อ"}
           </div>
         </div>
         <div className="metrics compact">
           <Metric
             label="Cronbach’s α"
             value={fmt(alpha)}
-            note="แบบมาตรประมาณค่า/หลายระดับ"
+            note={
+              reliabilityMode === "test"
+                ? "ตรวจสอบเทียบกับ KR-20 สำหรับข้อมูล 0/1"
+                : "ความสอดคล้องภายในของแบบสอบถาม"
+            }
             tone="violet"
           />
           <Metric
             label="KR-20"
-            value={binary ? fmt(kr) : "ต้องเป็น 0/1"}
-            note="แบบทดสอบให้คะแนนถูก–ผิด"
+            value={
+              reliabilityMode === "test"
+                ? binary
+                  ? fmt(kr)
+                  : "ต้องเป็น 0/1"
+                : "ไม่ใช้"
+            }
+            note={
+              reliabilityMode === "test" && analysis.selectedItems.length
+                ? "ข้อที่ผ่าน: " + analysis.selectedItems.join(", ")
+                : reliabilityMode === "test"
+                  ? "ยังไม่มีข้อผ่านเกณฑ์"
+                  : "ใช้ Cronbach’s alpha สำหรับข้อมูลชุดนี้"
+            }
             tone="green"
           />
         </div>
@@ -3586,6 +3898,9 @@ export default function ResearchStatsApp({
   const [workspaceInitial, setWorkspaceInitial] = useState<WorkspaceData>({});
   const [workspaceDraft, setWorkspaceDraft] = useState<WorkspaceData>({});
   const [workspaceResult, setWorkspaceResult] = useState<WorkspaceData>({});
+  const [sharedTestText, setSharedTestText] = useState(
+    DEFAULT_SHARED_TEST_TEXT,
+  );
   const [revision, setRevision] = useState(0);
   const [saveStatus, setSaveStatus] = useState("");
   const [editingSaved, setEditingSaved] = useState(false);
@@ -3602,10 +3917,29 @@ export default function ResearchStatsApp({
       .then(({ data }) => {
         const loaded = (data ?? []) as AnalysisRecord[];
         setAnalyses(loaded);
+        const latestSharedTest = loaded.find(
+          (analysis) =>
+            (analysis.analysis_type === "item" ||
+              analysis.analysis_type === "reliability") &&
+            Boolean(
+              sharedTestTextFromWorkspace(analysis.input_json?.workspace),
+            ),
+        );
+        if (latestSharedTest) {
+          setSharedTestText(
+            sharedTestTextFromWorkspace(
+              latestSharedTest.input_json?.workspace,
+            ),
+          );
+        }
         const requested = loaded.find(
           (analysis) => analysis.id === initialAnalysisId,
         );
         if (requested) {
+          const requestedSharedText = sharedTestTextFromWorkspace(
+            requested.input_json?.workspace,
+          );
+          if (requestedSharedText) setSharedTestText(requestedSharedText);
           setView(requested.analysis_type);
           setActiveAnalysis(requested);
           setAnalysisTitle(requested.title);
@@ -3646,6 +3980,10 @@ export default function ResearchStatsApp({
     [view],
   );
   const openAnalysis = (analysis: AnalysisRecord) => {
+    const openedSharedText = sharedTestTextFromWorkspace(
+      analysis.input_json?.workspace,
+    );
+    if (openedSharedText) setSharedTestText(openedSharedText);
     setActiveAnalysis(analysis);
     setAnalysisTitle(analysis.title);
     setWorkspaceInitial(analysis.input_json?.workspace ?? {});
@@ -3771,6 +4109,8 @@ export default function ResearchStatsApp({
           onChange={handleDraft}
           title={analysisTitle}
           editable={!analysisLocked}
+          sharedTestText={sharedTestText}
+          onSharedTestTextChange={setSharedTestText}
         />
       ),
       reliability: (
@@ -3781,6 +4121,8 @@ export default function ResearchStatsApp({
           onChange={handleDraft}
           title={analysisTitle}
           editable={!analysisLocked}
+          sharedTestText={sharedTestText}
+          onSharedTestTextChange={setSharedTestText}
         />
       ),
       paired: (
@@ -3897,7 +4239,7 @@ export default function ResearchStatsApp({
                 </button>
               </>
             )}
-              <span className="version-chip">รุ่นคำนวณ 3.0</span>
+              <span className="version-chip">รุ่นคำนวณ 3.1</span>
             <span className="avatar">พ</span>
           </div>
         </div>
@@ -4023,6 +4365,11 @@ export default function ResearchStatsApp({
         onClose={() => setShowImporter(false)}
         onImport={(data) => {
           if (analysisLocked) return;
+          if (view === "item" || view === "reliability") {
+            setSharedTestText(
+              data.rows.map((row) => row.join(",")).join("\n"),
+            );
+          }
           setWorkspaceInitial(view === "ioc" ? workspaceDraft : {});
           setImported(data);
           setAnalysisTitle(data.workTitle);
