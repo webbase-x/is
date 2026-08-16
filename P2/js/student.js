@@ -5,7 +5,7 @@ import {
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260807-primary-copy-1";
+} from "./common.js?v=20260816-satisfaction-3";
 import { ACHIEVEMENT_TEST_QUESTIONS } from "./achievement-test.js?v=20260731-assessment-research-1";
 import {
   collectAchievementBadges,
@@ -1190,7 +1190,9 @@ function applySessionState() {
   document.body.classList.toggle("student-game-live", gameIsLive || sharedMediaIsLive);
   if (gameIsLive || sharedMediaIsLive) setGameFocus(true);
   $("#stageStep").textContent = assessment
-    ? `แบบทดสอบ${state.session.assessment_phase === "posttest" ? "หลังเรียน" : "ก่อนเรียน"} · 20 ข้อ`
+    ? state.session.assessment_phase === "satisfaction"
+      ? "แบบประเมินความพึงพอใจ · 10 ข้อ"
+      : `แบบทดสอบ${state.session.assessment_phase === "posttest" ? "หลังเรียน" : "ก่อนเรียน"} · 20 ข้อ`
     : lesson
     ? `ขั้นที่ ${lesson.stage} · ${lesson.kind === "game" ? "เกม" : "สื่อการสอน"}`
     : activity ? `ภารกิจ ${activities.findIndex(item => item.key === activity.key) + 1} จาก ${activities.length}` : "เตรียมพร้อม";
@@ -1232,6 +1234,10 @@ function renderActivity(key) {
     renderAchievementTest(key);
     return;
   }
+  if (key === "satisfaction") {
+    renderSatisfactionIntro();
+    return;
+  }
   if (Number(state.session?.plan_id || 1) !== 1) {
     renderLivePlanActivity(key);
     return;
@@ -1251,8 +1257,7 @@ function renderAchievementTest(activityKey) {
   const activity = activityForKey(activityKey, state.session?.plan_id);
   const existingAttempt = state.attempts.find(attempt => attempt.activity_key === activityKey);
   if (existingAttempt) {
-    if (isPosttest) void renderSatisfactionSurvey();
-    else showResult(`ส่งแบบทดสอบ${phase}แล้ว`, existingAttempt.score, existingAttempt.max_score, existingAttempt, null, {
+    showResult(`ส่งแบบทดสอบ${phase}แล้ว`, existingAttempt.score, existingAttempt.max_score, existingAttempt, null, {
       message: "ระบบส่งคำตอบให้คุณครูแล้ว · ไม่มีการจัดอันดับผลสอบ",
       hideScore: true,
       suppressGamification: true,
@@ -1285,7 +1290,7 @@ function renderAchievementTest(activityKey) {
     hideResultScore: true,
     resultMessage: "ระบบส่งคำตอบให้คุณครูแล้ว · ไม่มีการจัดอันดับผลสอบ",
     suppressGamification: true,
-    afterSubmit: isPosttest ? () => renderSatisfactionIntro() : null,
+    afterSubmit: null,
   });
 }
 
@@ -1293,8 +1298,8 @@ function renderSatisfactionIntro() {
   cleanupRhythm();
   $("#gameCanvas").innerHTML = `<div class="game-inner satisfaction-shell"><section class="satisfaction-intro-card">
     <span class="satisfaction-hero" aria-hidden="true">💜</span>
-    <small>ส่งแบบทดสอบหลังเรียนแล้ว</small>
-    <h2>บอกความรู้สึกของหนูต่ออีกนิดนะ</h2>
+    <small>กิจกรรมแบบประเมินความพึงพอใจ</small>
+    <h2>บอกความรู้สึกของหนูตามความจริงนะ</h2>
     <p>มี 10 ข้อ คุณครูจะอ่านข้อความให้ฟังทีละข้อ เลือกคำตอบที่ตรงกับความรู้สึกจริง ไม่มีผิดหรือถูก</p>
     <button id="startSatisfactionButton" class="button button-primary button-large">เริ่มแบบประเมินความพึงพอใจ</button>
   </section></div>`;
