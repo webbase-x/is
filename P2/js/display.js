@@ -3,7 +3,7 @@ import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   roomCodeFromUrl, sanitizeGameMarkup, show, toast,
-} from "./common.js?v=20260807-primary-copy-1";
+} from "./common.js?v=20260816-satisfaction-3";
 
 const state = {
   roomCode: "",
@@ -41,6 +41,7 @@ const activityMessages = {
   "island-supply": "เลือกคำมาตราแม่กบเพื่อเก็บเสบียง",
   "space-fuel": "เลือกคำมาตราแม่กนเพื่อเติมเชื้อเพลิง",
   "true-false": "วิเคราะห์ข้อความแล้วเลือกจริงหรือไม่จริง",
+  satisfaction: "ตอบแบบประเมินความพึงพอใจ 10 ข้อตามความรู้สึกจริง",
 };
 
 const screenStateMeta = {

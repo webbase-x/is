@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17203b">
   <title>จอครู | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260816-satisfaction-2">
+  <link rel="stylesheet" href="styles.css?v=20260816-satisfaction-3">
   <script>
     (() => {
       const url = new URL(location.href);
@@ -172,20 +172,15 @@
                   <button type="button" class="assessment-choice" data-assessment-phase="posttest"></button>
                 </section>
                 <section class="assessment-choice-section satisfaction-choice-section" aria-labelledby="satisfactionChoiceTitle" data-satisfaction-plan-entry>
-                  <div><span class="eyebrow">ขั้นตอนต่อจากแบบทดสอบหลังเรียน</span><h3 id="satisfactionChoiceTitle">แบบประเมินความพึงพอใจ</h3><p>ตอบทีละข้อ · 10 ข้อ · บันทึกคำตอบลงฐานข้อมูลทันที</p></div>
-                  <article class="satisfaction-choice-card" aria-label="แบบประเมินความพึงพอใจ 10 ข้อ เริ่มอัตโนมัติหลังส่งแบบทดสอบหลังเรียน">
-                    <span>💜</span>
-                    <strong>แบบประเมินความพึงพอใจ 10 ข้อ</strong>
-                    <small>เริ่มอัตโนมัติเมื่อนักเรียนส่งแบบทดสอบหลังเรียน</small>
-                    <em>3 = มาก · 2 = ปานกลาง · 1 = น้อย</em>
-                  </article>
+                  <div><span class="eyebrow">กิจกรรมอิสระ · วางต่อจากแบบทดสอบหลังเรียน</span><h3 id="satisfactionChoiceTitle">แบบประเมินความพึงพอใจ</h3><p>ครูเลือกเปิดแยกได้ · ตอบทีละข้อ · 10 ข้อ · บันทึกลงฐานข้อมูลทันที</p></div>
+                  <button type="button" class="assessment-choice satisfaction-choice-card" data-assessment-phase="satisfaction"></button>
                 </section>
                 <details class="panel flow-activity-preview flow-collapsible" open>
                   <summary><span><span class="eyebrow">เกมในแผน</span><strong id="selectedPlanTitle">กรุณาเลือกแผน</strong></span><span class="flow-collapsible-label" aria-hidden="true"></span></summary>
                   <div id="activityPreview" class="flow-game-list"></div>
                 </details>
                 <section id="assessmentDurationPanel" class="panel assessment-duration-panel hidden">
-                  <div><span class="eyebrow">ตั้งเวลาแบบทดสอบ</span><strong>กำหนดเวลาทำโดยครู</strong><small>เวลาจะเริ่มพร้อมกันเมื่อครูกดเริ่มแบบทดสอบ</small></div>
+                  <div><span id="assessmentDurationEyebrow" class="eyebrow">ตั้งเวลาแบบทดสอบ</span><strong id="assessmentDurationTitle">กำหนดเวลาทำโดยครู</strong><small id="assessmentDurationHelp">เวลาจะเริ่มพร้อมกันเมื่อครูกดเริ่มแบบทดสอบ</small></div>
                   <label>นาที<input id="assessmentDuration" type="number" min="1" max="180" value="20"></label>
                 </section>
                 <details id="planSettings" class="panel flow-settings">
@@ -389,7 +384,7 @@
     const query = new URLSearchParams(window.location.search);
     const modulePath = query.get("expertDemo") === "1"
       ? "./js/expert-teacher.js?v=20260807-primary-copy-1"
-      : "./js/teacher.js?v=20260816-satisfaction-2";
+      : "./js/teacher.js?v=20260816-satisfaction-3";
     import(modulePath);
   </script>
 </body>

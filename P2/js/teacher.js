@@ -7,11 +7,11 @@ import {
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260807-primary-copy-1";
+} from "./common.js?v=20260816-satisfaction-3";
 import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260816-satisfaction-1";
 
-const TEACHER_BUILD_VERSION = "20260816-satisfaction-2";
+const TEACHER_BUILD_VERSION = "20260816-satisfaction-3";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -108,6 +108,7 @@ function assessmentStepForSession(session = state.session) {
   const activity = assessmentActivityForPhase(session?.assessment_phase);
   if (!activity) return null;
   const minutes = Number(session?.assessment_duration_minutes) || activity.minutes;
+  const isSurvey = activity.phase === "satisfaction";
   const phase = activity.phase === "posttest" ? "หลังเรียน" : "ก่อนเรียน";
   return {
     key: `assessment-${activity.phase}`,
@@ -118,17 +119,25 @@ function assessmentStepForSession(session = state.session) {
     title: activity.title,
     minutes,
     studentVisibleDefault: true,
-    teacherNotes: [
+    teacherNotes: isSurvey ? [
+      `นักเรียนตอบแบบประเมินความพึงพอใจ 10 ข้อภายใน ${minutes} นาที`,
+      "ครูอ่านข้อความให้ฟังทีละข้อ นักเรียนเลือก 3 = มาก, 2 = ปานกลาง หรือ 1 = น้อย",
+      "ระบบบันทึกทุกข้อทันทีและสรุปค่าเฉลี่ยในรายงานครู โดยไม่เชื่อมกับคะแนนแบบทดสอบ",
+    ] : [
       `นักเรียนทำแบบทดสอบ${phase} 20 ข้อด้วยตนเองภายใน ${minutes} นาที`,
       "ระบบสลับลำดับข้อและตัวเลือกบนจอแต่ละคน แต่บันทึกรหัสข้อเดิมเพื่อเทียบผลได้ถูกต้อง",
       "หลังจบแบบทดสอบไม่ประกาศอันดับ คะแนนจะปรากฏในรายงานครูและส่งออกเป็นตารางได้",
     ],
     screen: {
-      eyebrow: `การประเมิน${phase}`,
+      eyebrow: isSurvey ? "การประเมินความพึงพอใจ" : `การประเมิน${phase}`,
       title: activity.title,
-      message: `กำลังรับคำตอบ 20 ข้อ · เหลือเวลา ${minutes} นาที · ไม่มีการแสดงอันดับ`,
+      message: isSurvey
+        ? `กำลังรับแบบประเมิน 10 ข้อ · เหลือเวลา ${minutes} นาที · ไม่มีคำตอบผิดหรือถูก`
+        : `กำลังรับคำตอบ 20 ข้อ · เหลือเวลา ${minutes} นาที · ไม่มีการแสดงอันดับ`,
       icon: activity.icon,
-      bullets: ["ทำด้วยตนเอง", "ไม่มีเฉลยระหว่างทำ", "บันทึกเพื่อเปรียบเทียบผลก่อน–หลังเรียน"],
+      bullets: isSurvey
+        ? ["ตอบตามความรู้สึกจริง", "ครูอ่านข้อความทีละข้อ", "บันทึกผลแยกจากคะแนนสอบ"]
+        : ["ทำด้วยตนเอง", "ไม่มีเฉลยระหว่างทำ", "บันทึกเพื่อเปรียบเทียบผลก่อน–หลังเรียน"],
     },
   };
 }
@@ -487,23 +496,33 @@ function renderPlanChoices() {
 }
 
 function renderAssessmentChoices() {
-  ["pretest", "posttest"].forEach(phase => {
+  ["pretest", "posttest", "satisfaction"].forEach(phase => {
     const activity = assessmentActivityForPhase(phase);
     const button = $(`[data-assessment-phase="${phase}"]`);
     if (!button || !activity) return;
     button.classList.toggle("selected", state.selectedAssessmentPhase === phase);
-    button.innerHTML = `<span>${activity.icon}</span><strong>${escapeHtml(activity.title)}</strong><small>${phase === "pretest" ? "ทำก่อนเริ่มแผนที่ 1" : "ทำหลังเรียนครบแผนที่ 8"} · 20 ข้อ</small>`;
+    const detail = phase === "pretest"
+      ? "ทำก่อนเริ่มแผนที่ 1 · 20 ข้อ"
+      : phase === "posttest"
+        ? "ทำหลังเรียนครบแผนที่ 8 · 20 ข้อ"
+        : "เปิดแยกจากแบบทดสอบ · 10 ข้อ · 3 ระดับ";
+    button.innerHTML = `<span>${activity.icon}</span><strong>${escapeHtml(activity.title)}</strong><small>${detail}</small>`;
   });
 }
 
 function selectAssessment(phase, rerender = true) {
   const activity = assessmentActivityForPhase(phase);
   if (!activity) return;
+  const isSurvey = phase === "satisfaction";
   state.selectedAssessmentPhase = phase;
   $("#selectedPlanTitle").textContent = `${activity.title} · คาบประเมินแยกจากแผนการสอน`;
-  $("#activityPreview").innerHTML = `<article><span>${activity.icon}</span><div><small>การประเมินผลสัมฤทธิ์ · ไม่จัดอันดับ</small><strong>${escapeHtml(activity.title)} 20 ข้อ</strong><em>ครูกำหนดเวลาทำได้ด้านล่าง</em></div></article>${phase === "posttest" ? `<article class="satisfaction-preview-step"><span>💜</span><div><small>ขั้นตอนต่อเนื่องหลังส่งแบบทดสอบ</small><strong>แบบประเมินความพึงพอใจ 10 ข้อ</strong><em>ตอบทีละข้อ · บันทึกทันที · 3 ระดับ</em></div></article>` : ""}`;
+  $("#activityPreview").innerHTML = `<article class="${isSurvey ? "satisfaction-preview-step" : ""}"><span>${activity.icon}</span><div><small>${isSurvey ? "กิจกรรมอิสระ · ไม่เชื่อมกับคะแนนสอบ" : "การประเมินผลสัมฤทธิ์ · ไม่จัดอันดับ"}</small><strong>${escapeHtml(activity.title)} ${isSurvey ? "10" : "20"} ข้อ</strong><em>${isSurvey ? "ตอบทีละข้อ · บันทึกทันที · 3 ระดับ" : "ครูกำหนดเวลาทำได้ด้านล่าง"}</em></div></article>`;
   $("#planSettings")?.classList.add("hidden");
   $("#assessmentDurationPanel")?.classList.remove("hidden");
+  $("#assessmentDurationEyebrow").textContent = isSurvey ? "ตั้งเวลาแบบประเมิน" : "ตั้งเวลาแบบทดสอบ";
+  $("#assessmentDurationTitle").textContent = isSurvey ? "กำหนดเวลาตอบแบบประเมิน" : "กำหนดเวลาทำโดยครู";
+  $("#assessmentDurationHelp").textContent = isSurvey ? "เวลาจะเริ่มพร้อมกันเมื่อครูกดเปิดแบบประเมิน" : "เวลาจะเริ่มพร้อมกันเมื่อครูกดเริ่มแบบทดสอบ";
+  $("#assessmentDuration").value = activity.minutes;
   $("#startPlanButton").textContent = `▶ เริ่ม${activity.title}`;
   if (rerender) renderPlanChoices();
 }
@@ -723,7 +742,8 @@ function renderActivityControls() {
   const flow = currentLessonFlow();
   if (isAssessmentSession(state.session)) {
     const step = flow[0];
-    $("#activityControls").innerHTML = `<div class="activity-control lesson-flow-control active assessment-flow-control"><span>${escapeHtml(step.icon)}</span><span><small>คาบประเมินผลสัมฤทธิ์</small><strong>${escapeHtml(step.title)}</strong><em>${step.minutes} นาที · 20 ข้อ · ไม่จัดอันดับ</em></span><i>กำลังรับคำตอบ</i></div>`;
+    const isSurvey = state.session?.assessment_phase === "satisfaction";
+    $("#activityControls").innerHTML = `<div class="activity-control lesson-flow-control active assessment-flow-control"><span>${escapeHtml(step.icon)}</span><span><small>${isSurvey ? "กิจกรรมประเมินความพึงพอใจ" : "คาบประเมินผลสัมฤทธิ์"}</small><strong>${escapeHtml(step.title)}</strong><em>${step.minutes} นาที · ${isSurvey ? "10 ข้อ · 3 ระดับ" : "20 ข้อ · ไม่จัดอันดับ"}</em></span><i>กำลังรับคำตอบ</i></div>`;
     renderCurrentLessonStep();
     updateNextActivityButton();
     return;
@@ -796,12 +816,13 @@ function renderProjectorLessonContent(step) {
   const showGame = lessonStageVisible && state.session?.status === "active" && step?.kind === "game" && Boolean(activity);
   const showResults = lessonStageVisible && (step?.kind === "results" || step?.kind === "assessment") && Boolean(activity);
   const showAssessment = step?.kind === "assessment";
+  const showSurvey = showAssessment && state.session?.assessment_phase === "satisfaction";
 
   media.classList.toggle("hidden", showGame || showResults);
   gamePreview.classList.toggle("hidden", !showGame);
   results.classList.toggle("hidden", !showResults);
   modeLabel.textContent = showAssessment
-    ? "📝 กำลังรับคำตอบแบบทดสอบ · ไม่แสดงอันดับ"
+    ? showSurvey ? "💜 กำลังรับแบบประเมินความพึงพอใจ" : "📝 กำลังรับคำตอบแบบทดสอบ · ไม่แสดงอันดับ"
     : showResults
     ? "✨ ประกาศผลการแข่งขัน ✨"
     : showGame
@@ -844,17 +865,18 @@ function renderCurrentLessonStep() {
   const flow = currentLessonFlow();
   const index = flow.findIndex(item => item.key === step?.key);
   const screen = step?.screen || {};
+  const isSatisfaction = step?.kind === "assessment" && state.session?.assessment_phase === "satisfaction";
   $("#currentActivityLabel").textContent = step?.title || "ยังไม่เริ่มกิจกรรม";
   $("#lessonStageLabel").textContent = step ? `ขั้นที่ ${step.stage} · รายการ ${index + 1} จาก ${flow.length}` : "ลำดับการสอน";
   $("#lessonStepTitle").textContent = step?.title || "เลือกขั้นการสอน";
   $("#lessonStepMeta").textContent = step
     ? step.kind === "assessment"
-      ? `${step.minutes} นาที · แบบทดสอบ 20 ข้อ · ไม่จัดอันดับ`
+      ? isSatisfaction ? `${step.minutes} นาที · แบบประเมิน 10 ข้อ · 3 ระดับ` : `${step.minutes} นาที · แบบทดสอบ 20 ข้อ · ไม่จัดอันดับ`
       : step.kind === "results"
       ? "ลำดับถัดไปหลังจบเกม · ประกาศอันดับบนจอโปรเจกเตอร์"
       : `${step.minutes} นาที · ${step.kind === "game" ? "เกมบนจอนักเรียน" : "สื่อหรือคำสั่งสำหรับครู"}`
     : "สื่อ เกม และคำสั่งจะเรียงตามแผนการสอน 60 นาที";
-  $("#lessonStepKind").textContent = step?.kind === "assessment" ? "📝 แบบทดสอบ" : step?.kind === "game" ? "🎮 เกมนักเรียน" : step?.kind === "results" ? "🏆 ประกาศผล" : "📺 สื่อ/คำสั่ง";
+  $("#lessonStepKind").textContent = step?.kind === "assessment" ? isSatisfaction ? "💜 แบบประเมิน" : "📝 แบบทดสอบ" : step?.kind === "game" ? "🎮 เกมนักเรียน" : step?.kind === "results" ? "🏆 ประกาศผล" : "📺 สื่อ/คำสั่ง";
   $("#lessonStepKind").classList.toggle("is-game", step?.kind === "game" || step?.kind === "assessment");
   $("#lessonStepKind").classList.toggle("is-results", step?.kind === "results");
   $("#lessonTeacherNotes").innerHTML = step?.teacherNotes?.length
@@ -876,14 +898,14 @@ function renderCurrentLessonStep() {
   shareInput.disabled = !step || isGame || isResults;
   shareInput.checked = Boolean(step && (isGame || (!isResults && state.lessonShareStudents)));
   shareLabel.querySelector("strong").textContent = isAssessment
-    ? "แบบทดสอบแสดงบนจอนักเรียนทุกคน"
+    ? isSatisfaction ? "แบบประเมินแสดงบนจอนักเรียนทุกคน" : "แบบทดสอบแสดงบนจอนักเรียนทุกคน"
     : isGame
     ? "เกมนี้แสดงบนจอนักเรียนทุกคน"
     : isResults
       ? "ผลการแข่งขันแสดงบนจอโปรเจกเตอร์"
       : "แสดงสื่อนี้บนจอนักเรียนด้วย";
   shareLabel.querySelector("small").textContent = isAssessment
-    ? "ไม่มีเฉลยและไม่มีการแสดงอันดับ ผลส่งให้ครูเป็นตาราง"
+    ? isSatisfaction ? "นักเรียนตอบตามความรู้สึกจริงและระบบบันทึกทุกข้อทันที" : "ไม่มีเฉลยและไม่มีการแสดงอันดับ ผลส่งให้ครูเป็นตาราง"
     : isGame
     ? "นักเรียนต้องใช้หน้าจอของตนเองเพื่อทำภารกิจ"
     : isResults
@@ -1094,10 +1116,11 @@ function assessmentDurationMinutes() {
 
 async function startAssessment(phase) {
   const activity = assessmentActivityForPhase(phase);
-  if (!activity || !state.session) return toast("ไม่พบแบบทดสอบที่เลือก", "warning");
+  if (!activity || !state.session) return toast("ไม่พบรายการประเมินที่เลือก", "warning");
+  const isSurvey = phase === "satisfaction";
   const button = $("#startPlanButton");
   button.disabled = true;
-  button.textContent = "กำลังเปิดแบบทดสอบ...";
+  button.textContent = isSurvey ? "กำลังเปิดแบบประเมิน..." : "กำลังเปิดแบบทดสอบ...";
   try {
     const { data, error } = await supabase.rpc("start_class_assessment", {
       p_session_id: state.session.id,
@@ -1119,13 +1142,13 @@ async function startAssessment(phase) {
     renderActivityControls();
     renderLiveModeSwitch();
     renderLiveResults();
-    $("#pauseSessionButton").textContent = "พักแบบทดสอบ";
+    $("#pauseSessionButton").textContent = isSurvey ? "พักแบบประเมิน" : "พักแบบทดสอบ";
     await broadcastDisplay("assessment-started");
     setTeacherFlowStep("live");
     setClassroomStageExpanded(true);
-    toast(`เริ่ม${activity.title}แล้ว · เวลาทำ ${state.session.assessment_duration_minutes} นาที`, "success");
+    toast(`เริ่ม${activity.title}แล้ว · เวลา ${state.session.assessment_duration_minutes} นาที`, "success");
   } catch (error) {
-    toast(error.message || "เริ่มแบบทดสอบไม่สำเร็จ", "error");
+    toast(error.message || (isSurvey ? "เริ่มแบบประเมินไม่สำเร็จ" : "เริ่มแบบทดสอบไม่สำเร็จ"), "error");
   } finally {
     button.disabled = false;
     button.textContent = activity ? `▶ เริ่ม${activity.title}` : "▶ เริ่มขั้นแรก";
@@ -1183,8 +1206,9 @@ function updateNextActivityButton() {
   const flow = currentLessonFlow();
   const index = flow.findIndex(item => item.key === state.lessonStepKey);
   if (flow[index]?.kind === "assessment") {
-    button.innerHTML = `<span class="lesson-nav-direction">จบแบบทดสอบ →</span><span class="lesson-nav-title">เปิดรายงานคะแนน</span>`;
-    button.title = "หยุดรับคำตอบและเปิดรายงานครูโดยไม่มีการจัดอันดับ";
+    const isSurvey = state.session?.assessment_phase === "satisfaction";
+    button.innerHTML = `<span class="lesson-nav-direction">${isSurvey ? "จบแบบประเมิน" : "จบแบบทดสอบ"} →</span><span class="lesson-nav-title">${isSurvey ? "เปิดรายงานความพึงพอใจ" : "เปิดรายงานคะแนน"}</span>`;
+    button.title = isSurvey ? "หยุดรับแบบประเมินและเปิดรายงานครู" : "หยุดรับคำตอบและเปิดรายงานครูโดยไม่มีการจัดอันดับ";
     return;
   }
   const nextStep = flow[Math.max(index + 1, 0)] || flow[0];
@@ -1216,7 +1240,7 @@ async function goToPreviousLessonStep() {
 function restartLessonTimer() {
   const step = currentLessonStep();
   if (!step) return;
-  if (step.kind === "assessment") return toast("เวลาแบบทดสอบกำหนดจากตอนเริ่มคาบ จึงเริ่มเวลาใหม่ไม่ได้", "warning");
+  if (step.kind === "assessment") return toast(state.session?.assessment_phase === "satisfaction" ? "เวลาแบบประเมินกำหนดจากตอนเริ่มกิจกรรม จึงเริ่มเวลาใหม่ไม่ได้" : "เวลาแบบทดสอบกำหนดจากตอนเริ่มคาบ จึงเริ่มเวลาใหม่ไม่ได้", "warning");
   startActivityTimer(step.key, true);
   void broadcastDisplay("lesson-timer-restarted");
   toast(`เริ่มเวลา ${step.minutes} นาทีใหม่แล้ว`, "success");
@@ -1803,7 +1827,7 @@ async function refreshSessionData() {
   state.players = players || [];
   state.sentenceSubmissions = sentenceSubmissions || [];
   const playerIds = state.players.map(player => player.id);
-  if (state.session.assessment_phase === "posttest" && playerIds.length) {
+  if (state.session.assessment_phase === "satisfaction" && playerIds.length) {
     const [{ data: satisfactionResponses }, { data: satisfactionSubmissions }] = await Promise.all([
       supabase.from("satisfaction_responses").select("session_player_id,question_id,rating").in("session_player_id", playerIds),
       supabase.from("satisfaction_submissions").select("session_player_id,completed_at").in("session_player_id", playerIds),
@@ -2159,29 +2183,29 @@ function renderCelebration(entries) {
 
 function renderAssessmentProgress() {
   const activityKey = state.session?.assessment_phase;
+  const isSurvey = activityKey === "satisfaction";
   const submittedPlayerIds = new Set(state.attempts
     .filter(attempt => attempt.activity_key === activityKey)
     .map(attempt => attempt.session_player_id));
   const students = state.players.filter(player => player.status === "approved");
-  const surveyCompleted = state.session?.assessment_phase === "posttest"
-    ? state.satisfactionSubmissions.length
-    : 0;
   const surveyCompletedIds = new Set(state.satisfactionSubmissions.map(item => item.session_player_id));
   const surveyAnswerCounts = state.satisfactionResponses.reduce((counts, response) => {
     counts.set(response.session_player_id, (counts.get(response.session_player_id) || 0) + 1);
     return counts;
   }, new Map());
+  const submittedCount = isSurvey ? surveyCompletedIds.size : submittedPlayerIds.size;
   return `<section class="assessment-progress-panel">
-    <div class="assessment-progress-heading"><span>📝</span><div><small>ติดตามการส่งคำตอบแบบเรียลไทม์</small><h4>ส่งแล้ว ${submittedPlayerIds.size} จาก ${students.length} คน</h4><p>ระบบไม่แสดงคะแนนหรืออันดับบนจอรวม</p></div></div>
-    ${state.session?.assessment_phase === "posttest" ? `<div class="satisfaction-live-progress"><span>💜</span><div><small>แบบประเมินความพึงพอใจหลังเรียน</small><strong>ส่งครบแล้ว ${surveyCompleted} จาก ${students.length} คน</strong></div><i><b style="width:${students.length ? Math.min(100, Math.round((surveyCompleted / students.length) * 100)) : 0}%"></b></i></div>` : ""}
+    <div class="assessment-progress-heading"><span>${isSurvey ? "💜" : "📝"}</span><div><small>ติดตามการส่งคำตอบแบบเรียลไทม์</small><h4>ส่งแล้ว ${submittedCount} จาก ${students.length} คน</h4><p>${isSurvey ? "แบบประเมินนี้เป็นกิจกรรมอิสระและไม่เชื่อมกับคะแนนสอบ" : "ระบบไม่แสดงคะแนนหรืออันดับบนจอรวม"}</p></div></div>
+    ${isSurvey ? `<div class="satisfaction-live-progress"><span>💜</span><div><small>ความคืบหน้าแบบประเมิน 10 ข้อ</small><strong>ส่งครบแล้ว ${submittedCount} จาก ${students.length} คน</strong></div><i><b style="width:${students.length ? Math.min(100, Math.round((submittedCount / students.length) * 100)) : 0}%"></b></i></div>` : ""}
     <div class="assessment-progress-list">${students.length ? students.map(player => {
       const submitted = submittedPlayerIds.has(player.id);
       const completedSurvey = surveyCompletedIds.has(player.id);
       const answerCount = surveyAnswerCounts.get(player.id) || 0;
-      const progressLabel = state.session?.assessment_phase === "posttest" && submitted
+      const progressLabel = isSurvey
         ? completedSurvey ? "ส่งแบบประเมินแล้ว" : `กำลังประเมิน ${answerCount}/10 ข้อ`
         : submitted ? "ส่งคำตอบแล้ว" : "กำลังทำแบบทดสอบ";
-      return `<div class="assessment-progress-row ${submitted ? "is-submitted" : ""} ${completedSurvey ? "is-survey-complete" : ""}"><span>${completedSurvey ? "💜" : submitted ? "✓" : "…"}</span><strong>${escapeHtml(player.student?.full_name || player.student?.nickname || "นักเรียน")}</strong><small>${progressLabel}</small></div>`;
+      const completed = isSurvey ? completedSurvey : submitted;
+      return `<div class="assessment-progress-row ${completed ? "is-submitted" : ""} ${completedSurvey ? "is-survey-complete" : ""}"><span>${completedSurvey ? "💜" : submitted ? "✓" : "…"}</span><strong>${escapeHtml(player.student?.full_name || player.student?.nickname || "นักเรียน")}</strong><small>${progressLabel}</small></div>`;
     }).join("") : "<p>ยังไม่มีนักเรียนที่อนุมัติ</p>"}</div>
   </section>`;
 }
@@ -2202,21 +2226,31 @@ function renderLiveResults() {
   const isCelebrating = state.celebrationActivityKey === state.session.current_activity_key;
   arena?.classList.toggle("is-celebrating", isCelebrating);
   if (assessment) {
-    const submittedCount = state.attempts.filter(attempt => attempt.activity_key === state.session.assessment_phase).length;
+    const isSurvey = state.session.assessment_phase === "satisfaction";
+    const submittedCount = isSurvey
+      ? state.satisfactionSubmissions.length
+      : state.attempts.filter(attempt => attempt.activity_key === state.session.assessment_phase).length;
     const approvedCount = state.players.filter(player => player.status === "approved").length;
     const finished = state.session.status === "paused";
     arena?.classList.remove("is-celebrating");
     if (liveBadge) {
       liveBadge.classList.toggle("is-finished", finished);
-      liveBadge.innerHTML = finished ? "✓ รับคำตอบแล้ว" : "<i></i> กำลังทำแบบทดสอบ";
+      liveBadge.innerHTML = finished ? "✓ รับคำตอบแล้ว" : isSurvey ? "<i></i> กำลังทำแบบประเมิน" : "<i></i> กำลังทำแบบทดสอบ";
     }
     if (finishButton) {
       finishButton.disabled = finished || state.finishingActivity || !state.session.current_activity_key;
-      finishButton.textContent = state.finishingActivity ? "กำลังจบแบบทดสอบ..." : finished ? "✓ แบบทดสอบจบแล้ว" : "⏹ จบแบบทดสอบและเปิดรายงาน";
+      finishButton.textContent = state.finishingActivity
+        ? isSurvey ? "กำลังจบแบบประเมิน..." : "กำลังจบแบบทดสอบ..."
+        : finished ? isSurvey ? "✓ แบบประเมินจบแล้ว" : "✓ แบบทดสอบจบแล้ว"
+          : isSurvey ? "⏹ จบแบบประเมินและเปิดรายงาน" : "⏹ จบแบบทดสอบและเปิดรายงาน";
     }
     if (status) status.textContent = finished
-      ? `รับคำตอบแล้ว ${submittedCount}/${approvedCount} คน · คะแนนอยู่ในรายงานครู ไม่มีการจัดอันดับ`
-      : `ส่งคำตอบแล้ว ${submittedCount}/${approvedCount} คน · ระบบไม่แสดงคะแนนและอันดับ`;
+      ? isSurvey
+        ? `รับแบบประเมินแล้ว ${submittedCount}/${approvedCount} คน · ผลอยู่ในรายงานความพึงพอใจ`
+        : `รับคำตอบแล้ว ${submittedCount}/${approvedCount} คน · คะแนนอยู่ในรายงานครู ไม่มีการจัดอันดับ`
+      : isSurvey
+        ? `ส่งแบบประเมินแล้ว ${submittedCount}/${approvedCount} คน · ติดตามจำนวนข้อของแต่ละคนด้านล่าง`
+        : `ส่งคำตอบแล้ว ${submittedCount}/${approvedCount} คน · ระบบไม่แสดงคะแนนและอันดับ`;
     container.innerHTML = renderAssessmentProgress();
     return;
   }
@@ -2310,15 +2344,16 @@ async function finishActivity(reason = "manual") {
   }
   state.session = data;
   if (assessment) {
+    const isSurvey = state.session.assessment_phase === "satisfaction";
     state.celebrationActivityKey = null;
     state.celebrationReason = null;
     state.finishingActivity = false;
-    stopActivityTimer({ clearSaved: true, label: "จบแบบทดสอบ" });
+    stopActivityTimer({ clearSaved: true, label: isSurvey ? "จบแบบประเมิน" : "จบแบบทดสอบ" });
     renderActivityControls();
     renderLiveResults();
     await broadcastDisplay("assessment-finished");
     await loadAssessmentReport();
-    toast("จบแบบทดสอบแล้ว · เปิดรายงานครูเพื่อดาวน์โหลดตารางคะแนน", "success");
+    toast(isSurvey ? "จบแบบประเมินแล้ว · เปิดรายงานครูเพื่อดูผลความพึงพอใจ" : "จบแบบทดสอบแล้ว · เปิดรายงานครูเพื่อดาวน์โหลดตารางคะแนน", "success");
     return;
   }
   state.celebrationActivityKey = finishedActivityKey;
@@ -2834,7 +2869,7 @@ function renderSatisfactionResearchReport() {
     ? `<section class="satisfaction-comments"><h3>ข้อเสนอแนะเพิ่มเติม</h3>${comments.map(item => `<blockquote><p>${escapeHtml(item.comment || "")}</p><footer>${escapeHtml(item.student_code || "")} · ${escapeHtml(item.full_name || "นักเรียน")}</footer></blockquote>`).join("")}</section>`
     : "";
   return `<section class="satisfaction-research-report">
-    <div class="assessment-report-heading"><div><span class="eyebrow">แบบประเมินหลังเรียน · 10 ข้อ</span><h2>ความพึงพอใจของนักเรียน</h2><p>ระดับ 3 = มาก, 2 = ปานกลาง, 1 = น้อย</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-satisfaction>ดาวน์โหลดผลความพึงพอใจ CSV</button></div></div>
+    <div class="assessment-report-heading"><div><span class="eyebrow">แบบประเมินความพึงพอใจ · 10 ข้อ</span><h2>ความพึงพอใจของนักเรียน</h2><p>ระดับ 3 = มาก, 2 = ปานกลาง, 1 = น้อย</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-satisfaction>ดาวน์โหลดผลความพึงพอใจ CSV</button></div></div>
     <div class="satisfaction-overall ${level.className}"><span>ผู้ส่งแบบประเมินครบ</span><strong>${Number(report.completed_count || 0)} คน</strong><span>ค่าเฉลี่ยรวม</span><strong>${Number.isFinite(overallAverage) ? overallAverage.toFixed(2) : "—"} / 3</strong><em>${level.label}</em></div>
     ${table}${commentMarkup}
   </section>`;
@@ -2921,6 +2956,7 @@ function renderReport() {
 
 function exportCurrentReport() {
   if (!state.session) return toast("ยังไม่มีคาบเรียนให้ส่งออก", "warning");
+  if (state.session.assessment_phase === "satisfaction") return exportSatisfactionReport();
   if (isAssessmentSession(state.session)) return exportAssessmentReport("individual");
   if (!sessionRecordsScores()) return toast("คะแนนสดของคาบตรวจสื่อไม่สามารถส่งออกรายงานได้", "warning");
   const rows = [["ห้อง", "เลขประจำตัว", "ชื่อ-นามสกุล", "ชื่อเล่น", "กิจกรรม", "ครั้งที่", "คะแนน", "คะแนนเต็ม", "ร้อยละ", "ผ่าน", "เวลา"]];
