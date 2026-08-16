@@ -2932,6 +2932,24 @@ footer {
   opacity: 0.45;
   cursor: not-allowed;
 }
+.analysis-lock-status {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #315bd2 !important;
+  font-weight: 800;
+}
+.quality-settings input:disabled,
+.quality-settings select:disabled,
+.panel textarea:disabled,
+.panel input:disabled,
+.panel select:disabled,
+.analysis-tabs button:disabled,
+.method-select-trigger:disabled,
+.method-option:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
 
 .quality-setting-grid,
 .custom-cut-grid {

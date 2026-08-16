@@ -28,6 +28,7 @@ import {
   parseNumbers,
   sampleStandardDeviation,
   standardNormalQuantile,
+  threeLevelSatisfactionBands,
   traditionalFiveLevelBands,
   type AlternativeHypothesis,
   type ComparisonTest,
@@ -72,7 +73,7 @@ const NAV: Array<{ id: View; label: string; icon: string; group?: string }> = [
     icon: "x̄",
     group: "สถิติพรรณนา",
   },
-  { id: "quality", label: "ระดับคุณภาพ 5 ระดับ", icon: "★" },
+  { id: "quality", label: "ระดับความพึงพอใจ 3/5 ระดับ", icon: "★" },
   {
     id: "item",
     label: "ความยาก–อำนาจจำแนก",
@@ -633,11 +634,13 @@ function DescriptiveView({
   imported,
   initial,
   onChange,
+  editable,
 }: {
   quality?: boolean;
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  editable: boolean;
 }) {
   const [text, setText] = useState(
     typeof initial?.text === "string"
@@ -655,6 +658,9 @@ function DescriptiveView({
       ? initial.bandScheme
       : "traditional",
   );
+  const [scaleLevels, setScaleLevels] = useState<3 | 5>(
+    Number(initial?.scaleLevels) === 3 ? 3 : 5,
+  );
   const [customCuts, setCustomCuts] = useState<number[]>(
     Array.isArray(initial?.customCuts) && initial.customCuts.length === 4
       ? initial.customCuts.map(Number)
@@ -665,27 +671,31 @@ function DescriptiveView({
   );
   const [copiedQualityReport, setCopiedQualityReport] = useState<"short" | "detailed" | null>(null);
   const customBands = customFiveLevelBands(customCuts);
-  const selectedBands = bandScheme === "traditional"
-    ? traditionalFiveLevelBands
-    : bandScheme === "equal-width"
-      ? equalWidthFiveLevelBands
-      : customBands ?? equalWidthFiveLevelBands;
+  const selectedBands = scaleLevels === 3
+    ? threeLevelSatisfactionBands
+    : bandScheme === "traditional"
+      ? traditionalFiveLevelBands
+      : bandScheme === "equal-width"
+        ? equalWidthFiveLevelBands
+        : customBands ?? equalWidthFiveLevelBands;
   const interpretation = interpretQuality(avg, selectedBands);
   const q1 = quantile(values, 0.25);
   const q3 = quantile(values, 0.75);
   const iqr = q1 === null || q3 === null ? null : q3 - q1;
-  const schemeDescription = bandScheme === "traditional"
-    ? "เกณฑ์ 4.51–5.00"
-    : bandScheme === "equal-width"
-      ? "เกณฑ์ช่วงกว้างเท่ากัน 0.80"
-      : "เกณฑ์ที่ผู้ใช้กำหนด";
+  const schemeDescription = scaleLevels === 3
+    ? "เกณฑ์ 3 ระดับ (2.34–3.00 = มาก)"
+    : bandScheme === "traditional"
+      ? "เกณฑ์ 4.51–5.00"
+      : bandScheme === "equal-width"
+        ? "เกณฑ์ช่วงกว้างเท่ากัน 0.80"
+        : "เกณฑ์ที่ผู้ใช้กำหนด";
   const qualityReports = {
     short: `นักเรียนมีความพึงพอใจโดยรวมอยู่ในระดับ${interpretation} (x̄ = ${fmt(avg)}, S.D. = ${fmt(sd)}, n = ${values.length})`,
     detailed: `ผลการวิเคราะห์ความพึงพอใจของนักเรียนจำนวน ${values.length} คนด้วยสถิติเชิงพรรณนา พบว่า มีค่าเฉลี่ยเท่ากับ ${fmt(avg)} ส่วนเบี่ยงเบนมาตรฐานเท่ากับ ${fmt(sd)} มัธยฐานเท่ากับ ${fmt(medianValue)} และ IQR เท่ากับ ${fmt(iqr)} เมื่อแปลผลด้วย${schemeDescription} นักเรียนมีความพึงพอใจโดยรวมอยู่ในระดับ${interpretation}${criterionSource.trim() ? ` โดยอ้างอิงเกณฑ์จาก ${criterionSource.trim()}` : ""}`,
   };
   useEffect(() => {
     onChange(
-      { text, bandScheme, customCuts, criterionSource },
+      { text, scaleLevels, bandScheme, customCuts, criterionSource },
       {
         n: values.length,
         mean: avg,
@@ -695,10 +705,11 @@ function DescriptiveView({
         q3,
         iqr,
         interpretation: quality ? interpretation : undefined,
+        scaleLevels: quality ? scaleLevels : undefined,
         bandScheme: quality ? bandScheme : undefined,
       },
     );
-  }, [text, bandScheme, customCuts, criterionSource, quality, avg, sd, medianValue, q1, q3, iqr, interpretation, onChange, values.length]);
+  }, [text, scaleLevels, bandScheme, customCuts, criterionSource, quality, avg, sd, medianValue, q1, q3, iqr, interpretation, onChange, values.length]);
 
   const copyQualityReport = async (kind: "short" | "detailed") => {
     try {
@@ -714,7 +725,7 @@ function DescriptiveView({
       title={quality ? "การแปลผลระดับคุณภาพ" : "สถิติพรรณนา"}
       subtitle={
         quality
-          ? "คำนวณค่าเฉลี่ยและแปลผลมาตราส่วนประมาณค่า 5 ระดับ"
+          ? "คำนวณค่าเฉลี่ยและแปลผลมาตราส่วนประมาณค่า 3 หรือ 5 ระดับ"
           : "ค่าเฉลี่ย มัธยฐาน และส่วนเบี่ยงเบนมาตรฐานของกลุ่มตัวอย่าง"
       }
       badge="ตรวจสอบข้อมูลดิบได้"
@@ -730,19 +741,37 @@ function DescriptiveView({
           </div>
           <div className="quality-setting-grid">
             <label>
+              จำนวนระดับของแบบประเมิน
+              <select
+                disabled={!editable}
+                value={scaleLevels}
+                onChange={(event) => setScaleLevels(Number(event.target.value) as 3 | 5)}
+              >
+                <option value={3}>3 ระดับ: มาก / ปานกลาง / น้อย</option>
+                <option value={5}>5 ระดับ</option>
+              </select>
+            </label>
+            {scaleLevels === 5 && (
+            <label>
               รูปแบบเกณฑ์
-              <select value={bandScheme} onChange={(event) => setBandScheme(event.target.value as typeof bandScheme)}>
+              <select disabled={!editable} value={bandScheme} onChange={(event) => setBandScheme(event.target.value as typeof bandScheme)}>
                 <option value="traditional">4.51–5.00 / 3.51–4.50</option>
                 <option value="equal-width">ช่วงกว้างเท่ากัน 0.80</option>
                 <option value="custom">กำหนดจุดตัดเอง</option>
               </select>
             </label>
+            )}
             <label>
               แหล่งอ้างอิงเกณฑ์
-              <input value={criterionSource} placeholder="ระบุตำรา ฉบับพิมพ์ และเลขหน้า" onChange={(event) => setCriterionSource(event.target.value)} />
+              <input disabled={!editable} value={criterionSource} placeholder="ระบุตำรา ฉบับพิมพ์ และเลขหน้า" onChange={(event) => setCriterionSource(event.target.value)} />
             </label>
           </div>
-          {bandScheme === "custom" && (
+          {scaleLevels === 3 && (
+            <div className="notice analysis-recommendation">
+              เกณฑ์ที่ใช้: 2.34–3.00 = มาก · 1.67–2.33 = ปานกลาง · 1.00–1.66 = น้อย
+            </div>
+          )}
+          {scaleLevels === 5 && bandScheme === "custom" && (
             <div className="custom-cut-grid">
               {[
                 ["มากที่สุด เริ่มที่", 0],
@@ -753,6 +782,7 @@ function DescriptiveView({
                 <label key={String(label)}>
                   {label}
                   <input
+                    disabled={!editable}
                     type="number"
                     min="1.01"
                     max="5"
@@ -764,7 +794,7 @@ function DescriptiveView({
               ))}
             </div>
           )}
-          {bandScheme === "custom" && !customBands && (
+          {scaleLevels === 5 && bandScheme === "custom" && !customBands && (
             <div className="notice analysis-warning">
               จุดตัดต้องเรียงจากมากไปน้อย อยู่ระหว่าง 1–5 และไม่ซ้ำกัน ระบบจะแสดงเกณฑ์ช่วงกว้าง 0.80 ชั่วคราวจนกว่าจะแก้ครบ
             </div>
@@ -776,6 +806,7 @@ function DescriptiveView({
           <h3>วางคะแนน</h3>
           <p>คั่นด้วยช่องว่าง เครื่องหมายจุลภาค หรือขึ้นบรรทัดใหม่</p>
           <textarea
+            disabled={!editable}
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={10}
@@ -848,10 +879,12 @@ function ItemView({
   imported,
   initial,
   onChange,
+  editable,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  editable: boolean;
 }) {
   const importedValues = imported
     ? parseNumbers(flattenRows(imported.rows))
@@ -880,6 +913,7 @@ function ItemView({
           <label>
             กลุ่มสูงตอบถูก
             <input
+              disabled={!editable}
               type="number"
               value={upper}
               onChange={(e) => setUpper(+e.target.value)}
@@ -888,6 +922,7 @@ function ItemView({
           <label>
             กลุ่มต่ำตอบถูก
             <input
+              disabled={!editable}
               type="number"
               value={lower}
               onChange={(e) => setLower(+e.target.value)}
@@ -896,6 +931,7 @@ function ItemView({
           <label>
             จำนวนคนต่อกลุ่ม
             <input
+              disabled={!editable}
               type="number"
               value={size}
               onChange={(e) => setSize(+e.target.value)}
@@ -927,10 +963,12 @@ function ReliabilityView({
   imported,
   initial,
   onChange,
+  editable,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  editable: boolean;
 }) {
   const [text, setText] = useState(
     typeof initial?.text === "string"
@@ -968,6 +1006,7 @@ function ReliabilityView({
           <h3>เมทริกซ์คะแนน</h3>
           <p>1 บรรทัด = ผู้ตอบ 1 คน · แต่ละคอลัมน์ = ข้อคำถาม</p>
           <textarea
+            disabled={!editable}
             rows={11}
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -1055,10 +1094,12 @@ function TestMethodSelect({
   mode,
   value,
   onChange,
+  editable,
 }: {
   mode: ComparisonMode;
   value: ComparisonTest;
   onChange: (value: ComparisonTest) => void;
+  editable: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const methods = METHOD_HELP[mode];
@@ -1073,6 +1114,7 @@ function TestMethodSelect({
     >
       <span id="test-method-label">วิธีทดสอบ</span>
       <button
+        disabled={!editable}
         type="button"
         className="method-select-trigger"
         role="combobox"
@@ -1089,6 +1131,7 @@ function TestMethodSelect({
         <div id="test-method-options" className="method-options" role="listbox" aria-label="วิธีทดสอบ">
           {methods.map((method) => (
             <button
+              disabled={!editable}
               key={method.value}
               type="button"
               role="option"
@@ -1120,16 +1163,19 @@ function HypothesisSelect({
   value,
   onChange,
   mode,
+  editable,
 }: {
   value: AlternativeHypothesis | "";
   onChange: (value: AlternativeHypothesis | "") => void;
   mode: ComparisonMode;
+  editable: boolean;
 }) {
   const target = mode === "paired" ? "ก่อนเรียน" : "เกณฑ์";
   return (
     <label>
       สมมติฐานทางสถิติ
       <select
+        disabled={!editable}
         value={value}
         className={!value ? "selection-required" : ""}
         onChange={(event) => onChange(event.target.value as AlternativeHypothesis | "")}
@@ -1374,10 +1420,12 @@ function PairedView({
   imported,
   initial,
   onChange,
+  editable,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  editable: boolean;
 }) {
   const importedRows =
     imported?.rows
@@ -1657,6 +1705,7 @@ function PairedView({
     >
       <div className="analysis-tabs" role="tablist" aria-label="ประเภทการเปรียบเทียบ">
         <button
+          disabled={!editable}
           type="button"
           role="tab"
           aria-selected={mode === "paired"}
@@ -1666,6 +1715,7 @@ function PairedView({
           ก่อนเรียน–หลังเรียน
         </button>
         <button
+          disabled={!editable}
           type="button"
           role="tab"
           aria-selected={mode === "criterion"}
@@ -1680,6 +1730,7 @@ function PairedView({
         <TestMethodSelect
           mode={mode}
           value={activeMethod}
+          editable={editable}
           onChange={(selected) => {
             if (mode === "paired") setPairedMethod(selected);
             else setCriterionMethod(selected);
@@ -1688,6 +1739,7 @@ function PairedView({
         <HypothesisSelect
           mode={mode}
           value={mode === "paired" ? pairedAlternative : criterionAlternative}
+          editable={editable}
           onChange={
             mode === "paired" ? setPairedAlternative : setCriterionAlternative
           }
@@ -1695,6 +1747,7 @@ function PairedView({
         <label>
           ระดับนัยสำคัญ (α)
           <select
+            disabled={!editable}
             value={alpha}
             onChange={(event) => setAlpha(Number(event.target.value))}
           >
@@ -1717,6 +1770,7 @@ function PairedView({
           <label>
             รูปแบบเกณฑ์
             <select
+              disabled={!editable}
               value={criterionMode}
               onChange={(event) =>
                 setCriterionMode(event.target.value as "percent" | "raw")
@@ -1731,6 +1785,7 @@ function PairedView({
               <label>
                 เกณฑ์ (ร้อยละ)
                 <input
+                  disabled={!editable}
                   type="number"
                   min="0"
                   max="100"
@@ -1741,6 +1796,7 @@ function PairedView({
               <label>
                 คะแนนเต็ม
                 <input
+                  disabled={!editable}
                   type="number"
                   min="0.01"
                   value={maximumScore}
@@ -1752,6 +1808,7 @@ function PairedView({
             <label>
               เกณฑ์คะแนนดิบ
               <input
+                disabled={!editable}
                 type="number"
                 value={criterionRaw}
                 onChange={(event) => setCriterionRaw(Number(event.target.value))}
@@ -1770,6 +1827,7 @@ function PairedView({
           <label>
             คะแนนก่อนเรียน
             <textarea
+              disabled={!editable}
               rows={7}
               value={pre}
               onChange={(event) => setPre(event.target.value)}
@@ -1779,6 +1837,7 @@ function PairedView({
         <label>
           คะแนนหลังเรียน
           <textarea
+            disabled={!editable}
             rows={7}
             value={post}
             onChange={(event) => setPost(event.target.value)}
@@ -2044,10 +2103,12 @@ function EfficiencyView({
   imported,
   initial,
   onChange,
+  editable,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  editable: boolean;
 }) {
   const importedPairs =
     imported?.rows
@@ -2088,6 +2149,7 @@ function EfficiencyView({
         <label>
           คะแนนระหว่างเรียนของแต่ละคน
           <textarea
+            disabled={!editable}
             rows={6}
             value={process}
             onChange={(e) => setProcess(e.target.value)}
@@ -2095,6 +2157,7 @@ function EfficiencyView({
           <span>
             คะแนนเต็ม{" "}
             <input
+              disabled={!editable}
               type="number"
               value={pmax}
               onChange={(e) => setPmax(+e.target.value)}
@@ -2104,6 +2167,7 @@ function EfficiencyView({
         <label>
           คะแนนหลังเรียนของแต่ละคน
           <textarea
+            disabled={!editable}
             rows={6}
             value={post}
             onChange={(e) => setPost(e.target.value)}
@@ -2111,6 +2175,7 @@ function EfficiencyView({
           <span>
             คะแนนเต็ม{" "}
             <input
+              disabled={!editable}
               type="number"
               value={tmax}
               onChange={(e) => setTmax(+e.target.value)}
@@ -2615,7 +2680,7 @@ export default function ResearchStatsApp({
   const [saveStatus, setSaveStatus] = useState("");
   const [editingSaved, setEditingSaved] = useState(false);
   const isTool = !["home", "references"].includes(view);
-  const iocLocked = view === "ioc" && Boolean(activeAnalysis) && !editingSaved;
+  const analysisLocked = Boolean(activeAnalysis) && !editingSaved;
   useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
@@ -2639,18 +2704,19 @@ export default function ResearchStatsApp({
           setWorkspaceResult(requested.result_json ?? {});
           setImported(requested.input_json?.source ?? null);
           setRevision((value) => value + 1);
-          setSaveStatus("เปิดงานเดิมแล้ว");
+          setSaveStatus("เปิดงานเดิมแล้ว · ล็อกการแก้ไข");
           setEditingSaved(false);
         }
       });
   }, [project.id, initialAnalysisId]);
   const handleDraft = useCallback(
     (data: WorkspaceData, result: WorkspaceData) => {
+      if (analysisLocked) return;
       setWorkspaceDraft(data);
       setWorkspaceResult(result);
       setSaveStatus("");
     },
-    [],
+    [analysisLocked],
   );
   const startNew = useCallback(
     (nextView = view) => {
@@ -2678,7 +2744,7 @@ export default function ResearchStatsApp({
     setImported(analysis.input_json?.source ?? null);
     setRevision((value) => value + 1);
     setShowLibrary(false);
-    setSaveStatus("เปิดงานเดิมแล้ว");
+    setSaveStatus("เปิดงานเดิมแล้ว · ล็อกการแก้ไข");
     setEditingSaved(false);
   };
   const chooseView = (nextView: View) => {
@@ -2693,6 +2759,10 @@ export default function ResearchStatsApp({
     }
   };
   const saveAnalysis = async () => {
+    if (analysisLocked) {
+      setSaveStatus("เปิดสวิตช์แก้ไขก่อนบันทึก");
+      return;
+    }
     const supabase = getSupabaseClient();
     if (!supabase) {
       setSaveStatus("ไม่พบการเชื่อมต่อ Supabase");
@@ -2744,7 +2814,8 @@ export default function ResearchStatsApp({
       setActiveAnalysis(saved);
       setAnalyses((items) => [saved, ...items]);
     }
-    setSaveStatus("บันทึกแล้ว");
+    setWorkspaceInitial(workspaceDraft);
+    setSaveStatus("บันทึกแล้ว · ล็อกการแก้ไข");
     setEditingSaved(false);
   };
   const dataKey = `${revision}-${imported?.id ?? 0}`;
@@ -2759,7 +2830,7 @@ export default function ResearchStatsApp({
           initial={workspaceInitial}
           onChange={handleDraft}
           title={analysisTitle}
-          editable={!activeAnalysis || editingSaved}
+          editable={!analysisLocked}
         />
       ),
       descriptive: (
@@ -2768,6 +2839,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          editable={!analysisLocked}
         />
       ),
       quality: (
@@ -2777,6 +2849,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          editable={!analysisLocked}
         />
       ),
       item: (
@@ -2785,6 +2858,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          editable={!analysisLocked}
         />
       ),
       reliability: (
@@ -2793,6 +2867,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          editable={!analysisLocked}
         />
       ),
       paired: (
@@ -2801,6 +2876,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          editable={!analysisLocked}
         />
       ),
       efficiency: (
@@ -2809,6 +2885,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          editable={!analysisLocked}
         />
       ),
     } as Partial<Record<View, React.ReactNode>>
@@ -2897,7 +2974,9 @@ export default function ResearchStatsApp({
                 </button>
                 <button
                   className="import-project-button"
+                  disabled={analysisLocked}
                   onClick={() => setShowImporter(true)}
+                  title={analysisLocked ? "เปิดสวิตช์แก้ไขก่อนนำเข้าข้อมูลใหม่" : undefined}
                 >
                   ↥ นำเข้าจากไฟล์
                 </button>
@@ -2911,7 +2990,7 @@ export default function ResearchStatsApp({
           {isTool && (
             <section className="analysis-filebar">
               <input
-                disabled={iocLocked}
+                disabled={analysisLocked}
                 value={analysisTitle}
                 onChange={(event) => {
                   setAnalysisTitle(event.target.value);
@@ -2919,10 +2998,10 @@ export default function ResearchStatsApp({
                 }}
                 placeholder="ชื่องานวิเคราะห์"
               />
-              <button disabled={iocLocked} onClick={() => void saveAnalysis()}>
+              <button disabled={analysisLocked} onClick={() => void saveAnalysis()}>
                 บันทึกงาน
               </button>
-              {view === "ioc" && activeAnalysis && (
+              {activeAnalysis && (
                 <label className="edit-switch">
                   <input
                     type="checkbox"
@@ -2937,8 +3016,11 @@ export default function ResearchStatsApp({
                     }}
                   />
                   <span aria-hidden="true" />
-                  <b>{editingSaved ? "กำลังแก้ไข" : "เปิดเพื่อแก้ไข"}</b>
+                  <b>{editingSaved ? "กำลังแก้ไข" : "เปิดสวิตช์เพื่อแก้ไข"}</b>
                 </label>
+              )}
+              {analysisLocked && (
+                <span className="analysis-lock-status">🔒 บันทึกแล้วและล็อกอยู่</span>
               )}
               <span className="filebar-current">
                 {displayedFileLabel}: <b>{displayedFileName}</b>
@@ -3025,6 +3107,7 @@ export default function ResearchStatsApp({
         open={showImporter}
         onClose={() => setShowImporter(false)}
         onImport={(data) => {
+          if (analysisLocked) return;
           setWorkspaceInitial(view === "ioc" ? workspaceDraft : {});
           setImported(data);
           setAnalysisTitle(data.workTitle);
