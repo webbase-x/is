@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17203b">
   <title>จอครู | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260816-satisfaction-1">
+  <link rel="stylesheet" href="styles.css?v=20260816-satisfaction-2">
   <script>
     (() => {
       const url = new URL(location.href);
@@ -170,6 +170,15 @@
                 <section class="assessment-choice-section assessment-choice-section-post" aria-labelledby="postAssessmentChoiceTitle">
                   <div><span class="eyebrow">หลังเรียนครบทั้งหน่วย</span><h3 id="postAssessmentChoiceTitle">แบบทดสอบหลังเรียน</h3><p>ทำหลังแผนที่ 8 · 20 ข้อ · ใช้เทียบผลกับคะแนนก่อนเรียน</p></div>
                   <button type="button" class="assessment-choice" data-assessment-phase="posttest"></button>
+                </section>
+                <section class="assessment-choice-section satisfaction-choice-section" aria-labelledby="satisfactionChoiceTitle" data-satisfaction-plan-entry>
+                  <div><span class="eyebrow">ขั้นตอนต่อจากแบบทดสอบหลังเรียน</span><h3 id="satisfactionChoiceTitle">แบบประเมินความพึงพอใจ</h3><p>ตอบทีละข้อ · 10 ข้อ · บันทึกคำตอบลงฐานข้อมูลทันที</p></div>
+                  <article class="satisfaction-choice-card" aria-label="แบบประเมินความพึงพอใจ 10 ข้อ เริ่มอัตโนมัติหลังส่งแบบทดสอบหลังเรียน">
+                    <span>💜</span>
+                    <strong>แบบประเมินความพึงพอใจ 10 ข้อ</strong>
+                    <small>เริ่มอัตโนมัติเมื่อนักเรียนส่งแบบทดสอบหลังเรียน</small>
+                    <em>3 = มาก · 2 = ปานกลาง · 1 = น้อย</em>
+                  </article>
                 </section>
                 <details class="panel flow-activity-preview flow-collapsible" open>
                   <summary><span><span class="eyebrow">เกมในแผน</span><strong id="selectedPlanTitle">กรุณาเลือกแผน</strong></span><span class="flow-collapsible-label" aria-hidden="true"></span></summary>
@@ -380,7 +389,7 @@
     const query = new URLSearchParams(window.location.search);
     const modulePath = query.get("expertDemo") === "1"
       ? "./js/expert-teacher.js?v=20260807-primary-copy-1"
-      : "./js/teacher.js?v=20260816-satisfaction-1";
+      : "./js/teacher.js?v=20260816-satisfaction-2";
     import(modulePath);
   </script>
 </body>
