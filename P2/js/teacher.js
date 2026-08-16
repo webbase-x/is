@@ -11,7 +11,7 @@ import {
 import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260816-satisfaction-1";
 
-const TEACHER_BUILD_VERSION = "20260816-satisfaction-1";
+const TEACHER_BUILD_VERSION = "20260816-satisfaction-2";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -501,7 +501,7 @@ function selectAssessment(phase, rerender = true) {
   if (!activity) return;
   state.selectedAssessmentPhase = phase;
   $("#selectedPlanTitle").textContent = `${activity.title} · คาบประเมินแยกจากแผนการสอน`;
-  $("#activityPreview").innerHTML = `<article><span>${activity.icon}</span><div><small>การประเมินผลสัมฤทธิ์ · ไม่จัดอันดับ</small><strong>${escapeHtml(activity.title)} 20 ข้อ</strong><em>ครูกำหนดเวลาทำได้ด้านล่าง</em></div></article>`;
+  $("#activityPreview").innerHTML = `<article><span>${activity.icon}</span><div><small>การประเมินผลสัมฤทธิ์ · ไม่จัดอันดับ</small><strong>${escapeHtml(activity.title)} 20 ข้อ</strong><em>ครูกำหนดเวลาทำได้ด้านล่าง</em></div></article>${phase === "posttest" ? `<article class="satisfaction-preview-step"><span>💜</span><div><small>ขั้นตอนต่อเนื่องหลังส่งแบบทดสอบ</small><strong>แบบประเมินความพึงพอใจ 10 ข้อ</strong><em>ตอบทีละข้อ · บันทึกทันที · 3 ระดับ</em></div></article>` : ""}`;
   $("#planSettings")?.classList.add("hidden");
   $("#assessmentDurationPanel")?.classList.remove("hidden");
   $("#startPlanButton").textContent = `▶ เริ่ม${activity.title}`;
