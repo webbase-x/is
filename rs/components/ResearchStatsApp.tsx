@@ -1294,7 +1294,7 @@ function ExpertMediaQualityView({
       interpretation: interpretQuality(meanValue, traditionalFiveLevelBands),
       passed: meanValue !== null && meanValue >= passMean,
     };
-  }, [respondents.length, scores]);
+  }, [passMean, respondents.length, scores]);
 
   const shortReport = `ผลการประเมินคุณภาพสื่อนวัตกรรม Web Application เรื่อง มาตราตัวสะกด โดย${respondentLabel}จำนวน ${respondents.length} คน พบว่า โดยภาพรวมมีคุณภาพอยู่ในระดับ${overallResult.interpretation} (x̄ = ${fmt(overallResult.mean)}, S.D. = ${fmt(overallResult.sd)}) และ${overallResult.passed ? "ผ่าน" : "ไม่ผ่าน"}เกณฑ์ค่าเฉลี่ย ${fmt(passMean, 2)}`;
   const domainNarrative = domainResults
