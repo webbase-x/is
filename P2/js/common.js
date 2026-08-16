@@ -14,6 +14,7 @@ const freezeActivitySet = activities => Object.freeze(activities.map(activity =>
 export const ASSESSMENT_ACTIVITIES = freezeActivitySet([
   { key: "pretest", icon: "📝", title: "แบบทดสอบก่อนเรียน", short: "ก่อนเรียน 20 ข้อ", minutes: 20, phase: "pretest", noRanking: true },
   { key: "posttest", icon: "🎓", title: "แบบทดสอบหลังเรียน", short: "หลังเรียน 20 ข้อ", minutes: 20, phase: "posttest", noRanking: true },
+  { key: "satisfaction", icon: "💜", title: "แบบประเมินความพึงพอใจ", short: "ความพึงพอใจ 10 ข้อ", minutes: 15, phase: "satisfaction", noRanking: true },
 ]);
 
 export function assessmentActivityForPhase(phase) {
