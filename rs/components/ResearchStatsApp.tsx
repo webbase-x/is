@@ -1705,9 +1705,9 @@ function PairedView({
     >
       <div className="analysis-tabs" role="tablist" aria-label="ประเภทการเปรียบเทียบ">
         <button
-          disabled={!editable}
           type="button"
           role="tab"
+          title="ดูผลก่อนเรียน–หลังเรียน"
           aria-selected={mode === "paired"}
           className={mode === "paired" ? "active" : ""}
           onClick={() => setMode("paired")}
@@ -1715,9 +1715,9 @@ function PairedView({
           ก่อนเรียน–หลังเรียน
         </button>
         <button
-          disabled={!editable}
           type="button"
           role="tab"
+          title="ดูผลหลังเรียนเทียบเกณฑ์"
           aria-selected={mode === "criterion"}
           className={mode === "criterion" ? "active" : ""}
           onClick={() => setMode("criterion")}

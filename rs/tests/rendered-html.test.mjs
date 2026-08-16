@@ -49,6 +49,16 @@ test("IOC workspace shows sum, IOC, and result columns", async () => {
     (source.match(/editable=\{!analysisLocked\}/g) ?? []).length >= 7,
     "every editable analysis tool must receive the shared saved-record lock",
   );
+  const comparisonTabs =
+    source.match(/<div className="analysis-tabs"[\s\S]*?<\/div>/)?.[0] ?? "";
+  assert.ok(comparisonTabs, "the paired and criterion comparison tabs must exist");
+  assert.doesNotMatch(
+    comparisonTabs,
+    /disabled=\{!editable\}/,
+    "saved analyses must still allow switching between comparison result views",
+  );
+  assert.match(comparisonTabs, /ก่อนเรียน–หลังเรียน/);
+  assert.match(comparisonTabs, /หลังเรียนเทียบเกณฑ์/);
   assert.match(source, /ชื่อจากการถอดความ/);
   for (const format of ["CSV", "XLSX", "DOCX", "PDF", "PNG"]) {
     assert.match(source, new RegExp(`aria-label="[^"]*${format}`));
