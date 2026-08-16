@@ -76,11 +76,16 @@ const NAV: Array<{ id: View; label: string; icon: string; group?: string }> = [
   { id: "quality", label: "ความพึงพอใจ / คุณภาพสื่อ", icon: "★" },
   {
     id: "item",
-    label: "ความยาก–อำนาจจำแนก",
-    icon: "P",
+    label: "คุณภาพแบบทดสอบ (p, r, KR-20)",
+    icon: "Pα",
     group: "คุณภาพแบบทดสอบ",
   },
-  { id: "reliability", label: "ความเชื่อมั่น", icon: "α" },
+  {
+    id: "reliability",
+    label: "ความเชื่อมั่นแบบสอบถาม (α)",
+    icon: "α",
+    group: "คุณภาพแบบสอบถาม",
+  },
   {
     id: "paired",
     label: "ก่อนเรียน–หลังเรียน",
@@ -1849,6 +1854,27 @@ function ItemView({
     ? selectedTestMatrix(matrix, analysis.selectedItems)
     : [];
   const reliability = selectedMatrix[0]?.length ? kr20(selectedMatrix) : null;
+  const reliabilityLevel =
+    reliability === null
+      ? "ยังคำนวณไม่ได้"
+      : reliability >= 0.9
+        ? "สูงมาก"
+        : reliability >= 0.8
+          ? "สูง"
+          : reliability >= 0.7
+            ? "ยอมรับได้"
+            : reliability >= 0.6
+              ? "ค่อนข้างต่ำ"
+              : "ควรปรับปรุง";
+  const reliabilityReport =
+    reliability === null
+      ? "ยังไม่สามารถคำนวณความเชื่อมั่นได้ กรุณาตรวจ Matrix และข้อที่ผ่านเกณฑ์"
+      : "แบบทดสอบที่คัดเลือกจำนวน " +
+        analysis.selectedItems.length +
+        " ข้อ มีค่าความเชื่อมั่น KR-20 เท่ากับ " +
+        fmt(reliability, 3) +
+        " อยู่ในระดับ" +
+        reliabilityLevel;
   const exportRows: ExportCell[][] = [
     ["ข้อ", "RU", "RL", "p", "แปลผล p", "r", "แปลผล r", "สถานะ"],
     ...analysis.items.map((item) => [
@@ -1868,6 +1894,8 @@ function ItemView({
     ["จำนวนข้อที่ผ่าน", analysis.selectedItems.length],
     ["ข้อที่คัดเลือก", analysis.selectedItems.join(", ")],
     ["KR-20 ของข้อที่คัดเลือก", fmt(reliability, 3)],
+    ["ระดับความเชื่อมั่น", reliabilityLevel],
+    ["รายงานอัตโนมัติ", reliabilityReport],
   ];
   useEffect(() => {
     onChange(
@@ -1892,9 +1920,9 @@ function ItemView({
   }, [sharedTestText]);
   return (
     <Page
-      title="ความยากและอำนาจจำแนก"
-      subtitle="ใช้ Matrix กลางร่วมกับหน้าความเชื่อมั่น และวิเคราะห์ทุกข้ออัตโนมัติ"
-      badge="ข้อมูลร่วม · กลุ่มสูง–ต่ำ 27%"
+      title="คุณภาพแบบทดสอบ"
+      subtitle="ข้อมูลดิบชุดเดียวสำหรับวิเคราะห์ p, r คัดเลือกข้อ และคำนวณ KR-20"
+      badge="3 ขั้นตอนในงานเดียว"
     >
       <section className="panel result-export-panel">
         <ResultExportToolbar
@@ -1905,6 +1933,7 @@ function ItemView({
       </section>
       <section className="split">
         <div className="panel">
+          <span className="eyebrow">ขั้นที่ 1 · ข้อมูลดิบ</span>
           <h3>Matrix คะแนนกลางของโครงการ</h3>
           <p>1 บรรทัด = ผู้สอบ 1 คน · 1 คอลัมน์ = ข้อสอบ 1 ข้อ · ใช้เฉพาะ 0 และ 1</p>
           <textarea
@@ -1950,8 +1979,8 @@ function ItemView({
       <section className="panel">
         <div className="panel-head">
           <div>
-            <span className="eyebrow">คำนวณจาก Matrix เดียวกัน</span>
-            <h3>ผลวิเคราะห์รายข้อ</h3>
+            <span className="eyebrow">ขั้นที่ 2 · วิเคราะห์และคัดเลือกข้อ</span>
+            <h3>ผลความยากและอำนาจจำแนกรายข้อ</h3>
             <p>ระบบเรียงคะแนนรวม เลือกกลุ่มสูงและต่ำร้อยละ 27 แล้วคำนวณ RU, RL, p และ r</p>
           </div>
         </div>
@@ -1984,8 +2013,45 @@ function ItemView({
           </table>
         </div>
       </section>
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <span className="eyebrow">ขั้นที่ 3 · ความเชื่อมั่น</span>
+            <h3>KR-20 ของแบบทดสอบที่คัดเลือก</h3>
+            <p>
+              ระบบนำเฉพาะข้อที่ผ่านเกณฑ์ p = 0.20–0.80 และ r ≥ 0.20
+              จาก Matrix เดิมมาคำนวณโดยอัตโนมัติ
+            </p>
+          </div>
+        </div>
+        <div className="metric-grid">
+          <Metric
+            label="ข้อที่ใช้คำนวณ"
+            value={analysis.selectedItems.length + " ข้อ"}
+            note={
+              analysis.selectedItems.length
+                ? "ข้อ " + analysis.selectedItems.join(", ")
+                : "ยังไม่มีข้อผ่านเกณฑ์"
+            }
+            tone="blue"
+          />
+          <Metric
+            label="KR-20"
+            value={fmt(reliability, 3)}
+            note="ความสอดคล้องภายในของแบบทดสอบ 0/1"
+            tone="violet"
+          />
+          <Metric
+            label="ระดับความเชื่อมั่น"
+            value={reliabilityLevel}
+            tone={reliability !== null && reliability >= 0.7 ? "green" : "amber"}
+          />
+        </div>
+        <div className="data-note">{reliabilityReport}</div>
+      </section>
       <Formula source="แนวคิดการวิเคราะห์ข้อสอบแบบอิงกลุ่ม; พิชิต ฤทธิ์จรูญ และตำราการวัดผลการศึกษา">
-        p = (RU+RL)/(2n) และ r = (RU-RL)/n
+        p = (RU+RL)/(2n), r = (RU-RL)/n และ KR-20 = [k/(k-1)]
+        [1-Σpq/σ²คะแนนรวม]
       </Formula>
     </Page>
   );
@@ -2015,9 +2081,6 @@ function ReliabilityView({
     legacyMatrix.some((row) =>
       row.some((value) => value !== 0 && value !== 1),
     );
-  const [reliabilityMode, setReliabilityMode] = useState<"test" | "scale">(
-    initial?.reliabilityMode === "scale" || legacyIsScale ? "scale" : "test",
-  );
   const [scaleText, setScaleText] = useState(
     typeof initial?.scaleText === "string"
       ? initial.scaleText
@@ -2025,80 +2088,43 @@ function ReliabilityView({
         ? initial.text
         : "3,3,3,2,3\n3,2,3,2,3\n3,3,2,3,3\n2,2,2,2,2\n3,3,3,3,3",
   );
-  const testMatrix = parseSharedTestMatrix(sharedTestText);
-  const analysis = analyzeTestMatrix(testMatrix);
-  const selectedMatrix = analysis.valid
-    ? selectedTestMatrix(testMatrix, analysis.selectedItems)
-    : [];
   const scaleMatrix = parseMatrix(scaleText);
-  const activeMatrix =
-    reliabilityMode === "test" ? selectedMatrix : scaleMatrix;
-  const alpha = activeMatrix[0]?.length ? cronbachAlpha(activeMatrix) : null;
-  const binary =
-    reliabilityMode === "test" &&
-    selectedMatrix.length > 0 &&
-    selectedMatrix.every((row) =>
-      row.every((value) => value === 0 || value === 1),
-    );
-  const kr = binary ? kr20(selectedMatrix) : null;
+  const alpha = scaleMatrix[0]?.length ? cronbachAlpha(scaleMatrix) : null;
   const reliabilityRows: ExportCell[][] = [
     ["รายการ", "ผล"],
-    ["ประเภทข้อมูล", reliabilityMode === "test" ? "แบบทดสอบ 0/1" : "แบบสอบถามหลายระดับ"],
-    ["จำนวนผู้ตอบ", activeMatrix.length],
-    ["จำนวนข้อ", activeMatrix[0]?.length ?? 0],
-    ...(reliabilityMode === "test"
-      ? [
-          ["จำนวนข้อฉบับร่าง", analysis.itemCount],
-          ["ข้อที่ใช้คำนวณ", analysis.selectedItems.join(", ")],
-        ]
-      : []),
+    ["ประเภทข้อมูล", "แบบสอบถามหลายระดับ"],
+    ["จำนวนผู้ตอบ", scaleMatrix.length],
+    ["จำนวนข้อ", scaleMatrix[0]?.length ?? 0],
     ["Cronbach’s alpha", fmt(alpha)],
-    ["KR-20", reliabilityMode === "test" ? fmt(kr) : "ใช้ Cronbach’s alpha"],
     ["", ""],
     [
       "ผู้ตอบ",
       ...Array.from(
-        { length: activeMatrix[0]?.length ?? 0 },
-        (_, index) =>
-          reliabilityMode === "test"
-            ? "ข้อ " + analysis.selectedItems[index]
-            : "ข้อ " + (index + 1),
+        { length: scaleMatrix[0]?.length ?? 0 },
+        (_, index) => "ข้อ " + (index + 1),
       ),
     ],
-    ...activeMatrix.map((row, index) => [index + 1, ...row]),
+    ...scaleMatrix.map((row, index) => [index + 1, ...row]),
   ];
   useEffect(() => {
     onChange(
       {
-        reliabilityMode,
-        testMatrix: sharedTestText,
+        reliabilityMode: "scale",
         scaleText,
-        groupPercentage: 0.27,
-        selectedItems: analysis.selectedItems,
       },
       {
-        reliabilityMode,
-        respondents: activeMatrix.length,
-        draftItems:
-          reliabilityMode === "test" ? analysis.itemCount : undefined,
-        items: activeMatrix[0]?.length ?? 0,
-        selectedItems:
-          reliabilityMode === "test" ? analysis.selectedItems : [],
+        reliabilityMode: "scale",
+        respondents: scaleMatrix.length,
+        items: scaleMatrix[0]?.length ?? 0,
         alpha,
-        kr20: kr,
-        binary,
       },
     );
-  }, [reliabilityMode, scaleText, sharedTestText]);
+  }, [scaleText]);
   return (
     <Page
-      title="ความเชื่อมั่นของเครื่องมือ"
-      subtitle={
-        reliabilityMode === "test"
-          ? "รับข้อที่ผ่าน p และ r จาก Matrix กลางโดยอัตโนมัติ"
-          : "คำนวณ Cronbach’s alpha จากแบบสอบถามหลายระดับ"
-      }
-      badge={reliabilityMode === "test" ? "ข้อมูลร่วมกับหน้า P" : "ข้อมูลแยกของแบบสอบถาม"}
+      title="ความเชื่อมั่นแบบสอบถาม"
+      subtitle="คำนวณ Cronbach’s alpha จากข้อมูลมาตราส่วนหลายระดับ"
+      badge="สำหรับแบบสอบถาม"
     >
       <section className="panel result-export-panel">
         <ResultExportToolbar
@@ -2109,81 +2135,34 @@ function ReliabilityView({
       </section>
       <section className="split">
         <div className="panel">
-          <label>
-            ประเภทเครื่องมือ
-            <select
-              disabled={!editable}
-              value={reliabilityMode}
-              onChange={(event) =>
-                setReliabilityMode(event.target.value as "test" | "scale")
-              }
-            >
-              <option value="test">แบบทดสอบ 0/1 · ใช้ Matrix ร่วมกับหน้า P</option>
-              <option value="scale">แบบสอบถามหลายระดับ · Cronbach’s alpha</option>
-            </select>
-          </label>
-          <h3>เมทริกซ์คะแนน</h3>
-          <p>
-            {reliabilityMode === "test"
-              ? "Matrix เดียวกับหน้า P · แก้ไขที่หน้านี้แล้วหน้า P จะเปลี่ยนตามทันที"
-              : "1 บรรทัด = ผู้ตอบ 1 คน · แต่ละคอลัมน์ = ข้อคำถาม"}
-          </p>
+          <h3>เมทริกซ์คะแนนแบบสอบถาม</h3>
+          <p>1 บรรทัด = ผู้ตอบ 1 คน · แต่ละคอลัมน์ = ข้อคำถาม · รองรับคะแนนหลายระดับ</p>
           <textarea
             disabled={!editable}
             rows={11}
-            value={reliabilityMode === "test" ? sharedTestText : scaleText}
-            onChange={(event) =>
-              reliabilityMode === "test"
-                ? onSharedTestTextChange(event.target.value)
-                : setScaleText(event.target.value)
-            }
+            value={scaleText}
+            onChange={(event) => setScaleText(event.target.value)}
           />
           <div className="data-note">
-            {reliabilityMode === "test"
-              ? analysis.respondentCount +
-                " คน × " +
-                analysis.itemCount +
-                " ข้อฉบับร่าง · ใช้คำนวณจริง " +
-                analysis.selectedItems.length +
-                " ข้อ"
-              : scaleMatrix.length +
-                " คน × " +
-                (scaleMatrix[0]?.length ?? 0) +
-                " ข้อ"}
+            {scaleMatrix.length + " คน × " + (scaleMatrix[0]?.length ?? 0) + " ข้อ"}
           </div>
         </div>
         <div className="metrics compact">
           <Metric
             label="Cronbach’s α"
             value={fmt(alpha)}
-            note={
-              reliabilityMode === "test"
-                ? "ตรวจสอบเทียบกับ KR-20 สำหรับข้อมูล 0/1"
-                : "ความสอดคล้องภายในของแบบสอบถาม"
-            }
+            note="ความสอดคล้องภายในของแบบสอบถาม"
             tone="violet"
           />
           <Metric
-            label="KR-20"
-            value={
-              reliabilityMode === "test"
-                ? binary
-                  ? fmt(kr)
-                  : "ต้องเป็น 0/1"
-                : "ไม่ใช้"
-            }
-            note={
-              reliabilityMode === "test" && analysis.selectedItems.length
-                ? "ข้อที่ผ่าน: " + analysis.selectedItems.join(", ")
-                : reliabilityMode === "test"
-                  ? "ยังไม่มีข้อผ่านเกณฑ์"
-                  : "ใช้ Cronbach’s alpha สำหรับข้อมูลชุดนี้"
-            }
+            label="ประเภทข้อมูล"
+            value="มาตราส่วน"
+            note="KR-20 ของแบบทดสอบอยู่ในเมนูคุณภาพแบบทดสอบ"
             tone="green"
           />
         </div>
       </section>
-      <Formula source="Kuder & Richardson (1937); Cronbach (1951); ตำราการวัดผลทางการศึกษา">
+      <Formula source="Cronbach (1951); ตำราการวัดผลทางการศึกษา">
         ระบบใช้ความแปรปรวนรายข้อและความแปรปรวนของคะแนนรวม
         พร้อมตรวจรูปแบบข้อมูลก่อนคำนวณ
       </Formula>
@@ -3557,8 +3536,8 @@ function toolDescription(id: View) {
         ioc: "ตรวจความสอดคล้องรายข้อจากผู้เชี่ยวชาญ",
         descriptive: "สรุปแนวโน้มและการกระจายของข้อมูล",
         quality: "ประเมินความพึงพอใจหรือคุณภาพสื่อจากผู้ตอบที่กำหนด",
-        item: "วิเคราะห์คุณภาพข้อสอบรายข้อ",
-        reliability: "คำนวณ α และ KR-20",
+        item: "ใช้ Matrix เดียววิเคราะห์ p, r คัดเลือกข้อ และคำนวณ KR-20",
+        reliability: "คำนวณ Cronbach’s alpha ของแบบสอบถามหลายระดับ",
         paired: "เปรียบเทียบก่อน–หลังเรียนและหลังเรียนกับเกณฑ์",
         efficiency: "ประเมินประสิทธิภาพนวัตกรรม",
       } as Partial<Record<View, string>>
@@ -4239,7 +4218,7 @@ export default function ResearchStatsApp({
                 </button>
               </>
             )}
-              <span className="version-chip">รุ่นคำนวณ 3.1</span>
+              <span className="version-chip">รุ่นคำนวณ 3.2</span>
             <span className="avatar">พ</span>
           </div>
         </div>
