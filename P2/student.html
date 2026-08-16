@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="theme-color" content="#5b4bdb">
   <title>จอนักเรียน | คำไทยผจญภัย</title>
-  <link rel="stylesheet" href="styles.css?v=20260807-primary-copy-1">
+  <link rel="stylesheet" href="styles.css?v=20260816-satisfaction-1">
 </head>
 <body class="student-page">
   <header class="app-header">
@@ -81,6 +81,7 @@
       <aside class="journey-panel">
         <div class="player-chip player-profile-chip"><span class="player-profile-visual"><img id="playerProfilePhoto" class="hidden" alt="รูปโปรไฟล์นักเรียน"><span id="playerAvatar">⭐</span></span><div><small>นักผจญภัย</small><strong id="playerName">—</strong></div></div>
         <div id="playerScoreChip" class="score-chip"><span>★</span><div><small id="playerScoreLabel">คะแนนสะสม</small><strong id="playerScore">0</strong></div></div>
+        <section id="learningScoreCard" class="learning-score-card hidden" aria-live="polite"></section>
         <nav aria-label="เส้นทางแผนที่ 1">
           <h2>เส้นทางวันนี้</h2>
           <ol id="activityTimeline" class="activity-timeline"></ol>
@@ -113,7 +114,7 @@
     const isProjectorGame = query.get("preview") === "projector";
     const modulePath = query.get("expertDemo") === "1" && !isProjectorGame
       ? "./js/expert-student.js?v=20260807-primary-copy-1"
-      : "./js/student.js?v=20260807-primary-copy-1";
+      : "./js/student.js?v=20260816-satisfaction-1";
     import(modulePath);
   </script>
 </body>

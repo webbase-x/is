@@ -1,7 +1,7 @@
 import { APP_CONFIG } from "./config.js";
 import { supabase, ensureAnonymousAuth } from "./supabase.js?v=20260727-reviewer-links-1";
 import {
-  $, assessmentActivityForPhase, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide, isAssessmentSession,
+  $, $$, assessmentActivityForPhase, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCORE_EVENT, GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide, isAssessmentSession,
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
@@ -13,6 +13,7 @@ import {
   learningHintForQuestion,
   masteryLevelForPercent,
 } from "./gamification.js?v=20260807-primary-copy-1";
+import { SATISFACTION_SCALE, satisfactionLevel } from "./satisfaction-survey.js?v=20260816-satisfaction-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -356,6 +357,7 @@ const state = {
   lessonStep: null,
   lessonTimer: null,
   renderedLessonRoundId: null,
+  learningSummary: null,
 };
 
 const views = {
@@ -729,6 +731,7 @@ async function enterGame() {
   renderTimeline();
   setView(views.game, views.login, views.waiting);
   await loadAttempts();
+  await loadLearningSummary();
   subscribeToSession();
   subscribePresence();
   applySessionState();
@@ -836,6 +839,33 @@ async function loadAttempts() {
   const { data } = await supabase.from("game_attempts").select("*").eq("session_player_id", state.player.id).order("completed_at");
   state.attempts = data || [];
   renderAttemptProgress();
+}
+
+async function loadLearningSummary() {
+  if (!state.player?.id || !sessionRecordsScores()) return;
+  const { data, error } = await supabase.rpc("get_my_learning_summary", {
+    p_session_player_id: state.player.id,
+  });
+  if (error) {
+    console.warn("โหลดคะแนนก่อน–หลังเรียนไม่สำเร็จ", error.code);
+    return;
+  }
+  state.learningSummary = data?.[0] || null;
+  renderLearningSummaryCard();
+}
+
+function renderLearningSummaryCard() {
+  const card = $("#learningScoreCard");
+  if (!card) return;
+  const summary = state.learningSummary;
+  if (!summary || (summary.pre_score == null && summary.post_score == null)) {
+    card.classList.add("hidden");
+    return;
+  }
+  const maxScore = Number(summary.max_score || 20);
+  const difference = summary.score_difference == null ? null : Number(summary.score_difference);
+  card.classList.remove("hidden");
+  card.innerHTML = `<small>คะแนนของหนู</small><div><span>ก่อนเรียน <strong>${summary.pre_score ?? "—"}/${maxScore}</strong></span><span>หลังเรียน <strong>${summary.post_score ?? "—"}/${maxScore}</strong></span></div><em>${difference == null ? "รอคะแนนครบคู่" : `พัฒนาการ ${difference > 0 ? "+" : ""}${difference} คะแนน`}</em>`;
 }
 
 function renderAttemptProgress() {
@@ -1219,6 +1249,16 @@ function renderAchievementTest(activityKey) {
   const isPosttest = activityKey === "posttest";
   const phase = isPosttest ? "หลังเรียน" : "ก่อนเรียน";
   const activity = activityForKey(activityKey, state.session?.plan_id);
+  const existingAttempt = state.attempts.find(attempt => attempt.activity_key === activityKey);
+  if (existingAttempt) {
+    if (isPosttest) void renderSatisfactionSurvey();
+    else showResult(`ส่งแบบทดสอบ${phase}แล้ว`, existingAttempt.score, existingAttempt.max_score, existingAttempt, null, {
+      message: "ระบบส่งคำตอบให้คุณครูแล้ว · ไม่มีการจัดอันดับผลสอบ",
+      hideScore: true,
+      suppressGamification: true,
+    });
+    return;
+  }
   const questions = shuffle(ACHIEVEMENT_TEST_QUESTIONS).map(question => ({
     ...question,
     options: shuffle(question.options),
@@ -1245,7 +1285,128 @@ function renderAchievementTest(activityKey) {
     hideResultScore: true,
     resultMessage: "ระบบส่งคำตอบให้คุณครูแล้ว · ไม่มีการจัดอันดับผลสอบ",
     suppressGamification: true,
+    afterSubmit: isPosttest ? () => renderSatisfactionIntro() : null,
   });
+}
+
+function renderSatisfactionIntro() {
+  cleanupRhythm();
+  $("#gameCanvas").innerHTML = `<div class="game-inner satisfaction-shell"><section class="satisfaction-intro-card">
+    <span class="satisfaction-hero" aria-hidden="true">💜</span>
+    <small>ส่งแบบทดสอบหลังเรียนแล้ว</small>
+    <h2>บอกความรู้สึกของหนูต่ออีกนิดนะ</h2>
+    <p>มี 10 ข้อ คุณครูจะอ่านข้อความให้ฟังทีละข้อ เลือกคำตอบที่ตรงกับความรู้สึกจริง ไม่มีผิดหรือถูก</p>
+    <button id="startSatisfactionButton" class="button button-primary button-large">เริ่มแบบประเมินความพึงพอใจ</button>
+  </section></div>`;
+  $("#startSatisfactionButton")?.addEventListener("click", () => void renderSatisfactionSurvey());
+}
+
+async function renderSatisfactionSurvey() {
+  const [{ data: questions, error: questionError }, { data: responses, error: responseError }, { data: submissions, error: submissionError }] = await Promise.all([
+    supabase.from("satisfaction_questions").select("id,prompt").eq("active", true).order("id"),
+    supabase.from("satisfaction_responses").select("question_id,rating").eq("session_player_id", state.player.id),
+    supabase.from("satisfaction_submissions").select("completed_at,comment").eq("session_player_id", state.player.id).limit(1),
+  ]);
+  const error = questionError || responseError || submissionError;
+  if (error) {
+    toast("เปิดแบบประเมินไม่สำเร็จ กรุณาลองใหม่", "error");
+    return;
+  }
+  const orderedQuestions = questions || [];
+  const answerMap = new Map((responses || []).map(response => [Number(response.question_id), Number(response.rating)]));
+  if (submissions?.length) {
+    renderSatisfactionComplete([...answerMap.values()]);
+    return;
+  }
+  let index = Math.max(0, orderedQuestions.findIndex(question => !answerMap.has(Number(question.id))));
+  if (index < 0) index = orderedQuestions.length;
+
+  const renderQuestion = () => {
+    if (index >= orderedQuestions.length) {
+      renderSatisfactionComment(answerMap);
+      return;
+    }
+    const question = orderedQuestions[index];
+    const progress = Math.round((index / orderedQuestions.length) * 100);
+    $("#gameCanvas").innerHTML = `<div class="game-inner satisfaction-shell"><section class="satisfaction-question-card">
+      <div class="satisfaction-progress"><div><span>ข้อ ${index + 1} จาก ${orderedQuestions.length}</span><strong>${progress}%</strong></div><i><b style="width:${progress}%"></b></i></div>
+      <div class="satisfaction-question-number">${index + 1}</div>
+      <small>คุณครูอ่านข้อนี้ให้ฟัง แล้วหนูเลือก 1 คำตอบ</small>
+      <h2>${escapeHtml(question.prompt)}</h2>
+      <div class="satisfaction-choice-grid">${SATISFACTION_SCALE.map(option => `<button type="button" data-rating="${option.value}"><span>${option.icon}</span><strong>${option.label}</strong><small>${option.helper}</small></button>`).join("")}</div>
+      <p id="satisfactionSaveStatus" class="satisfaction-save-status" aria-live="polite">คำตอบจะบันทึกทันทีเมื่อแตะ</p>
+    </section></div>`;
+    $$("[data-rating]", $("#gameCanvas")).forEach(button => button.addEventListener("click", async () => {
+      $$("[data-rating]", $("#gameCanvas")).forEach(item => { item.disabled = true; });
+      button.classList.add("selected");
+      $("#satisfactionSaveStatus").textContent = "กำลังบันทึกคำตอบ...";
+      const rating = Number(button.dataset.rating);
+      const { error: saveError } = await supabase.rpc("save_satisfaction_answer", {
+        p_session_player_id: state.player.id,
+        p_question_id: Number(question.id),
+        p_rating: rating,
+      });
+      if (saveError) {
+        toast(saveError.message, "error");
+        $$("[data-rating]", $("#gameCanvas")).forEach(item => { item.disabled = false; });
+        button.classList.remove("selected");
+        $("#satisfactionSaveStatus").textContent = "บันทึกไม่สำเร็จ ลองเลือกอีกครั้ง";
+        return;
+      }
+      answerMap.set(Number(question.id), rating);
+      $("#satisfactionSaveStatus").textContent = "✓ บันทึกแล้ว";
+      window.setTimeout(() => { index += 1; renderQuestion(); }, 350);
+    }));
+  };
+
+  renderQuestion();
+}
+
+function renderSatisfactionComment(answerMap) {
+  $("#gameCanvas").innerHTML = `<div class="game-inner satisfaction-shell"><form id="satisfactionCommentForm" class="satisfaction-comment-card">
+    <span class="satisfaction-hero" aria-hidden="true">🎉</span>
+    <small>ตอบครบทั้ง 10 ข้อแล้ว</small>
+    <h2>หนูมีอะไรอยากบอกคุณครูไหม?</h2>
+    <p>ข้อนี้ไม่บังคับ เว้นว่างได้</p>
+    <label for="satisfactionComment">ข้อเสนอแนะเพิ่มเติม</label>
+    <textarea id="satisfactionComment" maxlength="1000" rows="4" placeholder="พิมพ์สิ่งที่อยากบอกคุณครู..."></textarea>
+    <button class="button button-primary button-large" type="submit">ส่งแบบประเมิน</button>
+  </form></div>`;
+  $("#satisfactionCommentForm")?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = event.submitter;
+    button.disabled = true;
+    button.textContent = "กำลังบันทึก...";
+    const { data, error } = await supabase.rpc("complete_satisfaction_survey", {
+      p_session_player_id: state.player.id,
+      p_comment: $("#satisfactionComment").value.trim(),
+    });
+    if (error) {
+      button.disabled = false;
+      button.textContent = "ส่งแบบประเมิน";
+      return toast(error.message, "error");
+    }
+    await loadLearningSummary();
+    renderSatisfactionComplete([...answerMap.values()], data?.[0]?.average_score);
+  });
+}
+
+function renderSatisfactionComplete(ratings, savedAverage = null) {
+  const values = ratings.map(Number).filter(Number.isFinite);
+  const average = Number(savedAverage ?? (values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : NaN));
+  const level = satisfactionLevel(average);
+  const counts = Object.fromEntries(SATISFACTION_SCALE.map(option => [option.value, values.filter(value => value === option.value).length]));
+  const summary = state.learningSummary;
+  const scoreDifference = summary?.score_difference == null ? null : Number(summary.score_difference);
+  $("#gameCanvas").innerHTML = `<div class="game-inner satisfaction-shell"><section class="satisfaction-complete-card">
+    <span class="satisfaction-hero" aria-hidden="true">🌟</span>
+    <small>บันทึกแบบประเมินเรียบร้อย</small>
+    <h2>ขอบคุณที่บอกความรู้สึกจริงนะ</h2>
+    <div class="satisfaction-own-summary ${level.className}"><span>ค่าเฉลี่ยของหนู</span><strong>${Number.isFinite(average) ? average.toFixed(2) : "—"} / 3</strong><em>${level.label}</em></div>
+    <div class="satisfaction-own-counts">${SATISFACTION_SCALE.map(option => `<span>${option.icon} ${option.label} <strong>${counts[option.value] || 0}</strong> ข้อ</span>`).join("")}</div>
+    ${summary ? `<div class="student-result-score-pair"><span>ก่อนเรียน <strong>${summary.pre_score ?? "—"}/${summary.max_score || 20}</strong></span><span>หลังเรียน <strong>${summary.post_score ?? "—"}/${summary.max_score || 20}</strong></span><em>${scoreDifference == null ? "" : `พัฒนาการ ${scoreDifference > 0 ? "+" : ""}${scoreDifference} คะแนน`}</em></div>` : ""}
+    <p>ระบบส่งผลให้คุณครูแล้ว หนูรอคุณครูดำเนินกิจกรรมต่อได้เลย</p>
+  </section></div>`;
 }
 
 function gameShell(title, instruction, content) {
@@ -1862,7 +2023,7 @@ function renderRhythm() {
   queueMicrotask(() => void startRhythmAutomatically());
 }
 
-function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay, revealCorrectness = true, resultTitle = "ทำภารกิจสำเร็จ", deadlineAt = null, timeoutTitle = "หมดเวลาแล้ว", hideScoreWhilePlaying = false, resultMessage = "", hideResultScore = false, suppressGamification = false }) {
+function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay, revealCorrectness = true, resultTitle = "ทำภารกิจสำเร็จ", deadlineAt = null, timeoutTitle = "หมดเวลาแล้ว", hideScoreWhilePlaying = false, resultMessage = "", hideResultScore = false, suppressGamification = false, afterSubmit = null }) {
   let index = 0;
   let score = 0;
   const answers = [];
@@ -1880,12 +2041,15 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
     completed = true;
     stopCountdown();
     const result = await submitAttempt(key, score, questions.length, answers);
-    if (result) showResult(titleForResult, score, questions.length, result, replay, {
-      message: resultMessage,
-      hideScore: hideResultScore,
-      suppressGamification,
-      answers,
-    });
+    if (result) {
+      if (typeof afterSubmit === "function") await afterSubmit(result, answers);
+      else showResult(titleForResult, score, questions.length, result, replay, {
+        message: resultMessage,
+        hideScore: hideResultScore,
+        suppressGamification,
+        answers,
+      });
+    }
   };
 
   const updateCountdown = () => {

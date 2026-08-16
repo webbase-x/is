@@ -9,8 +9,9 @@ import {
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
 } from "./common.js?v=20260807-primary-copy-1";
 import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
+import { satisfactionLevel } from "./satisfaction-survey.js?v=20260816-satisfaction-1";
 
-const TEACHER_BUILD_VERSION = "20260807-primary-copy-1";
+const TEACHER_BUILD_VERSION = "20260816-satisfaction-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -72,6 +73,9 @@ const state = {
   selectedPlanId: null,
   selectedAssessmentPhase: null,
   assessmentReport: [],
+  satisfactionReport: { completed_count: 0, overall_average: null, questions: [], comments: [] },
+  satisfactionResponses: [],
+  satisfactionSubmissions: [],
   playerSelfieUrls: new Map(),
   lobbyPage: 1,
   lobbyZoomStep: 0,
@@ -1319,6 +1323,16 @@ function subscribeToSession() {
       const playerIds = new Set(state.players.map(player => player.id));
       if (playerIds.has(payload.new?.session_player_id || payload.old?.session_player_id)) refreshSessionData();
     })
+    .on("postgres_changes", { event: "*", schema: "public", table: "satisfaction_responses" }, payload => {
+      const playerIds = new Set(state.players.map(player => player.id));
+      if (playerIds.has(payload.new?.session_player_id || payload.old?.session_player_id)) refreshSessionData();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "satisfaction_submissions" }, payload => {
+      const playerIds = new Set(state.players.map(player => player.id));
+      if (playerIds.has(payload.new?.session_player_id || payload.old?.session_player_id)) {
+        void refreshSessionData().then(() => loadAssessmentReport());
+      }
+    })
     .on("postgres_changes", { event: "*", schema: "public", table: "sentence_submissions", filter: `session_id=eq.${state.session.id}` }, () => {
       if (state.session?.current_activity_key === "vote") loadSentenceSubmissions();
     })
@@ -1789,6 +1803,17 @@ async function refreshSessionData() {
   state.players = players || [];
   state.sentenceSubmissions = sentenceSubmissions || [];
   const playerIds = state.players.map(player => player.id);
+  if (state.session.assessment_phase === "posttest" && playerIds.length) {
+    const [{ data: satisfactionResponses }, { data: satisfactionSubmissions }] = await Promise.all([
+      supabase.from("satisfaction_responses").select("session_player_id,question_id,rating").in("session_player_id", playerIds),
+      supabase.from("satisfaction_submissions").select("session_player_id,completed_at").in("session_player_id", playerIds),
+    ]);
+    state.satisfactionResponses = satisfactionResponses || [];
+    state.satisfactionSubmissions = satisfactionSubmissions || [];
+  } else {
+    state.satisfactionResponses = [];
+    state.satisfactionSubmissions = [];
+  }
   if (!sessionRecordsScores()) {
     const activePlayerIds = new Set(playerIds);
     state.attempts = state.attempts.filter(attempt => activePlayerIds.has(attempt.session_player_id));
@@ -2138,11 +2163,25 @@ function renderAssessmentProgress() {
     .filter(attempt => attempt.activity_key === activityKey)
     .map(attempt => attempt.session_player_id));
   const students = state.players.filter(player => player.status === "approved");
+  const surveyCompleted = state.session?.assessment_phase === "posttest"
+    ? state.satisfactionSubmissions.length
+    : 0;
+  const surveyCompletedIds = new Set(state.satisfactionSubmissions.map(item => item.session_player_id));
+  const surveyAnswerCounts = state.satisfactionResponses.reduce((counts, response) => {
+    counts.set(response.session_player_id, (counts.get(response.session_player_id) || 0) + 1);
+    return counts;
+  }, new Map());
   return `<section class="assessment-progress-panel">
     <div class="assessment-progress-heading"><span>📝</span><div><small>ติดตามการส่งคำตอบแบบเรียลไทม์</small><h4>ส่งแล้ว ${submittedPlayerIds.size} จาก ${students.length} คน</h4><p>ระบบไม่แสดงคะแนนหรืออันดับบนจอรวม</p></div></div>
+    ${state.session?.assessment_phase === "posttest" ? `<div class="satisfaction-live-progress"><span>💜</span><div><small>แบบประเมินความพึงพอใจหลังเรียน</small><strong>ส่งครบแล้ว ${surveyCompleted} จาก ${students.length} คน</strong></div><i><b style="width:${students.length ? Math.min(100, Math.round((surveyCompleted / students.length) * 100)) : 0}%"></b></i></div>` : ""}
     <div class="assessment-progress-list">${students.length ? students.map(player => {
       const submitted = submittedPlayerIds.has(player.id);
-      return `<div class="assessment-progress-row ${submitted ? "is-submitted" : ""}"><span>${submitted ? "✓" : "…"}</span><strong>${escapeHtml(player.student?.full_name || player.student?.nickname || "นักเรียน")}</strong><small>${submitted ? "ส่งคำตอบแล้ว" : "กำลังทำแบบทดสอบ"}</small></div>`;
+      const completedSurvey = surveyCompletedIds.has(player.id);
+      const answerCount = surveyAnswerCounts.get(player.id) || 0;
+      const progressLabel = state.session?.assessment_phase === "posttest" && submitted
+        ? completedSurvey ? "ส่งแบบประเมินแล้ว" : `กำลังประเมิน ${answerCount}/10 ข้อ`
+        : submitted ? "ส่งคำตอบแล้ว" : "กำลังทำแบบทดสอบ";
+      return `<div class="assessment-progress-row ${submitted ? "is-submitted" : ""} ${completedSurvey ? "is-survey-complete" : ""}"><span>${completedSurvey ? "💜" : submitted ? "✓" : "…"}</span><strong>${escapeHtml(player.student?.full_name || player.student?.nickname || "นักเรียน")}</strong><small>${progressLabel}</small></div>`;
     }).join("") : "<p>ยังไม่มีนักเรียนที่อนุมัติ</p>"}</div>
   </section>`;
 }
@@ -2740,13 +2779,18 @@ async function loadAssessmentReport() {
     renderReport();
     return;
   }
-  const { data, error } = await supabase.rpc("get_assessment_comparison", { p_class_id: classId });
-  if (error) {
-    console.warn("โหลดรายงานก่อน–หลังเรียนไม่สำเร็จ", error.code);
+  const [{ data: assessmentData, error: assessmentError }, { data: satisfactionData, error: satisfactionError }] = await Promise.all([
+    supabase.rpc("get_assessment_comparison", { p_class_id: classId }),
+    supabase.rpc("get_satisfaction_report", { p_class_id: classId }),
+  ]);
+  if (assessmentError || satisfactionError) {
+    console.warn("โหลดรายงานผลการเรียนรู้ไม่สำเร็จ", assessmentError?.code || satisfactionError?.code);
     return;
   }
-  state.assessmentReport = data || [];
+  state.assessmentReport = assessmentData || [];
+  state.satisfactionReport = satisfactionData || { completed_count: 0, overall_average: null, questions: [], comments: [] };
   renderReport();
+  if (isAssessmentSession(state.session)) renderLiveResults();
 }
 
 function renderAssessmentResearchReport() {
@@ -2763,7 +2807,7 @@ function renderAssessmentResearchReport() {
   const table = rows.length
     ? `<div class="table-wrap"><table class="assessment-individual-table"><thead><tr><th>ลำดับ</th><th>เลขที่/รหัส</th><th>ชื่อ–นามสกุล</th><th>ก่อนเรียน</th><th>หลังเรียน</th><th>ผลต่าง</th></tr></thead><tbody>${rows.map((row, index) => {
       const difference = Number.isFinite(row.preScore) && Number.isFinite(row.postScore) ? row.postScore - row.preScore : null;
-      return `<tr><td>${index + 1}</td><td>${escapeHtml(row.student_code || "—")}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${row.preScore === null ? "ยังไม่ทำ" : `${row.preScore}/${row.preMax || 20}`}</td><td>${row.postScore === null ? "ยังไม่ทำ" : `${row.postScore}/${row.postMax || 20}`}</td><td>${difference === null ? "—" : `${difference > 0 ? "+" : ""}${difference}`}</td></tr>`;
+      return `<tr><td>${row.student_order ?? index + 1}</td><td>${escapeHtml(row.student_code || "—")}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${row.preScore === null ? "ยังไม่ทำ" : `${row.preScore}/${row.preMax || 20}`}</td><td>${row.postScore === null ? "ยังไม่ทำ" : `${row.postScore}/${row.postMax || 20}`}</td><td>${difference === null ? "—" : `${difference > 0 ? "+" : ""}${difference}`}</td></tr>`;
     }).join("")}</tbody></table></div>`
     : `<p class="assessment-report-empty">ยังไม่มีคะแนนก่อนเรียนหรือหลังเรียนที่บันทึกไว้สำหรับห้องนี้</p>`;
   return `<section class="assessment-research-report">
@@ -2772,6 +2816,51 @@ function renderAssessmentResearchReport() {
     <section class="assessment-test-summary"><strong>paired t-test: t(${Math.max(0, stats.test.count - 1)}) = ${tText}, p = ${pText}</strong><span>${significance}</span></section>
     ${table}
   </section>`;
+}
+
+function renderSatisfactionResearchReport() {
+  const report = state.satisfactionReport || {};
+  const questions = Array.isArray(report.questions) ? report.questions : [];
+  const comments = Array.isArray(report.comments) ? report.comments : [];
+  const overallAverage = report.overall_average == null ? NaN : Number(report.overall_average);
+  const level = satisfactionLevel(overallAverage);
+  const table = questions.length
+    ? `<div class="table-wrap"><table class="satisfaction-report-table"><thead><tr><th>ข้อ</th><th>รายการประเมิน</th><th>มาก (3)</th><th>ปานกลาง (2)</th><th>น้อย (1)</th><th>เฉลี่ย</th></tr></thead><tbody>${questions.map(question => {
+      const average = question.average == null ? null : Number(question.average);
+      return `<tr><td>${question.id}</td><td>${escapeHtml(question.prompt || "—")}</td><td>${question.count_3 || 0}</td><td>${question.count_2 || 0}</td><td>${question.count_1 || 0}</td><td><strong>${average == null ? "—" : average.toFixed(2)}</strong></td></tr>`;
+    }).join("")}</tbody></table></div>`
+    : `<p class="assessment-report-empty">ยังไม่มีผลแบบประเมินความพึงพอใจ</p>`;
+  const commentMarkup = comments.length
+    ? `<section class="satisfaction-comments"><h3>ข้อเสนอแนะเพิ่มเติม</h3>${comments.map(item => `<blockquote><p>${escapeHtml(item.comment || "")}</p><footer>${escapeHtml(item.student_code || "")} · ${escapeHtml(item.full_name || "นักเรียน")}</footer></blockquote>`).join("")}</section>`
+    : "";
+  return `<section class="satisfaction-research-report">
+    <div class="assessment-report-heading"><div><span class="eyebrow">แบบประเมินหลังเรียน · 10 ข้อ</span><h2>ความพึงพอใจของนักเรียน</h2><p>ระดับ 3 = มาก, 2 = ปานกลาง, 1 = น้อย</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-satisfaction>ดาวน์โหลดผลความพึงพอใจ CSV</button></div></div>
+    <div class="satisfaction-overall ${level.className}"><span>ผู้ส่งแบบประเมินครบ</span><strong>${Number(report.completed_count || 0)} คน</strong><span>ค่าเฉลี่ยรวม</span><strong>${Number.isFinite(overallAverage) ? overallAverage.toFixed(2) : "—"} / 3</strong><em>${level.label}</em></div>
+    ${table}${commentMarkup}
+  </section>`;
+}
+
+function exportSatisfactionReport() {
+  if (!state.session) return toast("ยังไม่มีห้องเรียนให้ส่งออกรายงาน", "warning");
+  const report = state.satisfactionReport || {};
+  const className = state.classes.find(item => item.id === state.session.class_id)?.label || "";
+  const rows = [
+    ["ผลแบบประเมินความพึงพอใจของนักเรียน"],
+    ["ห้องเรียน", className],
+    ["จำนวนผู้ส่งครบ", Number(report.completed_count || 0)],
+    ["ค่าเฉลี่ยรวม", report.overall_average ?? ""],
+    [],
+    ["ข้อ", "รายการประเมิน", "มาก (3)", "ปานกลาง (2)", "น้อย (1)", "จำนวนตอบ", "ค่าเฉลี่ย"],
+  ];
+  (report.questions || []).forEach(question => rows.push([
+    question.id, question.prompt, question.count_3 || 0, question.count_2 || 0, question.count_1 || 0,
+    question.response_count || 0, question.average ?? "",
+  ]));
+  if ((report.comments || []).length) {
+    rows.push([], ["เลขประจำตัว", "ชื่อ-นามสกุล", "ข้อเสนอแนะเพิ่มเติม"]);
+    report.comments.forEach(item => rows.push([item.student_code || "", item.full_name || "", item.comment || ""]));
+  }
+  downloadCsv(`ความพึงพอใจ-${className || state.session.room_code}.csv`, rows);
 }
 
 function exportAssessmentReport(kind = "individual") {
@@ -2798,7 +2887,7 @@ function exportAssessmentReport(kind = "individual") {
   }
   const csvRows = [["ลำดับ", "ห้อง", "เลขที่/รหัส", "ชื่อ-นามสกุล", "คะแนนก่อนเรียน", "คะแนนเต็มก่อนเรียน", "คะแนนหลังเรียน", "คะแนนเต็มหลังเรียน", "ผลต่าง (หลัง-ก่อน)"]];
   rows.forEach((row, index) => csvRows.push([
-    index + 1, className, row.student_code || "", row.full_name || "", row.preScore ?? "", row.preMax ?? "", row.postScore ?? "", row.postMax ?? "",
+    row.student_order ?? index + 1, className, row.student_code || "", row.full_name || "", row.preScore ?? "", row.preMax ?? "", row.postScore ?? "", row.postMax ?? "",
     Number.isFinite(row.preScore) && Number.isFinite(row.postScore) ? row.postScore - row.preScore : "",
   ]));
   downloadCsv(`ตารางคะแนนก่อนหลัง-${className || state.session.room_code}.csv`, csvRows);
@@ -2806,11 +2895,13 @@ function exportAssessmentReport(kind = "individual") {
 
 function renderReport() {
   if (!state.session) return;
+  const learningReports = sessionRecordsScores()
+    ? `${renderAssessmentResearchReport()}${renderSatisfactionResearchReport()}`
+    : `<p class="flow-score-recording-notice">🧪 คาบตรวจสื่อไม่บันทึกคะแนน จึงไม่มีรายงานวิจัยให้ส่งออก</p>`;
   if (isAssessmentSession(state.session)) {
-    $("#reportContent").innerHTML = sessionRecordsScores()
-      ? renderAssessmentResearchReport()
-      : `<p class="flow-score-recording-notice">🧪 คาบตรวจสื่อไม่บันทึกคะแนน จึงไม่มีรายงานวิจัยให้ส่งออก</p>`;
+    $("#reportContent").innerHTML = learningReports;
     $("#reportContent").querySelectorAll("[data-export-assessment]").forEach(button => button.addEventListener("click", () => exportAssessmentReport(button.dataset.exportAssessment)));
+    $("#reportContent").querySelector("[data-export-satisfaction]")?.addEventListener("click", exportSatisfactionReport);
     return;
   }
   const expertNotice = !sessionRecordsScores()
@@ -2823,7 +2914,9 @@ function renderReport() {
     return { player, activities: groups.size, first: first.length ? Math.round(first.reduce((a, b) => a + Number(b), 0) / first.length) : 0, best: best.length ? Math.round(best.reduce((a, b) => a + b, 0) / best.length) : 0 };
   });
   const activityCount = currentActivities().length;
-  $("#reportContent").innerHTML = `${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>ทำแล้ว</th><th>คะแนนครั้งแรกเฉลี่ย</th><th>คะแนนดีที่สุดเฉลี่ย</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.activities}/${activityCount}</td><td>${row.first}%</td><td>${row.best}%</td></tr>`).join("")}</tbody></table></div>` : `<span>📊</span><h2>ยังไม่มีคะแนนในคาบนี้</h2><p>ผลจะปรากฏเมื่อนักเรียนเริ่มทำกิจกรรม</p>`}`;
+  $("#reportContent").innerHTML = `${learningReports}<section class="session-score-report"><div class="assessment-report-heading"><div><span class="eyebrow">คาบเรียนปัจจุบัน</span><h2>ผลกิจกรรมรายคาบ</h2></div></div>${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>ทำแล้ว</th><th>คะแนนครั้งแรกเฉลี่ย</th><th>คะแนนดีที่สุดเฉลี่ย</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.activities}/${activityCount}</td><td>${row.first}%</td><td>${row.best}%</td></tr>`).join("")}</tbody></table></div>` : `<p class="assessment-report-empty">ยังไม่มีคะแนนกิจกรรมในคาบนี้</p>`}</section>`;
+  $("#reportContent").querySelectorAll("[data-export-assessment]").forEach(button => button.addEventListener("click", () => exportAssessmentReport(button.dataset.exportAssessment)));
+  $("#reportContent").querySelector("[data-export-satisfaction]")?.addEventListener("click", exportSatisfactionReport);
 }
 
 function exportCurrentReport() {
@@ -2853,7 +2946,7 @@ function switchPanel(panelId) {
     stopStudentScreenWatch();
     renderStudentScreens();
   } else stopStudentScreenWatch();
-  if (panelId === "reportsPanel" && isAssessmentSession(state.session) && sessionRecordsScores()) void loadAssessmentReport();
+  if (panelId === "reportsPanel" && state.session && sessionRecordsScores()) void loadAssessmentReport();
 }
 
 $("#teacherLoginForm").addEventListener("submit", signIn);
