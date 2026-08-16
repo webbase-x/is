@@ -2268,7 +2268,7 @@ function ReferencesView() {
           </div>
         </div>
         <div className="metrics compact">
-          <Metric label="Unit tests" value="13 / 13 ผ่าน" tone="green" />
+          <Metric label="Unit tests" value="14 / 14 ผ่าน" tone="green" />
           <Metric label="Shapiro–Wilk เทียบ SciPy" value="180 ชุด" />
           <Metric label="t / Wilcoxon / Sign" value="270 ชุด" />
           <Metric label="ผลต่าง Wilcoxon สูงสุด" value="0" tone="green" />
@@ -2335,7 +2335,7 @@ function toolDescription(id: View) {
       {
         ioc: "ตรวจความสอดคล้องรายข้อจากผู้เชี่ยวชาญ",
         descriptive: "สรุปแนวโน้มและการกระจายของข้อมูล",
-        quality: "แปลผลแบบประเมินมาตราส่วน 5 ระดับ",
+        quality: "แปลผลแบบประเมินมาตราส่วน 3 หรือ 5 ระดับ",
         item: "วิเคราะห์คุณภาพข้อสอบรายข้อ",
         reliability: "คำนวณ α และ KR-20",
         paired: "เปรียบเทียบก่อน–หลังเรียนและหลังเรียนกับเกณฑ์",
