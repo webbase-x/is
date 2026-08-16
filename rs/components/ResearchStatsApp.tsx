@@ -73,7 +73,7 @@ const NAV: Array<{ id: View; label: string; icon: string; group?: string }> = [
     icon: "x̄",
     group: "สถิติพรรณนา",
   },
-  { id: "quality", label: "ความพึงพอใจ / คุณภาพสื่อ", icon: "★" },
+  { id: "quality", label: "ระดับความพึงพอใจ 3/5 ระดับ", icon: "★" },
   {
     id: "item",
     label: "คุณภาพแบบทดสอบ (p, r, KR-20)",
@@ -651,6 +651,47 @@ function IocView({
   );
 }
 
+function parseRatingMatrix(text: string, scaleLevels: 3 | 5) {
+  const rawRows = text
+    .split(/\r?\n/)
+    .map((line) => parseNumbers(line))
+    .filter((row) => row.length > 0);
+  const hasRowNumbers =
+    rawRows.length > 1 &&
+    rawRows.every((row, index) => row.length > 1 && row[0] === index + 1);
+  const ratingRows = rawRows
+    .map((row) => (hasRowNumbers ? row.slice(1) : row))
+    .map((row) => {
+      let scores: number[] = [];
+      let current: number[] = [];
+      for (const value of row) {
+        if (Number.isInteger(value) && value >= 1 && value <= scaleLevels) {
+          current.push(value);
+          if (current.length > scores.length) scores = [...current];
+        } else {
+          current = [];
+        }
+      }
+      return scores;
+    })
+    .filter((row) => row.length > 0);
+  const widthCounts = new Map<number, number>();
+  ratingRows.forEach((row) =>
+    widthCounts.set(row.length, (widthCounts.get(row.length) ?? 0) + 1),
+  );
+  const itemCount = [...widthCounts.entries()].sort(
+    (a, b) => b[1] - a[1] || b[0] - a[0],
+  )[0]?.[0] ?? 0;
+  return {
+    matrix: ratingRows
+      .filter((row) => row.length >= itemCount)
+      .map((row) => row.slice(row.length - itemCount)),
+    sourceRowCount: rawRows.length,
+    invalidRowCount: rawRows.length - ratingRows.filter((row) => row.length >= itemCount).length,
+    removedRowNumbers: hasRowNumbers,
+  };
+}
+
 function DescriptiveView({
   quality = false,
   imported,
@@ -677,19 +718,23 @@ function DescriptiveView({
       ? initial.text
       : imported
         ? flattenRows(imported.rows)
-        : "5, 5, 4, 4, 5, 4, 5, 3, 4, 5",
+        : quality
+          ? "3,3,3,2,3\n3,3,3,3,3\n3,2,3,2,3\n2,2,2,2,2\n3,3,3,3,3"
+          : "5, 5, 4, 4, 5, 4, 5, 3, 4, 5",
   );
-  const values = parseNumbers(text);
-  const avg = mean(values);
-  const sd = sampleStandardDeviation(values);
-  const medianValue = median(values);
   const [bandScheme, setBandScheme] = useState<"traditional" | "equal-width" | "custom">(
     initial?.bandScheme === "equal-width" || initial?.bandScheme === "custom"
       ? initial.bandScheme
       : "traditional",
   );
   const [scaleLevels, setScaleLevels] = useState<3 | 5>(
-    Number(initial?.scaleLevels) === 3 ? 3 : 5,
+    Number(initial?.scaleLevels) === 3
+      ? 3
+      : Number(initial?.scaleLevels) === 5
+        ? 5
+        : quality
+          ? 3
+          : 5,
   );
   const [customCuts, setCustomCuts] = useState<number[]>(
     Array.isArray(initial?.customCuts) && initial.customCuts.length === 4
@@ -708,7 +753,40 @@ function DescriptiveView({
       : bandScheme === "equal-width"
         ? equalWidthFiveLevelBands
         : customBands ?? equalWidthFiveLevelBands;
+  const parsedRatings = parseRatingMatrix(text, scaleLevels);
+  const ratingMatrix = quality ? parsedRatings.matrix : [];
+  const values = quality ? ratingMatrix.flat() : parseNumbers(text);
+  const respondentCount = quality ? ratingMatrix.length : values.length;
+  const itemCount = quality ? (ratingMatrix[0]?.length ?? 0) : 1;
+  const avg = mean(values);
+  const sd = sampleStandardDeviation(values);
+  const medianValue = median(values);
   const interpretation = interpretQuality(avg, selectedBands);
+  const itemResults = quality
+    ? Array.from({ length: itemCount }, (_, itemIndex) => {
+        const itemValues = ratingMatrix.map((row) => row[itemIndex]);
+        const itemMean = mean(itemValues);
+        return {
+          item: itemIndex + 1,
+          values: itemValues,
+          mean: itemMean,
+          sd: sampleStandardDeviation(itemValues),
+          interpretation: interpretQuality(itemMean, selectedBands),
+        };
+      })
+    : [];
+  const respondentResults = quality
+    ? ratingMatrix.map((row, index) => {
+        const personMean = mean(row);
+        return {
+          respondent: index + 1,
+          scores: row,
+          total: row.reduce((sum, value) => sum + value, 0),
+          mean: personMean,
+          interpretation: interpretQuality(personMean, selectedBands),
+        };
+      })
+    : [];
   const q1 = quantile(values, 0.25);
   const q3 = quantile(values, 0.75);
   const iqr = q1 === null || q3 === null ? null : q3 - q1;
@@ -720,34 +798,70 @@ function DescriptiveView({
         ? "เกณฑ์ช่วงกว้างเท่ากัน 0.80"
         : "เกณฑ์ที่ผู้ใช้กำหนด";
   const qualityReports = {
-    short: `ผลการประเมิน${measureLabel}โดย${respondentLabel}อยู่ในระดับ${interpretation} (x̄ = ${fmt(avg)}, S.D. = ${fmt(sd)}, n = ${values.length})`,
-    detailed: `ผลการวิเคราะห์${measureLabel}จาก${respondentLabel}จำนวน ${values.length} คนด้วยสถิติเชิงพรรณนา พบว่า มีค่าเฉลี่ยเท่ากับ ${fmt(avg)} ส่วนเบี่ยงเบนมาตรฐานเท่ากับ ${fmt(sd)} มัธยฐานเท่ากับ ${fmt(medianValue)} และ IQR เท่ากับ ${fmt(iqr)} เมื่อแปลผลด้วย${schemeDescription} ผลการประเมินโดยรวมอยู่ในระดับ${interpretation}${criterionSource.trim() ? ` โดยอ้างอิงเกณฑ์จาก ${criterionSource.trim()}` : ""}`,
+    short: `ผลการประเมิน${measureLabel}โดย${respondentLabel}อยู่ในระดับ${interpretation} (x̄ = ${fmt(avg)}, S.D. = ${fmt(sd)}, n = ${respondentCount})`,
+    detailed: `ผลการวิเคราะห์${measureLabel}จาก${respondentLabel}จำนวน ${respondentCount} คน จำนวน ${itemCount} ข้อ ด้วยสถิติเชิงพรรณนา พบว่า มีค่าเฉลี่ยเท่ากับ ${fmt(avg)} ส่วนเบี่ยงเบนมาตรฐานเท่ากับ ${fmt(sd)} มัธยฐานเท่ากับ ${fmt(medianValue)} และ IQR เท่ากับ ${fmt(iqr)} เมื่อแปลผลด้วย${schemeDescription} ผลการประเมินโดยรวมอยู่ในระดับ${interpretation}${criterionSource.trim() ? ` โดยอ้างอิงเกณฑ์จาก ${criterionSource.trim()}` : ""}`,
   };
-  const exportRows: ExportCell[][] = [
-    ["สถิติ", "ผล"],
-    ["จำนวน (n)", values.length],
-    ["ค่าเฉลี่ย (x̄)", fmt(avg)],
-    ["S.D. (ตัวอย่าง)", fmt(sd)],
-    ["มัธยฐาน", fmt(medianValue)],
-    ["Q1", fmt(q1)],
-    ["Q3", fmt(q3)],
-    ["IQR", fmt(iqr)],
-    ...(quality
-      ? [
-          ["จำนวนระดับ", scaleLevels],
-          ["เกณฑ์แปลผล", schemeDescription],
-          ["ระดับคุณภาพ", interpretation],
-        ]
-      : []),
-    ["", ""],
-    ["ลำดับ", "คะแนน"],
-    ...values.map((value, index) => [index + 1, value]),
-  ];
+  const exportRows: ExportCell[][] = quality
+    ? [
+        ["สรุปภาพรวม", "ผล"],
+        ["จำนวนผู้ตอบ (n)", respondentCount],
+        ["จำนวนข้อ", itemCount],
+        ["จำนวนระดับ", scaleLevels],
+        ["ค่าเฉลี่ย (x̄)", fmt(avg)],
+        ["S.D. (ตัวอย่าง)", fmt(sd)],
+        ["มัธยฐาน", fmt(medianValue)],
+        ["Q1", fmt(q1)],
+        ["Q3", fmt(q3)],
+        ["IQR", fmt(iqr)],
+        ["เกณฑ์แปลผล", schemeDescription],
+        ["ระดับความพึงพอใจ", interpretation],
+        ["", ""],
+        [
+          "ผู้ตอบ",
+          ...Array.from({ length: itemCount }, (_, index) => `ข้อ ${index + 1}`),
+          "รวม",
+          "เฉลี่ย",
+          "ระดับ",
+        ],
+        ...respondentResults.map((result) => [
+          result.respondent,
+          ...result.scores,
+          result.total,
+          fmt(result.mean, 2),
+          result.interpretation,
+        ]),
+        [""],
+        ["ผลรายข้อ", "x̄", "S.D.", "ระดับ"],
+        ...itemResults.map((result) => [
+          `ข้อ ${result.item}`,
+          fmt(result.mean, 2),
+          fmt(result.sd, 2),
+          result.interpretation,
+        ]),
+      ]
+    : [
+        ["สถิติ", "ผล"],
+        ["จำนวน (n)", values.length],
+        ["ค่าเฉลี่ย (x̄)", fmt(avg)],
+        ["S.D. (ตัวอย่าง)", fmt(sd)],
+        ["มัธยฐาน", fmt(medianValue)],
+        ["Q1", fmt(q1)],
+        ["Q3", fmt(q3)],
+        ["IQR", fmt(iqr)],
+        ["", ""],
+        ["ลำดับ", "คะแนน"],
+        ...values.map((value, index) => [index + 1, value]),
+      ];
   useEffect(() => {
     onChange(
       { text, scaleLevels, bandScheme, customCuts, criterionSource },
       {
-        n: values.length,
+        n: quality ? respondentCount : values.length,
+        respondentCount: quality ? respondentCount : undefined,
+        itemCount: quality ? itemCount : undefined,
+        ratingMatrix: quality ? ratingMatrix : undefined,
+        itemResults: quality ? itemResults : undefined,
+        respondentResults: quality ? respondentResults : undefined,
         mean: avg,
         sd,
         median: medianValue,
@@ -759,7 +873,7 @@ function DescriptiveView({
         bandScheme: quality ? bandScheme : undefined,
       },
     );
-  }, [text, scaleLevels, bandScheme, customCuts, criterionSource, quality, avg, sd, medianValue, q1, q3, iqr, interpretation, onChange, values.length]);
+  }, [text, scaleLevels, bandScheme, customCuts, criterionSource, quality, avg, sd, medianValue, q1, q3, iqr, interpretation, onChange, values.length, respondentCount, itemCount]);
 
   const copyQualityReport = async (kind: "short" | "detailed") => {
     try {
@@ -861,19 +975,36 @@ function DescriptiveView({
       )}
       <section className="split">
         <div className="panel">
-          <h3>วางคะแนน</h3>
-          <p>คั่นด้วยช่องว่าง เครื่องหมายจุลภาค หรือขึ้นบรรทัดใหม่</p>
+          <h3>{quality ? "วางคะแนนรายคน" : "วางคะแนน"}</h3>
+          <p>
+            {quality
+              ? "1 บรรทัด = ผู้ตอบ 1 คน · 1 คอลัมน์ = ข้อประเมิน 1 ข้อ · คั่นด้วยช่องว่าง จุลภาค หรือแท็บ"
+              : "คั่นด้วยช่องว่าง เครื่องหมายจุลภาค หรือขึ้นบรรทัดใหม่"}
+          </p>
           <textarea
             disabled={!editable}
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={10}
           />
-          <div className="data-note">อ่านได้ {values.length} ค่า</div>
+          <div className="data-note">
+            {quality
+              ? `อ่านได้ ${respondentCount} คน × ${itemCount} ข้อ · ${values.length} คะแนน${parsedRatings.removedRowNumbers ? " · ตัดเลขลำดับหน้าบรรทัดแล้ว" : ""}`
+              : `อ่านได้ ${values.length} ค่า`}
+          </div>
+          {quality && parsedRatings.invalidRowCount > 0 && (
+            <div className="notice analysis-warning">
+              มี {parsedRatings.invalidRowCount} บรรทัดที่จำนวนคะแนนไม่ตรงกับแถวส่วนใหญ่ ระบบยังไม่นำบรรทัดนั้นมาคำนวณ
+            </div>
+          )}
         </div>
         <div>
           <div className="metrics compact">
-            <Metric label="จำนวน (n)" value={`${values.length}`} />
+            <Metric
+              label={quality ? "ผู้ตอบ (n)" : "จำนวน (n)"}
+              value={`${quality ? respondentCount : values.length}`}
+            />
+            {quality && <Metric label="จำนวนข้อ" value={`${itemCount}`} />}
             <Metric label="ค่าเฉลี่ย (x̄)" value={fmt(avg)} tone="green" />
             <Metric label="S.D. (ตัวอย่าง)" value={fmt(sd)} tone="violet" />
             <Metric
@@ -899,6 +1030,72 @@ function DescriptiveView({
           )}
         </div>
       </section>
+      {quality && (
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <span className="eyebrow">ตรวจสอบก่อนบันทึก</span>
+              <h3>ตารางคะแนนรายคน</h3>
+              <p>ระบบคำนวณคะแนนรวม ค่าเฉลี่ย และระดับของผู้ตอบแต่ละคนอัตโนมัติ</p>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ผู้ตอบ</th>
+                  {Array.from({ length: itemCount }, (_, index) => (
+                    <th key={`rating-head-${index}`}>ข้อ {index + 1}</th>
+                  ))}
+                  <th>รวม</th>
+                  <th>เฉลี่ย</th>
+                  <th>ระดับ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {respondentResults.map((result) => (
+                  <tr key={`rating-person-${result.respondent}`}>
+                    <td><b>{result.respondent}</b></td>
+                    {result.scores.map((score, index) => (
+                      <td key={`rating-${result.respondent}-${index}`}>{score}</td>
+                    ))}
+                    <td>{result.total}</td>
+                    <td>{fmt(result.mean, 2)}</td>
+                    <td>{result.interpretation}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+      {quality && (
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <span className="eyebrow">ผลรายข้อ</span>
+              <h3>ค่าเฉลี่ยและ S.D. รายข้อ</h3>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr><th>ข้อ</th><th>x̄</th><th>S.D.</th><th>ระดับ</th></tr>
+              </thead>
+              <tbody>
+                {itemResults.map((result) => (
+                  <tr key={`rating-item-${result.item}`}>
+                    <td><b>{result.item}</b></td>
+                    <td>{fmt(result.mean, 2)}</td>
+                    <td>{fmt(result.sd, 2)}</td>
+                    <td>{result.interpretation}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
       <Formula source="บุญชม ศรีสะอาด และตำราสถิติทางการศึกษา; โปรดระบุฉบับที่ใช้อ้างอิงในงานวิจัย">
         x̄ = Σx / n และ S.D. ตัวอย่าง = √[Σ(x-x̄)²/(n-1)]
       </Formula>
@@ -1134,7 +1331,7 @@ function QualityView({
               setQualityMode(event.target.value as "summary" | "media-expert")
             }
           >
-            <option value="summary">สรุปคะแนนมาตราส่วนทั่วไป</option>
+            <option value="summary">ความพึงพอใจ 3/5 ระดับ · วางคะแนนรายคน</option>
             <option value="media-expert">ประเมินคุณภาพสื่อรายข้อและรายด้าน</option>
           </select>
         </label>
@@ -4218,7 +4415,7 @@ export default function ResearchStatsApp({
                 </button>
               </>
             )}
-              <span className="version-chip">รุ่นคำนวณ 3.2</span>
+              <span className="version-chip">รุ่นคำนวณ 3.3</span>
             <span className="avatar">พ</span>
           </div>
         </div>
