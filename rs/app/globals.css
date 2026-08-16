@@ -2736,7 +2736,7 @@ footer {
 }
 .export-icons {
   display: grid;
-  grid-template-columns: repeat(5, 42px);
+  grid-template-columns: repeat(6, 42px);
   align-items: center;
   gap: 6px;
 }
@@ -2782,6 +2782,23 @@ footer {
     sans-serif;
   letter-spacing: 0.2px;
 }
+.result-export-panel {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 18px;
+}
+.result-export-panel .result-export-toolbar {
+  width: 100%;
+  align-items: flex-end;
+}
+.export-icon.copy {
+  color: #a66812;
+  border-bottom: 2px solid #d08a20;
+}
+.export-icon.copy svg {
+  fill: #fff6df;
+  stroke: #a66812;
+}
 .export-icon.csv {
   color: #16845e;
   border-bottom: 2px solid #16845e;
@@ -2821,6 +2838,16 @@ footer {
 @media (max-width: 340px) {
   .export-icons {
     grid-template-columns: repeat(3, 42px);
+  }
+}
+@media (max-width: 520px) {
+  .result-export-panel .result-export-toolbar {
+    align-items: flex-start;
+  }
+  .result-export-panel .export-icons {
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 3px;
   }
 }
 .main > footer {

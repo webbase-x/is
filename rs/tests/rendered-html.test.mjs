@@ -59,6 +59,26 @@ test("IOC workspace shows sum, IOC, and result columns", async () => {
   );
   assert.match(comparisonTabs, /ก่อนเรียน–หลังเรียน/);
   assert.match(comparisonTabs, /หลังเรียนเทียบเกณฑ์/);
+  assert.ok(
+    (source.match(/<ResultExportToolbar/g) ?? []).length >= 6,
+    "all seven tools, including the shared descriptive/quality view, must expose the common export toolbar",
+  );
+  assert.ok(
+    (source.match(/title=\{analysisTitle\}/g) ?? []).length >= 7,
+    "every analysis tool must export with the current analysis title",
+  );
+  assert.match(source, /aria-label="คัดลอกผล"/);
+  for (const sheetName of [
+    "IOC",
+    "สถิติพรรณนา",
+    "ระดับคุณภาพ",
+    "ความยาก-อำนาจจำแนก",
+    "ความเชื่อมั่น",
+    "ก่อน-หลัง",
+    "ประสิทธิภาพ E1-E2",
+  ]) {
+    assert.match(source, new RegExp(sheetName));
+  }
   assert.match(source, /ชื่อจากการถอดความ/);
   for (const format of ["CSV", "XLSX", "DOCX", "PDF", "PNG"]) {
     assert.match(source, new RegExp(`aria-label="[^"]*${format}`));

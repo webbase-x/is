@@ -143,6 +143,164 @@ function Formula({
   );
 }
 
+type ExportCell = string | number | null | undefined;
+
+function ResultExportToolbar({
+  title,
+  sheetName,
+  rows,
+}: {
+  title: string;
+  sheetName: string;
+  rows: ExportCell[][];
+}) {
+  const [copied, setCopied] = useState(false);
+  const filename = safeFilename(title);
+  const copyResults = async () => {
+    const text = [
+      title,
+      ...rows.map((row) => row.map((cell) => String(cell ?? "")).join("\t")),
+    ].join("\n");
+    const success = await copyToClipboard(text);
+    setCopied(success);
+    if (success) window.setTimeout(() => setCopied(false), 1800);
+  };
+  const exportCsv = () => {
+    const lines = rows
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
+          .join(","),
+      )
+      .join("\n");
+    downloadFile(
+      new Blob(["\ufeff", lines], { type: "text/csv;charset=utf-8" }),
+      `${filename}.csv`,
+    );
+  };
+  const exportXlsx = async () => {
+    const xlsx = await import("xlsx");
+    const workbook = xlsx.utils.book_new();
+    const sheet = xlsx.utils.aoa_to_sheet(rows);
+    xlsx.utils.book_append_sheet(workbook, sheet, sheetName.slice(0, 31));
+    xlsx.writeFile(workbook, `${filename}.xlsx`);
+  };
+  const exportDocx = async () => {
+    const { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun } =
+      await import(/* @vite-ignore */ DOCX_JS_URL);
+    const table = new Table({
+      rows: rows.map(
+        (row, rowIndex) =>
+          new TableRow({
+            children: row.map(
+              (cell) =>
+                new TableCell({
+                  children: [
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: String(cell ?? ""),
+                          bold: rowIndex === 0,
+                          noProof: true,
+                          font: "TH Sarabun New",
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+            ),
+          }),
+      ),
+    });
+    const document = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: title,
+                  bold: true,
+                  noProof: true,
+                  font: "TH Sarabun New",
+                }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `ตารางผลวิเคราะห์: ${sheetName}`,
+                  noProof: true,
+                  font: "TH Sarabun New",
+                }),
+              ],
+            }),
+            table,
+          ],
+        },
+      ],
+    });
+    downloadFile(await Packer.toBlob(document), `${filename}.docx`);
+  };
+  const exportPdf = async () => {
+    const canvas = createResultCanvas(title, rows);
+    if (!canvas) return;
+    const { jsPDF } = await import(/* @vite-ignore */ JSPDF_JS_URL);
+    const pdf = new jsPDF({
+      orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+      unit: "px",
+      format: [canvas.width, canvas.height],
+      hotfixes: ["px_scaling"],
+    });
+    pdf.addImage(
+      canvas.toDataURL("image/png"),
+      "PNG",
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+    pdf.save(`${filename}.pdf`);
+  };
+  const exportPng = () => {
+    const canvas = createResultCanvas(title, rows);
+    canvas?.toBlob((blob) => {
+      if (blob) downloadFile(blob, `${filename}.png`);
+    }, "image/png");
+  };
+  return (
+    <div className="ioc-export-group result-export-toolbar">
+      <span className="ioc-group-label">ส่งออกและคัดลอกผล</span>
+      <div className="export-icons" aria-label={`ส่งออกผล ${sheetName}`}>
+        <button className="export-icon copy" onClick={() => void copyResults()} title="คัดลอกผลไปยังคลิปบอร์ด" aria-label="คัดลอกผล">
+          <CopyIcon />
+          <span>{copied ? "คัดลอกแล้ว" : "คัดลอก"}</span>
+        </button>
+        <button className="export-icon csv" onClick={exportCsv} title="ส่งออก CSV" aria-label="ส่งออก CSV">
+          <ExportIcon format="C" />
+          <span>CSV</span>
+        </button>
+        <button className="export-icon xlsx" onClick={() => void exportXlsx()} title="ส่งออก XLSX" aria-label="ส่งออก XLSX">
+          <ExportIcon format="X" />
+          <span>XLSX</span>
+        </button>
+        <button className="export-icon docx" onClick={() => void exportDocx()} title="ส่งออก DOCX" aria-label="ส่งออก DOCX">
+          <ExportIcon format="W" />
+          <span>DOCX</span>
+        </button>
+        <button className="export-icon pdf" onClick={() => void exportPdf()} title="ส่งออก PDF" aria-label="ส่งออก PDF">
+          <ExportIcon format="PDF" />
+          <span>PDF</span>
+        </button>
+        <button className="export-icon image" onClick={exportPng} title="บันทึกเป็นรูป PNG" aria-label="บันทึกเป็นรูป PNG">
+          <ExportIcon format="▧" />
+          <span>PNG</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const THAI_DIGITS: Record<string, string> = {
   "๐": "0",
   "๑": "1",
@@ -325,102 +483,6 @@ function IocView({
           : "ปรับปรุง",
     ]),
   ];
-  const exportCsv = () => {
-    const lines = exportRows()
-      .map((line) =>
-        line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","),
-      )
-      .join("\n");
-    downloadFile(
-      new Blob(["\ufeff", lines], { type: "text/csv;charset=utf-8" }),
-      `${safeFilename(title)}.csv`,
-    );
-  };
-  const exportXlsx = async () => {
-    const xlsx = await import("xlsx");
-    const workbook = xlsx.utils.book_new();
-    const sheet = xlsx.utils.aoa_to_sheet(exportRows());
-    xlsx.utils.book_append_sheet(workbook, sheet, "IOC");
-    xlsx.writeFile(workbook, `${safeFilename(title)}.xlsx`);
-  };
-  const exportDocx = async () => {
-    const { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun } =
-      await import(/* @vite-ignore */ DOCX_JS_URL);
-    const table = new Table({
-      rows: exportRows().map(
-        (row, rowIndex) =>
-          new TableRow({
-            children: row.map(
-              (cell) =>
-                new TableCell({
-                  children: [
-                    new Paragraph({
-                      children: [
-                        new TextRun({
-                          text: String(cell),
-                          bold: rowIndex === 0,
-                          noProof: true,
-                          font: "TH Sarabun New",
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-            ),
-          }),
-      ),
-    });
-    const document = new Document({
-      sections: [
-        {
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "ตารางสรุปผลการตรวจสอบความตรงเชิงเนื้อหา (IOC)",
-                  bold: true,
-                  noProof: true,
-                  font: "TH Sarabun New",
-                }),
-              ],
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: title,
-                  noProof: true,
-                  font: "TH Sarabun New",
-                }),
-              ],
-            }),
-            table,
-          ],
-        },
-      ],
-    });
-    downloadFile(await Packer.toBlob(document), `${safeFilename(title)}.docx`);
-  };
-  const exportPdf = async () => {
-    const canvas = createIocCanvas(title, experts, rows, results);
-    if (!canvas) return;
-    const { jsPDF } = await import(/* @vite-ignore */ JSPDF_JS_URL);
-    const pdf = new jsPDF({
-      orientation: canvas.width > canvas.height ? "landscape" : "portrait",
-      unit: "px",
-      format: [canvas.width, canvas.height],
-      hotfixes: ["px_scaling"],
-    });
-    pdf.addImage(
-      canvas.toDataURL("image/png"),
-      "PNG",
-      0,
-      0,
-      canvas.width,
-      canvas.height,
-    );
-    pdf.save(`${safeFilename(title)}.pdf`);
-  };
-  const exportPng = () => exportIocPng(title, experts, rows, results);
   return (
     <Page
       title="ความตรงเชิงเนื้อหา (IOC)"
@@ -487,56 +549,11 @@ function IocView({
                 + เพิ่มข้อ
               </button>
             </div>
-            <div className="ioc-export-group">
-              <span className="ioc-group-label">ส่งออกผล</span>
-              <div className="export-icons" aria-label="ส่งออกผล IOC">
-                <button
-                  className="export-icon csv"
-                  onClick={exportCsv}
-                  title="ส่งออก CSV"
-                  aria-label="ส่งออก CSV"
-                >
-                  <ExportIcon format="C" />
-                  <span>CSV</span>
-                </button>
-                <button
-                  className="export-icon xlsx"
-                  onClick={() => void exportXlsx()}
-                  title="ส่งออก XLSX"
-                  aria-label="ส่งออก XLSX"
-                >
-                  <ExportIcon format="X" />
-                  <span>XLSX</span>
-                </button>
-                <button
-                  className="export-icon docx"
-                  onClick={() => void exportDocx()}
-                  title="ส่งออก DOCX"
-                  aria-label="ส่งออก DOCX"
-                >
-                  <ExportIcon format="W" />
-                  <span>DOCX</span>
-                </button>
-                <button
-                  className="export-icon pdf"
-                  onClick={() => void exportPdf()}
-                  title="ส่งออก PDF"
-                  aria-label="ส่งออก PDF"
-                >
-                  <ExportIcon format="PDF" />
-                  <span>PDF</span>
-                </button>
-                <button
-                  className="export-icon image"
-                  onClick={exportPng}
-                  title="บันทึกเป็นรูป PNG"
-                  aria-label="บันทึกเป็นรูป PNG"
-                >
-                  <ExportIcon format="▧" />
-                  <span>PNG</span>
-                </button>
-              </div>
-            </div>
+            <ResultExportToolbar
+              title={title || "ผลการวิเคราะห์ IOC"}
+              sheetName="IOC"
+              rows={exportRows()}
+            />
           </div>
         </div>
         <div className="table-wrap">
@@ -634,12 +651,14 @@ function DescriptiveView({
   imported,
   initial,
   onChange,
+  title,
   editable,
 }: {
   quality?: boolean;
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  title: string;
   editable: boolean;
 }) {
   const [text, setText] = useState(
@@ -693,6 +712,26 @@ function DescriptiveView({
     short: `นักเรียนมีความพึงพอใจโดยรวมอยู่ในระดับ${interpretation} (x̄ = ${fmt(avg)}, S.D. = ${fmt(sd)}, n = ${values.length})`,
     detailed: `ผลการวิเคราะห์ความพึงพอใจของนักเรียนจำนวน ${values.length} คนด้วยสถิติเชิงพรรณนา พบว่า มีค่าเฉลี่ยเท่ากับ ${fmt(avg)} ส่วนเบี่ยงเบนมาตรฐานเท่ากับ ${fmt(sd)} มัธยฐานเท่ากับ ${fmt(medianValue)} และ IQR เท่ากับ ${fmt(iqr)} เมื่อแปลผลด้วย${schemeDescription} นักเรียนมีความพึงพอใจโดยรวมอยู่ในระดับ${interpretation}${criterionSource.trim() ? ` โดยอ้างอิงเกณฑ์จาก ${criterionSource.trim()}` : ""}`,
   };
+  const exportRows: ExportCell[][] = [
+    ["สถิติ", "ผล"],
+    ["จำนวน (n)", values.length],
+    ["ค่าเฉลี่ย (x̄)", fmt(avg)],
+    ["S.D. (ตัวอย่าง)", fmt(sd)],
+    ["มัธยฐาน", fmt(medianValue)],
+    ["Q1", fmt(q1)],
+    ["Q3", fmt(q3)],
+    ["IQR", fmt(iqr)],
+    ...(quality
+      ? [
+          ["จำนวนระดับ", scaleLevels],
+          ["เกณฑ์แปลผล", schemeDescription],
+          ["ระดับคุณภาพ", interpretation],
+        ]
+      : []),
+    ["", ""],
+    ["ลำดับ", "คะแนน"],
+    ...values.map((value, index) => [index + 1, value]),
+  ];
   useEffect(() => {
     onChange(
       { text, scaleLevels, bandScheme, customCuts, criterionSource },
@@ -730,6 +769,13 @@ function DescriptiveView({
       }
       badge="ตรวจสอบข้อมูลดิบได้"
     >
+      <section className="panel result-export-panel">
+        <ResultExportToolbar
+          title={title || (quality ? "ผลการแปลระดับคุณภาพ" : "ผลสถิติพรรณนา")}
+          sheetName={quality ? "ระดับคุณภาพ" : "สถิติพรรณนา"}
+          rows={exportRows}
+        />
+      </section>
       {quality && (
         <section className="panel quality-settings">
           <div className="panel-head">
@@ -879,11 +925,13 @@ function ItemView({
   imported,
   initial,
   onChange,
+  title,
   editable,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  title: string;
   editable: boolean;
 }) {
   const importedValues = imported
@@ -908,6 +956,22 @@ function ItemView({
       subtitle="วิเคราะห์ข้อสอบด้วยเทคนิคกลุ่มสูง–กลุ่มต่ำ"
       badge="Classical Test Theory"
     >
+      <section className="panel result-export-panel">
+        <ResultExportToolbar
+          title={title || "ผลความยากและอำนาจจำแนก"}
+          sheetName="ความยาก-อำนาจจำแนก"
+          rows={[
+            ["รายการ", "ผล"],
+            ["กลุ่มสูงตอบถูก", upper],
+            ["กลุ่มต่ำตอบถูก", lower],
+            ["จำนวนคนต่อกลุ่ม", size],
+            ["ค่าความยาก (p)", fmt(result.difficulty)],
+            ["แปลผลความยาก", result.difficultyLabel],
+            ["อำนาจจำแนก (r)", fmt(result.discrimination)],
+            ["แปลผลอำนาจจำแนก", result.discriminationLabel],
+          ]}
+        />
+      </section>
       <section className="split">
         <div className="panel form-grid">
           <label>
@@ -963,11 +1027,13 @@ function ReliabilityView({
   imported,
   initial,
   onChange,
+  title,
   editable,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  title: string;
   editable: boolean;
 }) {
   const [text, setText] = useState(
@@ -983,6 +1049,16 @@ function ReliabilityView({
     matrix.length > 0 &&
     matrix.every((r) => r.every((v) => v === 0 || v === 1));
   const kr = binary ? kr20(matrix) : null;
+  const reliabilityRows: ExportCell[][] = [
+    ["รายการ", "ผล"],
+    ["จำนวนผู้ตอบ", matrix.length],
+    ["จำนวนข้อ", matrix[0]?.length ?? 0],
+    ["Cronbach’s alpha", fmt(alpha)],
+    ["KR-20", binary ? fmt(kr) : "ข้อมูลไม่ใช่ 0/1"],
+    ["", ""],
+    ["ผู้ตอบ", ...Array.from({ length: matrix[0]?.length ?? 0 }, (_, index) => `ข้อ ${index + 1}`)],
+    ...matrix.map((row, index) => [index + 1, ...row]),
+  ];
   useEffect(() => {
     onChange(
       { text },
@@ -1001,6 +1077,13 @@ function ReliabilityView({
       subtitle="รองรับ Cronbach’s alpha และ KR-20"
       badge="วางข้อมูลรายคน × รายข้อ"
     >
+      <section className="panel result-export-panel">
+        <ResultExportToolbar
+          title={title || "ผลความเชื่อมั่นของเครื่องมือ"}
+          sheetName="ความเชื่อมั่น"
+          rows={reliabilityRows}
+        />
+      </section>
       <section className="split">
         <div className="panel">
           <h3>เมทริกซ์คะแนน</h3>
@@ -1420,11 +1503,13 @@ function PairedView({
   imported,
   initial,
   onChange,
+  title,
   editable,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  title: string;
   editable: boolean;
 }) {
   const importedRows =
@@ -1696,6 +1781,38 @@ function PairedView({
       setCopiedResearchText(null);
     }
   };
+  const comparisonRows: ExportCell[][] = [
+    ["รายการ", "ผล"],
+    ["มุมมอง", mode === "paired" ? "ก่อนเรียน–หลังเรียน" : "หลังเรียนเทียบเกณฑ์"],
+    ["วิธีทดสอบ", METHOD_HELP[mode].find((method) => method.value === activeMethod)?.label ?? activeMethod],
+    ["สมมติฐาน", activeAlternative || "ยังไม่ได้เลือก"],
+    ["ระดับนัยสำคัญ (α)", alpha],
+    ["จำนวนตัวอย่าง", activeSampleSize],
+    ...(mode === "criterion" ? [["เกณฑ์", fmt(criterionScore)]] : []),
+    ["p-value", fmtP(activeResult?.pValue)],
+    ["ผลการทดสอบ", activeResult?.significant === true ? "มีนัยสำคัญ" : activeResult?.significant === false ? "ไม่มีนัยสำคัญ" : "ยังสรุปไม่ได้"],
+    ...Object.entries(activeResult ?? {}).
+      filter(([key, value]) => !["pValue", "significant"].includes(key) && typeof value !== "object")
+      .map(([key, value]) => [`ผลลัพธ์: ${key}`, String(value ?? "")]),
+    ["รายงานผลแบบย่อ", reports.short],
+    ["", ""],
+    mode === "paired"
+      ? ["ลำดับ", "ก่อนเรียน", "หลังเรียน", "ผลต่าง (หลัง−ก่อน)"]
+      : ["ลำดับ", "หลังเรียน", "เกณฑ์", "ผลต่าง (หลัง−เกณฑ์)"],
+    ...(mode === "paired"
+      ? Array.from(
+          { length: Math.max(preValues.length, postValues.length) },
+          (_, index) => [
+            index + 1,
+            preValues[index] ?? "",
+            postValues[index] ?? "",
+            preValues[index] === undefined || postValues[index] === undefined
+              ? ""
+              : postValues[index] - preValues[index],
+          ],
+        )
+      : postValues.map((value, index) => [index + 1, value, criterionScore, value - criterionScore])),
+  ];
 
   return (
     <Page
@@ -1725,6 +1842,14 @@ function PairedView({
           หลังเรียนเทียบเกณฑ์
         </button>
       </div>
+
+      <section className="panel result-export-panel">
+        <ResultExportToolbar
+          title={title || "ผลทดสอบก่อนเรียน-หลังเรียน"}
+          sheetName={mode === "paired" ? "ก่อน-หลัง" : "หลังเทียบเกณฑ์"}
+          rows={comparisonRows}
+        />
+      </section>
 
       <section className="panel analysis-controls">
         <TestMethodSelect
@@ -2103,11 +2228,13 @@ function EfficiencyView({
   imported,
   initial,
   onChange,
+  title,
   editable,
 }: {
   imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  title: string;
   editable: boolean;
 }) {
   const importedPairs =
@@ -2136,6 +2263,23 @@ function EfficiencyView({
     parseNumbers(post),
     tmax,
   );
+  const processValues = parseNumbers(process);
+  const postValues = parseNumbers(post);
+  const efficiencyRows: ExportCell[][] = [
+    ["รายการ", "ผล"],
+    ["จำนวนผู้เรียน", Math.max(processValues.length, postValues.length)],
+    ["คะแนนเต็มระหว่างเรียน", pmax],
+    ["คะแนนเต็มหลังเรียน", tmax],
+    ["E1", result ? `${fmt(result.e1, 2)}%` : "—"],
+    ["E2", result ? `${fmt(result.e2, 2)}%` : "—"],
+    ["รายงาน E1/E2", result ? `${fmt(result.e1, 2)}/${fmt(result.e2, 2)}` : "—"],
+    ["", ""],
+    ["ลำดับ", "คะแนนระหว่างเรียน", "คะแนนหลังเรียน"],
+    ...Array.from(
+      { length: Math.max(processValues.length, postValues.length) },
+      (_, index) => [index + 1, processValues[index] ?? "", postValues[index] ?? ""],
+    ),
+  ];
   useEffect(() => {
     onChange({ process, post, pmax, tmax }, (result ?? {}) as WorkspaceData);
   }, [process, post, pmax, tmax]);
@@ -2145,6 +2289,13 @@ function EfficiencyView({
       subtitle="คำนวณประสิทธิภาพกระบวนการและผลลัพธ์"
       badge="กำหนดเกณฑ์ได้"
     >
+      <section className="panel result-export-panel">
+        <ResultExportToolbar
+          title={title || "ผลประสิทธิภาพ E1-E2"}
+          sheetName="ประสิทธิภาพ E1-E2"
+          rows={efficiencyRows}
+        />
+      </section>
       <section className="panel two-text">
         <label>
           คะแนนระหว่างเรียนของแต่ละคน
@@ -2398,74 +2549,78 @@ function downloadFile(blob: Blob, filename: string) {
 const DOCX_JS_URL = "https://cdn.jsdelivr.net/npm/docx@9.5.1/+esm";
 const JSPDF_JS_URL = "https://cdn.jsdelivr.net/npm/jspdf@3.0.3/+esm";
 
-function createIocCanvas(
-  title: string,
-  experts: string[],
-  rows: Array<Array<number | null>>,
-  results: ReturnType<typeof calculateIoc>,
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    return copied;
+  }
+}
+
+function fitCanvasText(
+  context: CanvasRenderingContext2D,
+  value: ExportCell,
+  maxWidth: number,
 ) {
-  const columns = ["ข้อ", ...experts, "∑R", "IOC", "ผล"];
-  const widths = [70, ...experts.map(() => 145), 80, 90, 120];
+  const text = String(value ?? "");
+  if (context.measureText(text).width <= maxWidth) return text;
+  let shortened = text;
+  while (shortened.length > 1 && context.measureText(`${shortened}…`).width > maxWidth) {
+    shortened = shortened.slice(0, -1);
+  }
+  return `${shortened}…`;
+}
+
+function createResultCanvas(title: string, sourceRows: ExportCell[][]) {
+  const rows = sourceRows.length ? sourceRows : [["ผล", "ยังไม่มีข้อมูล"]];
+  const columnCount = Math.max(...rows.map((row) => row.length), 1);
+  const widths = Array.from({ length: columnCount }, (_, columnIndex) => {
+    const longest = Math.max(
+      ...rows.map((row) => String(row[columnIndex] ?? "").length),
+      8,
+    );
+    return Math.max(110, Math.min(260, longest * 9 + 32));
+  });
   const width = widths.reduce((sum, value) => sum + value, 0);
   const rowHeight = 48;
-  const top = 150;
+  const top = 120;
+  const visibleRows = rows.slice(0, Math.floor((16000 - top - 60) / rowHeight));
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(900, width + 80);
-  canvas.height = top + (rows.length + 1) * rowHeight + 80;
+  canvas.height = top + visibleRows.length * rowHeight + 60;
   const context = canvas.getContext("2d");
   if (!context) return null;
   context.fillStyle = "white";
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "#17213a";
   context.font = "bold 26px Tahoma, sans-serif";
-  context.fillText("ตารางสรุปผลการตรวจสอบความตรงเชิงเนื้อหา (IOC)", 40, 48);
-  context.font = "18px Tahoma, sans-serif";
-  context.fillText(title, 40, 82);
+  context.fillText(fitCanvasText(context, title, canvas.width - 80), 40, 48);
   context.font = "14px Tahoma, sans-serif";
   context.fillStyle = "#65708a";
-  context.fillText(
-    `จำนวน ${rows.length} ข้อ · ผู้เชี่ยวชาญ ${experts.length} คน · สร้างโดย ResearchStat`,
-    40,
-    112,
-  );
-  let x = 40;
+  context.fillText(`ผลวิเคราะห์ ${rows.length} แถว · สร้างโดย ResearchStat`, 40, 82);
   context.textAlign = "center";
   context.textBaseline = "middle";
-  columns.forEach((label, index) => {
-    context.fillStyle = "#eaf0ff";
-    context.fillRect(x, top, widths[index], rowHeight);
-    context.strokeStyle = "#72809f";
-    context.strokeRect(x, top, widths[index], rowHeight);
-    context.fillStyle = "#24314f";
-    context.font = "bold 14px Tahoma, sans-serif";
-    context.fillText(label, x + widths[index] / 2, top + rowHeight / 2);
-    x += widths[index];
-  });
-  rows.forEach((row, rowIndex) => {
+  visibleRows.forEach((row, rowIndex) => {
     let cellX = 40;
-    const values = [
-      rowIndex + 1,
-      ...row.map((value) =>
-        value === null ? "—" : value === 1 ? "+1" : String(value),
-      ),
-      results[rowIndex].sum,
-      results[rowIndex].ioc?.toFixed(2) ?? "—",
-      results[rowIndex].ioc === null
-        ? "รอคะแนน"
-        : results[rowIndex].passed
-          ? "ใช้ได้"
-          : "ปรับปรุง",
-    ];
-    values.forEach((value, index) => {
-      const y = top + (rowIndex + 1) * rowHeight;
-      context.fillStyle = rowIndex % 2 ? "#f8faff" : "white";
+    Array.from({ length: columnCount }, (_, index) => row[index] ?? "").forEach((value, index) => {
+      const y = top + rowIndex * rowHeight;
+      context.fillStyle = rowIndex === 0 ? "#eaf0ff" : rowIndex % 2 ? "#f8faff" : "white";
       context.fillRect(cellX, y, widths[index], rowHeight);
-      context.strokeStyle = "#aab3c7";
+      context.strokeStyle = rowIndex === 0 ? "#72809f" : "#aab3c7";
       context.strokeRect(cellX, y, widths[index], rowHeight);
       context.fillStyle = "#17213a";
-      context.font = "14px Tahoma, sans-serif";
+      context.font = `${rowIndex === 0 ? "bold " : ""}14px Tahoma, sans-serif`;
       context.fillText(
-        String(value),
+        fitCanvasText(context, value, widths[index] - 18),
         cellX + widths[index] / 2,
         y + rowHeight / 2,
       );
@@ -2474,17 +2629,14 @@ function createIocCanvas(
   });
   return canvas;
 }
-function exportIocPng(
-  title: string,
-  experts: string[],
-  rows: Array<Array<number | null>>,
-  results: ReturnType<typeof calculateIoc>,
-) {
-  const canvas = createIocCanvas(title, experts, rows, results);
-  if (!canvas) return;
-  canvas.toBlob((blob) => {
-    if (blob) downloadFile(blob, `${safeFilename(title)}.png`);
-  }, "image/png");
+
+function CopyIcon() {
+  return (
+    <svg viewBox="0 0 36 36" aria-hidden="true">
+      <rect x="12" y="10" width="17" height="20" rx="2" />
+      <path className="fold" d="M8 25H6V6h16v2" />
+    </svg>
+  );
 }
 
 function ExportIcon({ format }: { format: string }) {
@@ -2839,6 +2991,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          title={analysisTitle}
           editable={!analysisLocked}
         />
       ),
@@ -2849,6 +3002,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          title={analysisTitle}
           editable={!analysisLocked}
         />
       ),
@@ -2858,6 +3012,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          title={analysisTitle}
           editable={!analysisLocked}
         />
       ),
@@ -2867,6 +3022,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          title={analysisTitle}
           editable={!analysisLocked}
         />
       ),
@@ -2876,6 +3032,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          title={analysisTitle}
           editable={!analysisLocked}
         />
       ),
@@ -2885,6 +3042,7 @@ export default function ResearchStatsApp({
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
+          title={analysisTitle}
           editable={!analysisLocked}
         />
       ),
