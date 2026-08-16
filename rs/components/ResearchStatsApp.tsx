@@ -73,7 +73,7 @@ const NAV: Array<{ id: View; label: string; icon: string; group?: string }> = [
     icon: "x̄",
     group: "สถิติพรรณนา",
   },
-  { id: "quality", label: "ระดับความพึงพอใจ 3/5 ระดับ", icon: "★" },
+  { id: "quality", label: "ความพึงพอใจ / คุณภาพสื่อ", icon: "★" },
   {
     id: "item",
     label: "ความยาก–อำนาจจำแนก",
@@ -653,6 +653,9 @@ function DescriptiveView({
   onChange,
   title,
   editable,
+  respondentLabel = "นักเรียน",
+  measureLabel = "ความพึงพอใจ",
+  qualityControls,
 }: {
   quality?: boolean;
   imported?: ImportedProjectData | null;
@@ -660,6 +663,9 @@ function DescriptiveView({
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
   title: string;
   editable: boolean;
+  respondentLabel?: string;
+  measureLabel?: string;
+  qualityControls?: React.ReactNode;
 }) {
   const [text, setText] = useState(
     typeof initial?.text === "string"
@@ -709,8 +715,8 @@ function DescriptiveView({
         ? "เกณฑ์ช่วงกว้างเท่ากัน 0.80"
         : "เกณฑ์ที่ผู้ใช้กำหนด";
   const qualityReports = {
-    short: `นักเรียนมีความพึงพอใจโดยรวมอยู่ในระดับ${interpretation} (x̄ = ${fmt(avg)}, S.D. = ${fmt(sd)}, n = ${values.length})`,
-    detailed: `ผลการวิเคราะห์ความพึงพอใจของนักเรียนจำนวน ${values.length} คนด้วยสถิติเชิงพรรณนา พบว่า มีค่าเฉลี่ยเท่ากับ ${fmt(avg)} ส่วนเบี่ยงเบนมาตรฐานเท่ากับ ${fmt(sd)} มัธยฐานเท่ากับ ${fmt(medianValue)} และ IQR เท่ากับ ${fmt(iqr)} เมื่อแปลผลด้วย${schemeDescription} นักเรียนมีความพึงพอใจโดยรวมอยู่ในระดับ${interpretation}${criterionSource.trim() ? ` โดยอ้างอิงเกณฑ์จาก ${criterionSource.trim()}` : ""}`,
+    short: `ผลการประเมิน${measureLabel}โดย${respondentLabel}อยู่ในระดับ${interpretation} (x̄ = ${fmt(avg)}, S.D. = ${fmt(sd)}, n = ${values.length})`,
+    detailed: `ผลการวิเคราะห์${measureLabel}จาก${respondentLabel}จำนวน ${values.length} คนด้วยสถิติเชิงพรรณนา พบว่า มีค่าเฉลี่ยเท่ากับ ${fmt(avg)} ส่วนเบี่ยงเบนมาตรฐานเท่ากับ ${fmt(sd)} มัธยฐานเท่ากับ ${fmt(medianValue)} และ IQR เท่ากับ ${fmt(iqr)} เมื่อแปลผลด้วย${schemeDescription} ผลการประเมินโดยรวมอยู่ในระดับ${interpretation}${criterionSource.trim() ? ` โดยอ้างอิงเกณฑ์จาก ${criterionSource.trim()}` : ""}`,
   };
   const exportRows: ExportCell[][] = [
     ["สถิติ", "ผล"],
@@ -761,17 +767,18 @@ function DescriptiveView({
   };
   return (
     <Page
-      title={quality ? "การแปลผลระดับคุณภาพ" : "สถิติพรรณนา"}
+      title={quality ? `การแปลผล${measureLabel}` : "สถิติพรรณนา"}
       subtitle={
         quality
-          ? "คำนวณค่าเฉลี่ยและแปลผลมาตราส่วนประมาณค่า 3 หรือ 5 ระดับ"
+          ? `คำนวณค่าเฉลี่ยและแปลผลมาตราส่วนประมาณค่า 3 หรือ 5 ระดับสำหรับ${respondentLabel}`
           : "ค่าเฉลี่ย มัธยฐาน และส่วนเบี่ยงเบนมาตรฐานของกลุ่มตัวอย่าง"
       }
       badge="ตรวจสอบข้อมูลดิบได้"
     >
+      {quality && qualityControls}
       <section className="panel result-export-panel">
         <ResultExportToolbar
-          title={title || (quality ? "ผลการแปลระดับคุณภาพ" : "ผลสถิติพรรณนา")}
+          title={title || (quality ? `ผลการแปล${measureLabel}` : "ผลสถิติพรรณนา")}
           sheetName={quality ? "ระดับคุณภาพ" : "สถิติพรรณนา"}
           rows={exportRows}
         />
@@ -781,7 +788,7 @@ function DescriptiveView({
           <div className="panel-head">
             <div>
               <span className="eyebrow">กำหนดไว้ก่อนแปลผล</span>
-              <h3>เกณฑ์แปลผลความพึงพอใจ</h3>
+              <h3>เกณฑ์แปลผล${measureLabel}</h3>
               <p>เลือกเกณฑ์ให้ตรงกับตำราที่อ้างอิง และใช้ชุดเดียวกันตลอดบทที่ 3–5</p>
             </div>
           </div>
@@ -917,6 +924,757 @@ function DescriptiveView({
           </section>
         </>
       )}
+    </Page>
+  );
+}
+
+
+type QualityRespondentType =
+  | "students"
+  | "experts"
+  | "teachers"
+  | "parents"
+  | "staff"
+  | "custom";
+
+const QUALITY_RESPONDENT_LABELS: Record<Exclude<QualityRespondentType, "custom">, string> = {
+  students: "นักเรียน",
+  experts: "ผู้เชี่ยวชาญ",
+  teachers: "ครูผู้สอน",
+  parents: "ผู้ปกครอง",
+  staff: "บุคลากรทางการศึกษา",
+};
+
+type MediaQualityDomain = {
+  id: number;
+  title: string;
+  start: number;
+  end: number;
+};
+
+const MEDIA_QUALITY_DOMAINS: MediaQualityDomain[] = [
+  { id: 1, title: "เนื้อหาและความสอดคล้องกับหลักสูตร", start: 1, end: 6 },
+  { id: 2, title: "การออกแบบกิจกรรมการเรียนรู้", start: 7, end: 12 },
+  { id: 3, title: "องค์ประกอบเกมมิฟิเคชัน (Gamification Elements)", start: 13, end: 20 },
+  { id: 4, title: "การออกแบบหน้าจอและการใช้งาน (UI/UX Design)", start: 21, end: 26 },
+  { id: 5, title: "ประสิทธิภาพของระบบ (System Performance)", start: 27, end: 32 },
+  { id: 6, title: "ระบบ Teacher Dashboard (สำหรับครูผู้สอน)", start: 33, end: 38 },
+  { id: 7, title: "คุณค่าและการนำไปใช้ประโยชน์", start: 39, end: 43 },
+];
+
+const MEDIA_QUALITY_ITEM_LABELS = [
+  "เนื้อหาสอดคล้องกับมาตรฐานและตัวชี้วัดภาษาไทย ป.2",
+  "เนื้อหาสอดคล้องกับจุดประสงค์การเรียนรู้ด้าน K-P-A",
+  "เนื้อหาเกี่ยวกับมาตราตัวสะกดถูกต้องตามหลักภาษาไทย",
+  "คำ ตัวอย่าง และประโยคเหมาะสมกับระดับพัฒนาการ",
+  "เนื้อหามีลำดับจากง่ายไปยากและเชื่อมโยงกัน",
+  "สื่อครอบคลุมเนื้อหาตามแผนการจัดการเรียนรู้ทั้ง 8 แผน",
+  "กิจกรรมมีขั้นตอนและคำชี้แจงชัดเจน เข้าใจง่าย",
+  "กิจกรรมส่งเสริมการอ่าน การจำแนก และการสะกดคำอย่างมีประสิทธิภาพ",
+  "กิจกรรมส่งเสริมการเรียงคำเป็นประโยคได้ตรงตามเจตนาการสื่อสาร",
+  "ระดับความท้าทายและความยากของกิจกรรมเหมาะสมกับผู้เรียน",
+  "ระยะเวลาของการทำแต่ละกิจกรรมเหมาะสมกับคาบเรียน 1 ชั่วโมง",
+  "กิจกรรมเปิดโอกาสให้นักเรียนมีส่วนร่วม (Active Learning) อย่างต่อเนื่อง",
+  "ภารกิจและด่านของเกมมีความชัดเจนและน่าสนใจ",
+  "ระบบคะแนนช่วยกระตุ้นให้นักเรียนเข้าร่วมกิจกรรม",
+  "เหรียญ ดาว และรางวัลสะสม เหมาะสมกับความสนใจตามวัยของผู้เรียน",
+  "กระดานคะแนน (Leaderboard) ช่วยสร้างแรงจูงใจอย่างเหมาะสม",
+  "ระบบแสดงผลป้อนกลับ (Feedback) ทันทีเมื่อผู้เรียนตอบคำถาม",
+  "เกมแสดงคำตอบที่ถูกและผิดพร้อมเหตุผลอย่างชัดเจน",
+  "เกมส่งเสริมการแข่งขันอย่างสร้างสรรค์และเป็นธรรม",
+  "องค์ประกอบเกมช่วยให้ผู้เรียนสนุกและมีความต้องการเรียนรู้ต่อ",
+  "รูปแบบหน้าจอสวยงาม ดึงดูดความสนใจ และเหมาะสมกับนักเรียน ป.2",
+  "ตัวอักษรมีขนาดใหญ่ ชัดเจน และอ่านง่าย",
+  "สี ภาพ เสียงประกอบ และภาพเคลื่อนไหวมีความเหมาะสม ไม่รบกวนสมาธิ",
+  "ปุ่มและเมนูต่าง ๆ ใช้งานง่าย ตรงไปตรงมา ไม่ซับซ้อน",
+  "การจัดวางองค์ประกอบมีความสมดุลและไม่บดบังเนื้อหาสำคัญ",
+  "หน้าจอแสดงผลได้เหมาะสมทั้งคอมพิวเตอร์ แท็บเล็ต และสมาร์ตโฟน",
+  "ระบบทำงานรวดเร็วและตอบสนองต่อคำสั่งได้ดี ไม่หน่วง",
+  "เกมและสื่อสามารถทำงานได้อย่างต่อเนื่อง ไม่เกิดข้อผิดพลาด (Bug)",
+  "การเชื่อมต่อข้อมูลระหว่างจอครูและจอนักเรียนมีความถูกต้องและเสถียร",
+  "คะแนนและผลการแข่งขันอัปเดตแบบเรียลไทม์ (Real-time)",
+  "ระบบรองรับนักเรียนหลายคนเข้าใช้งานพร้อมกันได้อย่างราบรื่น",
+  "ระบบมีการจัดการข้อมูลและสิทธิ์ผู้ใช้งานได้อย่างเหมาะสมและปลอดภัย",
+  "ครูสามารถสร้างห้องและแสดงรหัส (Room Code) หรือ QR Code ได้สะดวก",
+  "ครูสามารถตรวจสอบรายชื่อและอนุมัตินักเรียนเข้าห้องได้อย่างรวดเร็ว",
+  "ครูสามารถควบคุมลำดับกิจกรรมและบริหารเวลาในชั้นเรียนได้อย่างเหมาะสม",
+  "ครูสามารถสลับการแสดงผลสื่อบนจอโปรเจกเตอร์และจอนักเรียนได้ง่าย",
+  "ครูสามารถติดตามความก้าวหน้าและคะแนนของนักเรียนเป็นรายบุคคลได้",
+  "ครูสามารถดูผลสรุปการแข่งขันและประกาศผลท้ายคาบได้ชัดเจน",
+  "สื่อช่วยให้ผู้เรียนเข้าใจเรื่องมาตราตัวสะกดได้ดีขึ้นอย่างเป็นรูปธรรม",
+  "สื่อช่วยลดภาระและเพิ่มความสะดวกในการจัดการเรียนรู้ของครู",
+  "สื่อมีความเหมาะสมและเป็นไปได้ในการนำไปใช้ในชั้นเรียนจริง",
+  "สื่อมีความน่าเชื่อถือและเหมาะสมสำหรับใช้เป็นนวัตกรรมในการทำวิจัย",
+  "ระบบมีความยืดหยุ่น สามารถนำไปพัฒนาเพิ่มเนื้อหาในอนาคตได้",
+];
+
+const DEFAULT_MEDIA_QUALITY_SCORES = [
+  [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5],
+  [5, 5, 5], [5, 5, 5], [4, 5, 5], [5, 5, 5], [4, 5, 4], [5, 5, 5],
+  [5, 5, 5], [5, 4, 5], [5, 4, 4], [5, 5, 5], [5, 5, 5], [4, 5, 5],
+  [5, 5, 4], [5, 4, 5], [5, 4, 5], [4, 5, 5], [5, 5, 5], [4, 4, 4],
+  [5, 5, 5], [4, 5, 4], [5, 4, 5], [4, 5, 5], [5, 4, 4], [5, 5, 5],
+  [5, 4, 5], [5, 5, 4], [5, 4, 5], [5, 5, 5], [5, 4, 5], [5, 5, 4],
+  [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 4, 4], [4, 5, 5], [5, 5, 5],
+  [5, 5, 5],
+];
+
+function qualityDomainForItem(itemNumber: number) {
+  return MEDIA_QUALITY_DOMAINS.find(
+    (domain) => itemNumber >= domain.start && itemNumber <= domain.end,
+  )!;
+}
+
+function normalizeRespondents(value: unknown) {
+  if (!Array.isArray(value)) return ["นางสาวไลลา", "นางสุภรณ์", "นางมาริยา"];
+  const respondents = value.map((item) => String(item ?? "").trim()).filter(Boolean);
+  return respondents.length ? respondents : ["นางสาวไลลา", "นางสุภรณ์", "นางมาริยา"];
+}
+
+function normalizeMediaScores(value: unknown, respondentCount: number) {
+  const source = Array.isArray(value) ? value : DEFAULT_MEDIA_QUALITY_SCORES;
+  return MEDIA_QUALITY_ITEM_LABELS.map((_, itemIndex) => {
+    const sourceRow = Array.isArray(source[itemIndex])
+      ? (source[itemIndex] as unknown[])
+      : DEFAULT_MEDIA_QUALITY_SCORES[itemIndex];
+    return Array.from({ length: respondentCount }, (_, respondentIndex) => {
+      const fallback = DEFAULT_MEDIA_QUALITY_SCORES[itemIndex]?.[respondentIndex] ?? 5;
+      const numeric = Number(sourceRow?.[respondentIndex] ?? fallback);
+      return Number.isFinite(numeric) && numeric >= 1 && numeric <= 5
+        ? Math.round(numeric)
+        : fallback;
+    });
+  });
+}
+
+function QualityView({
+  imported,
+  initial,
+  onChange,
+  title,
+  editable,
+}: {
+  imported?: ImportedProjectData | null;
+  initial?: WorkspaceData;
+  onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  title: string;
+  editable: boolean;
+}) {
+  const [qualityMode, setQualityMode] = useState<"summary" | "media-expert">(
+    initial?.qualityMode === "media-expert" ? "media-expert" : "summary",
+  );
+  const [respondentType, setRespondentType] = useState<QualityRespondentType>(
+    ["students", "experts", "teachers", "parents", "staff", "custom"].includes(
+      String(initial?.respondentType ?? ""),
+    )
+      ? (String(initial?.respondentType) as QualityRespondentType)
+      : initial?.qualityMode === "media-expert"
+        ? "experts"
+        : "students",
+  );
+  const [customRespondentLabel, setCustomRespondentLabel] = useState(
+    typeof initial?.customRespondentLabel === "string"
+      ? initial.customRespondentLabel
+      : "",
+  );
+  const respondentLabel =
+    respondentType === "custom"
+      ? customRespondentLabel.trim() || "ผู้ตอบแบบประเมิน"
+      : QUALITY_RESPONDENT_LABELS[respondentType];
+  const measureLabel =
+    qualityMode === "media-expert" ? "คุณภาพสื่อนวัตกรรม" : "ความพึงพอใจ";
+
+  const handleChildChange = useCallback(
+    (workspace: WorkspaceData, result: WorkspaceData) => {
+      onChange(
+        {
+          ...workspace,
+          qualityMode,
+          respondentType,
+          customRespondentLabel,
+        },
+        {
+          ...result,
+          qualityMode,
+          respondentType,
+          respondentLabel,
+        },
+      );
+    },
+    [
+      customRespondentLabel,
+      onChange,
+      qualityMode,
+      respondentLabel,
+      respondentType,
+    ],
+  );
+
+  const qualityControls = (
+    <section className="panel quality-settings">
+      <div className="panel-head">
+        <div>
+          <span className="eyebrow">รูปแบบการประเมินและผู้ตอบ</span>
+          <h3>เลือกบริบทก่อนคำนวณ</h3>
+          <p>ระบบจะปรับหัวตาราง คำแปลผล และข้อความรายงานให้ตรงกับผู้ตอบ</p>
+        </div>
+      </div>
+      <div className="quality-setting-grid">
+        <label>
+          รูปแบบการวิเคราะห์
+          <select
+            disabled={!editable}
+            value={qualityMode}
+            onChange={(event) =>
+              setQualityMode(event.target.value as "summary" | "media-expert")
+            }
+          >
+            <option value="summary">สรุปคะแนนมาตราส่วนทั่วไป</option>
+            <option value="media-expert">ประเมินคุณภาพสื่อรายข้อและรายด้าน</option>
+          </select>
+        </label>
+        <label>
+          ประเภทผู้ตอบ
+          <select
+            disabled={!editable}
+            value={respondentType}
+            onChange={(event) =>
+              setRespondentType(event.target.value as QualityRespondentType)
+            }
+          >
+            <option value="students">นักเรียน</option>
+            <option value="experts">ผู้เชี่ยวชาญ</option>
+            <option value="teachers">ครูผู้สอน</option>
+            <option value="parents">ผู้ปกครอง</option>
+            <option value="staff">บุคลากรทางการศึกษา</option>
+            <option value="custom">กำหนดเอง</option>
+          </select>
+        </label>
+        {respondentType === "custom" && (
+          <label>
+            ชื่อกลุ่มผู้ตอบ
+            <input
+              disabled={!editable}
+              value={customRespondentLabel}
+              placeholder="เช่น คณะกรรมการประเมิน"
+              onChange={(event) => setCustomRespondentLabel(event.target.value)}
+            />
+          </label>
+        )}
+      </div>
+    </section>
+  );
+
+  return qualityMode === "media-expert" ? (
+    <ExpertMediaQualityView
+      imported={imported}
+      initial={initial}
+      onChange={handleChildChange}
+      title={title}
+      editable={editable}
+      respondentLabel={respondentLabel}
+      qualityControls={qualityControls}
+    />
+  ) : (
+    <DescriptiveView
+      quality
+      imported={imported}
+      initial={initial}
+      onChange={handleChildChange}
+      title={title}
+      editable={editable}
+      respondentLabel={respondentLabel}
+      measureLabel={measureLabel}
+      qualityControls={qualityControls}
+    />
+  );
+}
+
+function ExpertMediaQualityView({
+  initial,
+  onChange,
+  title,
+  editable,
+  respondentLabel,
+  qualityControls,
+}: {
+  imported?: ImportedProjectData | null;
+  initial?: WorkspaceData;
+  onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  title: string;
+  editable: boolean;
+  respondentLabel: string;
+  qualityControls: React.ReactNode;
+}) {
+  const savedRespondents = normalizeRespondents(initial?.respondents);
+  const [respondents, setRespondents] = useState<string[]>(savedRespondents);
+  const [scores, setScores] = useState<number[][]>(() =>
+    normalizeMediaScores(initial?.mediaScores, savedRespondents.length),
+  );
+  const [passMean, setPassMean] = useState(
+    Number.isFinite(Number(initial?.passMean)) ? Number(initial?.passMean) : 3.51,
+  );
+  const [criterionSource, setCriterionSource] = useState(
+    typeof initial?.criterionSource === "string"
+      ? initial.criterionSource
+      : "เกณฑ์แปลผล 4.51–5.00 ตามเอกสารอ้างอิงที่ผู้วิจัยกำหนด",
+  );
+  const [qualitativeComments, setQualitativeComments] = useState(
+    typeof initial?.qualitativeComments === "string"
+      ? initial.qualitativeComments
+      : "",
+  );
+  const [improvementActions, setImprovementActions] = useState(
+    typeof initial?.improvementActions === "string"
+      ? initial.improvementActions
+      : "",
+  );
+  const [copiedReport, setCopiedReport] = useState(false);
+
+  const itemResults = useMemo(
+    () =>
+      MEDIA_QUALITY_ITEM_LABELS.map((label, itemIndex) => {
+        const values = (scores[itemIndex] ?? []).filter(
+          (value) => Number.isFinite(value) && value >= 1 && value <= 5,
+        );
+        const meanValue = mean(values);
+        const sdValue = sampleStandardDeviation(values);
+        return {
+          item: itemIndex + 1,
+          label,
+          domainId: qualityDomainForItem(itemIndex + 1).id,
+          values,
+          sum: values.reduce((total, value) => total + value, 0),
+          mean: meanValue,
+          sd: sdValue,
+          interpretation: interpretQuality(meanValue, traditionalFiveLevelBands),
+          passed: meanValue !== null && meanValue >= passMean,
+        };
+      }),
+    [passMean, scores],
+  );
+
+  const domainResults = useMemo(
+    () =>
+      MEDIA_QUALITY_DOMAINS.map((domain) => {
+        const values = scores
+          .slice(domain.start - 1, domain.end)
+          .flat()
+          .filter((value) => Number.isFinite(value) && value >= 1 && value <= 5);
+        const meanValue = mean(values);
+        const sdValue = sampleStandardDeviation(values);
+        return {
+          ...domain,
+          itemCount: domain.end - domain.start + 1,
+          responseCount: values.length,
+          mean: meanValue,
+          sd: sdValue,
+          interpretation: interpretQuality(meanValue, traditionalFiveLevelBands),
+          passed: meanValue !== null && meanValue >= passMean,
+        };
+      }),
+    [passMean, scores],
+  );
+
+  const overallResult = useMemo(() => {
+    const values = scores
+      .flat()
+      .filter((value) => Number.isFinite(value) && value >= 1 && value <= 5);
+    const meanValue = mean(values);
+    const sdValue = sampleStandardDeviation(values);
+    return {
+      responseCount: values.length,
+      totalScore: values.reduce((total, value) => total + value, 0),
+      maximumTotalScore: MEDIA_QUALITY_ITEM_LABELS.length * respondents.length * 5,
+      mean: meanValue,
+      sd: sdValue,
+      median: median(values),
+      q1: quantile(values, 0.25),
+      q3: quantile(values, 0.75),
+      interpretation: interpretQuality(meanValue, traditionalFiveLevelBands),
+      passed: meanValue !== null && meanValue >= passMean,
+    };
+  }, [respondents.length, scores]);
+
+  const shortReport = `ผลการประเมินคุณภาพสื่อนวัตกรรม Web Application เรื่อง มาตราตัวสะกด โดย${respondentLabel}จำนวน ${respondents.length} คน พบว่า โดยภาพรวมมีคุณภาพอยู่ในระดับ${overallResult.interpretation} (x̄ = ${fmt(overallResult.mean)}, S.D. = ${fmt(overallResult.sd)}) และ${overallResult.passed ? "ผ่าน" : "ไม่ผ่าน"}เกณฑ์ค่าเฉลี่ย ${fmt(passMean, 2)}`;
+  const domainNarrative = domainResults
+    .map(
+      (domain) =>
+        `ด้านที่ ${domain.id} ${domain.title} อยู่ในระดับ${domain.interpretation} (x̄ = ${fmt(domain.mean)}, S.D. = ${fmt(domain.sd)})`,
+    )
+    .join("; ");
+  const detailedReport = `${shortReport} เมื่อพิจารณารายด้าน พบว่า ${domainNarrative}${qualitativeComments.trim() ? ` ข้อเสนอแนะของผู้ประเมินสรุปได้ว่า ${qualitativeComments.trim()}` : ""}${improvementActions.trim() ? ` ผู้วิจัยดำเนินการปรับปรุงดังนี้ ${improvementActions.trim()}` : ""}`;
+
+  const exportRows: ExportCell[][] = [
+    ["ข้อ", "รายการประเมิน", ...respondents, "รวม", "x̄", "S.D.", "ระดับ", "ผล"],
+    ...itemResults.map((result) => [
+      result.item,
+      result.label,
+      ...result.values,
+      result.sum,
+      fmt(result.mean, 2),
+      fmt(result.sd, 2),
+      result.interpretation,
+      result.passed ? "ผ่าน" : "ควรปรับปรุง",
+    ]),
+    [""],
+    ["สรุปรายด้าน", "ชื่อด้าน", "จำนวนข้อ", "x̄", "S.D.", "ระดับ", "ผล"],
+    ...domainResults.map((domain) => [
+      `ด้านที่ ${domain.id}`,
+      domain.title,
+      domain.itemCount,
+      fmt(domain.mean, 2),
+      fmt(domain.sd, 2),
+      domain.interpretation,
+      domain.passed ? "ผ่าน" : "ควรปรับปรุง",
+    ]),
+    [
+      "ภาพรวม",
+      `${MEDIA_QUALITY_ITEM_LABELS.length} ข้อ`,
+      "",
+      fmt(overallResult.mean, 2),
+      fmt(overallResult.sd, 2),
+      overallResult.interpretation,
+      overallResult.passed ? "ผ่าน" : "ควรปรับปรุง",
+    ],
+    [""],
+    ["ข้อเสนอแนะเชิงคุณภาพ", qualitativeComments],
+    ["การปรับปรุงที่ดำเนินการ", improvementActions],
+  ];
+
+  useEffect(() => {
+    onChange(
+      {
+        qualityMode: "media-expert",
+        scaleLevels: 5,
+        bandScheme: "traditional",
+        respondents,
+        mediaScores: scores,
+        passMean,
+        criterionSource,
+        qualitativeComments,
+        improvementActions,
+        itemCount: MEDIA_QUALITY_ITEM_LABELS.length,
+        domainCount: MEDIA_QUALITY_DOMAINS.length,
+      },
+      {
+        respondentCount: respondents.length,
+        itemCount: MEDIA_QUALITY_ITEM_LABELS.length,
+        domainCount: MEDIA_QUALITY_DOMAINS.length,
+        itemResults,
+        domainResults,
+        overall: overallResult,
+        criterion: {
+          passMean,
+          scaleLevels: 5,
+          bandScheme: "traditional",
+          source: criterionSource,
+        },
+        shortReport,
+        detailedReport,
+      },
+    );
+  }, [
+    criterionSource,
+    detailedReport,
+    domainResults,
+    improvementActions,
+    itemResults,
+    onChange,
+    overallResult,
+    passMean,
+    qualitativeComments,
+    respondents,
+    scores,
+    shortReport,
+  ]);
+
+  const updateScore = (itemIndex: number, respondentIndex: number, value: number) => {
+    setScores((current) =>
+      current.map((row, rowIndex) =>
+        rowIndex === itemIndex
+          ? row.map((score, columnIndex) =>
+              columnIndex === respondentIndex ? value : score,
+            )
+          : row,
+      ),
+    );
+  };
+
+  const updateRespondentName = (respondentIndex: number, value: string) => {
+    setRespondents((current) =>
+      current.map((name, index) => (index === respondentIndex ? value : name)),
+    );
+  };
+
+  const addRespondent = () => {
+    if (respondents.length >= 10) return;
+    setRespondents((current) => [
+      ...current,
+      `ผู้ประเมินคนที่ ${current.length + 1}`,
+    ]);
+    setScores((current) => current.map((row) => [...row, 5]));
+  };
+
+  const removeRespondent = () => {
+    if (respondents.length <= 1) return;
+    setRespondents((current) => current.slice(0, -1));
+    setScores((current) => current.map((row) => row.slice(0, -1)));
+  };
+
+  const copyReport = async () => {
+    const copied = await copyToClipboard(detailedReport);
+    setCopiedReport(copied);
+    if (copied) window.setTimeout(() => setCopiedReport(false), 1800);
+  };
+
+  return (
+    <Page
+      title="การประเมินคุณภาพสื่อนวัตกรรม"
+      subtitle={`วิเคราะห์คะแนนรายข้อ รายด้าน และภาพรวมจาก${respondentLabel}`}
+      badge="43 ข้อ · 7 ด้าน · ตรวจสอบย้อนกลับได้"
+    >
+      {qualityControls}
+      <section className="panel result-export-panel">
+        <ResultExportToolbar
+          title={title || "ผลการประเมินคุณภาพสื่อนวัตกรรม"}
+          sheetName="คุณภาพสื่อ"
+          rows={exportRows}
+        />
+      </section>
+
+      <section className="panel quality-settings">
+        <div className="panel-head">
+          <div>
+            <span className="eyebrow">ผู้ประเมินและเกณฑ์ที่กำหนดไว้ล่วงหน้า</span>
+            <h3>ตั้งค่าการประเมิน</h3>
+            <p>เพิ่มหรือลดผู้ประเมินได้ และระบุชื่อเพื่อแสดงในตารางส่งออก</p>
+          </div>
+        </div>
+        <div className="quality-setting-grid">
+          {respondents.map((respondent, index) => (
+            <label key={`respondent-${index}`}>
+              ผู้ประเมินคนที่ {index + 1}
+              <input
+                disabled={!editable}
+                value={respondent}
+                onChange={(event) => updateRespondentName(index, event.target.value)}
+              />
+            </label>
+          ))}
+          <label>
+            เกณฑ์ผ่านขั้นต่ำ
+            <input
+              disabled={!editable}
+              type="number"
+              min="1"
+              max="5"
+              step="0.01"
+              value={passMean}
+              onChange={(event) => setPassMean(Number(event.target.value))}
+            />
+          </label>
+          <label>
+            แหล่งอ้างอิงเกณฑ์
+            <input
+              disabled={!editable}
+              value={criterionSource}
+              onChange={(event) => setCriterionSource(event.target.value)}
+              placeholder="ผู้แต่ง ปี ฉบับพิมพ์ และเลขหน้า"
+            />
+          </label>
+        </div>
+        <div className="copy-report-actions">
+          <button type="button" disabled={!editable || respondents.length >= 10} onClick={addRespondent}>
+            ＋ เพิ่มผู้ประเมิน
+          </button>
+          <button type="button" disabled={!editable || respondents.length <= 1} onClick={removeRespondent}>
+            − ลดผู้ประเมินคนสุดท้าย
+          </button>
+        </div>
+      </section>
+
+      <section className="metric-grid">
+        <Metric label="ผู้ประเมิน" value={`${respondents.length} คน`} tone="blue" />
+        <Metric label="จำนวนข้อ" value={`${MEDIA_QUALITY_ITEM_LABELS.length} ข้อ`} tone="violet" />
+        <Metric label="ค่าเฉลี่ยรวม" value={fmt(overallResult.mean)} tone="green" />
+        <Metric label="S.D." value={fmt(overallResult.sd)} tone="amber" />
+        <Metric
+          label="ระดับคุณภาพ"
+          value={overallResult.interpretation}
+          note={overallResult.passed ? "ผ่านเกณฑ์" : "ควรปรับปรุง"}
+          tone={overallResult.passed ? "green" : "amber"}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <span className="eyebrow">ข้อมูลดิบและผลรายข้อ</span>
+            <h3>ตารางคะแนน 43 ข้อ</h3>
+            <p>คะแนน 1–5 · x̄ และ S.D. คำนวณจากผู้ประเมินในแต่ละข้อ</p>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table className="media-quality-table">
+            <thead>
+              <tr>
+                <th>ข้อ</th>
+                <th>รายการประเมิน</th>
+                {respondents.map((respondent, index) => (
+                  <th key={`head-${index}`}>{respondent || `คนที่ ${index + 1}`}</th>
+                ))}
+                <th>รวม</th>
+                <th>x̄</th>
+                <th>S.D.</th>
+                <th>ระดับ</th>
+                <th>ผล</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MEDIA_QUALITY_DOMAINS.flatMap((domain) => [
+                <tr className="section-row" key={`domain-${domain.id}`}>
+                  <td colSpan={respondents.length + 7}>
+                    <b>ด้านที่ {domain.id} {domain.title}</b>
+                  </td>
+                </tr>,
+                ...itemResults
+                  .filter((result) => result.domainId === domain.id)
+                  .map((result) => (
+                    <tr key={`item-${result.item}`}>
+                      <td><b>{result.item}</b></td>
+                      <td>{result.label}</td>
+                      {respondents.map((_, respondentIndex) => (
+                        <td key={`score-${result.item}-${respondentIndex}`}>
+                          <select
+                            disabled={!editable}
+                            value={scores[result.item - 1]?.[respondentIndex] ?? 5}
+                            onChange={(event) =>
+                              updateScore(
+                                result.item - 1,
+                                respondentIndex,
+                                Number(event.target.value),
+                              )
+                            }
+                            aria-label={`ข้อ ${result.item} ผู้ประเมินคนที่ ${respondentIndex + 1}`}
+                          >
+                            {[5, 4, 3, 2, 1].map((score) => (
+                              <option value={score} key={score}>{score}</option>
+                            ))}
+                          </select>
+                        </td>
+                      ))}
+                      <td>{result.sum}</td>
+                      <td>{fmt(result.mean, 2)}</td>
+                      <td>{fmt(result.sd, 2)}</td>
+                      <td>{result.interpretation}</td>
+                      <td>
+                        <span className={result.passed ? "pill pass" : "pill revise"}>
+                          {result.passed ? "ผ่าน" : "ปรับปรุง"}
+                        </span>
+                      </td>
+                    </tr>
+                  )),
+              ])}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <span className="eyebrow">ผลสำหรับบทที่ 4</span>
+            <h3>สรุปรายด้านและภาพรวม</h3>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ด้าน</th>
+                <th>จำนวนข้อ</th>
+                <th>x̄</th>
+                <th>S.D.</th>
+                <th>ระดับคุณภาพ</th>
+                <th>ผล</th>
+              </tr>
+            </thead>
+            <tbody>
+              {domainResults.map((domain) => (
+                <tr key={`summary-${domain.id}`}>
+                  <td>ด้านที่ {domain.id} {domain.title}</td>
+                  <td>{domain.itemCount}</td>
+                  <td>{fmt(domain.mean, 2)}</td>
+                  <td>{fmt(domain.sd, 2)}</td>
+                  <td>{domain.interpretation}</td>
+                  <td>{domain.passed ? "ผ่าน" : "ควรปรับปรุง"}</td>
+                </tr>
+              ))}
+              <tr>
+                <td><b>ภาพรวม</b></td>
+                <td><b>{MEDIA_QUALITY_ITEM_LABELS.length}</b></td>
+                <td><b>{fmt(overallResult.mean, 2)}</b></td>
+                <td><b>{fmt(overallResult.sd, 2)}</b></td>
+                <td><b>{overallResult.interpretation}</b></td>
+                <td><b>{overallResult.passed ? "ผ่าน" : "ควรปรับปรุง"}</b></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="data-note">
+          S.D. รายด้านคำนวณจากคะแนนดิบทุกข้อในด้านนั้น และใช้ S.D. แบบตัวอย่าง (n−1)
+        </p>
+      </section>
+
+      <section className="split">
+        <div className="panel">
+          <h3>ข้อเสนอแนะเชิงคุณภาพ</h3>
+          <textarea
+            disabled={!editable}
+            rows={7}
+            value={qualitativeComments}
+            placeholder="สรุปความคิดเห็นหรือข้อเสนอแนะจากผู้ประเมิน"
+            onChange={(event) => setQualitativeComments(event.target.value)}
+          />
+        </div>
+        <div className="panel">
+          <h3>การปรับปรุงที่ผู้วิจัยดำเนินการ</h3>
+          <textarea
+            disabled={!editable}
+            rows={7}
+            value={improvementActions}
+            placeholder="ระบุสิ่งที่ปรับปรุงก่อนนำสื่อไปใช้จริง"
+            onChange={(event) => setImprovementActions(event.target.value)}
+          />
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <span className="eyebrow">รายงานอัตโนมัติ</span>
+            <h3>ข้อความพร้อมใช้ในบทที่ 4</h3>
+          </div>
+          <button type="button" onClick={copyReport}>
+            {copiedReport ? "คัดลอกแล้ว" : "คัดลอกรายงาน"}
+          </button>
+        </div>
+        <div className="report-grid">
+          <article>
+            <div className="report-head"><b>แบบย่อ</b></div>
+            <p>{shortReport}</p>
+          </article>
+          <article>
+            <div className="report-head"><b>แบบละเอียด</b></div>
+            <p>{detailedReport}</p>
+          </article>
+        </div>
+      </section>
+
+      <Formula source="สถิติเชิงพรรณนา; เกณฑ์แปลผลมาตราส่วนประมาณค่า 5 ระดับที่ผู้วิจัยกำหนด">
+        x̄ = ΣX / n และ S.D. = √[Σ(X − x̄)² / (n − 1)] · รายงานผลรายข้อ รายด้าน และภาพรวม
+      </Formula>
     </Page>
   );
 }
@@ -2486,7 +3244,7 @@ function toolDescription(id: View) {
       {
         ioc: "ตรวจความสอดคล้องรายข้อจากผู้เชี่ยวชาญ",
         descriptive: "สรุปแนวโน้มและการกระจายของข้อมูล",
-        quality: "แปลผลแบบประเมินมาตราส่วน 3 หรือ 5 ระดับ",
+        quality: "ประเมินความพึงพอใจหรือคุณภาพสื่อจากผู้ตอบที่กำหนด",
         item: "วิเคราะห์คุณภาพข้อสอบรายข้อ",
         reliability: "คำนวณ α และ KR-20",
         paired: "เปรียบเทียบก่อน–หลังเรียนและหลังเรียนกับเกณฑ์",
@@ -2996,9 +3754,8 @@ export default function ResearchStatsApp({
         />
       ),
       quality: (
-        <DescriptiveView
+        <QualityView
           key={`quality-${dataKey}`}
-          quality
           imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
