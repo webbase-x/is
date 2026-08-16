@@ -16,6 +16,12 @@ export const equalWidthFiveLevelBands: QualityBand[] = [
   { min: 1, max: 1.8, label: "น้อยที่สุด" },
 ];
 
+export const threeLevelSatisfactionBands: QualityBand[] = [
+  { min: 2.34, max: 3, label: "มาก" },
+  { min: 1.67, max: 2.33, label: "ปานกลาง" },
+  { min: 1, max: 1.66, label: "น้อย" },
+];
+
 export const defaultFiveLevelBands = traditionalFiveLevelBands;
 
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
