@@ -734,6 +734,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .flow-plan-choice small { margin-top: auto; color: var(--muted); }
 .assessment-choice-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .65fr); align-items: center; gap: 18px; margin: 0 0 14px; padding: 18px 22px; border: 1px solid #d9d3ff; border-radius: 20px; background: linear-gradient(135deg, #f8f6ff, #fff); }
 .assessment-choice-section-post { margin-top: 14px; border-color: #c8e6dc; background: linear-gradient(135deg, #f3fffb, #fff); }
+.satisfaction-choice-section { border-color: #ddcdfb; background: linear-gradient(135deg, #fff8fd, #f8f5ff); }
 .assessment-choice-section h3 { margin: 3px 0; font-size: 20px; }
 .assessment-choice-section p { margin: 0; color: var(--muted); }
 .assessment-choice { min-height: 96px; display: grid; grid-template-columns: 45px minmax(0, 1fr); align-content: center; gap: 2px 10px; padding: 14px 16px; border: 2px solid #d9d3ff; border-radius: 17px; color: var(--ink); background: white; text-align: left; cursor: pointer; transition: .2s ease; }
@@ -742,6 +743,13 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 4px r
 .assessment-choice strong, .assessment-choice small { min-width: 0; }
 .assessment-choice strong { font-size: 16px; }
 .assessment-choice small { color: var(--muted); line-height: 1.35; }
+.satisfaction-choice-card { min-height: 96px; display: grid; grid-template-columns: 45px minmax(0, 1fr); align-content: center; gap: 2px 10px; padding: 14px 16px; border: 2px solid #d8c7f5; border-radius: 17px; color: var(--ink); background: white; text-align: left; box-shadow: 0 9px 22px rgba(105,77,170,.08); }
+.satisfaction-choice-card > span { grid-row: 1 / 4; align-self: center; font-size: 34px; }
+.satisfaction-choice-card strong, .satisfaction-choice-card small, .satisfaction-choice-card em { min-width: 0; }
+.satisfaction-choice-card strong { font-size: 16px; }
+.satisfaction-choice-card small { color: var(--muted); line-height: 1.35; }
+.satisfaction-choice-card em { margin-top: 3px; color: #7654b8; font-size: 11px; font-style: normal; font-weight: 900; }
+.satisfaction-preview-step { border: 1px solid #ddcdfb; background: linear-gradient(145deg,#fff7fd,#f3efff) !important; }
 .assessment-duration-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 14px; padding: 16px 20px; border-color: #d9d3ff; background: #fbfaff; }
 .assessment-duration-panel strong, .assessment-duration-panel small { display: block; }
 .assessment-duration-panel small { margin-top: 3px; color: var(--muted); }
@@ -1718,6 +1726,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .display-students-empty h2 { font-size: 21px; }
   .teacher-flow-progress li small { display: none; }
   .teacher-flow-step { padding: 20px 13px; }
+  .assessment-choice-section { grid-template-columns: 1fr; padding: 16px; }
+  .assessment-choice, .satisfaction-choice-card { min-height: 88px; }
   .flow-hero-icon { width: 76px; height: 76px; font-size: 43px; }
   .flow-plan-grid, .flow-game-list { grid-template-columns: 1fr; }
   .flow-activity-preview { padding: 16px; }
