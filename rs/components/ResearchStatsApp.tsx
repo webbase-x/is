@@ -907,7 +907,7 @@ function DescriptiveView({
           <div className="panel-head">
             <div>
               <span className="eyebrow">กำหนดไว้ก่อนแปลผล</span>
-              <h3>เกณฑ์แปลผล${measureLabel}</h3>
+              <h3>เกณฑ์แปลผล{measureLabel}</h3>
               <p>เลือกเกณฑ์ให้ตรงกับตำราที่อ้างอิง และใช้ชุดเดียวกันตลอดบทที่ 3–5</p>
             </div>
           </div>
@@ -1008,7 +1008,7 @@ function DescriptiveView({
             <Metric label="ค่าเฉลี่ย (x̄)" value={fmt(avg)} tone="green" />
             <Metric label="S.D. (ตัวอย่าง)" value={fmt(sd)} tone="violet" />
             <Metric
-              label={quality ? "ระดับคุณภาพ" : "มัธยฐาน"}
+              label={quality ? `ระดับ${measureLabel}` : "มัธยฐาน"}
               value={quality ? interpretation : fmt(medianValue)}
               tone="amber"
             />
