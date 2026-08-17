@@ -12,7 +12,7 @@ import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
 import { EXIT_TICKET_INSTRUMENT_VERSION } from "./exit-ticket-bank.js?v=20260817-four-skills-1";
 
-const TEACHER_BUILD_VERSION = "20260817-ios-sql-picker-6";
+const TEACHER_BUILD_VERSION = "20260817-skill-form-report-7";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -3020,7 +3020,101 @@ function renderGameAssessmentReport() {
     : `<p class="assessment-report-empty">คะแนนทักษะจะปรากฏเมื่อมีคำตอบที่ติดป้ายทักษะจริง ระบบไม่ประมาณค่าทักษะจากเปอร์เซ็นต์เกม</p>`;
   const classroom = selectedClassroom();
   const roomCode = state.session?.room_code || state.classReportContext?.room_code || "ยังไม่มีรหัส";
-  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">${escapeHtml(classroom?.label || "ห้องเรียน")} · รหัสห้อง ${escapeHtml(roomCode)}</span><h2>คะแนนเกมและทักษะ 4 ด้าน</h2><p>แสดงคะแนนดิบของทุกเกมและคำนวณทักษะจากคำตอบที่ติดป้ายจริงเท่านั้น</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-game-alignment>ส่งออก CSV</button><button type="button" class="button button-secondary" data-export-score-sql>สำรองทุกข้อมูล SQL</button><button type="button" class="button button-ghost" data-export-empty-score-sql>แม่แบบ SQL ว่าง</button><button type="button" class="button button-ghost" data-import-score-sql>นำเข้า SQL</button></div></div>${summaryTable}${detailTable}${planSkillTable}</section>`;
+  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">${escapeHtml(classroom?.label || "ห้องเรียน")} · รหัสห้อง ${escapeHtml(roomCode)}</span><h2>คะแนนเกมและทักษะ 4 ด้าน</h2><p>แสดงคะแนนดิบของทุกเกมและคำนวณทักษะจากคำตอบที่ติดป้ายจริงเท่านั้น</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-print-skill-assessment>ส่งออกแบบประเมิน Word / PDF</button><button type="button" class="button button-secondary" data-export-game-alignment>ส่งออก CSV</button><button type="button" class="button button-secondary" data-export-score-sql>สำรองทุกข้อมูล SQL</button><button type="button" class="button button-ghost" data-export-empty-score-sql>แม่แบบ SQL ว่าง</button><button type="button" class="button button-ghost" data-import-score-sql>นำเข้า SQL</button></div></div>${summaryTable}${detailTable}${planSkillTable}</section>`;
+}
+
+function printSkillAssessmentForms() {
+  const popup = window.open("", "_blank");
+  if (!popup) return toast("เบราว์เซอร์ปิดกั้นหน้าพิมพ์ กรุณาอนุญาตป๊อปอัปแล้วลองใหม่", "warning");
+  const details = Array.isArray(state.gameAlignmentReport) ? state.gameAlignmentReport : [];
+  const skillDefinitions = [
+    ["classification", "การจำแนกคำ", "จำแนกคำเข้ามาตราตัวสะกดหรือกลุ่มคำที่ถูกต้อง"],
+    ["spelling", "การเขียนและสะกดคำ", "เลือก เติม หรือสร้างรูปคำสะกดที่ถูกต้อง"],
+    ["context", "การใช้คำตามบริบท", "เลือกหรือเติมคำให้เหมาะกับภาพ ความหมาย หรือข้อความแวดล้อม"],
+    ["sentence", "การเรียบเรียงประโยค", "เรียงคำหรือส่วนประกอบของประโยคให้ถูกต้องและสื่อความหมาย"],
+  ];
+  const rubricCriteria = {
+    classification: [
+      "จำแนกคำได้ถูกต้องตั้งแต่ร้อยละ 80 ขึ้นไป แยกคำตามมาตราตัวสะกดได้สม่ำเสมอ",
+      "จำแนกคำได้ถูกต้องร้อยละ 60–79 ยังสับสนบางคำหรือบางมาตรา",
+      "จำแนกคำได้ถูกต้องต่ำกว่าร้อยละ 60 และยังต้องได้รับคำแนะนำเพิ่มเติม",
+    ],
+    spelling: [
+      "เขียนหรือเลือกการสะกดคำได้ถูกต้องตั้งแต่ร้อยละ 80 ขึ้นไป รวมทั้งคำที่สะกดตรงและไม่ตรงมาตรา",
+      "เขียนหรือเลือกการสะกดคำได้ถูกต้องร้อยละ 60–79 มีข้อผิดพลาดบางคำแต่ยังแสดงความเข้าใจหลักการ",
+      "เขียนหรือเลือกการสะกดคำได้ถูกต้องต่ำกว่าร้อยละ 60 และยังสับสนตัวสะกดหรือรูปคำ",
+    ],
+    context: [
+      "เลือกและใช้คำได้เหมาะสมกับบริบทตั้งแต่ร้อยละ 80 ขึ้นไป ทำให้ข้อความมีความหมายถูกต้องชัดเจน",
+      "เลือกและใช้คำได้เหมาะสมกับบริบทร้อยละ 60–79 เข้าใจความหมายโดยรวมแต่ยังเลือกคำคลาดเคลื่อนบางข้อ",
+      "เลือกและใช้คำได้เหมาะสมกับบริบทต่ำกว่าร้อยละ 60 ยังเชื่อมโยงคำกับความหมายหรือสถานการณ์ได้ไม่ชัดเจน",
+    ],
+    sentence: [
+      "เรียงคำเป็นประโยคที่ถูกต้องและสื่อความหมายชัดเจนได้ตั้งแต่ร้อยละ 80 ขึ้นไป",
+      "เรียงคำเป็นประโยคได้ถูกต้องร้อยละ 60–79 สื่อความหมายได้แต่ยังมีลำดับคำหรือโครงสร้างคลาดเคลื่อนบางข้อ",
+      "เรียงคำเป็นประโยคได้ถูกต้องต่ำกว่าร้อยละ 60 ลำดับคำยังสับสนหรือประโยคสื่อความหมายไม่ชัดเจน",
+    ],
+  };
+  const grouped = new Map();
+  details.forEach(row => {
+    const key = `${row.student_id}:${row.plan_id}`;
+    const item = grouped.get(key) || {
+      student_order: row.student_order,
+      student_code: row.student_code,
+      full_name: row.full_name,
+      plan_id: Number(row.plan_id),
+      rows: [],
+    };
+    item.rows.push(row);
+    grouped.set(key, item);
+  });
+  const records = [...grouped.values()].sort((a, b) => (a.student_order ?? 999) - (b.student_order ?? 999) || a.plan_id - b.plan_id);
+  if (!records.length) {
+    popup.close();
+    return toast("ยังไม่มีคะแนนทักษะสำหรับจัดทำแบบประเมิน", "warning");
+  }
+  const classroom = selectedClassroom();
+  const assessedDate = new Date().toLocaleDateString("th-TH", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const forms = records.map(record => {
+    const skills = skillDefinitions.map(([code, label, evidence]) => {
+      const score = record.rows.reduce((sum, row) => sum + Number(row[`${code}_score`] || 0), 0);
+      const max = record.rows.reduce((sum, row) => sum + Number(row[`${code}_max`] || 0), 0);
+      const percent = max ? score * 100 / max : null;
+      const level = percent === null ? null : percent >= 80 ? 3 : percent >= 60 ? 2 : 1;
+      return { code, label, evidence, score, max, percent, level, rubric: rubricCriteria[code] };
+    });
+    const complete = skills.every(skill => skill.level !== null);
+    const total = complete ? skills.reduce((sum, skill) => sum + skill.level, 0) : null;
+    const quality = total === null ? "ข้อมูลยังไม่ครบ" : total >= 10 ? "ดี" : total >= 7 ? "พอใช้" : "ควรปรับปรุง";
+    const passed = total !== null && total >= 7;
+    const rubricTable = (skill, number) => `<section class="rubric-block"><h3>${number}. ${escapeHtml(skill.label)}</h3><table class="rubric-table"><thead><tr><th>ระดับ</th><th>เกณฑ์พฤติกรรม/ผลการปฏิบัติ</th></tr></thead><tbody>${skill.rubric.map((criterion, index) => `<tr><td><strong>ระดับ ${3 - index} (${["ดี", "พอใช้", "ควรปรับปรุง"][index]})</strong></td><td>${escapeHtml(criterion)}</td></tr>`).join("")}</tbody></table></section>`;
+    return `<article class="assessment-form">
+      <header><h1>แบบประเมินทักษะ 4 ด้าน</h1><h2>รายวิชาภาษาไทย เรื่อง มาตราตัวสะกด ชั้นประถมศึกษาปีที่ 2</h2></header>
+      <p class="instruction"><strong>คำชี้แจง:</strong> ให้ผู้สอนใช้คะแนนร้อยละจากหน้า “คะแนนเกมและทักษะ 4 ด้าน” ซึ่งประมวลจากคำตอบที่ติดป้ายทักษะจริง แล้วทำเครื่องหมาย ✓ ในระดับที่ตรงกับผลของนักเรียน ครูอาจใช้หลักฐานจากชิ้นงานหรือการสังเกตประกอบการพิจารณา</p>
+      <div class="metadata"><span><strong>ชื่อ–สกุลนักเรียน:</strong> ${escapeHtml(record.full_name || "—")}</span><span><strong>เลขที่/รหัส:</strong> ${escapeHtml(record.student_order ?? record.student_code ?? "—")}</span><span><strong>ห้อง:</strong> ${escapeHtml(classroom?.label || "—")}</span><span><strong>แผนการจัดการเรียนรู้ที่:</strong> ${record.plan_id}</span><span><strong>วันที่ประเมิน:</strong> ${escapeHtml(assessedDate)}</span></div>
+      <table class="score-table"><thead><tr><th>รายการประเมินและหลักฐาน</th><th>ร้อยละ</th><th>3<br>ดี</th><th>2<br>พอใช้</th><th>1<br>ควรปรับปรุง</th></tr></thead><tbody>${skills.map((skill, index) => `<tr><td><strong>${index + 1}. ${escapeHtml(skill.label)}</strong><small>${escapeHtml(skill.evidence)}</small></td><td>${skill.percent === null ? "—" : skill.percent.toFixed(2)}</td><td>${skill.level === 3 ? "✓" : "☐"}</td><td>${skill.level === 2 ? "✓" : "☐"}</td><td>${skill.level === 1 ? "✓" : "☐"}</td></tr>`).join("")}<tr class="total-row"><td><strong>รวมคะแนน</strong></td><td>${total === null ? "—" : total}</td><td colspan="3"></td></tr></tbody></table>
+      <section class="result"><strong>คะแนนรวมทั้งหมด: ${total === null ? "—" : total} / 12 คะแนน</strong><span>ระดับคุณภาพ: <b>${quality}</b></span><span>${total === null ? "☐ ยังสรุปผลไม่ได้" : passed ? "☑ ผ่านเกณฑ์ (7 คะแนนขึ้นไป)   ☐ ไม่ผ่านเกณฑ์" : "☐ ผ่านเกณฑ์   ☑ ไม่ผ่านเกณฑ์ (ต่ำกว่า 7 คะแนน)"}</span></section>
+      <p class="notes"><strong>หมายเหตุ/ข้อสังเกตเพิ่มเติม:</strong> .............................................................................................................................<br>........................................................................................................................................................................</p>
+    </article>
+    <article class="assessment-form rubric-page"><header><h1>เกณฑ์การประเมิน (Scoring Rubric)</h1></header><p>ใช้เกณฑ์ร้อยละเดียวกันทุกด้าน เพื่อให้ผลจากเกมและ Exit Ticket เปรียบเทียบกันได้โดยตรง</p>${rubricTable(skills[0], 1)}${rubricTable(skills[1], 2)}</article>
+    <article class="assessment-form rubric-page"><header><h1>เกณฑ์การประเมิน (ต่อ)</h1></header>${rubricTable(skills[2], 3)}${rubricTable(skills[3], 4)}<section class="overall"><h3>เกณฑ์การตัดสินระดับคุณภาพรวม</h3><table class="rubric-table"><thead><tr><th>คะแนนรวม</th><th>ระดับคุณภาพ</th><th>ผลการประเมิน</th></tr></thead><tbody><tr><td>10–12 คะแนน</td><td>ดี</td><td>ผ่านเกณฑ์</td></tr><tr><td>7–9 คะแนน</td><td>พอใช้</td><td>ผ่านเกณฑ์</td></tr><tr><td>ต่ำกว่า 7 คะแนน</td><td>ควรปรับปรุง</td><td>ไม่ผ่านเกณฑ์</td></tr></tbody></table></section><footer>หลักการแปลผล: คะแนนแต่ละด้านเกิดจากสัดส่วนคำตอบที่ถูกต้องในรายการซึ่งติดป้ายทักษะนั้นจริง ไม่ใช้คะแนนรวมของเกมมาประมาณค่าทักษะ และไม่ใช้ภารกิจฟังเสียงแทนการประเมินการอ่านออกเสียง</footer></article>`;
+  }).join("");
+  popup.document.open();
+  popup.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>แบบประเมินทักษะ 4 ด้าน</title><style>
+    *{box-sizing:border-box}body{margin:0;background:#eef2f7;color:#172033;font-family:"TH Sarabun New","Sarabun",Thonburi,sans-serif}.toolbar{position:sticky;top:0;z-index:5;padding:10px;text-align:center;background:#172033}.toolbar button{border:0;border-radius:9px;padding:10px 18px;margin:3px;background:#fff;color:#172033;font-weight:700;font-size:16px}.assessment-form{width:210mm;min-height:297mm;margin:12px auto;padding:15mm 17mm;background:#fff;page-break-after:always}.assessment-form:last-child{page-break-after:auto}header{text-align:center}h1{margin:0;color:#315a7d;font-size:23px}h2{margin:2px 0 9px;font-size:17px}.instruction{font-size:15px;line-height:1.4}.metadata{display:grid;grid-template-columns:2fr 1fr 1fr;gap:5px 14px;margin:10px 0;font-size:15px}.score-table,.rubric-table{width:100%;border-collapse:collapse;table-layout:fixed}.score-table th,.score-table td,.rubric-table th,.rubric-table td{border:1px solid #1f2937;padding:7px;text-align:center;vertical-align:middle}.score-table th,.rubric-table th{background:#315a7d;color:#fff}.score-table th:first-child{width:52%}.score-table th:nth-child(2){width:12%}.score-table td:first-child{text-align:left}.score-table small{display:block;margin-top:3px;color:#4b5563;line-height:1.25}.total-row{background:#eaf2f8}.result{display:flex;flex-wrap:wrap;gap:8px 24px;padding:11px;margin-top:10px;background:#eaf2f8;font-size:16px}.notes{line-height:2}.rubric-page>p{font-size:15px}.rubric-block{margin-top:18px}.rubric-block h3,.overall h3{margin:0 0 7px}.rubric-table{font-size:14px}.rubric-table th:first-child{width:25%}.rubric-table td:nth-child(2){text-align:left}.overall{margin-top:20px}.overall .rubric-table th:first-child{width:33%}.overall .rubric-table td{text-align:center}footer{margin-top:12px;font-size:12px;color:#4b5563}
+    @media(max-width:800px){.assessment-form{width:100%;min-height:0;margin:0;padding:18px}.metadata{grid-template-columns:1fr}.score-table{font-size:12px}}
+    @media print{@page{size:A4 portrait;margin:0}body{background:#fff}.toolbar{display:none}.assessment-form{margin:0;box-shadow:none}}
+  </style></head><body><div class="toolbar"><button type="button" onclick="downloadWord()">ดาวน์โหลด Word</button><button type="button" onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button></div>${forms}<script>
+    function downloadWord(){
+      const style=document.querySelector('style').outerHTML;
+      const forms=Array.from(document.querySelectorAll('.assessment-form')).map(item=>item.outerHTML).join('');
+      const content='<!doctype html><html lang="th"><head><meta charset="utf-8">'+style+'</head><body>'+forms+'</body></html>';
+      const url=URL.createObjectURL(new Blob(['\\ufeff',content],{type:'application/msword;charset=utf-8'}));
+      const link=document.createElement('a'); link.href=url; link.download='แบบประเมินทักษะ-4-ด้าน-รายบุคคล.doc';
+      document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+    }
+  <\/script></body></html>`);
+  popup.document.close();
 }
 
 function renderSessionActivityReport() {
@@ -3269,6 +3363,7 @@ function bindResearchReportActions() {
   $("#reportContent").querySelectorAll("[data-export-assessment]").forEach(button => button.addEventListener("click", () => exportAssessmentReport(button.dataset.exportAssessment)));
   $("#reportContent").querySelector("[data-export-satisfaction]")?.addEventListener("click", exportSatisfactionReport);
   $("#reportContent").querySelector("[data-export-game-alignment]")?.addEventListener("click", exportGameAlignmentReport);
+  $("#reportContent").querySelector("[data-print-skill-assessment]")?.addEventListener("click", printSkillAssessmentForms);
   $("#reportContent").querySelector("[data-export-score-sql]")?.addEventListener("click", exportScoreSqlBackup);
   $("#reportContent").querySelector("[data-export-empty-score-sql]")?.addEventListener("click", exportEmptyScoreSqlTemplate);
   $("#reportContent").querySelector("[data-import-score-sql]")?.addEventListener("click", importScoreSqlBackup);
