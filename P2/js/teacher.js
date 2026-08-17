@@ -12,7 +12,7 @@ import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
 import { EXIT_TICKET_INSTRUMENT_VERSION } from "./exit-ticket-bank.js?v=20260817-four-skills-1";
 
-const TEACHER_BUILD_VERSION = "20260817-session-direct-backup-5";
+const TEACHER_BUILD_VERSION = "20260817-ios-sql-picker-6";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -3171,7 +3171,10 @@ async function importScoreSqlBackup() {
   if (!classId) return toast("กรุณาเลือกห้องเรียน", "warning");
   const input = document.createElement("input");
   input.type = "file";
-  input.accept = ".sql,text/plain,application/sql";
+  input.hidden = true;
+  input.setAttribute("aria-hidden", "true");
+  document.body.appendChild(input);
+  input.addEventListener("cancel", () => input.remove(), { once: true });
   input.addEventListener("change", async () => {
     const file = input.files?.[0];
     if (!file) return;
@@ -3206,6 +3209,8 @@ async function importScoreSqlBackup() {
     } catch (error) {
       console.warn("นำเข้าชุดสำรองคะแนนไม่สำเร็จ", error?.message || error);
       toast(`นำเข้าไม่ได้: ${error?.message || "ไฟล์ไม่ถูกต้อง"}`, "error");
+    } finally {
+      input.remove();
     }
   }, { once: true });
   input.click();
@@ -3216,7 +3221,10 @@ async function importSessionActivitySqlBackup() {
   if (!classId) return toast("กรุณาเลือกห้องเรียน", "warning");
   const input = document.createElement("input");
   input.type = "file";
-  input.accept = ".sql,text/plain,application/sql";
+  input.hidden = true;
+  input.setAttribute("aria-hidden", "true");
+  document.body.appendChild(input);
+  input.addEventListener("cancel", () => input.remove(), { once: true });
   input.addEventListener("change", async () => {
     const file = input.files?.[0];
     if (!file) return;
@@ -3250,6 +3258,8 @@ async function importSessionActivitySqlBackup() {
     } catch (error) {
       console.warn("นำเข้าผลกิจกรรมรายคาบไม่สำเร็จ", error?.message || error);
       toast(`นำเข้าไม่ได้: ${error?.message || "ไฟล์ไม่ถูกต้อง"}`, "error");
+    } finally {
+      input.remove();
     }
   }, { once: true });
   input.click();

@@ -53,6 +53,13 @@ test("session activity results are visible and included in backup import preview
   assert.match(teacher, /sessionOnlyPayload/);
 });
 
+test("SQL file pickers work on iOS without MIME filtering", () => {
+  assert.doesNotMatch(teacher, /input\.accept\s*=/);
+  assert.match(teacher, /document\.body\.appendChild\(input\)/);
+  assert.match(teacher, /input\.addEventListener\("cancel", \(\) => input\.remove\(\)/);
+  assert.match(teacher, /finally \{\s*input\.remove\(\)/);
+});
+
 test("new report ignores legacy inferred backfills", () => {
   const reportMigration = readFileSync(new URL("../supabase/score-report-sql-backup.sql", import.meta.url), "utf8");
   assert.match(reportMigration, /legacy_score_backup_v1/);
