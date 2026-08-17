@@ -25,10 +25,17 @@ test("student answers persist skill and instrument metadata", () => {
 });
 
 test("database report reads only real versioned Exit Ticket answers", () => {
-  const migration = readFileSync(new URL("../supabase/exit-ticket-four-skills.sql", import.meta.url), "utf8");
-  assert.match(migration, /get_exit_ticket_skill_report/);
-  assert.match(migration, /exit_ticket_4skills_v1/);
+  const migration = readFileSync(new URL("../supabase/score-report-sql-backup.sql", import.meta.url), "utf8");
+  assert.match(migration, /get_p2_score_report/);
   assert.match(migration, /jsonb_array_elements/);
   assert.match(migration, /teacher_can_access_class/);
-  assert.doesNotMatch(migration, /game_score_backfills/);
+  assert.doesNotMatch(migration, /game_skill_map/);
+});
+
+test("SQL backup import is constrained to the P2 backup schema", () => {
+  const migration = readFileSync(new URL("../supabase/score-report-sql-backup.sql", import.meta.url), "utf8");
+  assert.match(migration, /p2_score_backup_v1/);
+  assert.match(migration, /record_count > 5000/);
+  assert.match(migration, /game_activity_assessment_map allowed/);
+  assert.match(migration, /revoke all on function public\.import_p2_score_backup/);
 });
