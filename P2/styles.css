@@ -1401,6 +1401,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .sort-area { width: min(900px,100%); display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .word-bank { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; padding: 18px; border-radius: 18px; background: var(--canvas); }
 .word-token { border: 1px solid #cdc9f4; border-radius: 12px; padding: 10px 15px; background: white; color: var(--ink); font-size: 18px; font-weight: 900; cursor: grab; }
+.word-token.placement-correct, .train-car.placement-correct { border-color: #35b982; box-shadow: 0 0 0 4px rgba(53,185,130,.18); }
+.word-token.placement-wrong, .train-car.placement-wrong { border-color: #e45568; animation: wrongWord .3s ease-in-out 2; }
 .word-house { min-height: 210px; padding: 20px; border: 2px dashed #cfd2df; border-radius: 24px; background: #fafaff; text-align: center; }
 .word-house.good { background: #f2fcf8; border-color: #8bd9bc; }
 .word-house.bad { background: #fff8f2; border-color: #f2c28f; }
