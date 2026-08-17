@@ -11,7 +11,7 @@ import {
 import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260816-satisfaction-1";
 
-const TEACHER_BUILD_VERSION = "20260817-satisfaction-individual-1";
+const TEACHER_BUILD_VERSION = "20260817-clear-imported-scores-3";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -73,6 +73,9 @@ const state = {
   selectedPlanId: null,
   selectedAssessmentPhase: null,
   assessmentReport: [],
+  gameAlignmentReport: [],
+  gameMasteryReport: [],
+  skillAssessmentReport: [],
   satisfactionReport: { completed_count: 0, overall_average: null, questions: [], individuals: [], comments: [] },
   satisfactionResponses: [],
   satisfactionSubmissions: [],
@@ -2814,16 +2817,28 @@ async function loadAssessmentReport() {
     renderReport();
     return;
   }
-  const [{ data: assessmentData, error: assessmentError }, { data: satisfactionData, error: satisfactionError }] = await Promise.all([
+  const [
+    { data: assessmentData, error: assessmentError },
+    { data: satisfactionData, error: satisfactionError },
+    { data: gameAlignmentData, error: gameAlignmentError },
+    { data: gameMasteryData, error: gameMasteryError },
+    { data: skillAssessmentData, error: skillAssessmentError },
+  ] = await Promise.all([
     supabase.rpc("get_assessment_comparison", { p_class_id: classId }),
     supabase.rpc("get_satisfaction_report", { p_class_id: classId }),
+    supabase.rpc("get_complete_game_score_report", { p_class_id: classId }),
+    supabase.rpc("get_game_mastery_20", { p_class_id: classId }),
+    supabase.rpc("get_skill_assessment_report", { p_class_id: classId }),
   ]);
-  if (assessmentError || satisfactionError) {
-    console.warn("โหลดรายงานผลการเรียนรู้ไม่สำเร็จ", assessmentError?.code || satisfactionError?.code);
+  if (assessmentError || satisfactionError || gameAlignmentError || gameMasteryError || skillAssessmentError) {
+    console.warn("โหลดรายงานผลการเรียนรู้ไม่สำเร็จ", assessmentError?.code || satisfactionError?.code || gameAlignmentError?.code || gameMasteryError?.code || skillAssessmentError?.code);
     return;
   }
   state.assessmentReport = assessmentData || [];
   state.satisfactionReport = satisfactionData || { completed_count: 0, overall_average: null, questions: [], individuals: [], comments: [] };
+  state.gameAlignmentReport = gameAlignmentData || [];
+  state.gameMasteryReport = gameMasteryData || [];
+  state.skillAssessmentReport = skillAssessmentData || [];
   renderReport();
   if (isAssessmentSession(state.session)) renderLiveResults();
 }
@@ -2950,15 +2965,79 @@ function exportAssessmentReport(kind = "individual") {
   downloadCsv(`ตารางคะแนนก่อนหลัง-${className || state.session.room_code}.csv`, csvRows);
 }
 
+function renderGameAssessmentReport() {
+  const mastery = Array.isArray(state.gameMasteryReport) ? state.gameMasteryReport : [];
+  const details = Array.isArray(state.gameAlignmentReport) ? state.gameAlignmentReport : [];
+  const importedCount = details.filter(row => row.score_source === "derived_from_posttest").length;
+  const summaryTable = mastery.length
+    ? `<div class="table-wrap"><table><thead><tr><th>ลำดับ</th><th>รหัส</th><th>ชื่อ–นามสกุล</th><th>แผนที่เล่น</th><th>เกมที่เล่น</th><th>คะแนนเกมเทียบเต็ม 20</th></tr></thead><tbody>${mastery.map((row, index) => `<tr><td>${row.student_order ?? index + 1}</td><td>${escapeHtml(row.student_code || "—")}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${Number(row.completed_plans || 0)}/8</td><td>${Number(row.completed_games || 0)}</td><td><strong>${Number(row.game_mastery_score_20 || 0).toFixed(2)}/20</strong></td></tr>`).join("")}</tbody></table></div>`
+    : `<p class="assessment-report-empty">ยังไม่มีคะแนนการเล่นเกม</p>`;
+  const detailTable = details.length
+    ? `<details><summary>ดูคะแนนดิบรายคน ครบทุกด่านและทุกเกม</summary><div class="table-wrap"><table><thead><tr><th>ลำดับ</th><th>ชื่อ–นามสกุล</th><th>แผน</th><th>เกม/ด่าน</th><th>ข้อสอบที่เกี่ยวข้อง</th><th>คะแนนดิบ</th><th>ร้อยละ</th><th>เทียบเต็ม 20</th><th>แหล่งคะแนน</th></tr></thead><tbody>${details.map((row, index) => `<tr><td>${row.student_order ?? index + 1}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${row.plan_id}</td><td>${escapeHtml(activityForKey(row.activity_key, row.plan_id)?.title || row.activity_key)}</td><td>${(row.assessment_items || []).join(", ") || "—"}</td><td><strong>${row.raw_score}/${row.raw_max_score}</strong></td><td>${Number(row.percent || 0).toFixed(2)}%</td><td>${Number(row.equivalent_score_20 || 0).toFixed(2)}/20</td><td>${row.score_source === "observed_gameplay" ? "เล่นจริง" : "คำนวณจากหลังเรียน"}</td></tr>`).join("")}</tbody></table></div></details>`
+    : "";
+  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">คะแนนเกมเชื่อมแบบประเมินผล 20 ข้อ</span><h2>ผลการเล่นเกมทั้งหน่วย</h2><p>แต่ละเกมแปลงเป็นคะแนนเต็ม 20 และคะแนนรวมถ่วงน้ำหนักตามจำนวนข้อสอบของแต่ละมาตรา</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-game-alignment>ดาวน์โหลดคะแนนเกม CSV</button>${importedCount ? `<button type="button" class="button button-danger" data-clear-imported-game-scores data-imported-count="${importedCount}">เคลียร์คะแนนนำเข้าเพื่อเก็บจริง</button>` : ""}</div></div>${summaryTable}${detailTable}</section>`;
+}
+
+async function clearImportedGameScores(button) {
+  const classId = state.session?.class_id || $("#classSelect")?.value;
+  if (!classId) return toast("กรุณาเลือกห้องเรียน", "warning");
+  const count = Number(button?.dataset.importedCount || 0);
+  const accepted = window.confirm(`ยืนยันเคลียร์คะแนนนำเข้า ${count} รายการของห้องนี้หรือไม่?\n\nคะแนนการเล่นจริง คะแนนก่อน–หลัง และความพึงพอใจจะไม่ถูกลบ`);
+  if (!accepted) return;
+  button.disabled = true;
+  button.textContent = "กำลังเคลียร์คะแนน…";
+  const { data, error } = await supabase.rpc("clear_imported_game_scores", { p_class_id: classId });
+  if (error) {
+    console.warn("เคลียร์คะแนนนำเข้าไม่สำเร็จ", error.code);
+    toast("เคลียร์คะแนนไม่สำเร็จ กรุณาลองใหม่", "error");
+    button.disabled = false;
+    button.textContent = "เคลียร์คะแนนนำเข้าเพื่อเก็บจริง";
+    return;
+  }
+  toast(`เคลียร์คะแนนนำเข้าแล้ว ${Number(data || 0)} รายการ · พร้อมเก็บคะแนนจริง`, "success");
+  await loadAssessmentReport();
+}
+
+function renderSkillAssessmentReport() {
+  const rows = Array.isArray(state.skillAssessmentReport) ? state.skillAssessmentReport : [];
+  const table = rows.length
+    ? `<div class="table-wrap"><table><thead><tr><th>ลำดับ</th><th>ชื่อ–นามสกุล</th><th>จำแนกคำ (P1)</th><th>อ่าน/ออกเสียง (P2)</th><th>เขียน/สะกดคำ (P2)</th><th>เรียบเรียงประโยค (P2)</th><th>รวม</th><th>ระดับคุณภาพ</th></tr></thead><tbody>${rows.map((row,index)=>`<tr><td>${row.student_order ?? index+1}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${row.classification_score}/3 <small>(${Number(row.classification_percent||0).toFixed(0)}%)</small></td><td>${row.reading_score}/3 <small>(${Number(row.reading_percent||0).toFixed(0)}%)</small></td><td>${row.writing_score}/3 <small>(${Number(row.writing_percent||0).toFixed(0)}%)</small></td><td>${row.sentence_score}/3 <small>(${Number(row.sentence_percent||0).toFixed(0)}%)</small></td><td><strong>${row.total_score}/12</strong></td><td>${escapeHtml(row.quality_level||"—")}</td></tr>`).join("")}</tbody></table></div>`
+    : `<p class="assessment-report-empty">ยังไม่มีคะแนนประเมินทักษะ</p>`;
+  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">แบบประเมินทักษะเฉพาะรายบุคคล</span><h2>คะแนนทักษะ 4 ด้าน</h2><p>ประมวลจากเกมที่ตรงกับแต่ละทักษะ ระดับ 3 = 80% ขึ้นไป · ระดับ 2 = 60–79% · ระดับ 1 = ต่ำกว่า 60% และควรใช้ประกอบการสังเกตของครู</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-skill-assessment>ดาวน์โหลดคะแนนทักษะ CSV</button></div></div>${table}</section>`;
+}
+
+function exportSkillAssessmentReport() {
+  const rows=[["ลำดับ","รหัสนักเรียน","ชื่อ-นามสกุล","จำแนกคำ P1","อ่าน/ออกเสียง P2","เขียน/สะกดคำ P2","เรียบเรียงประโยค P2","รวม 12","ระดับคุณภาพ"]];
+  state.skillAssessmentReport.forEach((row,index)=>rows.push([row.student_order??index+1,row.student_code||"",row.full_name||"",row.classification_score,row.reading_score,row.writing_score,row.sentence_score,row.total_score,row.quality_level]));
+  downloadCsv("คะแนนประเมินทักษะ-4-ด้าน-รายบุคคล.csv",rows);
+}
+
+function exportGameAlignmentReport() {
+  const rows = [["ลำดับ", "รหัสนักเรียน", "ชื่อ-นามสกุล", "แผน", "รหัสเกม", "ข้อสอบที่เกี่ยวข้อง", "คะแนนดิบ", "คะแนนเต็มเกม", "ร้อยละ", "คะแนนเทียบเต็ม 20"]];
+  state.gameAlignmentReport.forEach((item, index) => rows.push([
+    item.student_order ?? index + 1, item.student_code || "", item.full_name || "", item.plan_id,
+    item.activity_key, (item.assessment_items || []).join("|"), item.raw_score, item.raw_max_score,
+    item.percent, item.equivalent_score_20,
+  ]));
+  downloadCsv("คะแนนเกมเทียบแบบประเมินผล-20-ข้อ.csv", rows);
+}
+
+function bindResearchReportActions() {
+  $("#reportContent").querySelectorAll("[data-export-assessment]").forEach(button => button.addEventListener("click", () => exportAssessmentReport(button.dataset.exportAssessment)));
+  $("#reportContent").querySelector("[data-export-satisfaction]")?.addEventListener("click", exportSatisfactionReport);
+  $("#reportContent").querySelector("[data-export-game-alignment]")?.addEventListener("click", exportGameAlignmentReport);
+  $("#reportContent").querySelector("[data-export-skill-assessment]")?.addEventListener("click", exportSkillAssessmentReport);
+  $("#reportContent").querySelector("[data-clear-imported-game-scores]")?.addEventListener("click", event => clearImportedGameScores(event.currentTarget));
+}
+
 function renderReport() {
   if (!state.session) return;
   const learningReports = sessionRecordsScores()
-    ? `${renderAssessmentResearchReport()}${renderSatisfactionResearchReport()}`
+    ? `${renderAssessmentResearchReport()}${renderGameAssessmentReport()}${renderSkillAssessmentReport()}${renderSatisfactionResearchReport()}`
     : `<p class="flow-score-recording-notice">🧪 คาบตรวจสื่อไม่บันทึกคะแนน จึงไม่มีรายงานวิจัยให้ส่งออก</p>`;
   if (isAssessmentSession(state.session)) {
     $("#reportContent").innerHTML = learningReports;
-    $("#reportContent").querySelectorAll("[data-export-assessment]").forEach(button => button.addEventListener("click", () => exportAssessmentReport(button.dataset.exportAssessment)));
-    $("#reportContent").querySelector("[data-export-satisfaction]")?.addEventListener("click", exportSatisfactionReport);
+    bindResearchReportActions();
     return;
   }
   const expertNotice = !sessionRecordsScores()
@@ -2972,8 +3051,7 @@ function renderReport() {
   });
   const activityCount = currentActivities().length;
   $("#reportContent").innerHTML = `${learningReports}<section class="session-score-report"><div class="assessment-report-heading"><div><span class="eyebrow">คาบเรียนปัจจุบัน</span><h2>ผลกิจกรรมรายคาบ</h2></div></div>${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>ทำแล้ว</th><th>คะแนนครั้งแรกเฉลี่ย</th><th>คะแนนดีที่สุดเฉลี่ย</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.activities}/${activityCount}</td><td>${row.first}%</td><td>${row.best}%</td></tr>`).join("")}</tbody></table></div>` : `<p class="assessment-report-empty">ยังไม่มีคะแนนกิจกรรมในคาบนี้</p>`}</section>`;
-  $("#reportContent").querySelectorAll("[data-export-assessment]").forEach(button => button.addEventListener("click", () => exportAssessmentReport(button.dataset.exportAssessment)));
-  $("#reportContent").querySelector("[data-export-satisfaction]")?.addEventListener("click", exportSatisfactionReport);
+  bindResearchReportActions();
 }
 
 function exportCurrentReport() {
