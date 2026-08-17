@@ -11,7 +11,7 @@ import {
 import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260816-satisfaction-1";
 
-const TEACHER_BUILD_VERSION = "20260816-satisfaction-3";
+const TEACHER_BUILD_VERSION = "20260817-satisfaction-individual-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -73,7 +73,7 @@ const state = {
   selectedPlanId: null,
   selectedAssessmentPhase: null,
   assessmentReport: [],
-  satisfactionReport: { completed_count: 0, overall_average: null, questions: [], comments: [] },
+  satisfactionReport: { completed_count: 0, overall_average: null, questions: [], individuals: [], comments: [] },
   satisfactionResponses: [],
   satisfactionSubmissions: [],
   playerSelfieUrls: new Map(),
@@ -2823,7 +2823,7 @@ async function loadAssessmentReport() {
     return;
   }
   state.assessmentReport = assessmentData || [];
-  state.satisfactionReport = satisfactionData || { completed_count: 0, overall_average: null, questions: [], comments: [] };
+  state.satisfactionReport = satisfactionData || { completed_count: 0, overall_average: null, questions: [], individuals: [], comments: [] };
   renderReport();
   if (isAssessmentSession(state.session)) renderLiveResults();
 }
@@ -2856,6 +2856,7 @@ function renderAssessmentResearchReport() {
 function renderSatisfactionResearchReport() {
   const report = state.satisfactionReport || {};
   const questions = Array.isArray(report.questions) ? report.questions : [];
+  const individuals = Array.isArray(report.individuals) ? report.individuals : [];
   const comments = Array.isArray(report.comments) ? report.comments : [];
   const overallAverage = report.overall_average == null ? NaN : Number(report.overall_average);
   const level = satisfactionLevel(overallAverage);
@@ -2865,13 +2866,21 @@ function renderSatisfactionResearchReport() {
       return `<tr><td>${question.id}</td><td>${escapeHtml(question.prompt || "—")}</td><td>${question.count_3 || 0}</td><td>${question.count_2 || 0}</td><td>${question.count_1 || 0}</td><td><strong>${average == null ? "—" : average.toFixed(2)}</strong></td></tr>`;
     }).join("")}</tbody></table></div>`
     : `<p class="assessment-report-empty">ยังไม่มีผลแบบประเมินความพึงพอใจ</p>`;
+  const individualMarkup = individuals.length
+    ? `<section class="satisfaction-individual-report"><div class="assessment-report-heading"><div><span class="eyebrow">ข้อมูลดิบรายบุคคล</span><h3>ผลความพึงพอใจรายคน</h3><p>แสดงคะแนนข้อ 1–10 ผลรวม ค่าเฉลี่ย และระดับความพึงพอใจ</p></div></div><div class="table-wrap"><table class="satisfaction-individual-table"><thead><tr><th>เลขที่</th><th>ลำดับที่</th><th>รหัส</th><th>ชื่อ–นามสกุล</th>${Array.from({ length: 10 }, (_, index) => `<th>ข้อ ${index + 1}</th>`).join("")}<th>รวม</th><th>เฉลี่ย</th><th>ระดับ</th></tr></thead><tbody>${individuals.map((item, index) => {
+      const ratings = Array.isArray(item.ratings) ? item.ratings : [];
+      const average = item.average == null ? NaN : Number(item.average);
+      const individualLevel = satisfactionLevel(average);
+      return `<tr><td>${index + 1}</td><td>${item.student_order ?? "—"}</td><td>${escapeHtml(item.student_code || "—")}</td><td>${escapeHtml(item.full_name || "—")}</td>${Array.from({ length: 10 }, (_, questionIndex) => `<td>${ratings[questionIndex] ?? "—"}</td>`).join("")}<td><strong>${item.total ?? "—"}</strong></td><td><strong>${Number.isFinite(average) ? average.toFixed(2) : "—"}</strong></td><td>${individualLevel.label}</td></tr>`;
+    }).join("")}</tbody></table></div></section>`
+    : `<section class="satisfaction-individual-report"><h3>ผลความพึงพอใจรายคน</h3><p class="assessment-report-empty">ยังไม่มีข้อมูลรายบุคคลที่ส่งแบบประเมินครบ</p></section>`;
   const commentMarkup = comments.length
     ? `<section class="satisfaction-comments"><h3>ข้อเสนอแนะเพิ่มเติม</h3>${comments.map(item => `<blockquote><p>${escapeHtml(item.comment || "")}</p><footer>${escapeHtml(item.student_code || "")} · ${escapeHtml(item.full_name || "นักเรียน")}</footer></blockquote>`).join("")}</section>`
     : "";
   return `<section class="satisfaction-research-report">
     <div class="assessment-report-heading"><div><span class="eyebrow">แบบประเมินความพึงพอใจ · 10 ข้อ</span><h2>ความพึงพอใจของนักเรียน</h2><p>ระดับ 3 = มาก, 2 = ปานกลาง, 1 = น้อย</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-satisfaction>ดาวน์โหลดผลความพึงพอใจ CSV</button></div></div>
     <div class="satisfaction-overall ${level.className}"><span>ผู้ส่งแบบประเมินครบ</span><strong>${Number(report.completed_count || 0)} คน</strong><span>ค่าเฉลี่ยรวม</span><strong>${Number.isFinite(overallAverage) ? overallAverage.toFixed(2) : "—"} / 3</strong><em>${level.label}</em></div>
-    ${table}${commentMarkup}
+    ${table}${individualMarkup}${commentMarkup}
   </section>`;
 }
 
@@ -2891,6 +2900,19 @@ function exportSatisfactionReport() {
     question.id, question.prompt, question.count_3 || 0, question.count_2 || 0, question.count_1 || 0,
     question.response_count || 0, question.average ?? "",
   ]));
+  if ((report.individuals || []).length) {
+    rows.push([], ["ผลความพึงพอใจรายบุคคล"]);
+    rows.push(["เลขที่", "ลำดับที่", "รหัสนักเรียน", "ชื่อ-นามสกุล", ...Array.from({ length: 10 }, (_, index) => `ข้อ ${index + 1}`), "รวม (30)", "เฉลี่ย", "ระดับ"]);
+    report.individuals.forEach((item, index) => {
+      const ratings = Array.isArray(item.ratings) ? item.ratings : [];
+      const average = item.average == null ? NaN : Number(item.average);
+      rows.push([
+        index + 1, item.student_order ?? "", item.student_code || "", item.full_name || "",
+        ...Array.from({ length: 10 }, (_, questionIndex) => ratings[questionIndex] ?? ""),
+        item.total ?? "", Number.isFinite(average) ? average.toFixed(2) : "", satisfactionLevel(average).label,
+      ]);
+    });
+  }
   if ((report.comments || []).length) {
     rows.push([], ["เลขประจำตัว", "ชื่อ-นามสกุล", "ข้อเสนอแนะเพิ่มเติม"]);
     report.comments.forEach(item => rows.push([item.student_code || "", item.full_name || "", item.comment || ""]));
