@@ -27,14 +27,6 @@ test("class reports load even when no teaching session is open", () => {
   assert.doesNotMatch(teacher, /panelId === "reportsPanel" && state\.session && sessionRecordsScores\(\)/);
 });
 
-test("class report shows latest room code and scores for plans one to eight", () => {
-  assert.match(teacher, /get_class_report_context/);
-  assert.match(teacher, /รหัสห้อง/);
-  assert.match(teacher, /คะแนนเกมรายแผน 1–8/);
-  assert.match(teacher, /Array\.from\(\{length:8\}/);
-  assert.match(teacher, /if \(\$\("#classSelect"\)\.value\) void loadAssessmentReport\(\)/);
-});
-
 test("backfill remains distinguishable from observed gameplay", () => {
   assert.match(migration, /derived_from_posttest/);
   assert.match(migration, /observed_gameplay/);
