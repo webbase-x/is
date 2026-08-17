@@ -1731,4 +1731,1618 @@ function applyExpertLiveScore(message) {
   if (sessionRecordsScores() || !state.session) return;
   const payload = message?.payload || message;
   if (!payload || payload.session_id !== state.session.id) return;
-  const player = state.players.find(item => item.id === payload.session_player_id && item.}Ωﬂo-¢Gß≤⁄Óù∆≠y€ò~äàéã>òâûà"¬.òà.ã^ä.âí˛äÆãàâB"¬.òâ^ò~ääÆãàâB"¬.ò>àÆòûàNã>â^ã.äâÆä>ãNâÆâr"¬.òâ^ò~äâÆä>ãNâÆâr"¬.òä>ã^ä.âÆòä>ã^ä.à~âæä>ãò.ä.àB"¬.òâ^ò~äâæä>ãò.ä.àB"¬.òäæä^òéà~à.òûäﬁäãûäR%’”∞¢7FFRÊv÷T∆ñvÊ÷VÁE&W˜'BÊf˜$V6ÇÇÜóFV“¬ñÊFWÇí”‚&˜w2ÁW6ÇÖ∞¢óFV“Á7GVFVÁEˆ˜&FW"ÛÚñÊFWÇ≤¬óFV“Á7GVFVÁEˆ6ˆFR«¬""¬óFV“ÊgV∆≈ˆÊ÷R«¬""¬óFV“Á∆ÂˆñB¿¢óFV“Ê7FófóGïˆ∂Wí¬óFV“ÊGFV◊EˆÊÚ«¬¬óFV“Á&u˜66˜&R¬óFV“Á&uˆ÷Ö˜66˜&R¬óFV“ÁW&6VÁB¿¢óFV“Ê6∆76ñfñ6FñˆÂ˜66˜&R¬óFV“Ê6∆76ñfñ6FñˆÂˆ÷Ç¬óFV“Á7V∆∆ñÊu˜66˜&R¬óFV“Á7V∆∆ñÊuˆ÷Ç¿¢óFV“Ê6ˆÁFWáE˜66˜&R¬óFV“Ê6ˆÁFWáEˆ÷Ç¬óFV“Á6VÁFVÊ6U˜66˜&R¬óFV“Á6VÁFVÊ6Uˆ÷Ç¬óFV“Á66˜&U˜6˜W&6R¿¢“íì∞¢F˜vÊ∆ˆD77bÇ.àNãòâûâûòàäòä^ãâ~ãàäûã”BﬁâNòûã.âíÊ77b"¬&˜w2ì∞ß–†¶gVÊ7Fñˆ‚F˜vÊ∆ˆEFWáDfñ∆RÜfñ∆VÊ÷R¬6ˆÁFVÁB¬GóR“'FWáB˜∆ñ„∂6Ü'6WC◊WFb”Ç"í∞¢6ˆÁ7BW&¬“U$¬Ê7&VFTˆ&¶V7EU$¬ÜÊWr&∆ˆ"Ö∂6ˆÁFVÁE“¬≤GóR“íì∞¢6ˆÁ7B∆ñÊ≤“Fˆ7V÷VÁBÊ7&VFTV∆V÷VÁBÇ&"ì∞¢∆ñÊ≤Êá&Vb“W&√∞¢∆ñÊ≤ÊF˜vÊ∆ˆB“fñ∆VÊ÷S∞¢Fˆ7V÷VÁBÊ&ˆGíÊVÊD6Üñ∆BÜ∆ñÊ≤ì∞¢∆ñÊ≤Ê6∆ñ6≤Çì∞¢∆ñÊ≤Á&V÷˜fRÇì∞¢U$¬Á&Wfˆ∂Tˆ&¶V7EU$¬áW&¬ì∞ß–†¶7ñÊ2gVÊ7Fñˆ‚Wá˜'E66˜&U7ƒ&6∑WÇí∞¢6ˆÁ7B6∆74ñB“7FFRÁ6W76ñˆ„ÚÊ6∆75ˆñB«¬BÇ"66∆756V∆V7B"ìÚÁf«VS∞¢ñbÇ6∆74ñBí&WGW&‚Fˆ7BÇ.àä>ãéâ>ã.òä^ã~äﬁàäæòûäﬁà~òä>ã^ä.âí"¬'v&ÊñÊr"ì∞¢6ˆÁ7B≤FF¬W'&˜"““vóB7W&6RÁ'2Ç&Wá˜'E˜%˜66˜&Uˆ&6∑W"¬≤ˆ6∆75ˆñC¢6∆74ñB“ì∞¢ñbÜW'&˜"«¬FFí∞¢6ˆÁ6ˆ∆RÁv&‚Ç.äÆòéà~äﬁäﬁààÆãéâNäÆã>ä>äﬁà~àNãòâûâûòNäòéäÆã>òä>ò~àÇ"¬W'&˜#ÚÊ6ˆFRì∞¢&WGW&‚Fˆ7BÇ.äÆòéà~äﬁäﬁà5¬òNäòéäÆã>òä>ò~àÇ"¬&W'&˜""ì∞¢–¢F˜vÊ∆ˆDgV∆≈&W˜'E7¬ÜFFì∞¢6ˆÁ7BF˜F¬“ÜFFÊ76W76÷VÁE˜66˜&W3ÚÊ∆VÊwFÇ«¬í≤ÜFFÊv÷U˜66˜&W3ÚÊ∆VÊwFÇ«¬í≤ÜFFÁ6Fó6f7FñˆÂ˜&W7ˆÁ6W3ÚÊ∆VÊwFÇ«¬í≤ÜFFÁ6W76ñˆÂˆ7FófóGï˜&W7V«G3ÚÊ∆VÊwFÇ«¬ì∞¢Fˆ7BÜäÆòéà~äﬁäﬁààÆãéâNäÆã>ä>äﬁà~àNä>âÆâ~ãéàäÆòéä~âíG∑F˜F«“ä>ã.ä.àã.ä>òä^òûäv¬'7V66W72"ì∞ß–†¶gVÊ7Fñˆ‚F˜vÊ∆ˆDgV∆≈&W˜'E7¬áñ∆ˆB¬7VffóÇ“'66˜&W2÷ÊB◊&W˜'G2"í∞¢6ˆÁ7Bß6ˆ‚“•4Ù‚Á7G&ñÊvñgíáñ∆ˆB¬ÁV∆¬¬"ì∞¢ñbÜß6ˆ‚ÊñÊ6«VFW2Ç"G%˜66˜&Uˆ&6∑WB"íí&WGW&‚Fˆ7BÇ.à.òûäﬁäãûä^äã^äﬁãàà.ä>ãâ~ã^òéòNäòéä>äﬁà~ä>ãâÆàã.ä>äÆòéà~äﬁäﬁà"¬&W'&˜""ì∞¢6ˆÁ7B7¬“∞¢"““"eTƒ¬$Uı%B$4µUc"+räÆä>òûã.à~ò.âNä.ä>ãâÆâ¢ı"Ú"¿¢"““äæòûã.äòàòûòNà"÷&∂W"äæä>ã~äﬁò.àNä>à~äÆä>òûã.àr•4Ù‚"¿¢"““%ı44ı$UÙ$4µUÙ•4ÙÂÙ$Ttî‚"¿¢ß6ˆ‚¿¢"““%ı44ı$UÙ$4µUÙ•4ÙÂÙT‰B"¿¢""¿¢6V∆V7BV&∆ñ2Êñ◊˜'E˜%˜66˜&Uˆ&6∑WÇrG∑ñ∆ˆBÊ6∆75ˆñG“s£ßWVñB¬G%˜66˜&Uˆ&6∑WF¿¢ß6ˆ‚¿¢"G%˜66˜&Uˆ&6∑WC£¶ß6ˆÊ"ì≤"¿¢""¿¢“Ê¶ˆñ‚Ç%∆‚"ì∞¢6ˆÁ7B&ˆˆ‘6ˆFR“7FFRÁ6W76ñˆ„ÚÁ&ˆˆ’ˆ6ˆFR«¬7FFRÊ6∆75&W˜'D6ˆÁFWáCÚÁ&ˆˆ’ˆ6ˆFR«¬'&ˆˆ“#∞¢F˜vÊ∆ˆEFWáDfñ∆RÜ"“G∑&ˆˆ‘6ˆFW““G∑7Vffóá“Á7∆¬7¬¬&∆ñ6Fñˆ‚˜7√∂6Ü'6WC◊WFb”Ç"ì∞ß–†¶gVÊ7Fñˆ‚Wá˜'DV◊Gï66˜&U7≈FV◊∆FRÇí∞¢6ˆÁ7B6∆74ñB“7FFRÁ6W76ñˆ„ÚÊ6∆75ˆñB«¬BÇ"66∆756V∆V7B"ìÚÁf«VR«¬#””””#∞¢6ˆÁ7B6∆77&ˆˆ““6V∆V7FVD6∆77&ˆˆ“Çì∞¢F˜vÊ∆ˆDgV∆≈&W˜'E7¬á∞¢66ÜV÷¢'%ˆgV∆≈˜&W˜'Eˆ&6∑W˜c""¿¢6∆75ˆñC¢6∆74ñB¿¢6∆75ˆ∆&V√¢6∆77&ˆˆ”ÚÊ∆&V¬«¬""¿¢Wá˜'FVEˆC¢ÊWrFFRÇíÁFÙï4ı7G&ñÊrÇí¿¢7G'V7GW&S¢∞¢76W76÷VÁE˜66˜&W3¢≤'7GVFVÁEˆ6ˆFR"¬'7GVFVÁEˆ˜&FW""¬'&U˜66˜&R"¬'˜7E˜66˜&R"¬&÷Ö˜66˜&R%“¿¢v÷U˜66˜&W3¢≤'7GVFVÁEˆ6ˆFR"¬'∆ÂˆñB"¬&7FófóGïˆ∂Wí"¬&GFV◊EˆÊÚ"¬'66˜&R"¬&÷Ö˜66˜&R"¬&Á7vW'2"¬&ñÁ7G'V÷VÁE˜fW'6ñˆ‚"¬&6ˆ◊∆WFVEˆB%“¿¢6Fó6f7FñˆÂ˜&W7ˆÁ6W3¢≤'7GVFVÁEˆ6ˆFR"¬'&FñÊw2"¬&6ˆ÷÷VÁB"¬&6ˆ◊∆WFVEˆB%“¿¢6W76ñˆÂˆ7FófóGï˜&W7V«G3¢≤'6˜W&6U˜6W76ñˆÂˆ∂Wí"¬'&ˆˆ’ˆ6ˆFR"¬'∆ÂˆñB"¬&˜VÊVEˆB"¬'7GVFVÁEˆ6ˆFR"¬&7FófóFñW5ˆ6ˆ◊∆WFVB"¬&7FófóGïˆ6˜VÁB"¬&fó'7EˆfW&vR"¬&&W7EˆfW&vR%“¿¢“¿¢76W76÷VÁE˜66˜&W3¢µ“¿¢v÷U˜66˜&W3¢µ“¿¢6Fó6f7FñˆÂ˜&W7ˆÁ6W3¢µ“¿¢6W76ñˆÂˆ7FófóGï˜&W7V«G3¢µ“¿¢“¬&V◊Gí◊FV◊∆FR"ì∞¢Fˆ7BÇ.âNã.ä~âûòŒò.äæä^âNòäòéòâÆâ¢5¬ä~òéã.à~òä^òûär"¬'7V66W72"ì∞ß–†¶gVÊ7Fñˆ‚'6U66˜&U7ƒ&6∑WáFWáBí∞¢6ˆÁ7B÷F6Ç“FWáBÊ÷F6ÇÇÚ““%ı44ı$UÙ$4µUÙ•4ÙÂÙ$TtîÂ«2•∆‚Öµ«5≈5“£Úï∆‚““%ı44ı$UÙ$4µUÙ•4ÙÂÙT‰BÚì∞¢ñbÇ÷F6ÇíFá&˜rÊWrW'&˜"Ç.òNäòéâÓâ¢÷&∂W"à.äﬁà~àÆãéâNäÆã>ä>äﬁàr""ì∞¢6ˆÁ7Bñ∆ˆB“•4Ù‚Á'6RÜ÷F6Ö≥“ì∞¢6ˆÁ7Bc“ñ∆ˆCÚÁ66ÜV÷””“'%˜66˜&Uˆ&6∑W˜c"bb'&íÊó4'&íáñ∆ˆBÁ&V6˜&G2ì∞¢6ˆÁ7Bc"“ñ∆ˆCÚÁ66ÜV÷””“'%ˆgV∆≈˜&W˜'Eˆ&6∑W˜c" ¢bb'&íÊó4'&íáñ∆ˆBÊ76W76÷VÁE˜66˜&W2íbb'&íÊó4'&íáñ∆ˆBÊv÷U˜66˜&W2ê¢bb'&íÊó4'&íáñ∆ˆBÁ6Fó6f7FñˆÂ˜&W7ˆÁ6W2ê¢bbáñ∆ˆBÁ6W76ñˆÂˆ7FófóGï˜&W7V«G2””“VÊFVfñÊVB«¬'&íÊó4'&íáñ∆ˆBÁ6W76ñˆÂˆ7FófóGï˜&W7V«G2íì∞¢ñbÇcbbc"íFá&˜rÊWrW'&˜"Ç.ä>ãéòéâûàÆãéâNäÆã>ä>äﬁà~òNäòéânãûàâ^òûäﬁàr"ì∞¢ñbác"bbñ∆ˆBÁ6W76ñˆÂˆ7FófóGï˜&W7V«G2””“VÊFVfñÊVBíñ∆ˆBÁ6W76ñˆÂˆ7FófóGï˜&W7V«G2“µ”∞¢6ˆÁ7BF˜F¬“cÚñ∆ˆBÁ&V6˜&G2Ê∆VÊwFÇ¢ñ∆ˆBÊ76W76÷VÁE˜66˜&W2Ê∆VÊwFÇ≤ñ∆ˆBÊv÷U˜66˜&W2Ê∆VÊwFÇ≤ñ∆ˆBÁ6Fó6f7FñˆÂ˜&W7ˆÁ6W2Ê∆VÊwFÇ≤ñ∆ˆBÁ6W76ñˆÂˆ7FófóGï˜&W7V«G2Ê∆VÊwFÉ∞¢ñbáF˜F¬‚SíFá&˜rÊWrW'&˜"Ç.àéã>âûä~âûä>ã.ä.àã.ä>òàãNâíR√ä>ã.ä.àã.ä2"ì∞¢&WGW&‚ñ∆ˆC∞ß–†¶7ñÊ2gVÊ7Fñˆ‚ñ◊˜'E66˜&U7ƒ&6∑WÇí∞¢6ˆÁ7B6∆74ñB“7FFRÁ6W76ñˆ„ÚÊ6∆75ˆñB«¬BÇ"66∆756V∆V7B"ìÚÁf«VS∞¢ñbÇ6∆74ñBí&WGW&‚Fˆ7BÇ.àä>ãéâ>ã.òä^ã~äﬁàäæòûäﬁà~òä>ã^ä.âí"¬'v&ÊñÊr"ì∞¢6ˆÁ7BñÁWB“Fˆ7V÷VÁBÊ7&VFTV∆V÷VÁBÇ&ñÁWB"ì∞¢ñÁWBÁGóR“&fñ∆R#∞¢ñÁWBÊ66WB“"Á7¬«FWáB˜∆ñ‚∆∆ñ6Fñˆ‚˜7¬#∞¢ñÁWBÊFDWfVÁD∆ó7FVÊW"Ç&6ÜÊvR"¬7ñÊ2Çí”‚∞¢6ˆÁ7Bfñ∆R“ñÁWBÊfñ∆W3ÚÂ≥”∞¢ñbÇfñ∆Rí&WGW&„∞¢G'í∞¢6ˆÁ7Bñ∆ˆB“'6U66˜&U7ƒ&6∑WÜvóBfñ∆RÁFWáBÇíì∞¢6ˆÁ7Bv÷W2“ñ∆ˆBÊv÷U˜66˜&W2«¬ñ∆ˆBÁ&V6˜&G2«¬µ”∞¢6ˆÁ7B76W76÷VÁG2“ñ∆ˆBÊ76W76÷VÁE˜66˜&W2«¬µ”∞¢6ˆÁ7B6Fó6f7Fñˆ‚“ñ∆ˆBÁ6Fó6f7FñˆÂ˜&W7ˆÁ6W2«¬µ”∞¢6ˆÁ7B6W76ñˆÁ2“ñ∆ˆBÁ6W76ñˆÂˆ7FófóGï˜&W7V«G2«¬µ”∞¢6ˆÁ7B∆≈&V6˜&G2“≤‚‚Êv÷W2¬‚‚Ê76W76÷VÁG2¬‚‚Á6Fó6f7Fñˆ‚¬‚‚Á6W76ñˆÁ5”∞¢6ˆÁ7B7GVFVÁG2“ÊWr6WBÜ∆≈&V6˜&G2Ê÷ÜóFV“”‚óFV“Á7GVFVÁEˆ6ˆFRíÊfñ«FW"Ñ&ˆˆ∆V‚ííÁ6ó¶S∞¢6ˆÁ7B∆Á2“ÊWr6WBÜv÷W2Ê÷ÜóFV“”‚óFV“Á∆ÂˆñBíÊfñ«FW"Ñ&ˆˆ∆V‚ííÁ6ó¶S∞¢6ˆÁ7B6∂ñ∆ƒóFV◊2“v÷W2Á&VGV6RÇá7V“¬óFV“í”‚7V“≤Ñ'&íÊó4'&íÜóFV“ÊÁ7vW'2íÚóFV“ÊÁ7vW'2Êfñ«FW"ÜÁ7vW"”‚Á7vW#ÚÁ6∂ñ∆≈ˆ6ˆFRíÊ∆VÊwFÇ¢í¬ì∞¢6ˆÁ7B66WFVB“vñÊF˜rÊ6ˆÊfó&“Ö∞¢.â^ä>ä~àéâÓâÆàÆãéâNäÆã>ä>äﬁà~àNãòâûâí""¿¢äæòûäﬁà~â^òûâûâ~ã.às¢G∑ñ∆ˆBÊ6∆75ˆ∆&V¬«¬ñ∆ˆBÊ6∆75ˆñB«¬.(	B'÷¿¢âûãàòä>ã^ä.âì¢G∑7GVFVÁG7“àNâñ¿¢àòéäﬁâûòä>ã^ä.âû(	>äæä^ãà~òä>ã^ä.âì¢G∂76W76÷VÁG2Ê∆VÊwFá“àNâñ¿¢àNãòâûâûòàä¢G∂v÷W2Ê∆VÊwFá“ä>ã.ä.àã.ä6¿¢àNä~ã.äâÓãnà~âÓäﬁò>àÉ¢G∑6Fó6f7Fñˆ‚Ê∆VÊwFá“àNâñ¿¢âŒä^àãNàéàä>ä>ää>ã.ä.àNã.â£¢G∑6W76ñˆÁ2Ê∆VÊwFá“ä>ã.ä.àã.ä6¿¢òâŒâûâ~ã^òéâÓâ£¢G∑∆Á7“ÛÜ¿¢àNã>â^äﬁâÆâ~ã^òéäã^âæòûã.ä.â~ãàäûã¢G∑6∂ñ∆ƒóFV◊7“à.òûä÷¿¢""¿¢.ä.ã~âûä.ãâûâûã>òà.òûã.òNâæä.ãà~äæòûäﬁà~â~ã^òéàã>ä^ãà~òä^ã~äﬁàäæä>ã~äﬁòNäòÉÚà.òûäﬁäãûä^ä>äæãäÆâûãàòä>ã^ä.âí˛òâŒâí˛òàäâ~ã^òéòNäòéâ^ä>à~àéãânãûàà.òûã.ä"¿¢“Ê¶ˆñ‚Ç%∆‚"íì∞¢ñbÇ66WFVBí&WGW&„∞¢6ˆÁ7B≤FF¬W'&˜"““vóB7W&6RÁ'2Ç&ñ◊˜'E˜%˜66˜&Uˆ&6∑W"¬≤ˆ6∆75ˆñC¢6∆74ñB¬˜ñ∆ˆC¢ñ∆ˆB“ì∞¢ñbÜW'&˜"íFá&˜rW'&˜#∞¢Fˆ7BÜâûã>òà.òûã.òä^òûäs¢àòéäﬁâû(	>äæä^ãàrG¥ÁV÷&W"ÜFFÚÊ76W76÷VÁEˆñ◊˜'FVB«¬ó“+ròàäG¥ÁV÷&W"ÜFFÚÊv÷Uˆñ◊˜'FVBÛÚFFÚÊñ◊˜'FVBÛÚó“+ràNä~ã.äâÓãnà~âÓäﬁò>àÇG¥ÁV÷&W"ÜFFÚÁ6Fó6f7FñˆÂˆñ◊˜'FVB«¬ó“+rä>ã.ä.àNã.â¢G¥ÁV÷&W"ÜFFÚÁ6W76ñˆÂ˜&W7V«G5ˆñ◊˜'FVB«¬ó“+rà.òûã.äG¥ÁV÷&W"ÜFFÚÁ6∂óVB«¬ó÷¬'7V66W72"ì∞¢vóB∆ˆD76W76÷VÁE&W˜'BÇì∞¢“6F6ÇÜW'&˜"í∞¢6ˆÁ6ˆ∆RÁv&‚Ç.âûã>òà.òûã.àÆãéâNäÆã>ä>äﬁà~àNãòâûâûòNäòéäÆã>òä>ò~àÇ"¬W'&˜#ÚÊ÷W76vR«¬W'&˜"ì∞¢Fˆ7BÜâûã>òà.òûã.òNäòéòNâNòì¢G∂W'&˜#ÚÊ÷W76vR«¬.òNâ˛ä^òŒòNäòéânãûàâ^òûäﬁàr'÷¬&W'&˜""ì∞¢–¢“¬≤ˆÊ6S¢G'VR“ì∞¢ñÁWBÊ6∆ñ6≤Çì∞ß–†¶gVÊ7Fñˆ‚&ñÊE&W6V&6Ö&W˜'D7FñˆÁ2Çí∞¢BÇ"7&W˜'D6ˆÁFVÁB"íÁVW'ï6V∆V7F˜$∆¬Ç%∂FF÷Wá˜'B÷76W76÷VÁE“"íÊf˜$V6ÇÜ'WGFˆ‚”‚'WGFˆ‚ÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚Wá˜'D76W76÷VÁE&W˜'BÜ'WGFˆ‚ÊFF6WBÊWá˜'D76W76÷VÁBííì∞¢BÇ"7&W˜'D6ˆÁFVÁB"íÁVW'ï6V∆V7F˜"Ç%∂FF÷Wá˜'B◊6Fó6f7FñˆÂ“"ìÚÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Wá˜'E6Fó6f7FñˆÂ&W˜'Bì∞¢BÇ"7&W˜'D6ˆÁFVÁB"íÁVW'ï6V∆V7F˜"Ç%∂FF÷Wá˜'B÷v÷R÷∆ñvÊ÷VÁE“"ìÚÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Wá˜'Dv÷T∆ñvÊ÷VÁE&W˜'Bì∞¢BÇ"7&W˜'D6ˆÁFVÁB"íÁVW'ï6V∆V7F˜"Ç%∂FF÷Wá˜'B◊66˜&R◊7≈“"ìÚÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Wá˜'E66˜&U7ƒ&6∑Wì∞¢BÇ"7&W˜'D6ˆÁFVÁB"íÁVW'ï6V∆V7F˜"Ç%∂FF÷Wá˜'B÷V◊Gí◊66˜&R◊7≈“"ìÚÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Wá˜'DV◊Gï66˜&U7≈FV◊∆FRì∞¢BÇ"7&W˜'D6ˆÁFVÁB"íÁVW'ï6V∆V7F˜"Ç%∂FF÷ñ◊˜'B◊66˜&R◊7≈“"ìÚÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬ñ◊˜'E66˜&U7ƒ&6∑Wì∞¢BÇ"7&W˜'D6ˆÁFVÁB"íÁVW'ï6V∆V7F˜"Ç%∂FF÷6∆V"÷ñ◊˜'FVB÷v÷R◊66˜&W5“"ìÚÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬WfVÁB”‚6∆V$ñ◊˜'FVDv÷U66˜&W2ÜWfVÁBÊ7W'&VÁEF&vWBíì∞ß–†¶gVÊ7Fñˆ‚&VÊFW%&W˜'BÇí∞¢6ˆÁ7B∆V&ÊñÊu&W˜'G2“6W76ñˆÂ&V6˜&G566˜&W2Çê¢ÚG∑&VÊFW$76W76÷VÁE&W6V&6Ö&W˜'BÇó“G∑&VÊFW$v÷T76W76÷VÁE&W˜'BÇó“G∑&VÊFW%6W76ñˆ‰7FófóGï&W˜'BÇó“G∑&VÊFW%6Fó6f7FñˆÂ&W6V&6Ö&W˜'BÇó÷ ¢¢«6∆73“&f∆˜r◊66˜&R◊&V6˜&FñÊr÷Ê˜Fñ6R#Ô	˙z¢àNã.âÆâ^ä>ä~àéäÆã~òéäﬁòNäòéâÆãâûâ~ãnààNãòâûâíàéãnà~òNäòéäã^ä>ã.ä.à~ã.âûä~ãNàéãä.ò>äæòûäÆòéà~äﬁäﬁà¬˜Ê∞¢ñbÇ7FFRÁ6W76ñˆ‚í∞¢BÇ"7&W˜'D6ˆÁFVÁB"íÊñÊÊW$ÖD‘¬“∆V&ÊñÊu&W˜'G3∞¢&ñÊE&W6V&6Ö&W˜'D7FñˆÁ2Çì∞¢&WGW&„∞¢–¢ñbÜó476W76÷VÁE6W76ñˆ‚á7FFRÁ6W76ñˆ‚íí∞¢BÇ"7&W˜'D6ˆÁFVÁB"íÊñÊÊW$ÖD‘¬“∆V&ÊñÊu&W˜'G3∞¢&ñÊE&W6V&6Ö&W˜'D7FñˆÁ2Çì∞¢&WGW&„∞¢–¢BÇ"7&W˜'D6ˆÁFVÁB"íÊñÊÊW$ÖD‘¬“∆V&ÊñÊu&W˜'G3∞¢&ñÊE&W6V&6Ö&W˜'D7FñˆÁ2Çì∞ß–†¶gVÊ7Fñˆ‚Wá˜'D7W'&VÁE&W˜'BÇí∞¢ñbÇ7FFRÁ6W76ñˆ‚í&WGW&‚Fˆ7BÇ.ä.ãà~òNäòéäã^àNã.âÆòä>ã^ä.âûò>äæòûäÆòéà~äﬁäﬁà"¬'v&ÊñÊr"ì∞¢ñbá7FFRÁ6W76ñˆ‚Ê76W76÷VÁE˜Ü6R””“'6Fó6f7Fñˆ‚"í&WGW&‚Wá˜'E6Fó6f7FñˆÂ&W˜'BÇì∞¢ñbÜó476W76÷VÁE6W76ñˆ‚á7FFRÁ6W76ñˆ‚íí&WGW&‚Wá˜'D76W76÷VÁE&W˜'BÇ&ñÊFófñGV¬"ì∞¢ñbÇ6W76ñˆÂ&V6˜&G566˜&W2Çíí&WGW&‚Fˆ7BÇ.àNãòâûâûäÆâNà.äﬁà~àNã.âÆâ^ä>ä~àéäÆã~òéäﬁòNäòéäÆã.äã.ä>ânäÆòéà~äﬁäﬁàä>ã.ä.à~ã.âûòNâNòí"¬'v&ÊñÊr"ì∞¢6ˆÁ7B&˜w2“µ≤.äæòûäﬁàr"¬.òä^à.âæä>ãàéã>â^ãär"¬.àÆã~òéä“ﬁâûã.ääÆàãéäR"¬.àÆã~òéäﬁòä^òéâí"¬.àãNàéàä>ä>ä"¬.àNä>ãòûà~â~ã^òÇ"¬.àNãòâûâí"¬.àNãòâûâûòâ^ò~ä"¬.ä>òûäﬁä.ä^ã"¬.âŒòéã.âí"¬.òä~ä^ã"%’”∞¢7FFRÊGFV◊G2Êf˜$V6ÇÜGFV◊B”‚∞¢6ˆÁ7B∆ñW"“7FFRÁ∆ñW'2ÊfñÊBÜóFV“”‚óFV“ÊñB””“GFV◊BÁ6W76ñˆÂ˜∆ñW%ˆñBì∞¢6ˆÁ7B7GVFVÁB“∆ñW#ÚÁ7GVFVÁB«¬∑”∞¢&˜w2ÁW6ÇÖ∞¢7FFRÊ6∆76W2ÊfñÊBÜóFV“”‚óFV“ÊñB””“7FFRÁ6W76ñˆ‚Ê6∆75ˆñBìÚÊ∆&V¬«¬""¿¢7GVFVÁBÁ7GVFVÁEˆ6ˆFR¬7GVFVÁBÊgV∆≈ˆÊ÷R¬7GVFVÁBÊÊñ6∂Ê÷R¿¢7FófóGîf˜$∂WíÜGFV◊BÊ7FófóGïˆ∂Wí¬7FFRÁ6W76ñˆ‚Á∆ÂˆñBìÚÁFóF∆R«¬GFV◊BÊ7FófóGïˆ∂Wí¿¢GFV◊BÊGFV◊EˆÊÚ¬GFV◊BÁ66˜&R¬GFV◊BÊ÷Ö˜66˜&R¬GFV◊BÁW&6VÁB¿¢GFV◊BÁ76VBÚ.âŒòéã.âí"¢.òNäòéâŒòéã.âí"¬GFV◊BÊ6ˆ◊∆WFVEˆB¿¢“ì∞¢“ì∞¢F˜vÊ∆ˆD77bÜä>ã.ä.à~ã.âí“G∑7FFRÁ6W76ñˆ‚Á&ˆˆ’ˆ6ˆFW“Ê77f¬&˜w2ì∞ß–†¶gVÊ7Fñˆ‚7vóF6ÖÊV¬áÊVƒñBí∞¢BBÇ"6F6Ü&ˆ&DÊb'WGFˆ‚"íÊf˜$V6ÇÜ'WGFˆ‚”‚'WGFˆ‚Ê6∆74∆ó7BÁFˆvv∆RÇ&7FófR"¬'WGFˆ‚ÊFF6WBÁÊV¬””“ÊVƒñBíì∞¢BBÇ"ÊF6Ü&ˆ&B◊ÊV¬"íÊf˜$V6ÇáÊV¬”‚ÊV¬Ê6∆74∆ó7BÁFˆvv∆RÇ&7FófR"¬ÊV¬ÊñB””“ÊVƒñBíì∞¢ñbáÊVƒñB””“'7GVFVÁE67&VVÁ5ÊV¬"í∞¢7FFRÁ7GVFVÁE67&VVÂfñWr“&w&ñB#∞¢7F˜7GVFVÁE67&VVÂvF6ÇÇì∞¢&VÊFW%7GVFVÁE67&VVÁ2Çì∞¢“V«6R7F˜7GVFVÁE67&VVÂvF6ÇÇì∞¢ñbáÊVƒñB””“'&W˜'G5ÊV¬"bb6W76ñˆÂ&V6˜&G566˜&W2ÇíífˆñB∆ˆD76W76÷VÁE&W˜'BÇì∞ß–†¢BÇ"7FV6ÜW$∆ˆvñ‰f˜&“"íÊFDWfVÁD∆ó7FVÊW"Ç'7V&÷óB"¬6ñv‰ñ‚ì∞¢BÇ"76ñv‰˜WD'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬6ñv‰˜WBì∞¢BÇ"76W76ñˆÂ6WGW"íÊFDWfVÁD∆ó7FVÊW"Ç'7V&÷óB"¬7&VFU6W76ñˆ‚ì∞¢BÇ"766Üˆˆ≈6V∆V7B"íÊFDWfVÁD∆ó7FVÊW"Ç&6ÜÊvR"¬WfVÁB”‚&VÊFW$6∆74˜FñˆÁ2ÜWfVÁBÁF&vWBÁf«VRíì∞¢BÇ"66∆756V∆V7B"íÊFDWfVÁD∆ó7FVÊW"Ç&6ÜÊvR"¬Çí”‚∞¢WFFU6V∆V7FVD6∆75&˜7FW$Ê˜FRÇì∞¢ñbÇBÇ"66∆756V∆V7B"íÁf«VRífˆñB∆ˆD76W76÷VÁE&W˜'BÇì∞ß“ì∞¢BÇ"766Üˆˆ≈6WGWf˜&“"íÊFDWfVÁD∆ó7FVÊW"Ç'7V&÷óB"¬6WGW66Üˆˆ¬ì∞¢BÇ"6÷ÁV≈7GVFVÁDf˜&“"íÊFDWfVÁD∆ó7FVÊW"Ç'7V&÷óB"¬FE7GVFVÁBì∞¢BÇ"677dfñ∆R"íÊFDWfVÁD∆ó7FVÊW"Ç&6ÜÊvR"¬ÜÊF∆Tñ◊˜'Dfñ∆Rì∞¢BÇ"6&˜fT∆ƒ'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬&˜fT∆¬ì∞¢BÇ"6∆ˆ&'ï¶ˆˆ‘˜WD'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚∞¢ñbá7FFRÊ∆ˆ&'ï¶ˆˆ’7FW√“í&WGW&„∞¢7FFRÊ∆ˆ&'ï¶ˆˆ’7FW”“∞¢7FFRÊ∆ˆ&'ïvR“∞¢&VÊFW%∆ñW%vRÇì∞ß“ì∞¢BÇ"6∆ˆ&'ï¶ˆˆ‘ñ‰'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚∞¢6ˆÁ7BfñWr“∆ˆ&'ïfñWrÇì∞¢ñbáfñWrÊ∆WfVƒñÊFWÇ„“ƒÙ$%ïÙƒîıUE2Ê∆VÊwFÇ“í&WGW&„∞¢7FFRÊ∆ˆ&'ï¶ˆˆ’7FW≥“∞¢7FFRÊ∆ˆ&'ïvR“∞¢&VÊFW%∆ñW%vRÇì∞ß“ì∞¢BÇ"6∆ˆ&'ï&WevT'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚∞¢7FFRÊ∆ˆ&'ïvR“÷FÇÊ÷ÇÉ¬7FFRÊ∆ˆ&'ïvR“ì∞¢&VÊFW%∆ñW%vRÇì∞¢BÇ"7∆ñW$∆ó7B"íÁ67&ˆ∆ƒñÁFıfñWrá≤&VÜfñ˜#¢'6÷ˆ˜FÇ"¬&∆ˆ6≥¢&ÊV&W7B"“ì∞ß“ì∞¢BÇ"6∆ˆ&'îÊWáEvT'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚∞¢7FFRÊ∆ˆ&'ïvR“÷FÇÊ÷ñ‚Ü∆ˆ&'ïfñWrÇíÁvT6˜VÁB¬7FFRÊ∆ˆ&'ïvR≤ì∞¢&VÊFW%∆ñW%vRÇì∞¢BÇ"7∆ñW$∆ó7B"íÁ67&ˆ∆ƒñÁFıfñWrá≤&VÜfñ˜#¢'6÷ˆ˜FÇ"¬&∆ˆ6≥¢&ÊV&W7B"“ì∞ß“ì∞¢BÇ"7W6U6W76ñˆ‰'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Fˆvv∆UW6Rì∞¢BÇ"6˜V‰∆FT¶ˆñ‰'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬˜V‰∆FT¶ˆñ‚ì∞¢BÇ"66∆˜6U6W76ñˆ‰'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬6∆˜6U6W76ñˆ‚ì∞¢BÇ"7$6∆˜6T'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬6∆˜6U6W76ñˆ‚ì∞¢BÇ"7$ÊWáD'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚6WEFV6ÜW$f∆˜u7FWÇ&∆ˆ&'í"íì∞¢BÇ"6∆ˆ&'î&6¥'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬ÜÊF∆T∆ˆ&'î&6≤ì∞¢BÇ"6∆ˆ&'îÊWáD'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬ÜÊF∆T∆ˆ&'îÊWáBì∞¢BÇ"7∆‰&6¥'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚6WEFV6ÜW$f∆˜u7FWÇ&∆ˆ&'í"íì∞¢BBÇu∂FF÷76W76÷VÁB◊Ü6U“ríÊf˜$V6ÇÜ'WGFˆ‚”‚'WGFˆ‚ÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚6V∆V7D76W76÷VÁBÜ'WGFˆ‚ÊFF6WBÊ76W76÷VÁEÜ6Rííì∞¢BÇ"77F'E∆‰'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬7F'E6V∆V7FVE∆‚ì∞¢BÇ"6fñÊó6Ñ7FófóGî'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚fñÊó6Ñ7FófóGíÇ&÷ÁV¬"íì∞¢BÇ"7&Wfñ˜W4∆W76ˆÂ7FW'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬vıFı&Wfñ˜W4∆W76ˆÂ7FWì∞¢BÇ"7&W7F'D∆W76ˆÂFñ÷W$'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬&W7F'D∆W76ˆÂFñ÷W"ì∞¢BÇ"76Ü&T∆W76ˆÂFı7GVFVÁG2"íÊFDWfVÁD∆ó7FVÊW"Ç&6ÜÊvR"¬WfVÁB”‚6WD∆W76ˆÂ7GVFVÁEfó6ñ&ñ∆óGíÜWfVÁBÁF&vWBÊ6ÜV6∂VBíì∞¢BÇ"6ÊWáD7FófóGî'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬vıFÙÊWáD7FófóGíì∞¢BÇ"66ˆ◊WFóFñˆ‰gV∆«67&VV‰'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Fˆvv∆T6ˆ◊WFóFñˆ‰WáÊFVBì∞¢BÇ"7Fˆvv∆UFV6ÜW$Ê˜FW4'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Fˆvv∆UFV6ÜW$Ê˜FW2ì∞¢BÇ"66ˆ◊WFóFñˆÂ6˜VÊD'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Fˆvv∆T6ˆ◊WFóFñˆÂ6˜VÊBì∞¢BÇ"6∆ófU&Ê∂ñÊtVÊ&∆VB"íÊFDWfVÁD∆ó7FVÊW"Ç&6ÜÊvR"¬WfVÁB”‚≤7FFRÊ∆ófU&Ê∂ñÊtVÊ&∆VB“WfVÁBÁF&vWBÊ6ÜV6∂VC≤&VÊFW$∆ófU&W7V«G2Çì≤'&ˆF67DFó7∆íÇ'&Ê∂ñÊr◊fó6ñ&ñ∆óGí÷6ÜÊvVB"ì≤“ì∞¢BBÇu∂FF÷∆ófR÷÷ˆFU“ríÊf˜$V6ÇÜ'WGFˆ‚”‚'WGFˆ‚ÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚6WD∆ófU∆î÷ˆFRÜ'WGFˆ‚ÊFF6WBÊ∆ófT÷ˆFRííì∞¢BÇ"76Ü˜u7V÷÷'î'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬6Ü˜u6W76ñˆÂ7V÷÷'íì∞¢BÇ"77V÷÷'î&6¥'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚6WEFV6ÜW$f∆˜u7FWÇ&∆ófR"íì∞¢BÇ"77V÷÷'îWá˜'D'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Wá˜'D7W'&VÁE&W˜'Bì∞¢BÇ"7&W7V÷U6W76ñˆ‰'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚6Ü˜t∆ófU6W76ñˆ‚á7FFRÁ6W76ñˆ‚Á7FGW2””“&∆ˆ&'í"Úá7FFRÁ6W76ñˆ‚Ê7W'&VÁEˆ7FófóGïˆ∂WíÚ&∆ˆ&'í"¢'""í¢&∆ófR"íì∞¢BÇ"7&W7V÷U7V÷÷'î'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚6Ü˜t∆ófU6W76ñˆ‚Ç'7V÷÷'í"íì∞¢BÇ"7&W7F'E6W76ñˆ‰'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬6∆˜6U6W76ñˆ‚ì∞¢BÇ"66˜ï&ˆˆ‘6ˆFR"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬7ñÊ2Çí”‚≤vóBÊfñvF˜"Ê6∆ó&ˆ&BÁw&óFUFWáBá7FFRÁ6W76ñˆ‚Á&ˆˆ’ˆ6ˆFRì≤Fˆ7BÇ.àNãâNä^äﬁàä>äæãäÆäæòûäﬁà~òä^òûär"¬'7V66W72"ì≤“ì∞¢BÇ"66˜ï7GVFVÁD∆ñÊ≤"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬7ñÊ2Çí”‚≤vóBÊfñvF˜"Ê6∆ó&ˆ&BÁw&óFUFWáBá7GVFVÁD¶ˆñÂW&¬Çíì≤Fˆ7BÇ.àNãâNä^äﬁàä^ãNà~àòŒâûãàòä>ã^ä.âûòä^òûär"¬'7V66W72"ì≤“ì∞¢BÇ"7&WGW&‰f˜&“"íÊFDWfVÁD∆ó7FVÊW"Ç'7V&÷óB"¬&WGW&Â∆ñW"ì∞¢BÇ"66Ê6V≈&WGW&‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚ÜñFRÇBÇ"7&WGW&‰Fñ∆ˆr"ííì∞¢BÇ"6Wá˜'D77d'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Wá˜'D7W'&VÁE&W˜'Bì∞¢BÇ"6&6µFı6W76ñˆ‰'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚7vóF6ÖÊV¬Ç'6W76ñˆÂÊV¬"íì∞¢BÇ"77GVFVÁE67&VVÁ4w&ñD'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚6WE7GVFVÁE67&VVÂfñWrÇ&w&ñB"íì∞¢BÇ"77GVFVÁE67&VVÁ4fˆ7W4'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚∞¢6WE7GVFVÁE67&VVÂfñWrÇ&fˆ7W2"ì∞¢&WVW7DÊñ÷Fñˆ‰g&÷RÜ˜VÂ7GVFVÁE67&VV‰gV∆«67&VV‚ì∞ß“ì∞¢BÇ"77GVFVÁE67&VV‰&6µFÙw&ñB"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚6WE7GVFVÁE67&VVÂfñWrÇ&w&ñB"íì∞¢BÇ"77GVFVÁE67&VVÂ&Wfñ˜W2"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚÷˜fU7GVFVÁE67&VV‚Ç”íì∞¢BÇ"77GVFVÁE67&VV‰ÊWáB"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚÷˜fU7GVFVÁE67&VV‚Éíì∞¢BÇ"77GVFVÁE67&VV‰gV∆«67&VV‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬˜VÂ7GVFVÁE67&VV‰gV∆«67&VV‚ì∞¶Fˆ7V÷VÁBÊFDWfVÁD∆ó7FVÊW"Ç&gV∆«67&VVÊ6ÜÊvR"¬Çí”‚∞¢ñbÇFˆ7V÷VÁBÊgV∆«67&VV‰V∆V÷VÁBíBÇ"77GVFVÁE67&VV‰fˆ7W2"ìÚÊ6∆74∆ó7BÁ&V÷˜fRÇ'7GVFVÁB◊67&VV‚÷gV∆¬◊vñÊF˜r"ì∞ß“ì∞¶Fˆ7V÷VÁBÊFDWfVÁD∆ó7FVÊW"Ç&∂WñF˜v‚"¬WfVÁB”‚∞¢ñbÜWfVÁBÊ∂Wí””“$W66R"bbBÇ"77GVFVÁE67&VV‰fˆ7W2"ìÚÊ6∆74∆ó7BÊ6ˆÁFñÁ2Ç'7GVFVÁB◊67&VV‚÷gV∆¬◊vñÊF˜r"íí6WE7GVFVÁE67&VVÂfñWrÇ&w&ñB"ì∞ß“ì∞¢BÇ"6ÊWu6W76ñˆ‰'WGFˆ‚"íÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚≤ñbá7FFRÁ6W76ñˆ‚íFˆ7BÇ.âæãNâNàNã.âÆâæãàéàéãéâÆãâûàòéäﬁâûòâæãNâNàNã.âÆò>äæäòÇ"¬'v&ÊñÊr"ì≤V«6R≤6Ü˜rÇBÇ"76W76ñˆÂ6WGW"íì≤BÇ"76W76ñˆÂ6WGW"íÁ67&ˆ∆ƒñÁFıfñWrá≤&VÜfñ˜#¢'6÷ˆ˜FÇ"“ì≤““ì∞¢BÇ"6GFV◊D÷ˆFR"íÊFDWfVÁD∆ó7FVÊW"Ç&6ÜÊvR"¬WfVÁB”‚≤BÇ"6÷ÑGFV◊G2"íÊFó6&∆VB“WfVÁBÁF&vWBÁf«VR”“&∆ñ÷óFVB#≤ñbÜWfVÁBÁF&vWBÁf«VR””“'6ñÊv∆R"íBÇ"6÷ÑGFV◊G2"íÁf«VR“≤“ì∞¢BBÇr6F6Ü&ˆ&DÊb'WGFˆ‚ríÊf˜$V6ÇÜ'WGFˆ‚”‚'WGFˆ‚ÊFDWfVÁD∆ó7FVÊW"Ç&6∆ñ6≤"¬Çí”‚7vóF6ÖÊV¬Ü'WGFˆ‚ÊFF6WBÁÊV¬ííì∞ßvñÊF˜rÊFDWfVÁD∆ó7FVÊW"Ç&ˆÊ∆ñÊR"¬6ˆÊÊV7FñˆÂWFFRì∞ßvñÊF˜rÊFDWfVÁD∆ó7FVÊW"Ç&ˆff∆ñÊR"¬6ˆÊÊV7FñˆÂWFFRì∞ßvñÊF˜rÊFDWfVÁD∆ó7FVÊW"Ç&∂WñF˜v‚"¬WfVÁB”‚∞¢ñbÜWfVÁBÊ∂Wí””“$W66R"bbBÇ"6∆W76ˆÂ7FWÊV¬"ìÚÊ6∆74∆ó7BÊ6ˆÁFñÁ2Ç&6∆77&ˆˆ“◊7FvR÷WáÊFVB"ííFˆvv∆T6ˆ◊WFóFñˆ‰WáÊFVBÇì∞ß“ì∞¶∆WB∆ˆ&'ï&W6ó¶UFñ÷W#∞ßvñÊF˜rÊFDWfVÁD∆ó7FVÊW"Ç'&W6ó¶R"¬Çí”‚∞¢6∆V%Fñ÷V˜WBÜ∆ˆ&'ï&W6ó¶UFñ÷W"ì∞¢∆ˆ&'ï&W6ó¶UFñ÷W"“6WEFñ÷V˜WBÇÇí”‚∞¢ñbá7FFRÊf∆˜u7FW””“&∆ˆ&'í"í&VÊFW%∆ñW%vRÇì∞¢“¬#ì∞ß“ì∞¶&ˆ˜G7G&Çì∞†
+  const player = state.players.find(item => item.id === payload.session_player_id && item.status === "approved");
+  if (!player || payload.activity_key !== state.session.current_activity_key) return;
+  const maxScore = Number(payload.max_score);
+  const score = Number(payload.score);
+  if (!Number.isFinite(maxScore) || !Number.isFinite(score) || maxScore <= 0 || score < 0 || score > maxScore) return;
+  const attemptId = String(payload.attempt_id || "");
+  if (!attemptId || state.expertAttemptIds.has(attemptId)) return;
+  const attemptNo = state.attempts.filter(attempt => attempt.session_player_id === player.id && attempt.activity_key === payload.activity_key).length + 1;
+  const percent = Math.round((score / maxScore) * 10000) / 100;
+  state.expertAttemptIds.add(attemptId);
+  state.attempts.push({
+    id: attemptId,
+    session_player_id: player.id,
+    activity_key: payload.activity_key,
+    score,
+    max_score: maxScore,
+    percent,
+    passed: percent >= Number(state.session.pass_percent || 80),
+    attempt_no: attemptNo,
+    completed_at: payload.completed_at || new Date().toISOString(),
+    ephemeral: true,
+  });
+  state.leaderboard = buildExpertLeaderboard();
+  renderMetrics();
+  renderLiveResults();
+  renderReport();
+  if (state.flowStep === "summary") renderSummary();
+  void finishWhenEveryoneSubmitted();
+  void broadcastExpertScoreboard();
+}
+
+function receiveExpertScoreboardRequest(message) {
+  const payload = message?.payload || message;
+  if (!sessionRecordsScores() && payload?.session_id === state.session?.id) void broadcastExpertScoreboard();
+}
+
+function subscribeDisplay() {
+  state.displayChannel?.unsubscribe();
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = ready => {
+      if (settled) return;
+      settled = true;
+      resolve(ready);
+    };
+    state.displayChannel = supabase.channel(gameStateChannelName(state.session.id), {
+      config: { broadcast: { ack: true } },
+    })
+      .on("broadcast", { event: EXPERT_SCORE_EVENT }, applyExpertLiveScore)
+      .on("broadcast", { event: EXPERT_SCOREBOARD_REQUEST_EVENT }, receiveExpertScoreboardRequest)
+      .on("broadcast", { event: GAME_STATE_REQUEST_EVENT }, message => {
+        const payload = message?.payload || message;
+        if (payload?.session_id === state.session?.id) void broadcastDisplay("state-request");
+      })
+      .subscribe(status => {
+      if (status === "SUBSCRIBED") finish(true);
+      if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) finish(false);
+    });
+    setTimeout(() => finish(false), 5000);
+  });
+}
+
+async function broadcastDisplay(reason = "state-change") {
+  if (!state.displayChannel || !state.session) return;
+  try {
+    await state.displayChannel.send({
+      type: "broadcast",
+      event: GAME_STATE_EVENT,
+      payload: gameStatePayload(state.session, reason, {
+        live_ranking_enabled: currentLessonStep()?.kind === "results",
+        lesson_step: lessonStepBroadcastPayload(),
+        lesson_timer: lessonTimerBroadcastPayload(),
+      }),
+    });
+  } catch {
+    // The durable database state remains the reconnect fallback.
+  }
+}
+
+async function broadcastExpertScoreboard() {
+  if (sessionRecordsScores() || !state.displayChannel || !state.session) return;
+  try {
+    await state.displayChannel.send({
+      type: "broadcast",
+      event: EXPERT_SCOREBOARD_EVENT,
+      payload: {
+        session_id: state.session.id,
+        leaderboard: state.leaderboard,
+        issued_at: Date.now(),
+      },
+    });
+  } catch {
+    // Live scoreboards are intentionally transient; a later score or display
+    // request publishes the latest in-memory snapshot again.
+  }
+}
+
+async function refreshSessionData() {
+  if (!state.session) return;
+  const [{ data: players }, { data: leaderboard }, { data: sentenceSubmissions }] = await Promise.all([
+    supabase.from("session_players").select("*, student:students(*)").eq("session_id", state.session.id).order("joined_at"),
+    supabase.rpc("get_session_leaderboard", { p_session_id: state.session.id }),
+    state.session.current_activity_key === "vote"
+      ? supabase.from("sentence_submissions").select("id,sentence,session_player_id,created_at,sentence_votes(emoji)").eq("session_id", state.session.id).order("created_at")
+      : Promise.resolve({ data: [] }),
+  ]);
+  state.players = players || [];
+  state.sentenceSubmissions = sentenceSubmissions || [];
+  const playerIds = state.players.map(player => player.id);
+  if (state.session.assessment_phase === "satisfaction" && playerIds.length) {
+    const [{ data: satisfactionResponses }, { data: satisfactionSubmissions }] = await Promise.all([
+      supabase.from("satisfaction_responses").select("session_player_id,question_id,rating").in("session_player_id", playerIds),
+      supabase.from("satisfaction_submissions").select("session_player_id,completed_at").in("session_player_id", playerIds),
+    ]);
+    state.satisfactionResponses = satisfactionResponses || [];
+    state.satisfactionSubmissions = satisfactionSubmissions || [];
+  } else {
+    state.satisfactionResponses = [];
+    state.satisfactionSubmissions = [];
+  }
+  if (!sessionRecordsScores()) {
+    const activePlayerIds = new Set(playerIds);
+    state.attempts = state.attempts.filter(attempt => activePlayerIds.has(attempt.session_player_id));
+    state.leaderboard = buildExpertLeaderboard();
+  } else if (playerIds.length) {
+    const { data: attempts } = await supabase.from("game_attempts").select("*").in("session_player_id", playerIds).order("completed_at");
+    state.attempts = attempts || [];
+    state.leaderboard = leaderboard || [];
+  } else {
+    state.attempts = [];
+    state.leaderboard = leaderboard || [];
+  }
+  await renderPlayers();
+  renderMetrics();
+  renderLiveResults();
+  renderStudentScreens();
+  renderReport();
+  if (isAssessmentSession(state.session) && state.session.status === "paused" && sessionRecordsScores()) {
+    await loadAssessmentReport();
+  }
+  if (state.flowStep === "summary") renderSummary();
+  void finishWhenEveryoneSubmitted();
+  void broadcastDisplay();
+  void broadcastExpertScoreboard();
+}
+
+async function loadSentenceSubmissions() {
+  if (!state.session?.id || state.session.current_activity_key !== "vote") return;
+  const { data, error } = await supabase.from("sentence_submissions").select("id,sentence,session_player_id,created_at,sentence_votes(emoji)").eq("session_id", state.session.id).order("created_at");
+  if (error) return;
+  state.sentenceSubmissions = data || [];
+  renderLiveResults();
+}
+
+async function selfieUrl(path) {
+  if (!path) return "";
+  const { data } = await supabase.storage.from(APP_CONFIG.selfieBucket).createSignedUrl(path, 900);
+  return data?.signedUrl || "";
+}
+
+async function renderPlayers() {
+  const urls = await Promise.all(state.players.map(player => selfieUrl(player.selfie_path)));
+  state.playerSelfieUrls = new Map(state.players.map((player, index) => [player.id, urls[index]]));
+  renderPlayerPage();
+  renderLiveJoinRequests();
+}
+
+function pendingLiveJoinPlayers() {
+  return state.players.filter(player => ["waiting", "returned"].includes(player.status));
+}
+
+function renderLiveJoinRequests() {
+  const panel = $("#liveJoinRequests");
+  const list = $("#liveJoinRequestList");
+  if (!panel || !list) return;
+  const pending = pendingLiveJoinPlayers();
+  panel.classList.toggle("hidden", pending.length === 0);
+  $("#liveJoinRequestCount").textContent = `${pending.length} ‡∏Ñ‡∏ô`;
+  $("#liveJoinRoomCode").textContent = state.session?.room_code || "------";
+  $("#openLateJoinButton").classList.toggle("has-pending", pending.length > 0);
+  $("#openLateJoinButton").textContent = pending.length
+    ? `üîî ‡∏Ñ‡∏≥‡∏Ç‡∏≠‡πÄ‡∏Ç‡πâ‡∏≤‡πÉ‡∏´‡∏°‡πà ${pending.length} ‡∏Ñ‡∏ô`
+    : "üìã ‡∏î‡∏π‡∏Ñ‡∏≥‡∏Ç‡∏≠‡πÄ‡∏Ç‡πâ‡∏≤‡πÉ‡∏´‡∏°‡πà";
+  list.innerHTML = pending.map(player => {
+    const student = player.student || {};
+    const name = escapeHtml(student.full_name || student.nickname || "‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô");
+    const selfie = state.playerSelfieUrls.get(player.id);
+    return `<article class="live-join-card" data-live-player-id="${escapeHtml(player.id)}">
+      ${selfie ? `<img src="${selfie}" alt="‡∏£‡∏π‡∏õ‡∏¢‡∏∑‡∏ô‡∏¢‡∏±‡∏ô‡∏ï‡∏±‡∏ß‡∏ï‡∏ô‡∏Ç‡∏≠‡∏á ${name}">` : `<span class="avatar-fallback">${escapeHtml(student.avatar || randomAvatar(student.nickname))}</span>`}
+      <div><strong>${name}</strong><small>${escapeHtml(student.nickname || "")}${student.student_code ? ` ¬∑ ${escapeHtml(student.student_code)}` : ""}</small><em>${escapeHtml(playerStatusLabel(player.status))}</em></div>
+      <div class="live-join-actions">
+        <button class="button button-small button-success" type="button" data-live-join-action="approve">‚úì ‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥</button>
+        <button class="button button-small button-danger" type="button" data-live-join-action="remove">‡πÑ‡∏°‡πà‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥</button>
+      </div>
+    </article>`;
+  }).join("");
+  list.querySelectorAll("[data-live-join-action]").forEach(button => button.addEventListener("click", () => {
+    const playerId = button.closest("[data-live-player-id]").dataset.livePlayerId;
+    if (button.dataset.liveJoinAction === "approve") void approvePlayer(playerId);
+    if (button.dataset.liveJoinAction === "remove") void removePlayer(playerId);
+  }));
+}
+
+function lobbyViewportMetrics() {
+  const list = $("#playerList");
+  const pageWidth = document.documentElement.clientWidth || window.innerWidth || 1200;
+  const fallbackWidth = pageWidth > 760 ? pageWidth - 360 : pageWidth - 26;
+  const fallbackHeight = Math.min(760, Math.max(360, (window.innerHeight || 800) - 430));
+  const measuredHeight = list.dataset.allOnPage === "true" ? 0 : list.clientHeight;
+  return {
+    width: Math.max(list.clientWidth || fallbackWidth, 260),
+    height: Math.max(measuredHeight || fallbackHeight, 320),
+    gap: 10,
+  };
+}
+
+function lobbyCapacity(levelIndex) {
+  const layout = LOBBY_LAYOUTS[levelIndex];
+  const { width, height, gap } = lobbyViewportMetrics();
+  const columns = Math.max(1, Math.floor((width + gap) / (layout.minWidth + gap)));
+  const rows = Math.max(1, Math.floor((height + gap) / (layout.rowHeight + gap)));
+  return { columns, rows, pageSize: columns * rows };
+}
+
+function autoLobbyLevel() {
+  if (!state.players.length) return 2;
+  for (let index = LOBBY_LAYOUTS.length - 2; index >= 0; index -= 1) {
+    if (lobbyCapacity(index).pageSize >= state.players.length) return index;
+  }
+  return 0;
+}
+
+function lobbyView() {
+  const baseLevel = autoLobbyLevel();
+  const levelIndex = Math.min(baseLevel + state.lobbyZoomStep, LOBBY_LAYOUTS.length - 1);
+  const capacity = lobbyCapacity(levelIndex);
+  const isAutoFit = state.lobbyZoomStep === 0;
+  const pageSize = isAutoFit ? Math.max(state.players.length, 1) : capacity.pageSize;
+  const pageCount = Math.max(1, Math.ceil(state.players.length / pageSize));
+  state.lobbyPage = Math.min(Math.max(state.lobbyPage, 1), pageCount);
+  const start = (state.lobbyPage - 1) * pageSize;
+  return {
+    ...capacity,
+    baseLevel,
+    levelIndex,
+    layout: LOBBY_LAYOUTS[levelIndex],
+    isAutoFit,
+    pageSize,
+    pageCount,
+    start,
+    players: state.players.slice(start, start + pageSize),
+  };
+}
+
+function renderPlayerPage() {
+  const list = $("#playerList");
+  if (!list) return;
+  const view = lobbyView();
+  const end = Math.min(view.start + view.players.length, state.players.length);
+  const rangeText = state.players.length ? `‡πÅ‡∏™‡∏î‡∏á ${view.start + 1}‚Äì${end} ‡∏à‡∏≤‡∏Å ${state.players.length} ‡∏Ñ‡∏ô` : "‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô";
+
+  $("#lobbySummary").textContent = state.players.length ? `${state.players.length} ‡∏Ñ‡∏ô‡πÄ‡∏Ç‡πâ‡∏≤‡∏´‡πâ‡∏≠‡∏á‡πÅ‡∏•‡πâ‡∏ß ¬∑ ${rangeText}` : "‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô";
+  $("#lobbyZoomLabel").textContent = view.isAutoFit ? `${view.layout.label} ¬∑ ‡∏û‡∏≠‡∏î‡∏µ‡∏≠‡∏±‡∏ï‡πÇ‡∏ô‡∏°‡∏±‡∏ï‡∏¥` : view.layout.label;
+  $("#lobbyPageSummary").textContent = `${rangeText} ¬∑ ‡∏´‡∏ô‡πâ‡∏≤ ${state.lobbyPage}/${view.pageCount}`;
+  $("#lobbyPageIndicator").textContent = `‡∏´‡∏ô‡πâ‡∏≤ ${state.lobbyPage} ‡∏à‡∏≤‡∏Å ${view.pageCount}`;
+  $("#lobbyZoomOutButton").disabled = state.lobbyZoomStep === 0;
+  $("#lobbyZoomInButton").disabled = view.levelIndex >= LOBBY_LAYOUTS.length - 1;
+  $("#lobbyPrevPageButton").disabled = state.lobbyPage <= 1;
+  $("#lobbyNextPageButton").disabled = state.lobbyPage >= view.pageCount;
+  $("#lobbyPagination").classList.toggle("hidden", view.pageCount <= 1);
+  list.dataset.size = view.layout.key;
+  list.dataset.allOnPage = String(view.isAutoFit && lobbyCapacity(view.levelIndex).pageSize < state.players.length);
+  const displayColumns = view.isAutoFit ? Math.min(view.columns, Math.max(view.players.length, 1)) : view.columns;
+  const displayRows = view.isAutoFit ? Math.max(1, Math.ceil(view.players.length / displayColumns)) : view.rows;
+  list.style.setProperty("--lobby-columns", displayColumns);
+  list.style.setProperty("--lobby-rows", displayRows);
+  list.style.setProperty("--lobby-row-height", `${view.layout.rowHeight}px`);
+
+  const pendingOnPage = view.players.filter(player => ["waiting", "returned"].includes(player.status));
+  const approveButton = $("#approveAllButton");
+  approveButton.disabled = pendingOnPage.length === 0;
+  approveButton.textContent = pendingOnPage.length ? `‚úì ‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥ ${pendingOnPage.length} ‡∏Ñ‡∏ô‡πÉ‡∏ô‡∏´‡∏ô‡πâ‡∏≤‡∏ô‡∏µ‡πâ` : "‚úì ‡∏´‡∏ô‡πâ‡∏≤‡∏ô‡∏µ‡πâ‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥‡∏Ñ‡∏£‡∏ö‡πÅ‡∏•‡πâ‡∏ß";
+
+  if (!state.players.length) {
+    list.innerHTML = `<div class="empty-report"><span>üëã</span><h2>‡∏£‡∏≠‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÄ‡∏Ç‡πâ‡∏≤‡∏´‡πâ‡∏≠‡∏á</h2><p>‡πÅ‡∏™‡∏î‡∏á‡∏£‡∏´‡∏±‡∏™ ${state.session.room_code} ‡∏ö‡∏ô‡∏à‡∏≠‡∏´‡∏ô‡πâ‡∏≤‡∏ä‡∏±‡πâ‡∏ô</p></div>`;
+    return;
+  }
+
+  list.innerHTML = view.players.map(player => {
+    const student = player.student || {};
+    const statusClass = `status-${player.status}`;
+    const fullName = escapeHtml(student.full_name || "‡πÑ‡∏°‡πà‡∏û‡∏ö‡∏ä‡∏∑‡πà‡∏≠");
+    const selfie = state.playerSelfieUrls.get(player.id);
+    return `<article class="player-row" data-player-id="${player.id}">
+      ${selfie ? `<img src="${selfie}" alt="‡∏£‡∏π‡∏õ‡∏¢‡∏∑‡∏ô‡∏¢‡∏±‡∏ô‡∏ï‡∏±‡∏ß‡∏ï‡∏ô‡∏Ç‡∏≠‡∏á ${fullName}">` : `<span class="avatar-fallback">${escapeHtml(student.avatar || randomAvatar(student.nickname))}</span>`}
+      <div class="player-info"><strong title="${fullName}">${fullName}</strong><small class="player-meta">${escapeHtml(student.nickname || "")} ¬∑ ${escapeHtml(student.student_code || "")}</small><span class="player-status ${statusClass}">${escapeHtml(playerStatusLabel(player.status))}</span>${player.return_reason ? `<small class="player-return-reason">${escapeHtml(player.return_reason)}</small>` : ""}</div>
+      <div class="player-row-actions">
+        ${player.status !== "approved" ? `<button class="button button-small button-success" data-action="approve" aria-label="‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥ ${fullName}" title="‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥"><span aria-hidden="true">‚úì</span><span class="player-action-label">‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥</span></button>` : ""}
+        <button class="button button-small button-ghost" data-action="return" aria-label="‡∏™‡πà‡∏á‡∏Ñ‡∏∑‡∏ô ${fullName}" title="‡∏™‡πà‡∏á‡∏Ñ‡∏∑‡∏ô"><span aria-hidden="true">‚Ü©</span><span class="player-action-label">‡∏™‡πà‡∏á‡∏Ñ‡∏∑‡∏ô</span></button>
+        <button class="button button-small button-danger" data-action="remove" aria-label="‡∏ô‡∏≥ ${fullName} ‡∏≠‡∏≠‡∏Å‡∏à‡∏≤‡∏Å‡∏´‡πâ‡∏≠‡∏á" title="‡∏ô‡∏≥‡∏≠‡∏≠‡∏Å"><span aria-hidden="true">√ó</span><span class="player-action-label">‡∏ô‡∏≥‡∏≠‡∏≠‡∏Å</span></button>
+      </div>
+    </article>`;
+  }).join("");
+  list.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => {
+    const playerId = button.closest("[data-player-id]").dataset.playerId;
+    if (button.dataset.action === "approve") approvePlayer(playerId);
+    if (button.dataset.action === "return") openReturnDialog(playerId);
+    if (button.dataset.action === "remove") removePlayer(playerId);
+  }));
+}
+
+function renderMetrics() {
+  const approved = state.players.filter(player => player.status === "approved").length;
+  $("#approvedCount").textContent = approved;
+  $("#waitingCount").textContent = state.players.filter(player => ["waiting", "returned"].includes(player.status)).length;
+  $("#liveApprovedCount").textContent = approved;
+  const averages = state.leaderboard.map(item => Number(item.average_percent || 0));
+  const average = averages.length ? Math.round(averages.reduce((sum, value) => sum + value, 0) / averages.length) : 0;
+  $("#averageScore").textContent = `${average}%`;
+  const currentPlayerIds = new Set(state.attempts.filter(item => item.activity_key === state.session.current_activity_key).map(item => item.session_player_id));
+  $("#completedAttemptCount").textContent = currentPlayerIds.size;
+}
+
+async function finishWhenEveryoneSubmitted() {
+  if (!state.session?.current_activity_key || state.session.status !== "active" || state.finishingActivity || state.celebrationActivityKey) return;
+  if (currentLessonStep()?.kind !== "game") return;
+  const approvedIds = state.players.filter(player => player.status === "approved").map(player => player.id);
+  if (!approvedIds.length) return;
+  const roundStartedAt = state.activityStartedAt ? new Date(state.activityStartedAt).getTime() - 1000 : 0;
+  const submittedIds = new Set(state.attempts
+    .filter(attempt => attempt.activity_key === state.session.current_activity_key && new Date(attempt.completed_at).getTime() >= roundStartedAt)
+    .map(attempt => attempt.session_player_id));
+  if (approvedIds.every(playerId => submittedIds.has(playerId))) {
+    $("#competitionStatus").textContent = "‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏™‡πà‡∏á‡∏Ñ‡∏£‡∏ö‡∏ó‡∏∏‡∏Å‡∏Ñ‡∏ô‡πÅ‡∏•‡πâ‡∏ß ¬∑ ‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡∏ú‡∏•‡∏Å‡∏≤‡∏£‡πÅ‡∏Ç‡πà‡∏á‡∏Ç‡∏±‡∏ô‡∏ó‡∏±‡∏ô‡∏ó‡∏µ";
+    await finishActivity("all_submitted");
+  }
+}
+
+function currentCompetitionEntries() {
+  const policy = state.session?.score_policy || "best";
+  const roundStartedAt = state.activityStartedAt ? new Date(state.activityStartedAt).getTime() - 1000 : 0;
+  return state.players.filter(player => player.status === "approved").map(player => {
+    const current = state.attempts
+      .filter(item => item.session_player_id === player.id
+        && item.activity_key === state.session.current_activity_key
+        && (!roundStartedAt || new Date(item.completed_at).getTime() >= roundStartedAt))
+      .sort((a, b) => Number(a.attempt_no) - Number(b.attempt_no));
+    let selected = null;
+    if (current.length) {
+      if (policy === "first") selected = current[0];
+      else if (policy === "latest") selected = current[current.length - 1];
+      else selected = current.reduce((best, attempt) => Number(attempt.percent) > Number(best.percent) ? attempt : best, current[0]);
+    }
+    const student = player.student || {};
+    return {
+      player,
+      name: student.full_name || student.nickname || "‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô",
+      avatar: student.avatar || randomAvatar(student.nickname),
+      photoUrl: state.playerSelfieUrls.get(player.id) || "",
+      percent: selected ? Number(selected.percent || 0) : null,
+      completedAt: selected?.completed_at || "",
+      attemptCount: current.length,
+    };
+  }).sort((a, b) => {
+    if (a.percent === null && b.percent !== null) return 1;
+    if (a.percent !== null && b.percent === null) return -1;
+    if (a.percent !== b.percent) return Number(b.percent || 0) - Number(a.percent || 0);
+    if (a.completedAt !== b.completedAt) return String(a.completedAt).localeCompare(String(b.completedAt));
+    return a.name.localeCompare(b.name, "th");
+  });
+}
+
+function rankMedal(rank) {
+  return ["ü•á", "ü•à", "ü•â"][rank - 1] || rank;
+}
+
+function competitionProfileMarkup(entry, className) {
+  const label = `‡∏£‡∏π‡∏õ‡πÇ‡∏õ‡∏£‡πÑ‡∏ü‡∏•‡πå ${entry.name}`;
+  return entry.photoUrl
+    ? `<img class="${className}" src="${escapeHtml(entry.photoUrl)}" alt="${escapeHtml(label)}" loading="lazy">`
+    : `<span class="${className}" role="img" aria-label="${escapeHtml(label)}">${escapeHtml(entry.avatar)}</span>`;
+}
+
+function renderLiveRanking(entries) {
+  return `<ol class="competition-ranking-list">${entries.map((entry, index) => {
+    const rank = entry.percent === null ? "‚Äî" : index + 1;
+    return `<li class="competition-rank-row ${entry.percent === null ? "is-waiting" : "has-result"}" style="--rank-index:${index}">
+      <span class="competition-rank">${entry.percent === null ? "‚è≥" : rankMedal(rank)}</span>
+      ${competitionProfileMarkup(entry, "competition-avatar")}
+      <span class="competition-student"><strong>${escapeHtml(entry.name)}</strong><small>${entry.percent === null ? "‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏ó‡∏≥‡πÄ‡∏Å‡∏°" : `‡∏™‡πà‡∏á‡πÅ‡∏•‡πâ‡∏ß ${entry.attemptCount} ‡∏£‡∏≠‡∏ö`}</small></span>
+      <strong class="competition-score">${entry.percent === null ? "‡∏£‡∏≠‡∏ú‡∏•" : `${Math.round(entry.percent)}%`}</strong>
+    </li>`;
+  }).join("")}</ol>`;
+}
+
+function renderLiveVoteBoard() {
+  const submissions = [...(state.sentenceSubmissions || [])]
+    .map(item => ({ ...item, votes: item.sentence_votes?.length || 0 }))
+    .sort((a, b) => b.votes - a.votes || String(a.created_at || "").localeCompare(String(b.created_at || "")));
+  const playerNames = new Map(state.players.map(player => [player.id, player.student?.full_name || player.student?.nickname || "‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô"]));
+  return `<section class="teacher-vote-board" aria-live="polite">
+    <div class="teacher-vote-heading"><div><span class="eyebrow">‡∏ö‡∏≠‡∏£‡πå‡∏î‡∏õ‡∏£‡∏∞‡πÇ‡∏¢‡∏Ñ</span><h4>‡∏õ‡∏£‡∏∞‡πÇ‡∏¢‡∏Ñ‡∏ó‡∏µ‡πà‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏™‡πà‡∏á</h4></div><span class="teacher-vote-count">${submissions.length} ‡∏õ‡∏£‡∏∞‡πÇ‡∏¢‡∏Ñ</span></div>
+    ${submissions.length ? `<div class="teacher-vote-list">${submissions.map((item, index) => `<article class="teacher-vote-entry"><span class="teacher-vote-rank">${index + 1}</span><div class="teacher-vote-sentence">${escapeHtml(item.sentence)}</div><small>${escapeHtml(playerNames.get(item.session_player_id) || "‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô")}</small><strong>üíó ${item.votes}</strong></article>`).join("")}</div>` : `<div class="teacher-vote-empty">‡∏£‡∏≠‡∏õ‡∏£‡∏∞‡πÇ‡∏¢‡∏Ñ‡∏à‡∏≤‡∏Å‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô ‡∏õ‡∏£‡∏∞‡πÇ‡∏¢‡∏Ñ‡∏ó‡∏µ‡πà‡∏™‡πà‡∏á‡∏à‡∏∞‡πÅ‡∏™‡∏î‡∏á‡∏ï‡∏£‡∏á‡∏ô‡∏µ‡πâ‡∏ó‡∏±‡∏ô‡∏ó‡∏µ</div>`}
+  </section>`;
+}
+
+function celebrationConfetti() {
+  const colors = ["#ffd65a", "#ff7185", "#6c5ce7", "#41c7a2", "#53b9f1", "#ffffff"];
+  return Array.from({ length: 72 }, (_, index) => {
+    const x = (index * 37) % 101;
+    const delay = ((index * 13) % 28) / 20;
+    const duration = 2.8 + ((index * 17) % 18) / 10;
+    const drift = ((index * 29) % 180) - 90;
+    return `<i style="--confetti-x:${x}%;--confetti-delay:${delay}s;--confetti-duration:${duration}s;--confetti-drift:${drift}px;--confetti-color:${colors[index % colors.length]}"></i>`;
+  }).join("");
+}
+
+function renderClassTeamGoal(entries) {
+  const goal = classTeamGoal(entries, Number(state.session?.pass_percent || 80));
+  if (!goal.total) return "";
+  const remaining = Math.max(0, goal.required - goal.mastered);
+  return `<section class="class-team-goal ${goal.unlocked ? "is-unlocked" : ""}" aria-label="‡πÄ‡∏õ‡πâ‡∏≤‡∏´‡∏°‡∏≤‡∏¢‡∏Ç‡∏≠‡∏á‡∏ó‡∏±‡πâ‡∏á‡∏´‡πâ‡∏≠‡∏á">
+    <span class="class-team-goal-icon">${goal.unlocked ? "ü§ùüåü" : "ü§ù"}</span>
+    <div class="class-team-goal-copy">
+      <small>‡∏ä‡πà‡∏ß‡∏¢‡∏Å‡∏±‡∏ô‡∏ó‡∏±‡πâ‡∏á‡∏´‡πâ‡∏≠‡∏á</small>
+      <strong>${goal.unlocked ? "‡∏´‡πâ‡∏≠‡∏á‡∏Ç‡∏≠‡∏á‡πÄ‡∏£‡∏≤‡∏ó‡∏≥‡πÄ‡∏õ‡πâ‡∏≤‡∏´‡∏°‡∏≤‡∏¢‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à‡πÅ‡∏•‡πâ‡∏ß!" : `‡∏ñ‡πâ‡∏≤‡∏°‡∏µ‡πÄ‡∏û‡∏∑‡πà‡∏≠‡∏ô‡∏ú‡πà‡∏≤‡∏ô‡πÄ‡∏û‡∏¥‡πà‡∏°‡∏≠‡∏µ‡∏Å ${remaining} ‡∏Ñ‡∏ô ‡∏´‡πâ‡∏≠‡∏á‡∏Ç‡∏≠‡∏á‡πÄ‡∏£‡∏≤‡∏à‡∏∞‡∏ó‡∏≥‡πÄ‡∏õ‡πâ‡∏≤‡∏´‡∏°‡∏≤‡∏¢‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à`}</strong>
+      <p>‡∏ú‡πà‡∏≤‡∏ô‡πÄ‡∏Å‡∏ì‡∏ë‡πå‡πÅ‡∏•‡πâ‡∏ß ${goal.mastered}/${goal.total} ‡∏Ñ‡∏ô ¬∑ ‡∏™‡πà‡∏á‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡πÅ‡∏•‡πâ‡∏ß ${goal.submitted}/${goal.total} ‡∏Ñ‡∏ô</p>
+    </div>
+    <div class="class-team-goal-progress"><i style="width:${goal.progress}%"></i></div>
+    <em>‡∏ó‡∏≥‡πÑ‡∏î‡πâ ${goal.progress}% ‡∏Ç‡∏≠‡∏á‡πÄ‡∏õ‡πâ‡∏≤‡∏´‡∏°‡∏≤‡∏¢</em>
+  </section>`;
+}
+
+function renderPodiumPlace(entry, rank) {
+  const labels = ["‡∏ä‡∏ô‡∏∞‡πÄ‡∏•‡∏¥‡∏®", "‡∏£‡∏≠‡∏á‡∏ä‡∏ô‡∏∞‡πÄ‡∏•‡∏¥‡∏®‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö 1", "‡∏£‡∏≠‡∏á‡∏ä‡∏ô‡∏∞‡πÄ‡∏•‡∏¥‡∏®‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö 2"];
+  if (!entry) return `<article class="podium-place podium-place-${rank} is-empty"><div class="podium-person"><span>‚≠ê</span><strong>‡∏£‡∏≠‡∏ú‡∏π‡πâ‡πÄ‡∏•‡πà‡∏ô</strong></div><div class="podium-block"><strong>${rank}</strong><small>‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö</small></div></article>`;
+  return `<article class="podium-place podium-place-${rank}">
+    <div class="podium-person"><span class="podium-medal">${rankMedal(rank)}</span>${competitionProfileMarkup(entry, "podium-avatar")}<strong>${escapeHtml(entry.name)}</strong><em>${Math.round(entry.percent)}%</em><small>${labels[rank - 1]}</small></div>
+    <div class="podium-block"><strong>${rank}</strong><small>‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö</small></div>
+  </article>`;
+}
+
+function renderCelebration(entries) {
+  const ranked = entries.filter(entry => entry.percent !== null);
+  const waiting = entries.filter(entry => entry.percent === null);
+  const podiumOrder = [[ranked[1], 2], [ranked[0], 1], [ranked[2], 3]];
+  const runnersUp = ranked.slice(3);
+  const reasonLabel = ({ all_submitted: "‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏™‡πà‡∏á‡∏Ñ‡∏£‡∏ö‡∏ó‡∏∏‡∏Å‡∏Ñ‡∏ô", time_up: "‡∏´‡∏°‡∏î‡πÄ‡∏ß‡∏•‡∏≤", manual: "‡∏Ñ‡∏∏‡∏ì‡∏Ñ‡∏£‡∏π‡∏à‡∏ö‡πÄ‡∏Å‡∏°" })[state.celebrationReason] || "‡∏à‡∏ö‡πÄ‡∏Å‡∏°";
+  return `<div class="competition-celebration" aria-hidden="true">${celebrationConfetti()}</div>
+    <div class="celebration-title"><span>‚ú® ${reasonLabel} ¬∑ ‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡∏ú‡∏•‡∏Å‡∏≤‡∏£‡πÅ‡∏Ç‡πà‡∏á‡∏Ç‡∏±‡∏ô ‚ú®</span><h4>${escapeHtml(activityForKey(state.session.current_activity_key, state.session.plan_id)?.title || "‡πÄ‡∏Å‡∏°‡∏ô‡∏µ‡πâ")}</h4><p>‡∏Ç‡∏≠‡πÄ‡∏™‡∏µ‡∏¢‡∏á‡∏õ‡∏£‡∏ö‡∏°‡∏∑‡∏≠‡πÉ‡∏´‡πâ‡πÄ‡∏û‡∏∑‡πà‡∏≠‡∏ô‡∏ó‡∏∏‡∏Å‡∏Ñ‡∏ô</p></div>
+    ${renderClassTeamGoal(entries)}
+    <div class="competition-finale">
+      <section class="podium-stage" aria-label="‡πÅ‡∏ó‡πà‡∏ô‡∏£‡∏±‡∏ö‡∏£‡∏≤‡∏á‡∏ß‡∏±‡∏•‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö 1 ‡∏ñ‡∏∂‡∏á 3">
+        <div class="podium-list">${podiumOrder.map(([entry, rank]) => renderPodiumPlace(entry, rank)).join("")}</div>
+      </section>
+      <aside class="runnerup-board">
+        <h5>‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö 4 ‡πÄ‡∏õ‡πá‡∏ô‡∏ï‡πâ‡∏ô‡πÑ‡∏õ</h5>
+        ${runnersUp.length ? `<ol start="4">${runnersUp.map((entry, index) => `<li style="--rank-index:${index}"><span>${index + 4}</span>${competitionProfileMarkup(entry, "runnerup-avatar")}<strong>${escapeHtml(entry.name)}</strong><em>${Math.round(entry.percent)}%</em></li>`).join("")}</ol>` : `<p class="runnerup-empty">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö‡πÄ‡∏û‡∏¥‡πà‡∏°‡πÄ‡∏ï‡∏¥‡∏°</p>`}
+        ${waiting.length ? `<div class="competition-waiting"><strong>‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏ó‡∏≥‡πÄ‡∏Å‡∏° ${waiting.length} ‡∏Ñ‡∏ô</strong><span>${waiting.map(entry => escapeHtml(entry.name)).join(" ¬∑ ")}</span></div>` : ""}
+      </aside>
+    </div>`;
+}
+
+function renderAssessmentProgress() {
+  const activityKey = state.session?.assessment_phase;
+  const isSurvey = activityKey === "satisfaction";
+  const submittedPlayerIds = new Set(state.attempts
+    .filter(attempt => attempt.activity_key === activityKey)
+    .map(attempt => attempt.session_player_id));
+  const students = state.players.filter(player => player.status === "approved");
+  const surveyCompletedIds = new Set(state.satisfactionSubmissions.map(item => item.session_player_id));
+  const surveyAnswerCounts = state.satisfactionResponses.reduce((counts, response) => {
+    counts.set(response.session_player_id, (counts.get(response.session_player_id) || 0) + 1);
+    return counts;
+  }, new Map());
+  const submittedCount = isSurvey ? surveyCompletedIds.size : submittedPlayerIds.size;
+  return `<section class="assessment-progress-panel">
+    <div class="assessment-progress-heading"><span>${isSurvey ? "üíú" : "üìù"}</span><div><small>‡∏ï‡∏¥‡∏î‡∏ï‡∏≤‡∏°‡∏Å‡∏≤‡∏£‡∏™‡πà‡∏á‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡πÅ‡∏ö‡∏ö‡πÄ‡∏£‡∏µ‡∏¢‡∏•‡πÑ‡∏ó‡∏°‡πå</small><h4>‡∏™‡πà‡∏á‡πÅ‡∏•‡πâ‡∏ß ${submittedCount} ‡∏à‡∏≤‡∏Å ${students.length} ‡∏Ñ‡∏ô</h4><p>${isSurvey ? "‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡∏ô‡∏µ‡πâ‡πÄ‡∏õ‡πá‡∏ô‡∏Å‡∏¥‡∏à‡∏Å‡∏£‡∏£‡∏°‡∏≠‡∏¥‡∏™‡∏£‡∏∞‡πÅ‡∏•‡∏∞‡πÑ‡∏°‡πà‡πÄ‡∏ä‡∏∑‡πà‡∏≠‡∏°‡∏Å‡∏±‡∏ö‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏™‡∏≠‡∏ö" : "‡∏£‡∏∞‡∏ö‡∏ö‡πÑ‡∏°‡πà‡πÅ‡∏™‡∏î‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏´‡∏£‡∏∑‡∏≠‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö‡∏ö‡∏ô‡∏à‡∏≠‡∏£‡∏ß‡∏°"}</p></div></div>
+    ${isSurvey ? `<div class="satisfaction-live-progress"><span>üíú</span><div><small>‡∏Ñ‡∏ß‡∏≤‡∏°‡∏Ñ‡∏∑‡∏ö‡∏´‡∏ô‡πâ‡∏≤‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô 10 ‡∏Ç‡πâ‡∏≠</small><strong>‡∏™‡πà‡∏á‡∏Ñ‡∏£‡∏ö‡πÅ‡∏•‡πâ‡∏ß ${submittedCount} ‡∏à‡∏≤‡∏Å ${students.length} ‡∏Ñ‡∏ô</strong></div><i><b style="width:${students.length ? Math.min(100, Math.round((submittedCount / students.length) * 100)) : 0}%"></b></i></div>` : ""}
+    <div class="assessment-progress-list">${students.length ? students.map(player => {
+      const submitted = submittedPlayerIds.has(player.id);
+      const completedSurvey = surveyCompletedIds.has(player.id);
+      const answerCount = surveyAnswerCounts.get(player.id) || 0;
+      const progressLabel = isSurvey
+        ? completedSurvey ? "‡∏™‡πà‡∏á‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡πÅ‡∏•‡πâ‡∏ß" : `‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô ${answerCount}/10 ‡∏Ç‡πâ‡∏≠`
+        : submitted ? "‡∏™‡πà‡∏á‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡πÅ‡∏•‡πâ‡∏ß" : "‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏ó‡∏≥‡πÅ‡∏ö‡∏ö‡∏ó‡∏î‡∏™‡∏≠‡∏ö";
+      const completed = isSurvey ? completedSurvey : submitted;
+      return `<div class="assessment-progress-row ${completed ? "is-submitted" : ""} ${completedSurvey ? "is-survey-complete" : ""}"><span>${completedSurvey ? "üíú" : submitted ? "‚úì" : "‚Ä¶"}</span><strong>${escapeHtml(player.student?.full_name || player.student?.nickname || "‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô")}</strong><small>${progressLabel}</small></div>`;
+    }).join("") : "<p>‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏ó‡∏µ‡πà‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥</p>"}</div>
+  </section>`;
+}
+
+function renderLiveResults() {
+  const container = $("#liveResults");
+  const arena = $("#competitionArena");
+  const status = $("#competitionStatus");
+  const finishButton = $("#finishActivityButton");
+  const liveBadge = $("#competitionLiveBadge");
+  const lastUpdate = $("#competitionLastUpdate");
+  if (!container || !state.session) return;
+  const scoresRecorded = sessionRecordsScores();
+  const entries = currentCompetitionEntries();
+  const lessonStep = currentLessonStep();
+  const assessment = isAssessmentSession(state.session);
+  const resultCount = entries.filter(entry => entry.percent !== null).length;
+  const isCelebrating = state.celebrationActivityKey === state.session.current_activity_key;
+  arena?.classList.toggle("is-celebrating", isCelebrating);
+  if (assessment) {
+    const isSurvey = state.session.assessment_phase === "satisfaction";
+    const submittedCount = isSurvey
+      ? state.satisfactionSubmissions.length
+      : state.attempts.filter(attempt => attempt.activity_key === state.session.assessment_phase).length;
+    const approvedCount = state.players.filter(player => player.status === "approved").length;
+    const finished = state.session.status === "paused";
+    arena?.classList.remove("is-celebrating");
+    if (liveBadge) {
+      liveBadge.classList.toggle("is-finished", finished);
+      liveBadge.innerHTML = finished ? "‚úì ‡∏£‡∏±‡∏ö‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡πÅ‡∏•‡πâ‡∏ß" : isSurvey ? "<i></i> ‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏ó‡∏≥‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô" : "<i></i> ‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏ó‡∏≥‡πÅ‡∏ö‡∏ö‡∏ó‡∏î‡∏™‡∏≠‡∏ö";
+    }
+    if (finishButton) {
+      finishButton.disabled = finished || state.finishingActivity || !state.session.current_activity_key;
+      finishButton.textContent = state.finishingActivity
+        ? isSurvey ? "‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏à‡∏ö‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô..." : "‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏à‡∏ö‡πÅ‡∏ö‡∏ö‡∏ó‡∏î‡∏™‡∏≠‡∏ö..."
+        : finished ? isSurvey ? "‚úì ‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡∏à‡∏ö‡πÅ‡∏•‡πâ‡∏ß" : "‚úì ‡πÅ‡∏ö‡∏ö‡∏ó‡∏î‡∏™‡∏≠‡∏ö‡∏à‡∏ö‡πÅ‡∏•‡πâ‡∏ß"
+          : isSurvey ? "‚èπ ‡∏à‡∏ö‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡πÅ‡∏•‡∏∞‡πÄ‡∏õ‡∏¥‡∏î‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô" : "‚èπ ‡∏à‡∏ö‡πÅ‡∏ö‡∏ö‡∏ó‡∏î‡∏™‡∏≠‡∏ö‡πÅ‡∏•‡∏∞‡πÄ‡∏õ‡∏¥‡∏î‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô";
+    }
+    if (status) status.textContent = finished
+      ? isSurvey
+        ? `‡∏£‡∏±‡∏ö‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡πÅ‡∏•‡πâ‡∏ß ${submittedCount}/${approvedCount} ‡∏Ñ‡∏ô ¬∑ ‡∏ú‡∏•‡∏≠‡∏¢‡∏π‡πà‡πÉ‡∏ô‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à`
+        : `‡∏£‡∏±‡∏ö‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡πÅ‡∏•‡πâ‡∏ß ${submittedCount}/${approvedCount} ‡∏Ñ‡∏ô ¬∑ ‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏≠‡∏¢‡∏π‡πà‡πÉ‡∏ô‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô‡∏Ñ‡∏£‡∏π ‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Å‡∏≤‡∏£‡∏à‡∏±‡∏î‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö`
+      : isSurvey
+        ? `‡∏™‡πà‡∏á‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡πÅ‡∏•‡πâ‡∏ß ${submittedCount}/${approvedCount} ‡∏Ñ‡∏ô ¬∑ ‡∏ï‡∏¥‡∏î‡∏ï‡∏≤‡∏°‡∏à‡∏≥‡∏ô‡∏ß‡∏ô‡∏Ç‡πâ‡∏≠‡∏Ç‡∏≠‡∏á‡πÅ‡∏ï‡πà‡∏•‡∏∞‡∏Ñ‡∏ô‡∏î‡πâ‡∏≤‡∏ô‡∏•‡πà‡∏≤‡∏á`
+        : `‡∏™‡πà‡∏á‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡πÅ‡∏•‡πâ‡∏ß ${submittedCount}/${approvedCount} ‡∏Ñ‡∏ô ¬∑ ‡∏£‡∏∞‡∏ö‡∏ö‡πÑ‡∏°‡πà‡πÅ‡∏™‡∏î‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÅ‡∏•‡∏∞‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö`;
+    container.innerHTML = renderAssessmentProgress();
+    return;
+  }
+  if (liveBadge) {
+    liveBadge.classList.toggle("is-finished", isCelebrating);
+    liveBadge.innerHTML = isCelebrating ? "üèÜ ‡∏ú‡∏•‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡πÅ‡∏•‡πâ‡∏ß" : scoresRecorded ? "<i></i> LIVE" : "üß™ LIVE";
+  }
+  if (lastUpdate) lastUpdate.textContent = `‡∏≠‡∏±‡∏õ‡πÄ‡∏î‡∏ï ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+  if (finishButton) {
+    finishButton.disabled = isCelebrating || state.finishingActivity || !state.session.current_activity_key;
+    finishButton.textContent = state.finishingActivity ? "‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏à‡∏ö‡πÄ‡∏Å‡∏°..." : isCelebrating ? "‚úì ‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡∏ú‡∏•‡πÅ‡∏•‡πâ‡∏ß" : "‚èπ ‡∏à‡∏ö‡πÄ‡∏Å‡∏°‡πÅ‡∏•‡∏∞‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡∏ú‡∏•";
+  }
+  if (status) status.textContent = isCelebrating
+    ? `${scoresRecorded ? "‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡∏ú‡∏•‡πÅ‡∏•‡πâ‡∏ß" : "‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö‡∏™‡∏î‡πÅ‡∏•‡πâ‡∏ß"} ${resultCount} ‡∏Ñ‡∏ô ¬∑ ‡∏û‡∏£‡πâ‡∏≠‡∏°‡πÑ‡∏õ‡πÄ‡∏Å‡∏°‡∏ñ‡∏±‡∏î‡πÑ‡∏õ`
+    : state.session.status === "paused"
+      ? `‡∏û‡∏±‡∏Å‡πÄ‡∏Å‡∏°‡∏≠‡∏¢‡∏π‡πà ¬∑ ‡∏™‡πà‡∏á‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡πÅ‡∏•‡πâ‡∏ß ${resultCount}/${entries.length} ‡∏Ñ‡∏ô${scoresRecorded ? "" : " ¬∑ ‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏™‡∏î‡∏à‡∏∞‡πÑ‡∏°‡πà‡∏ö‡∏±‡∏ô‡∏ó‡∏∂‡∏Å‡∏´‡∏•‡∏±‡∏á‡∏à‡∏ö‡∏Ñ‡∏≤‡∏ö"}`
+      : `‡∏™‡πà‡∏á‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡πÅ‡∏•‡πâ‡∏ß ${resultCount}/${entries.length} ‡∏Ñ‡∏ô ¬∑ ‡∏Ñ‡∏£‡∏π‡πÄ‡∏õ‡πá‡∏ô‡∏ú‡∏π‡πâ‡πÄ‡∏•‡∏∑‡∏≠‡∏Å‡∏à‡∏ö‡πÄ‡∏Å‡∏°‡∏´‡∏£‡∏∑‡∏≠‡πÑ‡∏õ‡∏Ç‡∏±‡πâ‡∏ô‡∏ñ‡∏±‡∏î‡πÑ‡∏õ${scoresRecorded ? "" : " ¬∑ ‡∏à‡∏±‡∏î‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö‡∏™‡∏î‡πÇ‡∏î‡∏¢‡πÑ‡∏°‡πà‡∏ö‡∏±‡∏ô‡∏ó‡∏∂‡∏Å‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô"}`;
+  if (lessonStep?.kind === "media") {
+    const cumulativeEntries = state.leaderboard.map(item => ({
+      name: item.display_name || "‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô",
+      avatar: item.avatar || "‚≠ê",
+      percent: Number(item.average_percent || 0),
+      attemptCount: Number(item.completed_activities || 0),
+    }));
+    if (status) status.textContent = lessonStep.showLeaderboard
+      ? "‡πÅ‡∏™‡∏î‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏™‡∏∞‡∏™‡∏°‡πÄ‡∏û‡∏∑‡πà‡∏≠‡πÉ‡∏´‡πâ‡∏Ñ‡∏£‡∏π‡∏ï‡∏£‡∏ß‡∏à‡∏Ñ‡∏ß‡∏≤‡∏°‡∏Å‡πâ‡∏≤‡∏ß‡∏´‡∏ô‡πâ‡∏≤‡πÅ‡∏•‡∏∞‡∏ä‡πà‡∏ß‡∏¢‡πÄ‡∏´‡∏•‡∏∑‡∏≠‡∏£‡∏≤‡∏¢‡∏ö‡∏∏‡∏Ñ‡∏Ñ‡∏•"
+      : "‡∏Ç‡∏±‡πâ‡∏ô‡∏™‡∏∑‡πà‡∏≠/‡∏Ñ‡∏≥‡∏™‡∏±‡πà‡∏á ¬∑ ‡∏Ñ‡∏£‡∏π‡∏î‡∏≥‡πÄ‡∏ô‡∏¥‡∏ô‡∏Å‡∏¥‡∏à‡∏Å‡∏£‡∏£‡∏°‡∏ï‡∏≤‡∏°‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£‡∏î‡πâ‡∏≤‡∏ô‡∏ö‡∏ô ‡πÅ‡∏•‡πâ‡∏ß‡∏Å‡∏î‡∏Ç‡∏±‡πâ‡∏ô‡∏ñ‡∏±‡∏î‡πÑ‡∏õ‡πÄ‡∏°‡∏∑‡πà‡∏≠‡∏û‡∏£‡πâ‡∏≠‡∏°";
+    container.innerHTML = lessonStep.showLeaderboard && cumulativeEntries.length
+      ? renderLiveRanking(cumulativeEntries)
+      : `<div class="flow-empty-state"><span>${escapeHtml(lessonStep.icon || "üì∫")}</span><strong>${escapeHtml(lessonStep.title)}</strong><small>‡πÄ‡∏ß‡∏•‡∏≤‡∏ô‡∏±‡∏ö‡∏ñ‡∏≠‡∏¢‡∏´‡∏•‡∏±‡∏á‡πÄ‡∏õ‡πá‡∏ô‡πÄ‡∏û‡∏µ‡∏¢‡∏á‡∏ï‡∏±‡∏ß‡∏ä‡πà‡∏ß‡∏¢ ‡∏Ñ‡∏£‡∏π‡∏Ñ‡∏ß‡∏ö‡∏Ñ‡∏∏‡∏°‡∏Å‡∏≤‡∏£‡πÄ‡∏õ‡∏•‡∏µ‡πà‡∏¢‡∏ô‡∏Ç‡∏±‡πâ‡∏ô‡∏î‡πâ‡∏ß‡∏¢‡∏ï‡∏ô‡πÄ‡∏≠‡∏á</small></div>`;
+    return;
+  }
+  if (!entries.length) {
+    container.innerHTML = `<div class="flow-empty-state"><span>üë•</span><strong>‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏ó‡∏µ‡πà‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥</strong><small>‡∏Å‡∏•‡∏±‡∏ö‡πÑ‡∏õ‡∏´‡πâ‡∏≠‡∏á‡∏£‡∏≠‡πÄ‡∏û‡∏∑‡πà‡∏≠‡∏ï‡∏£‡∏ß‡∏à‡∏£‡∏≤‡∏¢‡∏ä‡∏∑‡πà‡∏≠‡πÑ‡∏î‡πâ</small></div>`;
+    return;
+  }
+  container.innerHTML = isCelebrating
+    ? renderCelebration(entries)
+    : `${renderClassTeamGoal(entries)}${renderLiveRanking(entries)}${state.session.current_activity_key === "vote" ? renderLiveVoteBoard() : ""}`;
+}
+
+let victoryAudioContext;
+function prepareVictoryAudio() {
+  if (!state.competitionSoundEnabled) return;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  victoryAudioContext ||= new AudioContextClass();
+  if (victoryAudioContext.state === "suspended") victoryAudioContext.resume().catch(() => {});
+  return victoryAudioContext;
+}
+
+function playVictorySound() {
+  const context = prepareVictoryAudio();
+  if (!context) return;
+  const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+  const now = context.currentTime;
+  notes.forEach((frequency, index) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = index < 3 ? "triangle" : "sine";
+    oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.0001, now + index * .16);
+    gain.gain.exponentialRampToValueAtTime(.16, now + index * .16 + .025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + index * .16 + .3);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(now + index * .16);
+    oscillator.stop(now + index * .16 + .32);
+  });
+}
+
+async function finishActivity(reason = "manual") {
+  if (!state.session?.current_activity_key || state.finishingActivity || state.celebrationActivityKey) return;
+  const assessment = isAssessmentSession(state.session);
+  const finishedActivityKey = state.session.current_activity_key;
+  const flow = currentLessonFlow();
+  const gameIndex = flow.findIndex(step => step.key === state.lessonStepKey && step.kind === "game");
+  const resultsStep = flow[gameIndex + 1]?.kind === "results" && flow[gameIndex + 1]?.activityKey === finishedActivityKey
+    ? flow[gameIndex + 1]
+    : null;
+  prepareVictoryAudio();
+  state.finishingActivity = true;
+  renderLiveResults();
+  const { data, error } = await supabase.from("class_sessions").update({
+    status: "paused",
+    ...(assessment ? { ended_at: new Date().toISOString() } : {}),
+  }).eq("id", state.session.id).select().single();
+  if (error) {
+    state.finishingActivity = false;
+    renderLiveResults();
+    return toast(error.message, "error");
+  }
+  state.session = data;
+  if (assessment) {
+    const isSurvey = state.session.assessment_phase === "satisfaction";
+    state.celebrationActivityKey = null;
+    state.celebrationReason = null;
+    state.finishingActivity = false;
+    stopActivityTimer({ clearSaved: true, label: isSurvey ? "‡∏à‡∏ö‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô" : "‡∏à‡∏ö‡πÅ‡∏ö‡∏ö‡∏ó‡∏î‡∏™‡∏≠‡∏ö" });
+    renderActivityControls();
+    renderLiveResults();
+    await broadcastDisplay("assessment-finished");
+    await loadAssessmentReport();
+    toast(isSurvey ? "‡∏à‡∏ö‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡πÅ‡∏•‡πâ‡∏ß ¬∑ ‡πÄ‡∏õ‡∏¥‡∏î‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô‡∏Ñ‡∏£‡∏π‡πÄ‡∏û‡∏∑‡πà‡∏≠‡∏î‡∏π‡∏ú‡∏•‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à" : "‡∏à‡∏ö‡πÅ‡∏ö‡∏ö‡∏ó‡∏î‡∏™‡∏≠‡∏ö‡πÅ‡∏•‡πâ‡∏ß ¬∑ ‡πÄ‡∏õ‡∏¥‡∏î‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô‡∏Ñ‡∏£‡∏π‡πÄ‡∏û‡∏∑‡πà‡∏≠‡∏î‡∏≤‡∏ß‡∏ô‡πå‡πÇ‡∏´‡∏•‡∏î‡∏ï‡∏≤‡∏£‡∏≤‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô", "success");
+    return;
+  }
+  state.celebrationActivityKey = finishedActivityKey;
+  state.celebrationReason = reason;
+  state.finishingActivity = false;
+  stopActivityTimer({ clearSaved: true, label: "‡∏à‡∏ö‡πÄ‡∏Å‡∏°" });
+  if (resultsStep) {
+    await startLessonStep(resultsStep.key, { preserveCelebration: true, silent: true });
+  } else {
+    $("#pauseSessionButton").textContent = "‡πÄ‡∏•‡πà‡∏ô‡∏£‡∏≠‡∏ö‡∏ô‡∏µ‡πâ‡∏ï‡πà‡∏≠";
+    renderActivityControls();
+    renderLiveResults();
+  }
+  playVictorySound();
+  await broadcastDisplay("competition-results");
+  void broadcastExpertScoreboard();
+  const message = reason === "manual"
+    ? "‡∏à‡∏ö‡πÄ‡∏Å‡∏°‡πÅ‡∏•‡πâ‡∏ß ¬∑ ‡πÄ‡∏õ‡∏¥‡∏î‡∏•‡∏≥‡∏î‡∏±‡∏ö‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡∏ú‡∏•‡∏Å‡∏≤‡∏£‡πÅ‡∏Ç‡πà‡∏á‡∏Ç‡∏±‡∏ô"
+    : "‡πÄ‡∏Å‡∏°‡∏à‡∏ö‡πÅ‡∏•‡πâ‡∏ß ¬∑ ‡πÄ‡∏õ‡∏¥‡∏î‡∏•‡∏≥‡∏î‡∏±‡∏ö‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡∏ú‡∏•‡∏Å‡∏≤‡∏£‡πÅ‡∏Ç‡πà‡∏á‡∏Ç‡∏±‡∏ô";
+  toast(message, "success");
+  if (state.flowStep === "live") $("#lessonStepPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function setClassroomStageExpanded(expanded) {
+  const arena = $("#lessonStepPanel");
+  const button = $("#competitionFullscreenButton");
+  if (!arena || !button) return;
+  arena.classList.toggle("classroom-stage-expanded", expanded);
+  document.body.classList.toggle("competition-overlay-open", expanded);
+  button.setAttribute("aria-pressed", String(expanded));
+  button.innerHTML = expanded ? "‚úï <span>‡∏≠‡∏≠‡∏Å‡∏à‡∏≤‡∏Å‡∏à‡∏≠‡∏â‡∏≤‡∏¢</span>" : "‚õ∂ <span>‡∏â‡∏≤‡∏¢‡πÄ‡∏ï‡πá‡∏°‡∏à‡∏≠</span>";
+}
+
+function toggleCompetitionExpanded() {
+  const arena = $("#lessonStepPanel");
+  setClassroomStageExpanded(!arena?.classList.contains("classroom-stage-expanded"));
+}
+
+function toggleTeacherNotes() {
+  state.teacherNotesCollapsed = !state.teacherNotesCollapsed;
+  const layout = $(".classroom-stage-body");
+  const button = $("#toggleTeacherNotesButton");
+  layout?.classList.toggle("teacher-notes-collapsed", state.teacherNotesCollapsed);
+  button?.setAttribute("aria-expanded", String(!state.teacherNotesCollapsed));
+  if (button) button.innerHTML = state.teacherNotesCollapsed
+    ? "üë©‚Äçüè´ <span>‡πÅ‡∏™‡∏î‡∏á‡∏Ñ‡∏≥‡πÅ‡∏ô‡∏∞‡∏ô‡∏≥‡∏Ñ‡∏£‡∏π</span>"
+    : "üë©‚Äçüè´ <span>‡∏ã‡πà‡∏≠‡∏ô‡∏Ñ‡∏≥‡πÅ‡∏ô‡∏∞‡∏ô‡∏≥‡∏Ñ‡∏£‡∏π</span>";
+}
+
+function toggleCompetitionSound() {
+  state.competitionSoundEnabled = !state.competitionSoundEnabled;
+  const button = $("#competitionSoundButton");
+  button.setAttribute("aria-pressed", String(state.competitionSoundEnabled));
+  button.innerHTML = state.competitionSoundEnabled ? "üîä <span>‡πÄ‡∏™‡∏µ‡∏¢‡∏á</span>" : "üîá <span>‡∏õ‡∏¥‡∏î‡πÄ‡∏™‡∏µ‡∏¢‡∏á</span>";
+  toast(state.competitionSoundEnabled ? "‡πÄ‡∏õ‡∏¥‡∏î‡πÄ‡∏™‡∏µ‡∏¢‡∏á‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡∏ú‡∏•‡πÅ‡∏•‡πâ‡∏ß" : "‡∏õ‡∏¥‡∏î‡πÄ‡∏™‡∏µ‡∏¢‡∏á‡∏õ‡∏£‡∏∞‡∏Å‡∏≤‡∏®‡∏ú‡∏•‡πÅ‡∏•‡πâ‡∏ß", "success");
+}
+
+function renderSummary() {
+  if (!state.session) return;
+  const approved = state.players.filter(player => player.status === "approved");
+  const expertLiveScores = !sessionRecordsScores();
+  const averages = state.leaderboard.map(item => Number(item.average_percent || 0));
+  const average = averages.length ? Math.round(averages.reduce((sum, value) => sum + value, 0) / averages.length) : 0;
+  const completedActivities = new Set(state.attempts.map(item => item.activity_key)).size;
+  $("#summaryApproved").textContent = approved.length;
+  $("#summaryAverage").textContent = `${average}%`;
+  const activityCount = currentActivities().length;
+  $("#summaryCompleted").textContent = `${completedActivities}/${activityCount}`;
+  const rows = approved.map(player => {
+    const groups = bestAttemptsForPlayer(player.id);
+    const bestScores = [...groups.values()].map(items => Math.max(...items.map(item => Number(item.percent || 0))));
+    const bestAverage = bestScores.length ? Math.round(bestScores.reduce((sum, value) => sum + value, 0) / bestScores.length) : 0;
+    return { player, completed: groups.size, bestAverage };
+  });
+  const expertNotice = expertLiveScores ? `<p class="flow-score-recording-notice">üß™ ‡∏ú‡∏•‡πÅ‡∏•‡∏∞‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö‡∏ô‡∏µ‡πâ‡πÄ‡∏õ‡πá‡∏ô‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏™‡∏î‡∏Ç‡∏≠‡∏á‡∏Ñ‡∏≤‡∏ö‡∏ï‡∏£‡∏ß‡∏à‡∏™‡∏∑‡πà‡∏≠ ‡πÅ‡∏•‡∏∞‡∏à‡∏∞‡πÑ‡∏°‡πà‡∏ñ‡∏π‡∏Å‡∏ö‡∏±‡∏ô‡∏ó‡∏∂‡∏Å‡∏•‡∏á‡∏ê‡∏≤‡∏ô‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•</p>` : "";
+  $("#summaryContent").innerHTML = `${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô</th><th>‡πÄ‡∏Å‡∏°‡∏ó‡∏µ‡πà‡∏ó‡∏≥</th><th>‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏î‡∏µ‡∏ó‡∏µ‡πà‡∏™‡∏∏‡∏î‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢</th><th>‡∏ú‡∏•</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "‚Äî")}</td><td>${row.completed}/${activityCount}</td><td>${row.bestAverage}%</td><td><span class="summary-pass ${row.bestAverage >= state.session.pass_percent ? "passed" : "needs-work"}">${row.bestAverage >= state.session.pass_percent ? "‡∏ú‡πà‡∏≤‡∏ô" : "‡∏Ñ‡∏ß‡∏£‡πÄ‡∏™‡∏£‡∏¥‡∏°"}</span></td></tr>`).join("")}</tbody></table></div>` : `<div class="flow-empty-state"><span>üìä</span><strong>‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÉ‡∏ô‡∏Ñ‡∏≤‡∏ö‡∏ô‡∏µ‡πâ</strong><small>‡∏Å‡∏•‡∏±‡∏ö‡πÑ‡∏õ‡πÄ‡∏£‡∏¥‡πà‡∏°‡πÄ‡∏Å‡∏°‡∏´‡∏£‡∏∑‡∏≠‡∏£‡∏≠‡πÉ‡∏´‡πâ‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏™‡πà‡∏á‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö</small></div>`}`;
+}
+
+async function approvePlayer(playerId) {
+  const { error } = await supabase.from("session_players").update({ status: "approved", approved_at: new Date().toISOString(), return_reason: null }).eq("id", playerId);
+  if (error) return toast(error.message, "error");
+  toast("‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÄ‡∏Ç‡πâ‡∏≤‡∏´‡πâ‡∏≠‡∏á‡πÅ‡∏•‡πâ‡∏ß", "success");
+  await refreshSessionData();
+}
+
+async function approveAll() {
+  const playerIds = lobbyView().players.filter(player => ["waiting", "returned"].includes(player.status)).map(player => player.id);
+  if (!playerIds.length) return toast("‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÉ‡∏ô‡∏´‡∏ô‡πâ‡∏≤‡∏ô‡∏µ‡πâ‡πÑ‡∏î‡πâ‡∏£‡∏±‡∏ö‡∏Å‡∏≤‡∏£‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥‡∏Ñ‡∏£‡∏ö‡πÅ‡∏•‡πâ‡∏ß", "warning");
+  const button = $("#approveAllButton");
+  button.disabled = true;
+  const { error } = await supabase.from("session_players").update({ status: "approved", approved_at: new Date().toISOString(), return_reason: null }).eq("session_id", state.session.id).in("id", playerIds).in("status", ["waiting", "returned"]);
+  if (error) {
+    button.disabled = false;
+    toast(error.message, "error");
+  }
+  else {
+    toast(`‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô ${playerIds.length} ‡∏Ñ‡∏ô‡πÉ‡∏ô‡∏´‡∏ô‡πâ‡∏≤‡∏ô‡∏µ‡πâ‡πÅ‡∏•‡πâ‡∏ß`, "success");
+    await refreshSessionData();
+  }
+}
+
+function openReturnDialog(playerId) {
+  $("#returnPlayerId").value = playerId;
+  show($("#returnDialog"));
+}
+
+async function returnPlayer(event) {
+  event.preventDefault();
+  const { error } = await supabase.from("session_players").update({ status: "returned", return_reason: $("#returnReason").value, approved_at: null }).eq("id", $("#returnPlayerId").value);
+  hide($("#returnDialog"));
+  if (error) toast(error.message, "error");
+}
+
+async function removePlayer(playerId) {
+  const { error } = await supabase.from("session_players").update({ status: "removed" }).eq("id", playerId);
+  if (error) return toast(error.message, "error");
+  toast("‡πÑ‡∏°‡πà‡∏≠‡∏ô‡∏∏‡∏°‡∏±‡∏ï‡∏¥‡∏Ñ‡∏≥‡∏Ç‡∏≠‡∏ô‡∏µ‡πâ‡πÅ‡∏•‡πâ‡∏ß", "default");
+  await refreshSessionData();
+}
+
+async function closeSession() {
+  if (!confirm("‡∏õ‡∏¥‡∏î‡∏Ñ‡∏≤‡∏ö‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÅ‡∏•‡∏∞‡∏•‡∏ö‡∏£‡∏π‡∏õ‡πÄ‡∏ã‡∏•‡∏ü‡∏µ‡πà‡∏ó‡∏±‡πâ‡∏á‡∏´‡∏°‡∏î‡πÉ‡∏ä‡πà‡∏´‡∏£‡∏∑‡∏≠‡πÑ‡∏°‡πà?")) return;
+  const { data: storedPlayers, error: playerError } = await supabase.from("session_players").select("selfie_path").eq("session_id", state.session.id);
+  if (playerError) return toast(`‡∏ï‡∏£‡∏ß‡∏à‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£‡∏£‡∏π‡∏õ‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à: ${playerError.message}`, "error");
+  const paths = (storedPlayers || []).map(player => player.selfie_path).filter(Boolean);
+  if (paths.length) {
+    const { error: storageError } = await supabase.storage.from(APP_CONFIG.selfieBucket).remove(paths);
+    if (storageError) return toast(`‡∏¢‡∏±‡∏á‡∏•‡∏ö‡∏£‡∏π‡∏õ‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à: ${storageError.message}`, "error");
+    await supabase.from("session_players").update({ selfie_path: null }).eq("session_id", state.session.id);
+  }
+  const { error } = await supabase.from("class_sessions").update({ status: "closed", ended_at: new Date().toISOString() }).eq("id", state.session.id);
+  if (error) return toast(error.message, "error");
+  broadcastDisplay();
+  stopStudentScreenWatch();
+  state.sessionChannel?.unsubscribe();
+  state.presenceChannel?.unsubscribe();
+  state.displayChannel?.unsubscribe();
+  stopActivityTimer({ clearSaved: true, label: "--:--" });
+  state.session = null;
+  state.players = [];
+  state.attempts = [];
+  state.expertAttemptIds = new Set();
+  state.leaderboard = [];
+  state.playerSelfieUrls = new Map();
+  state.studentScreens = new Map();
+  state.studentScreenView = "grid";
+  state.studentScreenFocusMarkup = "";
+  state.selectedStudentScreenId = null;
+  state.lateJoinMode = false;
+  state.lateJoinResumeStatus = "paused";
+  state.lobbyPage = 1;
+  state.lobbyZoomStep = 0;
+  state.celebrationActivityKey = null;
+  state.celebrationReason = null;
+  state.activityRemainingMs = 0;
+  state.activityStartedAt = null;
+  state.finishingActivity = false;
+  renderStudentScreens();
+  $("#competitionArena")?.classList.remove("is-celebrating");
+  $("#lessonStepPanel")?.classList.remove("classroom-stage-expanded");
+  document.body.classList.remove("competition-overlay-open");
+  hide($("#liveSession"));
+  hide($("#resumeSessionView"));
+  show($("#sessionSetup"));
+  setTeacherFlowStep("class");
+  toast("‡∏õ‡∏¥‡∏î‡∏Ñ‡∏≤‡∏ö‡πÅ‡∏•‡∏∞‡∏•‡∏ö‡∏£‡∏π‡∏õ‡πÄ‡∏£‡∏µ‡∏¢‡∏ö‡∏£‡πâ‡∏≠‡∏¢", "success");
+}
+
+async function addStudent(event) {
+  event.preventDefault();
+  const selectedClass = state.classes.find(item => item.id === $("#rosterClassSelect").value);
+  if (!selectedClass) return;
+  const nickname = $("#studentNickname").value.trim();
+  const { error } = await upsertStudentMembership({
+    classId: selectedClass.id,
+    studentCode: $("#studentCode").value.trim(),
+    fullName: $("#studentFullName").value.trim(),
+    nickname,
+    avatar: randomAvatar(nickname),
+  });
+  if (error) return toast(error.message, "error");
+  event.target.reset();
+  toast("‡πÄ‡∏û‡∏¥‡πà‡∏°‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÄ‡∏Ç‡πâ‡∏≤‡∏´‡πâ‡∏≠‡∏á‡πÅ‡∏•‡πâ‡∏ß ‡∏´‡∏≤‡∏Å‡πÄ‡∏õ‡πá‡∏ô‡∏Ñ‡∏ô‡πÄ‡∏î‡∏¥‡∏°‡∏£‡∏∞‡∏ö‡∏ö‡∏à‡∏∞‡πÉ‡∏ä‡πâ‡∏£‡∏≤‡∏¢‡∏ä‡∏∑‡πà‡∏≠‡πÄ‡∏î‡∏µ‡∏¢‡∏ß‡∏Å‡∏±‡∏ô", "success");
+  await loadRoster();
+}
+
+function upsertStudentMembership({ classId, studentCode, fullName, nickname, avatar }) {
+  return supabase.rpc("upsert_student_class_membership", {
+    p_class_id: classId,
+    p_student_code: studentCode,
+    p_full_name: fullName,
+    p_nickname: nickname,
+    p_avatar: avatar,
+  });
+}
+
+async function loadRoster() {
+  if (!state.profile) return;
+  const classIds = state.classes.map(item => item.id);
+  if (!classIds.length) {
+    state.rosterCounts = new Map();
+    renderSchoolOptions();
+    $("#rosterCount").textContent = "0 ‡∏Ñ‡∏ô";
+    $("#rosterTableBody").innerHTML = `<tr><td colspan="5">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏´‡πâ‡∏≠‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏ó‡∏µ‡πà‡πÑ‡∏î‡πâ‡∏£‡∏±‡∏ö‡∏°‡∏≠‡∏ö‡∏´‡∏°‡∏≤‡∏¢</td></tr>`;
+    return;
+  }
+  const { data, error } = await supabase.rpc("get_teacher_roster");
+  if (error) return toast(`‡πÇ‡∏´‡∏•‡∏î‡∏£‡∏≤‡∏¢‡∏ä‡∏∑‡πà‡∏≠‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à: ${error.message}`, "error");
+  const rows = (data || []).map(item => ({
+    id: item.student_id,
+    class_id: item.class_id,
+    student_code: item.student_code,
+    full_name: item.full_name,
+    nickname: item.nickname,
+    avatar: item.avatar,
+    active: item.student_active && item.membership_active,
+    student_active: item.student_active,
+    membership_active: item.membership_active,
+    classroom: {
+      id: item.class_id,
+      label: item.class_label,
+      grade: item.grade,
+      room_no: item.room_no,
+      academic_year: item.academic_year,
+      school: { id: item.school_id, name: item.school_name },
+    },
+  }));
+  state.rosterCounts = rows.filter(student => student.active).reduce((counts, student) => {
+    counts.set(student.class_id, (counts.get(student.class_id) || 0) + 1);
+    return counts;
+  }, new Map());
+  renderSchoolOptions();
+  const uniqueStudents = new Set(rows.map(student => student.id)).size;
+  $("#rosterCount").textContent = rows.length === uniqueStudents
+    ? `${uniqueStudents} ‡∏Ñ‡∏ô`
+    : `${uniqueStudents} ‡∏Ñ‡∏ô ¬∑ ${rows.length} ‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£‡∏™‡∏±‡∏á‡∏Å‡∏±‡∏î‡∏´‡πâ‡∏≠‡∏á`;
+  $("#rosterTableBody").innerHTML = rows.length ? rows.map(student => {
+    const status = !student.student_active
+      ? "‡∏û‡∏±‡∏Å‡πÉ‡∏ä‡πâ‡∏ó‡∏∏‡∏Å‡∏´‡πâ‡∏≠‡∏á"
+      : student.membership_active ? "‡πÉ‡∏ä‡πâ‡∏á‡∏≤‡∏ô" : "‡∏û‡∏±‡∏Å‡πÉ‡∏ä‡πâ‡πÉ‡∏ô‡∏´‡πâ‡∏≠‡∏á‡∏ô‡∏µ‡πâ";
+    return `<tr><td>${escapeHtml(student.classroom?.label || "‚Äî")}</td><td>${escapeHtml(student.student_code)}</td><td>${escapeHtml(student.full_name)}</td><td>${escapeHtml(student.nickname)}</td><td>${status}</td></tr>`;
+  }).join("") : `<tr><td colspan="5">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏£‡∏≤‡∏¢‡∏ä‡∏∑‡πà‡∏≠‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô</td></tr>`;
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '"' && quoted && text[index + 1] === '"') { cell += '"'; index += 1; }
+    else if (character === '"') quoted = !quoted;
+    else if ((character === "," || character === "\t") && !quoted) { row.push(cell.trim()); cell = ""; }
+    else if ((character === "\n" || character === "\r") && !quoted) {
+      if (character === "\r" && text[index + 1] === "\n") index += 1;
+      row.push(cell.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = []; cell = "";
+    } else cell += character;
+  }
+  if (cell || row.length) { row.push(cell.trim()); rows.push(row); }
+  const headers = rows.shift()?.map(header => header.replace(/^\ufeff/, "").trim()) || [];
+  return rows.map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] || ""])));
+}
+
+function valueFrom(row, keys) {
+  const entry = Object.entries(row).find(([key]) => keys.includes(key.toLowerCase().trim()));
+  return entry?.[1]?.toString().trim() || "";
+}
+
+async function parseImportFile(file) {
+  if (/\.csv$/i.test(file.name)) return parseCsv(await file.text());
+  const XLSX = await import("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm");
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+  return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+}
+
+function normalizeClassLabel(value) {
+  const cleaned = String(value).replace(/\s/g, "").replace(/^‡∏ä‡∏±‡πâ‡∏ô/, "");
+  const match = cleaned.match(/(?:‡∏õ\.)?(\d)[\/-](\d+)/i);
+  return match ? `‡∏õ.${Number(match[1])}/${Number(match[2])}` : cleaned;
+}
+
+async function handleImportFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    const rawRows = await parseImportFile(file);
+    state.importRows = rawRows.map(row => ({
+      classLabel: normalizeClassLabel(valueFrom(row, ["class", "classroom", "‡∏´‡πâ‡∏≠‡∏á", "‡∏ä‡∏±‡πâ‡∏ô"])),
+      studentCode: valueFrom(row, ["student_code", "student code", "‡πÄ‡∏•‡∏Ç‡∏õ‡∏£‡∏∞‡∏à‡∏≥‡∏ï‡∏±‡∏ß", "‡∏£‡∏´‡∏±‡∏™‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô"]),
+      fullName: valueFrom(row, ["full_name", "full name", "name", "‡∏ä‡∏∑‡πà‡∏≠-‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•", "‡∏ä‡∏∑‡πà‡∏≠‚Äì‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•", "‡∏ä‡∏∑‡πà‡∏≠"]),
+      nickname: valueFrom(row, ["nickname", "nick name", "‡∏ä‡∏∑‡πà‡∏≠‡πÄ‡∏•‡πà‡∏ô"]),
+    })).filter(row => row.classLabel && row.studentCode && row.fullName);
+    $("#importPreview").innerHTML = state.importRows.length
+      ? `<div class="room-found">‡∏û‡∏ö‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏• ${state.importRows.length} ‡∏Ñ‡∏ô</div><button id="confirmImport" class="button button-primary full" style="margin-top:10px">‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤‡∏£‡∏≤‡∏¢‡∏ä‡∏∑‡πà‡∏≠</button>`
+      : `<p class="field-help">‡πÑ‡∏°‡πà‡∏û‡∏ö‡∏Ñ‡∏≠‡∏•‡∏±‡∏°‡∏ô‡πå‡∏ó‡∏µ‡πà‡∏ï‡πâ‡∏≠‡∏á‡∏Å‡∏≤‡∏£ ‡∏Å‡∏£‡∏∏‡∏ì‡∏≤‡∏ï‡∏£‡∏ß‡∏à‡∏´‡∏±‡∏ß‡∏ï‡∏≤‡∏£‡∏≤‡∏á</p>`;
+    $("#confirmImport")?.addEventListener("click", importStudents);
+  } catch (error) {
+    toast(`‡∏≠‡πà‡∏≤‡∏ô‡πÑ‡∏ü‡∏•‡πå‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à: ${error.message}`, "error");
+  }
+}
+
+async function importStudents() {
+  const classMap = new Map(state.classes.map(item => [item.label, item.id]));
+  const payload = state.importRows.map(row => ({
+    classId: classMap.get(row.classLabel),
+    studentCode: row.studentCode,
+    fullName: row.fullName,
+    nickname: row.nickname || row.fullName.split(/\s+/)[0],
+    avatar: randomAvatar(row.nickname || row.studentCode),
+  })).filter(row => row.classId);
+  if (!payload.length) return toast("‡πÑ‡∏°‡πà‡∏û‡∏ö‡∏ä‡∏∑‡πà‡∏≠‡∏´‡πâ‡∏≠‡∏á‡∏ó‡∏µ‡πà‡∏ï‡∏£‡∏á‡∏Å‡∏±‡∏ö‡∏£‡∏∞‡∏ö‡∏ö", "error");
+
+  for (let offset = 0; offset < payload.length; offset += 20) {
+    const batch = payload.slice(offset, offset + 20);
+    const results = await Promise.all(batch.map(upsertStudentMembership));
+    const failed = results.find(result => result.error);
+    if (failed?.error) return toast(`‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤‡∏£‡∏≤‡∏¢‡∏ä‡∏∑‡πà‡∏≠‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à: ${failed.error.message}`, "error");
+  }
+
+  toast(`‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à ${payload.length} ‡∏Ñ‡∏ô`, "success");
+  state.importRows = [];
+  $("#importPreview").innerHTML = "";
+  $("#csvFile").value = "";
+  await loadRoster();
+}
+
+function bestAttemptsForPlayer(playerId) {
+  const grouped = new Map();
+  state.attempts.filter(item => item.session_player_id === playerId).forEach(attempt => {
+    const group = grouped.get(attempt.activity_key) || [];
+    group.push(attempt);
+    grouped.set(attempt.activity_key, group);
+  });
+  return grouped;
+}
+
+function mean(values) {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function sampleStandardDeviation(values) {
+  if (values.length < 2) return 0;
+  const average = mean(values);
+  return Math.sqrt(values.reduce((sum, value) => sum + ((value - average) ** 2), 0) / (values.length - 1));
+}
+
+function logGamma(value) {
+  const coefficients = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+  let x = value;
+  let y = value;
+  let temp = x + 5.5;
+  temp -= (x + 0.5) * Math.log(temp);
+  let series = 1.000000000190015;
+  coefficients.forEach(coefficient => { y += 1; series += coefficient / y; });
+  return -temp + Math.log(2.5066282746310005 * series / x);
+}
+
+function betaFraction(a, b, x) {
+  const maxIterations = 100;
+  const epsilon = 3e-7;
+  const minimum = 1e-30;
+  let c = 1;
+  let d = 1 - ((a + b) * x / (a + 1));
+  if (Math.abs(d) < minimum) d = minimum;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= maxIterations; m += 1) {
+    const doubled = 2 * m;
+    let numerator = m * (b - m) * x / ((a + doubled - 1) * (a + doubled));
+    d = 1 + (numerator * d);
+    if (Math.abs(d) < minimum) d = minimum;
+    c = 1 + (numerator / c);
+    if (Math.abs(c) < minimum) c = minimum;
+    d = 1 / d;
+    h *= d * c;
+    numerator = -(a + m) * (a + b + m) * x / ((a + doubled) * (a + doubled + 1));
+    d = 1 + (numerator * d);
+    if (Math.abs(d) < minimum) d = minimum;
+    c = 1 + (numerator / c);
+    if (Math.abs(c) < minimum) c = minimum;
+    d = 1 / d;
+    const delta = d * c;
+    h *= delta;
+    if (Math.abs(delta - 1) < epsilon) break;
+  }
+  return h;
+}
+
+function regularizedBeta(x, a, b) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const factor = Math.exp((a * Math.log(x)) + (b * Math.log(1 - x)) - logGamma(a) - logGamma(b) + logGamma(a + b));
+  return x < (a + 1) / (a + b + 2)
+    ? factor * betaFraction(a, b, x) / a
+    : 1 - (factor * betaFraction(b, a, 1 - x) / b);
+}
+
+function pairedTest(valuesBefore, valuesAfter) {
+  const differences = valuesAfter.map((value, index) => value - valuesBefore[index]);
+  const count = differences.length;
+  const differenceMean = mean(differences);
+  const differenceSd = sampleStandardDeviation(differences);
+  if (count < 2) return { count, differenceMean, differenceSd, t: null, p: null, significant: null };
+  if (differenceSd === 0) {
+    const p = differenceMean === 0 ? 1 : 0;
+    return { count, differenceMean, differenceSd, t: differenceMean === 0 ? 0 : (differenceMean > 0 ? Infinity : -Infinity), p, significant: p < .05 };
+  }
+  const t = differenceMean / (differenceSd / Math.sqrt(count));
+  const degreesOfFreedom = count - 1;
+  const x = degreesOfFreedom / (degreesOfFreedom + (t * t));
+  const beta = regularizedBeta(x, degreesOfFreedom / 2, .5);
+  const cdf = t >= 0 ? 1 - (beta / 2) : beta / 2;
+  const p = Math.min(1, Math.max(0, 2 * Math.min(cdf, 1 - cdf)));
+  return { count, differenceMean, differenceSd, t, p, significant: p < .05 };
+}
+
+function numberText(value, digits = 2) {
+  return Number.isFinite(value) ? value.toFixed(digits) : "‚Äî";
+}
+
+function assessmentComparisonRows() {
+  return state.assessmentReport.map(row => ({
+    ...row,
+    preScore: row.pre_score === null || row.pre_score === undefined ? null : Number(row.pre_score),
+    preMax: row.pre_max_score === null || row.pre_max_score === undefined ? null : Number(row.pre_max_score),
+    postScore: row.post_score === null || row.post_score === undefined ? null : Number(row.post_score),
+    postMax: row.post_max_score === null || row.post_max_score === undefined ? null : Number(row.post_max_score),
+  }));
+}
+
+function assessmentStatistics(rows = assessmentComparisonRows()) {
+  const paired = rows.filter(row => Number.isFinite(row.preScore) && Number.isFinite(row.postScore));
+  const before = paired.map(row => row.preScore);
+  const after = paired.map(row => row.postScore);
+  const maxScore = Math.max(20, ...paired.map(row => Math.max(row.preMax || 0, row.postMax || 0)));
+  const preMean = mean(before);
+  const postMean = mean(after);
+  return {
+    paired,
+    maxScore,
+    preMean,
+    postMean,
+    preSd: sampleStandardDeviation(before),
+    postSd: sampleStandardDeviation(after),
+    growthPoints: postMean - preMean,
+    growthPercent: maxScore ? ((postMean - preMean) / maxScore) * 100 : 0,
+    test: pairedTest(before, after),
+  };
+}
+
+async function loadAssessmentReport() {
+  const classId = state.session?.class_id || $("#classSelect")?.value;
+  if (!classId || !sessionRecordsScores()) {
+    state.assessmentReport = [];
+    renderReport();
+    return;
+  }
+  const [
+    { data: assessmentData, error: assessmentError },
+    { data: satisfactionData, error: satisfactionError },
+    { data: gameAlignmentData, error: gameAlignmentError },
+    { data: classContextData, error: classContextError },
+    { data: sessionActivityData, error: sessionActivityError },
+  ] = await Promise.all([
+    supabase.rpc("get_assessment_comparison", { p_class_id: classId }),
+    supabase.rpc("get_satisfaction_report", { p_class_id: classId }),
+    supabase.rpc("get_p2_score_report", { p_class_id: classId }),
+    supabase.rpc("get_class_report_context", { p_class_id: classId }),
+    supabase.rpc("get_p2_session_activity_report", { p_class_id: classId }),
+  ]);
+  if (assessmentError || satisfactionError || gameAlignmentError || classContextError || sessionActivityError) {
+    console.warn("‡πÇ‡∏´‡∏•‡∏î‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô‡∏ú‡∏•‡∏Å‡∏≤‡∏£‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏£‡∏π‡πâ‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à", assessmentError?.code || satisfactionError?.code || gameAlignmentError?.code || classContextError?.code || sessionActivityError?.code);
+    return;
+  }
+  state.assessmentReport = assessmentData || [];
+  state.satisfactionReport = satisfactionData || { completed_count: 0, overall_average: null, questions: [], individuals: [], comments: [] };
+  state.gameAlignmentReport = gameAlignmentData || [];
+  state.classReportContext = classContextData?.[0] || null;
+  state.sessionActivityReport = sessionActivityData || [];
+  renderReport();
+  if (isAssessmentSession(state.session)) renderLiveResults();
+}
+
+function renderAssessmentResearchReport() {
+  const rows = assessmentComparisonRows();
+  const stats = assessmentStatistics(rows);
+  const reportClassId = state.session?.class_id || $("#classSelect")?.value;
+  const className = state.classes.find(item => item.id === reportClassId)?.label || "‡∏´‡πâ‡∏≠‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏õ‡∏±‡∏à‡∏à‡∏∏‡∏ö‡∏±‡∏ô";
+  const significance = stats.test.significant === null
+    ? "‡∏ï‡πâ‡∏≠‡∏á‡∏°‡∏µ‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏Ñ‡∏£‡∏ö‡∏Ñ‡∏π‡πà‡∏ï‡∏±‡πâ‡∏á‡πÅ‡∏ï‡πà 2 ‡∏Ñ‡∏ô‡∏à‡∏∂‡∏á‡∏Ñ‡∏≥‡∏ô‡∏ß‡∏ì paired t-test ‡πÑ‡∏î‡πâ"
+    : stats.test.significant
+      ? "‡πÅ‡∏ï‡∏Å‡∏ï‡πà‡∏≤‡∏á‡∏≠‡∏¢‡πà‡∏≤‡∏á‡∏°‡∏µ‡∏ô‡∏±‡∏¢‡∏™‡∏≥‡∏Ñ‡∏±‡∏ç‡∏ó‡∏≤‡∏á‡∏™‡∏ñ‡∏¥‡∏ï‡∏¥‡∏ó‡∏µ‡πà‡∏£‡∏∞‡∏î‡∏±‡∏ö .05"
+      : "‡πÑ‡∏°‡πà‡∏û‡∏ö‡∏Ñ‡∏ß‡∏≤‡∏°‡πÅ‡∏ï‡∏Å‡∏ï‡πà‡∏≤‡∏á‡∏≠‡∏¢‡πà‡∏≤‡∏á‡∏°‡∏µ‡∏ô‡∏±‡∏¢‡∏™‡∏≥‡∏Ñ‡∏±‡∏ç‡∏ó‡∏≤‡∏á‡∏™‡∏ñ‡∏¥‡∏ï‡∏¥‡∏ó‡∏µ‡πà‡∏£‡∏∞‡∏î‡∏±‡∏ö .05";
+  const tText = stats.test.t === null ? "‚Äî" : (Number.isFinite(stats.test.t) ? numberText(stats.test.t, 3) : "‚àû");
+  const pText = stats.test.p === null ? "‚Äî" : stats.test.p < .001 ? "< .001" : numberText(stats.test.p, 3);
+  const pDisplay = pText.startsWith("<") ? `p ${pText}` : `p = ${pText}`;
+  const table = rows.length
+    ? `<div class="table-wrap"><table class="assessment-individual-table"><thead><tr><th>‡∏•‡∏≥‡∏î‡∏±‡∏ö</th><th>‡πÄ‡∏•‡∏Ç‡∏ó‡∏µ‡πà/‡∏£‡∏´‡∏±‡∏™</th><th>‡∏ä‡∏∑‡πà‡∏≠‚Äì‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•</th><th>‡∏Å‡πà‡∏≠‡∏ô‡πÄ‡∏£‡∏µ‡∏¢‡∏ô</th><th>‡∏´‡∏•‡∏±‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô</th><th>‡∏ú‡∏•‡∏ï‡πà‡∏≤‡∏á</th></tr></thead><tbody>${rows.map((row, index) => {
+      const difference = Number.isFinite(row.preScore) && Number.isFinite(row.postScore) ? row.postScore - row.preScore : null;
+      return `<tr><td>${row.student_order ?? index + 1}</td><td>${escapeHtml(row.student_code || "‚Äî")}</td><td>${escapeHtml(row.full_name || "‚Äî")}</td><td>${row.preScore === null ? "‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏ó‡∏≥" : `${row.preScore}/${row.preMax || 20}`}</td><td>${row.postScore === null ? "‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏ó‡∏≥" : `${row.postScore}/${row.postMax || 20}`}</td><td>${difference === null ? "‚Äî" : `${difference > 0 ? "+" : ""}${difference}`}</td></tr>`;
+    }).join("")}</tbody></table></div>`
+    : `<p class="assessment-report-empty">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏Å‡πà‡∏≠‡∏ô‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏´‡∏£‡∏∑‡∏≠‡∏´‡∏•‡∏±‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡∏ó‡∏µ‡πà‡∏ö‡∏±‡∏ô‡∏ó‡∏∂‡∏Å‡πÑ‡∏ß‡πâ‡∏™‡∏≥‡∏´‡∏£‡∏±‡∏ö‡∏´‡πâ‡∏≠‡∏á‡∏ô‡∏µ‡πâ</p>`;
+  return `<section class="assessment-research-report">
+    <div class="assessment-report-heading"><div><span class="eyebrow">‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô‡∏ß‡∏¥‡∏à‡∏±‡∏¢ ¬∑ ‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏Å‡πà‡∏≠‡∏ô‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‚Äì‡∏´‡∏•‡∏±‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô</span><h2>${escapeHtml(className)}</h2><p>‡∏ú‡∏•‡∏™‡∏≠‡∏ö‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Å‡∏≤‡∏£‡∏à‡∏±‡∏î‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö ‡πÅ‡∏™‡∏î‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏á‡∏ï‡∏≤‡∏°‡πÄ‡∏•‡∏Ç‡∏ó‡∏µ‡πà/‡∏£‡∏´‡∏±‡∏™‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-assessment="individual">‡∏î‡∏≤‡∏ß‡∏ô‡πå‡πÇ‡∏´‡∏•‡∏î‡∏ï‡∏≤‡∏£‡∏≤‡∏á‡∏£‡∏≤‡∏¢‡∏ö‡∏∏‡∏Ñ‡∏Ñ‡∏• CSV</button><button type="button" class="button button-ghost" data-export-assessment="summary">‡∏î‡∏≤‡∏ß‡∏ô‡πå‡πÇ‡∏´‡∏•‡∏î‡∏ï‡∏≤‡∏£‡∏≤‡∏á‡∏™‡∏£‡∏∏‡∏õ CSV</button></div></div>
+    <div class="assessment-stat-grid"><article><small>‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏Ñ‡∏£‡∏ö‡∏Ñ‡∏π‡πà</small><strong>${stats.paired.length} ‡∏Ñ‡∏ô</strong><span>‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏ï‡πá‡∏° ${stats.maxScore}</span></article><article><small>‡∏Å‡πà‡∏≠‡∏ô‡πÄ‡∏£‡∏µ‡∏¢‡∏ô</small><strong>${numberText(stats.preMean)}</strong><span>S.D. ${numberText(stats.preSd)}</span></article><article><small>‡∏´‡∏•‡∏±‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô</small><strong>${numberText(stats.postMean)}</strong><span>S.D. ${numberText(stats.postSd)}</span></article><article><small>‡∏û‡∏±‡∏í‡∏ô‡∏≤‡∏Å‡∏≤‡∏£‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢</small><strong>${numberText(stats.growthPoints)} ‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô</strong><span>${numberText(stats.growthPercent)}% ‡∏Ç‡∏≠‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏ï‡πá‡∏°</span></article></div>
+    <section class="assessment-test-summary"><strong>paired t-test: t(${Math.max(0, stats.test.count - 1)}) = ${tText}, ${pDisplay}</strong><span>${significance}</span></section>
+    ${table}
+  </section>`;
+}
+
+function renderSatisfactionResearchReport() {
+  const report = state.satisfactionReport || {};
+  const questions = Array.isArray(report.questions) ? report.questions : [];
+  const individuals = Array.isArray(report.individuals) ? report.individuals : [];
+  const comments = Array.isArray(report.comments) ? report.comments : [];
+  const overallAverage = report.overall_average == null ? NaN : Number(report.overall_average);
+  const level = satisfactionLevel(overallAverage);
+  const table = questions.length
+    ? `<div class="table-wrap"><table class="satisfaction-report-table"><thead><tr><th>‡∏Ç‡πâ‡∏≠</th><th>‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô</th><th>‡∏°‡∏≤‡∏Å (3)</th><th>‡∏õ‡∏≤‡∏ô‡∏Å‡∏•‡∏≤‡∏á (2)</th><th>‡∏ô‡πâ‡∏≠‡∏¢ (1)</th><th>‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢</th></tr></thead><tbody>${questions.map(question => {
+      const average = question.average == null ? null : Number(question.average);
+      return `<tr><td>${question.id}</td><td>${escapeHtml(question.prompt || "‚Äî")}</td><td>${question.count_3 || 0}</td><td>${question.count_2 || 0}</td><td>${question.count_1 || 0}</td><td><strong>${average == null ? "‚Äî" : average.toFixed(2)}</strong></td></tr>`;
+    }).join("")}</tbody></table></div>`
+    : `<p class="assessment-report-empty">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏ú‡∏•‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à</p>`;
+  const individualMarkup = individuals.length
+    ? `<section class="satisfaction-individual-report"><div class="assessment-report-heading"><div><span class="eyebrow">‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏î‡∏¥‡∏ö‡∏£‡∏≤‡∏¢‡∏ö‡∏∏‡∏Ñ‡∏Ñ‡∏•</span><h3>‡∏ú‡∏•‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à‡∏£‡∏≤‡∏¢‡∏Ñ‡∏ô</h3><p>‡πÅ‡∏™‡∏î‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏Ç‡πâ‡∏≠ 1‚Äì10 ‡∏ú‡∏•‡∏£‡∏ß‡∏° ‡∏Ñ‡πà‡∏≤‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢ ‡πÅ‡∏•‡∏∞‡∏£‡∏∞‡∏î‡∏±‡∏ö‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à</p></div></div><div class="table-wrap"><table class="satisfaction-individual-table"><thead><tr><th>‡πÄ‡∏•‡∏Ç‡∏ó‡∏µ‡πà</th><th>‡∏•‡∏≥‡∏î‡∏±‡∏ö‡∏ó‡∏µ‡πà</th><th>‡∏£‡∏´‡∏±‡∏™</th><th>‡∏ä‡∏∑‡πà‡∏≠‚Äì‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•</th>${Array.from({ length: 10 }, (_, index) => `<th>‡∏Ç‡πâ‡∏≠ ${index + 1}</th>`).join("")}<th>‡∏£‡∏ß‡∏°</th><th>‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢</th><th>‡∏£‡∏∞‡∏î‡∏±‡∏ö</th></tr></thead><tbody>${individuals.map((item, index) => {
+      const ratings = Array.isArray(item.ratings) ? item.ratings : [];
+      const average = item.average == null ? NaN : Number(item.average);
+      const individualLevel = satisfactionLevel(average);
+      return `<tr><td>${index + 1}</td><td>${item.student_order ?? "‚Äî"}</td><td>${escapeHtml(item.student_code || "‚Äî")}</td><td>${escapeHtml(item.full_name || "‚Äî")}</td>${Array.from({ length: 10 }, (_, questionIndex) => `<td>${ratings[questionIndex] ?? "‚Äî"}</td>`).join("")}<td><strong>${item.total ?? "‚Äî"}</strong></td><td><strong>${Number.isFinite(average) ? average.toFixed(2) : "‚Äî"}</strong></td><td>${individualLevel.label}</td></tr>`;
+    }).join("")}</tbody></table></div></section>`
+    : `<section class="satisfaction-individual-report"><h3>‡∏ú‡∏•‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à‡∏£‡∏≤‡∏¢‡∏Ñ‡∏ô</h3><p class="assessment-report-empty">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏£‡∏≤‡∏¢‡∏ö‡∏∏‡∏Ñ‡∏Ñ‡∏•‡∏ó‡∏µ‡πà‡∏™‡πà‡∏á‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡∏Ñ‡∏£‡∏ö</p></section>`;
+  const commentMarkup = comments.length
+    ? `<section class="satisfaction-comments"><h3>‡∏Ç‡πâ‡∏≠‡πÄ‡∏™‡∏ô‡∏≠‡πÅ‡∏ô‡∏∞‡πÄ‡∏û‡∏¥‡πà‡∏°‡πÄ‡∏ï‡∏¥‡∏°</h3>${comments.map(item => `<blockquote><p>${escapeHtml(item.comment || "")}</p><footer>${escapeHtml(item.student_code || "")} ¬∑ ${escapeHtml(item.full_name || "‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô")}</footer></blockquote>`).join("")}</section>`
+    : "";
+  return `<section class="satisfaction-research-report">
+    <div class="assessment-report-heading"><div><span class="eyebrow">‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à ¬∑ 10 ‡∏Ç‡πâ‡∏≠</span><h2>‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à‡∏Ç‡∏≠‡∏á‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô</h2><p>‡∏£‡∏∞‡∏î‡∏±‡∏ö 3 = ‡∏°‡∏≤‡∏Å, 2 = ‡∏õ‡∏≤‡∏ô‡∏Å‡∏•‡∏≤‡∏á, 1 = ‡∏ô‡πâ‡∏≠‡∏¢</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-satisfaction>‡∏î‡∏≤‡∏ß‡∏ô‡πå‡πÇ‡∏´‡∏•‡∏î‡∏ú‡∏•‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à CSV</button></div></div>
+    <div class="satisfaction-overall ${level.className}"><span>‡∏ú‡∏π‡πâ‡∏™‡πà‡∏á‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡∏Ñ‡∏£‡∏ö</span><strong>${Number(report.completed_count || 0)} ‡∏Ñ‡∏ô</strong><span>‡∏Ñ‡πà‡∏≤‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢‡∏£‡∏ß‡∏°</span><strong>${Number.isFinite(overallAverage) ? overallAverage.toFixed(2) : "‚Äî"} / 3</strong><em>${level.label}</em></div>
+    ${table}${individualMarkup}${commentMarkup}
+  </section>`;
+}
+
+function exportSatisfactionReport() {
+  if (!state.session) return toast("‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏´‡πâ‡∏≠‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÉ‡∏´‡πâ‡∏™‡πà‡∏á‡∏≠‡∏≠‡∏Å‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô", "warning");
+  const report = state.satisfactionReport || {};
+  const className = state.classes.find(item => item.id === state.session.class_id)?.label || "";
+  const rows = [
+    ["‡∏ú‡∏•‡πÅ‡∏ö‡∏ö‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à‡∏Ç‡∏≠‡∏á‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô"],
+    ["‡∏´‡πâ‡∏≠‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", className],
+    ["‡∏à‡∏≥‡∏ô‡∏ß‡∏ô‡∏ú‡∏π‡πâ‡∏™‡πà‡∏á‡∏Ñ‡∏£‡∏ö", Number(report.completed_count || 0)],
+    ["‡∏Ñ‡πà‡∏≤‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢‡∏£‡∏ß‡∏°", report.overall_average ?? ""],
+    [],
+    ["‡∏Ç‡πâ‡∏≠", "‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£‡∏õ‡∏£‡∏∞‡πÄ‡∏°‡∏¥‡∏ô", "‡∏°‡∏≤‡∏Å (3)", "‡∏õ‡∏≤‡∏ô‡∏Å‡∏•‡∏≤‡∏á (2)", "‡∏ô‡πâ‡∏≠‡∏¢ (1)", "‡∏à‡∏≥‡∏ô‡∏ß‡∏ô‡∏ï‡∏≠‡∏ö", "‡∏Ñ‡πà‡∏≤‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢"],
+  ];
+  (report.questions || []).forEach(question => rows.push([
+    question.id, question.prompt, question.count_3 || 0, question.count_2 || 0, question.count_1 || 0,
+    question.response_count || 0, question.average ?? "",
+  ]));
+  if ((report.individuals || []).length) {
+    rows.push([], ["‡∏ú‡∏•‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à‡∏£‡∏≤‡∏¢‡∏ö‡∏∏‡∏Ñ‡∏Ñ‡∏•"]);
+    rows.push(["‡πÄ‡∏•‡∏Ç‡∏ó‡∏µ‡πà", "‡∏•‡∏≥‡∏î‡∏±‡∏ö‡∏ó‡∏µ‡πà", "‡∏£‡∏´‡∏±‡∏™‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "‡∏ä‡∏∑‡πà‡∏≠-‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•", ...Array.from({ length: 10 }, (_, index) => `‡∏Ç‡πâ‡∏≠ ${index + 1}`), "‡∏£‡∏ß‡∏° (30)", "‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢", "‡∏£‡∏∞‡∏î‡∏±‡∏ö"]);
+    report.individuals.forEach((item, index) => {
+      const ratings = Array.isArray(item.ratings) ? item.ratings : [];
+      const average = item.average == null ? NaN : Number(item.average);
+      rows.push([
+        index + 1, item.student_order ?? "", item.student_code || "", item.full_name || "",
+        ...Array.from({ length: 10 }, (_, questionIndex) => ratings[questionIndex] ?? ""),
+        item.total ?? "", Number.isFinite(average) ? average.toFixed(2) : "", satisfactionLevel(average).label,
+      ]);
+    });
+  }
+  if ((report.comments || []).length) {
+    rows.push([], ["‡πÄ‡∏•‡∏Ç‡∏õ‡∏£‡∏∞‡∏à‡∏≥‡∏ï‡∏±‡∏ß", "‡∏ä‡∏∑‡πà‡∏≠-‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•", "‡∏Ç‡πâ‡∏≠‡πÄ‡∏™‡∏ô‡∏≠‡πÅ‡∏ô‡∏∞‡πÄ‡∏û‡∏¥‡πà‡∏°‡πÄ‡∏ï‡∏¥‡∏°"]);
+    report.comments.forEach(item => rows.push([item.student_code || "", item.full_name || "", item.comment || ""]));
+  }
+  downloadCsv(`‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à-${className || state.session.room_code}.csv`, rows);
+}
+
+function exportAssessmentReport(kind = "individual") {
+  if (!state.session) return toast("‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Ñ‡∏≤‡∏ö‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÉ‡∏´‡πâ‡∏™‡πà‡∏á‡∏≠‡∏≠‡∏Å‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô", "warning");
+  const rows = assessmentComparisonRows();
+  const stats = assessmentStatistics(rows);
+  const className = state.classes.find(item => item.id === state.session.class_id)?.label || "";
+  if (kind === "summary") {
+    const test = stats.test;
+    downloadCsv(`‡∏™‡∏£‡∏∏‡∏õ‡∏ú‡∏•‡∏™‡∏±‡∏°‡∏§‡∏ó‡∏ò‡∏¥‡πå-${className || state.session.room_code}.csv`, [
+      ["‡∏ï‡∏≤‡∏£‡∏≤‡∏á‡∏™‡∏£‡∏∏‡∏õ‡∏ú‡∏•‡∏™‡∏±‡∏°‡∏§‡∏ó‡∏ò‡∏¥‡πå‡∏Å‡πà‡∏≠‡∏ô‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÅ‡∏•‡∏∞‡∏´‡∏•‡∏±‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô"],
+      ["‡∏´‡πâ‡∏≠‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", className],
+      ["‡∏à‡∏≥‡∏ô‡∏ß‡∏ô‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏Ñ‡∏£‡∏ö‡∏Ñ‡∏π‡πà", stats.paired.length],
+      ["‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏ï‡πá‡∏°", stats.maxScore],
+      [],
+      ["‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£", "‡∏Å‡πà‡∏≠‡∏ô‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "‡∏´‡∏•‡∏±‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "‡∏ú‡∏•‡∏ï‡πà‡∏≤‡∏á/‡∏ú‡∏•‡∏ó‡∏î‡∏™‡∏≠‡∏ö"],
+      ["‡∏Ñ‡πà‡∏≤‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢ (Mean)", numberText(stats.preMean), numberText(stats.postMean), numberText(stats.growthPoints)],
+      ["‡∏™‡πà‡∏ß‡∏ô‡πÄ‡∏ö‡∏µ‡πà‡∏¢‡∏á‡πÄ‡∏ö‡∏ô‡∏°‡∏≤‡∏ï‡∏£‡∏ê‡∏≤‡∏ô (S.D.)", numberText(stats.preSd), numberText(stats.postSd), numberText(test.differenceSd)],
+      ["‡∏£‡πâ‡∏≠‡∏¢‡∏•‡∏∞‡∏Ç‡∏≠‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏ï‡πá‡∏°", numberText(stats.maxScore ? (stats.preMean / stats.maxScore) * 100 : 0), numberText(stats.maxScore ? (stats.postMean / stats.maxScore) * 100 : 0), numberText(stats.growthPercent)],
+      ["paired t-test", "", "", test.t === null ? "‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡πÑ‡∏°‡πà‡∏û‡∏≠" : `t(${test.count - 1}) = ${Number.isFinite(test.t) ? numberText(test.t, 3) : "‚àû"}, p ${test.p < .001 ? "< .001" : `= ${numberText(test.p, 3)}`}`],
+      ["‡∏™‡∏£‡∏∏‡∏õ‡∏ó‡∏µ‡πà‡∏£‡∏∞‡∏î‡∏±‡∏ö .05", "", "", test.significant === null ? "‡∏ï‡πâ‡∏≠‡∏á‡∏°‡∏µ‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏Ñ‡∏£‡∏ö‡∏Ñ‡∏π‡πà‡∏ï‡∏±‡πâ‡∏á‡πÅ‡∏ï‡πà 2 ‡∏Ñ‡∏ô" : (test.significant ? "‡πÅ‡∏ï‡∏Å‡∏ï‡πà‡∏≤‡∏á‡∏≠‡∏¢‡πà‡∏≤‡∏á‡∏°‡∏µ‡∏ô‡∏±‡∏¢‡∏™‡∏≥‡∏Ñ‡∏±‡∏ç" : "‡πÑ‡∏°‡πà‡πÅ‡∏ï‡∏Å‡∏ï‡πà‡∏≤‡∏á‡∏≠‡∏¢‡πà‡∏≤‡∏á‡∏°‡∏µ‡∏ô‡∏±‡∏¢‡∏™‡∏≥‡∏Ñ‡∏±‡∏ç")],
+    ]);
+    return;
+  }
+  const csvRows = [["‡∏•‡∏≥‡∏î‡∏±‡∏ö", "‡∏´‡πâ‡∏≠‡∏á", "‡πÄ‡∏•‡∏Ç‡∏ó‡∏µ‡πà/‡∏£‡∏´‡∏±‡∏™", "‡∏ä‡∏∑‡πà‡∏≠-‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•", "‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏Å‡πà‡∏≠‡∏ô‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏ï‡πá‡∏°‡∏Å‡πà‡∏≠‡∏ô‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏´‡∏•‡∏±‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏ï‡πá‡∏°‡∏´‡∏•‡∏±‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "‡∏ú‡∏•‡∏ï‡πà‡∏≤‡∏á (‡∏´‡∏•‡∏±‡∏á-‡∏Å‡πà‡∏≠‡∏ô)"]];
+  rows.forEach((row, index) => csvRows.push([
+    row.student_order ?? index + 1, className, row.student_code || "", row.full_name || "", row.preScore ?? "", row.preMax ?? "", row.postScore ?? "", row.postMax ?? "",
+    Number.isFinite(row.preScore) && Number.isFinite(row.postScore) ? row.postScore - row.preScore : "",
+  ]));
+  downloadCsv(`‡∏ï‡∏≤‡∏£‡∏≤‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏Å‡πà‡∏≠‡∏ô‡∏´‡∏•‡∏±‡∏á-${className || state.session.room_code}.csv`, csvRows);
+}
+
+function renderGameAssessmentReport() {
+  const details = Array.isArray(state.gameAlignmentReport) ? state.gameAlignmentReport : [];
+  const students = new Map();
+  details.forEach(row => {
+    const student = students.get(row.student_id) || {
+      student_id: row.student_id,
+      student_order: row.student_order,
+      student_code: row.student_code,
+      full_name: row.full_name,
+      rows: [],
+    };
+    student.rows.push(row);
+    students.set(row.student_id, student);
+  });
+  const studentRows = [...students.values()].sort((a, b) => (a.student_order ?? 999) - (b.student_order ?? 999));
+  const skillTotals = rows => ["classification", "spelling", "context", "sentence"].map(skill => ({
+    score: rows.reduce((sum, row) => sum + Number(row[`${skill}_score`] || 0), 0),
+    max: rows.reduce((sum, row) => sum + Number(row[`${skill}_max`] || 0), 0),
+  }));
+  const skillCell = item => item.max ? `${item.score}/${item.max} <small>(${(item.score * 100 / item.max).toFixed(0)}%)</small>` : "‚Äî";
+  const summaryTable = studentRows.length
+    ? `<div class="table-wrap"><table><thead><tr><th>‡∏•‡∏≥‡∏î‡∏±‡∏ö</th><th>‡∏£‡∏´‡∏±‡∏™</th><th>‡∏ä‡∏∑‡πà‡∏≠‚Äì‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•</th><th>‡πÄ‡∏Å‡∏°‡∏ó‡∏µ‡πà‡∏°‡∏µ‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô</th><th>‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢‡πÄ‡∏Å‡∏°</th><th>‡∏à‡∏≥‡πÅ‡∏ô‡∏Å‡∏Ñ‡∏≥</th><th>‡πÄ‡∏Ç‡∏µ‡∏¢‡∏ô/‡∏™‡∏∞‡∏Å‡∏î‡∏Ñ‡∏≥</th><th>‡πÉ‡∏ä‡πâ‡∏Ñ‡∏≥‡∏ï‡∏≤‡∏°‡∏ö‡∏£‡∏¥‡∏ö‡∏ó</th><th>‡πÄ‡∏£‡∏µ‡∏¢‡∏ö‡πÄ‡∏£‡∏µ‡∏¢‡∏á‡∏õ‡∏£‡∏∞‡πÇ‡∏¢‡∏Ñ</th></tr></thead><tbody>${studentRows.map((student, index) => {
+      const skills = skillTotals(student.rows);
+      const average = student.rows.reduce((sum, row) => sum + Number(row.percent || 0), 0) / student.rows.length;
+      return `<tr><td>${student.student_order ?? index + 1}</td><td>${escapeHtml(student.student_code || "‚Äî")}</td><td>${escapeHtml(student.full_name || "‚Äî")}</td><td>${student.rows.length}</td><td><strong>${average.toFixed(2)}%</strong></td>${skills.map(skill => `<td>${skillCell(skill)}</td>`).join("")}</tr>`;
+    }).join("")}</tbody></table></div>`
+    : `<p class="assessment-report-empty">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏Å‡∏°‡∏´‡∏£‡∏∑‡∏≠‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏ó‡∏±‡∏Å‡∏©‡∏∞‡∏Ç‡∏≠‡∏á‡∏´‡πâ‡∏≠‡∏á‡∏ô‡∏µ‡πâ</p>`;
+  const detailTable = details.length
+    ? `<details open><summary>‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏î‡∏¥‡∏ö‡∏ó‡∏∏‡∏Å‡πÄ‡∏Å‡∏° ‡∏ó‡∏∏‡∏Å‡πÅ‡∏ú‡∏ô ‡πÅ‡∏•‡∏∞‡∏ó‡∏±‡∏Å‡∏©‡∏∞‡∏ó‡∏µ‡πà‡∏ß‡∏±‡∏î‡πÑ‡∏î‡πâ‡∏à‡∏£‡∏¥‡∏á</summary><div class="table-wrap"><table><thead><tr><th>‡∏•‡∏≥‡∏î‡∏±‡∏ö</th><th>‡∏ä‡∏∑‡πà‡∏≠‚Äì‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•</th><th>‡πÅ‡∏ú‡∏ô</th><th>‡πÄ‡∏Å‡∏°/‡∏î‡πà‡∏≤‡∏ô</th><th>‡∏Ñ‡∏£‡∏±‡πâ‡∏á</th><th>‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏î‡∏¥‡∏ö</th><th>‡∏£‡πâ‡∏≠‡∏¢‡∏•‡∏∞</th><th>‡∏à‡∏≥‡πÅ‡∏ô‡∏Å‡∏Ñ‡∏≥</th><th>‡πÄ‡∏Ç‡∏µ‡∏¢‡∏ô/‡∏™‡∏∞‡∏Å‡∏î</th><th>‡∏ö‡∏£‡∏¥‡∏ö‡∏ó</th><th>‡∏õ‡∏£‡∏∞‡πÇ‡∏¢‡∏Ñ</th></tr></thead><tbody>${details.map((row, index) => `<tr><td>${row.student_order ?? index + 1}</td><td>${escapeHtml(row.full_name || "‚Äî")}</td><td>${row.plan_id}</td><td>${escapeHtml(activityForKey(row.activity_key, row.plan_id)?.title || row.activity_key)}</td><td>${row.attempt_no || 1}</td><td><strong>${row.raw_score}/${row.raw_max_score}</strong></td><td>${Number(row.percent || 0).toFixed(2)}%</td><td>${skillCell({score:Number(row.classification_score||0),max:Number(row.classification_max||0)})}</td><td>${skillCell({score:Number(row.spelling_score||0),max:Number(row.spelling_max||0)})}</td><td>${skillCell({score:Number(row.context_score||0),max:Number(row.context_max||0)})}</td><td>${skillCell({score:Number(row.sentence_score||0),max:Number(row.sentence_max||0)})}</td></tr>`).join("")}</tbody></table></div></details>`
+    : "";
+  const planSkillRows = [];
+  studentRows.forEach(student => {
+    for (let planId = 1; planId <= 8; planId += 1) {
+      const rows = student.rows.filter(row => Number(row.plan_id) === planId);
+      const skills = skillTotals(rows);
+      if (skills.some(skill => skill.max > 0)) planSkillRows.push({ student, planId, skills });
+    }
+  });
+  const planSkillTable = planSkillRows.length
+    ? `<details><summary>‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏ó‡∏±‡∏Å‡∏©‡∏∞ 4 ‡∏î‡πâ‡∏≤‡∏ô ‡πÅ‡∏¢‡∏Å‡∏£‡∏≤‡∏¢‡∏Ñ‡∏ô‡πÅ‡∏•‡∏∞‡∏£‡∏≤‡∏¢‡πÅ‡∏ú‡∏ô</summary><div class="table-wrap"><table><thead><tr><th>‡∏•‡∏≥‡∏î‡∏±‡∏ö</th><th>‡∏ä‡∏∑‡πà‡∏≠‚Äì‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•</th><th>‡πÅ‡∏ú‡∏ô</th><th>‡∏à‡∏≥‡πÅ‡∏ô‡∏Å‡∏Ñ‡∏≥</th><th>‡πÄ‡∏Ç‡∏µ‡∏¢‡∏ô/‡∏™‡∏∞‡∏Å‡∏î‡∏Ñ‡∏≥</th><th>‡πÉ‡∏ä‡πâ‡∏Ñ‡∏≥‡∏ï‡∏≤‡∏°‡∏ö‡∏£‡∏¥‡∏ö‡∏ó</th><th>‡πÄ‡∏£‡∏µ‡∏¢‡∏ö‡πÄ‡∏£‡∏µ‡∏¢‡∏á‡∏õ‡∏£‡∏∞‡πÇ‡∏¢‡∏Ñ</th><th>‡∏£‡∏ß‡∏°</th></tr></thead><tbody>${planSkillRows.map(({ student, planId, skills }, index) => { const total={score:skills.reduce((sum,item)=>sum+item.score,0),max:skills.reduce((sum,item)=>sum+item.max,0)}; return `<tr><td>${student.student_order ?? index + 1}</td><td>${escapeHtml(student.full_name || "‚Äî")}</td><td>${planId}</td>${skills.map(skill=>`<td>${skillCell(skill)}</td>`).join("")}<td><strong>${skillCell(total)}</strong></td></tr>`; }).join("")}</tbody></table></div></details>`
+    : `<p class="assessment-report-empty">‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏ó‡∏±‡∏Å‡∏©‡∏∞‡∏à‡∏∞‡∏õ‡∏£‡∏≤‡∏Å‡∏è‡πÄ‡∏°‡∏∑‡πà‡∏≠‡∏°‡∏µ‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡∏ó‡∏µ‡πà‡∏ï‡∏¥‡∏î‡∏õ‡πâ‡∏≤‡∏¢‡∏ó‡∏±‡∏Å‡∏©‡∏∞‡∏à‡∏£‡∏¥‡∏á ‡∏£‡∏∞‡∏ö‡∏ö‡πÑ‡∏°‡πà‡∏õ‡∏£‡∏∞‡∏°‡∏≤‡∏ì‡∏Ñ‡πà‡∏≤‡∏ó‡∏±‡∏Å‡∏©‡∏∞‡∏à‡∏≤‡∏Å‡πÄ‡∏õ‡∏≠‡∏£‡πå‡πÄ‡∏ã‡πá‡∏ô‡∏ï‡πå‡πÄ‡∏Å‡∏°</p>`;
+  const classroom = selectedClassroom();
+  const roomCode = state.session?.room_code || state.classReportContext?.room_code || "‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏£‡∏´‡∏±‡∏™";
+  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">${escapeHtml(classroom?.label || "‡∏´‡πâ‡∏≠‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô")} ¬∑ ‡∏£‡∏´‡∏±‡∏™‡∏´‡πâ‡∏≠‡∏á ${escapeHtml(roomCode)}</span><h2>‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏Å‡∏°‡πÅ‡∏•‡∏∞‡∏ó‡∏±‡∏Å‡∏©‡∏∞ 4 ‡∏î‡πâ‡∏≤‡∏ô</h2><p>‡πÅ‡∏™‡∏î‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏î‡∏¥‡∏ö‡∏Ç‡∏≠‡∏á‡∏ó‡∏∏‡∏Å‡πÄ‡∏Å‡∏°‡πÅ‡∏•‡∏∞‡∏Ñ‡∏≥‡∏ô‡∏ß‡∏ì‡∏ó‡∏±‡∏Å‡∏©‡∏∞‡∏à‡∏≤‡∏Å‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡∏ó‡∏µ‡πà‡∏ï‡∏¥‡∏î‡∏õ‡πâ‡∏≤‡∏¢‡∏à‡∏£‡∏¥‡∏á‡πÄ‡∏ó‡πà‡∏≤‡∏ô‡∏±‡πâ‡∏ô</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-game-alignment>‡∏™‡πà‡∏á‡∏≠‡∏≠‡∏Å CSV</button><button type="button" class="button button-secondary" data-export-score-sql>‡∏™‡∏≥‡∏£‡∏≠‡∏á‡∏ó‡∏∏‡∏Å‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏• SQL</button><button type="button" class="button button-ghost" data-export-empty-score-sql>‡πÅ‡∏°‡πà‡πÅ‡∏ö‡∏ö SQL ‡∏ß‡πà‡∏≤‡∏á</button><button type="button" class="button button-ghost" data-import-score-sql>‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤ SQL</button></div></div>${summaryTable}${detailTable}${planSkillTable}</section>`;
+}
+
+function renderSessionActivityReport() {
+  const rows = Array.isArray(state.sessionActivityReport) ? state.sessionActivityReport : [];
+  const formatDate = value => value ? new Date(value).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "‚Äî";
+  const table = rows.length
+    ? `<div class="table-wrap"><table><thead><tr><th>‡∏ß‡∏±‡∏ô‚Äì‡πÄ‡∏ß‡∏•‡∏≤</th><th>‡∏£‡∏´‡∏±‡∏™‡∏´‡πâ‡∏≠‡∏á</th><th>‡πÅ‡∏ú‡∏ô</th><th>‡πÄ‡∏•‡∏Ç‡∏ó‡∏µ‡πà/‡∏£‡∏´‡∏±‡∏™</th><th>‡∏ä‡∏∑‡πà‡∏≠‚Äì‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•</th><th>‡∏ó‡∏≥‡πÅ‡∏•‡πâ‡∏ß</th><th>‡∏Ñ‡∏£‡∏±‡πâ‡∏á‡πÅ‡∏£‡∏Å‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢</th><th>‡∏î‡∏µ‡∏ó‡∏µ‡πà‡∏™‡∏∏‡∏î‡πÄ‡∏â‡∏•‡∏µ‡πà‡∏¢</th></tr></thead><tbody>${rows.map((row, index) => `<tr><td>${escapeHtml(formatDate(row.opened_at))}</td><td>${escapeHtml(row.room_code || "‚Äî")}</td><td>${row.plan_id}</td><td>${escapeHtml(row.student_order ?? row.student_code ?? index + 1)}</td><td>${escapeHtml(row.full_name || "‚Äî")}</td><td>${Number(row.activities_completed || 0)}/${Number(row.activity_count || 0)}</td><td>${Number(row.first_average || 0).toFixed(2)}%</td><td><strong>${Number(row.best_average || 0).toFixed(2)}%</strong></td></tr>`).join("")}</tbody></table></div>`
+    : `<p class="assessment-report-empty">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏ú‡∏•‡∏Å‡∏¥‡∏à‡∏Å‡∏£‡∏£‡∏°‡∏£‡∏≤‡∏¢‡∏Ñ‡∏≤‡∏ö‡∏Ç‡∏≠‡∏á‡∏´‡πâ‡∏≠‡∏á‡∏ô‡∏µ‡πâ</p>`;
+  return `<section class="session-score-report"><div class="assessment-report-heading"><div><span class="eyebrow">‡∏ö‡∏±‡∏ô‡∏ó‡∏∂‡∏Å‡πÅ‡∏¢‡∏Å‡∏ï‡∏≤‡∏°‡∏Ñ‡∏≤‡∏ö‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÅ‡∏•‡∏∞‡πÅ‡∏ú‡∏ô</span><h2>‡∏ú‡∏•‡∏Å‡∏¥‡∏à‡∏Å‡∏£‡∏£‡∏°‡∏£‡∏≤‡∏¢‡∏Ñ‡∏≤‡∏ö</h2><p>‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏™‡πà‡∏ß‡∏ô‡∏ô‡∏µ‡πâ‡∏£‡∏ß‡∏°‡∏≠‡∏¢‡∏π‡πà‡πÉ‡∏ô‡∏õ‡∏∏‡πà‡∏°‡∏™‡∏≥‡∏£‡∏≠‡∏á‡∏ó‡∏∏‡∏Å‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏• SQL ‡πÅ‡∏•‡∏∞‡∏ô‡∏≥‡∏Å‡∏•‡∏±‡∏ö‡πÄ‡∏Ç‡πâ‡∏≤‡πÑ‡∏î‡πâ‡∏û‡∏£‡πâ‡∏≠‡∏°‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô‡∏™‡πà‡∏ß‡∏ô‡∏≠‡∏∑‡πà‡∏ô</p></div></div>${table}</section>`;
+}
+
+async function clearImportedGameScores(button) {
+  const classId = state.session?.class_id || $("#classSelect")?.value;
+  if (!classId) return toast("‡∏Å‡∏£‡∏∏‡∏ì‡∏≤‡πÄ‡∏•‡∏∑‡∏≠‡∏Å‡∏´‡πâ‡∏≠‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "warning");
+  const count = Number(button?.dataset.importedCount || 0);
+  const accepted = window.confirm(`‡∏¢‡∏∑‡∏ô‡∏¢‡∏±‡∏ô‡πÄ‡∏Ñ‡∏•‡∏µ‡∏¢‡∏£‡πå‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤ ${count} ‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£‡∏Ç‡∏≠‡∏á‡∏´‡πâ‡∏≠‡∏á‡∏ô‡∏µ‡πâ‡∏´‡∏£‡∏∑‡∏≠‡πÑ‡∏°‡πà?\n\n‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏Å‡∏≤‡∏£‡πÄ‡∏•‡πà‡∏ô‡∏à‡∏£‡∏¥‡∏á ‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏Å‡πà‡∏≠‡∏ô‚Äì‡∏´‡∏•‡∏±‡∏á ‡πÅ‡∏•‡∏∞‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à‡∏à‡∏∞‡πÑ‡∏°‡πà‡∏ñ‡∏π‡∏Å‡∏•‡∏ö`);
+  if (!accepted) return;
+  button.disabled = true;
+  button.textContent = "‡∏Å‡∏≥‡∏•‡∏±‡∏á‡πÄ‡∏Ñ‡∏•‡∏µ‡∏¢‡∏£‡πå‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‚Ä¶";
+  const { data, error } = await supabase.rpc("clear_imported_game_scores", { p_class_id: classId });
+  if (error) {
+    console.warn("‡πÄ‡∏Ñ‡∏•‡∏µ‡∏¢‡∏£‡πå‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à", error.code);
+    toast("‡πÄ‡∏Ñ‡∏•‡∏µ‡∏¢‡∏£‡πå‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à ‡∏Å‡∏£‡∏∏‡∏ì‡∏≤‡∏•‡∏≠‡∏á‡πÉ‡∏´‡∏°‡πà", "error");
+    button.disabled = false;
+    button.textContent = "‡πÄ‡∏Ñ‡∏•‡∏µ‡∏¢‡∏£‡πå‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤‡πÄ‡∏û‡∏∑‡πà‡∏≠‡πÄ‡∏Å‡πá‡∏ö‡∏à‡∏£‡∏¥‡∏á";
+    return;
+  }
+  toast(`‡πÄ‡∏Ñ‡∏•‡∏µ‡∏¢‡∏£‡πå‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤‡πÅ‡∏•‡πâ‡∏ß ${Number(data || 0)} ‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£ ¬∑ ‡∏û‡∏£‡πâ‡∏≠‡∏°‡πÄ‡∏Å‡πá‡∏ö‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏à‡∏£‡∏¥‡∏á`, "success");
+  await loadAssessmentReport();
+}
+
+function exportGameAlignmentReport() {
+  const rows = [["‡∏•‡∏≥‡∏î‡∏±‡∏ö", "‡∏£‡∏´‡∏±‡∏™‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "‡∏ä‡∏∑‡πà‡∏≠-‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•", "‡πÅ‡∏ú‡∏ô", "‡∏£‡∏´‡∏±‡∏™‡πÄ‡∏Å‡∏°", "‡∏Ñ‡∏£‡∏±‡πâ‡∏á", "‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏î‡∏¥‡∏ö", "‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏ï‡πá‡∏°", "‡∏£‡πâ‡∏≠‡∏¢‡∏•‡∏∞", "‡∏à‡∏≥‡πÅ‡∏ô‡∏Å‡∏Ñ‡∏≥", "‡πÄ‡∏ï‡πá‡∏°‡∏à‡∏≥‡πÅ‡∏ô‡∏Å", "‡πÄ‡∏Ç‡∏µ‡∏¢‡∏ô/‡∏™‡∏∞‡∏Å‡∏î", "‡πÄ‡∏ï‡πá‡∏°‡∏™‡∏∞‡∏Å‡∏î", "‡πÉ‡∏ä‡πâ‡∏Ñ‡∏≥‡∏ï‡∏≤‡∏°‡∏ö‡∏£‡∏¥‡∏ö‡∏ó", "‡πÄ‡∏ï‡πá‡∏°‡∏ö‡∏£‡∏¥‡∏ö‡∏ó", "‡πÄ‡∏£‡∏µ‡∏¢‡∏ö‡πÄ‡∏£‡∏µ‡∏¢‡∏á‡∏õ‡∏£‡∏∞‡πÇ‡∏¢‡∏Ñ", "‡πÄ‡∏ï‡πá‡∏°‡∏õ‡∏£‡∏∞‡πÇ‡∏¢‡∏Ñ", "‡πÅ‡∏´‡∏•‡πà‡∏á‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•"]];
+  state.gameAlignmentReport.forEach((item, index) => rows.push([
+    item.student_order ?? index + 1, item.student_code || "", item.full_name || "", item.plan_id,
+    item.activity_key, item.attempt_no || 1, item.raw_score, item.raw_max_score, item.percent,
+    item.classification_score, item.classification_max, item.spelling_score, item.spelling_max,
+    item.context_score, item.context_max, item.sentence_score, item.sentence_max, item.score_source,
+  ]));
+  downloadCsv("‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏Å‡∏°‡πÅ‡∏•‡∏∞‡∏ó‡∏±‡∏Å‡∏©‡∏∞-4-‡∏î‡πâ‡∏≤‡∏ô.csv", rows);
+}
+
+function downloadTextFile(filename, content, type = "text/plain;charset=utf-8") {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function exportScoreSqlBackup() {
+  const classId = state.session?.class_id || $("#classSelect")?.value;
+  if (!classId) return toast("‡∏Å‡∏£‡∏∏‡∏ì‡∏≤‡πÄ‡∏•‡∏∑‡∏≠‡∏Å‡∏´‡πâ‡∏≠‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "warning");
+  const { data, error } = await supabase.rpc("export_p2_score_backup", { p_class_id: classId });
+  if (error || !data) {
+    console.warn("‡∏™‡πà‡∏á‡∏≠‡∏≠‡∏Å‡∏ä‡∏∏‡∏î‡∏™‡∏≥‡∏£‡∏≠‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à", error?.code);
+    return toast("‡∏™‡πà‡∏á‡∏≠‡∏≠‡∏Å SQL ‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à", "error");
+  }
+  downloadFullReportSql(data);
+  const total = (data.assessment_scores?.length || 0) + (data.game_scores?.length || 0) + (data.satisfaction_responses?.length || 0) + (data.session_activity_results?.length || 0);
+  toast(`‡∏™‡πà‡∏á‡∏≠‡∏≠‡∏Å‡∏ä‡∏∏‡∏î‡∏™‡∏≥‡∏£‡∏≠‡∏á‡∏Ñ‡∏£‡∏ö‡∏ó‡∏∏‡∏Å‡∏™‡πà‡∏ß‡∏ô ${total} ‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£‡πÅ‡∏•‡πâ‡∏ß`, "success");
+}
+
+function downloadFullReportSql(payload, suffix = "scores-and-reports") {
+  const json = JSON.stringify(payload, null, 2);
+  if (json.includes("$p2_score_backup$")) return toast("‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏°‡∏µ‡∏≠‡∏±‡∏Å‡∏Ç‡∏£‡∏∞‡∏ó‡∏µ‡πà‡πÑ‡∏°‡πà‡∏£‡∏≠‡∏á‡∏£‡∏±‡∏ö‡∏Å‡∏≤‡∏£‡∏™‡πà‡∏á‡∏≠‡∏≠‡∏Å", "error");
+  const sql = [
+    "-- P2 FULL REPORT BACKUP V2 ¬∑ ‡∏™‡∏£‡πâ‡∏≤‡∏á‡πÇ‡∏î‡∏¢‡∏£‡∏∞‡∏ö‡∏ö /P2/",
+    "-- ‡∏´‡πâ‡∏≤‡∏°‡πÅ‡∏Å‡πâ‡πÑ‡∏Ç marker ‡∏´‡∏£‡∏∑‡∏≠‡πÇ‡∏Ñ‡∏£‡∏á‡∏™‡∏£‡πâ‡∏≤‡∏á JSON",
+    "-- P2_SCORE_BACKUP_JSON_BEGIN",
+    json,
+    "-- P2_SCORE_BACKUP_JSON_END",
+    "",
+    `select public.import_p2_score_backup('${payload.class_id}'::uuid, $p2_score_backup$`,
+    json,
+    "$p2_score_backup$::jsonb);",
+    "",
+  ].join("\n");
+  const roomCode = state.session?.room_code || state.classReportContext?.room_code || "room";
+  downloadTextFile(`P2-${roomCode}-${suffix}.sql`, sql, "application/sql;charset=utf-8");
+}
+
+function exportEmptyScoreSqlTemplate() {
+  const classId = state.session?.class_id || $("#classSelect")?.value || "00000000-0000-0000-0000-000000000000";
+  const classroom = selectedClassroom();
+  downloadFullReportSql({
+    schema: "p2_full_report_backup_v2",
+    class_id: classId,
+    class_label: classroom?.label || "",
+    exported_at: new Date().toISOString(),
+    structure: {
+      assessment_scores: ["student_code", "student_order", "pre_score", "post_score", "max_score"],
+      game_scores: ["student_code", "plan_id", "activity_key", "attempt_no", "score", "max_score", "answers", "instrument_version", "completed_at"],
+      satisfaction_responses: ["student_code", "ratings", "comment", "completed_at"],
+      session_activity_results: ["source_session_key", "room_code", "plan_id", "opened_at", "student_code", "activities_completed", "activity_count", "first_average", "best_average"],
+    },
+    assessment_scores: [],
+    game_scores: [],
+    satisfaction_responses: [],
+    session_activity_results: [],
+  }, "empty-template");
+  toast("‡∏î‡∏≤‡∏ß‡∏ô‡πå‡πÇ‡∏´‡∏•‡∏î‡πÅ‡∏°‡πà‡πÅ‡∏ö‡∏ö SQL ‡∏ß‡πà‡∏≤‡∏á‡πÅ‡∏•‡πâ‡∏ß", "success");
+}
+
+function parseScoreSqlBackup(text) {
+  const match = text.match(/-- P2_SCORE_BACKUP_JSON_BEGIN\s*\n([\s\S]*?)\n-- P2_SCORE_BACKUP_JSON_END/);
+  if (!match) throw new Error("‡πÑ‡∏°‡πà‡∏û‡∏ö marker ‡∏Ç‡∏≠‡∏á‡∏ä‡∏∏‡∏î‡∏™‡∏≥‡∏£‡∏≠‡∏á P2");
+  const payload = JSON.parse(match[1]);
+  const v1 = payload?.schema === "p2_score_backup_v1" && Array.isArray(payload.records);
+  const v2 = payload?.schema === "p2_full_report_backup_v2"
+    && Array.isArray(payload.assessment_scores) && Array.isArray(payload.game_scores)
+    && Array.isArray(payload.satisfaction_responses)
+    && (payload.session_activity_results === undefined || Array.isArray(payload.session_activity_results));
+  if (!v1 && !v2) throw new Error("‡∏£‡∏∏‡πà‡∏ô‡∏ä‡∏∏‡∏î‡∏™‡∏≥‡∏£‡∏≠‡∏á‡πÑ‡∏°‡πà‡∏ñ‡∏π‡∏Å‡∏ï‡πâ‡∏≠‡∏á");
+  if (v2 && payload.session_activity_results === undefined) payload.session_activity_results = [];
+  const total = v1 ? payload.records.length : payload.assessment_scores.length + payload.game_scores.length + payload.satisfaction_responses.length + payload.session_activity_results.length;
+  if (total > 5000) throw new Error("‡∏à‡∏≥‡∏ô‡∏ß‡∏ô‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£‡πÄ‡∏Å‡∏¥‡∏ô 5,000 ‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£");
+  return payload;
+}
+
+async function importScoreSqlBackup() {
+  const classId = state.session?.class_id || $("#classSelect")?.value;
+  if (!classId) return toast("‡∏Å‡∏£‡∏∏‡∏ì‡∏≤‡πÄ‡∏•‡∏∑‡∏≠‡∏Å‡∏´‡πâ‡∏≠‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô", "warning");
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".sql,text/plain,application/sql";
+  input.addEventListener("change", async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const payload = parseScoreSqlBackup(await file.text());
+      const games = payload.game_scores || payload.records || [];
+      const assessments = payload.assessment_scores || [];
+      const satisfaction = payload.satisfaction_responses || [];
+      const sessions = payload.session_activity_results || [];
+      const allRecords = [...games, ...assessments, ...satisfaction, ...sessions];
+      const students = new Set(allRecords.map(item => item.student_code).filter(Boolean)).size;
+      const plans = new Set(games.map(item => item.plan_id).filter(Boolean)).size;
+      const skillItems = games.reduce((sum, item) => sum + (Array.isArray(item.answers) ? item.answers.filter(answer => answer?.skill_code).length : 0), 0);
+      const accepted = window.confirm([
+        "‡∏ï‡∏£‡∏ß‡∏à‡∏û‡∏ö‡∏ä‡∏∏‡∏î‡∏™‡∏≥‡∏£‡∏≠‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô P2",
+        `‡∏´‡πâ‡∏≠‡∏á‡∏ï‡πâ‡∏ô‡∏ó‡∏≤‡∏á: ${payload.class_label || payload.class_id || "‚Äî"}`,
+        `‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô: ${students} ‡∏Ñ‡∏ô`,
+        `‡∏Å‡πà‡∏≠‡∏ô‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‚Äì‡∏´‡∏•‡∏±‡∏á‡πÄ‡∏£‡∏µ‡∏¢‡∏ô: ${assessments.length} ‡∏Ñ‡∏ô`,
+        `‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏Å‡∏°: ${games.length} ‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£`,
+        `‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à: ${satisfaction.length} ‡∏Ñ‡∏ô`,
+        `‡∏ú‡∏•‡∏Å‡∏¥‡∏à‡∏Å‡∏£‡∏£‡∏°‡∏£‡∏≤‡∏¢‡∏Ñ‡∏≤‡∏ö: ${sessions.length} ‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£`,
+        `‡πÅ‡∏ú‡∏ô‡∏ó‡∏µ‡πà‡∏û‡∏ö: ${plans}/8`,
+        `‡∏Ñ‡∏≥‡∏ï‡∏≠‡∏ö‡∏ó‡∏µ‡πà‡∏°‡∏µ‡∏õ‡πâ‡∏≤‡∏¢‡∏ó‡∏±‡∏Å‡∏©‡∏∞: ${skillItems} ‡∏Ç‡πâ‡∏≠`,
+        "",
+        "‡∏¢‡∏∑‡∏ô‡∏¢‡∏±‡∏ô‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤‡πÑ‡∏õ‡∏¢‡∏±‡∏á‡∏´‡πâ‡∏≠‡∏á‡∏ó‡∏µ‡πà‡∏Å‡∏≥‡∏•‡∏±‡∏á‡πÄ‡∏•‡∏∑‡∏≠‡∏Å‡∏´‡∏£‡∏∑‡∏≠‡πÑ‡∏°‡πà? ‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏£‡∏´‡∏±‡∏™‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô/‡πÅ‡∏ú‡∏ô/‡πÄ‡∏Å‡∏°‡∏ó‡∏µ‡πà‡πÑ‡∏°‡πà‡∏ï‡∏£‡∏á‡∏à‡∏∞‡∏ñ‡∏π‡∏Å‡∏Ç‡πâ‡∏≤‡∏°",
+      ].join("\n"));
+      if (!accepted) return;
+      const { data, error } = await supabase.rpc("import_p2_score_backup", { p_class_id: classId, p_payload: payload });
+      if (error) throw error;
+      toast(`‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤‡πÅ‡∏•‡πâ‡∏ß: ‡∏Å‡πà‡∏≠‡∏ô‚Äì‡∏´‡∏•‡∏±‡∏á ${Number(data?.assessment_imported || 0)} ¬∑ ‡πÄ‡∏Å‡∏° ${Number(data?.game_imported ?? data?.imported ?? 0)} ¬∑ ‡∏Ñ‡∏ß‡∏≤‡∏°‡∏û‡∏∂‡∏á‡∏û‡∏≠‡πÉ‡∏à ${Number(data?.satisfaction_imported || 0)} ¬∑ ‡∏£‡∏≤‡∏¢‡∏Ñ‡∏≤‡∏ö ${Number(data?.session_results_imported || 0)} ¬∑ ‡∏Ç‡πâ‡∏≤‡∏° ${Number(data?.skipped || 0)}`, "success");
+      await loadAssessmentReport();
+    } catch (error) {
+      console.warn("‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤‡∏ä‡∏∏‡∏î‡∏™‡∏≥‡∏£‡∏≠‡∏á‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à", error?.message || error);
+      toast(`‡∏ô‡∏≥‡πÄ‡∏Ç‡πâ‡∏≤‡πÑ‡∏°‡πà‡πÑ‡∏î‡πâ: ${error?.message || "‡πÑ‡∏ü‡∏•‡πå‡πÑ‡∏°‡πà‡∏ñ‡∏π‡∏Å‡∏ï‡πâ‡∏≠‡∏á"}`, "error");
+    }
+  }, { once: true });
+  input.click();
+}
+
+function bindResearchReportActions() {
+  $("#reportContent").querySelectorAll("[data-export-assessment]").forEach(button => button.addEventListener("click", () => exportAssessmentReport(button.dataset.exportAssessment)));
+  $("#reportContent").querySelector("[data-export-satisfaction]")?.addEventListener("click", exportSatisfactionReport);
+  $("#reportContent").querySelector("[data-export-game-alignment]")?.addEventListener("click", exportGameAlignmentReport);
+  $("#reportContent").querySelector("[data-export-score-sql]")?.addEventListener("click", exportScoreSqlBackup);
+  $("#reportContent").querySelector("[data-export-empty-score-sql]")?.addEventListener("click", exportEmptyScoreSqlTemplate);
+  $("#reportContent").querySelector("[data-import-score-sql]")?.addEventListener("click", importScoreSqlBackup);
+  $("#reportContent").querySelector("[data-clear-imported-game-scores]")?.addEventListener("click", event => clearImportedGameScores(event.currentTarget));
+}
+
+function renderReport() {
+  const learningReports = sessionRecordsScores()
+    ? `${renderAssessmentResearchReport()}${renderGameAssessmentReport()}${renderSessionActivityReport()}${renderSatisfactionResearchReport()}`
+    : `<p class="flow-score-recording-notice">üß™ ‡∏Ñ‡∏≤‡∏ö‡∏ï‡∏£‡∏ß‡∏à‡∏™‡∏∑‡πà‡∏≠‡πÑ‡∏°‡πà‡∏ö‡∏±‡∏ô‡∏ó‡∏∂‡∏Å‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô ‡∏à‡∏∂‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô‡∏ß‡∏¥‡∏à‡∏±‡∏¢‡πÉ‡∏´‡πâ‡∏™‡πà‡∏á‡∏≠‡∏≠‡∏Å</p>`;
+  if (!state.session) {
+    $("#reportContent").innerHTML = learningReports;
+    bindResearchReportActions();
+    return;
+  }
+  if (isAssessmentSession(state.session)) {
+    $("#reportContent").innerHTML = learningReports;
+    bindResearchReportActions();
+    return;
+  }
+  $("#reportContent").innerHTML = learningReports;
+  bindResearchReportActions();
+}
+
+function exportCurrentReport() {
+  if (!state.session) return toast("‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Ñ‡∏≤‡∏ö‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÉ‡∏´‡πâ‡∏™‡πà‡∏á‡∏≠‡∏≠‡∏Å", "warning");
+  if (state.session.assessment_phase === "satisfaction") return exportSatisfactionReport();
+  if (isAssessmentSession(state.session)) return exportAssessmentReport("individual");
+  if (!sessionRecordsScores()) return toast("‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡∏™‡∏î‡∏Ç‡∏≠‡∏á‡∏Ñ‡∏≤‡∏ö‡∏ï‡∏£‡∏ß‡∏à‡∏™‡∏∑‡πà‡∏≠‡πÑ‡∏°‡πà‡∏™‡∏≤‡∏°‡∏≤‡∏£‡∏ñ‡∏™‡πà‡∏á‡∏≠‡∏≠‡∏Å‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô‡πÑ‡∏î‡πâ", "warning");
+  const rows = [["‡∏´‡πâ‡∏≠‡∏á", "‡πÄ‡∏•‡∏Ç‡∏õ‡∏£‡∏∞‡∏à‡∏≥‡∏ï‡∏±‡∏ß", "‡∏ä‡∏∑‡πà‡∏≠-‡∏ô‡∏≤‡∏°‡∏™‡∏Å‡∏∏‡∏•", "‡∏ä‡∏∑‡πà‡∏≠‡πÄ‡∏•‡πà‡∏ô", "‡∏Å‡∏¥‡∏à‡∏Å‡∏£‡∏£‡∏°", "‡∏Ñ‡∏£‡∏±‡πâ‡∏á‡∏ó‡∏µ‡πà", "‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô", "‡∏Ñ‡∏∞‡πÅ‡∏ô‡∏ô‡πÄ‡∏ï‡πá‡∏°", "‡∏£‡πâ‡∏≠‡∏¢‡∏•‡∏∞", "‡∏ú‡πà‡∏≤‡∏ô", "‡πÄ‡∏ß‡∏•‡∏≤"]];
+  state.attempts.forEach(attempt => {
+    const player = state.players.find(item => item.id === attempt.session_player_id);
+    const student = player?.student || {};
+    rows.push([
+      state.classes.find(item => item.id === state.session.class_id)?.label || "",
+      student.student_code, student.full_name, student.nickname,
+      activityForKey(attempt.activity_key, state.session.plan_id)?.title || attempt.activity_key,
+      attempt.attempt_no, attempt.score, attempt.max_score, attempt.percent,
+      attempt.passed ? "‡∏ú‡πà‡∏≤‡∏ô" : "‡πÑ‡∏°‡πà‡∏ú‡πà‡∏≤‡∏ô", attempt.completed_at,
+    ]);
+  });
+  downloadCsv(`‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô-${state.session.room_code}.csv`, rows);
+}
+
+function switchPanel(panelId) {
+  $$("#dashboardNav button").forEach(button => button.classList.toggle("active", button.dataset.panel === panelId));
+  $$(".dashboard-panel").forEach(panel => panel.classList.toggle("active", panel.id === panelId));
+  if (panelId === "studentScreensPanel") {
+    state.studentScreenView = "grid";
+    stopStudentScreenWatch();
+    renderStudentScreens();
+  } else stopStudentScreenWatch();
+  if (panelId === "reportsPanel" && sessionRecordsScores()) void loadAssessmentReport();
+}
+
+$("#teacherLoginForm").addEventListener("submit", signIn);
+$("#signOutButton").addEventListener("click", signOut);
+$("#sessionSetup").addEventListener("submit", createSession);
+$("#schoolSelect").addEventListener("change", event => renderClassOptions(event.target.value));
+$("#classSelect").addEventListener("change", () => {
+  updateSelectedClassRosterNote();
+  if ($("#classSelect").value) void loadAssessmentReport();
+});
+$("#schoolSetupForm").addEventListener("submit", setupSchool);
+$("#manualStudentForm").addEventListener("submit", addStudent);
+$("#csvFile").addEventListener("change", handleImportFile);
+$("#approveAllButton").addEventListener("click", approveAll);
+$("#lobbyZoomOutButton").addEventListener("click", () => {
+  if (state.lobbyZoomStep <= 0) return;
+  state.lobbyZoomStep -= 1;
+  state.lobbyPage = 1;
+  renderPlayerPage();
+});
+$("#lobbyZoomInButton").addEventListener("click", () => {
+  const view = lobbyView();
+  if (view.levelIndex >= LOBBY_LAYOUTS.length - 1) return;
+  state.lobbyZoomStep += 1;
+  state.lobbyPage = 1;
+  renderPlayerPage();
+});
+$("#lobbyPrevPageButton").addEventListener("click", () => {
+  state.lobbyPage = Math.max(1, state.lobbyPage - 1);
+  renderPlayerPage();
+  $("#playerList").scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+$("#lobbyNextPageButton").addEventListener("click", () => {
+  state.lobbyPage = Math.min(lobbyView().pageCount, state.lobbyPage + 1);
+  renderPlayerPage();
+  $("#playerList").scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+$("#pauseSessionButton").addEventListener("click", togglePause);
+$("#openLateJoinButton").addEventListener("click", openLateJoin);
+$("#closeSessionButton").addEventListener("click", closeSession);
+$("#qrCloseButton").addEventListener("click", closeSession);
+$("#qrNextButton").addEventListener("click", () => setTeacherFlowStep("lobby"));
+$("#lobbyBackButton").addEventListener("click", handleLobbyBack);
+$("#lobbyNextButton").addEventListener("click", handleLobbyNext);
+$("#planBackButton").addEventListener("click", () => setTeacherFlowStep("lobby"));
+$$('[data-assessment-phase]').forEach(button => button.addEventListener("click", () => selectAssessment(button.dataset.assessmentPhase)));
+$("#startPlanButton").addEventListener("click", startSelectedPlan);
+$("#finishActivityButton").addEventListener("click", () => finishActivity("manual"));
+$("#previousLessonStepButton").addEventListener("click", goToPreviousLessonStep);
+$("#restartLessonTimerButton").addEventListener("click", restartLessonTimer);
+$("#shareLessonToStudents").addEventListener("change", event => setLessonStudentVisibility(event.target.checked));
+$("#nextActivityButton").addEventListener("click", goToNextActivity);
+$("#competitionFullscreenButton").addEventListener("click", toggleCompetitionExpanded);
+$("#toggleTeacherNotesButton").addEventListener("click", toggleTeacherNotes);
+$("#competitionSoundButton").addEventListener("click", toggleCompetitionSound);
+$("#liveRankingEnabled").addEventListener("change", event => { state.liveRankingEnabled = event.target.checked; renderLiveResults(); broadcastDisplay("ranking-visibility-changed"); });
+$$('[data-live-mode]').forEach(button => button.addEventListener("click", () => setLivePlayMode(button.dataset.liveMode)));
+$("#showSummaryButton").addEventListener("click", showSessionSummary);
+$("#summaryBackButton").addEventListener("click", () => setTeacherFlowStep("live"));
+$("#summaryExportButton").addEventListener("click", exportCurrentReport);
+$("#resumeSessionButton").addEventListener("click", () => showLiveSession(state.session.status === "lobby" ? (state.session.current_activity_key ? "lobby" : "qr") : "live"));
+$("#resumeSummaryButton").addEventListener("click", () => showLiveSession("summary"));
+$("#restartSessionButton").addEventListener("click", closeSession);
+$("#copyRoomCode").addEventListener("click", async () => { await navigator.clipboard.writeText(state.session.room_code); toast("‡∏Ñ‡∏±‡∏î‡∏•‡∏≠‡∏Å‡∏£‡∏´‡∏±‡∏™‡∏´‡πâ‡∏≠‡∏á‡πÅ‡∏•‡πâ‡∏ß", "success"); });
+$("#copyStudentLink").addEventListener("click", async () => { await navigator.clipboard.writeText(studentJoinUrl()); toast("‡∏Ñ‡∏±‡∏î‡∏•‡∏≠‡∏Å‡∏•‡∏¥‡∏á‡∏Å‡πå‡∏ô‡∏±‡∏Å‡πÄ‡∏£‡∏µ‡∏¢‡∏ô‡πÅ‡∏•‡πâ‡∏ß", "success"); });
+$("#returnForm").addEventListener("submit", returnPlayer);
+$("#cancelReturn").addEventListener("click", () => hide($("#returnDialog")));
+$("#exportCsvButton").addEventListener("click", exportCurrentReport);
+$("#backToSessionButton").addEventListener("click", () => switchPanel("sessionPanel"));
+$("#studentScreensGridButton").addEventListener("click", () => setStudentScreenView("grid"));
+$("#studentScreensFocusButton").addEventListener("click", () => {
+  setStudentScreenView("focus");
+  requestAnimationFrame(openStudentScreenFullscreen);
+});
+$("#studentScreenBackToGrid").addEventListener("click", () => setStudentScreenView("grid"));
+$("#studentScreenPrevious").addEventListener("click", () => moveStudentScreen(-1));
+$("#studentScreenNext").addEventListener("click", () => moveStudentScreen(1));
+$("#studentScreenFullscreen").addEventListener("click", openStudentScreenFullscreen);
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) $("#studentScreenFocus")?.classList.remove("student-screen-full-window");
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && $("#studentScreenFocus")?.classList.contains("student-screen-full-window")) setStudentScreenView("grid");
+});
+$("#newSessionButton").addEventListener("click", () => { if (state.session) toast("‡∏õ‡∏¥‡∏î‡∏Ñ‡∏≤‡∏ö‡∏õ‡∏±‡∏à‡∏à‡∏∏‡∏ö‡∏±‡∏ô‡∏Å‡πà‡∏≠‡∏ô‡πÄ‡∏õ‡∏¥‡∏î‡∏Ñ‡∏≤‡∏ö‡πÉ‡∏´‡∏°‡πà", "warning"); else { show($("#sessionSetup")); $("#sessionSetup").scrollIntoView({ behavior: "smooth" }); } });
+$("#attemptMode").addEventListener("change", event => { $("#maxAttempts").disabled = event.target.value !== "limited"; if (event.target.value === "single") $("#maxAttempts").value = 1; });
+$$('#dashboardNav button').forEach(button => button.addEventListener("click", () => switchPanel(button.dataset.panel)));
+window.addEventListener("online", connectionUpdate);
+window.addEventListener("offline", connectionUpdate);
+window.addEventListener("keydown", event => {
+  if (event.key === "Escape" && $("#lessonStepPanel")?.classList.contains("classroom-stage-expanded")) toggleCompetitionExpanded();
+});
+let lobbyResizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(lobbyResizeTimer);
+  lobbyResizeTimer = setTimeout(() => {
+    if (state.flowStep === "lobby") renderPlayerPage();
+  }, 120);
+});
+bootstrap();
