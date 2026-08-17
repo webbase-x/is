@@ -13,9 +13,10 @@ test("satisfaction scale matches the approved three-point questionnaire", () => 
 });
 
 test("satisfaction averages receive the expected Thai interpretation", () => {
-  assert.equal(satisfactionLevel(2.5).label, "พึงพอใจมาก");
-  assert.equal(satisfactionLevel(1.5).label, "พึงพอใจปานกลาง");
-  assert.equal(satisfactionLevel(1.49).label, "พึงพอใจน้อย");
+  assert.equal(satisfactionLevel(2.51).label, "ระดับมาก");
+  assert.equal(satisfactionLevel(2.5).label, "ระดับปานกลาง");
+  assert.equal(satisfactionLevel(1.51).label, "ระดับปานกลาง");
+  assert.equal(satisfactionLevel(1.5).label, "ระดับน้อย");
   assert.equal(satisfactionLevel(null).label, "ยังไม่มีข้อมูล");
   assert.equal(satisfactionLevel(undefined).label, "ยังไม่มีข้อมูล");
 });

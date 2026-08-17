@@ -9,9 +9,9 @@ import {
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
 } from "./common.js?v=20260816-satisfaction-3";
 import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
-import { satisfactionLevel } from "./satisfaction-survey.js?v=20260816-satisfaction-1";
+import { satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
 
-const TEACHER_BUILD_VERSION = "20260817-room-plan-report-5";
+const TEACHER_BUILD_VERSION = "20260817-research-wording-6";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -2859,6 +2859,7 @@ function renderAssessmentResearchReport() {
       : "ไม่พบความแตกต่างอย่างมีนัยสำคัญทางสถิติที่ระดับ .05";
   const tText = stats.test.t === null ? "—" : (Number.isFinite(stats.test.t) ? numberText(stats.test.t, 3) : "∞");
   const pText = stats.test.p === null ? "—" : stats.test.p < .001 ? "< .001" : numberText(stats.test.p, 3);
+  const pDisplay = pText.startsWith("<") ? `p ${pText}` : `p = ${pText}`;
   const table = rows.length
     ? `<div class="table-wrap"><table class="assessment-individual-table"><thead><tr><th>ลำดับ</th><th>เลขที่/รหัส</th><th>ชื่อ–นามสกุล</th><th>ก่อนเรียน</th><th>หลังเรียน</th><th>ผลต่าง</th></tr></thead><tbody>${rows.map((row, index) => {
       const difference = Number.isFinite(row.preScore) && Number.isFinite(row.postScore) ? row.postScore - row.preScore : null;
@@ -2868,7 +2869,7 @@ function renderAssessmentResearchReport() {
   return `<section class="assessment-research-report">
     <div class="assessment-report-heading"><div><span class="eyebrow">รายงานวิจัย · คะแนนก่อนเรียน–หลังเรียน</span><h2>${escapeHtml(className)}</h2><p>ผลสอบไม่มีการจัดอันดับ แสดงเรียงตามเลขที่/รหัสนักเรียน</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-assessment="individual">ดาวน์โหลดตารางรายบุคคล CSV</button><button type="button" class="button button-ghost" data-export-assessment="summary">ดาวน์โหลดตารางสรุป CSV</button></div></div>
     <div class="assessment-stat-grid"><article><small>ข้อมูลครบคู่</small><strong>${stats.paired.length} คน</strong><span>คะแนนเต็ม ${stats.maxScore}</span></article><article><small>ก่อนเรียน</small><strong>${numberText(stats.preMean)}</strong><span>S.D. ${numberText(stats.preSd)}</span></article><article><small>หลังเรียน</small><strong>${numberText(stats.postMean)}</strong><span>S.D. ${numberText(stats.postSd)}</span></article><article><small>พัฒนาการเฉลี่ย</small><strong>${numberText(stats.growthPoints)} คะแนน</strong><span>${numberText(stats.growthPercent)}% ของคะแนนเต็ม</span></article></div>
-    <section class="assessment-test-summary"><strong>paired t-test: t(${Math.max(0, stats.test.count - 1)}) = ${tText}, p = ${pText}</strong><span>${significance}</span></section>
+    <section class="assessment-test-summary"><strong>paired t-test: t(${Math.max(0, stats.test.count - 1)}) = ${tText}, ${pDisplay}</strong><span>${significance}</span></section>
     ${table}
   </section>`;
 }
@@ -2974,6 +2975,14 @@ function renderGameAssessmentReport() {
   const mastery = Array.isArray(state.gameMasteryReport) ? state.gameMasteryReport : [];
   const details = Array.isArray(state.gameAlignmentReport) ? state.gameAlignmentReport : [];
   const importedCount = details.filter(row => row.score_source === "derived_from_posttest").length;
+  const observedCount = details.filter(row => row.score_source === "observed_gameplay").length;
+  const sourceCounts = new Map();
+  details.forEach(row => {
+    const counts = sourceCounts.get(row.student_id) || { observed: 0, imported: 0 };
+    if (row.score_source === "observed_gameplay") counts.observed += 1;
+    else counts.imported += 1;
+    sourceCounts.set(row.student_id, counts);
+  });
   const planScores = new Map();
   details.forEach(row => {
     const key = `${row.student_id}:${row.plan_id}`;
@@ -2985,14 +2994,14 @@ function renderGameAssessmentReport() {
     ? `<div class="table-wrap"><table><thead><tr><th>ลำดับ</th><th>ชื่อ–นามสกุล</th>${Array.from({length:8},(_,i)=>`<th>แผน ${i+1}</th>`).join("")}<th>รวม /20</th></tr></thead><tbody>${mastery.map((row,index)=>`<tr><td>${row.student_order ?? index+1}</td><td>${escapeHtml(row.full_name || "—")}</td>${Array.from({length:8},(_,i)=>{const values=planScores.get(`${row.student_id}:${i+1}`)||[];return `<td>${values.length ? `${(values.reduce((a,b)=>a+b,0)/values.length).toFixed(0)}%` : "—"}</td>`;}).join("")}<td><strong>${Number(row.game_mastery_score_20||0).toFixed(2)}</strong></td></tr>`).join("")}</tbody></table></div>`
     : "";
   const summaryTable = mastery.length
-    ? `<div class="table-wrap"><table><thead><tr><th>ลำดับ</th><th>รหัส</th><th>ชื่อ–นามสกุล</th><th>แผนที่เล่น</th><th>เกมที่เล่น</th><th>คะแนนเกมเทียบเต็ม 20</th></tr></thead><tbody>${mastery.map((row, index) => `<tr><td>${row.student_order ?? index + 1}</td><td>${escapeHtml(row.student_code || "—")}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${Number(row.completed_plans || 0)}/8</td><td>${Number(row.completed_games || 0)}</td><td><strong>${Number(row.game_mastery_score_20 || 0).toFixed(2)}/20</strong></td></tr>`).join("")}</tbody></table></div>`
+    ? `<div class="table-wrap"><table><thead><tr><th>ลำดับ</th><th>รหัส</th><th>ชื่อ–นามสกุล</th><th>แผนที่มีข้อมูล</th><th>รายการคะแนน</th><th>เล่นจริง</th><th>นำเข้า</th><th>คะแนนเกมเทียบเต็ม 20</th></tr></thead><tbody>${mastery.map((row, index) => { const counts=sourceCounts.get(row.student_id)||{observed:0,imported:0}; return `<tr><td>${row.student_order ?? index + 1}</td><td>${escapeHtml(row.student_code || "—")}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${Number(row.completed_plans || 0)}/8</td><td>${Number(row.completed_games || 0)}</td><td>${counts.observed}</td><td>${counts.imported}</td><td><strong>${Number(row.game_mastery_score_20 || 0).toFixed(2)}/20</strong></td></tr>`; }).join("")}</tbody></table></div>`
     : `<p class="assessment-report-empty">ยังไม่มีคะแนนการเล่นเกม</p>`;
   const detailTable = details.length
     ? `<details><summary>ดูคะแนนดิบรายคน ครบทุกด่านและทุกเกม</summary><div class="table-wrap"><table><thead><tr><th>ลำดับ</th><th>ชื่อ–นามสกุล</th><th>แผน</th><th>เกม/ด่าน</th><th>ข้อสอบที่เกี่ยวข้อง</th><th>คะแนนดิบ</th><th>ร้อยละ</th><th>เทียบเต็ม 20</th><th>แหล่งคะแนน</th></tr></thead><tbody>${details.map((row, index) => `<tr><td>${row.student_order ?? index + 1}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${row.plan_id}</td><td>${escapeHtml(activityForKey(row.activity_key, row.plan_id)?.title || row.activity_key)}</td><td>${(row.assessment_items || []).join(", ") || "—"}</td><td><strong>${row.raw_score}/${row.raw_max_score}</strong></td><td>${Number(row.percent || 0).toFixed(2)}%</td><td>${Number(row.equivalent_score_20 || 0).toFixed(2)}/20</td><td>${row.score_source === "observed_gameplay" ? "เล่นจริง" : "คำนวณจากหลังเรียน"}</td></tr>`).join("")}</tbody></table></div></details>`
     : "";
   const classroom = selectedClassroom();
   const roomCode = state.session?.room_code || state.classReportContext?.room_code || "ยังไม่มีรหัส";
-  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">${escapeHtml(classroom?.label || "ห้องเรียน")} · รหัสห้อง ${escapeHtml(roomCode)}</span><h2>คะแนนเกมรายแผน 1–8</h2><p>คะแนนแต่ละแผนเป็นค่าเฉลี่ยร้อยละของเกมในแผนนั้น และคะแนนรวมถ่วงน้ำหนักตามแบบประเมินผล 20 ข้อ</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-game-alignment>ดาวน์โหลดคะแนนเกม CSV</button>${importedCount ? `<button type="button" class="button button-danger" data-clear-imported-game-scores data-imported-count="${importedCount}">เคลียร์คะแนนนำเข้าเพื่อเก็บจริง</button>` : ""}</div></div>${planTable}${summaryTable}${detailTable}</section>`;
+  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">${escapeHtml(classroom?.label || "ห้องเรียน")} · รหัสห้อง ${escapeHtml(roomCode)}</span><h2>คะแนนเกมรายแผน 1–8</h2><p>คะแนนแต่ละแผนเป็นค่าเฉลี่ยร้อยละของรายการคะแนนในแผนนั้น · เล่นจริง ${observedCount} รายการ · คะแนนนำเข้า ${importedCount} รายการ · ใช้เป็นข้อมูลประกอบการติดตามผู้เรียนจนกว่าจะเก็บจากการเล่นจริงครบ</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-game-alignment>ดาวน์โหลดคะแนนเกม CSV</button>${importedCount ? `<button type="button" class="button button-danger" data-clear-imported-game-scores data-imported-count="${importedCount}">เคลียร์คะแนนนำเข้าเพื่อเก็บจริง</button>` : ""}</div></div>${planTable}${summaryTable}${detailTable}</section>`;
 }
 
 async function clearImportedGameScores(button) {
@@ -3020,7 +3029,7 @@ function renderSkillAssessmentReport() {
   const table = rows.length
     ? `<div class="table-wrap"><table><thead><tr><th>ลำดับ</th><th>ชื่อ–นามสกุล</th><th>จำแนกคำ (P1)</th><th>อ่าน/ออกเสียง (P2)</th><th>เขียน/สะกดคำ (P2)</th><th>เรียบเรียงประโยค (P2)</th><th>รวม</th><th>ระดับคุณภาพ</th></tr></thead><tbody>${rows.map((row,index)=>`<tr><td>${row.student_order ?? index+1}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${row.classification_score}/3 <small>(${Number(row.classification_percent||0).toFixed(0)}%)</small></td><td>${row.reading_score}/3 <small>(${Number(row.reading_percent||0).toFixed(0)}%)</small></td><td>${row.writing_score}/3 <small>(${Number(row.writing_percent||0).toFixed(0)}%)</small></td><td>${row.sentence_score}/3 <small>(${Number(row.sentence_percent||0).toFixed(0)}%)</small></td><td><strong>${row.total_score}/12</strong></td><td>${escapeHtml(row.quality_level||"—")}</td></tr>`).join("")}</tbody></table></div>`
     : `<p class="assessment-report-empty">ยังไม่มีคะแนนประเมินทักษะ</p>`;
-  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">แบบประเมินทักษะเฉพาะรายบุคคล</span><h2>คะแนนทักษะ 4 ด้าน</h2><p>ประมวลจากเกมที่ตรงกับแต่ละทักษะ ระดับ 3 = 80% ขึ้นไป · ระดับ 2 = 60–79% · ระดับ 1 = ต่ำกว่า 60% และควรใช้ประกอบการสังเกตของครู</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-skill-assessment>ดาวน์โหลดคะแนนทักษะ CSV</button></div></div>${table}</section>`;
+  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">คะแนนประเมินทักษะเบื้องต้นรายบุคคล</span><h2>คะแนนทักษะ 4 ด้าน</h2><p>ประมวลจากเกมเพื่อใช้ประกอบการประเมิน · ระดับ 3 = 80% ขึ้นไป · ระดับ 2 = 60–79% · ระดับ 1 = ต่ำกว่า 60% · ครูผู้สอนต้องสังเกตและยืนยันผลตามรูบริกก่อนนำไปใช้</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-skill-assessment>ดาวน์โหลดคะแนนทักษะ CSV</button></div></div>${table}</section>`;
 }
 
 function exportSkillAssessmentReport() {

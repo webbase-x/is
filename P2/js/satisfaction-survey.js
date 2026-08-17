@@ -8,7 +8,7 @@ export function satisfactionLevel(mean) {
   if (mean === null || mean === undefined || mean === "") return { label: "ยังไม่มีข้อมูล", className: "is-empty" };
   const value = Number(mean);
   if (!Number.isFinite(value)) return { label: "ยังไม่มีข้อมูล", className: "is-empty" };
-  if (value >= 2.5) return { label: "พึงพอใจมาก", className: "is-high" };
-  if (value >= 1.5) return { label: "พึงพอใจปานกลาง", className: "is-medium" };
-  return { label: "พึงพอใจน้อย", className: "is-low" };
+  if (value >= 2.51) return { label: "ระดับมาก", className: "is-high" };
+  if (value >= 1.51) return { label: "ระดับปานกลาง", className: "is-medium" };
+  return { label: "ระดับน้อย", className: "is-low" };
 }
