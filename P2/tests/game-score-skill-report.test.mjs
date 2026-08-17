@@ -35,6 +35,16 @@ test("class report shows latest room code and scores for plans one to eight", ()
   assert.match(teacher, /if \(\$\("#classSelect"\)\.value\) void loadAssessmentReport\(\)/);
 });
 
+test("research report distinguishes imported data and uses correct statistical wording", () => {
+  assert.match(teacher, /pText\.startsWith\("<"\) \? `p \$\{pText\}`/);
+  assert.match(teacher, /แผนที่มีข้อมูล/);
+  assert.match(teacher, /เล่นจริง/);
+  assert.match(teacher, /คะแนนนำเข้า/);
+  assert.match(teacher, /ครูผู้สอนต้องสังเกตและยืนยันผลตามรูบริก/);
+  assert.doesNotMatch(teacher, /<th>แผนที่เล่น<\/th>/);
+  assert.doesNotMatch(teacher, /<th>เกมที่เล่น<\/th>/);
+});
+
 test("backfill remains distinguishable from observed gameplay", () => {
   assert.match(migration, /derived_from_posttest/);
   assert.match(migration, /observed_gameplay/);
