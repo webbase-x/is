@@ -152,8 +152,40 @@ dialog,
 
   table:not(.no-responsive-scroll) th,
   table:not(.no-responsive-scroll) td {
+    min-width: max-content;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .table-wrap > table:not(.no-responsive-scroll),
+  .table-responsive > table:not(.no-responsive-scroll),
+  .responsive-table > table:not(.no-responsive-scroll) {
+    display: table;
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+    overflow: visible;
+  }
+
+  .satisfaction-report-table {
+    min-width: 760px !important;
+  }
+
+  .satisfaction-report-table th:nth-child(2),
+  .satisfaction-report-table td:nth-child(2) {
+    min-width: 260px;
     white-space: normal;
-    overflow-wrap: anywhere;
+  }
+
+  .satisfaction-individual-table {
+    min-width: 1180px !important;
+    table-layout: auto;
+  }
+
+  .satisfaction-individual-table th,
+  .satisfaction-individual-table td {
+    white-space: nowrap !important;
   }
 
   .dashboard-grid,
