@@ -5,21 +5,26 @@ import { readFileSync } from "node:fs";
 const teacher = readFileSync(new URL("../js/teacher.js", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/game-score-skill-backfill.sql", import.meta.url), "utf8");
 
-test("teacher report separates game scores from the four-skill Exit Ticket", () => {
-  assert.match(teacher, /get_complete_game_score_report/);
-  assert.match(teacher, /get_exit_ticket_skill_report/);
-  assert.match(teacher, /ครบทุกด่านและทุกเกม/);
-  assert.match(teacher, /คะแนนดิบ 4 ทักษะ/);
-  assert.match(teacher, /เลือกใช้คำตามบริบท/);
+test("teacher report combines every game with four skills from tagged answers", () => {
+  assert.match(teacher, /get_p2_score_report/);
+  assert.match(teacher, /คะแนนดิบทุกเกม ทุกแผน/);
+  assert.match(teacher, /คะแนนเกมและทักษะ 4 ด้าน/);
+  assert.match(teacher, /ใช้คำตามบริบท/);
   assert.doesNotMatch(teacher, /อ่าน\/ออกเสียง \(P2\)/);
 });
 
-test("teacher can clear imported scores without deleting observed gameplay", () => {
-  const clearMigration = readFileSync(new URL("../supabase/clear-imported-game-scores.sql", import.meta.url), "utf8");
-  assert.match(teacher, /data-clear-imported-game-scores/);
-  assert.match(teacher, /clear_imported_game_scores/);
-  assert.match(clearMigration, /source_kind='derived_from_posttest'/);
-  assert.doesNotMatch(clearMigration, /delete from public\.game_attempts/);
+test("teacher supports constrained SQL backup export and preview import", () => {
+  assert.match(teacher, /export_p2_score_backup/);
+  assert.match(teacher, /import_p2_score_backup/);
+  assert.match(teacher, /P2_SCORE_BACKUP_JSON_BEGIN/);
+  assert.match(teacher, /ตรวจพบชุดสำรองคะแนน P2/);
+});
+
+test("new report ignores legacy inferred backfills", () => {
+  const reportMigration = readFileSync(new URL("../supabase/score-report-sql-backup.sql", import.meta.url), "utf8");
+  assert.match(reportMigration, /legacy_score_backup_v1/);
+  assert.match(reportMigration, /p2_score_imports/);
+  assert.match(reportMigration, /บันทึกจากการเล่น/);
 });
 
 test("class reports load even when no teaching session is open", () => {
@@ -31,17 +36,18 @@ test("class reports load even when no teaching session is open", () => {
 test("class report shows latest room code and scores for plans one to eight", () => {
   assert.match(teacher, /get_class_report_context/);
   assert.match(teacher, /รหัสห้อง/);
-  assert.match(teacher, /คะแนนเกมรายแผน 1–8/);
-  assert.match(teacher, /Array\.from\(\{length:8\}/);
+  assert.match(teacher, /คะแนนเกมและทักษะ 4 ด้าน/);
+  assert.match(teacher, /planId <= 8/);
   assert.match(teacher, /if \(\$\("#classSelect"\)\.value\) void loadAssessmentReport\(\)/);
 });
 
-test("research report distinguishes imported data and uses correct statistical wording", () => {
+test("research report uses correct statistical wording and labels score sources", () => {
+  const reportMigration = readFileSync(new URL("../supabase/score-report-sql-backup.sql", import.meta.url), "utf8");
   assert.match(teacher, /pText\.startsWith\("<"\) \? `p \$\{pText\}`/);
-  assert.match(teacher, /แผนที่มีข้อมูล/);
-  assert.match(teacher, /เล่นจริง/);
-  assert.match(teacher, /คะแนนนำเข้า/);
-  assert.match(teacher, /คำนวณจากคำตอบจริงท้ายแผนเท่านั้น/);
+  assert.doesNotMatch(teacher, /<th>แหล่งข้อมูล<\/th>/);
+  assert.match(reportMigration, /บันทึกจากการเล่น/);
+  assert.match(reportMigration, /นำเข้าจากชุดสำรอง SQL/);
+  assert.match(teacher, /ติดป้ายจริงเท่านั้น/);
   assert.doesNotMatch(teacher, /<th>แผนที่เล่น<\/th>/);
   assert.doesNotMatch(teacher, /<th>เกมที่เล่น<\/th>/);
 });
