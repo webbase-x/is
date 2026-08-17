@@ -60,6 +60,21 @@ test("SQL file pickers work on iOS without MIME filtering", () => {
   assert.match(teacher, /finally \{\s*input\.remove\(\)/);
 });
 
+test("teacher prints four-skill assessment forms from tagged answer scores", () => {
+  assert.match(teacher, /data-print-skill-assessment/);
+  assert.match(teacher, /function printSkillAssessmentForms\(\)/);
+  assert.match(teacher, /ส่งออกแบบประเมิน Word \/ PDF/);
+  assert.match(teacher, /score \* 100 \/ max/);
+  assert.match(teacher, /percent >= 80 \? 3 : percent >= 60 \? 2 : 1/);
+  assert.match(teacher, /คะแนนรวมทั้งหมด: \$\{total === null \? "—" : total\} \/ 12 คะแนน/);
+  assert.match(teacher, /เกณฑ์การประเมิน \(Scoring Rubric\)/);
+  assert.match(teacher, /เกณฑ์การตัดสินระดับคุณภาพรวม/);
+  assert.match(teacher, /window\.print\(\)/);
+  assert.match(teacher, /downloadWord\(\)/);
+  assert.match(teacher, /application\/msword/);
+  assert.match(teacher, /แบบประเมินทักษะ-4-ด้าน-รายบุคคล\.doc/);
+});
+
 test("new report ignores legacy inferred backfills", () => {
   const reportMigration = readFileSync(new URL("../supabase/score-report-sql-backup.sql", import.meta.url), "utf8");
   assert.match(reportMigration, /legacy_score_backup_v1/);
