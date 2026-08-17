@@ -1,4 +1,4 @@
--- Let an authorized teacher remove only imported/derived game scores before live collection.
+-- Let an authorized teacher remove only restored rows without touching attempts retained in the database.
 create or replace function public.clear_imported_game_scores(p_class_id uuid)
 returns integer
 language plpgsql
@@ -12,7 +12,8 @@ begin
   end if;
 
   delete from public.game_score_backfills
-  where class_id=p_class_id and source_kind='derived_from_posttest';
+  where class_id=p_class_id
+    and source_kind in ('restored_from_saved_record','derived_from_posttest');
   get diagnostics deleted_count = row_count;
 
   perform public.refresh_research_game_dataset_for_class(p_class_id);
