@@ -12,7 +12,7 @@ import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
 import { EXIT_TICKET_INSTRUMENT_VERSION } from "./exit-ticket-bank.js?v=20260817-four-skills-1";
 
-const TEACHER_BUILD_VERSION = "20260817-full-report-backup-3";
+const TEACHER_BUILD_VERSION = "20260817-session-report-backup-4";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -75,6 +75,7 @@ const state = {
   selectedAssessmentPhase: null,
   assessmentReport: [],
   gameAlignmentReport: [],
+  sessionActivityReport: [],
   classReportContext: null,
   satisfactionReport: { completed_count: 0, overall_average: null, questions: [], individuals: [], comments: [] },
   satisfactionResponses: [],
@@ -2831,20 +2832,23 @@ async function loadAssessmentReport() {
     { data: satisfactionData, error: satisfactionError },
     { data: gameAlignmentData, error: gameAlignmentError },
     { data: classContextData, error: classContextError },
+    { data: sessionActivityData, error: sessionActivityError },
   ] = await Promise.all([
     supabase.rpc("get_assessment_comparison", { p_class_id: classId }),
     supabase.rpc("get_satisfaction_report", { p_class_id: classId }),
     supabase.rpc("get_p2_score_report", { p_class_id: classId }),
     supabase.rpc("get_class_report_context", { p_class_id: classId }),
+    supabase.rpc("get_p2_session_activity_report", { p_class_id: classId }),
   ]);
-  if (assessmentError || satisfactionError || gameAlignmentError || classContextError) {
-    console.warn("โหลดรายงานผลการเรียนรู้ไม่สำเร็จ", assessmentError?.code || satisfactionError?.code || gameAlignmentError?.code || classContextError?.code);
+  if (assessmentError || satisfactionError || gameAlignmentError || classContextError || sessionActivityError) {
+    console.warn("โหลดรายงานผลการเรียนรู้ไม่สำเร็จ", assessmentError?.code || satisfactionError?.code || gameAlignmentError?.code || classContextError?.code || sessionActivityError?.code);
     return;
   }
   state.assessmentReport = assessmentData || [];
   state.satisfactionReport = satisfactionData || { completed_count: 0, overall_average: null, questions: [], individuals: [], comments: [] };
   state.gameAlignmentReport = gameAlignmentData || [];
   state.classReportContext = classContextData?.[0] || null;
+  state.sessionActivityReport = sessionActivityData || [];
   renderReport();
   if (isAssessmentSession(state.session)) renderLiveResults();
 }
@@ -3019,6 +3023,15 @@ function renderGameAssessmentReport() {
   return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">${escapeHtml(classroom?.label || "ห้องเรียน")} · รหัสห้อง ${escapeHtml(roomCode)}</span><h2>คะแนนเกมและทักษะ 4 ด้าน</h2><p>แสดงคะแนนดิบของทุกเกมและคำนวณทักษะจากคำตอบที่ติดป้ายจริงเท่านั้น</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-game-alignment>ส่งออก CSV</button><button type="button" class="button button-secondary" data-export-score-sql>สำรองทุกข้อมูล SQL</button><button type="button" class="button button-ghost" data-export-empty-score-sql>แม่แบบ SQL ว่าง</button><button type="button" class="button button-ghost" data-import-score-sql>นำเข้า SQL</button></div></div>${summaryTable}${detailTable}${planSkillTable}</section>`;
 }
 
+function renderSessionActivityReport() {
+  const rows = Array.isArray(state.sessionActivityReport) ? state.sessionActivityReport : [];
+  const formatDate = value => value ? new Date(value).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "—";
+  const table = rows.length
+    ? `<div class="table-wrap"><table><thead><tr><th>วัน–เวลา</th><th>รหัสห้อง</th><th>แผน</th><th>เลขที่/รหัส</th><th>ชื่อ–นามสกุล</th><th>ทำแล้ว</th><th>ครั้งแรกเฉลี่ย</th><th>ดีที่สุดเฉลี่ย</th></tr></thead><tbody>${rows.map((row, index) => `<tr><td>${escapeHtml(formatDate(row.opened_at))}</td><td>${escapeHtml(row.room_code || "—")}</td><td>${row.plan_id}</td><td>${escapeHtml(row.student_order ?? row.student_code ?? index + 1)}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${Number(row.activities_completed || 0)}/${Number(row.activity_count || 0)}</td><td>${Number(row.first_average || 0).toFixed(2)}%</td><td><strong>${Number(row.best_average || 0).toFixed(2)}%</strong></td></tr>`).join("")}</tbody></table></div>`
+    : `<p class="assessment-report-empty">ยังไม่มีผลกิจกรรมรายคาบของห้องนี้</p>`;
+  return `<section class="session-score-report"><div class="assessment-report-heading"><div><span class="eyebrow">บันทึกแยกตามคาบเรียนและแผน</span><h2>ผลกิจกรรมรายคาบ</h2><p>ข้อมูลส่วนนี้รวมอยู่ในปุ่มสำรองทุกข้อมูล SQL และนำกลับเข้าได้พร้อมรายงานส่วนอื่น</p></div></div>${table}</section>`;
+}
+
 async function clearImportedGameScores(button) {
   const classId = state.session?.class_id || $("#classSelect")?.value;
   if (!classId) return toast("กรุณาเลือกห้องเรียน", "warning");
@@ -3070,7 +3083,7 @@ async function exportScoreSqlBackup() {
     return toast("ส่งออก SQL ไม่สำเร็จ", "error");
   }
   downloadFullReportSql(data);
-  const total = (data.assessment_scores?.length || 0) + (data.game_scores?.length || 0) + (data.satisfaction_responses?.length || 0);
+  const total = (data.assessment_scores?.length || 0) + (data.game_scores?.length || 0) + (data.satisfaction_responses?.length || 0) + (data.session_activity_results?.length || 0);
   toast(`ส่งออกชุดสำรองครบทุกส่วน ${total} รายการแล้ว`, "success");
 }
 
@@ -3105,10 +3118,12 @@ function exportEmptyScoreSqlTemplate() {
       assessment_scores: ["student_code", "student_order", "pre_score", "post_score", "max_score"],
       game_scores: ["student_code", "plan_id", "activity_key", "attempt_no", "score", "max_score", "answers", "instrument_version", "completed_at"],
       satisfaction_responses: ["student_code", "ratings", "comment", "completed_at"],
+      session_activity_results: ["source_session_key", "room_code", "plan_id", "opened_at", "student_code", "activities_completed", "activity_count", "first_average", "best_average"],
     },
     assessment_scores: [],
     game_scores: [],
     satisfaction_responses: [],
+    session_activity_results: [],
   }, "empty-template");
   toast("ดาวน์โหลดแม่แบบ SQL ว่างแล้ว", "success");
 }
@@ -3120,9 +3135,11 @@ function parseScoreSqlBackup(text) {
   const v1 = payload?.schema === "p2_score_backup_v1" && Array.isArray(payload.records);
   const v2 = payload?.schema === "p2_full_report_backup_v2"
     && Array.isArray(payload.assessment_scores) && Array.isArray(payload.game_scores)
-    && Array.isArray(payload.satisfaction_responses);
+    && Array.isArray(payload.satisfaction_responses)
+    && (payload.session_activity_results === undefined || Array.isArray(payload.session_activity_results));
   if (!v1 && !v2) throw new Error("รุ่นชุดสำรองไม่ถูกต้อง");
-  const total = v1 ? payload.records.length : payload.assessment_scores.length + payload.game_scores.length + payload.satisfaction_responses.length;
+  if (v2 && payload.session_activity_results === undefined) payload.session_activity_results = [];
+  const total = v1 ? payload.records.length : payload.assessment_scores.length + payload.game_scores.length + payload.satisfaction_responses.length + payload.session_activity_results.length;
   if (total > 5000) throw new Error("จำนวนรายการเกิน 5,000 รายการ");
   return payload;
 }
@@ -3141,7 +3158,8 @@ async function importScoreSqlBackup() {
       const games = payload.game_scores || payload.records || [];
       const assessments = payload.assessment_scores || [];
       const satisfaction = payload.satisfaction_responses || [];
-      const allRecords = [...games, ...assessments, ...satisfaction];
+      const sessions = payload.session_activity_results || [];
+      const allRecords = [...games, ...assessments, ...satisfaction, ...sessions];
       const students = new Set(allRecords.map(item => item.student_code).filter(Boolean)).size;
       const plans = new Set(games.map(item => item.plan_id).filter(Boolean)).size;
       const skillItems = games.reduce((sum, item) => sum + (Array.isArray(item.answers) ? item.answers.filter(answer => answer?.skill_code).length : 0), 0);
@@ -3152,6 +3170,7 @@ async function importScoreSqlBackup() {
         `ก่อนเรียน–หลังเรียน: ${assessments.length} คน`,
         `คะแนนเกม: ${games.length} รายการ`,
         `ความพึงพอใจ: ${satisfaction.length} คน`,
+        `ผลกิจกรรมรายคาบ: ${sessions.length} รายการ`,
         `แผนที่พบ: ${plans}/8`,
         `คำตอบที่มีป้ายทักษะ: ${skillItems} ข้อ`,
         "",
@@ -3160,7 +3179,7 @@ async function importScoreSqlBackup() {
       if (!accepted) return;
       const { data, error } = await supabase.rpc("import_p2_score_backup", { p_class_id: classId, p_payload: payload });
       if (error) throw error;
-      toast(`นำเข้าแล้ว: ก่อน–หลัง ${Number(data?.assessment_imported || 0)} · เกม ${Number(data?.game_imported ?? data?.imported ?? 0)} · ความพึงพอใจ ${Number(data?.satisfaction_imported || 0)} · ข้าม ${Number(data?.skipped || 0)}`, "success");
+      toast(`นำเข้าแล้ว: ก่อน–หลัง ${Number(data?.assessment_imported || 0)} · เกม ${Number(data?.game_imported ?? data?.imported ?? 0)} · ความพึงพอใจ ${Number(data?.satisfaction_imported || 0)} · รายคาบ ${Number(data?.session_results_imported || 0)} · ข้าม ${Number(data?.skipped || 0)}`, "success");
       await loadAssessmentReport();
     } catch (error) {
       console.warn("นำเข้าชุดสำรองคะแนนไม่สำเร็จ", error?.message || error);
@@ -3182,7 +3201,7 @@ function bindResearchReportActions() {
 
 function renderReport() {
   const learningReports = sessionRecordsScores()
-    ? `${renderAssessmentResearchReport()}${renderGameAssessmentReport()}${renderSatisfactionResearchReport()}`
+    ? `${renderAssessmentResearchReport()}${renderGameAssessmentReport()}${renderSessionActivityReport()}${renderSatisfactionResearchReport()}`
     : `<p class="flow-score-recording-notice">🧪 คาบตรวจสื่อไม่บันทึกคะแนน จึงไม่มีรายงานวิจัยให้ส่งออก</p>`;
   if (!state.session) {
     $("#reportContent").innerHTML = learningReports;
@@ -3194,17 +3213,7 @@ function renderReport() {
     bindResearchReportActions();
     return;
   }
-  const expertNotice = !sessionRecordsScores()
-    ? `<p class="flow-score-recording-notice">🧪 แสดงผลสดระหว่างคาบเท่านั้น · ไม่มีการบันทึกคะแนนลงฐานข้อมูล</p>`
-    : "";
-  const rows = state.players.filter(player => player.status === "approved").map(player => {
-    const groups = bestAttemptsForPlayer(player.id);
-    const first = [...groups.values()].map(items => items.sort((a, b) => a.attempt_no - b.attempt_no)[0]?.percent || 0);
-    const best = [...groups.values()].map(items => Math.max(...items.map(item => Number(item.percent))));
-    return { player, activities: groups.size, first: first.length ? Math.round(first.reduce((a, b) => a + Number(b), 0) / first.length) : 0, best: best.length ? Math.round(best.reduce((a, b) => a + b, 0) / best.length) : 0 };
-  });
-  const activityCount = currentActivities().length;
-  $("#reportContent").innerHTML = `${learningReports}<section class="session-score-report"><div class="assessment-report-heading"><div><span class="eyebrow">คาบเรียนปัจจุบัน</span><h2>ผลกิจกรรมรายคาบ</h2></div></div>${expertNotice}${rows.length ? `<div class="table-wrap"><table><thead><tr><th>นักเรียน</th><th>ทำแล้ว</th><th>คะแนนครั้งแรกเฉลี่ย</th><th>คะแนนดีที่สุดเฉลี่ย</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.player.student?.full_name || "—")}</td><td>${row.activities}/${activityCount}</td><td>${row.first}%</td><td>${row.best}%</td></tr>`).join("")}</tbody></table></div>` : `<p class="assessment-report-empty">ยังไม่มีคะแนนกิจกรรมในคาบนี้</p>`}</section>`;
+  $("#reportContent").innerHTML = learningReports;
   bindResearchReportActions();
 }
 

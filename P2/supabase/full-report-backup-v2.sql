@@ -10,6 +10,91 @@ create index if not exists p2_score_imports_student_idx
 create index if not exists p2_score_imports_plan_idx
   on public.p2_score_imports(plan_id, class_id);
 
+create table if not exists public.p2_session_result_imports (
+  class_id uuid not null references public.classes(id) on delete cascade,
+  source_session_key text not null,
+  source_room_code text not null default '',
+  plan_id smallint not null references public.lesson_plans(id),
+  opened_at timestamptz not null,
+  student_id uuid not null references public.students(id) on delete cascade,
+  activities_completed integer not null check (activities_completed >= 0),
+  activity_count integer not null check (activity_count >= 0),
+  first_average numeric(5,2) not null check (first_average between 0 and 100),
+  best_average numeric(5,2) not null check (best_average between 0 and 100),
+  imported_at timestamptz not null default now(),
+  primary key (class_id, source_session_key, student_id)
+);
+
+alter table public.p2_session_result_imports enable row level security;
+drop policy if exists p2_session_result_imports_teacher_read on public.p2_session_result_imports;
+create policy p2_session_result_imports_teacher_read
+  on public.p2_session_result_imports for select to authenticated
+  using (public.teacher_can_access_class(class_id));
+revoke all on table public.p2_session_result_imports from public, anon;
+grant select on table public.p2_session_result_imports to authenticated;
+create index if not exists p2_session_result_imports_student_idx
+  on public.p2_session_result_imports(student_id, class_id);
+
+create or replace function public.get_p2_session_activity_report(p_class_id uuid)
+returns table (
+  source_session_key text, room_code text, plan_id smallint, opened_at timestamptz,
+  student_id uuid, student_order smallint, student_code text, full_name text,
+  activities_completed integer, activity_count integer,
+  first_average numeric, best_average numeric, score_source text
+)
+language plpgsql stable security definer set search_path=''
+as $$
+begin
+  if not public.teacher_can_access_class(p_class_id) then raise exception 'Access denied'; end if;
+  return query
+  with activity_result as (
+    select session_row.id session_id,session_row.room_code::text room_code,
+      session_row.plan_id,session_row.opened_at,player.student_id,attempt.activity_key,
+      (array_agg(attempt.percent order by attempt.attempt_no,attempt.completed_at))[1]::numeric first_percent,
+      max(attempt.percent)::numeric best_percent
+    from public.class_sessions session_row
+    join public.session_players player on player.session_id=session_row.id
+    join public.game_attempts attempt on attempt.session_player_id=player.id
+    where session_row.class_id=p_class_id and session_row.assessment_phase is null
+      and session_row.score_recording_enabled and attempt.activity_key not in ('pretest','posttest')
+    group by session_row.id,session_row.room_code,session_row.plan_id,session_row.opened_at,
+      player.student_id,attempt.activity_key
+  ), live as (
+    select activity_result.session_id::text source_session_key,activity_result.room_code,
+      activity_result.plan_id,activity_result.opened_at,activity_result.student_id,
+      count(*)::integer activities_completed,
+      (select count(distinct mapping.activity_key)::integer from public.game_activity_assessment_map mapping
+        where mapping.plan_id=activity_result.plan_id) activity_count,
+      round(avg(activity_result.first_percent),2) first_average,
+      round(avg(activity_result.best_percent),2) best_average,
+      'บันทึกจากคาบเรียน'::text score_source
+    from activity_result
+    group by activity_result.session_id,activity_result.room_code,activity_result.plan_id,
+      activity_result.opened_at,activity_result.student_id
+  ), imported as (
+    select backup.source_session_key,backup.source_room_code,backup.plan_id,backup.opened_at,
+      backup.student_id,backup.activities_completed,backup.activity_count,
+      backup.first_average::numeric,backup.best_average::numeric,'นำเข้าจากชุดสำรอง SQL'::text
+    from public.p2_session_result_imports backup where backup.class_id=p_class_id
+      and not exists (select 1 from live where live.source_session_key=backup.source_session_key
+        and live.student_id=backup.student_id)
+  ), combined as (
+    select * from live union all select * from imported
+  )
+  select combined.source_session_key,combined.room_code,combined.plan_id,combined.opened_at,
+    student.id,score_import.student_order,student.student_code,student.full_name,
+    combined.activities_completed,combined.activity_count,combined.first_average,
+    combined.best_average,combined.score_source
+  from combined join public.students student on student.id=combined.student_id
+  left join public.assessment_score_imports score_import
+    on score_import.class_id=p_class_id and score_import.student_id=student.id
+  order by combined.opened_at desc,score_import.student_order nulls last,student.student_code;
+end;
+$$;
+
+revoke all on function public.get_p2_session_activity_report(uuid) from public, anon;
+grant execute on function public.get_p2_session_activity_report(uuid) to authenticated;
+
 create or replace function public.export_p2_score_backup(p_class_id uuid)
 returns jsonb
 language plpgsql
@@ -35,7 +120,8 @@ begin
     'structure', jsonb_build_object(
       'assessment_scores', jsonb_build_array('student_code','student_order','pre_score','post_score','max_score'),
       'game_scores', jsonb_build_array('student_code','plan_id','activity_key','attempt_no','score','max_score','answers','instrument_version','completed_at'),
-      'satisfaction_responses', jsonb_build_array('student_code','ratings','comment','completed_at')
+      'satisfaction_responses', jsonb_build_array('student_code','ratings','comment','completed_at'),
+      'session_activity_results', jsonb_build_array('source_session_key','room_code','plan_id','opened_at','student_code','activities_completed','activity_count','first_average','best_average')
     ),
     'assessment_scores', coalesce((
       select jsonb_agg(jsonb_build_object(
@@ -77,6 +163,16 @@ begin
           individual->>'student_code'
       )
       from jsonb_array_elements(coalesce(satisfaction_report->'individuals', '[]'::jsonb)) individual
+    ), '[]'::jsonb),
+    'session_activity_results', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'source_session_key',report.source_session_key,'room_code',report.room_code,
+        'plan_id',report.plan_id,'opened_at',report.opened_at,
+        'student_code',report.student_code,'activities_completed',report.activities_completed,
+        'activity_count',report.activity_count,'first_average',report.first_average,
+        'best_average',report.best_average
+      ) order by report.opened_at desc,report.student_order,report.student_code)
+      from public.get_p2_session_activity_report(p_class_id) report
     ), '[]'::jsonb)
   ) into result
   from public.classes classroom
@@ -98,9 +194,11 @@ declare
   game_records jsonb;
   assessment_records jsonb;
   satisfaction_records jsonb;
+  session_records jsonb;
   score_count integer := 0;
   assessment_count integer := 0;
   satisfaction_count integer := 0;
+  session_count integer := 0;
   skipped_count integer := 0;
   total_count integer;
   item_plan smallint;
@@ -124,15 +222,18 @@ begin
   end;
   assessment_records := coalesce(p_payload->'assessment_scores', '[]'::jsonb);
   satisfaction_records := coalesce(p_payload->'satisfaction_responses', '[]'::jsonb);
+  session_records := coalesce(p_payload->'session_activity_results', '[]'::jsonb);
   if jsonb_typeof(game_records) <> 'array'
     or jsonb_typeof(assessment_records) <> 'array'
-    or jsonb_typeof(satisfaction_records) <> 'array' then
+    or jsonb_typeof(satisfaction_records) <> 'array'
+    or jsonb_typeof(session_records) <> 'array' then
     raise exception 'Backup sections must be arrays';
   end if;
 
   total_count := jsonb_array_length(game_records)
     + jsonb_array_length(assessment_records)
-    + jsonb_array_length(satisfaction_records);
+    + jsonb_array_length(satisfaction_records)
+    + jsonb_array_length(session_records);
   if total_count > 5000 then
     raise exception 'Backup contains too many records';
   end if;
@@ -172,6 +273,37 @@ begin
       answers=excluded.answers, instrument_version=excluded.instrument_version,
       completed_at=excluded.completed_at, imported_at=now();
     score_count := score_count + 1;
+  end loop;
+
+  for item in select value from jsonb_array_elements(session_records)
+  loop
+    target_student := null;
+    select student.id into target_student from public.students student
+    where student.student_code=item->>'student_code' and student.active
+      and (student.class_id=p_class_id or exists (select 1 from public.student_class_assignments assignment
+        where assignment.student_id=student.id and assignment.class_id=p_class_id and assignment.active)) limit 1;
+    item_plan := nullif(item->>'plan_id','')::smallint;
+    if target_student is null or item_plan not between 1 and 8
+      or nullif(item->>'source_session_key','') is null
+      or coalesce(nullif(item->>'activities_completed','')::integer,-1) < 0
+      or coalesce(nullif(item->>'activity_count','')::integer,-1) < 0
+      or coalesce(nullif(item->>'first_average','')::numeric,-1) not between 0 and 100
+      or coalesce(nullif(item->>'best_average','')::numeric,-1) not between 0 and 100 then
+      skipped_count:=skipped_count+1; continue;
+    end if;
+    insert into public.p2_session_result_imports(
+      class_id,source_session_key,source_room_code,plan_id,opened_at,student_id,
+      activities_completed,activity_count,first_average,best_average,imported_at
+    ) values (
+      p_class_id,item->>'source_session_key',left(coalesce(item->>'room_code',''),20),item_plan,
+      coalesce(nullif(item->>'opened_at','')::timestamptz,now()),target_student,
+      (item->>'activities_completed')::integer,(item->>'activity_count')::integer,
+      (item->>'first_average')::numeric,(item->>'best_average')::numeric,now()
+    ) on conflict (class_id,source_session_key,student_id) do update set
+      source_room_code=excluded.source_room_code,plan_id=excluded.plan_id,opened_at=excluded.opened_at,
+      activities_completed=excluded.activities_completed,activity_count=excluded.activity_count,
+      first_average=excluded.first_average,best_average=excluded.best_average,imported_at=now();
+    session_count:=session_count+1;
   end loop;
 
   for item in select value from jsonb_array_elements(assessment_records)
@@ -246,6 +378,7 @@ begin
     'assessment_imported', assessment_count,
     'game_imported', score_count,
     'satisfaction_imported', satisfaction_count,
+    'session_results_imported', session_count,
     'skipped', skipped_count
   );
 end;

@@ -23,9 +23,10 @@ test("teacher supports constrained SQL backup export and preview import", () => 
   assert.match(teacher, /assessment_scores: \[\]/);
   assert.match(teacher, /game_scores: \[\]/);
   assert.match(teacher, /satisfaction_responses: \[\]/);
+  assert.match(teacher, /session_activity_results: \[\]/);
 });
 
-test("full report backup covers achievement, games, skills, and satisfaction", () => {
+test("full report backup covers achievement, games, skills, satisfaction, and session activity", () => {
   const fullBackup = readFileSync(new URL("../supabase/full-report-backup-v2.sql", import.meta.url), "utf8");
   assert.match(fullBackup, /p2_full_report_backup_v2/);
   assert.match(fullBackup, /get_assessment_comparison/);
@@ -34,6 +35,17 @@ test("full report backup covers achievement, games, skills, and satisfaction", (
   assert.match(fullBackup, /assessment_imported/);
   assert.match(fullBackup, /game_imported/);
   assert.match(fullBackup, /satisfaction_imported/);
+  assert.match(fullBackup, /get_p2_session_activity_report/);
+  assert.match(fullBackup, /p2_session_result_imports/);
+  assert.match(fullBackup, /session_activity_results/);
+  assert.match(fullBackup, /session_results_imported/);
+});
+
+test("session activity results are visible and included in backup import preview", () => {
+  assert.match(teacher, /ผลกิจกรรมรายคาบ/);
+  assert.match(teacher, /get_p2_session_activity_report/);
+  assert.match(teacher, /ผลกิจกรรมรายคาบ: \$\{sessions\.length\} รายการ/);
+  assert.match(teacher, /session_results_imported/);
 });
 
 test("new report ignores legacy inferred backfills", () => {
