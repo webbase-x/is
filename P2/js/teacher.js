@@ -10,8 +10,9 @@ import {
 } from "./common.js?v=20260816-satisfaction-3";
 import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
+import { EXIT_TICKET_INSTRUMENT_VERSION } from "./exit-ticket-bank.js?v=20260817-four-skills-1";
 
-const TEACHER_BUILD_VERSION = "20260817-research-wording-6";
+const TEACHER_BUILD_VERSION = "20260817-exit-ticket-4skills-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -592,9 +593,18 @@ async function createSession(event) {
     });
     if (error) throw error;
     state.session = data;
-    state.selectedPlanId = data.plan_id;
-    const joinedSharedSession = data.teacher_id !== state.user.id;
-    if (joinedSharedSession || data.status !== "lobby" || data.current_activity_key) {
+    if (state.profile?.can_record_scores !== false && data.instrument_version !== EXIT_TICKET_INSTRUMENT_VERSION) {
+      const { data: versionedSession, error: versionError } = await supabase.from("class_sessions")
+        .update({ experiment_round: 2, instrument_version: EXIT_TICKET_INSTRUMENT_VERSION })
+        .eq("id", data.id)
+        .select()
+        .single();
+      if (versionError) throw versionError;
+      state.session = versionedSession;
+    }
+    state.selectedPlanId = state.session.plan_id;
+    const joinedSharedSession = state.session.teacher_id !== state.user.id;
+    if (joinedSharedSession || state.session.status !== "lobby" || state.session.current_activity_key) {
       showResumeSession();
       toast(
         joinedSharedSession
@@ -2830,7 +2840,7 @@ async function loadAssessmentReport() {
     supabase.rpc("get_satisfaction_report", { p_class_id: classId }),
     supabase.rpc("get_complete_game_score_report", { p_class_id: classId }),
     supabase.rpc("get_game_mastery_20", { p_class_id: classId }),
-    supabase.rpc("get_skill_assessment_report", { p_class_id: classId }),
+    supabase.rpc("get_exit_ticket_skill_report", { p_class_id: classId }),
     supabase.rpc("get_class_report_context", { p_class_id: classId }),
   ]);
   if (assessmentError || satisfactionError || gameAlignmentError || gameMasteryError || skillAssessmentError || classContextError) {
@@ -3027,15 +3037,15 @@ async function clearImportedGameScores(button) {
 function renderSkillAssessmentReport() {
   const rows = Array.isArray(state.skillAssessmentReport) ? state.skillAssessmentReport : [];
   const table = rows.length
-    ? `<div class="table-wrap"><table><thead><tr><th>ลำดับ</th><th>ชื่อ–นามสกุล</th><th>จำแนกคำ (P1)</th><th>อ่าน/ออกเสียง (P2)</th><th>เขียน/สะกดคำ (P2)</th><th>เรียบเรียงประโยค (P2)</th><th>รวม</th><th>ระดับคุณภาพ</th></tr></thead><tbody>${rows.map((row,index)=>`<tr><td>${row.student_order ?? index+1}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${row.classification_score}/3 <small>(${Number(row.classification_percent||0).toFixed(0)}%)</small></td><td>${row.reading_score}/3 <small>(${Number(row.reading_percent||0).toFixed(0)}%)</small></td><td>${row.writing_score}/3 <small>(${Number(row.writing_percent||0).toFixed(0)}%)</small></td><td>${row.sentence_score}/3 <small>(${Number(row.sentence_percent||0).toFixed(0)}%)</small></td><td><strong>${row.total_score}/12</strong></td><td>${escapeHtml(row.quality_level||"—")}</td></tr>`).join("")}</tbody></table></div>`
-    : `<p class="assessment-report-empty">ยังไม่มีคะแนนประเมินทักษะ</p>`;
-  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">คะแนนประเมินทักษะเบื้องต้นรายบุคคล</span><h2>คะแนนทักษะ 4 ด้าน</h2><p>ประมวลจากเกมเพื่อใช้ประกอบการประเมิน · ระดับ 3 = 80% ขึ้นไป · ระดับ 2 = 60–79% · ระดับ 1 = ต่ำกว่า 60% · ครูผู้สอนต้องสังเกตและยืนยันผลตามรูบริกก่อนนำไปใช้</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-skill-assessment>ดาวน์โหลดคะแนนทักษะ CSV</button></div></div>${table}</section>`;
+    ? `<div class="table-wrap"><table><thead><tr><th>ลำดับ</th><th>ชื่อ–นามสกุล</th><th>แผนที่ประเมิน</th><th>จำแนกคำ</th><th>เขียน/สะกดคำ</th><th>เลือกใช้คำตามบริบท</th><th>เรียบเรียงประโยค</th><th>รวมดิบ</th><th>เทียบ /20</th><th>ระดับคุณภาพ</th></tr></thead><tbody>${rows.map((row,index)=>`<tr><td>${row.student_order ?? index+1}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${row.completed_plans}/8</td><td>${row.classification_score}/${row.classification_max} <small>(${Number(row.classification_percent||0).toFixed(0)}%)</small></td><td>${row.spelling_score}/${row.spelling_max} <small>(${Number(row.spelling_percent||0).toFixed(0)}%)</small></td><td>${row.context_score}/${row.context_max} <small>(${Number(row.context_percent||0).toFixed(0)}%)</small></td><td>${row.sentence_score}/${row.sentence_max} <small>(${Number(row.sentence_percent||0).toFixed(0)}%)</small></td><td><strong>${row.total_score}/${row.total_max}</strong></td><td><strong>${Number(row.equivalent_score_20||0).toFixed(2)}/20</strong></td><td>${escapeHtml(row.quality_level||"—")}</td></tr>`).join("")}</tbody></table></div>`
+    : `<p class="assessment-report-empty">ยังไม่มีคะแนน Exit Ticket รุ่น 4 ทักษะ เมื่อเริ่มรอบทดลองใหม่ คะแนนจะปรากฏที่นี่โดยไม่ใช้คะแนนเกมเดิมมาประมาณค่า</p>`;
+  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">Exit Ticket รายบุคคล · รอบทดลองใหม่</span><h2>คะแนนดิบ 4 ทักษะ</h2><p>คำนวณจากคำตอบจริงท้ายแผนเท่านั้น · แผนละ 12 ข้อ · ทักษะละ 3 ข้อ · 80% ขึ้นไป = ดี · 60–79% = พอใช้ · ต่ำกว่า 60% = ควรพัฒนา</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-skill-assessment>ดาวน์โหลดคะแนนทักษะ CSV</button></div></div>${table}</section>`;
 }
 
 function exportSkillAssessmentReport() {
-  const rows=[["ลำดับ","รหัสนักเรียน","ชื่อ-นามสกุล","จำแนกคำ P1","อ่าน/ออกเสียง P2","เขียน/สะกดคำ P2","เรียบเรียงประโยค P2","รวม 12","ระดับคุณภาพ"]];
-  state.skillAssessmentReport.forEach((row,index)=>rows.push([row.student_order??index+1,row.student_code||"",row.full_name||"",row.classification_score,row.reading_score,row.writing_score,row.sentence_score,row.total_score,row.quality_level]));
-  downloadCsv("คะแนนประเมินทักษะ-4-ด้าน-รายบุคคล.csv",rows);
+  const rows=[["ลำดับ","รหัสนักเรียน","ชื่อ-นามสกุล","แผนที่ประเมิน","จำแนกคำ","เต็มจำแนก","เขียน/สะกดคำ","เต็มสะกด","เลือกใช้คำตามบริบท","เต็มบริบท","เรียบเรียงประโยค","เต็มประโยค","รวมดิบ","คะแนนเต็ม","เทียบเต็ม 20","ระดับคุณภาพ","รอบทดลอง","รุ่นเครื่องมือ"]];
+  state.skillAssessmentReport.forEach((row,index)=>rows.push([row.student_order??index+1,row.student_code||"",row.full_name||"",row.completed_plans,row.classification_score,row.classification_max,row.spelling_score,row.spelling_max,row.context_score,row.context_max,row.sentence_score,row.sentence_max,row.total_score,row.total_max,row.equivalent_score_20,row.quality_level,row.experiment_round,row.instrument_version]));
+  downloadCsv("คะแนนดิบ-Exit-Ticket-4-ทักษะ-รายบุคคล.csv",rows);
 }
 
 function exportGameAlignmentReport() {
