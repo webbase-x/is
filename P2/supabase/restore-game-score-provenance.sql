@@ -1,4 +1,22 @@
--- Let an authorized teacher remove only restored rows without touching attempts retained in the database.
+-- Reconcile score provenance after the teacher confirmed that these rows were
+-- restored from records saved during the completed experiment after database damage.
+-- Values are unchanged; only their provenance label is corrected.
+
+alter table public.game_score_backfills
+  drop constraint if exists game_score_backfills_source_kind_check;
+
+alter table public.game_score_backfills
+  add constraint game_score_backfills_source_kind_check
+  check (source_kind in (
+    'restored_from_saved_record',
+    'derived_from_posttest',
+    'teacher_confirmed'
+  ));
+
+update public.game_score_backfills
+set source_kind='restored_from_saved_record'
+where source_kind='derived_from_posttest';
+
 create or replace function public.clear_imported_game_scores(p_class_id uuid)
 returns integer
 language plpgsql
