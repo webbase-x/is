@@ -2028,7 +2028,37 @@ function renderRhythm() {
   queueMicrotask(() => void startRhythmAutomatically());
 }
 
+function questionDifficulty(question) {
+  const explicit = Number(question?.difficulty);
+  if ([1, 2, 3].includes(explicit)) return explicit;
+  const prompt = String(question?.prompt || question?.word || question?.target || question?.answer || "");
+  const wordCount = Array.isArray(question?.words)
+    ? question.words.length
+    : prompt.trim().split(/\s+/).filter(Boolean).length;
+  const optionCount = Array.isArray(question?.options) ? question.options.length : 2;
+  const characterCount = [...prompt.replace(/\s/g, "")].length;
+  if (wordCount >= 4 || optionCount >= 4 || characterCount >= 12) return 3;
+  if (wordCount >= 3 || optionCount >= 3 || characterCount >= 7) return 2;
+  return 1;
+}
+
+function difficultyDescriptor(value) {
+  if (value >= 3) return { icon: "🏆", label: "ระดับความยาก: ท้าทาย" };
+  if (value >= 2) return { icon: "🧠", label: "ระดับความยาก: ฝึกใช้" };
+  return { icon: "🌱", label: "ระดับความยาก: พื้นฐาน" };
+}
+
+function questionsByDifficulty(questions, seedText) {
+  return [1, 2, 3].flatMap(difficulty => deterministicShuffle(
+    questions.filter(question => questionDifficulty(question) === difficulty),
+    `${seedText}-difficulty-${difficulty}`,
+  ));
+}
+
 function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay, revealCorrectness = true, resultTitle = "ทำภารกิจสำเร็จ", deadlineAt = null, timeoutTitle = "หมดเวลาแล้ว", hideScoreWhilePlaying = false, resultMessage = "", hideResultScore = false, suppressGamification = false, afterSubmit = null }) {
+  const orderedQuestions = suppressGamification
+    ? questions
+    : questionsByDifficulty(questions, lessonRoundSeed(key));
   let index = 0;
   let score = 0;
   const answers = [];
@@ -2045,10 +2075,10 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
     if (completed) return;
     completed = true;
     stopCountdown();
-    const result = await submitAttempt(key, score, questions.length, answers);
+    const result = await submitAttempt(key, score, orderedQuestions.length, answers);
     if (result) {
       if (typeof afterSubmit === "function") await afterSubmit(result, answers);
-      else showResult(titleForResult, score, questions.length, result, replay, {
+      else showResult(titleForResult, score, orderedQuestions.length, result, replay, {
         message: resultMessage,
         hideScore: hideResultScore,
         suppressGamification,
@@ -2073,18 +2103,14 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
   };
 
   const render = () => {
-    const question = questions[index];
+    const question = orderedQuestions[index];
     let tries = 0;
     const countdown = Number.isFinite(deadline) ? `<span class="mini-score">เหลือ <strong id="questionCountdown">--:--</strong></span>` : "";
     const scoreLabel = hideScoreWhilePlaying ? `ตอบแล้ว ${index} ข้อ` : `คะแนน ${score}`;
-    const level = index < Math.ceil(questions.length / 3)
-      ? { icon: "🌱", label: "ช่วงเริ่มฝึก" }
-      : index < Math.ceil((questions.length * 2) / 3)
-        ? { icon: "🧠", label: "ช่วงฝึกทำ" }
-        : { icon: "🏆", label: "ช่วงท้าย" };
+    const level = difficultyDescriptor(questionDifficulty(question));
     const levelMarkup = suppressGamification ? "" : `<span class="challenge-level-chip">${level.icon} ${level.label}</span>`;
     const feedbackMarkup = suppressGamification ? "" : `<p id="questionLearningFeedback" class="question-learning-feedback" aria-live="polite">เลือกคำตอบที่คิดว่าถูกที่สุด</p>`;
-    gameShell(title, instruction, `<div class="game-status-row"><span>ข้อ ${index + 1} / ${questions.length}</span>${levelMarkup}<span class="mini-score">${scoreLabel}</span>${countdown}</div><div id="questionPrompt"></div>${feedbackMarkup}<div class="choice-grid" id="questionChoices"></div>`);
+    gameShell(title, instruction, `<div class="game-status-row"><span>ความก้าวหน้า ${index + 1} / ${orderedQuestions.length}</span>${levelMarkup}<span class="mini-score">${scoreLabel}</span>${countdown}</div><div id="questionPrompt"></div>${feedbackMarkup}<div class="choice-grid" id="questionChoices"></div>`);
     renderPrompt(question, $("#questionPrompt"));
     const currentChoices = choices(question);
     $("#questionChoices").innerHTML = currentChoices.map(choice => `<button class="choice-button" data-value="${escapeHtml(choice.value)}">${escapeHtml(choice.label)}</button>`).join("");
@@ -2129,7 +2155,7 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
       buttons.forEach(item => { item.disabled = true; });
       setTimeout(async () => {
         index += 1;
-        if (index < questions.length) render();
+        if (index < orderedQuestions.length) render();
         else await submit(resultTitle);
       }, revealCorrectness ? 1050 : 650);
     }));
@@ -3269,9 +3295,14 @@ function renderSort() {
   const maeKoKaWords = ["กะปิ", "เคาะ", "นาที", "บัว", "ปา", "ผีเสื้อ", "ท่า", "จำปา", "สาลี่", "โมโห"];
   const hasFinalWords = ["ซุก", "ดับ", "ทุเรียน", "ฝัน", "ระฆัง", "ลำบาก", "วาดเขียน", "อร่อย", "ขนม", "สนุก"];
   const maeKoKaSet = new Set(maeKoKaWords);
-  const words = deterministicShuffle([...maeKoKaWords, ...hasFinalWords], lessonRoundSeed("sort"));
-  gameShell("จัดบ้านให้คำ", "ลากคำไปใส่บ้านที่ถูกต้อง หรือแตะคำแล้วแตะบ้าน", `<div class="sort-area"><div class="word-bank" id="sortWordBank"></div><div class="word-house good" data-house="none"><h3>🏡 บ้านแม่ ก กา</h3><div class="house-dropzone" id="noneHouse"></div></div><div class="word-house bad" data-house="has"><h3>🏠 บ้านมีตัวสะกด</h3><div class="house-dropzone" id="hasHouse"></div></div></div><button id="checkSort" class="button button-primary" style="margin-top:22px" disabled>ตรวจคำตอบ</button>`);
+  const words = questionsByDifficulty(
+    [...maeKoKaWords, ...hasFinalWords].map(word => ({ word })),
+    lessonRoundSeed("sort"),
+  ).map(item => item.word);
+  gameShell("จัดบ้านให้คำ", "จัดคำจากพื้นฐานไปสู่คำที่ซับซ้อน ระบบบอกผลทันทีและเปิดโอกาสให้แก้ไข", `<div class="game-status-row"><span id="sortProgress">ความก้าวหน้า 0 / ${words.length}</span><span class="challenge-level-chip" id="sortDifficulty">🌱 ระดับความยาก: พื้นฐาน</span><span class="mini-score">คะแนนครั้งแรก <strong id="sortFirstTryScore">0</strong></span></div><p id="sortFeedback" class="question-learning-feedback" aria-live="polite">เลือกคำ แล้วส่งไปยังบ้านที่ถูกต้อง</p><div class="sort-area"><div class="word-bank" id="sortWordBank"></div><div class="word-house good" data-house="none"><h3>🏡 บ้านแม่ ก กา</h3><div class="house-dropzone" id="noneHouse"></div></div><div class="word-house bad" data-house="has"><h3>🏠 บ้านมีตัวสะกด</h3><div class="house-dropzone" id="hasHouse"></div></div></div><button id="checkSort" class="button button-primary" style="margin-top:22px" disabled>ส่งผลคะแนน</button>`);
   let selected = null;
+  const firstPlacements = new Map();
+  const completedWords = new Set();
   const bank = $("#sortWordBank");
   words.forEach(word => {
     const token = document.createElement("button");
@@ -3286,18 +3317,38 @@ function renderSort() {
   $(".sort-area").querySelectorAll(".word-house").forEach(house => {
     house.addEventListener("dragover", event => event.preventDefault());
     const move = word => {
-      const token = [...document.querySelectorAll(".word-token")].find(item => item.dataset.word === word && !item.dataset.placed);
+      const token = [...document.querySelectorAll(".word-token")].find(item => item.dataset.word === word && !completedWords.has(word));
       if (!token) return;
-      token.dataset.placed = house.dataset.house;
-      house.querySelector(".house-dropzone").append(token);
+      const expected = maeKoKaSet.has(word) ? "none" : "has";
+      const correct = house.dataset.house === expected;
+      if (!firstPlacements.has(word)) firstPlacements.set(word, correct);
+      token.classList.remove("active", "placement-correct", "placement-wrong");
       selected = null;
-      $("#checkSort").disabled = document.querySelectorAll(".word-token:not([data-placed])").length > 0;
+      if (correct) {
+        token.dataset.placed = expected;
+        token.classList.add("placement-correct");
+        token.disabled = true;
+        completedWords.add(word);
+        house.querySelector(".house-dropzone").append(token);
+        $("#sortFeedback").textContent = `ถูกต้อง “${word}” ${expected === "none" ? "ไม่มีตัวสะกด" : "มีพยัญชนะท้ายคำเป็นตัวสะกด"}`;
+      } else {
+        delete token.dataset.placed;
+        token.classList.add("placement-wrong");
+        bank.append(token);
+        $("#sortFeedback").textContent = `ยังไม่ถูกนะ ลองสังเกตเสียงและพยัญชนะท้ายคำ “${word}” แล้วเลือกบ้านใหม่`;
+        setTimeout(() => token.classList.remove("placement-wrong"), 700);
+      }
+      const completed = completedWords.size;
+      $("#sortProgress").textContent = `ความก้าวหน้า ${completed} / ${words.length}`;
+      $("#sortFirstTryScore").textContent = String([...firstPlacements.values()].filter(Boolean).length);
+      $("#sortDifficulty").textContent = completed < 7 ? "🌱 ระดับความยาก: พื้นฐาน" : completed < 14 ? "🧠 ระดับความยาก: ฝึกใช้" : "🏆 ระดับความยาก: ท้าทาย";
+      $("#checkSort").disabled = completed < words.length;
     };
     house.addEventListener("drop", event => { event.preventDefault(); move(event.dataTransfer.getData("text/plain")); });
     house.addEventListener("click", () => { if (selected) move(selected.dataset.word); });
   });
   $("#checkSort").addEventListener("click", async () => {
-    const answers = [...document.querySelectorAll(".word-token")].map(token => ({ word: token.dataset.word, chosen: token.dataset.placed, correct: token.dataset.placed === (maeKoKaSet.has(token.dataset.word) ? "none" : "has") }));
+    const answers = words.map(word => ({ word, chosen: maeKoKaSet.has(word) ? "none" : "has", correct: firstPlacements.get(word) === true, corrected: firstPlacements.get(word) === false }));
     const score = answers.filter(answer => answer.correct).length;
     const result = await submitAttempt("sort", score, answers.length, answers);
     if (result) showResult("จัดบ้านเรียบร้อย", score, answers.length, result, renderSort);
@@ -3325,21 +3376,42 @@ function renderTrain() {
   const render = () => {
     const item = sentences[index];
     let selected = [];
-    gameShell("รถไฟประโยคแม่ ก กา", "แตะโบกี้ตามลำดับเพื่อเรียงเป็นประโยค", `<div class="game-status-row"><span>ขบวน ${index + 1} / ${sentences.length}</span><span class="mini-score">คะแนน ${score}</span></div><div class="sentence-output" id="sentenceOutput">แตะคำเพื่อเริ่มต่อขบวน</div><div class="train-track" id="trainTrack"></div><div class="button-row"><button id="resetTrain" class="button button-ghost">เริ่มเรียงใหม่</button><button id="checkTrain" class="button button-primary">ตรวจประโยค</button></div>`);
-    $("#trainTrack").innerHTML = deterministicShuffle(item.words, `${roundSeed}-${index}`).map((word, position) => `<button class="train-car ${position === 0 ? "train-locomotive" : "train-wagon"}" data-word="${escapeHtml(word)}" data-position="${position}">${escapeHtml(word)}</button>`).join("");
+    let tries = 0;
+    const difficulty = difficultyDescriptor(item.words.length >= 5 ? 3 : item.words.length >= 4 ? 2 : 1);
+    gameShell("รถไฟประโยคแม่ ก กา", "เรียงคำเป็นประโยคจากสั้นไปยาว ระบบบอกผลทันทีและให้แก้ไขได้", `<div class="game-status-row"><span>ความก้าวหน้า ${index + 1} / ${sentences.length}</span><span class="challenge-level-chip">${difficulty.icon} ${difficulty.label}</span><span class="mini-score">คะแนนครั้งแรก ${score}</span></div><p id="trainFeedback" class="question-learning-feedback" aria-live="polite">แตะโบกี้ตามลำดับประโยค</p><div class="sentence-output" id="sentenceOutput">แตะคำเพื่อเริ่มต่อขบวน</div><div class="train-track" id="trainTrack"></div><div class="button-row"><button id="resetTrain" class="button button-ghost">เริ่มเรียงใหม่</button><button id="checkTrain" class="button button-primary">ตรวจประโยค</button></div>`);
+    const shuffledWords = deterministicShuffle(item.words, `${roundSeed}-${index}`);
+    const resetSelection = () => {
+      selected = [];
+      $("#sentenceOutput").textContent = "แตะคำเพื่อเริ่มต่อขบวน";
+      $("#trainTrack").querySelectorAll("button").forEach(button => { button.disabled = false; button.classList.remove("placement-wrong"); });
+    };
+    $("#trainTrack").innerHTML = shuffledWords.map((word, position) => `<button class="train-car ${position === 0 ? "train-locomotive" : "train-wagon"}" data-word="${escapeHtml(word)}" data-position="${position}">${escapeHtml(word)}</button>`).join("");
     $("#trainTrack").querySelectorAll("button").forEach(button => button.addEventListener("click", () => { button.disabled = true; selected.push(button.dataset.word); $("#sentenceOutput").textContent = selected.join(""); }));
-    $("#resetTrain").addEventListener("click", render);
+    $("#resetTrain").addEventListener("click", resetSelection);
     $("#checkTrain").addEventListener("click", async () => {
+      if (selected.length !== item.words.length) {
+        $("#trainFeedback").textContent = "เลือกโบกี้ให้ครบทุกคำก่อนตรวจประโยค";
+        return;
+      }
       const sentence = selected.join("");
       const correct = sentence === item.answer;
-      if (correct) score += 1;
-      answers.push({ sentence, correct, answer: item.answer });
+      tries += 1;
+      if (!correct) {
+        $("#trainFeedback").textContent = `ยังไม่ถูก ลำดับที่ถูกคือ “${item.words.join(" ")}” ลองเรียงใหม่อีกครั้ง`;
+        $("#trainTrack").querySelectorAll("button").forEach(button => button.classList.add("placement-wrong"));
+        setTimeout(resetSelection, 950);
+        return;
+      }
+      if (tries === 1) score += 1;
+      answers.push({ sentence, correct: tries === 1, corrected: tries > 1, answer: item.answer, tries });
+      $("#trainFeedback").textContent = tries === 1 ? "ถูกต้อง! เรียงประโยคได้ครบและเป็นลำดับ" : "ถูกต้องแล้ว การแก้ไขช่วยให้เข้าใจลำดับประโยคมากขึ้น";
+      $("#trainTrack").querySelectorAll("button").forEach(button => { button.disabled = true; button.classList.add("placement-correct"); });
       index += 1;
-      if (index < sentences.length) setTimeout(render, 500);
-      else {
+      if (index < sentences.length) setTimeout(render, 1050);
+      else setTimeout(async () => {
         const result = await submitAttempt("train", score, sentences.length, answers);
         if (result) showResult("ต่อขบวนครบแล้ว", score, sentences.length, result, renderTrain);
-      }
+      }, 1050);
     });
   };
   render();
