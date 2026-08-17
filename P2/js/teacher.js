@@ -12,7 +12,7 @@ import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
 import { EXIT_TICKET_INSTRUMENT_VERSION } from "./exit-ticket-bank.js?v=20260817-four-skills-1";
 
-const TEACHER_BUILD_VERSION = "20260817-score-report-sql-2";
+const TEACHER_BUILD_VERSION = "20260817-full-report-backup-3";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -3016,7 +3016,7 @@ function renderGameAssessmentReport() {
     : `<p class="assessment-report-empty">คะแนนทักษะจะปรากฏเมื่อมีคำตอบที่ติดป้ายทักษะจริง ระบบไม่ประมาณค่าทักษะจากเปอร์เซ็นต์เกม</p>`;
   const classroom = selectedClassroom();
   const roomCode = state.session?.room_code || state.classReportContext?.room_code || "ยังไม่มีรหัส";
-  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">${escapeHtml(classroom?.label || "ห้องเรียน")} · รหัสห้อง ${escapeHtml(roomCode)}</span><h2>คะแนนเกมและทักษะ 4 ด้าน</h2><p>แสดงคะแนนดิบของทุกเกมและคำนวณทักษะจากคำตอบที่ติดป้ายจริงเท่านั้น</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-game-alignment>ส่งออก CSV</button><button type="button" class="button button-secondary" data-export-score-sql>ส่งออก SQL</button><button type="button" class="button button-ghost" data-import-score-sql>นำเข้า SQL</button></div></div>${summaryTable}${detailTable}${planSkillTable}</section>`;
+  return `<section class="assessment-research-report"><div class="assessment-report-heading"><div><span class="eyebrow">${escapeHtml(classroom?.label || "ห้องเรียน")} · รหัสห้อง ${escapeHtml(roomCode)}</span><h2>คะแนนเกมและทักษะ 4 ด้าน</h2><p>แสดงคะแนนดิบของทุกเกมและคำนวณทักษะจากคำตอบที่ติดป้ายจริงเท่านั้น</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-game-alignment>ส่งออก CSV</button><button type="button" class="button button-secondary" data-export-score-sql>สำรองทุกข้อมูล SQL</button><button type="button" class="button button-ghost" data-export-empty-score-sql>แม่แบบ SQL ว่าง</button><button type="button" class="button button-ghost" data-import-score-sql>นำเข้า SQL</button></div></div>${summaryTable}${detailTable}${planSkillTable}</section>`;
 }
 
 async function clearImportedGameScores(button) {
@@ -3069,31 +3069,61 @@ async function exportScoreSqlBackup() {
     console.warn("ส่งออกชุดสำรองคะแนนไม่สำเร็จ", error?.code);
     return toast("ส่งออก SQL ไม่สำเร็จ", "error");
   }
-  const json = JSON.stringify(data, null, 2);
+  downloadFullReportSql(data);
+  const total = (data.assessment_scores?.length || 0) + (data.game_scores?.length || 0) + (data.satisfaction_responses?.length || 0);
+  toast(`ส่งออกชุดสำรองครบทุกส่วน ${total} รายการแล้ว`, "success");
+}
+
+function downloadFullReportSql(payload, suffix = "scores-and-reports") {
+  const json = JSON.stringify(payload, null, 2);
   if (json.includes("$p2_score_backup$")) return toast("ข้อมูลมีอักขระที่ไม่รองรับการส่งออก", "error");
   const sql = [
-    "-- P2 SCORE BACKUP V1 · สร้างโดยระบบ /P2/",
+    "-- P2 FULL REPORT BACKUP V2 · สร้างโดยระบบ /P2/",
     "-- ห้ามแก้ไข marker หรือโครงสร้าง JSON",
     "-- P2_SCORE_BACKUP_JSON_BEGIN",
     json,
     "-- P2_SCORE_BACKUP_JSON_END",
     "",
-    `select public.import_p2_score_backup('${classId}'::uuid, $p2_score_backup$`,
+    `select public.import_p2_score_backup('${payload.class_id}'::uuid, $p2_score_backup$`,
     json,
     "$p2_score_backup$::jsonb);",
     "",
   ].join("\n");
   const roomCode = state.session?.room_code || state.classReportContext?.room_code || "room";
-  downloadTextFile(`P2-${roomCode}-scores.sql`, sql, "application/sql;charset=utf-8");
-  toast(`ส่งออกชุดสำรอง ${data.records?.length || 0} รายการแล้ว`, "success");
+  downloadTextFile(`P2-${roomCode}-${suffix}.sql`, sql, "application/sql;charset=utf-8");
+}
+
+function exportEmptyScoreSqlTemplate() {
+  const classId = state.session?.class_id || $("#classSelect")?.value || "00000000-0000-0000-0000-000000000000";
+  const classroom = selectedClassroom();
+  downloadFullReportSql({
+    schema: "p2_full_report_backup_v2",
+    class_id: classId,
+    class_label: classroom?.label || "",
+    exported_at: new Date().toISOString(),
+    structure: {
+      assessment_scores: ["student_code", "student_order", "pre_score", "post_score", "max_score"],
+      game_scores: ["student_code", "plan_id", "activity_key", "attempt_no", "score", "max_score", "answers", "instrument_version", "completed_at"],
+      satisfaction_responses: ["student_code", "ratings", "comment", "completed_at"],
+    },
+    assessment_scores: [],
+    game_scores: [],
+    satisfaction_responses: [],
+  }, "empty-template");
+  toast("ดาวน์โหลดแม่แบบ SQL ว่างแล้ว", "success");
 }
 
 function parseScoreSqlBackup(text) {
   const match = text.match(/-- P2_SCORE_BACKUP_JSON_BEGIN\s*\n([\s\S]*?)\n-- P2_SCORE_BACKUP_JSON_END/);
   if (!match) throw new Error("ไม่พบ marker ของชุดสำรอง P2");
   const payload = JSON.parse(match[1]);
-  if (payload?.schema !== "p2_score_backup_v1" || !Array.isArray(payload.records)) throw new Error("รุ่นชุดสำรองไม่ถูกต้อง");
-  if (payload.records.length > 5000) throw new Error("จำนวนรายการเกิน 5,000 รายการ");
+  const v1 = payload?.schema === "p2_score_backup_v1" && Array.isArray(payload.records);
+  const v2 = payload?.schema === "p2_full_report_backup_v2"
+    && Array.isArray(payload.assessment_scores) && Array.isArray(payload.game_scores)
+    && Array.isArray(payload.satisfaction_responses);
+  if (!v1 && !v2) throw new Error("รุ่นชุดสำรองไม่ถูกต้อง");
+  const total = v1 ? payload.records.length : payload.assessment_scores.length + payload.game_scores.length + payload.satisfaction_responses.length;
+  if (total > 5000) throw new Error("จำนวนรายการเกิน 5,000 รายการ");
   return payload;
 }
 
@@ -3108,14 +3138,20 @@ async function importScoreSqlBackup() {
     if (!file) return;
     try {
       const payload = parseScoreSqlBackup(await file.text());
-      const students = new Set(payload.records.map(item => item.student_code).filter(Boolean)).size;
-      const plans = new Set(payload.records.map(item => item.plan_id).filter(Boolean)).size;
-      const skillItems = payload.records.reduce((sum, item) => sum + (Array.isArray(item.answers) ? item.answers.filter(answer => answer?.skill_code).length : 0), 0);
+      const games = payload.game_scores || payload.records || [];
+      const assessments = payload.assessment_scores || [];
+      const satisfaction = payload.satisfaction_responses || [];
+      const allRecords = [...games, ...assessments, ...satisfaction];
+      const students = new Set(allRecords.map(item => item.student_code).filter(Boolean)).size;
+      const plans = new Set(games.map(item => item.plan_id).filter(Boolean)).size;
+      const skillItems = games.reduce((sum, item) => sum + (Array.isArray(item.answers) ? item.answers.filter(answer => answer?.skill_code).length : 0), 0);
       const accepted = window.confirm([
         "ตรวจพบชุดสำรองคะแนน P2",
         `ห้องต้นทาง: ${payload.class_label || payload.class_id || "—"}`,
         `นักเรียน: ${students} คน`,
-        `รายการเกม: ${payload.records.length} รายการ`,
+        `ก่อนเรียน–หลังเรียน: ${assessments.length} คน`,
+        `คะแนนเกม: ${games.length} รายการ`,
+        `ความพึงพอใจ: ${satisfaction.length} คน`,
         `แผนที่พบ: ${plans}/8`,
         `คำตอบที่มีป้ายทักษะ: ${skillItems} ข้อ`,
         "",
@@ -3124,7 +3160,7 @@ async function importScoreSqlBackup() {
       if (!accepted) return;
       const { data, error } = await supabase.rpc("import_p2_score_backup", { p_class_id: classId, p_payload: payload });
       if (error) throw error;
-      toast(`นำเข้าแล้ว ${Number(data?.imported || 0)} รายการ · ข้าม ${Number(data?.skipped || 0)} รายการ`, "success");
+      toast(`นำเข้าแล้ว: ก่อน–หลัง ${Number(data?.assessment_imported || 0)} · เกม ${Number(data?.game_imported ?? data?.imported ?? 0)} · ความพึงพอใจ ${Number(data?.satisfaction_imported || 0)} · ข้าม ${Number(data?.skipped || 0)}`, "success");
       await loadAssessmentReport();
     } catch (error) {
       console.warn("นำเข้าชุดสำรองคะแนนไม่สำเร็จ", error?.message || error);
@@ -3139,6 +3175,7 @@ function bindResearchReportActions() {
   $("#reportContent").querySelector("[data-export-satisfaction]")?.addEventListener("click", exportSatisfactionReport);
   $("#reportContent").querySelector("[data-export-game-alignment]")?.addEventListener("click", exportGameAlignmentReport);
   $("#reportContent").querySelector("[data-export-score-sql]")?.addEventListener("click", exportScoreSqlBackup);
+  $("#reportContent").querySelector("[data-export-empty-score-sql]")?.addEventListener("click", exportEmptyScoreSqlTemplate);
   $("#reportContent").querySelector("[data-import-score-sql]")?.addEventListener("click", importScoreSqlBackup);
   $("#reportContent").querySelector("[data-clear-imported-game-scores]")?.addEventListener("click", event => clearImportedGameScores(event.currentTarget));
 }
