@@ -18,6 +18,22 @@ test("teacher supports constrained SQL backup export and preview import", () => 
   assert.match(teacher, /import_p2_score_backup/);
   assert.match(teacher, /P2_SCORE_BACKUP_JSON_BEGIN/);
   assert.match(teacher, /ตรวจพบชุดสำรองคะแนน P2/);
+  assert.match(teacher, /p2_full_report_backup_v2/);
+  assert.match(teacher, /แม่แบบ SQL ว่าง/);
+  assert.match(teacher, /assessment_scores: \[\]/);
+  assert.match(teacher, /game_scores: \[\]/);
+  assert.match(teacher, /satisfaction_responses: \[\]/);
+});
+
+test("full report backup covers achievement, games, skills, and satisfaction", () => {
+  const fullBackup = readFileSync(new URL("../supabase/full-report-backup-v2.sql", import.meta.url), "utf8");
+  assert.match(fullBackup, /p2_full_report_backup_v2/);
+  assert.match(fullBackup, /get_assessment_comparison/);
+  assert.match(fullBackup, /get_p2_score_report/);
+  assert.match(fullBackup, /get_satisfaction_report/);
+  assert.match(fullBackup, /assessment_imported/);
+  assert.match(fullBackup, /game_imported/);
+  assert.match(fullBackup, /satisfaction_imported/);
 });
 
 test("new report ignores legacy inferred backfills", () => {
