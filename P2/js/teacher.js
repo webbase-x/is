@@ -12,7 +12,7 @@ import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
 import { EXIT_TICKET_INSTRUMENT_VERSION } from "./exit-ticket-bank.js?v=20260817-four-skills-1";
 
-const TEACHER_BUILD_VERSION = "20260817-session-report-backup-4";
+const TEACHER_BUILD_VERSION = "20260817-session-direct-backup-5";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -3029,7 +3029,7 @@ function renderSessionActivityReport() {
   const table = rows.length
     ? `<div class="table-wrap"><table><thead><tr><th>วัน–เวลา</th><th>รหัสห้อง</th><th>แผน</th><th>เลขที่/รหัส</th><th>ชื่อ–นามสกุล</th><th>ทำแล้ว</th><th>ครั้งแรกเฉลี่ย</th><th>ดีที่สุดเฉลี่ย</th></tr></thead><tbody>${rows.map((row, index) => `<tr><td>${escapeHtml(formatDate(row.opened_at))}</td><td>${escapeHtml(row.room_code || "—")}</td><td>${row.plan_id}</td><td>${escapeHtml(row.student_order ?? row.student_code ?? index + 1)}</td><td>${escapeHtml(row.full_name || "—")}</td><td>${Number(row.activities_completed || 0)}/${Number(row.activity_count || 0)}</td><td>${Number(row.first_average || 0).toFixed(2)}%</td><td><strong>${Number(row.best_average || 0).toFixed(2)}%</strong></td></tr>`).join("")}</tbody></table></div>`
     : `<p class="assessment-report-empty">ยังไม่มีผลกิจกรรมรายคาบของห้องนี้</p>`;
-  return `<section class="session-score-report"><div class="assessment-report-heading"><div><span class="eyebrow">บันทึกแยกตามคาบเรียนและแผน</span><h2>ผลกิจกรรมรายคาบ</h2><p>ข้อมูลส่วนนี้รวมอยู่ในปุ่มสำรองทุกข้อมูล SQL และนำกลับเข้าได้พร้อมรายงานส่วนอื่น</p></div></div>${table}</section>`;
+  return `<section class="session-score-report"><div class="assessment-report-heading"><div><span class="eyebrow">บันทึกแยกตามคาบเรียนและแผน</span><h2>ผลกิจกรรมรายคาบ</h2><p>สำรองหรือนำเข้าเฉพาะผลกิจกรรมรายคาบได้โดยไม่กระทบคะแนนและรายงานส่วนอื่น</p></div><div class="assessment-report-actions"><button type="button" class="button button-secondary" data-export-session-sql>สำรองผลรายคาบ SQL</button><button type="button" class="button button-ghost" data-import-session-sql>นำเข้าผลรายคาบ SQL</button></div></div>${table}</section>`;
 }
 
 async function clearImportedGameScores(button) {
@@ -3085,6 +3085,28 @@ async function exportScoreSqlBackup() {
   downloadFullReportSql(data);
   const total = (data.assessment_scores?.length || 0) + (data.game_scores?.length || 0) + (data.satisfaction_responses?.length || 0) + (data.session_activity_results?.length || 0);
   toast(`ส่งออกชุดสำรองครบทุกส่วน ${total} รายการแล้ว`, "success");
+}
+
+async function exportSessionActivitySqlBackup() {
+  const classId = state.session?.class_id || $("#classSelect")?.value;
+  if (!classId) return toast("กรุณาเลือกห้องเรียน", "warning");
+  const { data, error } = await supabase.rpc("export_p2_score_backup", { p_class_id: classId });
+  if (error || !data) {
+    console.warn("สำรองผลกิจกรรมรายคาบไม่สำเร็จ", error?.code);
+    return toast("สำรองผลกิจกรรมรายคาบไม่สำเร็จ", "error");
+  }
+  const sessions = Array.isArray(data.session_activity_results) ? data.session_activity_results : [];
+  downloadFullReportSql({
+    ...data,
+    structure: {
+      session_activity_results: ["source_session_key", "room_code", "plan_id", "opened_at", "student_code", "activities_completed", "activity_count", "first_average", "best_average"],
+    },
+    assessment_scores: [],
+    game_scores: [],
+    satisfaction_responses: [],
+    session_activity_results: sessions,
+  }, "session-activity-results");
+  toast(`สำรองผลกิจกรรมรายคาบ ${sessions.length} รายการแล้ว`, "success");
 }
 
 function downloadFullReportSql(payload, suffix = "scores-and-reports") {
@@ -3189,6 +3211,50 @@ async function importScoreSqlBackup() {
   input.click();
 }
 
+async function importSessionActivitySqlBackup() {
+  const classId = state.session?.class_id || $("#classSelect")?.value;
+  if (!classId) return toast("กรุณาเลือกห้องเรียน", "warning");
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".sql,text/plain,application/sql";
+  input.addEventListener("change", async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const payload = parseScoreSqlBackup(await file.text());
+      const sessions = payload.session_activity_results || [];
+      if (!sessions.length) return toast("ไฟล์นี้ไม่มีผลกิจกรรมรายคาบ", "warning");
+      const students = new Set(sessions.map(item => item.student_code).filter(Boolean)).size;
+      const plans = new Set(sessions.map(item => item.plan_id).filter(Boolean)).size;
+      const accepted = window.confirm([
+        "ตรวจพบชุดสำรองผลกิจกรรมรายคาบ",
+        `ห้องต้นทาง: ${payload.class_label || payload.class_id || "—"}`,
+        `นักเรียน: ${students} คน`,
+        `ผลรายคาบ: ${sessions.length} รายการ`,
+        `แผนที่พบ: ${plans}/8`,
+        "",
+        "ยืนยันนำเข้าไปยังห้องที่กำลังเลือกหรือไม่? รายการที่รหัสนักเรียนไม่ตรงจะถูกข้าม",
+      ].join("\n"));
+      if (!accepted) return;
+      const sessionOnlyPayload = {
+        ...payload,
+        assessment_scores: [],
+        game_scores: [],
+        satisfaction_responses: [],
+        session_activity_results: sessions,
+      };
+      const { data, error } = await supabase.rpc("import_p2_score_backup", { p_class_id: classId, p_payload: sessionOnlyPayload });
+      if (error) throw error;
+      toast(`นำเข้าผลรายคาบ ${Number(data?.session_results_imported || 0)} รายการ · ข้าม ${Number(data?.skipped || 0)}`, "success");
+      await loadAssessmentReport();
+    } catch (error) {
+      console.warn("นำเข้าผลกิจกรรมรายคาบไม่สำเร็จ", error?.message || error);
+      toast(`นำเข้าไม่ได้: ${error?.message || "ไฟล์ไม่ถูกต้อง"}`, "error");
+    }
+  }, { once: true });
+  input.click();
+}
+
 function bindResearchReportActions() {
   $("#reportContent").querySelectorAll("[data-export-assessment]").forEach(button => button.addEventListener("click", () => exportAssessmentReport(button.dataset.exportAssessment)));
   $("#reportContent").querySelector("[data-export-satisfaction]")?.addEventListener("click", exportSatisfactionReport);
@@ -3196,6 +3262,8 @@ function bindResearchReportActions() {
   $("#reportContent").querySelector("[data-export-score-sql]")?.addEventListener("click", exportScoreSqlBackup);
   $("#reportContent").querySelector("[data-export-empty-score-sql]")?.addEventListener("click", exportEmptyScoreSqlTemplate);
   $("#reportContent").querySelector("[data-import-score-sql]")?.addEventListener("click", importScoreSqlBackup);
+  $("#reportContent").querySelector("[data-export-session-sql]")?.addEventListener("click", exportSessionActivitySqlBackup);
+  $("#reportContent").querySelector("[data-import-session-sql]")?.addEventListener("click", importSessionActivitySqlBackup);
   $("#reportContent").querySelector("[data-clear-imported-game-scores]")?.addEventListener("click", event => clearImportedGameScores(event.currentTarget));
 }
 

@@ -46,6 +46,11 @@ test("session activity results are visible and included in backup import preview
   assert.match(teacher, /get_p2_session_activity_report/);
   assert.match(teacher, /ผลกิจกรรมรายคาบ: \$\{sessions\.length\} รายการ/);
   assert.match(teacher, /session_results_imported/);
+  assert.match(teacher, /data-export-session-sql/);
+  assert.match(teacher, /data-import-session-sql/);
+  assert.match(teacher, /สำรองผลรายคาบ SQL/);
+  assert.match(teacher, /นำเข้าผลรายคาบ SQL/);
+  assert.match(teacher, /sessionOnlyPayload/);
 });
 
 test("new report ignores legacy inferred backfills", () => {
