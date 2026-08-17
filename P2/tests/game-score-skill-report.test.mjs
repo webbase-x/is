@@ -5,12 +5,13 @@ import { readFileSync } from "node:fs";
 const teacher = readFileSync(new URL("../js/teacher.js", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/game-score-skill-backfill.sql", import.meta.url), "utf8");
 
-test("teacher report loads complete per-game and four-skill reports", () => {
+test("teacher report separates game scores from the four-skill Exit Ticket", () => {
   assert.match(teacher, /get_complete_game_score_report/);
-  assert.match(teacher, /get_skill_assessment_report/);
+  assert.match(teacher, /get_exit_ticket_skill_report/);
   assert.match(teacher, /ครบทุกด่านและทุกเกม/);
-  assert.match(teacher, /จำแนกคำ \(P1\)/);
-  assert.match(teacher, /อ่าน\/ออกเสียง \(P2\)/);
+  assert.match(teacher, /คะแนนดิบ 4 ทักษะ/);
+  assert.match(teacher, /เลือกใช้คำตามบริบท/);
+  assert.doesNotMatch(teacher, /อ่าน\/ออกเสียง \(P2\)/);
 });
 
 test("teacher can clear imported scores without deleting observed gameplay", () => {
@@ -40,7 +41,7 @@ test("research report distinguishes imported data and uses correct statistical w
   assert.match(teacher, /แผนที่มีข้อมูล/);
   assert.match(teacher, /เล่นจริง/);
   assert.match(teacher, /คะแนนนำเข้า/);
-  assert.match(teacher, /ครูผู้สอนต้องสังเกตและยืนยันผลตามรูบริก/);
+  assert.match(teacher, /คำนวณจากคำตอบจริงท้ายแผนเท่านั้น/);
   assert.doesNotMatch(teacher, /<th>แผนที่เล่น<\/th>/);
   assert.doesNotMatch(teacher, /<th>เกมที่เล่น<\/th>/);
 });

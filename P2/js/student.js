@@ -14,6 +14,11 @@ import {
   masteryLevelForPercent,
 } from "./gamification.js?v=20260807-primary-copy-1";
 import { SATISFACTION_SCALE, satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
+import {
+  EXIT_TICKET_INSTRUMENT_VERSION,
+  exitTicketForPlan,
+  exitTicketSummary,
+} from "./exit-ticket-bank.js?v=20260817-four-skills-1";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
@@ -2135,6 +2140,8 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
         chosen,
         correct,
         tries,
+        skill_code: question.skill_code || null,
+        instrument_version: question.instrument_version || null,
       });
       const buttons = [...$("#questionChoices").children];
       if (revealCorrectness) {
@@ -3061,6 +3068,7 @@ function renderLivePlanActivity(activityKey) {
 
   let questions;
   let instruction;
+  const isExitTicket = activityIndex === activities.length - 1;
   if (activityIndex === 0 && data.categories) {
     questions = shuffle(data.categories).map(([word, answer, emoji]) => ({ prompt: word, word, answer, emoji }));
     instruction = "อ่านคำแล้วเลือกมาตราให้ถูกต้อง";
@@ -3071,10 +3079,10 @@ function renderLivePlanActivity(activityKey) {
     ]);
     instruction = `เลือกว่าคำนี้อยู่ใน${data.title}หรือไม่`;
   } else {
-    const source = activityIndex === activities.length - 1 ? data.exit : data.secondary;
+    const source = isExitTicket ? exitTicketForPlan(planId) : data.secondary;
     questions = shuffle(source).map(question => ({ ...question, options: shuffle(question.options) }));
-    instruction = activityIndex === activities.length - 1
-      ? `ตอบให้ถูกอย่างน้อย ${[2, 3, 4, 5, 6, 7].includes(planId) ? 3 : 2} จาก ${source.length} ข้อ`
+    instruction = isExitTicket
+      ? `Exit Ticket 4 ทักษะ · ทักษะละ 3 ข้อ · ผ่านเมื่อถูกอย่างน้อย 8 จาก ${source.length} ข้อ`
       : "อ่านหรือฟังโจทย์ แล้วเลือกคำตอบที่ถูกต้อง";
   }
 
@@ -3110,6 +3118,14 @@ function renderLivePlanActivity(activityKey) {
     renderPrompt,
     choices,
     replay: () => renderLivePlanActivity(activityKey),
+    resultMessage: isExitTicket ? "ระบบบันทึกคะแนนดิบแยกตามทักษะเรียบร้อยแล้ว" : "",
+    afterSubmit: isExitTicket ? (result, answers) => {
+      const summary = exitTicketSummary(answers);
+      showResult("ส่ง Exit Ticket แล้ว", answers.filter(answer => answer.correct).length, questions.length, result, () => renderLivePlanActivity(activityKey), {
+        message: `${summary.map(row => `${row.label} ${row.score}/${row.max_score}`).join(" · ")} · รุ่น ${EXIT_TICKET_INSTRUMENT_VERSION}`,
+        answers,
+      });
+    } : null,
   });
 }
 
@@ -3477,24 +3493,21 @@ async function loadVoteBoard() {
 }
 
 function renderExit() {
-  const questions = [
-    { prompt: "คำมาตราแม่ ก กา คือคำที่มีลักษณะอย่างไร", answer: "ไม่มีตัวสะกด", options: ["ไม่มีตัวสะกด", "มี ก เป็นตัวสะกด", "มีสระเสียงสั้นเท่านั้น", "มีพยัญชนะอยู่ท้ายคำ"] },
-    { prompt: "คำที่ไม่มีพยัญชนะท้ายคำเรียกว่าอะไร", answer: "มาตราแม่ ก กา", options: ["มาตราแม่กม", "มาตราแม่ ก กา", "มาตราแม่กง", "มาตราแม่กน"] },
-    { prompt: "ข้อใดคือคำในมาตราแม่ ก กา", answer: "ปลา", options: ["กบ", "จาน", "ปลา", "นก"] },
-    { prompt: "สัตว์ในข้อใดมีชื่อเป็นคำมาตราแม่ ก กา", answer: "เต่า", options: ["ช้าง", "มด", "ลิง", "เต่า"] },
-    { prompt: "คำในข้อใดมีตัวสะกด (ไม่ใช่แม่ ก กา)", answer: "ดาว", options: ["เรือ", "แพ", "ดาว", "ใบ"] },
-    { prompt: "ข้อใดเป็นคำมาตราแม่ ก กา ทั้ง 2 คำ", answer: "ปู, ปลา", options: ["หมา, แมว", "ปู, ปลา", "นก, หนู", "เสือ, ช้าง"] },
-    { prompt: "คำว่า มะละกอ มีลักษณะตรงกับข้อใด", answer: "เป็นคำมาตราแม่ ก กา ทั้งหมด", options: ["มีตัว ก สะกด", "เป็นคำมาตราแม่ ก กา ทั้งหมด", "เป็นคำที่มีตัวสะกดทุกพยางค์", "มีคำมาตราแม่ ก กา แค่ 1 คำ"] },
-    { prompt: "ข้อใดไม่ใช่คำมาตราแม่ ก กา", answer: "พัดลม", options: ["ทะเล", "เวลา", "กระทะ", "พัดลม"] },
-    { prompt: "คำในข้อใดไม่มีตัวสะกด", answer: "โต๊ะ", options: ["ข้าว", "นม", "โต๊ะ", "ยาง"] },
-    { prompt: "จากลักษณะของคำ คำว่า เก้าอี้ จัดอยู่ในกลุ่มเดียวกับข้อใด", answer: "กระเป๋า", options: ["ดินสอ", "สมุด", "ไม้บรรทัด", "กระเป๋า"] },
-  ];
+  const questions = [...exitTicketForPlan(1)];
   runQuestionGame({
-    key: "exit", title: "ไขกุญแจหีบสมบัติ", instruction: "ตอบให้ถูกอย่างน้อย 6 ใน 10 ข้อ เพื่อเปิดหีบสมบัติ",
+    key: "exit", title: "Exit Ticket · ทักษะ 4 ด้าน", instruction: "ทำ 12 ข้อ · ทักษะละ 3 ข้อ · ผ่านเมื่อถูกอย่างน้อย 8 ข้อ",
     questions,
     renderPrompt(question, container) { container.innerHTML = `<div class="treasure"><span class="treasure-icon">🔒</span><h2>${escapeHtml(question.prompt)}</h2></div>`; },
     choices: question => question.options.map(option => ({ value: option, label: option })),
     replay: renderExit,
+    resultMessage: "ระบบบันทึกคะแนนดิบแยกตามทักษะเรียบร้อยแล้ว",
+    afterSubmit(result, answers) {
+      const summary = exitTicketSummary(answers);
+      showResult("ส่ง Exit Ticket แล้ว", result.score ?? answers.filter(answer => answer.correct).length, 12, result, renderExit, {
+        message: `${summary.map(row => `${row.label} ${row.score}/${row.max_score}`).join(" · ")} · รุ่น ${EXIT_TICKET_INSTRUMENT_VERSION}`,
+        answers,
+      });
+    },
   });
 }
 
