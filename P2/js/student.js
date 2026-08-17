@@ -13,7 +13,7 @@ import {
   learningHintForQuestion,
   masteryLevelForPercent,
 } from "./gamification.js?v=20260807-primary-copy-1";
-import { SATISFACTION_SCALE, satisfactionLevel } from "./satisfaction-survey.js?v=20260816-satisfaction-1";
+import { SATISFACTION_SCALE, satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
 
 const studentPageQuery = new URLSearchParams(window.location.search);
 const expertStudentEmbed = studentPageQuery.get("embed") === "expert-student";
