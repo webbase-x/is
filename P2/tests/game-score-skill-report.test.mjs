@@ -13,6 +13,14 @@ test("teacher report loads complete per-game and four-skill reports", () => {
   assert.match(teacher, /อ่าน\/ออกเสียง \(P2\)/);
 });
 
+test("teacher can clear imported scores without deleting observed gameplay", () => {
+  const clearMigration = readFileSync(new URL("../supabase/clear-imported-game-scores.sql", import.meta.url), "utf8");
+  assert.match(teacher, /data-clear-imported-game-scores/);
+  assert.match(teacher, /clear_imported_game_scores/);
+  assert.match(clearMigration, /source_kind='derived_from_posttest'/);
+  assert.doesNotMatch(clearMigration, /delete from public\.game_attempts/);
+});
+
 test("backfill remains distinguishable from observed gameplay", () => {
   assert.match(migration, /derived_from_posttest/);
   assert.match(migration, /observed_gameplay/);
