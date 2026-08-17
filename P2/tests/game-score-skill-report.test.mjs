@@ -21,6 +21,12 @@ test("teacher can clear imported scores without deleting observed gameplay", () 
   assert.doesNotMatch(clearMigration, /delete from public\.game_attempts/);
 });
 
+test("class reports load even when no teaching session is open", () => {
+  assert.match(teacher, /if \(!state\.session\) \{\s*\$\("#reportContent"\)\.innerHTML = learningReports/);
+  assert.match(teacher, /panelId === "reportsPanel" && sessionRecordsScores\(\)/);
+  assert.doesNotMatch(teacher, /panelId === "reportsPanel" && state\.session && sessionRecordsScores\(\)/);
+});
+
 test("backfill remains distinguishable from observed gameplay", () => {
   assert.match(migration, /derived_from_posttest/);
   assert.match(migration, /observed_gameplay/);

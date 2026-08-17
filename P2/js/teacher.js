@@ -11,7 +11,7 @@ import {
 import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260816-satisfaction-1";
 
-const TEACHER_BUILD_VERSION = "20260817-clear-imported-scores-3";
+const TEACHER_BUILD_VERSION = "20260817-class-report-without-session-4";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -2846,7 +2846,8 @@ async function loadAssessmentReport() {
 function renderAssessmentResearchReport() {
   const rows = assessmentComparisonRows();
   const stats = assessmentStatistics(rows);
-  const className = state.classes.find(item => item.id === state.session?.class_id)?.label || "ห้องเรียนปัจจุบัน";
+  const reportClassId = state.session?.class_id || $("#classSelect")?.value;
+  const className = state.classes.find(item => item.id === reportClassId)?.label || "ห้องเรียนปัจจุบัน";
   const significance = stats.test.significant === null
     ? "ต้องมีข้อมูลครบคู่ตั้งแต่ 2 คนจึงคำนวณ paired t-test ได้"
     : stats.test.significant
@@ -3031,10 +3032,14 @@ function bindResearchReportActions() {
 }
 
 function renderReport() {
-  if (!state.session) return;
   const learningReports = sessionRecordsScores()
     ? `${renderAssessmentResearchReport()}${renderGameAssessmentReport()}${renderSkillAssessmentReport()}${renderSatisfactionResearchReport()}`
     : `<p class="flow-score-recording-notice">🧪 คาบตรวจสื่อไม่บันทึกคะแนน จึงไม่มีรายงานวิจัยให้ส่งออก</p>`;
+  if (!state.session) {
+    $("#reportContent").innerHTML = learningReports;
+    bindResearchReportActions();
+    return;
+  }
   if (isAssessmentSession(state.session)) {
     $("#reportContent").innerHTML = learningReports;
     bindResearchReportActions();
@@ -3082,7 +3087,7 @@ function switchPanel(panelId) {
     stopStudentScreenWatch();
     renderStudentScreens();
   } else stopStudentScreenWatch();
-  if (panelId === "reportsPanel" && state.session && sessionRecordsScores()) void loadAssessmentReport();
+  if (panelId === "reportsPanel" && sessionRecordsScores()) void loadAssessmentReport();
 }
 
 $("#teacherLoginForm").addEventListener("submit", signIn);
