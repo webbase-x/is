@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../../responsive.css";
 
 :root {
   --ink: #17213a;
