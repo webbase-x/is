@@ -128,7 +128,9 @@ test("individual report combines outcomes with selectable privacy, matching, and
   for (const key of ["studentId", "studentNumber", "name", "row"]) {
     assert.match(source, new RegExp(`<option value="${key}">`));
   }
-  assert.match(source, /ปกปิดชื่อในรายงาน/);
+  assert.match(source, /จอครูแสดงชื่อจริง/);
+  assert.match(source, /ไฟล์บทที่ 4 ใช้ “คนที่ 1–n”/);
+  assert.match(source, /แสดงชื่อจริงบนจอครู/);
   assert.match(source, /คนที่ \$\{index \+ 1\}/);
   assert.match(source, /Dumbbell Chart/);
   assert.match(source, /Slope Chart/);
