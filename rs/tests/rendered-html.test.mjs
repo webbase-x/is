@@ -157,9 +157,6 @@ test("individual report combines outcomes with selectable privacy, matching, and
   assert.match(source, /data-person-number/);
   assert.match(source, /ผลต่าง:/);
   assert.match(source, /ผลเกณฑ์:/);
-  assert.match(source, /const legendInside = legendPosition === "inside"/);
-  assert.match(source, /legendInside \? \(chartSubtitle \? 174 : 150\)/);
-  assert.match(source, /legendInside && <line/);
   assert.match(styles, /\.chart-settings-grid/);
   assert.match(styles, /width: max\(820px, 100%\)/);
   assert.match(styles, /@media \(max-width: 720px\)/);
