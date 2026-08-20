@@ -111,7 +111,28 @@ test("every analysis tool uses configurable spreadsheet import and merge mode", 
   assert.match(importer, /selectedSheet/);
   assert.match(importer, /importMode/);
   assert.match(app, /function mergeImportedWorkspace/);
-  for (const view of ["ioc", "descriptive", "quality", "item", "reliability", "paired", "efficiency"]) {
+  for (const view of ["ioc", "descriptive", "quality", "item", "reliability", "paired", "efficiency", "individual"]) {
     assert.match(app, new RegExp(`view === "${view}"`));
   }
+});
+
+test("individual report combines outcomes with selectable privacy, matching, and charts", async () => {
+  const source = await readFile(
+    new URL("../components/ResearchStatsApp.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /รายบุคคลและแผนภูมิพัฒนาการ/);
+  assert.match(source, /function IndividualProgressView/);
+  assert.match(source, /ข้อมูลรายบุคคลแบบบูรณาการ/);
+  for (const key of ["studentId", "studentNumber", "name", "row"]) {
+    assert.match(source, new RegExp(`<option value="${key}">`));
+  }
+  assert.match(source, /ปกปิดชื่อในรายงาน/);
+  assert.match(source, /คนที่ \$\{index \+ 1\}/);
+  assert.match(source, /Dumbbell Chart/);
+  assert.match(source, /Slope Chart/);
+  assert.match(source, /เฉพาะผู้ควรติดตาม/);
+  assert.match(source, /คอลัมน์คะแนนความพึงพอใจ/);
+  assert.match(source, /ResultExportToolbar title=\{title \|\| "รายงานผลรายบุคคล"\}/);
 });
