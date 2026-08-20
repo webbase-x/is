@@ -3775,10 +3775,61 @@ function Page({
 
 function flattenRows(rows: unknown[][]) {
   return rows
-    .flatMap((row) =>
-      row.map((cell) => String(cell ?? "").trim()).filter(Boolean),
-    )
-    .join(", ");
+    .map((row) => row.map((cell) => String(cell ?? "").trim()).filter(Boolean).join(","))
+    .filter(Boolean)
+    .join("\n");
+}
+
+function appendImportedText(existing: unknown, incoming: string, append: boolean) {
+  const previous = typeof existing === "string" ? existing.trim() : "";
+  return append && previous ? `${previous}\n${incoming}` : incoming;
+}
+
+function importedNumericMatrix(rows: unknown[][]) {
+  return rows
+    .map((row) => row.map((cell) => Number(cell)).filter(Number.isFinite))
+    .filter((row) => row.length > 0);
+}
+
+function mergeImportedWorkspace(view: View, current: WorkspaceData, data: ImportedProjectData) {
+  const append = data.importMode === "append";
+  const text = flattenRows(data.rows);
+  const matrix = importedNumericMatrix(data.rows);
+  if (view === "ioc") return append ? current : {};
+  if (view === "descriptive") return { ...current, text: appendImportedText(current.text, text, append) };
+  if (view === "quality") {
+    if (current.qualityMode === "media-expert") {
+      const incoming = Array.from({ length: Math.max(0, ...matrix.map((row) => row.length)) }, (_, itemIndex) =>
+        matrix.flatMap((row) => typeof row[itemIndex] === "number" && Number.isFinite(row[itemIndex]) ? [row[itemIndex]] : []),
+      );
+      const previous = Array.isArray(current.mediaScores) ? current.mediaScores as number[][] : [];
+      const mediaScores = append
+        ? Array.from({ length: Math.max(previous.length, incoming.length) }, (_, index) => [
+            ...(previous[index] ?? []),
+            ...(incoming[index] ?? []),
+          ])
+        : incoming;
+      const priorRespondents = append && Array.isArray(current.respondents) ? current.respondents.map(String) : [];
+      const respondents = [...priorRespondents, ...matrix.map((_, index) => `ผู้ตอบ ${priorRespondents.length + index + 1}`)];
+      return { ...current, mediaScores, respondents };
+    }
+    return { ...current, text: appendImportedText(current.text, text, append) };
+  }
+  if (view === "item") return { ...current, testMatrix: appendImportedText(current.testMatrix, text, append) };
+  if (view === "reliability") return { ...current, scaleText: appendImportedText(current.scaleText, text, append) };
+  if (view === "paired") {
+    const pairs = matrix.filter((row) => row.length >= 2);
+    const nextPre = pairs.map((row) => row[0]).join(", ");
+    const nextPost = (pairs.length ? pairs.map((row) => row[1]) : matrix.map((row) => row.at(-1))).join(", ");
+    return { ...current, pre: appendImportedText(current.pre, nextPre, append).replaceAll("\n", ", "), post: appendImportedText(current.post, nextPost, append).replaceAll("\n", ", ") };
+  }
+  if (view === "efficiency") {
+    const pairs = matrix.filter((row) => row.length >= 2);
+    const nextProcess = pairs.map((row) => row[0]).join(", ");
+    const nextPost = pairs.map((row) => row[1]).join(", ");
+    return { ...current, process: appendImportedText(current.process, nextProcess, append).replaceAll("\n", ", "), post: appendImportedText(current.post, nextPost, append).replaceAll("\n", ", ") };
+  }
+  return append ? current : {};
 }
 
 function safeFilename(value: string) {
@@ -4541,12 +4592,15 @@ export default function ResearchStatsApp({
         onClose={() => setShowImporter(false)}
         onImport={(data) => {
           if (analysisLocked) return;
-          if (view === "item" || view === "reliability") {
-            setSharedTestText(
-              data.rows.map((row) => row.join(",")).join("\n"),
+          const importedText = flattenRows(data.rows);
+          if (view === "item") {
+            setSharedTestText((current) =>
+              appendImportedText(current, importedText, data.importMode === "append"),
             );
           }
-          setWorkspaceInitial(view === "ioc" ? workspaceDraft : {});
+          const nextWorkspace = mergeImportedWorkspace(view, workspaceDraft, data);
+          setWorkspaceInitial(nextWorkspace);
+          setWorkspaceDraft(nextWorkspace);
           setImported(data);
           setAnalysisTitle(data.workTitle);
           setRevision((value) => value + 1);

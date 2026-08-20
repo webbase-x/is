@@ -35,6 +35,9 @@ export interface ImportedProjectData {
   expectedItemCount?: number;
   sourceRange?: { from: number; to: number; unit: "หน้า" | "แถว" };
   iocColumnMap?: IocColumnMap;
+  importMode?: "replace" | "append";
+  selectedSheet?: string;
+  selectedColumns?: Array<{ index: number; label: string }>;
 }
 
 type LoadedSource = {
@@ -43,6 +46,7 @@ type LoadedSource = {
   kind: "pdf" | "image" | "spreadsheet";
   unit: "หน้า" | "แถว";
   total: number;
+  sheetNames?: string[];
 };
 
 export type IocColumnMap = {
@@ -384,6 +388,10 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   const [imageZeroColumn, setImageZeroColumn] = useState(5);
   const [imageMinusColumn, setImageMinusColumn] = useState(6);
   const [imageSuggestionColumn, setImageSuggestionColumn] = useState(7);
+  const [importMode, setImportMode] = useState<"replace" | "append">("replace");
+  const [selectedSheet, setSelectedSheet] = useState("");
+  const [spreadsheetColumns, setSpreadsheetColumns] = useState<Array<{ index: number; label: string }>>([]);
+  const [selectedColumns, setSelectedColumns] = useState<number[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -415,8 +423,48 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   if (!open) return null;
 
   function closeDialog() {
-    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle(""); setTargetExpert(1); setExpectedItemCount(30); setTableStartRow(3); setFirstItemNumber(1); setItemColumn("A"); setDetailColumn("B"); setPlusColumn("D"); setZeroColumn("E"); setMinusColumn("F"); setMappingPage(1); setMappingPreview(""); setTotalImageColumns(7); setImageItemColumn(1); setImageDetailFrom(2); setImageDetailTo(3); setImagePlusColumn(4); setImageZeroColumn(5); setImageMinusColumn(6); setImageSuggestionColumn(7);
+    setSelectedId(""); setSource(null); setError(""); setProgress(""); setMode("all"); setWorkTitle(""); setTargetExpert(1); setExpectedItemCount(30); setTableStartRow(3); setFirstItemNumber(1); setItemColumn("A"); setDetailColumn("B"); setPlusColumn("D"); setZeroColumn("E"); setMinusColumn("F"); setMappingPage(1); setMappingPreview(""); setTotalImageColumns(7); setImageItemColumn(1); setImageDetailFrom(2); setImageDetailTo(3); setImagePlusColumn(4); setImageZeroColumn(5); setImageMinusColumn(6); setImageSuggestionColumn(7); setImportMode("replace"); setSelectedSheet(""); setSpreadsheetColumns([]); setSelectedColumns([]);
     onClose();
+  }
+
+  function configureSpreadsheetSheet(nextSource: LoadedSource, sheetName: string) {
+    const XLSXPromise = import("xlsx");
+    void XLSXPromise.then((XLSX) => {
+      const workbook = XLSX.read(nextSource.buffer, { type: "array", cellDates: true });
+      const actualSheet = workbook.SheetNames.includes(sheetName) ? sheetName : workbook.SheetNames[0];
+      const raw = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[actualSheet], { header: 1, defval: "", raw: false });
+      const width = Math.max(0, ...raw.map((row) => row.length));
+      const first = raw[0] ?? [];
+      const columns = Array.from({ length: width }, (_, index) => ({
+        index,
+        label: `${indexToColumnLabel(index)} · ${String(first[index] ?? "").trim() || `คอลัมน์ ${index + 1}`}`,
+      }));
+      const numericColumns = columns.filter(({ index }) => {
+        const values = raw.slice(1, 101).map((row) => String(row[index] ?? "").trim()).filter(Boolean);
+        if (!values.length) return false;
+        return values.filter((value) => Number.isFinite(Number(value))).length / values.length >= 0.5;
+      }).map(({ index }) => index);
+      const expectedWidth = analysisType === "paired" || analysisType === "efficiency" ? 2 : numericColumns.length;
+      const preferred = expectedWidth === 2 ? numericColumns.slice(-2) : numericColumns;
+      const firstDataIndex = raw.findIndex((row, rowIndex) => rowIndex > 0 && preferred.some((index) => Number.isFinite(Number(row[index]))));
+      const mapping = inferSpreadsheetMapping(raw);
+      setSource((current) => current && current.file.id === nextSource.file.id
+        ? { ...current, total: Math.max(raw.length, 1) }
+        : nextSource);
+      setSelectedSheet(actualSheet);
+      setSpreadsheetColumns(columns);
+      setSelectedColumns(preferred.length ? preferred : columns.map(({ index }) => index));
+      setStart(firstDataIndex >= 0 ? firstDataIndex + 1 : 1);
+      setEnd(Math.max(raw.length, 1));
+      setMode("range");
+      setTableStartRow(mapping.startRow);
+      setFirstItemNumber(mapping.firstItem);
+      setItemColumn(mapping.itemColumn);
+      setDetailColumn(mapping.detailColumn);
+      setPlusColumn(mapping.plusColumn);
+      setZeroColumn(mapping.zeroColumn);
+      setMinusColumn(mapping.minusColumn);
+    });
   }
 
   async function showMappingPage(nextSource: LoadedSource, pageNumber: number) {
@@ -531,8 +579,9 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
         setMinusColumn(mapping.minusColumn);
         const suggestedFromHeader = titleFromRows(raw);
         if (!workTitle.trim() && suggestedFromHeader) setWorkTitle(suggestedFromHeader);
-        setSource({ file, buffer, kind: "spreadsheet", unit: "แถว", total: Math.max(raw.length, 1) });
-        setEnd(Math.max(raw.length, 1));
+        const nextSource: LoadedSource = { file, buffer, kind: "spreadsheet", unit: "แถว", total: Math.max(raw.length, 1), sheetNames: workbook.SheetNames };
+        setSource(nextSource);
+        configureSpreadsheetSheet(nextSource, firstSheet);
       }
     } catch {
       setError("ไม่สามารถอ่านเนื้อหาไฟล์นี้ได้ อาจเป็น PDF แบบสแกนภาพหรือไฟล์เสียหาย");
@@ -580,7 +629,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
       if (source.unit === "แถว") {
         const XLSX = await import("xlsx");
         const workbook = XLSX.read(source.buffer, { type: "array", cellDates: true });
-        const firstSheet = workbook.SheetNames[0];
+        const firstSheet = workbook.SheetNames.includes(selectedSheet) ? selectedSheet : workbook.SheetNames[0];
         const raw = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[firstSheet], { header: 1, defval: "", raw: false });
         rows = raw.slice(from - 1, to);
         if (analysisType === "ioc") {
@@ -614,6 +663,11 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
           detectedIocItems.push(...spreadsheetItems);
           const conflicts = spreadsheetItems.filter((item) => item.rating === null).length;
           extractionWarning = `อ่านตาราง Excel จากแถว ${tableStartRow}: เลขข้อ ${itemColumn} · รายละเอียด ${detailColumn} · +1 ${plusColumn} · 0 ${zeroColumn} · -1 ${minusColumn} · ต้องตรวจคะแนน ${conflicts} ข้อ`;
+        } else {
+          if (!selectedColumns.length) throw new Error("กรุณาเลือกอย่างน้อย 1 คอลัมน์สำหรับคำนวณ");
+          rows = rows
+            .map((row) => selectedColumns.map((column) => row[column] ?? ""))
+            .filter((row) => row.some((cell) => String(cell ?? "").trim() !== ""));
         }
       } else if (source.kind === "image") {
         const canvas = await sourcePageToCanvas(source, 1, 2);
@@ -781,7 +835,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
       const rangeLabel = mode === "all" ? `${source.unit} ${from}–${to} (ทั้งหมด)` : `${source.unit} ${from}–${to}`;
       const ocrItems = analysisType === "ioc" ? reconcileIocItems(detectedIocItems, expectedItemCount, firstItemNumber) : [];
       const iocRatings = ocrItems.flatMap((entry) => entry.rating === null ? [] : [{ item: entry.item, rating: entry.rating }]);
-      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined, ocrItems: ocrItems.length ? ocrItems : undefined, targetExpert: analysisType === "ioc" ? targetExpert : undefined, expectedItemCount: analysisType === "ioc" ? expectedItemCount : undefined, sourceRange: { from, to, unit: source.unit }, iocColumnMap: analysisType === "ioc" && source.unit === "หน้า" ? iocColumnMap : undefined });
+      onImport({ id: Date.now(), workTitle: title, sourceName: source.file.original_name, rangeLabel, rows, warning: extractionWarning, iocRatings: iocRatings.length ? iocRatings : undefined, ocrItems: ocrItems.length ? ocrItems : undefined, targetExpert: analysisType === "ioc" ? targetExpert : undefined, expectedItemCount: analysisType === "ioc" ? expectedItemCount : undefined, sourceRange: { from, to, unit: source.unit }, iocColumnMap: analysisType === "ioc" && source.unit === "หน้า" ? iocColumnMap : undefined, importMode, selectedSheet: source.kind === "spreadsheet" ? selectedSheet : undefined, selectedColumns: source.kind === "spreadsheet" ? spreadsheetColumns.filter((column) => selectedColumns.includes(column.index)) : undefined });
       closeDialog();
     } catch (extractError) {
       const detail = extractError instanceof Error ? extractError.message : String(extractError);
@@ -791,7 +845,7 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
   }
 
   return <div className="modal-backdrop"><section className="small-modal source-modal" role="dialog" aria-modal="true" aria-label="นำข้อมูลจากไฟล์โครงการ">
-    <header><div><span className="step-label">PROJECT DATA</span><h2>นำข้อมูลจากไฟล์โครงการ</h2><p>เลือกไฟล์และช่วงข้อมูลที่จะเพิ่มในเครื่องมือปัจจุบัน</p></div><button className="close-button" onClick={closeDialog}>×</button></header>
+    <header><div><span className="step-label">PROJECT DATA</span><h2>นำข้อมูลจากไฟล์โครงการ</h2><p>เลือกไฟล์ ชีต ช่วงแถว คอลัมน์คะแนน และวิธีรวมข้อมูลก่อนคำนวณ</p></div><button className="close-button" onClick={closeDialog}>×</button></header>
     <label className="work-title-field">ชื่องานย่อยในโครงการ<input value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} placeholder={suggestedTitle}/><small>ระบบนำข้อความ 2 บรรทัดแรกจากหัวกระดาษมาตั้งชื่อให้อัตโนมัติ และคุณแก้ไขได้</small></label>
     {analysisType === "ioc" && <label className="work-title-field">นำเข้าคะแนนสำหรับผู้เชี่ยวชาญคนที่<input type="number" min={1} max={30} value={targetExpert} onChange={(event) => setTargetExpert(Math.max(1, Math.min(30, Number(event.target.value) || 1)))}/><small>คะแนนที่ตรวจพบจะถูกใส่ในคอลัมน์ของผู้เชี่ยวชาญคนนี้</small></label>}
     {analysisType === "ioc" && <label className="work-title-field required-count">แบบประเมินนี้มีทั้งหมดกี่ข้อ<input type="number" min={1} max={300} value={expectedItemCount} onChange={(event) => setExpectedItemCount(Math.max(1, Math.min(300, Number(event.target.value) || 1)))}/><small>ระบบตรวจทีละหน้า: อ่านเลขจากคอลัมน์ข้อ แล้วตรวจรอยปากกาในคอลัมน์ +1, 0 และ -1 ของแต่ละแถว</small></label>}
@@ -800,10 +854,12 @@ export default function ProjectDataImporter({ project, analysisType, suggestedTi
       <label><span className="sr-only">เลือกไฟล์ข้อมูล</span><select value={selectedId} onChange={(event) => { const file = files.find((item) => item.id === event.target.value); if (file) void loadSource(file); }}><option value="">— เลือกไฟล์ —</option>{files.map((file) => <option key={file.id} value={file.id}>{file.original_name}</option>)}</select></label>
       {selectedFile && !source && busy && <div className="source-status">กำลังอ่าน {selectedFile.original_name}…</div>}
       {source && <div className="source-range"><b>พบ {source.total} {source.unit}</b>{source.unit === "หน้า" && <small>ระบบค้นหาหัวตารางและเส้นแบ่งคอลัมน์ใหม่ทุกหน้า แล้วอ่านรอยปากกาตามหมายเลขคอลัมน์ย่อยที่กำหนด</small>}<label className="radio-row"><input type="radio" checked={mode === "all"} onChange={() => setMode("all")}/> ใช้{source.unit}ทั้งหมด</label><label className="radio-row"><input type="radio" checked={mode === "range"} onChange={() => setMode("range")}/> กำหนดช่วง{source.unit}</label>{mode === "range" && <div className="range-inputs"><label>จาก{source.unit}<input type="number" min={1} max={source.total} value={start} onChange={(e) => setStart(Number(e.target.value))}/></label><label>ถึง{source.unit}<input type="number" min={1} max={source.total} value={end} onChange={(e) => setEnd(Number(e.target.value))}/></label></div>}</div>}
+      {source?.kind === "spreadsheet" && <section className="spreadsheet-selection"><div className="spreadsheet-selection-head"><div><b>เลือกชีตและคอลัมน์คะแนน</b><small>ระบบเสนอคอลัมน์ตัวเลขให้ก่อน คุณเลือกหรือยกเลิกได้</small></div>{source.sheetNames && source.sheetNames.length > 1 && <label>ชีต<select value={selectedSheet} onChange={(event) => configureSpreadsheetSheet(source, event.target.value)}>{source.sheetNames.map((sheet) => <option key={sheet} value={sheet}>{sheet}</option>)}</select></label>}</div><div className="column-choice-grid">{spreadsheetColumns.map((column) => <label key={column.index}><input type="checkbox" checked={selectedColumns.includes(column.index)} onChange={(event) => setSelectedColumns((current) => event.target.checked ? [...current, column.index].sort((a, b) => a - b) : current.filter((value) => value !== column.index))}/><span>{column.label}</span></label>)}</div><div className="column-choice-actions"><button type="button" onClick={() => setSelectedColumns(spreadsheetColumns.map(({ index }) => index))}>เลือกทุกคอลัมน์</button><button type="button" onClick={() => setSelectedColumns([])}>ล้างที่เลือก</button></div></section>}
+      {source && <section className="import-mode-panel"><b>เมื่อนำเข้าแล้วให้จัดการข้อมูลเดิมอย่างไร</b><label><input type="radio" name="import-mode" checked={importMode === "replace"} onChange={() => setImportMode("replace")}/><span><strong>แทนที่ทั้งหมด</strong><small>ลบคะแนนเดิมในเครื่องมือนี้ แล้วใช้ข้อมูลที่เลือกเป็นชุดใหม่</small></span></label><label><input type="radio" name="import-mode" checked={importMode === "append"} onChange={() => setImportMode("append")}/><span><strong>ต่อรายการเดิม</strong><small>เพิ่มแถวใหม่ต่อท้ายคะแนนที่มีอยู่ โดยไม่ลบข้อมูลเดิม</small></span></label></section>}
       {source && source.unit === "หน้า" && analysisType === "ioc" && <section className="visual-ioc-map"><div className="visual-map-head"><div><b>โครงสร้างคอลัมน์ IOC ใน {source.kind === "image" ? "รูปภาพ" : "PDF"}</b><small>ระบบค้นหาเส้นและหัวตารางใหม่ทุกหน้า แล้วนับคอลัมน์ย่อยจากซ้ายไปขวา</small></div></div><div className="column-map-grid"><label>คอลัมน์ย่อยทั้งหมด<input type="number" min={5} max={20} value={totalImageColumns} onChange={(event) => setTotalImageColumns(Math.max(5, Math.min(20, Number(event.target.value) || 5)))}/></label><label>เลขข้อแรกในช่วง<input type="number" min={1} max={expectedItemCount} value={firstItemNumber} onChange={(event) => setFirstItemNumber(Math.max(1, Number(event.target.value) || 1))}/></label><label>ข้อ อยู่คอลัมน์<input type="number" min={1} max={totalImageColumns} value={imageItemColumn} onChange={(event) => setImageItemColumn(Number(event.target.value) || 1)}/></label><label>รายละเอียด เริ่มคอลัมน์<input type="number" min={1} max={totalImageColumns} value={imageDetailFrom} onChange={(event) => setImageDetailFrom(Number(event.target.value) || 1)}/></label><label>รายละเอียด ถึงคอลัมน์<input type="number" min={1} max={totalImageColumns} value={imageDetailTo} onChange={(event) => setImageDetailTo(Number(event.target.value) || 1)}/></label><label>+1 อยู่คอลัมน์ย่อย<input type="number" min={1} max={totalImageColumns} value={imagePlusColumn} onChange={(event) => setImagePlusColumn(Number(event.target.value) || 1)}/></label><label>0 อยู่คอลัมน์ย่อย<input type="number" min={1} max={totalImageColumns} value={imageZeroColumn} onChange={(event) => setImageZeroColumn(Number(event.target.value) || 1)}/></label><label>-1 อยู่คอลัมน์ย่อย<input type="number" min={1} max={totalImageColumns} value={imageMinusColumn} onChange={(event) => setImageMinusColumn(Number(event.target.value) || 1)}/></label><label>ข้อเสนอแนะ (0=ไม่มี)<input type="number" min={0} max={totalImageColumns} value={imageSuggestionColumn} onChange={(event) => setImageSuggestionColumn(Math.max(0, Number(event.target.value) || 0))}/></label>{source.kind === "pdf" && <label>หน้าตัวอย่าง<input type="number" min={1} max={source.total} value={mappingPage} onChange={(event) => { const page = Math.max(1, Math.min(source.total, Number(event.target.value) || 1)); setMappingPage(page); void showMappingPage(source, page); }}/></label>}</div><p className={columnMapValid ? "map-ready" : "map-pending"}>{columnMapValid ? `กำหนดแล้ว: ${totalImageColumns} คอลัมน์ · ข้อ=${imageItemColumn} · รายละเอียด=${imageDetailFrom}–${imageDetailTo} · +1=${imagePlusColumn} · 0=${imageZeroColumn} · -1=${imageMinusColumn}${imageSuggestionColumn ? ` · ข้อเสนอแนะ=${imageSuggestionColumn}` : ""}` : "หมายเลขคอลัมน์ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง"}</p>{mappingPreview ? <div className="column-map-preview"><img src={mappingPreview} alt="หน้าตัวอย่างสำหรับตรวจโครงสร้างตาราง"/></div> : <div className="source-status">กำลังเตรียมภาพตัวอย่าง…</div>}<p>หัวตารางแบบรวมเซลล์ไม่นับเป็นคอลัมน์เพิ่ม ให้นับเฉพาะคอลัมน์ย่อยจริงใต้หัวตาราง</p></section>}
       {source && source.unit === "แถว" && analysisType === "ioc" && <section className="excel-ioc-map"><div><b>กำหนดตำแหน่งตาราง IOC ใน Excel</b><small>ตรวจค่าที่ระบบเสนอและแก้ไขให้ตรงกับไฟล์จริงก่อนนำเข้า</small></div><div className="excel-map-grid"><label>เลขข้อแรก<input type="number" min={1} max={expectedItemCount} value={firstItemNumber} onChange={(event) => setFirstItemNumber(Math.max(1, Number(event.target.value) || 1))}/></label><label>เริ่มที่แถว<input type="number" min={1} max={source.total} value={tableStartRow} onChange={(event) => setTableStartRow(Math.max(1, Number(event.target.value) || 1))}/></label><label>คอลัมน์เลขข้อ<input value={itemColumn} onChange={(event) => setItemColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์รายละเอียด<input value={detailColumn} onChange={(event) => setDetailColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์ +1<input value={plusColumn} onChange={(event) => setPlusColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์ 0<input value={zeroColumn} onChange={(event) => setZeroColumn(event.target.value.toUpperCase())}/></label><label>คอลัมน์ -1<input value={minusColumn} onChange={(event) => setMinusColumn(event.target.value.toUpperCase())}/></label></div><p>ตัวอย่าง: ข้อ {firstItemNumber} เริ่มแถว {tableStartRow} · เลขข้อ {itemColumn || "—"} · รายละเอียด {detailColumn || "—"} · คะแนน +1={plusColumn || "—"}, 0={zeroColumn || "—"}, -1={minusColumn || "—"}</p></section>}
     </>}
     {(error || progress) && <div className={error ? "import-error" : "source-status"}>{error || progress}</div>}
-    <footer><button className="secondary-action" onClick={closeDialog}>ยกเลิก</button><button className="primary-action" disabled={!source || busy || (analysisType === "ioc" && source.unit === "หน้า" && !columnMapValid)} onClick={() => void extractRows()}>{busy ? "กำลังอ่าน…" : "นำข้อมูลเข้าเครื่องมือ"}</button></footer>
+    <footer><button className="secondary-action" onClick={closeDialog}>ยกเลิก</button><button className="primary-action" disabled={!source || busy || (source.kind === "spreadsheet" && analysisType !== "ioc" && !selectedColumns.length) || (analysisType === "ioc" && source.unit === "หน้า" && !columnMapValid)} onClick={() => void extractRows()}>{busy ? "กำลังอ่าน…" : importMode === "replace" ? "แทนที่ด้วยข้อมูลที่เลือก" : "ต่อท้ายข้อมูลที่เลือก"}</button></footer>
   </section><FileImportDialog open={showUpload} busy={busy} onClose={() => setShowUpload(false)} onConfirm={uploadNewFile}/></div>;
 }
