@@ -121,6 +121,10 @@ test("individual report combines outcomes with selectable privacy, matching, and
     new URL("../components/ResearchStatsApp.tsx", import.meta.url),
     "utf8",
   );
+  const styles = await readFile(
+    new URL("../app/globals.css", import.meta.url),
+    "utf8",
+  );
 
   assert.match(source, /รายบุคคลและแผนภูมิพัฒนาการ/);
   assert.match(source, /function IndividualProgressView/);
@@ -130,11 +134,30 @@ test("individual report combines outcomes with selectable privacy, matching, and
   }
   assert.match(source, /จอครูแสดงชื่อจริง/);
   assert.match(source, /ไฟล์บทที่ 4 ใช้ “คนที่ 1–n”/);
-  assert.match(source, /แสดงชื่อจริงบนจอครู/);
+  assert.match(source, /ป้ายชื่อรายบุคคล/);
   assert.match(source, /คนที่ \$\{index \+ 1\}/);
   assert.match(source, /Dumbbell Chart/);
   assert.match(source, /Slope Chart/);
   assert.match(source, /เฉพาะผู้ควรติดตาม/);
   assert.match(source, /คอลัมน์คะแนนความพึงพอใจ/);
   assert.match(source, /ResultExportToolbar title=\{title \|\| "รายงานผลรายบุคคล"\}/);
+  assert.match(source, /ตั้งค่ารายละเอียดกราฟ/);
+  for (const labelMode of ["name", "sequence", "studentNumber", "studentId"]) {
+    assert.match(source, new RegExp(`<option value="${labelMode}">`));
+  }
+  for (const titleMode of ["standard", "analysis", "custom"]) {
+    assert.match(source, new RegExp(`<option value="${titleMode}">`));
+  }
+  for (const legendPosition of ["inside", "below", "hidden"]) {
+    assert.match(source, new RegExp(`<option value="${legendPosition}">`));
+  }
+  assert.match(source, /แสดงตัวเลขคะแนนข้างจุด/);
+  assert.match(source, /ช่วงแกนคะแนน/);
+  assert.match(source, /คะแนนผลสัมฤทธิ์ทางการเรียน \(คะแนนเต็ม/);
+  assert.match(source, /data-person-number/);
+  assert.match(source, /ผลต่าง:/);
+  assert.match(source, /ผลเกณฑ์:/);
+  assert.match(styles, /\.chart-settings-grid/);
+  assert.match(styles, /width: max\(820px, 100%\)/);
+  assert.match(styles, /@media \(max-width: 720px\)/);
 });

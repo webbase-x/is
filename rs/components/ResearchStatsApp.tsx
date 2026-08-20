@@ -3534,11 +3534,29 @@ function IndividualProgressView({ imported, initial, onChange, title, editable, 
   const [scaleLevels, setScaleLevels] = useState<3 | 5>(Number(initial?.scaleLevels) === 5 ? 5 : 3);
   const [satisfactionThreshold, setSatisfactionThreshold] = useState(Number(initial?.satisfactionThreshold ?? 2.34));
   const [chartType, setChartType] = useState<"dumbbell" | "slope">(initial?.chartType === "slope" ? "slope" : "dumbbell");
-  const [sortMode, setSortMode] = useState<"sequence" | "pre" | "post" | "gain">(
-    ["pre", "post", "gain"].includes(String(initial?.sortMode)) ? initial?.sortMode as "pre" | "post" | "gain" : "sequence",
+  const [sortMode, setSortMode] = useState<"sequence" | "studentNumber" | "pre" | "post" | "gain">(
+    ["studentNumber", "pre", "post", "gain"].includes(String(initial?.sortMode)) ? initial?.sortMode as "studentNumber" | "pre" | "post" | "gain" : "sequence",
   );
   const [anonymizeReport, setAnonymizeReport] = useState(initial?.anonymizeReport !== false);
-  const [showTeacherNames, setShowTeacherNames] = useState(initial?.showTeacherNames !== false);
+  const [chartLabelMode, setChartLabelMode] = useState<"name" | "sequence" | "studentNumber" | "studentId">(
+    ["name", "sequence", "studentNumber", "studentId"].includes(String(initial?.chartLabelMode))
+      ? initial?.chartLabelMode as "name" | "sequence" | "studentNumber" | "studentId"
+      : initial?.showTeacherNames === false ? "sequence" : "name",
+  );
+  const [showScoreLabels, setShowScoreLabels] = useState(Boolean(initial?.showScoreLabels));
+  const [chartTitleMode, setChartTitleMode] = useState<"standard" | "analysis" | "custom">(
+    ["analysis", "custom"].includes(String(initial?.chartTitleMode)) ? initial?.chartTitleMode as "analysis" | "custom" : "standard",
+  );
+  const [customChartTitle, setCustomChartTitle] = useState(String(initial?.customChartTitle ?? ""));
+  const [showChartSubtitle, setShowChartSubtitle] = useState(initial?.showChartSubtitle !== false);
+  const [customChartSubtitle, setCustomChartSubtitle] = useState(String(initial?.customChartSubtitle ?? ""));
+  const [legendPosition, setLegendPosition] = useState<"inside" | "below" | "hidden">(
+    ["below", "hidden"].includes(String(initial?.legendPosition)) ? initial?.legendPosition as "below" | "hidden" : "inside",
+  );
+  const [axisMode, setAxisMode] = useState<"auto" | "manual">(initial?.axisMode === "manual" ? "manual" : "auto");
+  const [axisMinimum, setAxisMinimum] = useState(Number(initial?.axisMinimum ?? 0));
+  const [axisMaximum, setAxisMaximum] = useState(Number(initial?.axisMaximum ?? 20));
+  const [axisTickInterval, setAxisTickInterval] = useState(Number(initial?.axisTickInterval ?? 2.5));
   const [showCriterionLine, setShowCriterionLine] = useState(initial?.showCriterionLine !== false);
   const [onlyFollowUp, setOnlyFollowUp] = useState(Boolean(initial?.onlyFollowUp));
   const [followRules, setFollowRules] = useState({
@@ -3599,7 +3617,11 @@ function IndividualProgressView({ imported, initial, onChange, title, editable, 
     const values = rows.map((row) => String(row[column] ?? "").trim()).filter(Boolean);
     return [...new Set(values.filter((value, index) => values.indexOf(value) !== index))];
   }, [matchKey, rows, studentIdColumn, studentNumberColumn, nameColumn]);
-  const sortedRecords = useMemo(() => [...records].sort((a, b) => sortMode === "sequence" ? a.sequence - b.sequence : (Number(a[sortMode] ?? -Infinity) - Number(b[sortMode] ?? -Infinity))), [records, sortMode]);
+  const sortedRecords = useMemo(() => [...records].sort((a, b) => {
+    if (sortMode === "sequence") return a.sequence - b.sequence;
+    if (sortMode === "studentNumber") return Number(a.studentNumber || Infinity) - Number(b.studentNumber || Infinity);
+    return Number(a[sortMode] ?? -Infinity) - Number(b[sortMode] ?? -Infinity);
+  }), [records, sortMode]);
   const chartRecords = onlyFollowUp ? sortedRecords.filter((record) => record.followUp) : sortedRecords;
   const teacherRecords = records.map((record, index) => ({ ...record, displayName: record.name || record.studentId || `คนที่ ${index + 1}` }));
   const exportRecords = records.map((record, index) => ({ ...record, displayName: anonymizeReport ? `คนที่ ${index + 1}` : record.name || record.studentId || `คนที่ ${index + 1}` }));
@@ -3626,10 +3648,21 @@ function IndividualProgressView({ imported, initial, onChange, title, editable, 
     ["สรุป", `n = ${records.length}`, `ผ่าน ${records.filter((record) => record.passed).length} คน`, `ควรติดตาม ${records.filter((record) => record.followUp).length} คน`, `Gain เฉลี่ย ${fmt(mean(records.flatMap((record) => record.gain === null ? [] : [record.gain])), 2)}`, `ความพึงพอใจเฉลี่ย ${fmt(mean(records.flatMap((record) => record.satisfactionMean === null ? [] : [record.satisfactionMean])), 2)}`],
   ];
   const reportText = `นักเรียนจำนวน ${records.length} คน มีคะแนนก่อนเรียนเฉลี่ย ${fmt(mean(records.flatMap((record) => record.pre === null ? [] : [record.pre])), 2)} คะแนน และคะแนนหลังเรียนเฉลี่ย ${fmt(mean(records.flatMap((record) => record.post === null ? [] : [record.post])), 2)} คะแนน โดยมี Gain เฉลี่ย ${fmt(mean(records.flatMap((record) => record.gain === null ? [] : [record.gain])), 2)} คะแนน ผ่านเกณฑ์ ${fmt(criterionScore, 2)} คะแนน จำนวน ${records.filter((record) => record.passed).length} คน และมีความพึงพอใจเฉลี่ย ${fmt(mean(records.flatMap((record) => record.satisfactionMean === null ? [] : [record.satisfactionMean])), 2)} จาก ${scaleLevels} ระดับ ทั้งนี้พบผู้ที่เข้าเงื่อนไขควรติดตาม ${records.filter((record) => record.followUp).length} คน`;
+  const resolvedChartTitle = chartTitleMode === "analysis"
+    ? title || "แผนภูมิเปรียบเทียบคะแนนก่อนเรียน–หลังเรียนรายบุคคล"
+    : chartTitleMode === "custom"
+      ? customChartTitle.trim() || "แผนภูมิเปรียบเทียบคะแนนก่อนเรียน–หลังเรียนรายบุคคล"
+      : "แผนภูมิเปรียบเทียบคะแนนก่อนเรียน–หลังเรียนรายบุคคล";
+  const automaticChartSubtitle = showCriterionLine
+    ? criterionMode === "percent"
+      ? `พร้อมเส้นเกณฑ์ร้อยละ ${fmt(criterionPercent, 0)} (${fmt(criterionScore, 2)} คะแนน)`
+      : `พร้อมเส้นเกณฑ์ ${fmt(criterionScore, 2)} คะแนน`
+    : `คะแนนเต็ม ${fmt(maximumScore, 0)} คะแนน`;
+  const resolvedChartSubtitle = showChartSubtitle ? customChartSubtitle.trim() || automaticChartSubtitle : "";
 
   useEffect(() => {
-    onChange({ columnLabels, tableText, studentIdColumn, studentNumberColumn, nameColumn, sexColumn, preColumn, postColumn, satisfactionColumns, matchKey, maximumScore, criterionMode, criterionPercent, criterionRaw, scaleLevels, satisfactionThreshold, chartType, sortMode, anonymizeReport, showTeacherNames, showCriterionLine, onlyFollowUp, followRules, minimumGain, visibleColumns }, { respondentCount: records.length, criterionScore, passedCount: records.filter((record) => record.passed).length, followUpCount: records.filter((record) => record.followUp).length, duplicateKeys, records });
-  }, [columnLabels, tableText, studentIdColumn, studentNumberColumn, nameColumn, sexColumn, preColumn, postColumn, satisfactionColumns, matchKey, maximumScore, criterionMode, criterionPercent, criterionRaw, scaleLevels, satisfactionThreshold, chartType, sortMode, anonymizeReport, showTeacherNames, showCriterionLine, onlyFollowUp, followRules, minimumGain, visibleColumns, records, criterionScore, duplicateKeys, onChange]);
+    onChange({ columnLabels, tableText, studentIdColumn, studentNumberColumn, nameColumn, sexColumn, preColumn, postColumn, satisfactionColumns, matchKey, maximumScore, criterionMode, criterionPercent, criterionRaw, scaleLevels, satisfactionThreshold, chartType, sortMode, anonymizeReport, chartLabelMode, showScoreLabels, chartTitleMode, customChartTitle, showChartSubtitle, customChartSubtitle, legendPosition, axisMode, axisMinimum, axisMaximum, axisTickInterval, showCriterionLine, onlyFollowUp, followRules, minimumGain, visibleColumns }, { respondentCount: records.length, criterionScore, passedCount: records.filter((record) => record.passed).length, followUpCount: records.filter((record) => record.followUp).length, duplicateKeys, records });
+  }, [columnLabels, tableText, studentIdColumn, studentNumberColumn, nameColumn, sexColumn, preColumn, postColumn, satisfactionColumns, matchKey, maximumScore, criterionMode, criterionPercent, criterionRaw, scaleLevels, satisfactionThreshold, chartType, sortMode, anonymizeReport, chartLabelMode, showScoreLabels, chartTitleMode, customChartTitle, showChartSubtitle, customChartSubtitle, legendPosition, axisMode, axisMinimum, axisMaximum, axisTickInterval, showCriterionLine, onlyFollowUp, followRules, minimumGain, visibleColumns, records, criterionScore, duplicateKeys, onChange]);
 
   function loadSavedAnalyses() {
     const paired = analyses.find((analysis) => analysis.id === pairedAnalysisId);
@@ -3651,8 +3684,8 @@ function IndividualProgressView({ imported, initial, onChange, title, editable, 
   async function exportChart(copy: boolean) {
     if (!chartRef.current) return;
     const exportNode = chartRef.current.cloneNode(true) as SVGSVGElement;
-    if (anonymizeReport) exportNode.querySelectorAll<SVGTextElement>("[data-person-index]").forEach((node) => {
-      node.textContent = `คนที่ ${Number(node.dataset.personIndex) + 1}`;
+    if (anonymizeReport) exportNode.querySelectorAll<SVGTextElement>("[data-person-number]").forEach((node) => {
+      node.textContent = `คนที่ ${Number(node.dataset.personNumber)}`;
     });
     const svg = new XMLSerializer().serializeToString(exportNode);
     const image = new Image();
@@ -3680,20 +3713,168 @@ function IndividualProgressView({ imported, initial, onChange, title, editable, 
     <section className="panel individual-settings"><div className="panel-head"><div><span className="eyebrow">เกณฑ์และการติดตาม</span><h3>กำหนดเงื่อนไขได้ทุกข้อ</h3></div></div><div className="individual-setting-grid"><label>คะแนนเต็ม<input disabled={!editable} type="number" min={1} value={maximumScore} onChange={(event) => setMaximumScore(Number(event.target.value) || 1)}/></label><label>รูปแบบเกณฑ์<select disabled={!editable} value={criterionMode} onChange={(event) => setCriterionMode(event.target.value as "percent" | "raw")}><option value="percent">ร้อยละ</option><option value="raw">คะแนนดิบ</option></select></label>{criterionMode === "percent" ? <label>เกณฑ์ร้อยละ<input disabled={!editable} type="number" min={0} max={100} value={criterionPercent} onChange={(event) => setCriterionPercent(Number(event.target.value))}/></label> : <label>คะแนนเกณฑ์<input disabled={!editable} type="number" value={criterionRaw} onChange={(event) => setCriterionRaw(Number(event.target.value))}/></label>}<label>มาตราส่วนความพึงพอใจ<select disabled={!editable} value={scaleLevels} onChange={(event) => { const level = Number(event.target.value) as 3 | 5; setScaleLevels(level); setSatisfactionThreshold(level === 3 ? 2.34 : 3.51); }}><option value={3}>3 ระดับ</option><option value={5}>5 ระดับ</option></select></label><label>เกณฑ์ติดตามความพึงพอใจ<input disabled={!editable} type="number" min={1} max={scaleLevels} step="0.01" value={satisfactionThreshold} onChange={(event) => setSatisfactionThreshold(Number(event.target.value))}/></label><label>Gain ขั้นต่ำ<input disabled={!editable} type="number" value={minimumGain} onChange={(event) => setMinimumGain(Number(event.target.value))}/></label></div><div className="follow-rule-grid">{[["failed", "ไม่ผ่านเกณฑ์"], ["noGain", "คะแนนไม่เพิ่ม"], ["lowGain", "Gain ต่ำกว่าที่กำหนด"], ["lowSatisfaction", "ความพึงพอใจต่ำกว่าเกณฑ์"], ["incomplete", "ข้อมูลไม่ครบ"]].map(([key, label]) => <label key={key}><input disabled={!editable} type="checkbox" checked={followRules[key as keyof typeof followRules]} onChange={(event) => setFollowRules((current) => ({ ...current, [key]: event.target.checked }))}/>{label}</label>)}</div></section>
     <div className="metrics"><Metric label="นักเรียน" value={`${records.length} คน`}/><Metric label="ผ่านเกณฑ์" value={`${records.filter((record) => record.passed).length} คน`} tone="green"/><Metric label="Gain เฉลี่ย" value={fmt(mean(records.flatMap((record) => record.gain === null ? [] : [record.gain])), 2)} tone="amber"/><Metric label="ควรติดตาม" value={`${records.filter((record) => record.followUp).length} คน`} tone="violet"/></div>
     <section className="panel"><div className="panel-head individual-report-head"><div><span className="eyebrow">ตารางสำหรับครูและบทที่ 4</span><h3>ข้อมูลรายบุคคลแบบบูรณาการ</h3><p>จอครูแสดงชื่อจริง ส่วนไฟล์ส่งออกปกปิดตัวตนตามตัวเลือก</p></div><div className="individual-privacy-actions"><label><input type="checkbox" checked={anonymizeReport} onChange={(event) => setAnonymizeReport(event.target.checked)}/> ไฟล์บทที่ 4 ใช้ “คนที่ 1–n”</label><ResultExportToolbar title={title || "รายงานผลรายบุคคล"} sheetName="รายบุคคล" rows={exportRows}/></div></div><details className="column-visibility"><summary>เลือกคอลัมน์ที่แสดงและส่งออก</summary><div>{columnDefinitions.map((column) => <label key={column.key}><input type="checkbox" checked={visibleColumns[column.key]} onChange={(event) => setVisibleColumns((current) => ({ ...current, [column.key]: event.target.checked }))}/>{column.label}</label>)}</div></details><div className="table-wrap"><table className="individual-integrated-table"><thead><tr>{activeColumns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{teacherRecords.map((record) => <tr key={record.sequence} className={record.followUp ? "follow-up-row" : ""}>{activeColumns.map((column) => <td key={column.key}>{column.value(record)}</td>)}</tr>)}</tbody></table></div></section>
-    <section className="panel"><div className="panel-head individual-chart-head"><div><span className="eyebrow">แผนภูมิรายบุคคล</span><h3>{chartType === "dumbbell" ? "Dumbbell Chart" : "Slope Chart"}</h3></div><div className="chart-actions"><button className={chartType === "dumbbell" ? "active" : ""} onClick={() => setChartType("dumbbell")}>Dumbbell</button><button className={chartType === "slope" ? "active" : ""} onClick={() => setChartType("slope")}>Slope</button><button onClick={() => void exportChart(true)}>คัดลอกภาพ</button><button onClick={() => void exportChart(false)}>PNG</button></div></div><div className="individual-chart-options"><label>เรียงตาม<select value={sortMode} onChange={(event) => setSortMode(event.target.value as typeof sortMode)}><option value="sequence">ลำดับ</option><option value="pre">ก่อนเรียน</option><option value="post">หลังเรียน</option><option value="gain">Gain</option></select></label><label><input type="checkbox" checked={showTeacherNames} onChange={(event) => setShowTeacherNames(event.target.checked)}/> แสดงชื่อจริงบนจอครู</label><label><input type="checkbox" checked={showCriterionLine} onChange={(event) => setShowCriterionLine(event.target.checked)}/> แสดงเส้นเกณฑ์</label><label><input type="checkbox" checked={onlyFollowUp} onChange={(event) => setOnlyFollowUp(event.target.checked)}/> เฉพาะผู้ควรติดตาม</label></div><div className="individual-chart-scroll"><IndividualProgressChart ref={chartRef} records={chartRecords} type={chartType} maximumScore={maximumScore} criterion={criterionScore} showCriterion={showCriterionLine} anonymize={!showTeacherNames}/></div></section>
+    <section className="panel individual-chart-panel">
+      <div className="panel-head individual-chart-head">
+        <div><span className="eyebrow">แผนภูมิรายบุคคล</span><h3>{chartType === "dumbbell" ? "Dumbbell Chart" : "Slope Chart"}</h3></div>
+        <div className="chart-actions"><button className={chartType === "dumbbell" ? "active" : ""} onClick={() => setChartType("dumbbell")}>Dumbbell</button><button className={chartType === "slope" ? "active" : ""} onClick={() => setChartType("slope")}>Slope</button><button onClick={() => void exportChart(true)}>คัดลอกภาพ</button><button onClick={() => void exportChart(false)}>PNG</button></div>
+      </div>
+      <details className="chart-config-panel" open>
+        <summary>ตั้งค่ารายละเอียดกราฟ</summary>
+        <div className="chart-settings-grid">
+          <label>เรียงตาม<select value={sortMode} onChange={(event) => setSortMode(event.target.value as typeof sortMode)}><option value="sequence">ลำดับข้อมูล</option><option value="studentNumber">เลขที่นักเรียน</option><option value="pre">คะแนนก่อนเรียน</option><option value="post">คะแนนหลังเรียน</option><option value="gain">ผลต่างคะแนน</option></select></label>
+          <label>ป้ายชื่อรายบุคคล<select value={chartLabelMode} onChange={(event) => setChartLabelMode(event.target.value as typeof chartLabelMode)}><option value="name">ชื่อจริง</option><option value="sequence">คนที่ 1–n</option><option value="studentNumber">เลขที่นักเรียน</option><option value="studentId">รหัสนักเรียน</option></select></label>
+          <label>ชื่อกราฟ<select value={chartTitleMode} onChange={(event) => setChartTitleMode(event.target.value as typeof chartTitleMode)}><option value="standard">ชื่อมาตรฐาน</option><option value="analysis">ชื่องานวิเคราะห์</option><option value="custom">ป้อนเอง</option></select></label>
+          <label>ตำแหน่งคำอธิบายสี<select value={legendPosition} onChange={(event) => setLegendPosition(event.target.value as typeof legendPosition)}><option value="inside">ภายในกราฟ</option><option value="below">ด้านล่างกราฟ</option><option value="hidden">ซ่อน</option></select></label>
+          <label>ช่วงแกนคะแนน<select value={axisMode} onChange={(event) => setAxisMode(event.target.value as "auto" | "manual")}><option value="auto">อัตโนมัติตามคะแนนเต็ม</option><option value="manual">กำหนดเอง</option></select></label>
+          {chartTitleMode === "custom" && <label className="chart-wide-setting">ข้อความชื่อกราฟ<input value={customChartTitle} onChange={(event) => setCustomChartTitle(event.target.value)} placeholder="แผนภูมิเปรียบเทียบคะแนนก่อนเรียน–หลังเรียนรายบุคคล"/></label>}
+          <label className="chart-wide-setting">คำบรรยายใต้ชื่อกราฟ<input disabled={!showChartSubtitle} value={customChartSubtitle} onChange={(event) => setCustomChartSubtitle(event.target.value)} placeholder={automaticChartSubtitle}/></label>
+          {axisMode === "manual" && <><label>ค่าเริ่มต้นแกน<input type="number" value={axisMinimum} onChange={(event) => setAxisMinimum(Number(event.target.value))}/></label><label>ค่าสูงสุดแกน<input type="number" value={axisMaximum} onChange={(event) => setAxisMaximum(Number(event.target.value))}/></label><label>ช่วงเส้นแบ่ง<input type="number" min="0.01" step="0.5" value={axisTickInterval} onChange={(event) => setAxisTickInterval(Number(event.target.value))}/></label></>}
+        </div>
+        {axisMode === "manual" && (axisMaximum <= axisMinimum || axisTickInterval <= 0) && <div className="import-error">ช่วงแกนไม่ถูกต้อง: ค่าสูงสุดต้องมากกว่าค่าเริ่มต้น และช่วงเส้นแบ่งต้องมากกว่า 0</div>}
+        <div className="individual-chart-options">
+          <label><input type="checkbox" checked={showScoreLabels} onChange={(event) => setShowScoreLabels(event.target.checked)}/> แสดงตัวเลขคะแนนข้างจุด</label>
+          <label><input type="checkbox" checked={showChartSubtitle} onChange={(event) => setShowChartSubtitle(event.target.checked)}/> แสดงคำบรรยายใต้ชื่อ</label>
+          <label><input type="checkbox" checked={showCriterionLine} onChange={(event) => setShowCriterionLine(event.target.checked)}/> แสดงเส้นเกณฑ์</label>
+          <label><input type="checkbox" checked={onlyFollowUp} onChange={(event) => setOnlyFollowUp(event.target.checked)}/> เฉพาะผู้ควรติดตาม</label>
+        </div>
+      </details>
+      <div className="chart-hover-note">ชี้เมาส์หรือแตะจุดเพื่อดูชื่อ คะแนนก่อน–หลัง ผลต่าง และผลผ่านเกณฑ์</div>
+      <div className="individual-chart-scroll"><IndividualProgressChart ref={chartRef} records={chartRecords} type={chartType} maximumScore={maximumScore} criterion={criterionScore} showCriterion={showCriterionLine} anonymize={false} labelMode={chartLabelMode} showScoreLabels={showScoreLabels} chartTitle={resolvedChartTitle} chartSubtitle={resolvedChartSubtitle} legendPosition={legendPosition} axisMinimum={axisMode === "auto" ? 0 : axisMinimum} axisMaximum={axisMode === "auto" ? maximumScore : axisMaximum} tickInterval={axisMode === "auto" ? maximumScore / 8 : axisTickInterval} criterionLabel={criterionMode === "percent" ? `เกณฑ์ร้อยละ ${fmt(criterionPercent, 0)} (${fmt(criterionScore, 2)} คะแนน)` : `เกณฑ์ ${fmt(criterionScore, 2)} คะแนน`}/></div>
+    </section>
     <section className="panel automatic-report"><div className="panel-head"><div><span className="eyebrow">พร้อมใช้ในบทที่ 4</span><h3>รายงานผลอัตโนมัติ</h3></div><button onClick={() => void copyToClipboard(reportText)}>คัดลอกข้อความ</button></div><p>{reportText}</p></section>
     <Formula source="การวิเคราะห์รายบุคคลเชิงพรรณนา; คะแนนพัฒนาการและเกณฑ์ที่ผู้วิจัยกำหนด">Gain = คะแนนหลังเรียน − คะแนนก่อนเรียน · ผ่านเมื่อคะแนนหลังเรียน ≥ คะแนนเกณฑ์ · ความพึงพอใจรายคน = ผลรวมคะแนนข้อประเมิน ÷ จำนวนข้อที่ตอบจริง</Formula>
   </Page>;
 }
 
-const IndividualProgressChart = forwardRef<SVGSVGElement, { records: Array<{ sequence: number; name: string; studentId: string; pre: number | null; post: number | null; followUp: boolean }>; type: "dumbbell" | "slope"; maximumScore: number; criterion: number; showCriterion: boolean; anonymize: boolean }>(function IndividualProgressChart({ records, type, maximumScore, criterion, showCriterion, anonymize }, ref) {
-  const width = 900;
-  const height = type === "dumbbell" ? Math.max(360, records.length * 42 + 110) : 560;
-  const left = type === "dumbbell" ? 150 : 210, right = type === "dumbbell" ? 55 : 210, top = 65, bottom = 55;
-  const xScore = (value: number) => left + (Math.max(0, Math.min(maximumScore, value)) / maximumScore) * (width - left - right);
-  const yScore = (value: number) => top + (1 - Math.max(0, Math.min(maximumScore, value)) / maximumScore) * (height - top - bottom);
-  const labelFor = (record: typeof records[number], index: number) => anonymize ? `คนที่ ${index + 1}` : record.name || record.studentId || `คนที่ ${record.sequence}`;
-  return <svg ref={ref} xmlns="http://www.w3.org/2000/svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${type === "dumbbell" ? "Dumbbell" : "Slope"} chart คะแนนก่อนเรียนและหลังเรียน`}><rect width={width} height={height} fill="white"/><text x={width / 2} y={28} textAnchor="middle" fontSize="18" fontWeight="700" fill="#17213a">เปรียบเทียบคะแนนก่อนเรียน–หลังเรียนรายบุคคล</text>{type === "dumbbell" ? <>{Array.from({ length: 6 }, (_, index) => maximumScore * index / 5).map((tick) => <g key={tick}><line x1={xScore(tick)} x2={xScore(tick)} y1={top - 12} y2={height - bottom} stroke="#e2e8f0"/><text x={xScore(tick)} y={height - 25} textAnchor="middle" fontSize="12" fill="#64748b">{fmt(tick, 0)}</text></g>)}{showCriterion && <g><line x1={xScore(criterion)} x2={xScore(criterion)} y1={top - 18} y2={height - bottom} stroke="#dc2626" strokeWidth="2" strokeDasharray="7 5"/><text x={xScore(criterion) + 5} y={top - 25} fontSize="12" fill="#dc2626">เกณฑ์ {fmt(criterion, 1)}</text></g>}{records.map((record, index) => { const y = top + index * 42; return record.pre === null || record.post === null ? null : <g key={record.sequence}><text data-person-index={index} x={left - 12} y={y + 4} textAnchor="end" fontSize="12" fill={record.followUp ? "#b45309" : "#334155"}>{labelFor(record, index)}</text><line x1={xScore(record.pre)} x2={xScore(record.post)} y1={y} y2={y} stroke="#94a3b8" strokeWidth="3"/><circle cx={xScore(record.pre)} cy={y} r="6" fill="#ea580c"/><circle cx={xScore(record.post)} cy={y} r="6" fill="#2563eb"/></g>; })}</> : <>{Array.from({ length: 6 }, (_, index) => maximumScore * index / 5).map((tick) => <g key={tick}><line x1={left} x2={width - right} y1={yScore(tick)} y2={yScore(tick)} stroke="#e2e8f0"/><text x={left - 12} y={yScore(tick) + 4} textAnchor="end" fontSize="12" fill="#64748b">{fmt(tick, 0)}</text></g>)}{showCriterion && <line x1={left} x2={width - right} y1={yScore(criterion)} y2={yScore(criterion)} stroke="#dc2626" strokeWidth="2" strokeDasharray="7 5"/>}<text x={left} y={height - 20} textAnchor="middle" fontWeight="700">ก่อนเรียน</text><text x={width - right} y={height - 20} textAnchor="middle" fontWeight="700">หลังเรียน</text>{records.map((record, index) => record.pre === null || record.post === null ? null : <g key={record.sequence}><line x1={left} x2={width - right} y1={yScore(record.pre)} y2={yScore(record.post)} stroke={record.followUp ? "#d97706" : "#94a3b8"} strokeWidth="2" opacity="0.8"/><circle cx={left} cy={yScore(record.pre)} r="5" fill="#ea580c"/><circle cx={width - right} cy={yScore(record.post)} r="5" fill="#2563eb"/><text data-person-index={index} x={left - 10} y={yScore(record.pre) + 4} textAnchor="end" fontSize="10">{labelFor(record, index)}</text><text data-person-index={index} x={width - right + 10} y={yScore(record.post) + 4} fontSize="10">{labelFor(record, index)}</text></g>)}</>}</svg>;
+type IndividualChartRecord = {
+  sequence: number;
+  studentId: string;
+  studentNumber: string;
+  name: string;
+  pre: number | null;
+  post: number | null;
+  gain: number | null;
+  passed: boolean | null;
+  followUp: boolean;
+};
+
+const IndividualProgressChart = forwardRef<SVGSVGElement, {
+  records: IndividualChartRecord[];
+  type: "dumbbell" | "slope";
+  maximumScore: number;
+  criterion: number;
+  showCriterion: boolean;
+  anonymize: boolean;
+  labelMode: "name" | "sequence" | "studentNumber" | "studentId";
+  showScoreLabels: boolean;
+  chartTitle: string;
+  chartSubtitle: string;
+  legendPosition: "inside" | "below" | "hidden";
+  axisMinimum: number;
+  axisMaximum: number;
+  tickInterval: number;
+  criterionLabel: string;
+}>(function IndividualProgressChart({
+  records,
+  type,
+  maximumScore,
+  criterion,
+  showCriterion,
+  anonymize,
+  labelMode,
+  showScoreLabels,
+  chartTitle,
+  chartSubtitle,
+  legendPosition,
+  axisMinimum,
+  axisMaximum,
+  tickInterval,
+  criterionLabel,
+}, ref) {
+  const width = 1000;
+  const safeMinimum = Number.isFinite(axisMinimum) ? axisMinimum : 0;
+  const safeMaximum = Number.isFinite(axisMaximum) && axisMaximum > safeMinimum ? axisMaximum : Math.max(maximumScore, safeMinimum + 1);
+  const safeTick = Number.isFinite(tickInterval) && tickInterval > 0 ? tickInterval : (safeMaximum - safeMinimum) / 8;
+  const tickCount = Math.min(20, Math.max(1, Math.floor((safeMaximum - safeMinimum) / safeTick)));
+  const ticks = Array.from({ length: tickCount + 1 }, (_, index) => safeMinimum + safeTick * index)
+    .filter((value) => value <= safeMaximum + Number.EPSILON);
+  if (ticks.at(-1) !== safeMaximum) ticks.push(safeMaximum);
+  const top = chartSubtitle ? 92 : 70;
+  const legendBelow = legendPosition === "below";
+  const bottom = legendBelow ? 132 : 72;
+  const height = type === "dumbbell" ? Math.max(430, top + records.length * 46 + bottom) : 650 + (legendBelow ? 55 : 0);
+  const left = type === "dumbbell" ? 178 : 225;
+  const right = type === "dumbbell" ? 58 : 225;
+  const scoreRange = safeMaximum - safeMinimum;
+  const clampScore = (value: number) => Math.max(safeMinimum, Math.min(safeMaximum, value));
+  const xScore = (value: number) => left + ((clampScore(value) - safeMinimum) / scoreRange) * (width - left - right);
+  const yScore = (value: number) => top + (1 - (clampScore(value) - safeMinimum) / scoreRange) * (height - top - bottom);
+  const labelFor = (record: IndividualChartRecord) => {
+    if (anonymize || labelMode === "sequence") return `คนที่ ${record.sequence}`;
+    if (labelMode === "studentNumber") return record.studentNumber ? `เลขที่ ${record.studentNumber}` : `คนที่ ${record.sequence}`;
+    if (labelMode === "studentId") return record.studentId || `คนที่ ${record.sequence}`;
+    return record.name || record.studentId || `คนที่ ${record.sequence}`;
+  };
+  const tooltipFor = (record: IndividualChartRecord) => [
+    record.name || `คนที่ ${record.sequence}`,
+    `ก่อนเรียน: ${record.pre ?? "—"} คะแนน`,
+    `หลังเรียน: ${record.post ?? "—"} คะแนน`,
+    `ผลต่าง: ${record.gain === null ? "—" : record.gain >= 0 ? `+${record.gain}` : record.gain} คะแนน`,
+    `ผลเกณฑ์: ${record.passed === null ? "ข้อมูลไม่ครบ" : record.passed ? "ผ่าน" : "ไม่ผ่าน"}`,
+  ].join("\n");
+  const titleFontSize = chartTitle.length > 75 ? 15 : chartTitle.length > 55 ? 17 : 20;
+  const legendX = legendBelow ? left : width - 286;
+  const legendY = legendBelow ? height - 98 : height - bottom - 92;
+  const legend = legendPosition === "hidden" ? null : (
+    <g className="chart-legend" transform={`translate(${legendX} ${legendY})`}>
+      {legendPosition === "inside" && <rect x="-18" y="-22" width="272" height={showCriterion ? 91 : 67} rx="8" fill="white" fillOpacity="0.9" stroke="#cbd5e1"/>}
+      <circle cx="0" cy="0" r="8" fill="#ef6c00"/><text x="28" y="5" fontSize="15" fill="#1f2937">ก่อนเรียน</text>
+      <circle cx="0" cy="28" r="8" fill="#1565c0"/><text x="28" y="33" fontSize="15" fill="#1f2937">หลังเรียน</text>
+      {showCriterion && <><line x1="-8" x2="18" y1="56" y2="56" stroke="#d32f2f" strokeWidth="3" strokeDasharray="9 6"/><text x="28" y="61" fontSize="15" fill="#1f2937">{criterionLabel}</text></>}
+    </g>
+  );
+  return (
+    <svg ref={ref} xmlns="http://www.w3.org/2000/svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${type === "dumbbell" ? "Dumbbell" : "Slope"} chart คะแนนก่อนเรียนและหลังเรียน`}>
+      <rect width={width} height={height} fill="white"/>
+      <text x={width / 2} y="31" textAnchor="middle" fontSize={titleFontSize} fontWeight="700" fill="#111827">{chartTitle}</text>
+      {chartSubtitle && <text x={width / 2} y="56" textAnchor="middle" fontSize="16" fill="#334155">{chartSubtitle}</text>}
+      {type === "dumbbell" ? (
+        <>
+          {ticks.map((tick) => <g key={tick}><line x1={xScore(tick)} x2={xScore(tick)} y1={top - 8} y2={height - bottom} stroke="#d7dde3" strokeDasharray="5 4"/><text x={xScore(tick)} y={height - bottom + 27} textAnchor="middle" fontSize="13" fill="#475569">{fmt(tick, Number.isInteger(tick) ? 0 : 1)}</text></g>)}
+          <line x1={left} x2={left} y1={top - 8} y2={height - bottom} stroke="#111827" strokeWidth="1.5"/>
+          <line x1={left} x2={width - right} y1={height - bottom} y2={height - bottom} stroke="#111827" strokeWidth="1.5"/>
+          {showCriterion && <line x1={xScore(criterion)} x2={xScore(criterion)} y1={top - 8} y2={height - bottom} stroke="#d32f2f" strokeWidth="3" strokeDasharray="10 6"/>}
+          {records.map((record, index) => {
+            if (record.pre === null || record.post === null) return null;
+            const y = top + 22 + index * 46;
+            const preX = xScore(record.pre);
+            const postX = xScore(record.post);
+            const preAnchor = preX <= postX ? "end" : "start";
+            const postAnchor = postX >= preX ? "start" : "end";
+            return <g key={record.sequence} className="chart-person-row"><title>{tooltipFor(record)}</title><text data-person-number={record.sequence} x={left - 14} y={y + 5} textAnchor="end" fontSize="14" fill={record.followUp ? "#b45309" : "#1f2937"}>{labelFor(record)}</text><line x1={preX} x2={postX} y1={y} y2={y} stroke="#b0bec5" strokeWidth="4"/><circle cx={preX} cy={y} r="8" fill="#ef6c00"/><circle cx={postX} cy={y} r="8" fill="#1565c0"/>{showScoreLabels && <><text x={preX + (preX <= postX ? -12 : 12)} y={y + 5} textAnchor={preAnchor} fontSize="12" fontWeight="700" fill="#b45309">{fmt(record.pre, 1)}</text><text x={postX + (postX >= preX ? 12 : -12)} y={y + 5} textAnchor={postAnchor} fontSize="12" fontWeight="700" fill="#1d4ed8">{fmt(record.post, 1)}</text></>}</g>;
+          })}
+          <text x={(left + width - right) / 2} y={height - bottom + 57} textAnchor="middle" fontSize="15" fontWeight="700" fill="#1f2937">คะแนนผลสัมฤทธิ์ทางการเรียน (คะแนนเต็ม {fmt(maximumScore, 0)})</text>
+          {legend}
+        </>
+      ) : (
+        <>
+          {ticks.map((tick) => <g key={tick}><line x1={left} x2={width - right} y1={yScore(tick)} y2={yScore(tick)} stroke="#d7dde3" strokeDasharray="5 4"/><text x={left - 14} y={yScore(tick) + 5} textAnchor="end" fontSize="13" fill="#475569">{fmt(tick, Number.isInteger(tick) ? 0 : 1)}</text></g>)}
+          <line x1={left} x2={left} y1={top} y2={height - bottom} stroke="#94a3b8" strokeWidth="2"/>
+          <line x1={width - right} x2={width - right} y1={top} y2={height - bottom} stroke="#94a3b8" strokeWidth="2"/>
+          {showCriterion && <line x1={left} x2={width - right} y1={yScore(criterion)} y2={yScore(criterion)} stroke="#d32f2f" strokeWidth="3" strokeDasharray="10 6"/>}
+          <text x={left} y={height - bottom + 34} textAnchor="middle" fontSize="15" fontWeight="700" fill="#b45309">ก่อนเรียน</text>
+          <text x={width - right} y={height - bottom + 34} textAnchor="middle" fontSize="15" fontWeight="700" fill="#1d4ed8">หลังเรียน</text>
+          {records.map((record) => {
+            if (record.pre === null || record.post === null) return null;
+            const preY = yScore(record.pre);
+            const postY = yScore(record.post);
+            return <g key={record.sequence} className="chart-person-row"><title>{tooltipFor(record)}</title><line x1={left} x2={width - right} y1={preY} y2={postY} stroke={record.followUp ? "#d97706" : "#b0bec5"} strokeWidth="3" opacity="0.84"/><circle cx={left} cy={preY} r="7" fill="#ef6c00"/><circle cx={width - right} cy={postY} r="7" fill="#1565c0"/><text data-person-number={record.sequence} x={left - 15} y={preY - 11} textAnchor="end" fontSize="11" fill="#334155">{labelFor(record)}</text><text data-person-number={record.sequence} x={width - right + 15} y={postY - 11} fontSize="11" fill="#334155">{labelFor(record)}</text>{showScoreLabels && <><text x={left - 14} y={preY + 17} textAnchor="end" fontSize="12" fontWeight="700" fill="#b45309">{fmt(record.pre, 1)}</text><text x={width - right + 14} y={postY + 17} fontSize="12" fontWeight="700" fill="#1d4ed8">{fmt(record.post, 1)}</text></>}</g>;
+          })}
+          {legend}
+        </>
+      )}
+    </svg>
+  );
 });
 
 function EfficiencyView({
