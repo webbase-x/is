@@ -163,4 +163,6 @@ test("individual report combines outcomes with selectable privacy, matching, and
   assert.match(styles, /\.chart-settings-grid/);
   assert.match(styles, /width: max\(820px, 100%\)/);
   assert.match(styles, /@media \(max-width: 720px\)/);
+  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\) max-content/);
+  assert.match(styles, /\.individual-saved-source select[\s\S]*text-overflow: ellipsis/);
 });

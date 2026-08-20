@@ -3192,6 +3192,21 @@ footer {
 
 .individual-saved-source {
   align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) max-content;
+}
+
+.individual-saved-source > * {
+  min-width: 0;
+}
+
+.individual-saved-source select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .individual-saved-source label,
@@ -3208,6 +3223,8 @@ footer {
 
 .individual-saved-source button {
   min-height: 45px;
+  padding-inline: 16px;
+  white-space: nowrap;
 }
 
 .satisfaction-column-picker {
@@ -3380,6 +3397,10 @@ footer {
   .individual-map-grid,
   .individual-setting-grid {
     grid-template-columns: 1fr;
+  }
+
+  .individual-saved-source button {
+    width: 100%;
   }
 
   .individual-report-head,
