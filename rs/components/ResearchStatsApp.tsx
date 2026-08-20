@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ProjectDataImporter, {
   type ImportedProjectData,
 } from "./ProjectDataImporter";
@@ -48,6 +48,7 @@ type View =
   | "reliability"
   | "paired"
   | "efficiency"
+  | "individual"
   | "references";
 type WorkspaceData = Record<string, unknown>;
 type AnalysisRecord = {
@@ -93,6 +94,12 @@ const NAV: Array<{ id: View; label: string; icon: string; group?: string }> = [
     group: "ทดสอบสมมติฐาน",
   },
   { id: "efficiency", label: "ประสิทธิภาพ E1/E2", icon: "%" },
+  {
+    id: "individual",
+    label: "รายบุคคลและแผนภูมิพัฒนาการ",
+    icon: "↗",
+    group: "รายงานผล",
+  },
   {
     id: "references",
     label: "สูตรและเอกสารอ้างอิง",
@@ -3470,6 +3477,219 @@ function PairedView({
   );
 }
 
+type IndividualColumnKey = "sequence" | "studentId" | "studentNumber" | "name" | "sex" | "pre" | "post" | "gain" | "criterion" | "passed" | "satisfaction" | "satisfactionLevel" | "followUp";
+
+function splitImportedTable(text: string) {
+  return text.split(/\r?\n/).map((line) => {
+    const delimiter = line.includes("\t") ? "\t" : ",";
+    return line.split(delimiter).map((cell) => cell.trim());
+  }).filter((row) => row.some(Boolean));
+}
+
+function cleanImportedColumnLabel(label: string) {
+  return label.replace(/^[A-Z]+\s*·\s*/i, "").trim();
+}
+
+function inferIndividualColumn(labels: string[], patterns: RegExp[], fallback = -1) {
+  const found = labels.findIndex((label) => patterns.some((pattern) => pattern.test(label.toLowerCase())));
+  return found >= 0 ? found : fallback;
+}
+
+function IndividualProgressView({ imported, initial, onChange, title, editable, analyses }: {
+  imported?: ImportedProjectData | null;
+  initial?: WorkspaceData;
+  onChange: (data: WorkspaceData, result: WorkspaceData) => void;
+  title: string;
+  editable: boolean;
+  analyses: AnalysisRecord[];
+}) {
+  const importedLabels = imported?.selectedColumns?.map((column) => cleanImportedColumnLabel(column.label)) ?? [];
+  const importedText = imported ? imported.rows.map((row) => row.join(",")).join("\n") : "";
+  const defaultLabels = importedLabels.length ? importedLabels : ["รหัสนักเรียน", "เลขที่", "ชื่อ–สกุล", "เพศ", "ก่อนเรียน", "หลังเรียน", "ความพึงพอใจเฉลี่ย"];
+  const [columnLabels, setColumnLabels] = useState<string[]>(
+    Array.isArray(initial?.columnLabels) ? initial.columnLabels.map(String) : defaultLabels,
+  );
+  const [tableText, setTableText] = useState(
+    typeof initial?.tableText === "string" ? initial.tableText : importedText,
+  );
+  const inferredPre = inferIndividualColumn(defaultLabels, [/ก่อน/, /pre/], Math.max(0, defaultLabels.length - 3));
+  const inferredPost = inferIndividualColumn(defaultLabels, [/หลัง/, /post/], Math.max(0, defaultLabels.length - 2));
+  const [studentIdColumn, setStudentIdColumn] = useState(Number(initial?.studentIdColumn ?? inferIndividualColumn(defaultLabels, [/รหัส/, /student.?id/, /^id$/], 0)));
+  const [studentNumberColumn, setStudentNumberColumn] = useState(Number(initial?.studentNumberColumn ?? inferIndividualColumn(defaultLabels, [/เลขที่/, /number/, /ลำดับ/], 1)));
+  const [nameColumn, setNameColumn] = useState(Number(initial?.nameColumn ?? inferIndividualColumn(defaultLabels, [/ชื่อ/, /name/], 2)));
+  const [sexColumn, setSexColumn] = useState(Number(initial?.sexColumn ?? inferIndividualColumn(defaultLabels, [/เพศ/, /sex/, /gender/], 3)));
+  const [preColumn, setPreColumn] = useState(Number(initial?.preColumn ?? inferredPre));
+  const [postColumn, setPostColumn] = useState(Number(initial?.postColumn ?? inferredPost));
+  const defaultSatisfaction = defaultLabels.map((label, index) => /พึง|satisfaction|ข้อ\s*\d+/i.test(label) ? index : -1).filter((index) => index >= 0);
+  const [satisfactionColumns, setSatisfactionColumns] = useState<number[]>(
+    Array.isArray(initial?.satisfactionColumns) ? initial.satisfactionColumns.map(Number) : defaultSatisfaction,
+  );
+  const [matchKey, setMatchKey] = useState<"studentId" | "studentNumber" | "name" | "row">(
+    ["studentId", "studentNumber", "name", "row"].includes(String(initial?.matchKey)) ? initial?.matchKey as "studentId" | "studentNumber" | "name" | "row" : "studentId",
+  );
+  const [maximumScore, setMaximumScore] = useState(Number(initial?.maximumScore ?? 20));
+  const [criterionMode, setCriterionMode] = useState<"percent" | "raw">(initial?.criterionMode === "raw" ? "raw" : "percent");
+  const [criterionPercent, setCriterionPercent] = useState(Number(initial?.criterionPercent ?? 80));
+  const [criterionRaw, setCriterionRaw] = useState(Number(initial?.criterionRaw ?? 16));
+  const [scaleLevels, setScaleLevels] = useState<3 | 5>(Number(initial?.scaleLevels) === 5 ? 5 : 3);
+  const [satisfactionThreshold, setSatisfactionThreshold] = useState(Number(initial?.satisfactionThreshold ?? 2.34));
+  const [chartType, setChartType] = useState<"dumbbell" | "slope">(initial?.chartType === "slope" ? "slope" : "dumbbell");
+  const [sortMode, setSortMode] = useState<"sequence" | "pre" | "post" | "gain">(
+    ["pre", "post", "gain"].includes(String(initial?.sortMode)) ? initial?.sortMode as "pre" | "post" | "gain" : "sequence",
+  );
+  const [anonymizeReport, setAnonymizeReport] = useState(initial?.anonymizeReport !== false);
+  const [showCriterionLine, setShowCriterionLine] = useState(initial?.showCriterionLine !== false);
+  const [onlyFollowUp, setOnlyFollowUp] = useState(Boolean(initial?.onlyFollowUp));
+  const [followRules, setFollowRules] = useState({
+    failed: initial?.followRules && typeof initial.followRules === "object" ? (initial.followRules as Record<string, boolean>).failed !== false : true,
+    noGain: initial?.followRules && typeof initial.followRules === "object" ? Boolean((initial.followRules as Record<string, boolean>).noGain) : false,
+    lowGain: initial?.followRules && typeof initial.followRules === "object" ? Boolean((initial.followRules as Record<string, boolean>).lowGain) : false,
+    lowSatisfaction: initial?.followRules && typeof initial.followRules === "object" ? (initial.followRules as Record<string, boolean>).lowSatisfaction !== false : true,
+    incomplete: initial?.followRules && typeof initial.followRules === "object" ? (initial.followRules as Record<string, boolean>).incomplete !== false : true,
+  });
+  const [minimumGain, setMinimumGain] = useState(Number(initial?.minimumGain ?? 1));
+  const defaultVisible: Record<IndividualColumnKey, boolean> = { sequence: true, studentId: true, studentNumber: true, name: true, sex: false, pre: true, post: true, gain: true, criterion: true, passed: true, satisfaction: true, satisfactionLevel: true, followUp: true };
+  const [visibleColumns, setVisibleColumns] = useState<Record<IndividualColumnKey, boolean>>(
+    initial?.visibleColumns && typeof initial.visibleColumns === "object" ? { ...defaultVisible, ...(initial.visibleColumns as Partial<Record<IndividualColumnKey, boolean>>) } : defaultVisible,
+  );
+  const [pairedAnalysisId, setPairedAnalysisId] = useState("");
+  const [qualityAnalysisId, setQualityAnalysisId] = useState("");
+  const [sourceNotice, setSourceNotice] = useState("");
+  const chartRef = useRef<SVGSVGElement>(null);
+  const rows = useMemo(() => splitImportedTable(tableText), [tableText]);
+  const criterionScore = criterionMode === "percent" ? maximumScore * criterionPercent / 100 : criterionRaw;
+  const bands = scaleLevels === 3 ? threeLevelSatisfactionBands : traditionalFiveLevelBands;
+
+  const records = useMemo(() => rows.map((row, index) => {
+    const numeric = (column: number) => column >= 0 && String(row[column] ?? "").trim() !== "" && Number.isFinite(Number(row[column])) ? Number(row[column]) : null;
+    const pre = numeric(preColumn);
+    const post = numeric(postColumn);
+    const satisfactionValues = satisfactionColumns.flatMap((column) => {
+      const value = numeric(column);
+      return value !== null && value >= 1 && value <= scaleLevels ? [value] : [];
+    });
+    const satisfactionMean = mean(satisfactionValues);
+    const complete = pre !== null && post !== null && satisfactionValues.length === satisfactionColumns.length && satisfactionColumns.length > 0;
+    const gain = pre !== null && post !== null ? post - pre : null;
+    const passed = post !== null ? post >= criterionScore : null;
+    const reasons = [
+      followRules.failed && passed === false ? "ไม่ผ่านเกณฑ์" : "",
+      followRules.noGain && gain !== null && gain <= 0 ? "คะแนนไม่เพิ่ม" : "",
+      followRules.lowGain && gain !== null && gain < minimumGain ? `Gain ต่ำกว่า ${minimumGain}` : "",
+      followRules.lowSatisfaction && satisfactionMean !== null && satisfactionMean < satisfactionThreshold ? "ความพึงพอใจต่ำกว่าเกณฑ์" : "",
+      followRules.incomplete && !complete ? "ข้อมูลไม่ครบ" : "",
+    ].filter(Boolean);
+    return {
+      sequence: index + 1,
+      studentId: String(row[studentIdColumn] ?? "").trim(),
+      studentNumber: String(row[studentNumberColumn] ?? "").trim(),
+      name: String(row[nameColumn] ?? "").trim(),
+      sex: String(row[sexColumn] ?? "").trim(),
+      pre, post, gain, passed, satisfactionMean,
+      satisfactionLevel: interpretQuality(satisfactionMean, bands),
+      followUp: reasons.length > 0,
+      reasons,
+    };
+  }), [rows, preColumn, postColumn, studentIdColumn, studentNumberColumn, nameColumn, sexColumn, satisfactionColumns, scaleLevels, criterionScore, followRules, minimumGain, satisfactionThreshold, bands]);
+
+  const duplicateKeys = useMemo(() => {
+    if (matchKey === "row") return [];
+    const column = matchKey === "studentId" ? studentIdColumn : matchKey === "studentNumber" ? studentNumberColumn : nameColumn;
+    const values = rows.map((row) => String(row[column] ?? "").trim()).filter(Boolean);
+    return [...new Set(values.filter((value, index) => values.indexOf(value) !== index))];
+  }, [matchKey, rows, studentIdColumn, studentNumberColumn, nameColumn]);
+  const sortedRecords = useMemo(() => [...records].sort((a, b) => sortMode === "sequence" ? a.sequence - b.sequence : (Number(a[sortMode] ?? -Infinity) - Number(b[sortMode] ?? -Infinity))), [records, sortMode]);
+  const chartRecords = onlyFollowUp ? sortedRecords.filter((record) => record.followUp) : sortedRecords;
+  const exportRecords = records.map((record, index) => ({ ...record, displayName: anonymizeReport ? `คนที่ ${index + 1}` : record.name || record.studentId || `คนที่ ${index + 1}` }));
+  const columnDefinitions: Array<{ key: IndividualColumnKey; label: string; value: (record: typeof exportRecords[number]) => ExportCell }> = [
+    { key: "sequence", label: "ลำดับ", value: (record) => record.sequence },
+    { key: "studentId", label: "รหัสนักเรียน", value: (record) => anonymizeReport ? "—" : record.studentId },
+    { key: "studentNumber", label: "เลขที่", value: (record) => anonymizeReport ? "—" : record.studentNumber },
+    { key: "name", label: "นักเรียน", value: (record) => record.displayName },
+    { key: "sex", label: "เพศ", value: (record) => record.sex },
+    { key: "pre", label: "ก่อนเรียน", value: (record) => record.pre ?? "" },
+    { key: "post", label: "หลังเรียน", value: (record) => record.post ?? "" },
+    { key: "gain", label: "Gain", value: (record) => record.gain ?? "" },
+    { key: "criterion", label: "เกณฑ์", value: () => fmt(criterionScore, 2) },
+    { key: "passed", label: "ผลเกณฑ์", value: (record) => record.passed === null ? "ข้อมูลไม่ครบ" : record.passed ? "ผ่าน" : "ไม่ผ่าน" },
+    { key: "satisfaction", label: "ความพึงพอใจเฉลี่ย", value: (record) => fmt(record.satisfactionMean, 2) },
+    { key: "satisfactionLevel", label: "ระดับความพึงพอใจ", value: (record) => record.satisfactionLevel },
+    { key: "followUp", label: "สถานะติดตาม", value: (record) => record.followUp ? record.reasons.join("; ") : "ปกติ" },
+  ];
+  const activeColumns = columnDefinitions.filter((column) => visibleColumns[column.key]);
+  const exportRows: ExportCell[][] = [
+    activeColumns.map((column) => column.label),
+    ...exportRecords.map((record) => activeColumns.map((column) => column.value(record))),
+    [],
+    ["สรุป", `n = ${records.length}`, `ผ่าน ${records.filter((record) => record.passed).length} คน`, `ควรติดตาม ${records.filter((record) => record.followUp).length} คน`, `Gain เฉลี่ย ${fmt(mean(records.flatMap((record) => record.gain === null ? [] : [record.gain])), 2)}`, `ความพึงพอใจเฉลี่ย ${fmt(mean(records.flatMap((record) => record.satisfactionMean === null ? [] : [record.satisfactionMean])), 2)}`],
+  ];
+  const reportText = `นักเรียนจำนวน ${records.length} คน มีคะแนนก่อนเรียนเฉลี่ย ${fmt(mean(records.flatMap((record) => record.pre === null ? [] : [record.pre])), 2)} คะแนน และคะแนนหลังเรียนเฉลี่ย ${fmt(mean(records.flatMap((record) => record.post === null ? [] : [record.post])), 2)} คะแนน โดยมี Gain เฉลี่ย ${fmt(mean(records.flatMap((record) => record.gain === null ? [] : [record.gain])), 2)} คะแนน ผ่านเกณฑ์ ${fmt(criterionScore, 2)} คะแนน จำนวน ${records.filter((record) => record.passed).length} คน และมีความพึงพอใจเฉลี่ย ${fmt(mean(records.flatMap((record) => record.satisfactionMean === null ? [] : [record.satisfactionMean])), 2)} จาก ${scaleLevels} ระดับ ทั้งนี้พบผู้ที่เข้าเงื่อนไขควรติดตาม ${records.filter((record) => record.followUp).length} คน`;
+
+  useEffect(() => {
+    onChange({ columnLabels, tableText, studentIdColumn, studentNumberColumn, nameColumn, sexColumn, preColumn, postColumn, satisfactionColumns, matchKey, maximumScore, criterionMode, criterionPercent, criterionRaw, scaleLevels, satisfactionThreshold, chartType, sortMode, anonymizeReport, showCriterionLine, onlyFollowUp, followRules, minimumGain, visibleColumns }, { respondentCount: records.length, criterionScore, passedCount: records.filter((record) => record.passed).length, followUpCount: records.filter((record) => record.followUp).length, duplicateKeys, records });
+  }, [columnLabels, tableText, studentIdColumn, studentNumberColumn, nameColumn, sexColumn, preColumn, postColumn, satisfactionColumns, matchKey, maximumScore, criterionMode, criterionPercent, criterionRaw, scaleLevels, satisfactionThreshold, chartType, sortMode, anonymizeReport, showCriterionLine, onlyFollowUp, followRules, minimumGain, visibleColumns, records, criterionScore, duplicateKeys, onChange]);
+
+  function loadSavedAnalyses() {
+    const paired = analyses.find((analysis) => analysis.id === pairedAnalysisId);
+    const quality = analyses.find((analysis) => analysis.id === qualityAnalysisId);
+    if (!paired || !quality) { setSourceNotice("กรุณาเลือกงานก่อน–หลังและงานความพึงพอใจให้ครบ"); return; }
+    const pre = parseNumbers(String(paired.input_json?.workspace?.pre ?? ""));
+    const post = parseNumbers(String(paired.input_json?.workspace?.post ?? ""));
+    const qualityText = String(quality.input_json?.workspace?.text ?? quality.input_json?.workspace?.scaleText ?? "");
+    const qualityMatrix = parseMatrix(qualityText);
+    const count = Math.max(pre.length, post.length, qualityMatrix.length);
+    const nextRows = Array.from({ length: count }, (_, index) => [index + 1, pre[index] ?? "", post[index] ?? "", mean(qualityMatrix[index] ?? []) ?? ""]);
+    const labels = ["ลำดับ", "ก่อนเรียน", "หลังเรียน", "ความพึงพอใจเฉลี่ย"];
+    setColumnLabels(labels); setTableText(nextRows.map((row) => row.join(",")).join("\n"));
+    setStudentIdColumn(-1); setStudentNumberColumn(0); setNameColumn(-1); setSexColumn(-1); setPreColumn(1); setPostColumn(2); setSatisfactionColumns([3]); setMatchKey("row");
+    setScaleLevels(Number(quality.input_json?.workspace?.scaleLevels) === 5 ? 5 : 3);
+    setSourceNotice("นำข้อมูลจากงานเดิมแล้ว · งานเดิมไม่มีรหัสร่วม จึงจับคู่ตามลำดับแถว กรุณาตรวจสอบรายคนก่อนใช้ผล");
+  }
+
+  async function exportChart(copy: boolean) {
+    if (!chartRef.current) return;
+    const svg = new XMLSerializer().serializeToString(chartRef.current);
+    const image = new Image();
+    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+    image.onload = () => {
+      const canvas = document.createElement("canvas"); canvas.width = 1400; canvas.height = Math.max(700, chartRef.current?.viewBox.baseVal.height ? chartRef.current.viewBox.baseVal.height * 1.5 : 700);
+      const context = canvas.getContext("2d"); if (!context) return;
+      context.fillStyle = "white"; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        if (copy && navigator.clipboard && typeof ClipboardItem !== "undefined") await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        else downloadFile(blob, `${safeFilename(title || "แผนภูมิพัฒนาการ")}.png`);
+      }, "image/png");
+      URL.revokeObjectURL(url);
+    };
+    image.src = url;
+  }
+
+  const fieldOptions = <>{columnLabels.map((label, index) => <option key={index} value={index}>{index + 1}. {label}</option>)}</>;
+  const pairedAnalyses = analyses.filter((analysis) => analysis.analysis_type === "paired");
+  const qualityAnalyses = analyses.filter((analysis) => analysis.analysis_type === "quality" || analysis.analysis_type === "descriptive" || analysis.analysis_type === "reliability");
+  return <Page title="รายบุคคลและแผนภูมิพัฒนาการ" subtitle="รวมคะแนนก่อน–หลัง การผ่านเกณฑ์ และความพึงพอใจในมุมมองเดียว" badge="ปกปิดชื่อในรายงานได้">
+    <section className="panel individual-source-panel"><div className="panel-head"><div><span className="eyebrow">แหล่งข้อมูล</span><h3>เลือกงานเดิมหรือนำเข้าไฟล์ตารางรวม</h3><p>หากข้อมูลมีรหัสร่วม แนะนำให้ใช้รหัสนักเรียนเป็นกุญแจจับคู่</p></div></div><div className="individual-saved-source"><label>งานก่อนเรียน–หลังเรียน<select disabled={!editable} value={pairedAnalysisId} onChange={(event) => setPairedAnalysisId(event.target.value)}><option value="">— เลือกงาน —</option>{pairedAnalyses.map((analysis) => <option key={analysis.id} value={analysis.id}>{analysis.title}</option>)}</select></label><label>งานความพึงพอใจ<select disabled={!editable} value={qualityAnalysisId} onChange={(event) => setQualityAnalysisId(event.target.value)}><option value="">— เลือกงาน —</option>{qualityAnalyses.map((analysis) => <option key={analysis.id} value={analysis.id}>{analysis.title}</option>)}</select></label><button disabled={!editable} onClick={loadSavedAnalyses}>รวมงานที่เลือก</button></div>{sourceNotice && <div className="data-note">{sourceNotice}</div>}</section>
+    <section className="panel"><div className="panel-head"><div><span className="eyebrow">กำหนดคอลัมน์</span><h3>จับคู่ข้อมูลรายบุคคล</h3><p>เลือกคอลัมน์ตามหัวข้อจริงในไฟล์ ระบบจะไม่ใช้ชื่อหรือรหัสเป็นคะแนนคำนวณ</p></div></div><div className="individual-map-grid"><label>กุญแจจับคู่<select disabled={!editable} value={matchKey} onChange={(event) => setMatchKey(event.target.value as typeof matchKey)}><option value="studentId">รหัสนักเรียน</option><option value="studentNumber">เลขที่</option><option value="name">ชื่อ–สกุล</option><option value="row">ลำดับแถว</option></select></label>{[["รหัสนักเรียน", studentIdColumn, setStudentIdColumn], ["เลขที่", studentNumberColumn, setStudentNumberColumn], ["ชื่อ–สกุล", nameColumn, setNameColumn], ["เพศ", sexColumn, setSexColumn], ["คะแนนก่อนเรียน", preColumn, setPreColumn], ["คะแนนหลังเรียน", postColumn, setPostColumn]].map(([label, value, setter]) => <label key={String(label)}>{String(label)}<select disabled={!editable} value={Number(value)} onChange={(event) => (setter as React.Dispatch<React.SetStateAction<number>>)(Number(event.target.value))}><option value={-1}>— ไม่ใช้ —</option>{fieldOptions}</select></label>)}</div><div className="satisfaction-column-picker"><b>คอลัมน์คะแนนความพึงพอใจ</b><small>เลือกได้ทั้งคอลัมน์ค่าเฉลี่ย หรือหลายข้อเพื่อให้ระบบเฉลี่ยรายคน</small><div>{columnLabels.map((label, index) => <label key={index}><input disabled={!editable} type="checkbox" checked={satisfactionColumns.includes(index)} onChange={(event) => setSatisfactionColumns((current) => event.target.checked ? [...current, index].sort((a, b) => a - b) : current.filter((value) => value !== index))}/>{index + 1}. {label}</label>)}</div></div><textarea disabled={!editable} rows={9} value={tableText} onChange={(event) => setTableText(event.target.value)} placeholder="หนึ่งบรรทัดต่อนักเรียนหนึ่งคน"/>{duplicateKeys.length > 0 && <div className="import-error">พบกุญแจซ้ำ: {duplicateKeys.join(", ")}</div>}<div className="data-note">พบข้อมูล {records.length} คน · คอลัมน์ {columnLabels.length} ช่อง · จับคู่ด้วย {matchKey === "studentId" ? "รหัสนักเรียน" : matchKey === "studentNumber" ? "เลขที่" : matchKey === "name" ? "ชื่อ–สกุล" : "ลำดับแถว"}</div></section>
+    <section className="panel individual-settings"><div className="panel-head"><div><span className="eyebrow">เกณฑ์และการติดตาม</span><h3>กำหนดเงื่อนไขได้ทุกข้อ</h3></div></div><div className="individual-setting-grid"><label>คะแนนเต็ม<input disabled={!editable} type="number" min={1} value={maximumScore} onChange={(event) => setMaximumScore(Number(event.target.value) || 1)}/></label><label>รูปแบบเกณฑ์<select disabled={!editable} value={criterionMode} onChange={(event) => setCriterionMode(event.target.value as "percent" | "raw")}><option value="percent">ร้อยละ</option><option value="raw">คะแนนดิบ</option></select></label>{criterionMode === "percent" ? <label>เกณฑ์ร้อยละ<input disabled={!editable} type="number" min={0} max={100} value={criterionPercent} onChange={(event) => setCriterionPercent(Number(event.target.value))}/></label> : <label>คะแนนเกณฑ์<input disabled={!editable} type="number" value={criterionRaw} onChange={(event) => setCriterionRaw(Number(event.target.value))}/></label>}<label>มาตราส่วนความพึงพอใจ<select disabled={!editable} value={scaleLevels} onChange={(event) => { const level = Number(event.target.value) as 3 | 5; setScaleLevels(level); setSatisfactionThreshold(level === 3 ? 2.34 : 3.51); }}><option value={3}>3 ระดับ</option><option value={5}>5 ระดับ</option></select></label><label>เกณฑ์ติดตามความพึงพอใจ<input disabled={!editable} type="number" min={1} max={scaleLevels} step="0.01" value={satisfactionThreshold} onChange={(event) => setSatisfactionThreshold(Number(event.target.value))}/></label><label>Gain ขั้นต่ำ<input disabled={!editable} type="number" value={minimumGain} onChange={(event) => setMinimumGain(Number(event.target.value))}/></label></div><div className="follow-rule-grid">{[["failed", "ไม่ผ่านเกณฑ์"], ["noGain", "คะแนนไม่เพิ่ม"], ["lowGain", "Gain ต่ำกว่าที่กำหนด"], ["lowSatisfaction", "ความพึงพอใจต่ำกว่าเกณฑ์"], ["incomplete", "ข้อมูลไม่ครบ"]].map(([key, label]) => <label key={key}><input disabled={!editable} type="checkbox" checked={followRules[key as keyof typeof followRules]} onChange={(event) => setFollowRules((current) => ({ ...current, [key]: event.target.checked }))}/>{label}</label>)}</div></section>
+    <div className="metrics"><Metric label="นักเรียน" value={`${records.length} คน`}/><Metric label="ผ่านเกณฑ์" value={`${records.filter((record) => record.passed).length} คน`} tone="green"/><Metric label="Gain เฉลี่ย" value={fmt(mean(records.flatMap((record) => record.gain === null ? [] : [record.gain])), 2)} tone="amber"/><Metric label="ควรติดตาม" value={`${records.filter((record) => record.followUp).length} คน`} tone="violet"/></div>
+    <section className="panel"><div className="panel-head individual-report-head"><div><span className="eyebrow">ตารางสำหรับครูและบทที่ 4</span><h3>ข้อมูลรายบุคคลแบบบูรณาการ</h3></div><div className="individual-privacy-actions"><label><input type="checkbox" checked={anonymizeReport} onChange={(event) => setAnonymizeReport(event.target.checked)}/> ปกปิดชื่อในรายงาน</label><ResultExportToolbar title={title || "รายงานผลรายบุคคล"} sheetName="รายบุคคล" rows={exportRows}/></div></div><details className="column-visibility"><summary>เลือกคอลัมน์ที่แสดงและส่งออก</summary><div>{columnDefinitions.map((column) => <label key={column.key}><input type="checkbox" checked={visibleColumns[column.key]} onChange={(event) => setVisibleColumns((current) => ({ ...current, [column.key]: event.target.checked }))}/>{column.label}</label>)}</div></details><div className="table-wrap"><table className="individual-integrated-table"><thead><tr>{activeColumns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{exportRecords.map((record) => <tr key={record.sequence} className={record.followUp ? "follow-up-row" : ""}>{activeColumns.map((column) => <td key={column.key}>{column.value(record)}</td>)}</tr>)}</tbody></table></div></section>
+    <section className="panel"><div className="panel-head individual-chart-head"><div><span className="eyebrow">แผนภูมิรายบุคคล</span><h3>{chartType === "dumbbell" ? "Dumbbell Chart" : "Slope Chart"}</h3></div><div className="chart-actions"><button className={chartType === "dumbbell" ? "active" : ""} onClick={() => setChartType("dumbbell")}>Dumbbell</button><button className={chartType === "slope" ? "active" : ""} onClick={() => setChartType("slope")}>Slope</button><button onClick={() => void exportChart(true)}>คัดลอกภาพ</button><button onClick={() => void exportChart(false)}>PNG</button></div></div><div className="individual-chart-options"><label>เรียงตาม<select value={sortMode} onChange={(event) => setSortMode(event.target.value as typeof sortMode)}><option value="sequence">ลำดับ</option><option value="pre">ก่อนเรียน</option><option value="post">หลังเรียน</option><option value="gain">Gain</option></select></label><label><input type="checkbox" checked={showCriterionLine} onChange={(event) => setShowCriterionLine(event.target.checked)}/> แสดงเส้นเกณฑ์</label><label><input type="checkbox" checked={onlyFollowUp} onChange={(event) => setOnlyFollowUp(event.target.checked)}/> เฉพาะผู้ควรติดตาม</label></div><div className="individual-chart-scroll"><IndividualProgressChart ref={chartRef} records={chartRecords} type={chartType} maximumScore={maximumScore} criterion={criterionScore} showCriterion={showCriterionLine} anonymize={anonymizeReport}/></div></section>
+    <section className="panel automatic-report"><div className="panel-head"><div><span className="eyebrow">พร้อมใช้ในบทที่ 4</span><h3>รายงานผลอัตโนมัติ</h3></div><button onClick={() => void copyToClipboard(reportText)}>คัดลอกข้อความ</button></div><p>{reportText}</p></section>
+    <Formula source="การวิเคราะห์รายบุคคลเชิงพรรณนา; คะแนนพัฒนาการและเกณฑ์ที่ผู้วิจัยกำหนด">Gain = คะแนนหลังเรียน − คะแนนก่อนเรียน · ผ่านเมื่อคะแนนหลังเรียน ≥ คะแนนเกณฑ์ · ความพึงพอใจรายคน = ผลรวมคะแนนข้อประเมิน ÷ จำนวนข้อที่ตอบจริง</Formula>
+  </Page>;
+}
+
+const IndividualProgressChart = forwardRef<SVGSVGElement, { records: Array<{ sequence: number; name: string; studentId: string; pre: number | null; post: number | null; followUp: boolean }>; type: "dumbbell" | "slope"; maximumScore: number; criterion: number; showCriterion: boolean; anonymize: boolean }>(function IndividualProgressChart({ records, type, maximumScore, criterion, showCriterion, anonymize }, ref) {
+  const width = 900;
+  const height = type === "dumbbell" ? Math.max(360, records.length * 42 + 110) : 560;
+  const left = type === "dumbbell" ? 150 : 210, right = type === "dumbbell" ? 55 : 210, top = 65, bottom = 55;
+  const xScore = (value: number) => left + (Math.max(0, Math.min(maximumScore, value)) / maximumScore) * (width - left - right);
+  const yScore = (value: number) => top + (1 - Math.max(0, Math.min(maximumScore, value)) / maximumScore) * (height - top - bottom);
+  const labelFor = (record: typeof records[number], index: number) => anonymize ? `คนที่ ${index + 1}` : record.name || record.studentId || `คนที่ ${record.sequence}`;
+  return <svg ref={ref} xmlns="http://www.w3.org/2000/svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${type === "dumbbell" ? "Dumbbell" : "Slope"} chart คะแนนก่อนเรียนและหลังเรียน`}><rect width={width} height={height} fill="white"/><text x={width / 2} y={28} textAnchor="middle" fontSize="18" fontWeight="700" fill="#17213a">เปรียบเทียบคะแนนก่อนเรียน–หลังเรียนรายบุคคล</text>{type === "dumbbell" ? <>{Array.from({ length: 6 }, (_, index) => maximumScore * index / 5).map((tick) => <g key={tick}><line x1={xScore(tick)} x2={xScore(tick)} y1={top - 12} y2={height - bottom} stroke="#e2e8f0"/><text x={xScore(tick)} y={height - 25} textAnchor="middle" fontSize="12" fill="#64748b">{fmt(tick, 0)}</text></g>)}{showCriterion && <g><line x1={xScore(criterion)} x2={xScore(criterion)} y1={top - 18} y2={height - bottom} stroke="#dc2626" strokeWidth="2" strokeDasharray="7 5"/><text x={xScore(criterion) + 5} y={top - 25} fontSize="12" fill="#dc2626">เกณฑ์ {fmt(criterion, 1)}</text></g>}{records.map((record, index) => { const y = top + index * 42; return record.pre === null || record.post === null ? null : <g key={record.sequence}><text x={left - 12} y={y + 4} textAnchor="end" fontSize="12" fill={record.followUp ? "#b45309" : "#334155"}>{labelFor(record, index)}</text><line x1={xScore(record.pre)} x2={xScore(record.post)} y1={y} y2={y} stroke="#94a3b8" strokeWidth="3"/><circle cx={xScore(record.pre)} cy={y} r="6" fill="#ea580c"/><circle cx={xScore(record.post)} cy={y} r="6" fill="#2563eb"/></g>; })}</> : <>{Array.from({ length: 6 }, (_, index) => maximumScore * index / 5).map((tick) => <g key={tick}><line x1={left} x2={width - right} y1={yScore(tick)} y2={yScore(tick)} stroke="#e2e8f0"/><text x={left - 12} y={yScore(tick) + 4} textAnchor="end" fontSize="12" fill="#64748b">{fmt(tick, 0)}</text></g>)}{showCriterion && <line x1={left} x2={width - right} y1={yScore(criterion)} y2={yScore(criterion)} stroke="#dc2626" strokeWidth="2" strokeDasharray="7 5"/>}<text x={left} y={height - 20} textAnchor="middle" fontWeight="700">ก่อนเรียน</text><text x={width - right} y={height - 20} textAnchor="middle" fontWeight="700">หลังเรียน</text>{records.map((record, index) => record.pre === null || record.post === null ? null : <g key={record.sequence}><line x1={left} x2={width - right} y1={yScore(record.pre)} y2={yScore(record.post)} stroke={record.followUp ? "#d97706" : "#94a3b8"} strokeWidth="2" opacity="0.8"/><circle cx={left} cy={yScore(record.pre)} r="5" fill="#ea580c"/><circle cx={width - right} cy={yScore(record.post)} r="5" fill="#2563eb"/><text x={left - 10} y={yScore(record.pre) + 4} textAnchor="end" fontSize="10">{labelFor(record, index)}</text><text x={width - right + 10} y={yScore(record.post) + 4} fontSize="10">{labelFor(record, index)}</text></g>)}</>}</svg>;
+});
+
 function EfficiencyView({
   imported,
   initial,
@@ -3828,6 +4048,14 @@ function mergeImportedWorkspace(view: View, current: WorkspaceData, data: Import
     const nextProcess = pairs.map((row) => row[0]).join(", ");
     const nextPost = pairs.map((row) => row[1]).join(", ");
     return { ...current, process: appendImportedText(current.process, nextProcess, append).replaceAll("\n", ", "), post: appendImportedText(current.post, nextPost, append).replaceAll("\n", ", ") };
+  }
+  if (view === "individual") {
+    const columnLabels = data.selectedColumns?.map((column) => cleanImportedColumnLabel(column.label)) ?? [];
+    return {
+      ...current,
+      columnLabels: append && Array.isArray(current.columnLabels) ? current.columnLabels : columnLabels,
+      tableText: appendImportedText(current.tableText, text, append),
+    };
   }
   return append ? current : {};
 }
@@ -4370,6 +4598,17 @@ export default function ResearchStatsApp({
           onChange={handleDraft}
           title={analysisTitle}
           editable={!analysisLocked}
+        />
+      ),
+      individual: (
+        <IndividualProgressView
+          key={`individual-${dataKey}`}
+          imported={imported}
+          initial={workspaceInitial}
+          onChange={handleDraft}
+          title={analysisTitle}
+          editable={!analysisLocked}
+          analyses={analyses}
         />
       ),
     } as Partial<Record<View, React.ReactNode>>
