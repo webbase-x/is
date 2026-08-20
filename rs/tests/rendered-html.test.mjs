@@ -92,3 +92,26 @@ test("IOC workspace shows sum, IOC, and result columns", async () => {
   assert.match(source, /ผู้จัดทำระบบ: ครูไพรัช อินควรชุม/);
   assert.match(source, /โรงเรียนเทศบาล 1 ถนนนครนอก · เทศบาลนครสงขลา/);
 });
+
+test("every analysis tool uses configurable spreadsheet import and merge mode", async () => {
+  const importer = await readFile(
+    new URL("../components/ProjectDataImporter.tsx", import.meta.url),
+    "utf8",
+  );
+  const app = await readFile(
+    new URL("../components/ResearchStatsApp.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(importer, /เลือกชีตและคอลัมน์คะแนน/);
+  assert.match(importer, /กำหนดช่วง\{source\.unit\}/);
+  assert.match(importer, /แทนที่ทั้งหมด/);
+  assert.match(importer, /ต่อรายการเดิม/);
+  assert.match(importer, /selectedColumns/);
+  assert.match(importer, /selectedSheet/);
+  assert.match(importer, /importMode/);
+  assert.match(app, /function mergeImportedWorkspace/);
+  for (const view of ["ioc", "descriptive", "quality", "item", "reliability", "paired", "efficiency"]) {
+    assert.match(app, new RegExp(`view === "${view}"`));
+  }
+});
