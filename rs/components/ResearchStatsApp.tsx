@@ -3799,7 +3799,8 @@ const IndividualProgressChart = forwardRef<SVGSVGElement, {
   const ticks = Array.from({ length: tickCount + 1 }, (_, index) => safeMinimum + safeTick * index)
     .filter((value) => value <= safeMaximum + Number.EPSILON);
   if (ticks.at(-1) !== safeMaximum) ticks.push(safeMaximum);
-  const top = chartSubtitle ? 92 : 70;
+  const legendInside = legendPosition === "inside";
+  const top = legendInside ? (chartSubtitle ? 174 : 150) : chartSubtitle ? 92 : 70;
   const legendBelow = legendPosition === "below";
   const bottom = legendBelow ? 132 : 72;
   const height = type === "dumbbell" ? Math.max(430, top + records.length * 46 + bottom) : 650 + (legendBelow ? 55 : 0);
@@ -3824,7 +3825,7 @@ const IndividualProgressChart = forwardRef<SVGSVGElement, {
   ].join("\n");
   const titleFontSize = chartTitle.length > 75 ? 15 : chartTitle.length > 55 ? 17 : 20;
   const legendX = legendBelow ? left : width - 286;
-  const legendY = legendBelow ? height - 98 : height - bottom - 92;
+  const legendY = legendBelow ? height - 98 : chartSubtitle ? 92 : 68;
   const legend = legendPosition === "hidden" ? null : (
     <g className="chart-legend" transform={`translate(${legendX} ${legendY})`}>
       {legendPosition === "inside" && <rect x="-18" y="-22" width="272" height={showCriterion ? 91 : 67} rx="8" fill="white" fillOpacity="0.9" stroke="#cbd5e1"/>}
@@ -3838,6 +3839,7 @@ const IndividualProgressChart = forwardRef<SVGSVGElement, {
       <rect width={width} height={height} fill="white"/>
       <text x={width / 2} y="31" textAnchor="middle" fontSize={titleFontSize} fontWeight="700" fill="#111827">{chartTitle}</text>
       {chartSubtitle && <text x={width / 2} y="56" textAnchor="middle" fontSize="16" fill="#334155">{chartSubtitle}</text>}
+      {legendInside && <line x1={left} x2={width - right} y1={top - 18} y2={top - 18} stroke="#e2e8f0"/>}
       {type === "dumbbell" ? (
         <>
           {ticks.map((tick) => <g key={tick}><line x1={xScore(tick)} x2={xScore(tick)} y1={top - 8} y2={height - bottom} stroke="#d7dde3" strokeDasharray="5 4"/><text x={xScore(tick)} y={height - bottom + 27} textAnchor="middle" fontSize="13" fill="#475569">{fmt(tick, Number.isInteger(tick) ? 0 : 1)}</text></g>)}
