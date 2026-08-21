@@ -151,6 +151,10 @@ test("individual report combines outcomes with selectable privacy, matching, and
   for (const legendPosition of ["inside", "below", "hidden"]) {
     assert.match(source, new RegExp(`<option value="${legendPosition}">`));
   }
+  assert.match(source, /chart-legend chart-legend-horizontal/);
+  assert.match(source, /height - 34/);
+  assert.match(source, /<circle cx="140" cy="0"/);
+  assert.match(source, /<line x1="280" x2="315" y1="0" y2="0"/);
   assert.match(source, /แสดงตัวเลขคะแนนข้างจุด/);
   assert.match(source, /ช่วงแกนคะแนน/);
   assert.match(source, /คะแนนผลสัมฤทธิ์ทางการเรียน \(คะแนนเต็ม/);
