@@ -3823,11 +3823,15 @@ const IndividualProgressChart = forwardRef<SVGSVGElement, {
     `ผลเกณฑ์: ${record.passed === null ? "ข้อมูลไม่ครบ" : record.passed ? "ผ่าน" : "ไม่ผ่าน"}`,
   ].join("\n");
   const titleFontSize = chartTitle.length > 75 ? 15 : chartTitle.length > 55 ? 17 : 20;
-  const legendX = legendBelow ? left : width - 286;
-  const legendY = legendBelow ? height - 98 : height - bottom - 92;
-  const legend = legendPosition === "hidden" ? null : (
-    <g className="chart-legend" transform={`translate(${legendX} ${legendY})`}>
-      {legendPosition === "inside" && <rect x="-18" y="-22" width="272" height={showCriterion ? 91 : 67} rx="8" fill="white" fillOpacity="0.9" stroke="#cbd5e1"/>}
+  const legend = legendPosition === "hidden" ? null : legendBelow ? (
+    <g className="chart-legend chart-legend-horizontal" transform={`translate(${width / 2 - (showCriterion ? 310 : 125)} ${height - 34})`}>
+      <circle cx="0" cy="0" r="8" fill="#ef6c00"/><text x="20" y="5" fontSize="15" fill="#1f2937">ก่อนเรียน</text>
+      <circle cx="140" cy="0" r="8" fill="#1565c0"/><text x="160" y="5" fontSize="15" fill="#1f2937">หลังเรียน</text>
+      {showCriterion && <><line x1="280" x2="315" y1="0" y2="0" stroke="#d32f2f" strokeWidth="3" strokeDasharray="9 6"/><text x="327" y="5" fontSize="15" fill="#1f2937">{criterionLabel}</text></>}
+    </g>
+  ) : (
+    <g className="chart-legend" transform={`translate(${width - 286} ${height - bottom - 92})`}>
+      <rect x="-18" y="-22" width="272" height={showCriterion ? 91 : 67} rx="8" fill="white" fillOpacity="0.9" stroke="#cbd5e1"/>
       <circle cx="0" cy="0" r="8" fill="#ef6c00"/><text x="28" y="5" fontSize="15" fill="#1f2937">ก่อนเรียน</text>
       <circle cx="0" cy="28" r="8" fill="#1565c0"/><text x="28" y="33" fontSize="15" fill="#1f2937">หลังเรียน</text>
       {showCriterion && <><line x1="-8" x2="18" y1="56" y2="56" stroke="#d32f2f" strokeWidth="3" strokeDasharray="9 6"/><text x="28" y="61" fontSize="15" fill="#1f2937">{criterionLabel}</text></>}
