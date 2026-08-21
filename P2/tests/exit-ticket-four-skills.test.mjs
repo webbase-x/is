@@ -12,6 +12,12 @@ test("all eight plans use twelve Exit Ticket items with equal skill weights", ()
       assert.equal(questions.filter(question => question.skill_code === skill.code).length, 3, `plan ${planId} ${skill.code}`);
     }
     assert.equal(new Set(questions.map(question => question.id)).size, 12, `plan ${planId} unique ids`);
+    assert.deepEqual(
+      [1, 2, 3].map(level => questions.filter(question => question.difficulty === level).length),
+      [4, 4, 4],
+      `plan ${planId} balanced challenge levels`,
+    );
+    questions.forEach(question => assert.ok(question.skill_label, `${question.id} skill label`));
     questions.forEach(question => assert.ok(question.options.includes(question.answer), question.id));
   }
 });
@@ -22,6 +28,31 @@ test("student answers persist skill and instrument metadata", () => {
   assert.match(student, /instrument_version: question\.instrument_version/);
   assert.match(student, /exitTicketForPlan\(planId\)/);
   assert.match(student, /อย่างน้อย 8 จาก/);
+  assert.match(student, /scoreFirstAttemptOnly: isExitTicket/);
+  assert.match(student, /คะแนนนี้นับจากคำตอบครั้งแรก/);
+});
+
+test("Exit Ticket stays gamified without public competition", () => {
+  const common = readFileSync(new URL("../js/common.js", import.meta.url), "utf8");
+  const teacher = readFileSync(new URL("../js/teacher.js", import.meta.url), "utf8");
+  const display = readFileSync(new URL("../js/display.js", import.meta.url), "utf8");
+  assert.match(common, /isExitTicketActivityKey\(step\.activityKey\)/);
+  assert.match(teacher, /renderExitTicketProgress\(entries\)/);
+  assert.match(teacher, /คะแนนอยู่ในรายงานครูและไม่จัดอันดับ/);
+  assert.match(display, /hideLeaderboardPanel = mediaWithoutLeaderboard \|\| privateExitTicket/);
+});
+
+test("lesson flows never add a leaderboard result step after Exit Ticket", async () => {
+  globalThis.document = { readyState: "loading", addEventListener() {} };
+  const { lessonFlowForPlan } = await import("../js/common.js");
+  for (let planId = 1; planId <= 8; planId += 1) {
+    const flow = lessonFlowForPlan(planId);
+    const exitIndex = flow.findIndex(step => /(?:^|-)exit$/.test(step.activityKey || ""));
+    assert.ok(exitIndex >= 0, `plan ${planId} has Exit Ticket`);
+    assert.notEqual(flow[exitIndex + 1]?.kind, "results", `plan ${planId} has no Exit Ticket leaderboard`);
+    assert.ok(flow.some(step => step.kind === "results"), `plan ${planId} keeps game result steps`);
+  }
+  delete globalThis.document;
 });
 
 test("database report reads only real versioned Exit Ticket answers", () => {

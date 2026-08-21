@@ -7,12 +7,12 @@ import {
   EXPERT_SCORE_EVENT, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, gameStatePayload, randomAvatar,
   lessonFlowForPlan, lessonStepForKey, renderPlanTimeline, sanitizeGameMarkup, show, toast, updateConnectionBadge,
-} from "./common.js?v=20260816-satisfaction-3";
-import { classTeamGoal } from "./gamification.js?v=20260807-primary-copy-1";
+} from "./common.js?v=20260821-exit-ticket-gamification-1";
+import { classTeamGoal, isExitTicketActivityKey } from "./gamification.js?v=20260821-exit-ticket-1";
 import { satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
 import { EXIT_TICKET_INSTRUMENT_VERSION } from "./exit-ticket-bank.js?v=20260817-four-skills-1";
 
-const TEACHER_BUILD_VERSION = "20260817-skill-form-report-7";
+const TEACHER_BUILD_VERSION = "20260821-exit-ticket-gamification-1";
 const TEACHER_BUILD_CHECK_INTERVAL_MS = 60_000;
 let teacherBuildReloadRequested = false;
 
@@ -2223,6 +2223,17 @@ function renderAssessmentProgress() {
   </section>`;
 }
 
+function renderExitTicketProgress(entries) {
+  const submitted = entries.filter(entry => entry.percent !== null);
+  return `<section class="assessment-progress-panel exit-ticket-progress-panel">
+    <div class="assessment-progress-heading"><span>🗝️</span><div><small>ภารกิจประเมินท้ายแผน</small><h4>ส่งแล้ว ${submitted.length} จาก ${entries.length} คน</h4><p>นักเรียนเห็นระดับและตราความสำเร็จของตนเอง ระบบไม่แสดงคะแนนหรืออันดับเปรียบเทียบกับเพื่อน</p></div></div>
+    <div class="assessment-progress-list">${entries.length ? entries.map(entry => {
+      const completed = entry.percent !== null;
+      return `<div class="assessment-progress-row ${completed ? "is-submitted" : ""}"><span>${completed ? "✓" : "…"}</span><strong>${escapeHtml(entry.name)}</strong><small>${completed ? "พิชิตภารกิจแล้ว" : "กำลังทำภารกิจ"}</small></div>`;
+    }).join("") : "<p>ยังไม่มีนักเรียนที่อนุมัติ</p>"}</div>
+  </section>`;
+}
+
 function renderLiveResults() {
   const container = $("#liveResults");
   const arena = $("#competitionArena");
@@ -2265,6 +2276,21 @@ function renderLiveResults() {
         ? `ส่งแบบประเมินแล้ว ${submittedCount}/${approvedCount} คน · ติดตามจำนวนข้อของแต่ละคนด้านล่าง`
         : `ส่งคำตอบแล้ว ${submittedCount}/${approvedCount} คน · ระบบไม่แสดงคะแนนและอันดับ`;
     container.innerHTML = renderAssessmentProgress();
+    return;
+  }
+  if (isExitTicketActivityKey(state.session.current_activity_key)) {
+    const finished = state.session.status === "paused";
+    arena?.classList.remove("is-celebrating");
+    if (liveBadge) {
+      liveBadge.classList.toggle("is-finished", finished);
+      liveBadge.innerHTML = finished ? "✓ รับ Exit Ticket แล้ว" : "<i></i> ภารกิจ Exit Ticket";
+    }
+    if (finishButton) {
+      finishButton.disabled = finished || state.finishingActivity || !state.session.current_activity_key;
+      finishButton.textContent = state.finishingActivity ? "กำลังจบ Exit Ticket..." : finished ? "✓ Exit Ticket จบแล้ว" : "⏹ จบ Exit Ticket";
+    }
+    if (status) status.textContent = `ส่งแล้ว ${resultCount}/${entries.length} คน · คะแนนอยู่ในรายงานครู ไม่มีการจัดอันดับ`;
+    container.innerHTML = renderExitTicketProgress(entries);
     return;
   }
   if (liveBadge) {
@@ -2338,12 +2364,13 @@ async function finishActivity(reason = "manual") {
   if (!state.session?.current_activity_key || state.finishingActivity || state.celebrationActivityKey) return;
   const assessment = isAssessmentSession(state.session);
   const finishedActivityKey = state.session.current_activity_key;
+  const exitTicket = isExitTicketActivityKey(finishedActivityKey);
   const flow = currentLessonFlow();
   const gameIndex = flow.findIndex(step => step.key === state.lessonStepKey && step.kind === "game");
   const resultsStep = flow[gameIndex + 1]?.kind === "results" && flow[gameIndex + 1]?.activityKey === finishedActivityKey
     ? flow[gameIndex + 1]
     : null;
-  prepareVictoryAudio();
+  if (!assessment && !exitTicket) prepareVictoryAudio();
   state.finishingActivity = true;
   renderLiveResults();
   const { data, error } = await supabase.from("class_sessions").update({
@@ -2367,6 +2394,17 @@ async function finishActivity(reason = "manual") {
     await broadcastDisplay("assessment-finished");
     await loadAssessmentReport();
     toast(isSurvey ? "จบแบบประเมินแล้ว · เปิดรายงานครูเพื่อดูผลความพึงพอใจ" : "จบแบบทดสอบแล้ว · เปิดรายงานครูเพื่อดาวน์โหลดตารางคะแนน", "success");
+    return;
+  }
+  if (exitTicket) {
+    state.celebrationActivityKey = null;
+    state.celebrationReason = null;
+    state.finishingActivity = false;
+    stopActivityTimer({ clearSaved: true, label: "จบ Exit Ticket" });
+    renderActivityControls();
+    renderLiveResults();
+    await broadcastDisplay("exit-ticket-finished");
+    toast("จบ Exit Ticket แล้ว · คะแนนอยู่ในรายงานครูและไม่จัดอันดับ", "success");
     return;
   }
   state.celebrationActivityKey = finishedActivityKey;

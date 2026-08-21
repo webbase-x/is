@@ -5,13 +5,15 @@ import {
   lessonFlowForPlan,
   modeLabel, randomAvatar, roomCodeFromUrl, setView, show, shuffle, toast,
   updateConnectionBadge,
-} from "./common.js?v=20260816-satisfaction-3";
+} from "./common.js?v=20260821-exit-ticket-gamification-1";
 import { ACHIEVEMENT_TEST_QUESTIONS } from "./achievement-test.js?v=20260731-assessment-research-1";
 import {
   collectAchievementBadges,
   earnedBadgesForAttempt,
+  isExitTicketActivityKey,
   learningHintForQuestion,
   masteryLevelForPercent,
+  scoredAnswerForAttempt,
 } from "./gamification.js?v=20260807-primary-copy-1";
 import { SATISFACTION_SCALE, satisfactionLevel } from "./satisfaction-survey.js?v=20260817-research-levels-2";
 import {
@@ -1502,7 +1504,10 @@ function createExpertAttempt(activityKey, score, maxScore, answers) {
 function showResult(title, score, maxScore, result, replay, options = {}) {
   cleanupRhythm();
   const percent = result?.percent ?? Math.round((score / maxScore) * 100);
-  const scoreNotice = sessionRecordsScores()
+  const privateAssessment = options.privateAssessment || isExitTicketActivityKey(result?.activity_key);
+  const scoreNotice = privateAssessment
+    ? "<p>🔒 คะแนนนี้ใช้ติดตามพัฒนาการรายบุคคล ไม่ใช้จัดอันดับแข่งขัน</p>"
+    : sessionRecordsScores()
     ? ""
     : projectorPreviewActivityKey
       ? "<p>📽️ นี่คือผลทดลองบนจอครู คะแนนไม่ถูกบันทึกและไม่กระทบผลนักเรียน</p>"
@@ -1531,11 +1536,11 @@ function showResult(title, score, maxScore, result, replay, options = {}) {
           <div class="mastery-level-progress"><i style="width:${level.progress}%"></i></div>
           <em>${escapeHtml(nextLabel)}</em>
         </section>
-        <section class="earned-badge-panel" aria-label="รางวัลที่ได้รับ">
-          <div><small>รางวัลที่ได้รอบนี้</small><strong>ได้แล้ว ${badgeCount} รางวัล</strong></div>
+        <section class="earned-badge-panel${privateAssessment ? " is-private-assessment" : ""}" aria-label="รางวัลที่ได้รับ">
+          <div><small>${privateAssessment ? "ตราความสำเร็จส่วนตัวรอบนี้" : "รางวัลที่ได้รอบนี้"}</small><strong>${privateAssessment ? "ไม่ใช้จัดอันดับหรือสะสมคะแนนแข่งขัน" : `ได้แล้ว ${badgeCount} รางวัล`}</strong></div>
           <div class="earned-badge-list">${badges.map(badge => `<article><span>${badge.icon}</span><strong>${escapeHtml(badge.title)}</strong><small>${escapeHtml(badge.detail)}</small></article>`).join("")}</div>
         </section>
-        <p class="team-contribution-note">🤝 คะแนนของหนูช่วยให้ห้องของเราทำเป้าหมายร่วมกัน</p>`;
+        <p class="team-contribution-note">${privateAssessment ? "🔒 ครูและหนูใช้ผลนี้วางแผนฝึกต่อ โดยไม่เปรียบเทียบกับเพื่อน" : "🤝 คะแนนของหนูช่วยให้ห้องของเราทำเป้าหมายร่วมกัน"}</p>`;
     })();
   $("#gameCanvas").innerHTML = `<div class="game-inner"><div class="result-card"><div class="result-stars">${percent >= 80 ? "★★★" : percent >= 50 ? "★★☆" : "★☆☆"}</div><h2>${escapeHtml(title)}</h2>${personalScore}<p>${escapeHtml(resultMessage)}</p>${gamification}${scoreNotice}${replayButton}</div></div>`;
   $("#replayButton")?.addEventListener("click", replay);
@@ -2060,7 +2065,7 @@ function questionsByDifficulty(questions, seedText) {
   ));
 }
 
-function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay, revealCorrectness = true, resultTitle = "ทำภารกิจสำเร็จ", deadlineAt = null, timeoutTitle = "หมดเวลาแล้ว", hideScoreWhilePlaying = false, resultMessage = "", hideResultScore = false, suppressGamification = false, afterSubmit = null }) {
+function runQuestionGame({ key, title, instruction, questions, renderPrompt, choices, replay, revealCorrectness = true, resultTitle = "ทำภารกิจสำเร็จ", deadlineAt = null, timeoutTitle = "หมดเวลาแล้ว", hideScoreWhilePlaying = false, resultMessage = "", hideResultScore = false, suppressGamification = false, scoreFirstAttemptOnly = false, afterSubmit = null }) {
   const orderedQuestions = suppressGamification
     ? questions
     : questionsByDifficulty(questions, lessonRoundSeed(key));
@@ -2110,12 +2115,14 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
   const render = () => {
     const question = orderedQuestions[index];
     let tries = 0;
+    let firstChosen = null;
     const countdown = Number.isFinite(deadline) ? `<span class="mini-score">เหลือ <strong id="questionCountdown">--:--</strong></span>` : "";
     const scoreLabel = hideScoreWhilePlaying ? `ตอบแล้ว ${index} ข้อ` : `คะแนน ${score}`;
     const level = difficultyDescriptor(questionDifficulty(question));
     const levelMarkup = suppressGamification ? "" : `<span class="challenge-level-chip">${level.icon} ${level.label}</span>`;
+    const skillMarkup = question.skill_label ? `<span class="challenge-level-chip skill-focus-chip">🧩 ${escapeHtml(question.skill_label)}</span>` : "";
     const feedbackMarkup = suppressGamification ? "" : `<p id="questionLearningFeedback" class="question-learning-feedback" aria-live="polite">เลือกคำตอบที่คิดว่าถูกที่สุด</p>`;
-    gameShell(title, instruction, `<div class="game-status-row"><span>ความก้าวหน้า ${index + 1} / ${orderedQuestions.length}</span>${levelMarkup}<span class="mini-score">${scoreLabel}</span>${countdown}</div><div id="questionPrompt"></div>${feedbackMarkup}<div class="choice-grid" id="questionChoices"></div>`);
+    gameShell(title, instruction, `<div class="game-status-row"><span>ความก้าวหน้า ${index + 1} / ${orderedQuestions.length}</span>${skillMarkup}${levelMarkup}<span class="mini-score">${scoreLabel}</span>${countdown}</div><div id="questionPrompt"></div>${feedbackMarkup}<div class="choice-grid" id="questionChoices"></div>`);
     renderPrompt(question, $("#questionPrompt"));
     const currentChoices = choices(question);
     $("#questionChoices").innerHTML = currentChoices.map(choice => `<button class="choice-button" data-value="${escapeHtml(choice.value)}">${escapeHtml(choice.label)}</button>`).join("");
@@ -2124,6 +2131,7 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
       const chosen = button.dataset.value;
       const correct = chosen === question.answer;
       tries += 1;
+      if (tries === 1) firstChosen = chosen;
       const feedback = $("#questionLearningFeedback");
       if (revealCorrectness && !correct && tries === 1) {
         button.classList.add("wrong");
@@ -2133,12 +2141,21 @@ function runQuestionGame({ key, title, instruction, questions, renderPrompt, cho
         return;
       }
 
-      if (correct) score += 1;
+      const scoredAnswer = scoredAnswerForAttempt({
+        firstChosen,
+        finalChosen: chosen,
+        correctAnswer: question.answer,
+        tries,
+        scoreFirstAttemptOnly,
+      });
+      if (scoredAnswer.awardPoint) score += 1;
       answers.push({
         question_id: question.id || index + 1,
         prompt: question.word || question.prompt,
-        chosen,
-        correct,
+        chosen: scoredAnswer.chosen,
+        correction_chosen: scoredAnswer.correction_chosen,
+        correct: scoredAnswer.correct,
+        corrected: scoredAnswer.corrected,
         tries,
         skill_code: question.skill_code || null,
         instrument_version: question.instrument_version || null,
@@ -3119,10 +3136,12 @@ function renderLivePlanActivity(activityKey) {
     choices,
     replay: () => renderLivePlanActivity(activityKey),
     resultMessage: isExitTicket ? "ระบบบันทึกคะแนนดิบแยกตามทักษะเรียบร้อยแล้ว" : "",
+    scoreFirstAttemptOnly: isExitTicket,
     afterSubmit: isExitTicket ? (result, answers) => {
       const summary = exitTicketSummary(answers);
-      showResult("ส่ง Exit Ticket แล้ว", answers.filter(answer => answer.correct).length, questions.length, result, () => renderLivePlanActivity(activityKey), {
-        message: `${summary.map(row => `${row.label} ${row.score}/${row.max_score}`).join(" · ")} · รุ่น ${EXIT_TICKET_INSTRUMENT_VERSION}`,
+      showResult("พิชิตภารกิจ Exit Ticket แล้ว", answers.filter(answer => answer.correct).length, questions.length, result, null, {
+        message: `${summary.map(row => `${row.label} ${row.score}/${row.max_score}`).join(" · ")} · คะแนนนี้นับจากคำตอบครั้งแรก · รุ่น ${EXIT_TICKET_INSTRUMENT_VERSION}`,
+        privateAssessment: true,
         answers,
       });
     } : null,
@@ -3501,10 +3520,12 @@ function renderExit() {
     choices: question => question.options.map(option => ({ value: option, label: option })),
     replay: renderExit,
     resultMessage: "ระบบบันทึกคะแนนดิบแยกตามทักษะเรียบร้อยแล้ว",
+    scoreFirstAttemptOnly: true,
     afterSubmit(result, answers) {
       const summary = exitTicketSummary(answers);
-      showResult("ส่ง Exit Ticket แล้ว", result.score ?? answers.filter(answer => answer.correct).length, 12, result, renderExit, {
-        message: `${summary.map(row => `${row.label} ${row.score}/${row.max_score}`).join(" · ")} · รุ่น ${EXIT_TICKET_INSTRUMENT_VERSION}`,
+      showResult("พิชิตภารกิจ Exit Ticket แล้ว", result.score ?? answers.filter(answer => answer.correct).length, 12, result, null, {
+        message: `${summary.map(row => `${row.label} ${row.score}/${row.max_score}`).join(" · ")} · คะแนนนี้นับจากคำตอบครั้งแรก · รุ่น ${EXIT_TICKET_INSTRUMENT_VERSION}`,
+        privateAssessment: true,
         answers,
       });
     },
