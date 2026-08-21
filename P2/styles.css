@@ -1261,9 +1261,10 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .game-instruction h2 { font-size: clamp(27px,4vw,42px); margin-bottom: 7px; }
 .game-instruction p { color: var(--muted); font-size: 17px; }
 .game-play-area { width: 100%; min-height: 0; flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.game-status-row { width: min(780px,100%); display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.game-status-row { width: min(780px,100%); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 18px; }
 .mini-score { padding: 8px 13px; border-radius: 12px; background: var(--amber-soft); font-weight: 900; color: #806012; }
 .challenge-level-chip { display: inline-flex; align-items: center; justify-content: center; min-height: 35px; padding: 7px 12px; border: 1px solid #d9d2ff; border-radius: 999px; color: #4c3ab5; background: #f1efff; font-size: 13px; font-weight: 950; white-space: nowrap; }
+.skill-focus-chip { max-width: 100%; border-color: #b9e5d8; color: #21745f; background: #effbf7; white-space: normal; text-align: center; }
 .question-learning-feedback { width: min(760px,100%); min-height: 42px; display: grid; place-items: center; margin: 0 0 12px; padding: 9px 14px; border-radius: 13px; color: #51486f; background: #f6f5fb; font-size: 14px; font-weight: 850; text-align: center; }
 .choice-grid { width: min(760px,100%); display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
 .choice-button { min-height: 120px; border: 2px solid var(--line); border-radius: 22px; background: white; color: var(--ink); font-size: 26px; font-weight: 900; cursor: pointer; }
@@ -1470,6 +1471,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .mastery-level-progress { grid-column: 1 / -1; height: 8px; margin-top: 7px; overflow: hidden; border-radius: 999px; background: #e6e2f5; }
 .mastery-level-progress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#6b58e7,#37c694); }
 .earned-badge-panel { display: grid; gap: 10px; padding: 14px 17px; border: 1px solid #f0d98d; border-radius: 18px; background: linear-gradient(145deg,#fffdf2,#fff7d5); text-align: left; }
+.earned-badge-panel.is-private-assessment { border-color: #b9e5d8; background: linear-gradient(145deg,#f7fffc,#eaf9f4); }
 .earned-badge-panel > div:first-child { display: flex; justify-content: space-between; gap: 12px; color: #71571a; }
 .earned-badge-panel > div:first-child small { font-weight: 850; }
 .earned-badge-panel > div:first-child strong { font-size: 13px; }

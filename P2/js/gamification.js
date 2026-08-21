@@ -5,7 +5,28 @@ export const MASTERY_LEVELS = Object.freeze([
   Object.freeze({ key: "perfect", min: 100, title: "ยอดเยี่ยม", icon: "🌟", message: "ตอบถูกครบทุกข้อเลย" }),
 ]);
 
-const ASSESSMENT_KEYS = new Set(["pretest", "posttest"]);
+const ASSESSMENT_KEYS = new Set(["pretest", "posttest", "satisfaction"]);
+
+export function isExitTicketActivityKey(value) {
+  return /(?:^|-)exit$/.test(String(value || ""));
+}
+
+export function isNonCompetitiveAssessmentKey(value) {
+  const key = String(value || "");
+  return ASSESSMENT_KEYS.has(key) || isExitTicketActivityKey(key);
+}
+
+export function scoredAnswerForAttempt({ firstChosen, finalChosen, correctAnswer, tries = 1, scoreFirstAttemptOnly = false } = {}) {
+  const firstAttemptCorrect = firstChosen === correctAnswer;
+  const finalCorrect = finalChosen === correctAnswer;
+  return Object.freeze({
+    chosen: scoreFirstAttemptOnly ? firstChosen : finalChosen,
+    correction_chosen: scoreFirstAttemptOnly && tries > 1 ? finalChosen : null,
+    correct: scoreFirstAttemptOnly ? firstAttemptCorrect : finalCorrect,
+    corrected: scoreFirstAttemptOnly ? !firstAttemptCorrect && finalCorrect : tries > 1 && finalCorrect,
+    awardPoint: finalCorrect && (!scoreFirstAttemptOnly || firstAttemptCorrect),
+  });
+}
 
 function boundedPercent(value) {
   return Math.max(0, Math.min(100, Number(value) || 0));
@@ -53,7 +74,7 @@ export function collectAchievementBadges(attempts = [], passPercent = 80) {
   const groups = new Map();
   attempts.forEach(attempt => {
     const key = String(attempt?.activity_key || "");
-    if (!key || ASSESSMENT_KEYS.has(key)) return;
+    if (!key || isNonCompetitiveAssessmentKey(key)) return;
     const group = groups.get(key) || [];
     group.push(attempt);
     groups.set(key, group);

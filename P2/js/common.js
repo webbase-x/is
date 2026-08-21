@@ -1,4 +1,5 @@
 import "./emoji.js?v=20260805-emoji-images-1";
+import { isExitTicketActivityKey } from "./gamification.js?v=20260821-exit-ticket-1";
 
 export const ACTIVITIES = Object.freeze([
   { key: "rhythm", icon: "🎵", title: "เพลง มาตรา ก กา", short: "เพลง มาตรา", minutes: 5 },
@@ -75,7 +76,7 @@ const freezeLessonFlow = steps => Object.freeze(steps.map(step => Object.freeze(
 })));
 
 const addCompetitionResultSteps = steps => steps.flatMap(step => {
-  if (step.kind !== "game" || !step.activityKey) return [step];
+  if (step.kind !== "game" || !step.activityKey || isExitTicketActivityKey(step.activityKey)) return [step];
   return [
     step,
     {
@@ -356,7 +357,7 @@ const PLAN_1_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
     kind: "game",
     activityKey: "exit",
     icon: "🗝️",
-    title: "แบบทดสอบท้ายบทเรียน",
+    title: "Exit Ticket · ภารกิจพิชิต 4 ทักษะ",
     minutes: 10,
     studentVisibleDefault: true,
     teacherNotes: [
@@ -365,9 +366,9 @@ const PLAN_1_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
       "นาฬิกาเป็นเพียงเวลาที่แนะนำ นักเรียนยังทำต่อได้จนกว่าครูจะเปลี่ยนขั้น",
     ],
     screen: {
-      eyebrow: "ประเมินความเข้าใจ",
+      eyebrow: "ภารกิจประเมินท้ายแผน",
       title: "ไขกุญแจหีบสมบัติ",
-      message: "ทำ 12 ข้อ ทักษะละ 3 ข้อ และตอบให้ถูกอย่างน้อย 8 ข้อ",
+      message: "พิชิต 3 ระดับความท้าทายให้ครบ ทำ 12 ข้อ ทักษะละ 3 ข้อ และตอบให้ถูกอย่างน้อย 8 ข้อ",
       icon: "🗝️",
       bullets: ["คิดก่อนตอบ", "ตรวจคำตอบของตนเองทุกข้อ"],
     },
@@ -653,13 +654,13 @@ const PLAN_2_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
     studentVisibleDefault: true,
     teacherNotes: [
       "ให้นักเรียนทำ Exit Ticket จำนวน 12 ข้อ ครบ 4 ทักษะ",
-      "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับดาว",
+      "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับตราความสำเร็จส่วนตัว",
       "ติดตามผลรายบุคคลและทบทวนข้อที่นักเรียนตอบผิดมาก",
     ],
     screen: {
       eyebrow: "ประเมินความเข้าใจ",
       title: "ด่านดาวพิชิตแม่กง",
-      message: "ตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ เพื่อรับดาว",
+      message: "พิชิต 3 ระดับความท้าทายให้ครบ และตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ",
       icon: "🗝️",
       bullets: ["อ่านโจทย์ให้ครบ", "สังเกตตัวสะกด", "ตรวจคำตอบก่อนเลือก"],
     },
@@ -945,13 +946,13 @@ const PLAN_3_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
     studentVisibleDefault: true,
     teacherNotes: [
       "ให้นักเรียนทำ Exit Ticket จำนวน 12 ข้อ ครบ 4 ทักษะ",
-      "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับดาว",
-      "ฉายคะแนนรวมและเหรียญรางวัลหลังนักเรียนทำเสร็จ",
+      "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับตราความสำเร็จส่วนตัว",
+      "ติดตามการส่งบนหน้าครูโดยไม่ฉายคะแนนหรือจัดอันดับนักเรียน",
     ],
     screen: {
       eyebrow: "ประเมินความเข้าใจ",
       title: "ด่านดาวพิชิตแม่กม",
-      message: "ตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ เพื่อรับดาว",
+      message: "พิชิต 3 ระดับความท้าทายให้ครบ และตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ",
       icon: "🗝️",
       bullets: ["อ่านโจทย์ให้ครบ", "สังเกตตัวสะกด", "ตรวจคำตอบก่อนเลือก"],
     },
@@ -1172,12 +1173,12 @@ const PLAN_4_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
     title: "Exit Ticket · ทักษะ 4 ด้าน", minutes: 10, studentVisibleDefault: true,
     teacherNotes: [
       "ให้นักเรียนทำ Exit Ticket จำนวน 12 ข้อ ครบ 4 ทักษะ",
-      "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับดาว",
-      "ฉายคะแนนรวมและเหรียญรางวัลหลังนักเรียนทำเสร็จ",
+      "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับตราความสำเร็จส่วนตัว",
+      "ติดตามการส่งบนหน้าครูโดยไม่ฉายคะแนนหรือจัดอันดับนักเรียน",
     ],
     screen: {
       eyebrow: "ประเมินความเข้าใจ", title: "ด่านดาวพิชิตคู่หู ย ว",
-      message: "ตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ เพื่อรับดาว", icon: "🗝️",
+      message: "พิชิต 3 ระดับความท้าทายให้ครบ และตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ", icon: "🗝️",
       bullets: ["อ่านโจทย์ให้ครบ", "สังเกตตัวสะกด ย หรือ ว", "ตรวจคำตอบก่อนเลือก"],
     },
   },
@@ -1368,12 +1369,12 @@ const PLAN_5_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
     title: "Exit Ticket · ทักษะ 4 ด้าน", minutes: 10, studentVisibleDefault: true,
     teacherNotes: [
       "ให้นักเรียนทำ Exit Ticket จำนวน 12 ข้อ ครบ 4 ทักษะ",
-      "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับดาว",
-      "ฉายคะแนนรวมและเหรียญรางวัลหลังนักเรียนทำเสร็จ",
+      "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับตราความสำเร็จส่วนตัว",
+      "ติดตามการส่งบนหน้าครูโดยไม่ฉายคะแนนหรือจัดอันดับนักเรียน",
     ],
     screen: {
       eyebrow: "ประเมินความเข้าใจ", title: "ด่านดาวพิชิตแม่กก",
-      message: "ตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ เพื่อรับดาว", icon: "🗝️",
+      message: "พิชิต 3 ระดับความท้าทายให้ครบ และตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ", icon: "🗝️",
       bullets: ["ฟังเสียงท้ายคำ", "สังเกตรูปตัวสะกด", "ตรวจคำตอบก่อนเลือก"],
     },
   },
@@ -1465,8 +1466,8 @@ const PLAN_6_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
   },
   {
     key: "p6-exit", stage: 5, kind: "game", activityKey: "exit", icon: "🏆", title: "Exit Ticket · ทักษะ 4 ด้าน", minutes: 10, studentVisibleDefault: true,
-    teacherNotes: ["ให้นักเรียนทำ Exit Ticket 12 ข้อ ครบ 4 ทักษะ", "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับดาว", "ฉายคะแนนรวมและตรวจคะแนนดิบรายทักษะหลังนักเรียนทำเสร็จ"],
-    screen: { eyebrow: "ประเมินทักษะท้ายแผน", title: "Exit Ticket · แม่กด", message: "ตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ เพื่อรับดาว", icon: "🏆", bullets: ["จำแนกคำ", "สะกดและใช้คำ", "เรียงประโยค"] },
+    teacherNotes: ["ให้นักเรียนทำ Exit Ticket 12 ข้อ ครบ 4 ทักษะ", "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับตราความสำเร็จส่วนตัว", "ติดตามการส่งและคะแนนดิบรายทักษะบนหน้าครูโดยไม่จัดอันดับนักเรียน"],
+    screen: { eyebrow: "ภารกิจประเมินท้ายแผน", title: "Exit Ticket · แม่กด", message: "พิชิต 3 ระดับความท้าทายให้ครบ และตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ", icon: "🏆", bullets: ["จำแนกคำ", "สะกดและใช้คำ", "เรียงประโยค"] },
   },
   {
     key: "p6-worksheet", stage: 5, kind: "media", icon: "📄", title: "มอบหมายใบงานที่ 6", minutes: 2, studentVisibleDefault: false,
@@ -1547,8 +1548,8 @@ const PLAN_7_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
   },
   {
     key: "p8-exit", stage: 5, kind: "game", activityKey: "exit", icon: "🏆", title: "Exit Ticket · ทักษะ 4 ด้าน", minutes: 10, studentVisibleDefault: true,
-    teacherNotes: ["ให้นักเรียนทำ Exit Ticket 12 ข้อ ครบ 4 ทักษะ", "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับดาว", "ฉายคะแนนรวมและตรวจคะแนนดิบรายทักษะหลังนักเรียนทำเสร็จ"],
-    screen: { eyebrow: "ประเมินทักษะท้ายแผน", title: "Exit Ticket · แม่กบ", message: "ตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ เพื่อรับดาว", icon: "🏆", bullets: ["จำแนกคำ", "สะกดและใช้คำ", "เรียงประโยค"] },
+    teacherNotes: ["ให้นักเรียนทำ Exit Ticket 12 ข้อ ครบ 4 ทักษะ", "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับตราความสำเร็จส่วนตัว", "ติดตามการส่งและคะแนนดิบรายทักษะบนหน้าครูโดยไม่จัดอันดับนักเรียน"],
+    screen: { eyebrow: "ภารกิจประเมินท้ายแผน", title: "Exit Ticket · แม่กบ", message: "พิชิต 3 ระดับความท้าทายให้ครบ และตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ", icon: "🏆", bullets: ["จำแนกคำ", "สะกดและใช้คำ", "เรียงประโยค"] },
   },
   {
     key: "p8-worksheet", stage: 5, kind: "media", icon: "📄", title: "มอบหมายใบงานที่ 8 และแจ้งทดสอบหลังเรียน", minutes: 2, studentVisibleDefault: false,
@@ -1629,8 +1630,8 @@ const PLAN_8_LESSON_FLOW = freezeLessonFlow(addCompetitionResultSteps([
   },
   {
     key: "p7-exit", stage: 5, kind: "game", activityKey: "exit", icon: "🏆", title: "Exit Ticket · ทักษะ 4 ด้าน", minutes: 10, studentVisibleDefault: true,
-    teacherNotes: ["ให้นักเรียนทำ Exit Ticket 12 ข้อ ครบ 4 ทักษะ", "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับดาว", "ฉายคะแนนรวมและตรวจคะแนนดิบรายทักษะหลังนักเรียนทำเสร็จ"],
-    screen: { eyebrow: "ประเมินทักษะท้ายแผน", title: "Exit Ticket · แม่กน", message: "ตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ เพื่อรับดาว", icon: "🏆", bullets: ["จำแนกคำ", "สะกดและใช้คำ", "เรียงประโยค"] },
+    teacherNotes: ["ให้นักเรียนทำ Exit Ticket 12 ข้อ ครบ 4 ทักษะ", "เกณฑ์ผ่าน 8 จาก 12 ข้อ ผู้ผ่านจะได้รับตราความสำเร็จส่วนตัว", "ติดตามการส่งและคะแนนดิบรายทักษะบนหน้าครูโดยไม่จัดอันดับนักเรียน"],
+    screen: { eyebrow: "ภารกิจประเมินท้ายแผน", title: "Exit Ticket · แม่กน", message: "พิชิต 3 ระดับความท้าทายให้ครบ และตอบให้ถูกอย่างน้อย 8 จาก 12 ข้อ", icon: "🏆", bullets: ["จำแนกคำ", "สะกดและใช้คำ", "เรียงประโยค"] },
   },
   {
     key: "p7-worksheet", stage: 5, kind: "media", icon: "📄", title: "มอบหมายใบงานที่ 7", minutes: 2, studentVisibleDefault: false,

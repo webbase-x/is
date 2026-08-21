@@ -3,7 +3,8 @@ import {
   $, activitiesForPlan, activityForKey, escapeHtml, EXPERT_SCOREBOARD_EVENT, EXPERT_SCOREBOARD_REQUEST_EVENT,
   GAME_STATE_EVENT, GAME_STATE_REQUEST_EVENT, gameStateChannelName, hide,
   roomCodeFromUrl, sanitizeGameMarkup, show, toast,
-} from "./common.js?v=20260816-satisfaction-3";
+} from "./common.js?v=20260821-exit-ticket-gamification-1";
+import { isExitTicketActivityKey } from "./gamification.js?v=20260821-exit-ticket-1";
 
 const state = {
   roomCode: "",
@@ -163,28 +164,30 @@ function renderSnapshot(leaderboard) {
   const activity = activityForKey(snapshot.current_activity_key, snapshot.plan_id);
   const lesson = state.lessonStep;
   const showingResults = lesson?.kind === "results";
+  const privateExitTicket = isExitTicketActivityKey(snapshot.current_activity_key);
   const screen = lesson?.screen || {};
   const paused = snapshot.session_status === "paused";
   $("#displayRoomCode").textContent = snapshot.room_code;
   $("#displayClassName").textContent = `${snapshot.school_name} · ${snapshot.class_label}`;
   $("#displayStageStep").textContent = lesson
-    ? `แผนที่ ${snapshot.plan_id} · ขั้นที่ ${lesson.stage} · ${lesson.kind === "game" ? "เกม" : showingResults ? "ประกาศผลการแข่งขัน" : "สื่อการสอน"}`
+    ? `แผนที่ ${snapshot.plan_id} · ขั้นที่ ${lesson.stage} · ${privateExitTicket ? "ภารกิจประเมิน" : lesson.kind === "game" ? "เกม" : showingResults ? "ประกาศผลการแข่งขัน" : "สื่อการสอน"}`
     : `แผนที่ ${snapshot.plan_id}${activity ? ` · ภารกิจ ${activities.findIndex(item => item.key === activity.key) + 1}/${activities.length}` : ""}`;
-  $("#displayStageTitle").textContent = showingResults ? lesson.title : paused ? "พักกิจกรรมสักครู่" : screen.title || lesson?.title || activity?.title || "รอนักเรียนเข้าห้อง";
-  $("#displayStageMessage").textContent = showingResults ? "ขอเสียงปรบมือให้เพื่อนทุกคน" : paused ? "ครูจะเริ่มต่อเมื่อทุกคนพร้อม" : screen.message || activityMessages[activity?.key] || "เมื่อทุกคนพร้อม ครูจะเริ่มกิจกรรมแรก";
+  $("#displayStageTitle").textContent = showingResults ? lesson.title : paused ? privateExitTicket ? "ส่ง Exit Ticket เรียบร้อยแล้ว" : "พักกิจกรรมสักครู่" : screen.title || lesson?.title || activity?.title || "รอนักเรียนเข้าห้อง";
+  $("#displayStageMessage").textContent = showingResults ? "ขอเสียงปรบมือให้เพื่อนทุกคน" : paused ? privateExitTicket ? "คะแนนรายบุคคลอยู่ในรายงานครูและไม่มีการจัดอันดับ" : "ครูจะเริ่มต่อเมื่อทุกคนพร้อม" : screen.message || activityMessages[activity?.key] || "เมื่อทุกคนพร้อม ครูจะเริ่มกิจกรรมแรก";
   $("#displayActivityVisual").innerHTML = `<span>${showingResults ? "🏆" : paused ? "⏸️" : screen.icon || lesson?.icon || activity?.icon || "🗺️"}</span>`;
   const details = $("#displayLessonDetails");
   const detailsMarkup = lesson ? displayLessonDetailsMarkup(screen) : "";
   details.classList.toggle("hidden", !detailsMarkup);
   details.innerHTML = detailsMarkup;
   const mediaWithoutLeaderboard = lesson?.kind === "media" && !lesson.show_leaderboard;
-  $("#displayActivityView").classList.toggle("lesson-media-active", mediaWithoutLeaderboard);
+  const hideLeaderboardPanel = mediaWithoutLeaderboard || privateExitTicket;
+  $("#displayActivityView").classList.toggle("lesson-media-active", hideLeaderboardPanel);
   $("#displayApproved").textContent = snapshot.approved_count;
   const progress = snapshot.total_students ? Math.min(100, (snapshot.approved_count / snapshot.total_students) * 100) : 0;
   $("#displayProgressBar").style.width = `${progress}%`;
   const hideLiveRanking = snapshot.session_status === "active" && snapshot.live_ranking_enabled !== true;
-  $(".leaderboard-panel")?.classList.toggle("hidden", mediaWithoutLeaderboard);
-  if (!mediaWithoutLeaderboard) renderLeaderboard(hideLiveRanking ? [] : leaderboard, snapshot.leaderboard_mode, hideLiveRanking);
+  $(".leaderboard-panel")?.classList.toggle("hidden", hideLeaderboardPanel);
+  if (!hideLeaderboardPanel) renderLeaderboard(hideLiveRanking ? [] : leaderboard, snapshot.leaderboard_mode, hideLiveRanking);
   updateDisplayLessonCountdown();
   renderStudentScreens();
 }

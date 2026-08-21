@@ -7,9 +7,15 @@ export const EXIT_TICKET_SKILLS = Object.freeze([
   Object.freeze({ code: "sentence", label: "การเรียบเรียงประโยค" }),
 ]);
 
+const EXIT_TICKET_SKILL_LABELS = Object.freeze(Object.fromEntries(
+  EXIT_TICKET_SKILLS.map(skill => [skill.code, skill.label]),
+));
+
 const item = (id, skillCode, prompt, options, answer, emoji = "🗝️") => Object.freeze({
   id,
   skill_code: skillCode,
+  skill_label: EXIT_TICKET_SKILL_LABELS[skillCode] || skillCode,
+  difficulty: Math.max(1, Math.min(3, Number(String(id).match(/(\d)$/)?.[1]) || 1)),
   prompt,
   options: Object.freeze(options),
   answer,
