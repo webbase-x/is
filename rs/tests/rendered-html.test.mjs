@@ -152,9 +152,10 @@ test("individual report combines outcomes with selectable privacy, matching, and
     assert.match(source, new RegExp(`<option value="${legendPosition}">`));
   }
   assert.match(source, /chart-legend chart-legend-horizontal/);
-  assert.match(source, /height - 34/);
-  assert.match(source, /<circle cx="140" cy="0"/);
-  assert.match(source, /<line x1="280" x2="315" y1="0" y2="0"/);
+  assert.match(source, /translate\(\$\{width \/ 2\} \$\{height - 31\}\)/);
+  assert.match(source, /<rect x=\{showCriterion \? -320 : -170\} y="-23" width=\{showCriterion \? 640 : 340\} height="46"/);
+  assert.match(source, /<circle cx=\{showCriterion \? -110 : 50\} cy="0"/);
+  assert.match(source, /<line x1="65" x2="100" y1="0" y2="0"/);
   assert.match(source, /แสดงตัวเลขคะแนนข้างจุด/);
   assert.match(source, /ช่วงแกนคะแนน/);
   assert.match(source, /คะแนนผลสัมฤทธิ์ทางการเรียน \(คะแนนเต็ม/);
