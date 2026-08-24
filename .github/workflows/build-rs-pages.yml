@@ -8,6 +8,7 @@ on:
       - "rs/lib/**"
       - "rs/app/**"
       - "rs/github-pages/**"
+      - "rs/effect-size-tab.js"
       - "rs/package.json"
       - "rs/package-lock.json"
       - "rs/vite.github-pages.config.ts"
@@ -46,7 +47,7 @@ jobs:
 
       - name: Prepare tracked Pages files
         run: |
-          sed -i 's#</head>#    <script defer src="/is/rs/save-success-cleanup.js"></script>\n    <script defer src="/is/rs/ioc-default-values.js"></script>\n  </head>#' github-pages-dist/index.html
+          sed -i 's#</head>#    <script defer src="/is/rs/save-success-cleanup.js"></script>\n    <script defer src="/is/rs/ioc-default-values.js"></script>\n    <script defer src="/is/rs/effect-size-tab.js?v=20260824"></script>\n  </head>#' github-pages-dist/index.html
           cp github-pages-dist/index.html index.html
           mkdir -p assets
           cp github-pages-dist/assets/* assets/
