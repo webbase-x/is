@@ -7,7 +7,7 @@ import ProjectDataImporter, {
 import { getSupabaseClient } from "../lib/supabase/client";
 import type { ResearchProject } from "../lib/supabase/types";
 import {
-  analyzeItem,
+  analyzeTestMatrix,
   assessNormality,
   calculateE1E2,
   calculateIoc,
@@ -28,6 +28,7 @@ import {
   parseNumbers,
   sampleStandardDeviation,
   standardNormalQuantile,
+  testGroupPercentages,
   threeLevelSatisfactionBands,
   traditionalFiveLevelBands,
   type AlternativeHypothesis,
@@ -36,6 +37,7 @@ import {
   type OneSampleTResult,
   type PairedResult,
   type SignTestResult,
+  type TestGroupPercentage,
   type WilcoxonResult,
 } from "../lib/statistics";
 
@@ -1888,135 +1890,62 @@ function ExpertMediaQualityView({
   );
 }
 
-type TestMatrixItemResult = {
-  item: number;
-  upperCorrect: number;
-  lowerCorrect: number;
-  difficulty: number | null;
-  discrimination: number | null;
-  difficultyLabel: string;
-  discriminationLabel: string;
-  selected: boolean;
-};
-
-function analyzeTestMatrix(matrix: number[][]) {
-  const itemCount = matrix[0]?.length ?? 0;
-  const valid =
-    matrix.length > 0 &&
-    itemCount > 0 &&
-    matrix.every(
-      (row) =>
-        row.length === itemCount &&
-        row.every((value) => value === 0 || value === 1),
-    );
-  if (!valid) {
-    return {
-      valid: false,
-      respondentCount: matrix.length,
-      itemCount,
-      groupSize: 0,
-      upperIndexes: [] as number[],
-      lowerIndexes: [] as number[],
-      totals: [] as number[],
-      items: [] as TestMatrixItemResult[],
-      selectedItems: [] as number[],
-    };
-  }
-  const totals = matrix.map((row) =>
-    row.reduce((total, value) => total + value, 0),
-  );
-  const ranked = totals
-    .map((total, index) => ({ total, index }))
-    .sort((a, b) => b.total - a.total || a.index - b.index);
-  const groupSize = Math.max(1, Math.round(matrix.length * 0.27));
-  const upperIndexes = ranked.slice(0, groupSize).map((entry) => entry.index);
-  const lowerIndexes = ranked.slice(-groupSize).map((entry) => entry.index);
-  const items = Array.from({ length: itemCount }, (_, column) => {
-    const upperCorrect = upperIndexes.reduce(
-      (total, rowIndex) => total + matrix[rowIndex][column],
-      0,
-    );
-    const lowerCorrect = lowerIndexes.reduce(
-      (total, rowIndex) => total + matrix[rowIndex][column],
-      0,
-    );
-    const result = analyzeItem(upperCorrect, lowerCorrect, groupSize);
-    return {
-      item: column + 1,
-      upperCorrect,
-      lowerCorrect,
-      ...result,
-      selected:
-        result.difficulty !== null &&
-        result.difficulty >= 0.2 &&
-        result.difficulty <= 0.8 &&
-        result.discrimination !== null &&
-        result.discrimination >= 0.2,
-    };
-  });
-  return {
-    valid: true,
-    respondentCount: matrix.length,
-    itemCount,
-    groupSize,
-    upperIndexes,
-    lowerIndexes,
-    totals,
-    items,
-    selectedItems: items
-      .filter((item) => item.selected)
-      .map((item) => item.item),
-  };
-}
-
 function selectedTestMatrix(matrix: number[][], selectedItems: number[]) {
   return matrix.map((row) =>
     selectedItems.map((itemNumber) => row[itemNumber - 1]),
   );
 }
 
-const DEFAULT_SHARED_TEST_TEXT =
-  "1,1,1,0,1\n1,0,1,1,1\n1,1,1,1,1\n0,0,1,0,1\n1,1,0,1,1\n0,1,0,0,1";
+const DEFAULT_SHARED_TEST_TEXT = "";
 
 function parseSharedTestMatrix(text: string) {
-  const numericRows = text
+  const tokenRows = text
     .trim()
-    .split(/\n+/)
-    .map((line) => line.trim().split(/[\s,;\t]+/))
-    .filter((tokens) => tokens.length > 0 && Number.isFinite(Number(tokens[0])))
-    .map((tokens) =>
-      tokens.map(Number).filter((value) => Number.isFinite(value)),
-    )
-    .filter((row) => row.length > 0);
-  if (!numericRows.length) return [];
-  const rowsWithSequenceNumber = numericRows.filter(
-    (row, index) => row[0] === index + 1,
+    .split(/\r?\n+/)
+    .map((line) => line.trim().split(/[\s,;\t]+/).filter(Boolean))
+    .filter((tokens) =>
+      tokens.some((token) =>
+        ["0", "1"].includes(
+          normalizeDigits(token).replace(/^['"]|['"]$/g, ""),
+        ),
+      ),
+    );
+  if (!tokenRows.length) return [];
+  const rowsWithSequenceNumber = tokenRows.filter(
+    (row, index) => Number(normalizeDigits(row[0] ?? "")) === index + 1,
   ).length;
   const hasSequenceNumber =
-    rowsWithSequenceNumber >= Math.ceil(numericRows.length * 0.8);
-  const candidates = numericRows.map((row) =>
+    tokenRows.length > 1 &&
+    rowsWithSequenceNumber >= Math.ceil(tokenRows.length * 0.8);
+  const candidates = tokenRows.map((row) =>
     hasSequenceNumber ? row.slice(1) : row,
   );
-  const binaryPrefixLengths = candidates.map((row) => {
-    const firstNonBinary = row.findIndex(
-      (value) => value !== 0 && value !== 1,
-    );
-    return firstNonBinary < 0 ? row.length : firstNonBinary;
+  const binaryRuns = candidates.map((row) => {
+    const runs: number[][] = [];
+    let current: number[] = [];
+    row.forEach((token) => {
+      const normalized = normalizeDigits(token).replace(/^['"]|['"]$/g, "");
+      if (normalized === "0" || normalized === "1") {
+        current.push(Number(normalized));
+      } else if (current.length) {
+        runs.push(current);
+        current = [];
+      }
+    });
+    if (current.length) runs.push(current);
+    return runs.sort((a, b) => b.length - a.length).at(0) ?? [];
   });
   const widthCounts = new Map<number, number>();
-  binaryPrefixLengths.forEach((width) => {
+  binaryRuns.forEach((run) => {
+    const width = run.length;
     if (width > 0) widthCounts.set(width, (widthCounts.get(width) ?? 0) + 1);
   });
   const targetWidth = [...widthCounts.entries()]
     .sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? 0;
   if (!targetWidth) return [];
-  return candidates
-    .filter(
-      (row) =>
-        row.length >= targetWidth &&
-        row.slice(0, targetWidth).every((value) => value === 0 || value === 1),
-    )
-    .map((row) => row.slice(0, targetWidth));
+  return binaryRuns
+    .filter((run) => run.length >= targetWidth)
+    .map((run) => run.slice(-targetWidth));
 }
 
 function sharedTestTextFromWorkspace(workspace?: WorkspaceData | null) {
@@ -2035,8 +1964,29 @@ function sharedTestTextFromWorkspace(workspace?: WorkspaceData | null) {
   return "";
 }
 
+function isTestGroupPercentage(value: number): value is TestGroupPercentage {
+  return testGroupPercentages.some((percentage) => percentage === value);
+}
+
+function downloadTryoutTemplate() {
+  const header = [
+    "ลำดับ",
+    ...Array.from({ length: 20 }, (_, index) => `ข้อ${index + 1}`),
+  ];
+  const rows = Array.from({ length: 40 }, (_, index) => [
+    index + 1,
+    ...Array.from({ length: 20 }, () => ""),
+  ]);
+  const csv = [header, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell)}"`).join(","))
+    .join("\n");
+  downloadFile(
+    new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }),
+    "แม่แบบ-Try-out-แบบทดสอบ-20-ข้อ-40-คน.csv",
+  );
+}
+
 function ItemView({
-  imported,
   initial,
   onChange,
   title,
@@ -2044,7 +1994,6 @@ function ItemView({
   sharedTestText,
   onSharedTestTextChange,
 }: {
-  imported?: ImportedProjectData | null;
   initial?: WorkspaceData;
   onChange: (data: WorkspaceData, result: WorkspaceData) => void;
   title: string;
@@ -2052,11 +2001,27 @@ function ItemView({
   sharedTestText: string;
   onSharedTestTextChange: (value: string) => void;
 }) {
-  const matrix = parseSharedTestMatrix(sharedTestText);
-  const analysis = analyzeTestMatrix(matrix);
-  const selectedMatrix = analysis.valid
-    ? selectedTestMatrix(matrix, analysis.selectedItems)
-    : [];
+  const initialGroupPercentage = Number(initial?.groupPercentage ?? 0.27);
+  const [groupPercentage, setGroupPercentage] = useState<TestGroupPercentage>(
+    isTestGroupPercentage(initialGroupPercentage)
+      ? initialGroupPercentage
+      : 0.27,
+  );
+  const matrix = useMemo(
+    () => parseSharedTestMatrix(sharedTestText),
+    [sharedTestText],
+  );
+  const analysis = useMemo(
+    () => analyzeTestMatrix(matrix, groupPercentage),
+    [matrix, groupPercentage],
+  );
+  const selectedMatrix = useMemo(
+    () =>
+      analysis.valid
+        ? selectedTestMatrix(matrix, analysis.selectedItems)
+        : [],
+    [analysis, matrix],
+  );
   const reliability = selectedMatrix[0]?.length ? kr20(selectedMatrix) : null;
   const reliabilityLevel =
     reliability === null
@@ -2079,8 +2044,21 @@ function ItemView({
         fmt(reliability, 3) +
         " อยู่ในระดับ" +
         reliabilityLevel;
+  const groupPercentLabel = `${Math.round(groupPercentage * 100)}%`;
+  const rejectedByDifficulty = analysis.items.filter(
+    (item) =>
+      item.difficulty === null ||
+      item.difficulty < 0.2 ||
+      item.difficulty > 0.8,
+  ).length;
+  const rejectedByDiscrimination = analysis.items.filter(
+    (item) => item.discrimination === null || item.discrimination < 0.2,
+  ).length;
+  const tryoutReport = analysis.valid
+    ? `นำแบบทดสอบฉบับร่างจำนวน ${analysis.itemCount} ข้อไปทดลองใช้กับนักเรียนจำนวน ${analysis.respondentCount} คน ตรวจให้คะแนนแบบตอบถูก 1 คะแนนและตอบผิด 0 คะแนน จากนั้นเรียงคะแนนรวมจากสูงไปต่ำและแบ่งกลุ่มสูงกับกลุ่มต่ำด้วยเทคนิค ${groupPercentLabel} ได้กลุ่มละ ${analysis.groupSize} คน ผลการวิเคราะห์รายข้อพบว่ามีข้อสอบผ่านเกณฑ์ p = 0.20–0.80 และ r ≥ 0.20 จำนวน ${analysis.selectedItems.length} ข้อ ได้แก่ ข้อ ${analysis.selectedItems.join(", ") || "—"}`
+    : analysis.error ?? "กรุณาป้อนข้อมูลคะแนน Try-out";
   const exportRows: ExportCell[][] = [
-    ["ข้อ", "RU", "RL", "p", "แปลผล p", "r", "แปลผล r", "สถานะ"],
+    ["ข้อ", "R_H", "R_L", "p", "แปลผล p", "r", "แปลผล r", "สถานะ"],
     ...analysis.items.map((item) => [
       item.item,
       item.upperCorrect,
@@ -2094,18 +2072,35 @@ function ItemView({
     [""],
     ["จำนวนผู้สอบ", analysis.respondentCount],
     ["จำนวนข้อฉบับร่าง", analysis.itemCount],
-    ["จำนวนคนต่อกลุ่ม 27%", analysis.groupSize],
+    ["เทคนิคแบ่งกลุ่ม", groupPercentLabel],
+    ["จำนวนคนต่อกลุ่ม", analysis.groupSize],
+    ["จำนวนคนกลุ่มกลางที่ไม่นำมาคำนวณ", analysis.middleCount],
     ["จำนวนข้อที่ผ่าน", analysis.selectedItems.length],
+    ["จำนวนข้อไม่ผ่านเกณฑ์ p", rejectedByDifficulty],
+    ["จำนวนข้อไม่ผ่านเกณฑ์ r", rejectedByDiscrimination],
     ["ข้อที่คัดเลือก", analysis.selectedItems.join(", ")],
     ["KR-20 ของข้อที่คัดเลือก", fmt(reliability, 3)],
     ["ระดับความเชื่อมั่น", reliabilityLevel],
     ["รายงานอัตโนมัติ", reliabilityReport],
+    ["ข้อความสรุป Try-out", tryoutReport],
+    [""],
+    ["อันดับ", "แถวข้อมูลเดิม", "คะแนนรวม", "กลุ่ม"],
+    ...analysis.rankedRespondents.map((respondent) => [
+      respondent.rank,
+      respondent.sourceIndex + 1,
+      respondent.total,
+      respondent.group === "upper"
+        ? "กลุ่มสูง"
+        : respondent.group === "lower"
+          ? "กลุ่มต่ำ"
+          : "กลุ่มกลาง (ไม่นำมาคำนวณ)",
+    ]),
   ];
   useEffect(() => {
     onChange(
       {
         testMatrix: sharedTestText,
-        groupPercentage: 0.27,
+        groupPercentage,
         selectedItems: analysis.selectedItems,
       },
       {
@@ -2113,20 +2108,23 @@ function ItemView({
         respondentCount: analysis.respondentCount,
         itemCount: analysis.itemCount,
         groupSize: analysis.groupSize,
+        middleCount: analysis.middleCount,
         upperRespondents: analysis.upperIndexes.map((index) => index + 1),
         lowerRespondents: analysis.lowerIndexes.map((index) => index + 1),
+        rankedRespondents: analysis.rankedRespondents,
         items: analysis.items,
         selectedItems: analysis.selectedItems,
         selectedItemCount: analysis.selectedItems.length,
         kr20: reliability,
+        report: tryoutReport,
       },
     );
-  }, [sharedTestText]);
+  }, [analysis, groupPercentage, onChange, reliability, sharedTestText, tryoutReport]);
   return (
     <Page
-      title="คุณภาพแบบทดสอบ"
-      subtitle="ข้อมูลดิบชุดเดียวสำหรับวิเคราะห์ p, r คัดเลือกข้อ และคำนวณ KR-20"
-      badge="3 ขั้นตอนในงานเดียว"
+      title="วิเคราะห์ความยาก (p) และอำนาจจำแนก (r)"
+      subtitle="คำนวณจากคะแนน Try-out 0/1 รายคน จัดอันดับ แบ่งกลุ่มสูง–ต่ำ และคัดเลือกข้อสอบโดยอัตโนมัติ"
+      badge="แบบทดสอบ 20 ข้อ"
     >
       <section className="panel result-export-panel">
         <ResultExportToolbar
@@ -2137,90 +2135,172 @@ function ItemView({
       </section>
       <section className="split">
         <div className="panel">
-          <span className="eyebrow">ขั้นที่ 1 · ข้อมูลดิบ</span>
-          <h3>Matrix คะแนนกลางของโครงการ</h3>
-          <p>1 บรรทัด = ผู้สอบ 1 คน · 1 คอลัมน์ = ข้อสอบ 1 ข้อ · ใช้เฉพาะ 0 และ 1</p>
+          <span className="eyebrow">ขั้นที่ 1 · คะแนนจากการทดลองใช้</span>
+          <h3>ป้อน Matrix คะแนนดิบ 0/1</h3>
+          <p>คัดลอกจาก Excel ได้ทันที: 1 แถว = ผู้สอบ 1 คน · 20 คอลัมน์ = ข้อ 1–20 · ถูก = 1 · ผิด = 0</p>
+          <div className="item-analysis-controls">
+            <label>
+              เทคนิคแบ่งกลุ่มสูง–ต่ำ
+              <select
+                disabled={!editable}
+                value={groupPercentage}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  if (isTestGroupPercentage(value)) setGroupPercentage(value);
+                }}
+              >
+                <option value={0.25}>25%</option>
+                <option value={0.27}>27% (นิยมใช้)</option>
+                <option value={0.33}>33%</option>
+                <option value={0.5}>50% (กลุ่มตัวอย่างน้อย)</option>
+              </select>
+            </label>
+            <div className="item-input-actions">
+              <button type="button" onClick={downloadTryoutTemplate}>
+                ↓ แม่แบบ Excel/CSV 40 × 20
+              </button>
+              <button
+                type="button"
+                disabled={!editable || !sharedTestText.trim()}
+                onClick={() => onSharedTestTextChange("")}
+              >
+                ล้างคะแนน
+              </button>
+            </div>
+          </div>
           <textarea
             disabled={!editable}
-            rows={12}
+            rows={11}
             value={sharedTestText}
+            placeholder={"1\t0\t1\t… จนครบ 20 ข้อ\n0\t1\t1\t… จนครบ 20 ข้อ\nวางต่อจนครบผู้สอบทุกคน"}
             onChange={(event) => onSharedTestTextChange(event.target.value)}
           />
-          <div className="data-note">
+          <div className={analysis.valid ? "data-note item-valid-note" : "data-note item-error-note"}>
             {analysis.valid
               ? analysis.respondentCount +
                 " คน × " +
                 analysis.itemCount +
-                " ข้อ · กลุ่มละ " +
+                " ข้อ · ใช้เทคนิค " +
+                groupPercentLabel +
+                " กลุ่มละ " +
                 analysis.groupSize +
+                " คน · ตัดกลุ่มกลาง " +
+                analysis.middleCount +
                 " คน"
-              : "ข้อมูลต้องเป็น Matrix 0/1 ที่ทุกแถวมีจำนวนข้อเท่ากัน"}
+              : analysis.error ?? "ข้อมูลต้องเป็น Matrix 0/1 ที่ทุกแถวมีจำนวนข้อเท่ากัน"}
           </div>
         </div>
         <div className="metrics compact">
           <Metric
+            label="ผู้เข้าสอบ Try-out"
+            value={analysis.respondentCount + " คน"}
+            note={analysis.respondentCount >= 30 && analysis.respondentCount <= 50 ? "อยู่ในช่วงที่นิยมใช้ 30–50 คน" : "โดยทั่วไปนิยมประมาณ 30–50 คน"}
+          />
+          <Metric
             label="ข้อฉบับร่าง"
             value={analysis.itemCount + " ข้อ"}
-            note={analysis.respondentCount + " คน"}
+            note={analysis.itemCount === 20 ? "ครบตามแบบทดสอบ 20 ข้อ" : "งานนี้กำหนดไว้ 20 ข้อ"}
+            tone={analysis.itemCount === 20 ? "green" : "amber"}
           />
           <Metric
-            label="ข้อที่ผ่าน"
-            value={analysis.selectedItems.length + " ข้อ"}
-            note={
-              analysis.selectedItems.length
-                ? "ข้อ " + analysis.selectedItems.join(", ")
-                : "ยังไม่มีข้อผ่านเกณฑ์"
-            }
-            tone="green"
-          />
-          <Metric
-            label="KR-20 ที่ส่งต่อ"
-            value={fmt(reliability)}
+            label={`กลุ่มสูง / ต่ำ (${groupPercentLabel})`}
+            value={`${analysis.groupSize} / ${analysis.groupSize} คน`}
+            note={`กลุ่มกลาง ${analysis.middleCount} คนไม่นำมาคำนวณ`}
             tone="violet"
+          />
+          <Metric
+            label="ข้อที่ผ่าน p และ r"
+            value={analysis.selectedItems.length + " ข้อ"}
+            note={analysis.selectedItems.length ? "ข้อ " + analysis.selectedItems.join(", ") : "ยังไม่มีข้อผ่านเกณฑ์"}
+            tone="green"
           />
         </div>
       </section>
+      <section className="panel item-analysis-guide">
+        <div><b>1</b><span><strong>ตรวจให้คะแนน</strong><small>ตอบถูก = 1 · ตอบผิด = 0</small></span></div>
+        <div><b>2</b><span><strong>เรียงคะแนนรวม</strong><small>จากคะแนนสูงสุดไปต่ำสุด</small></span></div>
+        <div><b>3</b><span><strong>แบ่งกลุ่ม</strong><small>สูง–กลาง–ต่ำตาม {groupPercentLabel}</small></span></div>
+        <div><b>4</b><span><strong>คำนวณรายข้อ</strong><small>R_H, R_L, p และ r</small></span></div>
+      </section>
+      {analysis.valid && (
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <span className="eyebrow">ขั้นที่ 2 · ตรวจการจัดกลุ่ม</span>
+              <h3>อันดับคะแนนรวมและสมาชิกกลุ่มสูง–ต่ำ</h3>
+              <p>ระบบเรียงคะแนนรวมอัตโนมัติ กลุ่มกลางแสดงไว้เพื่อตรวจสอบแต่ไม่นำไปคำนวณ p และ r</p>
+            </div>
+          </div>
+          {(analysis.upperBoundaryTie || analysis.lowerBoundaryTie) && (
+            <div className="item-boundary-warning">
+              มีคะแนนเท่ากันตรงจุดตัดกลุ่ม ระบบคงจำนวนกลุ่มให้เท่ากันโดยใช้ลำดับแถวเดิมเป็นตัวตัดสิน กรุณาตรวจสอบรายชื่อก่อนใช้ผล
+            </div>
+          )}
+          <div className="table-wrap item-ranking-table">
+            <table>
+              <thead>
+                <tr><th>อันดับ</th><th>แถวข้อมูลเดิม</th><th>คะแนนรวม / {analysis.itemCount}</th><th>กลุ่ม</th></tr>
+              </thead>
+              <tbody>
+                {analysis.rankedRespondents.map((respondent) => (
+                  <tr key={respondent.sourceIndex}>
+                    <td><b>{respondent.rank}</b></td>
+                    <td>คนที่ {respondent.sourceIndex + 1}</td>
+                    <td>{respondent.total}</td>
+                    <td>
+                      <span className={`pill item-group-${respondent.group}`}>
+                        {respondent.group === "upper" ? "กลุ่มสูง (High)" : respondent.group === "lower" ? "กลุ่มต่ำ (Low)" : "กลุ่มกลาง · ไม่นำมาคำนวณ"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
       <section className="panel">
         <div className="panel-head">
           <div>
-            <span className="eyebrow">ขั้นที่ 2 · วิเคราะห์และคัดเลือกข้อ</span>
-            <h3>ผลความยากและอำนาจจำแนกรายข้อ</h3>
-            <p>ระบบเรียงคะแนนรวม เลือกกลุ่มสูงและต่ำร้อยละ 27 แล้วคำนวณ RU, RL, p และ r</p>
+            <span className="eyebrow">ขั้นที่ 3 · วิเคราะห์และคัดเลือกข้อ</span>
+            <h3>ผลค่า p และ r รายข้อ</h3>
+            <p>ผ่านเมื่อ p อยู่ระหว่าง 0.20–0.80 และ r ≥ 0.20 · ค่า r ติดลบควรตรวจโจทย์ ตัวเลือก เฉลย และการให้คะแนน</p>
           </div>
         </div>
-        <div className="table-wrap">
+        {analysis.valid ? <div className="table-wrap item-result-table">
           <table>
             <thead>
               <tr>
-                <th>ข้อ</th><th>RU</th><th>RL</th><th>p</th><th>ระดับ p</th>
+                <th>ข้อ</th><th>R<sub>H</sub></th><th>R<sub>L</sub></th><th>p</th><th>ระดับ p</th>
                 <th>r</th><th>ระดับ r</th><th>สถานะ</th>
               </tr>
             </thead>
             <tbody>
               {analysis.items.map((item) => (
-                <tr key={item.item}>
+                <tr key={item.item} className={item.selected ? "" : "item-row-rejected"}>
                   <td><b>{item.item}</b></td>
                   <td>{item.upperCorrect}</td>
                   <td>{item.lowerCorrect}</td>
-                  <td>{fmt(item.difficulty, 4)}</td>
+                  <td>{fmt(item.difficulty, 3)}</td>
                   <td>{item.difficultyLabel}</td>
                   <td>{fmt(item.discrimination, 3)}</td>
                   <td>{item.discriminationLabel}</td>
                   <td>
                     <span className={item.selected ? "pill pass" : "pill revise"}>
-                      {item.selected ? "คัดเลือก" : "ไม่คัดเลือก"}
+                      {item.selected ? "คัดเลือก" : "ปรับปรุง/ตัดออก"}
                     </span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </div> : <div className="source-empty item-empty-result">ป้อนคะแนน Try-out ที่ถูกต้องเพื่อดูผลรายข้อ</div>}
+        {analysis.valid && <div className="item-selection-summary">ผ่านทั้งสองเกณฑ์ {analysis.selectedItems.length} ข้อ · ไม่ผ่านเกณฑ์ p {rejectedByDifficulty} ข้อ · ไม่ผ่านเกณฑ์ r {rejectedByDiscrimination} ข้อ</div>}
       </section>
       <section className="panel">
         <div className="panel-head">
           <div>
-            <span className="eyebrow">ขั้นที่ 3 · ความเชื่อมั่น</span>
+            <span className="eyebrow">ขั้นที่ 4 · ส่งต่อข้อที่ผ่าน</span>
             <h3>KR-20 ของแบบทดสอบที่คัดเลือก</h3>
             <p>
               ระบบนำเฉพาะข้อที่ผ่านเกณฑ์ p = 0.20–0.80 และ r ≥ 0.20
@@ -2253,8 +2333,13 @@ function ItemView({
         </div>
         <div className="data-note">{reliabilityReport}</div>
       </section>
+      <section className="panel item-auto-report">
+        <span className="eyebrow">ข้อความพร้อมใช้ในรายงานการวิจัย</span>
+        <h3>สรุปวิธี Try-out และผลคัดเลือกข้อสอบ</h3>
+        <p>{tryoutReport}</p>
+      </section>
       <Formula source="แนวคิดการวิเคราะห์ข้อสอบแบบอิงกลุ่ม; พิชิต ฤทธิ์จรูญ และตำราการวัดผลการศึกษา">
-        p = (RU+RL)/(2n), r = (RU-RL)/n และ KR-20 = [k/(k-1)]
+        p = (R_H+R_L)/(2n), r = (R_H-R_L)/n และ KR-20 = [k/(k-1)]
         [1-Σpq/σ²คะแนนรวม]
       </Formula>
     </Page>
@@ -4586,7 +4671,9 @@ export default function ResearchStatsApp({
           const requestedSharedText = sharedTestTextFromWorkspace(
             requested.input_json?.workspace,
           );
-          if (requestedSharedText) setSharedTestText(requestedSharedText);
+          if (requested.analysis_type === "item") {
+            setSharedTestText(requestedSharedText);
+          }
           setView(requested.analysis_type);
           setActiveAnalysis(requested);
           setAnalysisTitle(requested.title);
@@ -4613,6 +4700,9 @@ export default function ResearchStatsApp({
     (nextView = view) => {
       const label =
         NAV.find((item) => item.id === nextView)?.label ?? "งานวิเคราะห์";
+      if (nextView === "item") {
+        setSharedTestText(DEFAULT_SHARED_TEST_TEXT);
+      }
       setActiveAnalysis(null);
       setAnalysisTitle(`${label} – งานใหม่`);
       setWorkspaceInitial({});
@@ -4630,7 +4720,9 @@ export default function ResearchStatsApp({
     const openedSharedText = sharedTestTextFromWorkspace(
       analysis.input_json?.workspace,
     );
-    if (openedSharedText) setSharedTestText(openedSharedText);
+    if (analysis.analysis_type === "item") {
+      setSharedTestText(openedSharedText);
+    }
     setActiveAnalysis(analysis);
     setAnalysisTitle(analysis.title);
     setWorkspaceInitial(analysis.input_json?.workspace ?? {});
@@ -4751,7 +4843,6 @@ export default function ResearchStatsApp({
       item: (
         <ItemView
           key={`item-${dataKey}`}
-          imported={imported}
           initial={workspaceInitial}
           onChange={handleDraft}
           title={analysisTitle}

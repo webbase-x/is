@@ -116,6 +116,31 @@ test("every analysis tool uses configurable spreadsheet import and merge mode", 
   }
 });
 
+test("item analysis supports the complete try-out workflow", async () => {
+  const source = await readFile(
+    new URL("../components/ResearchStatsApp.tsx", import.meta.url),
+    "utf8",
+  );
+  const statistics = await readFile(
+    new URL("../lib/statistics/item-analysis.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /คะแนนจากการทดลองใช้/);
+  assert.match(source, /แม่แบบ Excel\/CSV 40 × 20/);
+  assert.match(source, /อันดับคะแนนรวมและสมาชิกกลุ่มสูง–ต่ำ/);
+  assert.match(source, /ข้อความพร้อมใช้ในรายงานการวิจัย/);
+  for (const percentage of ["0.25", "0.27", "0.33", "0.5"]) {
+    assert.match(source, new RegExp(`<option value=\\{${percentage}\\}>`));
+  }
+  assert.match(statistics, /Math\.round\(matrix\.length \* groupPercentage\)/);
+  assert.match(statistics, /Math\.floor\(matrix\.length \/ 2\)/);
+  assert.match(statistics, /difficulty >= 0\.2/);
+  assert.match(statistics, /difficulty <= 0\.8/);
+  assert.match(statistics, /discrimination >= 0\.2/);
+  assert.match(statistics, /ติดลบ · ตรวจสอบข้อสอบ\/เฉลย/);
+});
+
 test("individual report combines outcomes with selectable privacy, matching, and charts", async () => {
   const source = await readFile(
     new URL("../components/ResearchStatsApp.tsx", import.meta.url),
