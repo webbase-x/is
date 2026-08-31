@@ -129,6 +129,10 @@ test("item analysis supports the complete try-out workflow", async () => {
   assert.match(source, /คะแนนจากการทดลองใช้/);
   assert.match(source, /templateItemCount/);
   assert.match(source, /templateRespondentCount/);
+  assert.match(source, /recommendTryoutGroups/);
+  assert.match(source, /กลุ่มเก่ง \(High\)/);
+  assert.match(source, /กลุ่มกลาง/);
+  assert.match(source, /กลุ่มอ่อน \(Low\)/);
   assert.match(source, /แม่แบบ Excel\/CSV \{templateRespondentCount\} คน × \{templateItemCount\} ข้อ/);
   assert.match(source, /อันดับคะแนนรวมและสมาชิกกลุ่มสูง–ต่ำ/);
   assert.match(source, /ข้อความพร้อมใช้ในรายงานการวิจัย/);

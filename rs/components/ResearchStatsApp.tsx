@@ -1986,6 +1986,21 @@ function downloadTryoutTemplate(itemCount: number, respondentCount: number) {
   );
 }
 
+function recommendTryoutGroups(
+  respondentCount: number,
+  groupPercentage: TestGroupPercentage,
+) {
+  const groupSize = Math.min(
+    Math.floor(respondentCount / 2),
+    Math.max(1, Math.round(respondentCount * groupPercentage)),
+  );
+  return {
+    upper: groupSize,
+    middle: respondentCount - groupSize * 2,
+    lower: groupSize,
+  };
+}
+
 function ItemView({
   initial,
   onChange,
@@ -2015,6 +2030,10 @@ function ItemView({
     const value = Number(initial?.templateRespondentCount ?? 40);
     return Number.isFinite(value) ? Math.max(2, Math.min(500, Math.round(value))) : 40;
   });
+  const recommendedTemplateGroups = recommendTryoutGroups(
+    templateRespondentCount,
+    groupPercentage,
+  );
   const matrix = useMemo(
     () => parseSharedTestMatrix(sharedTestText),
     [sharedTestText],
@@ -2202,6 +2221,18 @@ function ItemView({
               </button>
             </div>
           </div>
+          <section className="item-template-grouping" aria-label="คำแนะนำการแบ่งกลุ่ม Try-out">
+            <div className="item-template-grouping-head">
+              <b>แนะนำการแบ่งกลุ่มสำหรับแม่แบบ {templateItemCount} ข้อ · ผู้เข้าสอบ {templateRespondentCount} คน</b>
+              <small>อิงเทคนิค {groupPercentLabel} ที่เลือก</small>
+            </div>
+            <div className="item-template-group-cards">
+              <div className="item-template-group-high"><span>กลุ่มเก่ง (High)</span><b>{recommendedTemplateGroups.upper} คน</b></div>
+              <div className="item-template-group-middle"><span>กลุ่มกลาง</span><b>{recommendedTemplateGroups.middle} คน</b></div>
+              <div className="item-template-group-low"><span>กลุ่มอ่อน (Low)</span><b>{recommendedTemplateGroups.lower} คน</b></div>
+            </div>
+            <small className="item-template-group-note">ระบบอัปเดตทันทีเมื่อเปลี่ยนจำนวนข้อ จำนวนผู้เข้าสอบ หรือวิธีแบ่งกลุ่ม โดยจำนวนผู้เข้าสอบและเปอร์เซ็นต์ที่เลือกเป็นตัวกำหนดจำนวนสมาชิกของแต่ละกลุ่ม</small>
+          </section>
           <textarea
             disabled={!editable}
             rows={11}
