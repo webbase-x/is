@@ -767,6 +767,19 @@ function DescriptiveView({
   const values = quality ? ratingMatrix.flat() : parseNumbers(text);
   const respondentCount = quality ? ratingMatrix.length : values.length;
   const itemCount = quality ? (ratingMatrix[0]?.length ?? 0) : 1;
+  const cronbach = quality && itemCount >= 2 ? cronbachAlpha(ratingMatrix) : null;
+  const cronbachLevel =
+    cronbach === null
+      ? "คำนวณไม่ได้"
+      : cronbach >= 0.9
+        ? "สูงมาก"
+        : cronbach >= 0.8
+          ? "สูง"
+          : cronbach >= 0.7
+            ? "ยอมรับได้"
+            : cronbach >= 0.6
+              ? "ค่อนข้างต่ำ"
+              : "ควรปรับปรุง";
   const avg = mean(values);
   const sd = sampleStandardDeviation(values);
   const medianValue = median(values);
@@ -807,14 +820,16 @@ function DescriptiveView({
         ? "เกณฑ์ช่วงกว้างเท่ากัน 0.80"
         : "เกณฑ์ที่ผู้ใช้กำหนด";
   const qualityReports = {
-    short: `ผลการประเมิน${measureLabel}โดย${respondentLabel}อยู่ในระดับ${interpretation} (x̄ = ${fmt(avg)}, S.D. = ${fmt(sd)}, n = ${respondentCount})`,
-    detailed: `ผลการวิเคราะห์${measureLabel}จาก${respondentLabel}จำนวน ${respondentCount} คน จำนวน ${itemCount} ข้อ ด้วยสถิติเชิงพรรณนา พบว่า มีค่าเฉลี่ยเท่ากับ ${fmt(avg)} ส่วนเบี่ยงเบนมาตรฐานเท่ากับ ${fmt(sd)} มัธยฐานเท่ากับ ${fmt(medianValue)} และ IQR เท่ากับ ${fmt(iqr)} เมื่อแปลผลด้วย${schemeDescription} ผลการประเมินโดยรวมอยู่ในระดับ${interpretation}${criterionSource.trim() ? ` โดยอ้างอิงเกณฑ์จาก ${criterionSource.trim()}` : ""}`,
+    short: `ผลการประเมิน${measureLabel}โดย${respondentLabel}อยู่ในระดับ${interpretation} (x̄ = ${fmt(avg)}, S.D. = ${fmt(sd)}, n = ${respondentCount})${cronbach === null ? "" : ` และมีค่าสัมประสิทธิ์แอลฟาของครอนบาคเท่ากับ ${fmt(cronbach, 2)} อยู่ในระดับ${cronbachLevel}`}`,
+    detailed: `ผลการวิเคราะห์${measureLabel}จาก${respondentLabel}จำนวน ${respondentCount} คน จำนวน ${itemCount} ข้อ ด้วยสถิติเชิงพรรณนา พบว่า มีค่าเฉลี่ยเท่ากับ ${fmt(avg)} ส่วนเบี่ยงเบนมาตรฐานเท่ากับ ${fmt(sd)} มัธยฐานเท่ากับ ${fmt(medianValue)} และ IQR เท่ากับ ${fmt(iqr)} เมื่อแปลผลด้วย${schemeDescription} ผลการประเมินโดยรวมอยู่ในระดับ${interpretation}${criterionSource.trim() ? ` โดยอ้างอิงเกณฑ์จาก ${criterionSource.trim()}` : ""}${cronbach === null ? "" : ` แบบสอบถามมีค่าสัมประสิทธิ์แอลฟาของครอนบาคเท่ากับ ${fmt(cronbach, 2)} อยู่ในระดับ${cronbachLevel}`}`,
   };
   const exportRows: ExportCell[][] = quality
     ? [
         ["สรุปภาพรวม", "ผล"],
         ["จำนวนผู้ตอบ (n)", respondentCount],
         ["จำนวนข้อ", itemCount],
+        ["สัมประสิทธิ์แอลฟาของครอนบาค (α)", fmt(cronbach, 2)],
+        ["ระดับความเชื่อมั่น", cronbachLevel],
         ["จำนวนระดับ", scaleLevels],
         ["ค่าเฉลี่ย (x̄)", fmt(avg)],
         ["S.D. (ตัวอย่าง)", fmt(sd)],
@@ -868,6 +883,8 @@ function DescriptiveView({
         n: quality ? respondentCount : values.length,
         respondentCount: quality ? respondentCount : undefined,
         itemCount: quality ? itemCount : undefined,
+        cronbachAlpha: quality ? cronbach : undefined,
+        cronbachLevel: quality ? cronbachLevel : undefined,
         ratingMatrix: quality ? ratingMatrix : undefined,
         itemResults: quality ? itemResults : undefined,
         respondentResults: quality ? respondentResults : undefined,
@@ -882,7 +899,7 @@ function DescriptiveView({
         bandScheme: quality ? bandScheme : undefined,
       },
     );
-  }, [text, scaleLevels, bandScheme, customCuts, criterionSource, quality, avg, sd, medianValue, q1, q3, iqr, interpretation, onChange, values.length, respondentCount, itemCount]);
+  }, [text, scaleLevels, bandScheme, customCuts, criterionSource, quality, avg, sd, medianValue, q1, q3, iqr, interpretation, cronbach, cronbachLevel, onChange, values.length, respondentCount, itemCount]);
 
   const copyQualityReport = async (kind: "short" | "detailed") => {
     try {
@@ -1014,6 +1031,14 @@ function DescriptiveView({
               value={`${quality ? respondentCount : values.length}`}
             />
             {quality && <Metric label="จำนวนข้อ" value={`${itemCount}`} />}
+            {quality && (
+              <Metric
+                label="Cronbach’s α"
+                value={fmt(cronbach, 2)}
+                note={cronbach === null ? "ต้องมีข้อมูลอย่างน้อย 2 คน และ 2 ข้อ" : `ความเชื่อมั่น${cronbachLevel}`}
+                tone="violet"
+              />
+            )}
             <Metric label="ค่าเฉลี่ย (x̄)" value={fmt(avg)} tone="green" />
             <Metric label="S.D. (ตัวอย่าง)" value={fmt(sd)} tone="violet" />
             <Metric
@@ -1106,7 +1131,7 @@ function DescriptiveView({
         </section>
       )}
       <Formula source="บุญชม ศรีสะอาด และตำราสถิติทางการศึกษา; โปรดระบุฉบับที่ใช้อ้างอิงในงานวิจัย">
-        x̄ = Σx / n และ S.D. ตัวอย่าง = √[Σ(x-x̄)²/(n-1)]
+        x̄ = Σx / n และ S.D. ตัวอย่าง = √[Σ(x-x̄)²/(n-1)]{quality && " · Cronbach’s α = [k/(k−1)] [1−ΣS²ข้อ/S²รวม]"}
       </Formula>
       {quality && (
         <>

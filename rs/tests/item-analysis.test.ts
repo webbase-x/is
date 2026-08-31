@@ -4,7 +4,7 @@ import {
   analyzeItem,
   analyzeTestMatrix,
 } from "../lib/statistics/item-analysis.ts";
-import { kr20 } from "../lib/statistics/reliability.ts";
+import { cronbachAlpha, kr20 } from "../lib/statistics/reliability.ts";
 
 test("item analysis matches the documented p and r example", () => {
   const result = analyzeItem(8, 2, 10);
@@ -70,4 +70,15 @@ test("KR-20 uses total-score sample variance with n - 1", () => {
 
   assert.equal(result, 0.875);
   assert.equal(result?.toFixed(2), "0.88");
+});
+
+test("Cronbach alpha is calculated from the satisfaction rating matrix", () => {
+  const result = cronbachAlpha([
+    [1, 1],
+    [1, 1],
+    [0, 0],
+    [0, 0],
+  ]);
+
+  assert.equal(result, 1);
 });
