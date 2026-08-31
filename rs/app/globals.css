@@ -584,6 +584,19 @@ input:focus {
   font-weight: 800;
 }
 
+.item-template-size {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(104px, 1fr));
+  gap: 8px;
+  flex: 1 1 250px;
+}
+
+.item-template-size input[type="number"] {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 7px 9px;
+}
+
 .item-input-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3593,12 +3606,17 @@ footer {
   }
 
   .item-analysis-controls select,
+  .item-template-size input[type="number"],
   .item-input-actions button {
     width: 100%;
   }
 
   .item-input-actions {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .item-template-size {
     grid-template-columns: 1fr;
   }
 

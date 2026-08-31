@@ -1968,21 +1968,21 @@ function isTestGroupPercentage(value: number): value is TestGroupPercentage {
   return testGroupPercentages.some((percentage) => percentage === value);
 }
 
-function downloadTryoutTemplate() {
+function downloadTryoutTemplate(itemCount: number, respondentCount: number) {
   const header = [
     "ลำดับ",
-    ...Array.from({ length: 20 }, (_, index) => `ข้อ${index + 1}`),
+    ...Array.from({ length: itemCount }, (_, index) => `ข้อ${index + 1}`),
   ];
-  const rows = Array.from({ length: 40 }, (_, index) => [
+  const rows = Array.from({ length: respondentCount }, (_, index) => [
     index + 1,
-    ...Array.from({ length: 20 }, () => ""),
+    ...Array.from({ length: itemCount }, () => ""),
   ]);
   const csv = [header, ...rows]
     .map((row) => row.map((cell) => `"${String(cell)}"`).join(","))
     .join("\n");
   downloadFile(
     new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }),
-    "แม่แบบ-Try-out-แบบทดสอบ-20-ข้อ-40-คน.csv",
+    `แม่แบบ-Try-out-${itemCount}-ข้อ-${respondentCount}-คน.csv`,
   );
 }
 
@@ -2007,6 +2007,14 @@ function ItemView({
       ? initialGroupPercentage
       : 0.27,
   );
+  const [templateItemCount, setTemplateItemCount] = useState(() => {
+    const value = Number(initial?.templateItemCount ?? 20);
+    return Number.isFinite(value) ? Math.max(1, Math.min(300, Math.round(value))) : 20;
+  });
+  const [templateRespondentCount, setTemplateRespondentCount] = useState(() => {
+    const value = Number(initial?.templateRespondentCount ?? 40);
+    return Number.isFinite(value) ? Math.max(2, Math.min(500, Math.round(value))) : 40;
+  });
   const matrix = useMemo(
     () => parseSharedTestMatrix(sharedTestText),
     [sharedTestText],
@@ -2101,6 +2109,8 @@ function ItemView({
       {
         testMatrix: sharedTestText,
         groupPercentage,
+        templateItemCount,
+        templateRespondentCount,
         selectedItems: analysis.selectedItems,
       },
       {
@@ -2119,12 +2129,12 @@ function ItemView({
         report: tryoutReport,
       },
     );
-  }, [analysis, groupPercentage, onChange, reliability, sharedTestText, tryoutReport]);
+  }, [analysis, groupPercentage, onChange, reliability, sharedTestText, templateItemCount, templateRespondentCount, tryoutReport]);
   return (
     <Page
       title="วิเคราะห์ความยาก (p) และอำนาจจำแนก (r)"
       subtitle="คำนวณจากคะแนน Try-out 0/1 รายคน จัดอันดับ แบ่งกลุ่มสูง–ต่ำ และคัดเลือกข้อสอบโดยอัตโนมัติ"
-      badge="แบบทดสอบ 20 ข้อ"
+      badge="กำหนดจำนวนข้อและคนได้"
     >
       <section className="panel result-export-panel">
         <ResultExportToolbar
@@ -2137,7 +2147,7 @@ function ItemView({
         <div className="panel">
           <span className="eyebrow">ขั้นที่ 1 · คะแนนจากการทดลองใช้</span>
           <h3>ป้อน Matrix คะแนนดิบ 0/1</h3>
-          <p>คัดลอกจาก Excel ได้ทันที: 1 แถว = ผู้สอบ 1 คน · 20 คอลัมน์ = ข้อ 1–20 · ถูก = 1 · ผิด = 0</p>
+          <p>คัดลอกจาก Excel ได้ทันที: 1 แถว = ผู้สอบ 1 คน · 1 คอลัมน์ = 1 ข้อ · ถูก = 1 · ผิด = 0</p>
           <div className="item-analysis-controls">
             <label>
               เทคนิคแบ่งกลุ่มสูง–ต่ำ
@@ -2155,9 +2165,33 @@ function ItemView({
                 <option value={0.5}>50% (กลุ่มตัวอย่างน้อย)</option>
               </select>
             </label>
+            <div className="item-template-size" aria-label="กำหนดขนาดแม่แบบ">
+              <label>
+                จำนวนข้อในแม่แบบ
+                <input
+                  disabled={!editable}
+                  type="number"
+                  min={1}
+                  max={300}
+                  value={templateItemCount}
+                  onChange={(event) => setTemplateItemCount(Math.max(1, Math.min(300, Number(event.target.value) || 1)))}
+                />
+              </label>
+              <label>
+                จำนวนผู้เข้าสอบในแม่แบบ
+                <input
+                  disabled={!editable}
+                  type="number"
+                  min={2}
+                  max={500}
+                  value={templateRespondentCount}
+                  onChange={(event) => setTemplateRespondentCount(Math.max(2, Math.min(500, Number(event.target.value) || 2)))}
+                />
+              </label>
+            </div>
             <div className="item-input-actions">
-              <button type="button" onClick={downloadTryoutTemplate}>
-                ↓ แม่แบบ Excel/CSV 40 × 20
+              <button type="button" onClick={() => downloadTryoutTemplate(templateItemCount, templateRespondentCount)}>
+                ↓ แม่แบบ Excel/CSV {templateRespondentCount} คน × {templateItemCount} ข้อ
               </button>
               <button
                 type="button"
@@ -2172,7 +2206,7 @@ function ItemView({
             disabled={!editable}
             rows={11}
             value={sharedTestText}
-            placeholder={"1\t0\t1\t… จนครบ 20 ข้อ\n0\t1\t1\t… จนครบ 20 ข้อ\nวางต่อจนครบผู้สอบทุกคน"}
+            placeholder={"1\t0\t1\t… จนครบทุกข้อ\n0\t1\t1\t… จนครบทุกข้อ\nวางต่อจนครบผู้สอบทุกคน"}
             onChange={(event) => onSharedTestTextChange(event.target.value)}
           />
           <div className={analysis.valid ? "data-note item-valid-note" : "data-note item-error-note"}>
@@ -2199,8 +2233,8 @@ function ItemView({
           <Metric
             label="ข้อฉบับร่าง"
             value={analysis.itemCount + " ข้อ"}
-            note={analysis.itemCount === 20 ? "ครบตามแบบทดสอบ 20 ข้อ" : "งานนี้กำหนดไว้ 20 ข้อ"}
-            tone={analysis.itemCount === 20 ? "green" : "amber"}
+            note={analysis.itemCount ? "คำนวณตามจำนวนคอลัมน์ที่นำเข้า" : `แม่แบบตั้งไว้ ${templateItemCount} ข้อ`}
+            tone="green"
           />
           <Metric
             label={`กลุ่มสูง / ต่ำ (${groupPercentLabel})`}

@@ -127,7 +127,9 @@ test("item analysis supports the complete try-out workflow", async () => {
   );
 
   assert.match(source, /คะแนนจากการทดลองใช้/);
-  assert.match(source, /แม่แบบ Excel\/CSV 40 × 20/);
+  assert.match(source, /templateItemCount/);
+  assert.match(source, /templateRespondentCount/);
+  assert.match(source, /แม่แบบ Excel\/CSV \{templateRespondentCount\} คน × \{templateItemCount\} ข้อ/);
   assert.match(source, /อันดับคะแนนรวมและสมาชิกกลุ่มสูง–ต่ำ/);
   assert.match(source, /ข้อความพร้อมใช้ในรายงานการวิจัย/);
   for (const percentage of ["0.25", "0.27", "0.33", "0.5"]) {
