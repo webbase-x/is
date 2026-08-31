@@ -4,6 +4,7 @@ import {
   analyzeItem,
   analyzeTestMatrix,
 } from "../lib/statistics/item-analysis.ts";
+import { kr20 } from "../lib/statistics/reliability.ts";
 
 test("item analysis matches the documented p and r example", () => {
   const result = analyzeItem(8, 2, 10);
@@ -56,4 +57,17 @@ test("negative discrimination is explicitly flagged for review", () => {
 
   assert.equal(result.discrimination, -0.6);
   assert.match(result.discriminationLabel, /ติดลบ/);
+});
+
+test("KR-20 uses total-score sample variance with n - 1", () => {
+  const matrix = [
+    [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+    [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1],
+    [1, 1, 0, 0], [1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 1],
+  ];
+
+  const result = kr20(matrix);
+
+  assert.equal(result, 0.875);
+  assert.equal(result?.toFixed(2), "0.88");
 });

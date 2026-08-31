@@ -2068,7 +2068,7 @@ function ItemView({
       : "แบบทดสอบที่คัดเลือกจำนวน " +
         analysis.selectedItems.length +
         " ข้อ มีค่าความเชื่อมั่น KR-20 เท่ากับ " +
-        fmt(reliability, 3) +
+        fmt(reliability, 2) +
         " อยู่ในระดับ" +
         reliabilityLevel;
   const groupPercentLabel = `${Math.round(groupPercentage * 100)}%`;
@@ -2106,7 +2106,7 @@ function ItemView({
     ["จำนวนข้อไม่ผ่านเกณฑ์ p", rejectedByDifficulty],
     ["จำนวนข้อไม่ผ่านเกณฑ์ r", rejectedByDiscrimination],
     ["ข้อที่คัดเลือก", analysis.selectedItems.join(", ")],
-    ["KR-20 ของข้อที่คัดเลือก", fmt(reliability, 3)],
+    ["KR-20 ของข้อที่คัดเลือก", fmt(reliability, 2)],
     ["ระดับความเชื่อมั่น", reliabilityLevel],
     ["รายงานอัตโนมัติ", reliabilityReport],
     ["ข้อความสรุป Try-out", tryoutReport],
@@ -2386,8 +2386,8 @@ function ItemView({
           />
           <Metric
             label="KR-20"
-            value={fmt(reliability, 3)}
-            note="ความสอดคล้องภายในของแบบทดสอบ 0/1"
+            value={fmt(reliability, 2)}
+            note="ใช้ความแปรปรวนคะแนนรวมแบบตัวอย่าง (n−1)"
             tone="violet"
           />
           <Metric
@@ -2405,7 +2405,7 @@ function ItemView({
       </section>
       <Formula source="แนวคิดการวิเคราะห์ข้อสอบแบบอิงกลุ่ม; พิชิต ฤทธิ์จรูญ และตำราการวัดผลการศึกษา">
         p = (R_H+R_L)/(2n), r = (R_H-R_L)/n และ KR-20 = [k/(k-1)]
-        [1-Σpq/σ²คะแนนรวม]
+        [1-Σpq/S²คะแนนรวม] โดย S² เป็นความแปรปรวนแบบตัวอย่าง (หารด้วย n−1)
       </Formula>
     </Page>
   );

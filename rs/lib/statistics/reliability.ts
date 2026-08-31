@@ -1,8 +1,7 @@
 import {
   mean,
-  populationStandardDeviation,
   sampleStandardDeviation,
-} from "./descriptive";
+} from "./descriptive.ts";
 
 export function cronbachAlpha(matrix: number[][]): number | null {
   if (matrix.length < 2 || matrix[0]?.length < 2) return null;
@@ -42,7 +41,9 @@ export function kr20(matrix: number[][]): number | null {
   const totals = matrix.map((row) =>
     row.reduce((sum, value) => sum + value, 0),
   );
-  const totalSd = populationStandardDeviation(totals);
+  // Use sample variance (n - 1), which is the convention used when KR-20
+  // is estimated from a try-out sample rather than a full population.
+  const totalSd = sampleStandardDeviation(totals);
   if (!totalSd || totalSd === 0) return null;
   return (k / (k - 1)) * (1 - sumPQ / totalSd ** 2);
 }
