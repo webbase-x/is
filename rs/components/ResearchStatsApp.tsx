@@ -3016,11 +3016,16 @@ function PairedView({
     () => postValues.map((value) => value - criterionScore),
     [postValues, criterionScore],
   );
-  const activeDifferences = mode === "paired" ? pairedDifferences : criterionDifferences;
-  const activeDiagnostics = useMemo(
-    () => assessNormality(activeDifferences),
-    [activeDifferences],
+  const pairedDiagnostics = useMemo(
+    () => assessNormality(pairedDifferences),
+    [pairedDifferences],
   );
+  const criterionDiagnostics = useMemo(
+    () => assessNormality(criterionDifferences),
+    [criterionDifferences],
+  );
+  const activeDifferences = mode === "paired" ? pairedDifferences : criterionDifferences;
+  const activeDiagnostics = mode === "paired" ? pairedDiagnostics : criterionDiagnostics;
   const pairedResult = useMemo(
     () => {
       if (!pairedAlternative) return null;
@@ -3438,24 +3443,42 @@ function PairedView({
         <div className="panel-head">
           <div>
             <span className="eyebrow">Shapiro–Wilk และรูปทรงข้อมูล</span>
-            <h3>ผลตรวจการแจกแจง</h3>
-            <p>ทดสอบ{mode === "paired" ? "ผลต่างหลังเรียน − ก่อนเรียน" : "ผลต่างคะแนนหลังเรียน − เกณฑ์"} ไม่ใช่เลือกวิธีจากจำนวนตัวอย่างเพียงอย่างเดียว</p>
+            <h3>ผลตรวจการแจกแจงของคะแนนผลต่างทั้งสองชุด</h3>
+            <p>ตรวจพร้อมกันทั้งผลต่างหลังเรียน − ก่อนเรียน และผลต่างคะแนนหลังเรียน − เกณฑ์ เพื่อใช้เลือกสถิติให้ตรงกับคำถามวิจัย</p>
           </div>
         </div>
-        <div className="metrics compact diagnostic-metrics">
-          <Metric label="Shapiro–Wilk W" value={fmt(activeDiagnostics.statistic)} tone="violet" />
-          <Metric label="p-value" value={fmtP(activeDiagnostics.pValue)} />
-          <Metric label="Skewness" value={fmt(activeDiagnostics.skewness)} />
-          <Metric label="Bowley skewness" value={fmt(activeDiagnostics.bowleySkewness)} />
-          <Metric label="Outlier (1.5×IQR)" value={`${activeDiagnostics.outlierCount}`} tone={activeDiagnostics.outlierCount ? "amber" : "green"} />
+        <div className="table-wrap normality-comparison-table">
+          <table>
+            <thead>
+              <tr><th>ชุดคะแนนผลต่าง</th><th>n</th><th>Shapiro–Wilk W</th><th>p-value</th><th>Skewness</th><th>Bowley skewness</th><th>Outlier (1.5×IQR)</th><th>สรุป</th></tr>
+            </thead>
+            <tbody>
+              {[
+                ["หลังเรียน − ก่อนเรียน", pairedDiagnostics],
+                ["หลังเรียน − เกณฑ์", criterionDiagnostics],
+              ].map(([label, diagnostics]) => {
+                const result = diagnostics as NormalityAssessment;
+                return <tr key={String(label)}>
+                  <td><b>{String(label)}</b></td>
+                  <td>{result.n}</td>
+                  <td>{fmt(result.statistic)}</td>
+                  <td>{fmtP(result.pValue)}</td>
+                  <td>{fmt(result.skewness)}</td>
+                  <td>{fmt(result.bowleySkewness)}</td>
+                  <td><span className={result.outlierCount ? "pill revise" : "pill pass"}>{result.outlierCount} ค่า</span></td>
+                  <td>{result.note}</td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
         </div>
         <small>ค่า p &gt; .05 หมายถึงยังไม่มีหลักฐานว่าผิดปกติ ไม่ได้พิสูจน์ว่าข้อมูลเป็นปกติ จึงต้องดู Q–Q plot ความสมมาตร และค่าผิดปกติร่วมกัน</small>
       </section>
 
-      <DistributionDiagnostics
-        values={activeDifferences}
-        label={mode === "paired" ? "ผลต่างหลังเรียน − ก่อนเรียน" : "ผลต่างคะแนนหลังเรียน − เกณฑ์"}
-      />
+      <div className="normality-comparison-grid">
+        <DistributionDiagnostics values={pairedDifferences} label="ผลต่างหลังเรียน − ก่อนเรียน" />
+        <DistributionDiagnostics values={criterionDifferences} label="ผลต่างคะแนนหลังเรียน − เกณฑ์" />
+      </div>
 
       <section className="panel sample-size-guide" aria-labelledby="sample-size-guide-title">
         <div className="sample-size-guide-head">

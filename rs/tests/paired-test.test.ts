@@ -9,7 +9,7 @@ import {
   pairedSignTest,
   pairedWilcoxonTest,
   shapiroWilk,
-} from "../lib/statistics/paired-test";
+} from "../lib/statistics/paired-test.ts";
 
 const pre = [10, 12, 11, 14, 9, 13, 12, 10];
 const post = [16, 17, 15, 18, 14, 17, 16, 15];

@@ -147,6 +147,26 @@ test("item analysis supports the complete try-out workflow", async () => {
   assert.match(statistics, /ติดลบ · ตรวจสอบข้อสอบ\/เฉลย/);
 });
 
+test("normality diagnostics compare both difference-score sets", async () => {
+  const source = await readFile(
+    new URL("../components/ResearchStatsApp.tsx", import.meta.url),
+    "utf8",
+  );
+  const styles = await readFile(
+    new URL("../app/globals.css", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /ผลตรวจการแจกแจงของคะแนนผลต่างทั้งสองชุด/);
+  assert.match(source, /\["หลังเรียน − ก่อนเรียน", pairedDiagnostics\]/);
+  assert.match(source, /\["หลังเรียน − เกณฑ์", criterionDiagnostics\]/);
+  assert.match(source, /<DistributionDiagnostics values=\{pairedDifferences\}/);
+  assert.match(source, /<DistributionDiagnostics values=\{criterionDifferences\}/);
+  assert.match(source, /Normal Q–Q Plot/);
+  assert.match(source, /Outlier \(1\.5×IQR\)/);
+  assert.match(styles, /\.normality-comparison-grid/);
+});
+
 test("individual report combines outcomes with selectable privacy, matching, and charts", async () => {
   const source = await readFile(
     new URL("../components/ResearchStatsApp.tsx", import.meta.url),

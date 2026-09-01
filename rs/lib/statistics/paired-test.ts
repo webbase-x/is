@@ -1,4 +1,4 @@
-import { mean, median, sampleStandardDeviation } from "./descriptive";
+import { mean, median, sampleStandardDeviation } from "./descriptive.ts";
 
 export type AlternativeHypothesis = "greater" | "less" | "two-sided";
 export type ComparisonTest = "t-test" | "wilcoxon" | "sign-test";

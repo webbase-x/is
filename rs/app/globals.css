@@ -3242,6 +3242,14 @@ footer {
   color: #65718a;
   line-height: 1.65;
 }
+.normality-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.normality-comparison-grid .distribution-panel {
+  min-width: 0;
+}
 .diagnostic-chart-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3313,6 +3321,7 @@ footer {
 }
 
 @media (max-width: 760px) {
+  .normality-comparison-grid,
   .diagnostic-chart-grid,
   .quality-setting-grid,
   .custom-cut-grid {
