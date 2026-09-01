@@ -2777,6 +2777,7 @@ function DistributionDiagnostics({ values, label }: { values: number[]; label: s
   });
   const plotMin = minimum - range * 0.05;
   const plotMax = maximum + range * 0.05;
+  const chartKey = label.includes("ก่อนเรียน") ? "paired-difference" : "criterion-difference";
 
   return (
     <section className="panel distribution-panel" aria-labelledby="distribution-title">
@@ -2789,8 +2790,8 @@ function DistributionDiagnostics({ values, label }: { values: number[]; label: s
       </div>
       <div className="diagnostic-chart-grid">
         <figure>
-          <figcaption>Histogram</figcaption>
-          <svg viewBox="0 0 300 170" role="img" aria-label={`ฮิสโตแกรมของ${label}`}>
+          <figcaption><span>Histogram</span><CopySvgImageButton targetId={`diagnostic-${chartKey}-histogram`} filename={`Histogram-${label}`} /></figcaption>
+          <svg id={`diagnostic-${chartKey}-histogram`} viewBox="0 0 300 170" role="img" aria-label={`ฮิสโตแกรมของ${label}`}>
             <line x1="30" y1="140" x2="285" y2="140" className="chart-axis" />
             {bins.map((count, index) => {
               const width = 250 / binsCount;
@@ -2802,8 +2803,8 @@ function DistributionDiagnostics({ values, label }: { values: number[]; label: s
           </svg>
         </figure>
         <figure>
-          <figcaption>Normal Q–Q Plot</figcaption>
-          <svg viewBox="0 0 300 170" role="img" aria-label={`กราฟคิวคิวของ${label}`}>
+          <figcaption><span>Normal Q–Q Plot</span><CopySvgImageButton targetId={`diagnostic-${chartKey}-qq`} filename={`Q-Q-Plot-${label}`} /></figcaption>
+          <svg id={`diagnostic-${chartKey}-qq`} viewBox="0 0 300 170" role="img" aria-label={`กราฟคิวคิวของ${label}`}>
             <line x1="35" y1="140" x2="285" y2="140" className="chart-axis" />
             <line x1="35" y1="20" x2="35" y2="140" className="chart-axis" />
             <line
@@ -2819,8 +2820,8 @@ function DistributionDiagnostics({ values, label }: { values: number[]; label: s
           </svg>
         </figure>
         <figure>
-          <figcaption>Boxplot</figcaption>
-          <svg viewBox="0 0 300 130" role="img" aria-label={`บ็อกซ์พลอตของ${label}`}>
+          <figcaption><span>Boxplot</span><CopySvgImageButton targetId={`diagnostic-${chartKey}-boxplot`} filename={`Boxplot-${label}`} /></figcaption>
+          <svg id={`diagnostic-${chartKey}-boxplot`} viewBox="0 0 300 130" role="img" aria-label={`บ็อกซ์พลอตของ${label}`}>
             <line x1={chartScale(lowerWhisker, plotMin, plotMax, 30, 285)} y1="65" x2={chartScale(upperWhisker, plotMin, plotMax, 30, 285)} y2="65" className="chart-reference" />
             <line x1={chartScale(lowerWhisker, plotMin, plotMax, 30, 285)} y1="48" x2={chartScale(lowerWhisker, plotMin, plotMax, 30, 285)} y2="82" className="chart-axis" />
             <line x1={chartScale(upperWhisker, plotMin, plotMax, 30, 285)} y1="48" x2={chartScale(upperWhisker, plotMin, plotMax, 30, 285)} y2="82" className="chart-axis" />
@@ -2830,8 +2831,8 @@ function DistributionDiagnostics({ values, label }: { values: number[]; label: s
           </svg>
         </figure>
         <figure>
-          <figcaption>กราฟจุดรายคน</figcaption>
-          <svg viewBox="0 0 300 130" role="img" aria-label={`กราฟจุดของ${label}`}>
+          <figcaption><span>กราฟจุดรายคน</span><CopySvgImageButton targetId={`diagnostic-${chartKey}-dotplot`} filename={`Dotplot-${label}`} /></figcaption>
+          <svg id={`diagnostic-${chartKey}-dotplot`} viewBox="0 0 300 130" role="img" aria-label={`กราฟจุดของ${label}`}>
             <line x1="30" y1="100" x2="285" y2="100" className="chart-axis" />
             {dots.map((dot, index) => <circle key={index} cx={chartScale(dot.value, plotMin, plotMax, 30, 285)} cy={92 - dot.stack * 11} r="4.5" className="chart-point" />)}
             <text x="30" y="120" className="chart-label">{fmt(minimum, 1)}</text>
@@ -4479,6 +4480,65 @@ async function copyToClipboard(text: string) {
     textarea.remove();
     return copied;
   }
+}
+
+async function copySvgAsPng(svg: SVGSVGElement, filename: string) {
+  const clone = svg.cloneNode(true) as SVGSVGElement;
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  const sourceNodes = [svg, ...Array.from(svg.querySelectorAll<SVGElement>("*"))];
+  const cloneNodes = [clone, ...Array.from(clone.querySelectorAll<SVGElement>("*"))];
+  sourceNodes.forEach((source, index) => {
+    const target = cloneNodes[index];
+    if (!target) return;
+    const style = window.getComputedStyle(source);
+    ["fill", "stroke", "stroke-width", "font-family", "font-size", "font-weight", "opacity", "color"].forEach((property) => {
+      target.style.setProperty(property, style.getPropertyValue(property));
+    });
+  });
+  const image = new Image();
+  const svgUrl = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml;charset=utf-8" }));
+  try {
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("ไม่สามารถสร้างภาพกราฟได้"));
+      image.src = svgUrl;
+    });
+    const viewBox = svg.viewBox.baseVal;
+    const width = Math.max(900, Math.round((viewBox.width || 300) * 3));
+    const height = Math.max(450, Math.round((viewBox.height || 170) * 3));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) return false;
+    context.fillStyle = "white";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) return false;
+    if (navigator.clipboard && typeof ClipboardItem !== "undefined") {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      return true;
+    }
+    downloadFile(blob, `${safeFilename(filename)}.png`);
+    return false;
+  } catch {
+    return false;
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+}
+
+function CopySvgImageButton({ targetId, filename }: { targetId: string; filename: string }) {
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const copyImage = async () => {
+    const svg = document.getElementById(targetId) as SVGSVGElement | null;
+    if (!svg) return;
+    const copied = await copySvgAsPng(svg, filename);
+    setStatus(copied ? "copied" : "failed");
+    window.setTimeout(() => setStatus("idle"), 1800);
+  };
+  return <button type="button" className="copy-chart-button" onClick={() => void copyImage()} aria-label={`คัดลอก ${filename} เป็นรูปภาพ`} title="คัดลอกเป็นภาพ PNG เพื่อวางใน Word หรือ PowerPoint">{status === "copied" ? "คัดลอกแล้ว" : status === "failed" ? "ลองใหม่" : "คัดลอกภาพ"}</button>;
 }
 
 function fitCanvasText(

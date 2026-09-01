@@ -164,7 +164,11 @@ test("normality diagnostics compare both difference-score sets", async () => {
   assert.match(source, /<DistributionDiagnostics values=\{criterionDifferences\}/);
   assert.match(source, /Normal Q–Q Plot/);
   assert.match(source, /Outlier \(1\.5×IQR\)/);
+  assert.match(source, /function CopySvgImageButton/);
+  assert.match(source, /async function copySvgAsPng/);
+  assert.match(source, /คัดลอกภาพ/);
   assert.match(styles, /\.normality-comparison-grid/);
+  assert.match(styles, /\.copy-chart-button/);
 });
 
 test("individual report combines outcomes with selectable privacy, matching, and charts", async () => {
