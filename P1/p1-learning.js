@@ -13,3 +13,14 @@ function renderAuth(){auth.innerHTML=user?'<span>👤 '+(user.user_metadata.full
 const gate=document.createElement('div');gate.className='p1-gate';gate.innerHTML='<h2>🔐 เริ่มเรียนด้วยบัญชี Google</h2><p>เพื่อบันทึกด่านที่เรียน คะแนนเกม และประวัติการเข้าใช้ของคุณ</p><button class="p1-login">เข้าสู่ระบบด้วย Google</button>';gate.querySelector('button').onclick=()=>db.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href}});document.querySelector('main')?.prepend(gate);
 db.auth.onAuthStateChange(async(_e,s)=>{user=s?.user||null;gate.hidden=!!user;renderAuth();if(user){const{data}=await db.from('p1_learning_progress').select('*').eq('lesson_key',lesson).maybeSingle();stage=data?.current_stage||1;points=data?.total_points||0}paint()});
 document.addEventListener('click',e=>{if(!user)return;const b=e.target.closest('.choice');if(b)setTimeout(()=>{if(b.closest('.game')?.querySelector('.ok'))score('quiz')},60);const m=e.target.closest('.match.done');if(m)score('match')});
+
+// Thai read-aloud controls: headings, directions, stories, and the current unlocked stage.
+const speech=window.speechSynthesis;
+function thaiVoice(){return speech.getVoices().find(v=>/^th(-|_)/i.test(v.lang))||speech.getVoices().find(v=>/thai|ไทย/i.test(v.name))}
+function readText(text){speech.cancel();const u=new SpeechSynthesisUtterance(String(text).replace(/🔐|👤|→|·/g,' ').replace(/\s+/g,' ').trim());u.lang='th-TH';const v=thaiVoice();if(v)u.voice=v;u.rate=.86;u.pitch=1;speech.speak(u)}
+speech.onvoiceschanged=()=>thaiVoice();
+const reader=document.createElement('div');reader.className='p1-auth';reader.innerHTML='<button class="p1-login" type="button">🔊 อ่านทั้งด่าน</button><button class="p1-login" type="button">■ หยุดอ่าน</button>';
+document.querySelector('.bar')?.append(reader);
+reader.children[0].onclick=()=>{const active=blocks[Math.max(0,stage-1)];readText(active?.innerText||document.querySelector('main')?.innerText)};
+reader.children[1].onclick=()=>speech.cancel();
+document.addEventListener('click',event=>{const t=event.target.closest('h1,h2,h3,p,.story,.eyebrow,.word-card,.letter');if(!t||t.closest('.p1-auth'))return;if(t.classList.contains('word-card')||t.classList.contains('letter'))return;readText(t.innerText)});
