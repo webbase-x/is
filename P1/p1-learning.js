@@ -1,4 +1,5 @@
 import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const p1Audio=new Audio();window.P1Stop=()=>{try{window.speechSynthesis?.cancel()}catch{};p1Audio.pause();p1Audio.currentTime=0};window.P1Read=text=>{const value=String(text).replace(/\s+/g,' ').trim();window.P1Stop();if(window.speechSynthesis&&window.SpeechSynthesisUtterance){const u=new SpeechSynthesisUtterance(value);const v=window.speechSynthesis.getVoices().find(x=>/^th/i.test(x.lang));if(v)u.voice=v;u.lang='th-TH';u.rate=.86;window.speechSynthesis.speak(u);return}p1Audio.src='https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=th&q='+encodeURIComponent(value);p1Audio.play().catch(()=>{})};
 const db=createClient('https://xnpzkhjodokvcgzovlxx.supabase.co','sb_publishable_r0M5jKyJcrQAKstRlmYOdQ_J_0aLofN');
 const lesson=location.pathname.includes('thai-consonants')?'thai-consonants':'unit1-lesson1';
 const blocks=lesson==='thai-consonants'?[...document.querySelectorAll('main>.panel,main>.grid,main>.game')]:[...document.querySelectorAll('main>.grid,main>.panel,main>.game')];
@@ -15,12 +16,9 @@ db.auth.onAuthStateChange(async(_e,s)=>{user=s?.user||null;gate.hidden=!!user;re
 document.addEventListener('click',e=>{if(!user)return;const b=e.target.closest('.choice');if(b)setTimeout(()=>{if(b.closest('.game')?.querySelector('.ok'))score('quiz')},60);const m=e.target.closest('.match.done');if(m)score('match')});
 
 // Thai read-aloud controls: headings, directions, stories, and the current unlocked stage.
-const speech=window.speechSynthesis;
-function thaiVoice(){return speech.getVoices().find(v=>/^th(-|_)/i.test(v.lang))||speech.getVoices().find(v=>/thai|ไทย/i.test(v.name))}
-function readText(text){speech.cancel();const u=new SpeechSynthesisUtterance(String(text).replace(/🔐|👤|→|·/g,' ').replace(/\s+/g,' ').trim());u.lang='th-TH';const v=thaiVoice();if(v)u.voice=v;u.rate=.86;u.pitch=1;speech.speak(u)}
-speech.onvoiceschanged=()=>thaiVoice();
+const speech=window.speechSynthesis||{cancel(){},getVoices(){return[]}};
 const reader=document.createElement('div');reader.className='p1-auth';reader.innerHTML='<button class="p1-login" type="button">🔊 อ่านทั้งด่าน</button><button class="p1-login" type="button">■ หยุดอ่าน</button>';
 document.querySelector('.bar')?.append(reader);
 reader.children[0].onclick=()=>{const active=blocks[Math.max(0,stage-1)];readText(active?.innerText||document.querySelector('main')?.innerText)};
-reader.children[1].onclick=()=>speech.cancel();
+reader.children[1].onclick=()=>window.P1Stop();
 document.addEventListener('click',event=>{const t=event.target.closest('h1,h2,h3,p,.story,.eyebrow,.word-card,.letter');if(!t||t.closest('.p1-auth'))return;if(t.classList.contains('word-card')||t.classList.contains('letter'))return;readText(t.innerText)});
