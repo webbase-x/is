@@ -21,7 +21,7 @@ let soundOn=true,step=Number(sessionStorage.getItem(`p1-book-step-${unitNo}`)||0
 let wordIndex=0,readingIndex=0,quizIndex=0,quizScore=0,gameIndex=0,gameScore=0;
 const completed=new Set(JSON.parse(localStorage.getItem(`p1-book-done-${unitNo}`)||"[]"));
 
-function speak(text){if(!soundOn||!("speechSynthesis" in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="th-TH";u.rate=.78;u.pitch=1.04;speechSynthesis.speak(u)}
+function speak(text){if(!soundOn||!("speechSynthesis" in window))return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="th-TH";u.rate=.78;u.pitch=1.04;speechSynthesis.speak(u)}
 function shuffle(a){const x=[...a];for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
 function save(){localStorage.setItem(`p1-book-stars-${unitNo}`,stars);localStorage.setItem(`p1-book-done-${unitNo}`,JSON.stringify([...completed]));sessionStorage.setItem(`p1-book-step-${unitNo}`,step)}
 function addStar(n=1){stars+=n;save();$("#starCount").textContent=`⭐ ${stars}`;for(let i=0;i<n;i++){const s=document.createElement("span");s.className="star-pop";s.textContent="⭐";s.style.left=`${40+Math.random()*20}%`;s.style.top=`${48+Math.random()*8}%`;document.body.append(s);setTimeout(()=>s.remove(),950)}}
@@ -41,12 +41,12 @@ function gameQuestion(){const qs=unit.review;if(gameIndex>=qs.length){completed.
 function renderGame(){gameQuestion()}
 function zoomSegment(index){const seg=unit.segments[index];$("#zoomContent").innerHTML=crop(seg,"reading");$("#zoomDialog").showModal()}
 function bindZoom(){stage.querySelectorAll("[data-zoom]").forEach(b=>b.onclick=()=>zoomSegment(Number(b.dataset.zoom)))}
-function resetStep(){speechSynthesis?.cancel?.();if(step===2)wordIndex=0;if(step===3)readingIndex=0;if(step===4){quizIndex=0;quizScore=0}if(step===5){gameIndex=0;gameScore=0}render()}
+function resetStep(){window.speechSynthesis?.cancel?.();if(step===2)wordIndex=0;if(step===3)readingIndex=0;if(step===4){quizIndex=0;quizScore=0}if(step===5){gameIndex=0;gameScore=0}render()}
 function render(){step=Math.max(0,Math.min(5,step));save();setHead();renderNav();if(step===0)renderCover();if(step===1)renderVocab();if(step===2)renderWordPractice();if(step===3)renderReading();if(step===4)renderQuiz();if(step===5)renderGame();bindZoom();window.scrollTo({top:0,behavior:"smooth"})}
 $("#prevStep").onclick=()=>{if(step>0){step--;render()}};
 $("#nextStep").onclick=()=>{markDone();if(step<5){step++;render()}else location.href="index.html"};
 $("#restartStep").onclick=resetStep;
-$("#soundToggle").onclick=e=>{soundOn=!soundOn;e.currentTarget.textContent=soundOn?"🔊":"🔇";e.currentTarget.setAttribute("aria-pressed",String(soundOn));if(!soundOn)speechSynthesis?.cancel?.()};
+$("#soundToggle").onclick=e=>{soundOn=!soundOn;e.currentTarget.textContent=soundOn?"🔊":"🔇";e.currentTarget.setAttribute("aria-pressed",String(soundOn));if(!soundOn)window.speechSynthesis?.cancel?.()};
 $("#closeZoom").onclick=()=>$("#zoomDialog").close();
 $("#zoomDialog").addEventListener("click",e=>{if(e.target===$("#zoomDialog"))$("#zoomDialog").close()});
 $("#unitHero").style.setProperty("--unit",unit.color);
