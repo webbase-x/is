@@ -330,7 +330,7 @@ document.querySelector('#scoreBadge').addEventListener('click', () => { updateSc
 document.querySelector('#closeScores').addEventListener('click', () => document.querySelector('#scoreDialog').close());
 updateScoreBoard();
 
-const bingoWords = ['ภูผา','พ่อ','แม่','หา','ให้','ได้','ดีใจ','ดูแล','รัก','ใบโบก','ใบบัว','ตา','งา','ขา','หู','หาง','งวง','มา','มี','ดู','ไม่'];
+const bingoWords = ['ภูผา','พ่อ','แม่','หา','ให้','ได้','ดีใจ','ดูแล','รัก','ใบโบก','ใบบัว','ตา','ขา','หู','งวง','มี'];
 const bingoSheetDialog = document.querySelector('#bingoSheetDialog');
 const bingoSheetWordsInput = document.querySelector('#bingoSheetWords');
 const shuffleBingoWords = words => {
