@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="theme-color" content="#5a48d6">
+  <meta name="description" content="เพลินภาษา ป.1 บทเรียนจากหนังสือภาษาพาที หน่วยที่ 1-6">
+  <title>เพลินภาษา ป.1 | บทเรียนภาษาพาที</title>
+  <link rel="stylesheet" href="lesson.css?v=20260921-1">
+  <link rel="stylesheet" href="../responsive.css?v=20260817-2">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">ก</span><span><strong>เพลินภาษา ป.1</strong><small>ภาษาพาที · หน่วย 1-6</small></span></a>
+    <div class="top-actions">
+      <button id="soundToggle" class="icon-btn" type="button" aria-pressed="true" title="เปิด/ปิดเสียง">🔊</button>
+      <a class="home-btn" href="index.html">สารบัญ</a>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section id="unitHero" class="unit-hero">
+      <div>
+        <span id="unitKicker" class="kicker"></span>
+        <h1 id="unitTitle"></h1>
+        <p id="unitLead"></p>
+        <div class="hero-badges"><span>📖 ภาพจากหนังสือต้นฉบับ</span><span>⭐ เรียนทีละกิจกรรม</span><span>🔊 กดฟังได้</span></div>
+      </div>
+      <div id="heroBookImage" class="hero-book-image" aria-label="ภาพหน้าบทจากหนังสือ"></div>
+    </section>
+
+    <nav id="stepNav" class="step-nav" aria-label="กิจกรรมการเรียนรู้"></nav>
+
+    <section class="learning-card">
+      <div class="activity-head">
+        <div><span id="activityKicker" class="kicker"></span><h2 id="activityTitle"></h2><p id="activityHelp"></p></div>
+        <div class="progress-chip"><span id="stepCount"></span><strong id="starCount">⭐ 0</strong></div>
+      </div>
+      <div class="progress-track" aria-hidden="true"><i id="progressBar"></i></div>
+
+      <div id="activityStage" class="activity-stage" aria-live="polite"></div>
+
+      <div class="activity-nav">
+        <button id="prevStep" class="nav-btn secondary" type="button">‹ ย้อนกลับ</button>
+        <button id="restartStep" class="nav-btn ghost" type="button">↻ เริ่มกิจกรรมใหม่</button>
+        <button id="nextStep" class="nav-btn primary" type="button">ถัดไป ›</button>
+      </div>
+    </section>
+
+    <section class="teacher-note">
+      <strong>สำหรับครู</strong>
+      <span>กิจกรรมเรียงตามลำดับ: หน้าบท → รู้จักคำ นำเรื่อง → ฝึกอ่านคำ → บทฝึกอ่าน → ทบทวน → เกมมิฟิเคชัน</span>
+    </section>
+  </main>
+
+  <dialog id="zoomDialog" class="zoom-dialog">
+    <button id="closeZoom" type="button" class="zoom-close" aria-label="ปิด">✕</button>
+    <div id="zoomContent"></div>
+  </dialog>
+
+  <script src="lesson-data.js?v=20260921-1"></script>
+  <script src="lesson.js?v=20260921-1"></script>
+</body>
+</html>
