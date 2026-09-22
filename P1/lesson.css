@@ -86,3 +86,8 @@ strong.speaking-now{padding:2px 14px;border-radius:15px}
 .reading-flow-page .karaoke-line{height:auto;min-height:54px;font-size:clamp(24px,3.5vw,34px);line-height:1.9;overflow:visible}
 .reading-flow-page-number{margin:14px 0 0;text-align:right;color:var(--muted);font-size:13px}
 @media(max-width:600px){.reading-flow-page .karaoke-line{padding:10px 30px 10px 6px;gap:6px;font-size:26px}.reading-flow-page .karaoke-text{padding:8px}.reading-art-gallery{gap:6px}}
+
+
+.reading-illustration{display:block;width:auto;max-width:100%;max-height:460px;height:auto;object-fit:contain;margin:auto}
+.reading-topbar .reading-page-buttons{grid-template-columns:repeat(auto-fit,minmax(95px,1fr))}
+@media(max-width:600px){.reading-illustration{max-height:330px}.reading-topbar .reading-page-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}}
