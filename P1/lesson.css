@@ -134,3 +134,11 @@ strong.speaking-now{padding:2px 14px;border-radius:15px}
 .complete-original.original-layout-card{border:2px solid #e9e2f1;border-radius:20px;box-shadow:0 6px 22px #33234f10;isolation:isolate}
 .original-layout-card .native-hotspot{scroll-margin-top:190px}
 @media(max-width:600px){.complete-original.original-layout-card{border-radius:12px}}
+
+/* Selectable text, one source line per card, in original reading order. */
+.native-reading-lines.source-text-cards,.reading-flow-page .karaoke-text,.cover-karaoke{grid-template-columns:minmax(0,1fr)}
+.source-text-cards .reading-card{min-height:125px;padding:40px 20px 58px;display:block;text-align:left}
+.source-text-cards .native-row-words{display:block;white-space:nowrap;overflow-x:auto;overflow-y:hidden;padding:5px 4px 10px;padding-inline-start:var(--source-indent,0);width:100%;line-height:1.9;scrollbar-width:thin}
+.source-text-cards .native-word{display:inline-block;vertical-align:baseline;white-space:nowrap;max-width:none;overflow-wrap:normal;padding:0;border:0;border-radius:5px;font-size:clamp(22px,2.7vw,32px);line-height:1.9}
+.source-text-cards .native-word.native-reading-active{background:#ffe66f;color:#9b1d2a}
+@media(max-width:600px){.source-text-cards .reading-card{padding:36px 10px 58px;min-height:125px}.source-text-cards .native-word{font-size:24px}}

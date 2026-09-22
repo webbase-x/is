@@ -13,13 +13,13 @@ const stepHelp=[
  "ดูภาพเปิดบทแบบคู่ 2 หน้าจากหนังสือต้นฉบับ แล้วเตรียมตัวเริ่มเรียน",
  "ดูภาพและคำในการ์ดเดียวกัน แตะการ์ดเพื่อฟัง แล้วอ่านตาม",
  "ฝึกอ่านคำทีละคำ ฟังเสียง แล้วอ่านตามให้ชัด",
- "การ์ดคาราโอเกะจัดข้อความและภาพตามต้นฉบับ แตะคำเพื่อฟัง หรือกดอ่านทั้งหน้า",
+ "การ์ดข้อความคาราโอเกะ เรียงบรรทัดตามต้นฉบับ แตะคำเพื่อฟัง หรืออ่านทีละการ์ดและทั้งหน้า",
  "ตอบคำถามสั้น ๆ เพื่อทบทวนความเข้าใจ",
  "ทำภารกิจสะสมดาวและปลดล็อกเหรียญนักอ่าน"
 ];
 let soundOn=true,step=Number(sessionStorage.getItem(`p1-book-step-${unitNo}`)||0),stars=Number(localStorage.getItem(`p1-book-stars-${unitNo}`)||0);
 const fullBook=window.P1_COMPLETE_PAGES[unitNo];
-let fullIndex=Math.max(0,Math.min(fullBook.pages.length-1,Number(sessionStorage.getItem(`p1-full-page-${unitNo}`))||0)),originalMode=true;
+let fullIndex=Math.max(0,Math.min(fullBook.pages.length-1,Number(sessionStorage.getItem(`p1-full-page-${unitNo}`))||0)),originalMode=false;
 let wordIndex=0,readingIndex=0,quizIndex=0,quizScore=0,gameIndex=0,gameScore=0;
 const completed=new Set(JSON.parse(localStorage.getItem(`p1-book-done-${unitNo}`)||"[]"));
 
@@ -78,7 +78,7 @@ function renderExactBookPage(page){
  return `<article class="reading-flow-page" aria-label="บทอ่าน ${page.bookPage}">${title}${arts?`<div class="reading-art-gallery illustration-card">${arts}</div>`:`<div class="native-context-picture illustration-card">${spread([0,1])}<small>ภาพประกอบประจำบท</small></div>`}<div class="karaoke-text">${page.lines.map((line,i)=>karaokeLineMarkup(line,i)).join("")}</div><p class="reading-flow-page-number">${page.bookPage}</p></article>`;
 }
 function fullPageMarkup(p){return `<div class="complete-original original-layout-card" style="aspect-ratio:${fullBook.w}/${p.h}"><img src="${fullBook.asset}" alt="ต้นฉบับ หน่วยที่ ${unitNo} ${p.label}" style="top:${-p.y/p.h*100}%" loading="eager"></div>`}
-function changeFullPage(index){stopSpeech();fullIndex=Math.max(0,Math.min(fullBook.pages.length-1,index));originalMode=true;renderReading();stage.scrollIntoView({block:"start",behavior:"smooth"})}
+function changeFullPage(index){stopSpeech();fullIndex=Math.max(0,Math.min(fullBook.pages.length-1,index));originalMode=false;renderReading();stage.scrollIntoView({block:"start",behavior:"smooth"})}
 function vocabCardArt(p,rect,word,index){const ratio=fullBook.w*rect[2]/(p.h*rect[3]);return nativeArtMarkup(p,rect,index).replace('<div class="native-art"','<span class="native-art vocab-card-art"').replace('</div>','</span>').replace('style="aspect-ratio:',`style="max-width:${Math.round(145*ratio)}px;aspect-ratio:`).replace(`alt="ภาพประกอบหน้านี้ ${index+1}"`,`alt="ภาพประกอบคำ ${escapeText(word)}"`)}
 function vocabCardsMarkup(p){const data=window.P1_VOCAB_CARDS?.[p.page];if(!data)return '';
  const card=(item,i)=>{const illustrated=i<data.illustratedCount;const art=item.wordSprite?pictureMarkup(item.word,'vocab-card-sprite'):item.pictures.map((r,j)=>vocabCardArt(p,r,item.word,j)).join('');return `<button type="button" class="${illustrated?'vocab-picture-card':'vocab-extra-card'}" data-vocab-card="${i}" data-vocab-page="${p.page}" aria-label="อ่านคำ ${escapeText(item.word)}">${illustrated?`<span class="vocab-card-pictures">${art}</span>`:''}<span class="vocab-card-label">${escapeText(item.word)}</span><span class="vocab-card-audio" aria-hidden="true">🔊</span></button>`};
@@ -91,7 +91,18 @@ async function readAllVocabulary(){const run=beginKaraoke(),buttons=[...stage.qu
 function escapeText(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function currentNative(){return window.P1_PAGE_KARAOKE[fullBook.pages[fullIndex].page]}
 function nativeWordMarkup(t,r,i,hotspot=false){const b=t.b;return `<button type="button" class="native-word ${hotspot?'native-hotspot':''}" data-native-word="${r}:${i}" aria-label="อ่านคำ ${escapeText(t.t)}" title="อ่าน ${escapeText(t.t)}" ${hotspot?`style="left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:${b[3]}%"`:''}>${hotspot?'<span class="visually-hidden">'+escapeText(t.t)+'</span>':escapeText(t.t)}</button>`}
-function nativeRowsMarkup(data){return `<div class="native-reading-lines">${data.rows.map((row,r)=>`<div class="native-reading-row reading-card" role="group" aria-label="การ์ดที่ ${r+1}"><button type="button" class="native-read-row" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}">🔊 อ่านการ์ดนี้<small>การ์ดที่ ${r+1}</small></button><div class="native-row-words">${row.map((t,i)=>nativeWordMarkup(t,r,i)).join('')}</div></div>`).join('')}</div>`}
+function nativeRowsMarkup(data){
+ const left=Math.min(...data.rows.flat().map(t=>t.b[0]));
+ return `<div class="native-reading-lines source-text-cards">${data.rows.map((row,r)=>{
+  const indent=Math.max(0,row[0].b[0]-left);
+  const words=row.map((t,i)=>{
+   const prev=row[i-1],gap=prev?Math.max(0,t.b[0]-prev.b[0]-prev.b[2]):0;
+   const space=gap<.3?0:Math.min(6,gap/Math.max(1,t.b[3]) * 1.35);
+   return nativeWordMarkup(t,r,i).replace(' title=',` style="margin-inline-start:${space.toFixed(3)}em" title=`);
+  }).join('');
+  return `<div class="native-reading-row reading-card" role="group" aria-label="การ์ดที่ ${r+1}"><span class="reading-card-number" aria-hidden="true">${r+1}</span><button type="button" class="native-read-row" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}">🔊 อ่านการ์ดนี้</button><div class="native-row-words" style="--source-indent:${Math.min(35,indent)}%">${words}</div></div>`;
+ }).join('')}</div>`;
+}
 function nativeArtMarkup(p,rect,i){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<div class="native-art" style="aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="ภาพประกอบหน้านี้ ${i+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></div>`}
 function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.page])return vocabCardsMarkup(p);const data=currentNative();if(original){const plain=fullPageMarkup(p);return plain.replace('</div>',`<div class="native-hotspots">${data.rows.map((row,r)=>row.map((t,i)=>nativeWordMarkup(t,r,i,true)).join('')).join('')}</div></div>`)+`<details class="native-word-details"><summary>รายการคำและชุดคำที่กดอ่านได้</summary>${nativeRowsMarkup(data)}</details>`}
  const art=data.arts.length?`<div class="native-art-gallery illustration-card">${data.arts.map((r,i)=>nativeArtMarkup(p,r,i)).join('')}</div>`:`<div class="native-context-picture illustration-card">${spread([0,1])}<small>ภาพประกอบประจำบท</small></div>`;
@@ -107,12 +118,12 @@ function renderReading(){
  stopSpeech();sessionStorage.setItem(`p1-full-page-${unitNo}`,fullIndex);
  const p=fullBook.pages[fullIndex],cover=p.kind==='cover',page=p.readingIndex!==undefined?unit.readingPages[p.readingIndex]:null;
  if(page)readingIndex=p.readingIndex;
- // Narrative pages use the reviewed flowing text; all other pages use exact PDF text.
- const reviewed=!cover&&page&&['บทอ่าน','อ่านคล่อง ร้องเล่น'].includes(p.kind)&&![54,64].includes(p.page);
+ // Real text cards follow the source row boundaries and spacing on every page.
+ const reviewed=false;
  const useNative=!cover&&(!reviewed||originalMode);
  const controls=`<div class="karaoke-controls exact-controls"><button class="big-action" id="readPageKaraoke">🔊 อ่านทั้งหน้า</button><button class="secondary-action" id="stopKaraoke">⏹ หยุด</button><button class="secondary-action" id="restartKaraoke">↻ อ่านใหม่</button></div>`;
  const content=cover?`<article class="cover-reading-card" aria-label="การ์ดหน้าปก">${spread([0,1],'cover-spread')}<div class="karaoke-text cover-karaoke">${karaokeLineMarkup('บทที่ '+unitNo,0)}${karaokeLineMarkup(unit.title,1)}</div></article>`:useNative?nativePageMarkup(p,originalMode):renderExactBookPage(page);
- stage.innerHTML=`<div class="reading-sim-wrap complete-reader"><div class="complete-page-toolbar"><label for="fullPageSelect">เลือกหน้าในบท</label><select id="fullPageSelect">${fullBook.pages.map((item,i)=>`<option value="${i}" ${i===fullIndex?'selected':''}>${item.label}</option>`).join('')}</select><p class="complete-count">ครบ ${fullBook.end-fullBook.start+1} หน้าต้นฉบับ · ${fullIndex+1} / ${fullBook.pages.length} ช่วงอ่าน · ทุกหน้ากดฟังได้</p></div><div class="complete-nav"><button class="secondary-action" data-page-prev ${fullIndex===0?'disabled':''}>‹ หน้าก่อน</button><strong>${p.label}</strong><button class="secondary-action" data-page-next ${fullIndex===fullBook.pages.length-1?'disabled':''}>หน้าถัดไป ›</button></div><div class="complete-view-tools">${cover?'':`<button class="secondary-action" id="toggleFullOriginal">${originalMode?'🃏 แยกการ์ดคำ / ประโยค':'📖 จัดเหมือนต้นฉบับ'}</button>`}<button class="secondary-action" id="zoomFullPage">🔎 ขยายหน้าต้นฉบับ</button></div>${controls}<p class="complete-hint">อ่านทั้งหน้า หรือแตะคำเพื่อฟังเฉพาะคำ · ${cover?'อ่านชื่อบททีละการ์ด':useNative?(window.P1_VOCAB_CARDS?.[p.page]&&!originalMode?'แตะการ์ดเพื่อฟังคำพร้อมดูภาพ':(originalMode?'ข้อความเรียงตามต้นฉบับ · เปิดรายการคำด้านล่างเพื่ออ่านทีละบรรทัด':'กดอ่านการ์ดนี้ เพื่อฟังชุดคำ / ประโยค')):'กดอ่านการ์ดนี้ เพื่อฟังทั้งประโยค / วรรค'}</p>${content}<div class="complete-nav bottom-page-nav"><button class="secondary-action" data-page-prev ${fullIndex===0?'disabled':''}>‹ หน้าก่อน</button><span>${fullIndex+1} / ${fullBook.pages.length}</span><button class="big-action" data-page-next ${fullIndex===fullBook.pages.length-1?'disabled':''}>หน้าถัดไป ›</button></div>${fullIndex===fullBook.pages.length-1?'<div class="word-controls"><button class="big-action" id="finishFullChapter">อ่านจบบทแล้ว ไปทบทวน →</button></div>':''}</div>`;
+ stage.innerHTML=`<div class="reading-sim-wrap complete-reader"><div class="complete-page-toolbar"><label for="fullPageSelect">เลือกหน้าในบท</label><select id="fullPageSelect">${fullBook.pages.map((item,i)=>`<option value="${i}" ${i===fullIndex?'selected':''}>${item.label}</option>`).join('')}</select><p class="complete-count">ครบ ${fullBook.end-fullBook.start+1} หน้าต้นฉบับ · ${fullIndex+1} / ${fullBook.pages.length} ช่วงอ่าน · ทุกหน้ากดฟังได้</p></div><div class="complete-nav"><button class="secondary-action" data-page-prev ${fullIndex===0?'disabled':''}>‹ หน้าก่อน</button><strong>${p.label}</strong><button class="secondary-action" data-page-next ${fullIndex===fullBook.pages.length-1?'disabled':''}>หน้าถัดไป ›</button></div><div class="complete-view-tools">${cover?'':`<button class="secondary-action" id="toggleFullOriginal">${originalMode?'🃏 กลับการ์ดข้อความ':'📖 ดูภาพต้นฉบับ'}</button>`}<button class="secondary-action" id="zoomFullPage">🔎 ขยายหน้าต้นฉบับ</button></div>${controls}<p class="complete-hint">อ่านทั้งหน้า หรือแตะคำเพื่อฟังเฉพาะคำ · ${cover?'อ่านชื่อบททีละการ์ด':useNative?(window.P1_VOCAB_CARDS?.[p.page]&&!originalMode?'แตะการ์ดเพื่อฟังคำพร้อมดูภาพ':(originalMode?'ข้อความเรียงตามต้นฉบับ · เปิดรายการคำด้านล่างเพื่ออ่านทีละบรรทัด':'กดอ่านการ์ดนี้ เพื่อฟังชุดคำ / ประโยค')):'กดอ่านการ์ดนี้ เพื่อฟังทั้งประโยค / วรรค'}</p>${content}<div class="complete-nav bottom-page-nav"><button class="secondary-action" data-page-prev ${fullIndex===0?'disabled':''}>‹ หน้าก่อน</button><span>${fullIndex+1} / ${fullBook.pages.length}</span><button class="big-action" data-page-next ${fullIndex===fullBook.pages.length-1?'disabled':''}>หน้าถัดไป ›</button></div>${fullIndex===fullBook.pages.length-1?'<div class="word-controls"><button class="big-action" id="finishFullChapter">อ่านจบบทแล้ว ไปทบทวน →</button></div>':''}</div>`;
  $('#fullPageSelect').onchange=e=>changeFullPage(Number(e.target.value));
  stage.querySelectorAll('[data-page-prev]').forEach(b=>b.onclick=()=>changeFullPage(fullIndex-1));
  stage.querySelectorAll('[data-page-next]').forEach(b=>b.onclick=()=>changeFullPage(fullIndex+1));
@@ -128,7 +139,7 @@ function renderGame(){gameQuestion()}
 function zoomSegment(index){const seg=unit.segments[index];$("#zoomContent").innerHTML=crop(seg,"reading");$("#zoomDialog").showModal()}
 function zoomSpread(indices){$("#zoomContent").innerHTML=spread(indices,"zoom-spread");$("#zoomDialog").showModal()}
 function bindZoom(){stage.querySelectorAll("[data-zoom]").forEach(b=>b.onclick=()=>zoomSegment(Number(b.dataset.zoom)));stage.querySelectorAll("[data-zoom-spread]").forEach(b=>b.onclick=()=>zoomSpread(b.dataset.zoomSpread.split(",").map(Number)))}
-function resetStep(){stopSpeech();if(step===2)wordIndex=0;if(step===3){readingIndex=0;fullIndex=0;originalMode=true}if(step===4){quizIndex=0;quizScore=0}if(step===5){gameIndex=0;gameScore=0}render()}
+function resetStep(){stopSpeech();if(step===2)wordIndex=0;if(step===3){readingIndex=0;fullIndex=0;originalMode=false}if(step===4){quizIndex=0;quizScore=0}if(step===5){gameIndex=0;gameScore=0}render()}
 function render(){stopSpeech();step=Math.max(0,Math.min(5,step));save();setHead();renderNav();if(step===0)renderCover();if(step===1)renderVocab();if(step===2)renderWordPractice();if(step===3)renderReading();if(step===4)renderQuiz();if(step===5)renderGame();bindZoom();window.scrollTo({top:0,behavior:"smooth"})}
 $("#prevStep").onclick=()=>{if(step>0){step--;render()}};
 $("#nextStep").onclick=()=>{markDone();if(step<5){step++;render()}else location.href="index.html"};
