@@ -102,3 +102,5 @@ strong.speaking-now{padding:2px 14px;border-radius:15px}
 @media(max-width:600px){.native-flow-page{padding:12px 8px}.native-reading-row{gap:6px;padding:8px 5px}.native-read-row{flex-basis:34px}.native-row-words{gap:6px}.native-word{font-size:24px;padding:3px 7px}.native-art-gallery{grid-template-columns:repeat(auto-fit,minmax(90px,130px));gap:12px}.native-context-picture{max-width:180px}.native-instruction{font-size:.9rem}}
 
 .complete-reader>.karaoke-controls{position:sticky;top:76px;z-index:8;background:rgba(255,255,255,.97);padding:10px;border-radius:14px;box-shadow:0 3px 16px #30245112}.native-hotspots{scroll-margin-top:180px}@media(max-width:600px){.complete-reader>.karaoke-controls{top:66px;padding:7px;gap:6px}}
+
+.cover-title-karaoke{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:20px 0}
