@@ -110,3 +110,22 @@ strong.speaking-now{padding:2px 14px;border-radius:15px}
 @media(max-width:600px){.vocab-picture-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.vocab-picture-card{padding:12px 7px 14px;border-radius:16px;gap:8px}.vocab-card-pictures{height:150px;gap:3px}.vocab-card-pictures .vocab-card-sprite{width:120px;height:120px;flex-basis:120px}.vocab-card-label{font-size:24px}.vocab-extra-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vocab-extra-card .vocab-card-label{font-size:22px}.vocab-activity>.karaoke-controls{top:66px}}
 
 @media(min-width:601px) and (max-width:900px){.vocab-picture-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* All chapter pages: illustration cards and individually readable text cards. */
+.reading-flow-page,.native-flow-page{max-width:100%;padding:18px;background:#faf8ff;border:0;box-shadow:none}
+.illustration-card{padding:18px;border:2px solid #e9e2f1;border-radius:22px;background:#fff;box-shadow:0 5px 15px #33234f08}
+.native-context-picture.illustration-card{max-width:360px}
+.reading-flow-page .karaoke-text,.native-reading-lines,.cover-karaoke{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;padding:0;background:transparent}
+.karaoke-line.reading-card,.native-reading-row.reading-card{position:relative;display:flex;flex-wrap:wrap;align-content:center;align-items:center;justify-content:center;gap:8px;min-width:0;min-height:160px;height:auto;padding:44px 20px 62px;margin:0;border:2px solid #e9e2f1;border-radius:22px;background:#fff;box-shadow:0 5px 15px #33234f08;font-size:clamp(24px,2.6vw,32px);line-height:1.85;text-align:center;overflow:visible}
+.reading-card-number{position:absolute;top:12px;left:14px;display:grid;place-items:center;min-width:28px;height:28px;border-radius:50%;background:#f0e9fb;color:#7959aa;font-size:14px;line-height:1}
+.reading-card .line-speaker,.reading-card .native-read-row{position:absolute;left:14px;right:14px;bottom:12px;top:auto;width:auto;height:38px;min-height:38px;padding:7px 12px;border:0;border-radius:10px;background:#f1eafb;color:#644296;font:600 14px 'Sarabun',sans-serif;opacity:1;cursor:pointer;transform:none}
+.reading-card .native-read-row small{display:inline;margin-left:8px;color:#81708f;font-size:12px}
+.reading-card .native-row-words{justify-content:center;gap:5px;flex:1 1 100%}
+.reading-card .native-word{border-color:transparent;background:transparent;padding:2px 5px}
+.reading-card .karaoke-token{white-space:normal;overflow-wrap:anywhere;max-width:100%}
+.reading-card.line-reading,.reading-card.native-row-active{border-color:#e8bc36;background:#fffaf0;box-shadow:0 0 0 3px #ffda6033}
+.reading-card .speaking-now{transform:none!important}
+.reading-card .line-speaker:focus-visible,.reading-card .native-read-row:focus-visible{outline:3px solid #9770d5;outline-offset:2px}
+.cover-reading-card{padding:18px;border:2px solid #e9e2f1;border-radius:24px;background:#fff;box-shadow:0 5px 18px #33234f0d}
+.cover-reading-card .cover-karaoke{max-width:100%}
+@media(max-width:700px){.reading-flow-page .karaoke-text,.native-reading-lines,.cover-karaoke{grid-template-columns:1fr;gap:12px}.reading-flow-page,.native-flow-page{padding:10px 4px}.karaoke-line.reading-card,.native-reading-row.reading-card{min-height:140px;padding:40px 12px 60px;font-size:26px;border-radius:18px}.cover-reading-card,.illustration-card{padding:10px}}
