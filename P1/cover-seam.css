@@ -1,0 +1,5 @@
+/* Remove the paper-edge pixels at the join of two source pages. */
+.seamless-cover{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:0!important}
+.seamless-cover>.cover-half{display:block;min-width:0;overflow:hidden;margin:0;padding:0;border:0;line-height:0}
+.seamless-cover>.cover-half>img{display:block;width:201.34228188%!important;max-width:none!important;height:auto;margin:0;padding:0;border:0}
+.seamless-cover>.cover-half.cover-right>img{margin-left:-101.34228188%}
