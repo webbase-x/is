@@ -114,3 +114,42 @@ window.P1_BOOK_UNITS={
  ]
 }
 };
+
+/* Page-replica layout: percentages follow the original textbook page. */
+const P1_READING_LAYOUTS={
+  1:[
+    {showTitle:true,titleBox:[34,13,32,8],artRects:[[10,27,80,33]],textBlocks:[{from:0,to:3,box:[31,65,43,17]}],footerRect:[5.5,86,89,8]},
+    {showTitle:false,artRects:[[14,15,19,70],[67,15,19,70]],textBlocks:[{from:0,to:6,box:[36,16,29,67]}],footerRect:[5.5,86,89,8]},
+    {showTitle:false,artRects:[[14,15,20,70],[67,15,20,70]],textBlocks:[{from:0,to:6,box:[36,16,30,67]}],footerRect:[5.5,86,89,8]}
+  ],
+  2:[
+    {showTitle:true,titleBox:[42,13,18,8],artRects:[[12,22,76,29]],textBlocks:[{from:0,to:5,box:[26,56,50,28]}],footerRect:[5.5,86,89,8]},
+    {showTitle:false,artRects:[[66,12,20,30],[39,74,27,12]],textBlocks:[{from:0,to:2,box:[17,13,48,15]},{from:2,to:4,box:[17,30,48,15]},{from:4,to:5,box:[17,47,57,8]},{from:5,to:6,box:[17,56,72,8]},{from:6,to:7,box:[17,67,72,8]},{from:7,to:8,box:[17,77,72,8]}],footerRect:[5.5,86,89,8]},
+    {showTitle:true,titleBox:[58,5,32,7],artRects:[[50,4,10,10]],textBlocks:[{from:0,to:4,box:[25,18,56,21]},{from:4,to:10,box:[25,44,56,34]}],footerRect:[5.5,86,89,8]}
+  ],
+  3:[
+    {showTitle:true,titleBox:[40,12,23,7],artRects:[[13,20,75,26]],textBlocks:[{from:0,to:8,box:[18,48,66,35]}],footerRect:[5.5,86,89,8]},
+    {showTitle:true,titleBox:[58,5,32,7],artRects:[[50,4,10,10]],textBlocks:[{from:0,to:3,box:[25,18,56,18]},{from:3,to:7,box:[25,39,56,20]},{from:7,to:12,box:[25,61,56,21]}],footerRect:[5.5,86,89,8]},
+    {showTitle:true,titleBox:[63,4,25,7],artRects:[],textBlocks:[{from:0,to:16,box:[30,12,47,71]}],footerRect:[5.5,86,89,8]}
+  ],
+  4:[
+    {showTitle:true,titleBox:[42,12,18,7],artRects:[[11,43,78,32]],textBlocks:[{from:0,to:5,box:[18,19,65,22]}],footerRect:[5.5,86,89,8]},
+    {showTitle:false,artRects:[[27,11,47,23],[63,49,18,12]],textBlocks:[{from:0,to:7,box:[18,37,64,45]}],footerRect:[5.5,86,89,8]},
+    {showTitle:true,titleBox:[58,5,32,7],artRects:[[50,4,10,10]],textBlocks:[{from:0,to:3,box:[25,18,56,18]},{from:3,to:10,box:[25,40,56,33]},{from:10,to:12,box:[25,75,56,8]}],footerRect:[5.5,86,89,8]}
+  ],
+  5:[
+    {showTitle:true,titleBox:[39,13,25,7],artRects:[[14,25,74,27]],textBlocks:[{from:0,to:5,box:[18,54,66,28]}],footerRect:[5.5,86,89,8]},
+    {showTitle:false,artRects:[[55,8,34,20]],textBlocks:[{from:0,to:9,box:[18,27,65,54]}],footerRect:[5.5,86,89,8]},
+    {showTitle:true,titleBox:[58,5,32,7],artRects:[[50,4,10,10]],textBlocks:[{from:0,to:3,box:[25,18,56,18]},{from:3,to:12,box:[25,39,56,42]}],footerRect:[5.5,86,89,8]}
+  ],
+  6:[
+    {showTitle:true,titleBox:[34,12,35,7],artRects:[[63,14,25,14],[64,59,22,11]],textBlocks:[{from:0,to:15,box:[18,20,64,63]}],footerRect:[5.5,86,89,8]},
+    {showTitle:true,titleBox:[58,5,32,7],artRects:[[50,4,10,10],[82,13,9,10]],textBlocks:[{from:0,to:3,box:[25,18,56,18]},{from:3,to:14,box:[25,39,56,43]}],footerRect:[5.5,86,89,8]},
+    {showTitle:true,titleBox:[62,5,28,7],artRects:[],textBlocks:[{from:0,to:14,box:[27,14,50,69]}],footerRect:[5.5,86,89,8]}
+  ]
+};
+Object.entries(P1_READING_LAYOUTS).forEach(([unitKey,layouts])=>{
+  layouts.forEach((layout,index)=>{
+    Object.assign(window.P1_BOOK_UNITS[Number(unitKey)].readingPages[index],{layout});
+  });
+});
