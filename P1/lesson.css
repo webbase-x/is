@@ -129,3 +129,8 @@ strong.speaking-now{padding:2px 14px;border-radius:15px}
 .cover-reading-card{padding:18px;border:2px solid #e9e2f1;border-radius:24px;background:#fff;box-shadow:0 5px 18px #33234f0d}
 .cover-reading-card .cover-karaoke{max-width:100%}
 @media(max-width:700px){.reading-flow-page .karaoke-text,.native-reading-lines,.cover-karaoke{grid-template-columns:1fr;gap:12px}.reading-flow-page,.native-flow-page{padding:10px 4px}.karaoke-line.reading-card,.native-reading-row.reading-card{min-height:140px;padding:40px 12px 60px;font-size:26px;border-radius:18px}.cover-reading-card,.illustration-card{padding:10px}}
+
+/* Default page card preserves printed positions, spacing, verse and columns. */
+.complete-original.original-layout-card{border:2px solid #e9e2f1;border-radius:20px;box-shadow:0 6px 22px #33234f10;isolation:isolate}
+.original-layout-card .native-hotspot{scroll-margin-top:190px}
+@media(max-width:600px){.complete-original.original-layout-card{border-radius:12px}}
