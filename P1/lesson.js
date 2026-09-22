@@ -59,7 +59,7 @@ function readingArtMarkup(rect,index){
  const [x,y,w,h]=rect;
  const cropWidth=unit.sprite.w*w/100;
  const cropHeight=segment.h*h/100;
- const top=(segment.y+segment.h*y/100)/cropWidth*100;
+ const top=(segment.y+segment.h*y/100)/cropHeight*100;
  return `<div class="reading-art-crop" style="width:${w}%;aspect-ratio:${cropWidth}/${cropHeight}"><img src="${unit.asset}" alt="ภาพประกอบบทอ่าน ${index+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-top}%" loading="eager"></div>`;
 }
 function renderExactBookPage(page){
