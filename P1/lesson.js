@@ -141,7 +141,7 @@ function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.pa
  return `<article class="native-flow-page source-faithful-page" aria-label="คาราโอเกะ ${escapeText(p.label)}"><p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 ข้างบรรทัด เพื่ออ่านตามทีละชุด · ภาพและข้อความจัดวางตามต้นฉบับ</p>${nativeSourceLayoutMarkup(p,data)}</article>`;
 }
 function clearNativeHighlights(){stage.querySelectorAll('.native-reading-active,.native-row-active').forEach(el=>el.classList.remove('native-reading-active','native-row-active'))}
-async function readNativeWord(r,i,run=null){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];peers.forEach(el=>{el.classList.add('native-reading-active');el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];await speak(token.s,target);if(id===karaokeRun)clearNativeHighlights()}
+async function readNativeWord(r,i,run=null,highlightRow=true){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];peers.forEach(el=>{el.classList.add('native-reading-active');if(highlightRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];await speak(token.s,target);if(id===karaokeRun)clearNativeHighlights()}
 const nativeVowelSounds=new Set(["อะ","อา","อิ","อี","อึ","อือ","อุ","อู","เอ","แอ","โอ","ไอ","ใอ","อำ","เอา","เอะ","แอะ","เอีย","อัว","โอะ","เอาะ","ออ","เออะ","เออ","เอือ"]);
 function nativeTokenCenter(t){return [t.b[0]+t.b[2]/2,t.b[1]+t.b[3]/2]}
 function nativeConsonantToken(t){return /^[ก-ฮ]$/.test(t?.t||"")}
@@ -178,7 +178,7 @@ function nativePhonicsSteps(r){
     let best=Infinity;
     for(const m of markers){const [mx,my]=nativeTokenCenter(m.t),score=Math.abs(x-mx)*2+Math.abs(y-my);if(score<best){best=score;marker=m}}
    }
-   if(marker)steps.push(marker.r===r?{r:marker.r,i:marker.i}:{speech:marker.t.s});
+   if(marker)steps.push({r:marker.r,i:marker.i});
    steps.push({r,i:result.i});
   }
  }
@@ -187,11 +187,11 @@ function nativePhonicsSteps(r){
 async function readNativeRow(r,run=null){
  const id=run??beginKaraoke(),row=currentNative()?.rows[r];
  if(!row)return;
- const steps=nativePhonicsSteps(r)||row.map((_,i)=>({r,i}));
- for(const item of steps){
+ const phonics=!!nativePhonicsSteps(r);
+ const activeSteps=phonics?nativePhonicsSteps(r):row.map((_,i)=>({r,i}));
+ for(const item of activeSteps){
   if(id!==karaokeRun||step!==3)return;
-  if(item.speech)await speak(item.speech);
-  else await readNativeWord(item.r,item.i,id);
+  await readNativeWord(item.r,item.i,id,!phonics);
  }
 }
 async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}for(let r=0;r<rows.length;r++){if(id!==karaokeRun||step!==3)break;await readNativeRow(r,id)}if(id===karaokeRun&&document.body.contains(btn)){btn.disabled=false;btn.textContent='🔊 อ่านทั้งหน้า'}}
