@@ -88,7 +88,7 @@ function vocabCardsMarkup(p){const data=window.P1_VOCAB_CARDS?.[p.page];if(!data
 }
 async function readVocabularyCard(b,run=null){const id=run??beginKaraoke(),card=window.P1_VOCAB_CARDS?.[b.dataset.vocabPage]?.cards[Number(b.dataset.vocabCard)];if(!card||id!==karaokeRun||!document.body.contains(b))return;await speak(card.word,b)}
 function bindVocabularyCards(){stage.querySelectorAll('[data-vocab-card]').forEach(b=>b.onclick=()=>readVocabularyCard(b))}
-async function readAllVocabulary(){const run=beginKaraoke(),buttons=[...stage.querySelectorAll('[data-vocab-card]')],btn=$('#readPageKaraoke')||$('#readAllWords'),old=btn?.textContent;if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}for(const b of buttons){if(run!==karaokeRun||!document.body.contains(b))break;await readVocabularyCard(b,run)}if(btn&&document.body.contains(btn)){btn.disabled=false;btn.textContent=old}}
+async function readAllVocabulary(){const run=beginKaraoke(),buttons=[...stage.querySelectorAll('[data-vocab-card]')],btn=$('#readPageKaraoke')||$('#readAllWords'),old=btn?.textContent;if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}if(run===karaokeRun){const items=buttons.filter(b=>document.body.contains(b)).map(b=>{const card=window.P1_VOCAB_CARDS?.[b.dataset.vocabPage]?.cards[Number(b.dataset.vocabCard)];return {text:card?.word||'',target:b}});await speakQueued(items)}if(btn&&document.body.contains(btn)){btn.disabled=false;btn.textContent=old}}
 
 function escapeText(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function currentNative(){return window.P1_PAGE_KARAOKE[fullBook.pages[fullIndex].page]}
