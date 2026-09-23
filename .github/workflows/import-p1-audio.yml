@@ -1,0 +1,54 @@
+name: Import P1 reading songs
+
+on:
+  push:
+    branches:
+      - feat/p1-reading-song-audio
+    paths:
+      - .github/workflows/import-p1-audio.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import-audio:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/p1-reading-song-audio
+      - name: Ensure ffmpeg
+        run: |
+          ffmpeg -version >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+      - name: Download and convert reading songs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p P1/audio/reading-song /tmp/p1-audio
+
+          curl -L --fail --retry 3 'https://sdmntprwestus2.oaiusercontent.com/files/00000000-02b4-81f8-af50-66a6c0591b63/raw?se=2026-09-23T14%3A05%3A23Z&sp=r&sv=2026-02-06&sr=b&scid=aaa29470-8428-56d5-a454-687abc23e43b&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T13%3A55%3A56Z&ske=2026-09-24T13%3A55%3A56Z&sks=b&skv=2026-02-06&sig=PZkBPpBym3JcGybbRoxLaBHGk9XA5WYTikAJAS7bM9A%3D' -o /tmp/p1-audio/u01.wma
+          curl -L --fail --retry 3 'https://sdmntprnortheu.oaiusercontent.com/files/00000000-ff98-81f4-9ff2-3b939dc92d8f/raw?se=2026-09-23T14%3A05%3A28Z&sp=r&sv=2026-02-06&sr=b&scid=5c448da0-926d-5ad1-8db2-5b96d32c6a69&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T01%3A49%3A36Z&ske=2026-09-24T01%3A49%3A36Z&sks=b&skv=2026-02-06&sig=G7iyONtpXzQtQhaVHLwEITnKWS5qzVQdN3KZstqo/SQ%3D' -o /tmp/p1-audio/u02.wma
+          curl -L --fail --retry 3 'https://sdmntprnortheu.oaiusercontent.com/files/00000000-2aa4-81f4-a16a-10ab3d0881ad/raw?se=2026-09-23T14%3A05%3A33Z&sp=r&sv=2026-02-06&sr=b&scid=77f41dd7-b27a-54d6-a0e9-1aa4fd731d17&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T13%3A56%3A02Z&ske=2026-09-24T13%3A56%3A02Z&sks=b&skv=2026-02-06&sig=mFAViiUZ5CwnU5H%2BSo4S1eC8hHANDdtUeXrGJgWpc50%3D' -o /tmp/p1-audio/u03.wma
+          curl -L --fail --retry 3 'https://sdmntprwestcentralus.oaiusercontent.com/files/00000000-205c-81fb-820e-099d4c2f8003/raw?se=2026-09-23T14%3A05%3A39Z&sp=r&sv=2026-02-06&sr=b&scid=ab4cfa3f-d698-5277-871b-bd029ea95eb4&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T03%3A47%3A17Z&ske=2026-09-24T03%3A47%3A17Z&sks=b&skv=2026-02-06&sig=eZtSIq2L7SxlEhB2soRz1I7Gn7K168YX9mqA7NNaiLk%3D' -o /tmp/p1-audio/u04.wma
+          curl -L --fail --retry 3 'https://sdmntpritalynorth.oaiusercontent.com/files/00000000-adac-8246-9f1c-270fff411e29/raw?se=2026-09-23T14%3A05%3A45Z&sp=r&sv=2026-02-06&sr=b&scid=506317f1-3f2d-5ad0-8f0d-4e5406ab05f1&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T09%3A43%3A45Z&ske=2026-09-24T09%3A43%3A45Z&sks=b&skv=2026-02-06&sig=dsboV%2BqEH%2Ba0Po06sn9MOCbFF7PoahsbPVEU4pEc9fk%3D' -o /tmp/p1-audio/u05.wma
+          curl -L --fail --retry 3 'https://sdmntpritalynorth.oaiusercontent.com/files/00000000-ef58-8246-9734-42411b160a45/raw?se=2026-09-23T14%3A05%3A50Z&sp=r&sv=2026-02-06&sr=b&scid=b75ad43d-908f-5b32-8c50-3b825bd69ed9&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T13%3A56%3A52Z&ske=2026-09-24T13%3A56%3A52Z&sks=b&skv=2026-02-06&sig=/z5wy1X5D4%2B2H%2BhfzZDIwY8kVwfxFnK2ts3XVyEAoDU%3D' -o /tmp/p1-audio/u06.wma
+          curl -L --fail --retry 3 'https://sdmntprukwest.oaiusercontent.com/files/00000000-69c0-8243-98ef-d3f8eb4244df/raw?se=2026-09-23T14%3A05%3A55Z&sp=r&sv=2026-02-06&sr=b&scid=31eaebc6-87c0-510c-a505-cccb4018f51a&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T13%3A52%3A48Z&ske=2026-09-24T13%3A52%3A48Z&sks=b&skv=2026-02-06&sig=TonXLjrhIGhgh5uzt2pxT%2BIpoksMXNIECTf4YF1befI%3D' -o /tmp/p1-audio/u07.wma
+          curl -L --fail --retry 3 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-4e34-81f5-a6f7-6f8f5a1e2620/raw?se=2026-09-23T14%3A06%3A02Z&sp=r&sv=2026-02-06&sr=b&scid=b64a6a96-4f66-5f16-abe6-fb76d1679e37&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T09%3A43%3A46Z&ske=2026-09-24T09%3A43%3A46Z&sks=b&skv=2026-02-06&sig=1l6j8VPig6tMkbJ%2BYGBTaIyZauR5TuMYsCG1Sw03VXU%3D' -o /tmp/p1-audio/u08.wma
+          curl -L --fail --retry 3 'https://sdmntprnortheu.oaiusercontent.com/files/00000000-e848-81f4-a4da-b0634938f0d4/raw?se=2026-09-23T14%3A06%3A38Z&sp=r&sv=2026-02-06&sr=b&scid=e72a2ea3-cef2-54d3-b99c-11cefcea47a2&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T07%3A26%3A50Z&ske=2026-09-24T07%3A26%3A50Z&sks=b&skv=2026-02-06&sig=PNyJx1Amhm3ydbTCYqiNHEK7O3GWdCOjmggZJBykN6s%3D' -o /tmp/p1-audio/u09.wma
+          curl -L --fail --retry 3 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-1774-81f5-a129-8517855e0512/raw?se=2026-09-23T14%3A06%3A46Z&sp=r&sv=2026-02-06&sr=b&scid=5b49f3e7-2214-5b72-bb5e-69ea32c36717&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T09%3A56%3A47Z&ske=2026-09-24T09%3A56%3A47Z&sks=b&skv=2026-02-06&sig=Q07GO5OrQ%2BBL%2BRY/%2Bz9AT3B5y5GjgZm1FwQ6xmIhKvk%3D' -o /tmp/p1-audio/u10.wma
+          curl -L --fail --retry 3 'https://sdmntprseasia.oaiusercontent.com/files/00000000-ad00-8207-856f-cc5a5f14d77c/raw?se=2026-09-23T14%3A06%3A49Z&sp=r&sv=2026-02-06&sr=b&scid=4ecefb49-5f01-5e22-a859-faec5d691950&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T13%3A57%3A02Z&ske=2026-09-24T13%3A57%3A02Z&sks=b&skv=2026-02-06&sig=18sot%2BrCk%2BQDQGVJFswCZK66wYamj%2BLHxEQm3XMENJ8%3D' -o /tmp/p1-audio/u11.wma
+          curl -L --fail --retry 3 'https://sdmntprnznorth.oaiusercontent.com/files/00000000-5294-820b-953d-1c6357c6f664/raw?se=2026-09-23T14%3A06%3A57Z&sp=r&sv=2026-02-06&sr=b&scid=646747c3-2fd1-54be-9736-0827c8d71d42&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-23T13%3A55%3A59Z&ske=2026-09-24T13%3A55%3A59Z&sks=b&skv=2026-02-06&sig=9yyIq6Sh8%2By0GXroOcnjWSHB7xCoVz4rrBCsKTbKZX4%3D' -o /tmp/p1-audio/u12.wma
+
+          for n in $(seq -w 1 12); do
+            ffmpeg -y -hide_banner -loglevel error -i "/tmp/p1-audio/u${n}.wma" -vn -codec:a libmp3lame -b:a 96k "P1/audio/reading-song/unit${n}.mp3"
+          done
+
+          ls -lh P1/audio/reading-song
+      - name: Commit MP3 files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add P1/audio/reading-song/*.mp3
+          git commit -m "Add P1 reading-song MP3 audio"
+          git push origin HEAD:feat/p1-reading-song-audio
