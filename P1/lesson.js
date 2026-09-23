@@ -229,8 +229,26 @@ function nativeRowSpeechItems(r){
  const phonics=!!nativePhonicsSteps(r),activeSteps=phonics?nativePhonicsSteps(r):row.map((_,i)=>({r,i}));
  return activeSteps.map(item=>{const token=rows[item.r]?.[item.i],peers=[...stage.querySelectorAll(`[data-native-word="${item.r}:${item.i}"]`)],target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];return {text:token?.s||"",target,onStart:()=>{clearNativeHighlights();peers.forEach(el=>{el.classList.add('native-reading-active');if(!phonics)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')})}}}).filter(x=>x.text)
 }
-async function readNativeRow(r,run=null){const id=run??beginKaraoke();if(id!==karaokeRun||step!==3)return;await speakQueued(nativeRowSpeechItems(r));if(id===karaokeRun)clearNativeHighlights()}
-async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}const items=rows.flatMap((_,r)=>nativeRowSpeechItems(r));if(id===karaokeRun&&step===3)await speakQueued(items);if(id===karaokeRun&&document.body.contains(btn)){btn.disabled=false;btn.textContent='🔊 อ่านทั้งหน้า'}}
+
+function nativeContinuousReadingRow(r){
+ const row=currentNative()?.rows?.[r]||[];
+ const ts=row.map(t=>t.t);
+ return nativePhonicsSectionRow(r)||(ts.includes("อ่าน")&&ts.includes("แจก")&&ts.includes("ลูก"));
+}
+function speakContinuousItems(items){
+ const list=(items||[]).filter(x=>x&&x.text);
+ if(!list.length||!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}
+ const token=++speechSeq;
+ if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();
+ if(finishSpeech)finishSpeech();
+ clearSpeechVisual();
+ const sep="\u200B",starts=[];let pos=0;
+ for(const item of list){starts.push(pos);pos+=item.text.length+sep.length}
+ const activate=index=>{if(token!==speechSeq||index<0||index>=list.length)return;const item=list[index];clearSpeechVisual();if(item.onStart)item.onStart();if(item.target){keepReadingVisible(item.target);speakingEl=item.target;item.target.classList.add("speaking-now")}};
+ return new Promise(resolve=>{let settled=false,last=-1;const done=()=>{if(settled)return;settled=true;if(token===speechSeq){clearSpeechVisual();clearNativeHighlights()}if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;const u=new SpeechSynthesisUtterance(list.map(x=>x.text).join(sep));u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;u.onstart=()=>{last=0;activate(0)};u.onboundary=e=>{if(token!==speechSeq)return;let idx=0;for(let i=1;i<starts.length;i++){if(starts[i]<=e.charIndex)idx=i;else break}if(idx!==last){last=idx;activate(idx)}};u.onend=done;u.onerror=done;window.speechSynthesis.speak(u)})
+}
+async function readNativeRow(r,run=null){const id=run??beginKaraoke();if(id!==karaokeRun||step!==3)return;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items));if(id===karaokeRun)clearNativeHighlights()}
+async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}for(let r=0;r<rows.length;r++){if(id!==karaokeRun||step!==3)break;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items))}if(id===karaokeRun&&document.body.contains(btn)){btn.disabled=false;btn.textContent='🔊 อ่านทั้งหน้า'}}
 function bindNative(){stage.querySelectorAll('[data-native-word]').forEach(b=>b.onclick=()=>{const [r,i]=b.dataset.nativeWord.split(':').map(Number);readNativeWord(r,i)});stage.querySelectorAll('[data-native-line]').forEach(b=>b.onclick=()=>readNativeRow(Number(b.dataset.nativeLine)))}
 function bindFlowWords(){stage.querySelectorAll('[data-k-token],[data-k-title-token]').forEach(el=>{el.setAttribute('role','button');el.setAttribute('tabindex','0');el.setAttribute('aria-label','อ่านคำ '+el.textContent);const read=e=>{e.stopPropagation();beginKaraoke();speak(el.dataset.speech,el)};el.onclick=read;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();read(e)}}})}
 function renderReading(){
