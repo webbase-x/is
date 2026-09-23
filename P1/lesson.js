@@ -105,7 +105,7 @@ function nativeRowsMarkup(data){
 }
 function nativeArtMarkup(p,rect,i){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<div class="native-art" style="aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="ภาพประกอบหน้านี้ ${i+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></div>`}
 function nativePlacedArtMarkup(p,rect,i){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<div class="native-layout-art" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%;aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="ภาพประกอบหน้านี้ ${i+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></div>`}
-function nativeSourceRowMarkup(row,r){
+function nativeSourceRowMarkup(p,row,r){
  const x1=Math.min(...row.map(t=>t.b[0])),y1=Math.min(...row.map(t=>t.b[1]));
  const x2=Math.max(...row.map(t=>t.b[0]+t.b[2])),y2=Math.max(...row.map(t=>t.b[1]+t.b[3]));
  const w=Math.max(2,x2-x1),h=Math.max(3.7,y2-y1);
@@ -114,7 +114,7 @@ function nativeSourceRowMarkup(row,r){
 }
 function nativeSourceLayoutMarkup(p,data){
  const seen=new Set(),arts=(data.arts||[]).filter(r=>{const k=r.map(n=>Number(n).toFixed(3)).join(':');if(seen.has(k))return false;seen.add(k);return true});
- return `<div class="native-source-layout-wrap"><div class="native-source-layout" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i)).join('')}${data.rows.map(nativeSourceRowMarkup).join('')}</div></div>`;
+ return `<div class="native-source-layout-wrap"><div class="native-source-layout" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r)).join('')}</div></div>`;
 }
 function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.page])return vocabCardsMarkup(p);const data=currentNative();if(original){const plain=fullPageMarkup(p);return plain.replace('</div>',`<div class="native-hotspots">${data.rows.map((row,r)=>row.map((t,i)=>nativeWordMarkup(t,r,i,true)).join('')).join('')}</div></div>`)+`<details class="native-word-details"><summary>รายการคำและชุดคำที่กดอ่านได้</summary>${nativeRowsMarkup(data)}</details>`}
  return `<article class="native-flow-page source-faithful-page" aria-label="คาราโอเกะ ${escapeText(p.label)}"><p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 ข้างบรรทัด เพื่ออ่านตามทีละชุด · ภาพและข้อความจัดวางตามต้นฉบับ</p>${nativeSourceLayoutMarkup(p,data)}</article>`;
