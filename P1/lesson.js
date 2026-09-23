@@ -169,7 +169,21 @@ function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.pa
  return `<article class="native-flow-page source-faithful-page" aria-label="คาราโอเกะ ${escapeText(p.label)}"><p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 ข้างบรรทัด เพื่ออ่านตามทีละชุด · ภาพและข้อความจัดวางตามต้นฉบับ</p>${nativeSourceLayoutMarkup(p,data)}</article>`;
 }
 function clearNativeHighlights(){stage.querySelectorAll('.native-reading-active,.native-row-active').forEach(el=>el.classList.remove('native-reading-active','native-row-active'))}
-async function readNativeWord(r,i,run=null,highlightRow=true){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];const showRow=highlightRow&&!nativePhonicsSectionRow(r);peers.forEach(el=>{el.classList.add('native-reading-active');if(showRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];await speak(nativePhonicsSectionRow(r)?phonicsTtsText(token.s):token.s,target);if(id===karaokeRun)clearNativeHighlights()}
+function nativeWrittenSpeech(token){
+ const shown=String(token?.t||""),spoken=String(token?.s||"");
+ if(!shown)return spoken;
+ // คำที่เขียนติดกันต้องส่งเข้า TTS ติดกันด้วย
+ // เครื่องหมาย -, _, + เป็นสัญลักษณ์การแจกลูก/สะกดคำ จึงคงจังหวะแยกไว้
+ return !/[\s\-_+]/.test(shown)?spoken.replace(/\s+/g,""):spoken.trim();
+}
+function nativeTokensTouch(a,b){
+ if(!a?.b||!b?.b)return false;
+ const gap=b.b[0]-(a.b[0]+a.b[2]);
+ const overlap=Math.min(a.b[1]+a.b[3],b.b[1]+b.b[3])-Math.max(a.b[1],b.b[1]);
+ const minH=Math.min(a.b[3],b.b[3]);
+ return gap<=.30&&overlap>=minH*.45;
+}
+async function readNativeWord(r,i,run=null,highlightRow=true){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];const showRow=highlightRow&&!nativePhonicsSectionRow(r);peers.forEach(el=>{el.classList.add('native-reading-active');if(showRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0],speech=nativeWrittenSpeech(token);await speak(nativePhonicsSectionRow(r)?phonicsTtsText(speech):speech,target);if(id===karaokeRun)clearNativeHighlights()}
 const nativeVowelSounds=new Set(["อะ","อา","อิ","อี","อึ","อือ","อุ","อู","เอ","แอ","โอ","ไอ","ใอ","อำ","เอา","เอะ","แอะ","เอีย","อัว","โอะ","เอาะ","ออ","เออะ","เออ","เอือ"]);
 function nativeTokenCenter(t){return [t.b[0]+t.b[2]/2,t.b[1]+t.b[3]/2]}
 function nativeConsonantToken(t){return /^[ก-ฮ]$/.test(t?.t||"")}
@@ -227,7 +241,24 @@ function nativeRowSpeechItems(r){
  const rows=currentNative()?.rows||[],row=rows[r];
  if(!row)return [];
  const phonics=!!nativePhonicsSteps(r),activeSteps=phonics?nativePhonicsSteps(r):row.map((_,i)=>({r,i}));
- return activeSteps.map(item=>{const token=rows[item.r]?.[item.i],peers=[...stage.querySelectorAll(`[data-native-word="${item.r}:${item.i}"]`)],target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];return {text:token?.s||"",target,onStart:()=>{clearNativeHighlights();peers.forEach(el=>{el.classList.add('native-reading-active');if(!phonics)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')})}}}).filter(x=>x.text)
+ if(phonics)return activeSteps.map(item=>{const token=rows[item.r]?.[item.i],peers=[...stage.querySelectorAll(`[data-native-word="${item.r}:${item.i}"]`)],target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];return {text:token?.s||"",target,onStart:()=>{clearNativeHighlights();peers.forEach(el=>el.classList.add('native-reading-active'))}}}).filter(x=>x.text);
+
+ // ข้อความปกติ: token ที่ชิดกันตามตำแหน่งในหนังสือคือคำเดียวกัน
+ // รวมเสียงก่อนส่ง TTS เพื่อไม่ให้เกิดช่องว่างกลางคำ
+ const groups=[];
+ for(const item of activeSteps){
+  const token=rows[item.r]?.[item.i];
+  if(!token)continue;
+  const ref={r:item.r,i:item.i,token},last=groups[groups.length-1],prev=last?.refs[last.refs.length-1]?.token;
+  if(last&&nativeTokensTouch(prev,token))last.refs.push(ref);
+  else groups.push({refs:[ref]});
+ }
+ return groups.map(group=>{
+  const peers=group.refs.flatMap(ref=>[...stage.querySelectorAll(`[data-native-word="${ref.r}:${ref.i}"]`)]);
+  const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];
+  const text=group.refs.map(ref=>nativeWrittenSpeech(ref.token)).join("");
+  return {text,target,onStart:()=>{clearNativeHighlights();peers.forEach(el=>{el.classList.add('native-reading-active');el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')})}}
+ }).filter(x=>x.text)
 }
 
 function nativeContinuousReadingRow(r){
