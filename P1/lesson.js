@@ -237,7 +237,7 @@ function nativeContinuousReadingRow(r){
 }
 
 function phonicsTtsText(text){
- if(text==="ดอ")return "ดอ";
+ if(text==="ดอ")return "ดอว์";
  if(text==="อา")return "อาร์";
  if(/^[ก-ฮ]อ$/.test(text))return text[0]+"อร์";
  return text;
