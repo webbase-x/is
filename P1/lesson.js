@@ -128,7 +128,14 @@ function nativePage19GridMarkup(p,data){
 function nativeSourceLayoutMarkup(p,data){
  if(p.page===19)return nativePage19GridMarkup(p,data);
  const seen=new Set(),arts=(data.arts||[]).filter(r=>{const k=r.map(n=>Number(n).toFixed(3)).join(':');if(seen.has(k))return false;seen.add(k);return true});
- return `<div class="native-source-layout-wrap"><div class="native-source-layout" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r)).join('')}</div></div>`;
+ // Page 18: restore the illustrations for the first row "ใบโบก มี ตา".
+ // The artwork detector starts from the second row, so copy the matching
+ // blue-elephant and eye crops already present later on the same source page.
+ const firstRowMissingArt=p.page===18
+  ? nativePlacedArtCopyMarkup(p,[16.98,37.178,15.586,11.52],[16.98,15.00,15.586,11.52],"ภาพใบโบกประกอบข้อความ ใบโบก มี ตา")
+   +nativePlacedArtCopyMarkup(p,[64.95,25.803,16.434,9.15],[64.95,16.18,16.434,9.15],"ภาพตาประกอบข้อความ ใบโบก มี ตา")
+  : '';
+ return `<div class="native-source-layout-wrap"><div class="native-source-layout" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${firstRowMissingArt}${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r)).join('')}</div></div>`;
 }
 function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.page])return vocabCardsMarkup(p);const data=currentNative();if(original){const plain=fullPageMarkup(p);return plain.replace('</div>',`<div class="native-hotspots">${data.rows.map((row,r)=>row.map((t,i)=>nativeWordMarkup(t,r,i,true)).join('')).join('')}</div></div>`)+`<details class="native-word-details"><summary>รายการคำและชุดคำที่กดอ่านได้</summary>${nativeRowsMarkup(data)}</details>`}
  return `<article class="native-flow-page source-faithful-page" aria-label="คาราโอเกะ ${escapeText(p.label)}"><p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 ข้างบรรทัด เพื่ออ่านตามทีละชุด · ภาพและข้อความจัดวางตามต้นฉบับ</p>${nativeSourceLayoutMarkup(p,data)}</article>`;
