@@ -237,6 +237,7 @@ function nativeContinuousReadingRow(r){
 }
 
 function phonicsTtsText(text){
+ if(text==="ดอ")return "ดอ,";
  return text;
 }
 function speakContinuousItems(items){
