@@ -30,7 +30,6 @@ function stopSpeech(){clearNativeHighlights();karaokeRun++;speechSeq++;window.sp
 function keepReadingVisible(target){if(![1,3].includes(step)||!target?.getBoundingClientRect)return;const r=target.getBoundingClientRect();if(r.top<165||r.bottom>window.innerHeight-32)target.scrollIntoView({block:"center",behavior:"smooth"})}
 const NORMAL_SPEECH_RATE=1.00;
 function speak(text,target=null){if(!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}const token=++speechSeq;if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();if(finishSpeech)finishSpeech();clearSpeechVisual();if(target){keepReadingVisible(target);speakingEl=target;target.classList.add("speaking-now")}return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(text);u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;let settled=false;const done=()=>{if(settled)return;settled=true;if(token===speechSeq)clearSpeechVisual();if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;u.onend=done;u.onerror=done;window.speechSynthesis.speak(u)})}
-const WORD_LEAD_PAUSE_MS=0.1;
 function speakQueued(items){
  const list=(items||[]).filter(x=>x&&x.text);
  if(!list.length||!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}
@@ -39,22 +38,22 @@ function speakQueued(items){
  if(finishSpeech)finishSpeech();
  clearSpeechVisual();
  return new Promise(resolve=>{
-  let settled=false,timer=null;
-  const done=()=>{if(settled)return;settled=true;if(timer)clearTimeout(timer);if(token===speechSeq){clearSpeechVisual();clearNativeHighlights()}if(finishSpeech===done)finishSpeech=null;resolve()};
+  let settled=false;
+  const done=()=>{if(settled)return;settled=true;if(token===speechSeq){clearSpeechVisual();clearNativeHighlights()}if(finishSpeech===done)finishSpeech=null;resolve()};
   const activate=item=>{clearSpeechVisual();if(item.onStart)item.onStart();if(item.target){keepReadingVisible(item.target);speakingEl=item.target;item.target.classList.add("speaking-now")}};
   const play=index=>{
    if(settled||token!==speechSeq)return done();
    if(index>=list.length)return done();
-   const item=list[index];activate(item);
-   const wait=index===0?20:WORD_LEAD_PAUSE_MS;
-   timer=setTimeout(()=>{
-    if(settled||token!==speechSeq)return done();
-    const u=new SpeechSynthesisUtterance(item.text);u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;
-    u.onend=()=>play(index+1);u.onerror=()=>play(index+1);
-    window.speechSynthesis.speak(u)
-   },wait)
+   const item=list[index];
+   activate(item);
+   const u=new SpeechSynthesisUtterance(item.text);
+   u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;
+   u.onend=()=>play(index+1);
+   u.onerror=()=>play(index+1);
+   window.speechSynthesis.speak(u)
   };
-  finishSpeech=done;play(0)
+  finishSpeech=done;
+  play(0)
  })
 }
 function speechToken(token){const map={"เ-":"เอ","แ-":"แอ","โ-":"โอ","ไ-":"ไอ","ใ-":"ใอ","_ือ":"อือ","เ-ีย":"เอีย","-ัว":"อัว","+":""};return map[token]??token.replace(/[“”"]/g,"")}
