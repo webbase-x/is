@@ -142,7 +142,58 @@ function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.pa
 }
 function clearNativeHighlights(){stage.querySelectorAll('.native-reading-active,.native-row-active').forEach(el=>el.classList.remove('native-reading-active','native-row-active'))}
 async function readNativeWord(r,i,run=null){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];peers.forEach(el=>{el.classList.add('native-reading-active');el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];await speak(token.s,target);if(id===karaokeRun)clearNativeHighlights()}
-async function readNativeRow(r,run=null){const id=run??beginKaraoke(),row=currentNative()?.rows[r];if(!row)return;for(let i=0;i<row.length;i++){if(id!==karaokeRun||step!==3)return;await readNativeWord(r,i,id)}}
+const nativeVowelSounds=new Set(["อะ","อา","อิ","อี","อึ","อือ","อุ","อู","เอ","แอ","โอ","ไอ","ใอ","อำ","เอา","เอะ","แอะ","เอีย","อัว","โอะ","เอาะ","ออ","เออะ","เออ","เอือ"]);
+function nativeTokenCenter(t){return [t.b[0]+t.b[2]/2,t.b[1]+t.b[3]/2]}
+function nativeConsonantToken(t){return /^[ก-ฮ]$/.test(t?.t||"")}
+function nativeVowelMarkerToken(t){return !!t&&nativeVowelSounds.has(t.s)&&t.t!==t.s&&!nativeConsonantToken(t)}
+function nativePhonicsSteps(r){
+ const data=currentNative(),rows=data?.rows||[],row=rows[r];
+ if(!row)return null;
+ let start=-1;
+ for(let i=0;i<r;i++){const ts=rows[i].map(t=>t.t);if(ts.includes("แจก")&&ts.includes("ลูก"))start=i}
+ if(start<0||r<=start)return null;
+ let end=rows.length;
+ for(let i=start+1;i<rows.length;i++){
+  const ts=rows[i].map(t=>t.t);
+  if((ts.includes("อ่าน")&&ts.includes("สะกด")&&ts.includes("คำ"))||ts.includes("ฝึก")){end=i;break}
+ }
+ if(r>=end)return null;
+ const markers=[];
+ for(let rr=start+1;rr<end;rr++)for(let i=0;i<rows[rr].length;i++){const t=rows[rr][i];if(nativeVowelMarkerToken(t))markers.push({r:rr,i,t})}
+ if(!markers.length)return null;
+ const consonants=row.map((t,i)=>nativeConsonantToken(t)?i:-1).filter(i=>i>=0);
+ if(!consonants.length)return null;
+ const steps=[];
+ for(let g=0;g<consonants.length;g++){
+  const ci=consonants[g],next=consonants[g+1]??row.length;
+  const results=[];
+  for(let i=ci+1;i<next;i++){const t=row[i];if(!nativeVowelMarkerToken(t)&&!["อ่าน","แจก","ลูก"].includes(t.t))results.push({i,t})}
+  if(!results.length)continue;
+  steps.push({r,i:ci});
+  for(const result of results){
+   let marker=null;
+   for(let i=ci+1;i<result.i;i++)if(nativeVowelMarkerToken(row[i]))marker={r,i,t:row[i]};
+   if(!marker){
+    const [x,y]=nativeTokenCenter(result.t);
+    let best=Infinity;
+    for(const m of markers){const [mx,my]=nativeTokenCenter(m.t),score=Math.abs(x-mx)*2+Math.abs(y-my);if(score<best){best=score;marker=m}}
+   }
+   if(marker)steps.push(marker.r===r?{r:marker.r,i:marker.i}:{speech:marker.t.s});
+   steps.push({r,i:result.i});
+  }
+ }
+ return steps.length>=3?steps:null;
+}
+async function readNativeRow(r,run=null){
+ const id=run??beginKaraoke(),row=currentNative()?.rows[r];
+ if(!row)return;
+ const steps=nativePhonicsSteps(r)||row.map((_,i)=>({r,i}));
+ for(const item of steps){
+  if(id!==karaokeRun||step!==3)return;
+  if(item.speech)await speak(item.speech);
+  else await readNativeWord(item.r,item.i,id);
+ }
+}
 async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}for(let r=0;r<rows.length;r++){if(id!==karaokeRun||step!==3)break;await readNativeRow(r,id)}if(id===karaokeRun&&document.body.contains(btn)){btn.disabled=false;btn.textContent='🔊 อ่านทั้งหน้า'}}
 function bindNative(){stage.querySelectorAll('[data-native-word]').forEach(b=>b.onclick=()=>{const [r,i]=b.dataset.nativeWord.split(':').map(Number);readNativeWord(r,i)});stage.querySelectorAll('[data-native-line]').forEach(b=>b.onclick=()=>readNativeRow(Number(b.dataset.nativeLine)))}
 function bindFlowWords(){stage.querySelectorAll('[data-k-token],[data-k-title-token]').forEach(el=>{el.setAttribute('role','button');el.setAttribute('tabindex','0');el.setAttribute('aria-label','อ่านคำ '+el.textContent);const read=e=>{e.stopPropagation();beginKaraoke();speak(el.dataset.speech,el)};el.onclick=read;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();read(e)}}})}
