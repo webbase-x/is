@@ -192,6 +192,8 @@ function clearNativeHighlights(){stage.querySelectorAll('.native-reading-active,
 function nativeWrittenSpeech(token){
  const shown=String(token?.t||""),spoken=String(token?.s||"");
  if(!shown)return spoken;
+ // Zero-width space marks a syllable boundary inside one printed word.
+ if(spoken.includes("\u200B"))return spoken;
  // คำที่เขียนติดกันต้องส่งเข้า TTS ติดกันด้วย
  // เครื่องหมาย -, _, + เป็นสัญลักษณ์การแจกลูก/สะกดคำ จึงคงจังหวะแยกไว้
  return !/[\s\-_+]/.test(shown)?spoken.replace(/\s+/g,""):spoken.trim();
