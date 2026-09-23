@@ -183,7 +183,28 @@ function nativeTokensTouch(a,b){
  const minH=Math.min(a.b[3],b.b[3]);
  return gap<=.30&&overlap>=minH*.45;
 }
-async function readNativeWord(r,i,run=null,highlightRow=true){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];const showRow=highlightRow&&!nativePhonicsSectionRow(r);peers.forEach(el=>{el.classList.add('native-reading-active');if(showRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0],speech=nativeWrittenSpeech(token);await speak(nativePhonicsSectionRow(r)?phonicsTtsText(speech):speech,target);if(id===karaokeRun)clearNativeHighlights()}
+function nativeJoinedWordRefs(r,i){
+ const rows=currentNative()?.rows||[],row=rows[r],token=row?.[i];
+ if(!token)return [];
+ if(nativePhonicsSectionRow(r))return [{r,i,token}];
+ let start=i,end=i;
+ while(start>0&&nativeTokensTouch(row[start-1],row[start]))start--;
+ while(end<row.length-1&&nativeTokensTouch(row[end],row[end+1]))end++;
+ return row.slice(start,end+1).map((token,offset)=>({r,i:start+offset,token}));
+}
+async function readNativeWord(r,i,run=null,highlightRow=true){
+ const id=run??beginKaraoke(),refs=nativeJoinedWordRefs(r,i);
+ if(!refs.length||id!==karaokeRun||step!==3)return;
+ clearNativeHighlights();
+ const phonics=nativePhonicsSectionRow(r);
+ const peers=refs.flatMap(ref=>[...stage.querySelectorAll(`[data-native-word="${ref.r}:${ref.i}"]`)]);
+ const showRow=highlightRow&&!phonics;
+ peers.forEach(el=>{el.classList.add('native-reading-active');if(showRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});
+ const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];
+ const speech=refs.map(ref=>nativeWrittenSpeech(ref.token)).join("");
+ await speak(phonics?phonicsTtsText(speech):speech,target);
+ if(id===karaokeRun)clearNativeHighlights()
+}
 const nativeVowelSounds=new Set(["อะ","อา","อิ","อี","อึ","อือ","อุ","อู","เอ","แอ","โอ","ไอ","ใอ","อำ","เอา","เอะ","แอะ","เอีย","อัว","โอะ","เอาะ","ออ","เออะ","เออ","เอือ"]);
 function nativeTokenCenter(t){return [t.b[0]+t.b[2]/2,t.b[1]+t.b[3]/2]}
 function nativeConsonantToken(t){return /^[ก-ฮ]$/.test(t?.t||"")}
