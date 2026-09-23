@@ -242,7 +242,7 @@ function speakContinuousItems(items){
  if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();
  if(finishSpeech)finishSpeech();
  clearSpeechVisual();
- const sep=" ",starts=[];let pos=0;
+ const sep=", ",starts=[];let pos=0;
  for(const item of list){starts.push(pos);pos+=item.text.length+sep.length}
  const activate=index=>{if(token!==speechSeq||index<0||index>=list.length)return;const item=list[index];clearSpeechVisual();if(item.onStart)item.onStart();if(item.target){keepReadingVisible(item.target);speakingEl=item.target;item.target.classList.add("speaking-now")}};
  return new Promise(resolve=>{let settled=false,last=-1;const done=()=>{if(settled)return;settled=true;if(token===speechSeq){clearSpeechVisual();clearNativeHighlights()}if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;const u=new SpeechSynthesisUtterance(list.map(x=>x.text).join(sep));u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;u.onstart=()=>{last=0;activate(0)};u.onboundary=e=>{if(token!==speechSeq)return;let idx=0;for(let i=1;i<starts.length;i++){if(starts[i]<=e.charIndex)idx=i;else break}if(idx!==last){last=idx;activate(idx)}};u.onend=()=>{if(last<list.length-1){last=list.length-1;activate(last);setTimeout(done,120)}else done()};u.onerror=done;window.speechSynthesis.speak(u)})
