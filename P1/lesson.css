@@ -394,3 +394,69 @@ img{height:auto}
  .book-reader-tip{margin-block:-2px 0;font-size:.78rem}
  .book-reader-controls{position:static;margin-top:2px}
 }
+
+
+/* ===== ป.1 Book page-turn effect ===== */
+.book-reader{perspective:1600px;perspective-origin:50% 45%}
+.book-paper{
+ position:relative;
+ transform-style:preserve-3d;
+ backface-visibility:hidden;
+ will-change:transform,opacity,box-shadow;
+ transform-origin:center center;
+}
+.book-paper::after{
+ content:"";
+ position:absolute;
+ inset:0;
+ z-index:40;
+ pointer-events:none;
+ border-radius:inherit;
+ opacity:0;
+ background:linear-gradient(90deg,rgba(40,28,16,.20),rgba(255,255,255,.04) 24%,rgba(255,255,255,0) 62%);
+}
+.book-paper.page-turn-out-next{transform-origin:left center;animation:p1-page-out-next .26s cubic-bezier(.42,0,.58,1) both}
+.book-paper.page-turn-in-next{transform-origin:right center;animation:p1-page-in-next .32s cubic-bezier(.22,.72,.24,1) both}
+.book-paper.page-turn-out-prev{transform-origin:right center;animation:p1-page-out-prev .26s cubic-bezier(.42,0,.58,1) both}
+.book-paper.page-turn-in-prev{transform-origin:left center;animation:p1-page-in-prev .32s cubic-bezier(.22,.72,.24,1) both}
+.book-paper.page-turn-out-next::after,
+.book-paper.page-turn-in-prev::after{animation:p1-page-shadow-left .32s ease both}
+.book-paper.page-turn-out-prev::after,
+.book-paper.page-turn-in-next::after{transform:scaleX(-1);animation:p1-page-shadow-right .32s ease both}
+
+@keyframes p1-page-out-next{
+ 0%{transform:rotateY(0deg) translateX(0);opacity:1;box-shadow:0 14px 34px rgba(67,53,35,.13)}
+ 100%{transform:rotateY(-18deg) translateX(-4%);opacity:.18;box-shadow:14px 18px 38px rgba(40,28,16,.20)}
+}
+@keyframes p1-page-in-next{
+ 0%{transform:rotateY(18deg) translateX(4%);opacity:.28;box-shadow:-14px 18px 38px rgba(40,28,16,.22)}
+ 100%{transform:rotateY(0deg) translateX(0);opacity:1;box-shadow:0 14px 34px rgba(67,53,35,.13)}
+}
+@keyframes p1-page-out-prev{
+ 0%{transform:rotateY(0deg) translateX(0);opacity:1;box-shadow:0 14px 34px rgba(67,53,35,.13)}
+ 100%{transform:rotateY(18deg) translateX(4%);opacity:.18;box-shadow:-14px 18px 38px rgba(40,28,16,.20)}
+}
+@keyframes p1-page-in-prev{
+ 0%{transform:rotateY(-18deg) translateX(-4%);opacity:.28;box-shadow:14px 18px 38px rgba(40,28,16,.22)}
+ 100%{transform:rotateY(0deg) translateX(0);opacity:1;box-shadow:0 14px 34px rgba(67,53,35,.13)}
+}
+@keyframes p1-page-shadow-left{
+ 0%,100%{opacity:0}
+ 45%{opacity:.72}
+}
+@keyframes p1-page-shadow-right{
+ 0%,100%{opacity:0}
+ 45%{opacity:.62}
+}
+
+@media(max-width:600px){
+ .book-reader{perspective:1100px}
+ .book-paper.page-turn-out-next,
+ .book-paper.page-turn-out-prev{animation-duration:.22s}
+ .book-paper.page-turn-in-next,
+ .book-paper.page-turn-in-prev{animation-duration:.28s}
+}
+@media(prefers-reduced-motion:reduce){
+ .book-paper,
+ .book-paper::after{animation:none!important;transition:none!important;transform:none!important}
+}
