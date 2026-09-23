@@ -113,16 +113,22 @@ function nativeSourceRowMarkup(p,row,r){
  const words=row.map((t,i)=>{const b=t.b,left=(b[0]-x1)/w*100,top=(b[1]-y1)/h*100,fs=Math.max(2.15,Math.min(4.45,b[3]*p.h/fullBook.w*.72));return `<button type="button" class="native-word native-layout-word ${bookTokenClass(t.t)}" data-native-word="${r}:${i}" aria-label="อ่านคำ ${escapeText(t.t)}" title="อ่าน ${escapeText(t.t)}" style="left:${left.toFixed(3)}%;top:${top.toFixed(3)}%;--native-fs:${fs.toFixed(2)}cqw">${escapeText(t.t)}</button>`}).join('');
  return `<div class="native-layout-row reading-card" data-native-row="${r}" style="left:${x1}%;top:${y1}%;width:${w}%;height:${h}%"><button type="button" class="native-layout-speaker" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}" title="อ่านการ์ดนี้">🔊</button>${words}</div>`;
 }
+function nativeGridArtMarkup(p,rect,alt){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<span class="native-grid-art" style="aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="${escapeText(alt)}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></span>`}
+function nativePage19GridMarkup(p,data){
+ const pairs=[
+  [[19.44,37.179,15.586,11.52],[78.193,26.315,10.269,11.556]],
+  [[27.116,26.906,18.968,9.947],[78.193,26.315,10.269,11.556]],
+  [[19.44,37.179,15.586,11.52],[64.408,37.741,14.19,10.027]],
+  [[27.116,49.148,18.968,10.159],[77.439,50.188,8.436,10.115]],
+  [[19.44,59.445,15.268,11.52],[63.867,60.772,12.447,9.553]],
+  [[27.116,71.555,18.968,10.079],[78.089,71.538,8.436,10.115]]
+ ];
+ return `<div class="native-three-col-grid" aria-label="รูปซ้าย ข้อความ และรูปขวา จัดตรงกัน 3 คอลัมน์">${data.rows.map((row,r)=>`<div class="native-grid-row reading-card" data-native-row="${r}"><div class="native-grid-cell native-grid-left">${nativeGridArtMarkup(p,pairs[r][0],`ภาพประกอบด้านซ้ายแถวที่ ${r+1}`)}</div><div class="native-grid-cell native-grid-text"><button type="button" class="native-grid-speaker" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}" title="อ่านการ์ดนี้">🔊</button><div class="native-grid-words">${row.map((t,i)=>`<button type="button" class="native-word native-grid-word ${bookTokenClass(t.t)}" data-native-word="${r}:${i}" aria-label="อ่านคำ ${escapeText(t.t)}" title="อ่าน ${escapeText(t.t)}">${escapeText(t.t)}</button>`).join('')}</div></div><div class="native-grid-cell native-grid-right">${nativeGridArtMarkup(p,pairs[r][1],`ภาพประกอบด้านขวาแถวที่ ${r+1}`)}</div></div>`).join('')}</div>`;
+}
 function nativeSourceLayoutMarkup(p,data){
+ if(p.page===19)return nativePage19GridMarkup(p,data);
  const seen=new Set(),arts=(data.arts||[]).filter(r=>{const k=r.map(n=>Number(n).toFixed(3)).join(':');if(seen.has(k))return false;seen.add(k);return true});
- // Page 19: the source artwork detector missed the first "ใบโบก มี หาง" pair.
- // Reuse the matching ใบโบก elephant and tail crops already present on this page,
- // and place copies alongside the first row without changing any other row.
- const firstRowMissingArt=p.page===19
-  ? nativePlacedArtCopyMarkup(p,[19.44,37.179,15.586,11.52],[19.44,14.80,15.586,11.52],"ภาพใบโบกประกอบข้อความ ใบโบก มี หาง")
-   +nativePlacedArtCopyMarkup(p,[78.193,26.315,10.269,11.556],[78.193,15.12,10.269,11.556],"ภาพหางประกอบข้อความ ใบโบก มี หาง")
-  : '';
- return `<div class="native-source-layout-wrap"><div class="native-source-layout" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${firstRowMissingArt}${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r)).join('')}</div></div>`;
+ return `<div class="native-source-layout-wrap"><div class="native-source-layout" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r)).join('')}</div></div>`;
 }
 function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.page])return vocabCardsMarkup(p);const data=currentNative();if(original){const plain=fullPageMarkup(p);return plain.replace('</div>',`<div class="native-hotspots">${data.rows.map((row,r)=>row.map((t,i)=>nativeWordMarkup(t,r,i,true)).join('')).join('')}</div></div>`)+`<details class="native-word-details"><summary>รายการคำและชุดคำที่กดอ่านได้</summary>${nativeRowsMarkup(data)}</details>`}
  return `<article class="native-flow-page source-faithful-page" aria-label="คาราโอเกะ ${escapeText(p.label)}"><p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 ข้างบรรทัด เพื่ออ่านตามทีละชุด · ภาพและข้อความจัดวางตามต้นฉบับ</p>${nativeSourceLayoutMarkup(p,data)}</article>`;
