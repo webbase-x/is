@@ -163,3 +163,28 @@ strong.speaking-now{padding:2px 14px;border-radius:15px}
  .native-source-layout{min-width:540px;border-radius:18px}
  .native-layout-speaker{right:calc(100% + 5px);width:28px;height:27px;font-size:14px}
 }
+
+
+/* Unit 1 page 19: clean three-column vertical grid — left image | karaoke text | right image. */
+.native-three-col-grid{display:grid;grid-template-columns:1fr;gap:12px;width:min(900px,100%);margin:0 auto;padding:8px 12px 18px}
+.native-grid-row.reading-card{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;column-gap:20px;min-height:122px;margin:0;padding:12px 18px;border:1px solid #ece5f3;border-radius:16px;background:#fff;box-shadow:0 3px 12px #33234f0b;overflow:visible}
+.native-grid-row.reading-card.native-row-active{border-color:#e0ad20;background:#fff9df;box-shadow:0 0 0 3px #ffda6044}
+.native-grid-cell{display:flex;align-items:center;justify-content:flex-end;min-width:0;text-align:right}
+.native-grid-left,.native-grid-right{height:94px}
+.native-grid-art{position:relative;display:block;overflow:hidden;width:min(130px,100%);max-height:92px;background:#fff}
+.native-grid-art>img{position:absolute;display:block;max-width:none;height:auto;margin:0;border:0}
+.native-grid-text{gap:8px;flex-wrap:nowrap}
+.native-grid-speaker{flex:0 0 34px;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #ddd1ef;border-radius:9px;background:#f3ecfb;color:#5e3c90;font:600 15px 'Sarabun',sans-serif;cursor:pointer}
+.native-grid-speaker:hover,.native-grid-speaker:focus-visible{background:#e9dcfa;outline:2px solid #a58adc;outline-offset:1px}
+.native-grid-words{display:flex;justify-content:flex-end;align-items:center;flex-wrap:nowrap;gap:8px;min-width:0;text-align:right}
+.native-grid-word.native-word{position:static;display:inline-block;width:auto;min-width:0;max-width:none;margin:0;padding:1px 3px;border:0;border-radius:5px;background:transparent;font-size:clamp(25px,3vw,34px);font-weight:650;line-height:1.35;white-space:nowrap;transform:none}
+.native-grid-word.native-word:hover,.native-grid-word.native-word:focus-visible{background:#f0e8ff;outline:2px solid #a58adc;outline-offset:1px}
+.native-grid-word.native-word.native-reading-active,.native-grid-word.native-word.speaking-now{background:#ffe66f;color:#9b1d2a;outline:2px solid #e0b122;box-shadow:none}
+.native-grid-row .book-blue{color:#1766b1}.native-grid-row .book-orange{color:#d2691e}
+@media(max-width:700px){
+ .native-three-col-grid{min-width:600px;padding:6px 8px 14px}
+ .native-grid-row.reading-card{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:12px;min-height:108px;padding:10px 12px}
+ .native-grid-left,.native-grid-right{height:82px}
+ .native-grid-art{width:min(112px,100%);max-height:80px}
+ .native-grid-word.native-word{font-size:25px}
+}
