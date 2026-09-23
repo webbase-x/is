@@ -169,7 +169,7 @@ function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.pa
  return `<article class="native-flow-page source-faithful-page" aria-label="คาราโอเกะ ${escapeText(p.label)}"><p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 ข้างบรรทัด เพื่ออ่านตามทีละชุด · ภาพและข้อความจัดวางตามต้นฉบับ</p>${nativeSourceLayoutMarkup(p,data)}</article>`;
 }
 function clearNativeHighlights(){stage.querySelectorAll('.native-reading-active,.native-row-active').forEach(el=>el.classList.remove('native-reading-active','native-row-active'))}
-async function readNativeWord(r,i,run=null,highlightRow=true){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];const showRow=highlightRow&&!nativePhonicsSectionRow(r);peers.forEach(el=>{el.classList.add('native-reading-active');if(showRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];await speak(token.s,target);if(id===karaokeRun)clearNativeHighlights()}
+async function readNativeWord(r,i,run=null,highlightRow=true){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];const showRow=highlightRow&&!nativePhonicsSectionRow(r);peers.forEach(el=>{el.classList.add('native-reading-active');if(showRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];await speak(nativePhonicsSectionRow(r)?phonicsTtsText(token.s):token.s,target);if(id===karaokeRun)clearNativeHighlights()}
 const nativeVowelSounds=new Set(["อะ","อา","อิ","อี","อึ","อือ","อุ","อู","เอ","แอ","โอ","ไอ","ใอ","อำ","เอา","เอะ","แอะ","เอีย","อัว","โอะ","เอาะ","ออ","เออะ","เออ","เอือ"]);
 function nativeTokenCenter(t){return [t.b[0]+t.b[2]/2,t.b[1]+t.b[3]/2]}
 function nativeConsonantToken(t){return /^[ก-ฮ]$/.test(t?.t||"")}
@@ -237,7 +237,7 @@ function nativeContinuousReadingRow(r){
 }
 
 function phonicsTtsText(text){
- if(text==="ดอ")return "ดอว์";
+ if(text==="ดอ")return "ด็อ";
  return text;
 }
 function speakContinuousItems(items){
