@@ -158,6 +158,12 @@ strong.speaking-now{padding:2px 14px;border-radius:15px}
 .native-layout-speaker{position:absolute;z-index:4;right:calc(100% + 7px);top:50%;transform:translateY(-50%);display:grid;place-items:center;width:34px;height:30px;padding:0;border:1px solid #ddd1ef;border-radius:9px;background:#f3ecfb;color:#5e3c90;font:600 16px 'Sarabun',sans-serif;cursor:pointer}
 .native-layout-speaker:hover,.native-layout-speaker:focus-visible{background:#e9dcfa;outline:2px solid #a58adc;outline-offset:1px}
 .native-layout-row .book-blue{color:#1766b1}.native-layout-row .book-orange{color:#d2691e}
+/* อ่านแจกลูก: แต่ละส่วนเป็นการ์ดอิสระ เช่น ก | -า | กา ไม่มีแถบยาวครอบทั้งแถว */
+.native-layout-row.native-phonics-row.reading-card{border:0;border-radius:0;background:transparent;box-shadow:none}
+.native-layout-row.native-phonics-row.reading-card.native-row-active{border:0;background:transparent;box-shadow:none}
+.native-phonics-row .native-layout-word.native-word{padding:.12em .30em;border:1px solid #ded5eb;border-radius:9px;background:#fff;box-shadow:0 2px 6px #33234f12}
+.native-phonics-row .native-layout-word.native-word:hover,.native-phonics-row .native-layout-word.native-word:focus-visible{background:#f0e8ff}
+.native-phonics-row .native-layout-word.native-word.native-reading-active,.native-phonics-row .native-layout-word.native-word.speaking-now{background:#ffe66f;border-color:#e0b122;color:#9b1d2a;outline:2px solid #e0b122}
 @media(max-width:700px){
  .native-source-layout-wrap{padding:6px 36px 14px 38px}
  .native-source-layout{min-width:540px;border-radius:18px}
