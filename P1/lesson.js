@@ -21,6 +21,7 @@ let soundOn=true,step=Number(sessionStorage.getItem(`p1-book-step-${unitNo}`)||0
 const fullBook=window.P1_COMPLETE_PAGES[unitNo];
 let fullIndex=Math.max(0,Math.min(fullBook.pages.length-1,Number(sessionStorage.getItem(`p1-full-page-${unitNo}`))||0)),originalMode=false;
 let wordIndex=0,readingIndex=0,quizIndex=0,quizScore=0,gameIndex=0,gameScore=0;
+let pageTurnBusy=false;
 const completed=new Set(JSON.parse(localStorage.getItem(`p1-book-done-${unitNo}`)||"[]"));
 
 let speakingEl=null,speechSeq=0,karaokeRun=0,finishSpeech=null;
@@ -105,7 +106,26 @@ function renderExactBookPage(page){
  return `<article class="reading-flow-page" aria-label="บทอ่าน ${page.bookPage}">${title}${arts?`<div class="reading-art-gallery illustration-card">${arts}</div>`:`<div class="native-context-picture illustration-card">${spread([0,1])}<small>ภาพประกอบประจำบท</small></div>`}<div class="karaoke-text">${page.lines.map((line,i)=>karaokeLineMarkup(line,i)).join("")}</div><p class="reading-flow-page-number">${page.bookPage}</p></article>`;
 }
 function fullPageMarkup(p){return `<div class="complete-original original-layout-card" style="aspect-ratio:${fullBook.w}/${p.h}"><img src="${fullBook.asset}" alt="ต้นฉบับ หน่วยที่ ${unitNo} ${p.label}" style="top:${-p.y/p.h*100}%" loading="eager"></div>`}
-function changeFullPage(index){stopSpeech();fullIndex=Math.max(0,Math.min(fullBook.pages.length-1,index));originalMode=false;renderReading();stage.scrollIntoView({block:"start",behavior:"smooth"})}
+function changeFullPage(index){
+ const next=Math.max(0,Math.min(fullBook.pages.length-1,index));
+ if(next===fullIndex||pageTurnBusy)return;
+ stopSpeech();
+ const direction=next>fullIndex?"next":"prev";
+ const paper=stage.querySelector(".book-paper");
+ const reduceMotion=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+ const showNext=()=>{
+  fullIndex=next;
+  originalMode=false;
+  renderReading(direction);
+  stage.scrollIntoView({block:"start",behavior:reduceMotion?"auto":"smooth"});
+  pageTurnBusy=false;
+ };
+ if(!paper||reduceMotion){showNext();return}
+ pageTurnBusy=true;
+ stage.querySelectorAll("[data-page-prev],[data-page-next]").forEach(b=>b.disabled=true);
+ paper.classList.add(`page-turn-out-${direction}`);
+ window.setTimeout(showNext,260);
+}
 function vocabCardArt(p,rect,word,index){const ratio=fullBook.w*rect[2]/(p.h*rect[3]);return nativeArtMarkup(p,rect,index).replace('<div class="native-art"','<span class="native-art vocab-card-art"').replace('</div>','</span>').replace('style="aspect-ratio:',`style="max-width:${Math.round(145*ratio)}px;aspect-ratio:`).replace(`alt="ภาพประกอบหน้านี้ ${index+1}"`,`alt="ภาพประกอบคำ ${escapeText(word)}"`)}
 function vocabCardsMarkup(p){const data=window.P1_VOCAB_CARDS?.[p.page];if(!data)return '';
  const card=(item,i)=>{const illustrated=i<data.illustratedCount;const art=item.wordSprite?pictureMarkup(item.word,'vocab-card-sprite'):item.pictures.map((r,j)=>vocabCardArt(p,r,item.word,j)).join('');return `<button type="button" class="${illustrated?'vocab-picture-card':'vocab-extra-card'}" data-vocab-card="${i}" data-vocab-page="${p.page}" aria-label="อ่านคำ ${escapeText(item.word)}">${illustrated?`<span class="vocab-card-pictures">${art}</span>`:''}<span class="vocab-card-label">${escapeText(item.word)}</span><span class="vocab-card-audio" aria-hidden="true">🔊</span></button>`};
@@ -308,7 +328,7 @@ async function readNativeRow(r,run=null){const id=run??beginKaraoke();if(id!==ka
 async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}for(let r=0;r<rows.length;r++){if(id!==karaokeRun||step!==3)break;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items))}if(id===karaokeRun&&document.body.contains(btn)){btn.disabled=false;btn.textContent='🔊 อ่านหน้านี้'}}
 function bindNative(){stage.querySelectorAll('[data-native-word]').forEach(b=>b.onclick=()=>{const [r,i]=b.dataset.nativeWord.split(':').map(Number);readNativeWord(r,i)});stage.querySelectorAll('[data-native-line]').forEach(b=>b.onclick=()=>readNativeRow(Number(b.dataset.nativeLine)))}
 function bindFlowWords(){stage.querySelectorAll('[data-k-token],[data-k-title-token]').forEach(el=>{el.setAttribute('role','button');el.setAttribute('tabindex','0');el.setAttribute('aria-label','อ่านคำ '+el.textContent);const read=e=>{e.stopPropagation();beginKaraoke();speak(el.dataset.speech,el)};el.onclick=read;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();read(e)}}})}
-function renderReading(){
+function renderReading(turnDirection=""){
  stopSpeech();
  sessionStorage.setItem(`p1-full-page-${unitNo}`,fullIndex);
  const p=fullBook.pages[fullIndex],cover=p.kind==='cover',page=p.readingIndex!==undefined?unit.readingPages[p.readingIndex]:null;
@@ -334,6 +354,13 @@ function renderReading(){
    </nav>
    ${last?'<div class="book-finish-wrap"><button class="book-finish-button" id="finishFullChapter">อ่านจบบทแล้ว · ไปทบทวน ✓</button></div>':''}
  </div>`;
+ if(turnDirection&&!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches){
+  const paper=stage.querySelector(".book-paper");
+  if(paper){
+   paper.classList.add(`page-turn-in-${turnDirection}`);
+   paper.addEventListener("animationend",()=>paper.classList.remove(`page-turn-in-${turnDirection}`),{once:true});
+  }
+ }
  stage.querySelectorAll('[data-page-prev]').forEach(b=>b.onclick=()=>changeFullPage(fullIndex-1));
  stage.querySelectorAll('[data-page-next]').forEach(b=>b.onclick=()=>changeFullPage(fullIndex+1));
  if(cover){
