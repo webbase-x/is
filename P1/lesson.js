@@ -111,7 +111,8 @@ function nativeSourceRowMarkup(p,row,r){
  const x2=Math.max(...row.map(t=>t.b[0]+t.b[2])),y2=Math.max(...row.map(t=>t.b[1]+t.b[3]));
  const w=Math.max(2,x2-x1),h=Math.max(3.7,y2-y1);
  const words=row.map((t,i)=>{const b=t.b,left=(b[0]-x1)/w*100,top=(b[1]-y1)/h*100,fs=Math.max(2.15,Math.min(4.45,b[3]*p.h/fullBook.w*.72));return `<button type="button" class="native-word native-layout-word ${bookTokenClass(t.t)}" data-native-word="${r}:${i}" aria-label="อ่านคำ ${escapeText(t.t)}" title="อ่าน ${escapeText(t.t)}" style="left:${left.toFixed(3)}%;top:${top.toFixed(3)}%;--native-fs:${fs.toFixed(2)}cqw">${escapeText(t.t)}</button>`}).join('');
- return `<div class="native-layout-row reading-card" data-native-row="${r}" style="left:${x1}%;top:${y1}%;width:${w}%;height:${h}%"><button type="button" class="native-layout-speaker" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}" title="อ่านการ์ดนี้">🔊</button>${words}</div>`;
+ const phonicsClass=nativePhonicsSectionRow(r)?' native-phonics-row':'';
+ return `<div class="native-layout-row reading-card${phonicsClass}" data-native-row="${r}" style="left:${x1}%;top:${y1}%;width:${w}%;height:${h}%"><button type="button" class="native-layout-speaker" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}" title="อ่านการ์ดนี้">🔊</button>${words}</div>`;
 }
 function nativeGridArtMarkup(p,rect,alt){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<span class="native-grid-art" style="aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="${escapeText(alt)}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></span>`}
 function nativePage19GridMarkup(p,data){
@@ -141,11 +142,22 @@ function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.pa
  return `<article class="native-flow-page source-faithful-page" aria-label="คาราโอเกะ ${escapeText(p.label)}"><p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 ข้างบรรทัด เพื่ออ่านตามทีละชุด · ภาพและข้อความจัดวางตามต้นฉบับ</p>${nativeSourceLayoutMarkup(p,data)}</article>`;
 }
 function clearNativeHighlights(){stage.querySelectorAll('.native-reading-active,.native-row-active').forEach(el=>el.classList.remove('native-reading-active','native-row-active'))}
-async function readNativeWord(r,i,run=null,highlightRow=true){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];peers.forEach(el=>{el.classList.add('native-reading-active');if(highlightRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];await speak(token.s,target);if(id===karaokeRun)clearNativeHighlights()}
+async function readNativeWord(r,i,run=null,highlightRow=true){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];const showRow=highlightRow&&!nativePhonicsSectionRow(r);peers.forEach(el=>{el.classList.add('native-reading-active');if(showRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];await speak(token.s,target);if(id===karaokeRun)clearNativeHighlights()}
 const nativeVowelSounds=new Set(["อะ","อา","อิ","อี","อึ","อือ","อุ","อู","เอ","แอ","โอ","ไอ","ใอ","อำ","เอา","เอะ","แอะ","เอีย","อัว","โอะ","เอาะ","ออ","เออะ","เออ","เอือ"]);
 function nativeTokenCenter(t){return [t.b[0]+t.b[2]/2,t.b[1]+t.b[3]/2]}
 function nativeConsonantToken(t){return /^[ก-ฮ]$/.test(t?.t||"")}
 function nativeVowelMarkerToken(t){return !!t&&nativeVowelSounds.has(t.s)&&t.t!==t.s&&!nativeConsonantToken(t)}
+function nativePhonicsSectionRow(r){
+ const rows=currentNative()?.rows||[];
+ let start=-1;
+ for(let i=0;i<r;i++){const ts=rows[i].map(t=>t.t);if(ts.includes("แจก")&&ts.includes("ลูก"))start=i}
+ if(start<0||r<=start)return false;
+ for(let i=start+1;i<=r&&i<rows.length;i++){
+  const ts=rows[i].map(t=>t.t);
+  if((ts.includes("อ่าน")&&ts.includes("สะกด")&&ts.includes("คำ"))||ts.includes("ฝึก"))return false;
+ }
+ return true;
+}
 function nativePhonicsSteps(r){
  const data=currentNative(),rows=data?.rows||[],row=rows[r];
  if(!row)return null;
