@@ -90,7 +90,7 @@ async function readAllVocabulary(){const run=beginKaraoke(),buttons=[...stage.qu
 
 function escapeText(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function currentNative(){return window.P1_PAGE_KARAOKE[fullBook.pages[fullIndex].page]}
-function nativeWordMarkup(t,r,i,hotspot=false){const b=t.b;return `<button type="button" class="native-word ${hotspot?'native-hotspot':''}" data-native-word="${r}:${i}" aria-label="อ่านคำ ${escapeText(t.t)}" title="อ่าน ${escapeText(t.t)}" ${hotspot?`style="left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:${b[3]}%"`:''}>${hotspot?'<span class="visually-hidden">'+escapeText(t.t)+'</span>':escapeText(t.t)}</button>`}
+function nativeWordMarkup(t,r,i,hotspot=false){const b=t.b;return `<button type="button" class="native-word ${bookTokenClass(t.t)} ${hotspot?'native-hotspot':''}" data-native-word="${r}:${i}" aria-label="อ่านคำ ${escapeText(t.t)}" title="อ่าน ${escapeText(t.t)}" ${hotspot?`style="left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:${b[3]}%"`:''}>${hotspot?'<span class="visually-hidden">'+escapeText(t.t)+'</span>':escapeText(t.t)}</button>`}
 function nativeRowsMarkup(data){
  const left=Math.min(...data.rows.flat().map(t=>t.b[0]));
  return `<div class="native-reading-lines source-text-cards">${data.rows.map((row,r)=>{
@@ -104,14 +104,23 @@ function nativeRowsMarkup(data){
  }).join('')}</div>`;
 }
 function nativeArtMarkup(p,rect,i){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<div class="native-art" style="aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="ภาพประกอบหน้านี้ ${i+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></div>`}
+function nativePlacedArtMarkup(p,rect,i){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<div class="native-layout-art" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%;aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="ภาพประกอบหน้านี้ ${i+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></div>`}
+function nativeSourceRowMarkup(p,row,r){
+ const x1=Math.min(...row.map(t=>t.b[0])),y1=Math.min(...row.map(t=>t.b[1]));
+ const x2=Math.max(...row.map(t=>t.b[0]+t.b[2])),y2=Math.max(...row.map(t=>t.b[1]+t.b[3]));
+ const w=Math.max(2,x2-x1),h=Math.max(3.7,y2-y1);
+ const words=row.map((t,i)=>{const b=t.b,left=(b[0]-x1)/w*100,top=(b[1]-y1)/h*100,fs=Math.max(2.15,Math.min(4.45,b[3]*p.h/fullBook.w*.72));return `<button type="button" class="native-word native-layout-word ${bookTokenClass(t.t)}" data-native-word="${r}:${i}" aria-label="อ่านคำ ${escapeText(t.t)}" title="อ่าน ${escapeText(t.t)}" style="left:${left.toFixed(3)}%;top:${top.toFixed(3)}%;--native-fs:${fs.toFixed(2)}cqw">${escapeText(t.t)}</button>`}).join('');
+ return `<div class="native-layout-row reading-card" data-native-row="${r}" style="left:${x1}%;top:${y1}%;width:${w}%;height:${h}%"><button type="button" class="native-layout-speaker" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}" title="อ่านการ์ดนี้">🔊</button>${words}</div>`;
+}
+function nativeSourceLayoutMarkup(p,data){
+ const seen=new Set(),arts=(data.arts||[]).filter(r=>{const k=r.map(n=>Number(n).toFixed(3)).join(':');if(seen.has(k))return false;seen.add(k);return true});
+ return `<div class="native-source-layout-wrap"><div class="native-source-layout" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r)).join('')}</div></div>`;
+}
 function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.page])return vocabCardsMarkup(p);const data=currentNative();if(original){const plain=fullPageMarkup(p);return plain.replace('</div>',`<div class="native-hotspots">${data.rows.map((row,r)=>row.map((t,i)=>nativeWordMarkup(t,r,i,true)).join('')).join('')}</div></div>`)+`<details class="native-word-details"><summary>รายการคำและชุดคำที่กดอ่านได้</summary>${nativeRowsMarkup(data)}</details>`}
- const sourcePage=p.readingIndex!==undefined?unit.readingPages[p.readingIndex]:null;
- const sourceArt=sourcePage?.illustration?`<img class="reading-illustration" src="${sourcePage.illustration}" alt="ภาพประกอบ${escapeText(sourcePage.title)}" loading="eager">`:(p.readingIndex!==undefined?(window.P1_READING_CROPS?.[unitNo]?.[p.readingIndex]?.arts||[]).map(readingArtMarkup).join(''):'');
- const art=sourceArt?`<div class="reading-art-gallery illustration-card">${sourceArt}</div>`:data.arts.length?`<div class="native-art-gallery illustration-card">${data.arts.map((r,i)=>nativeArtMarkup(p,r,i)).join('')}</div>`:`<div class="native-context-picture illustration-card">${spread([0,1])}<small>ภาพประกอบประจำบท</small></div>`;
- return `<article class="native-flow-page" aria-label="คาราโอเกะ ${escapeText(p.label)}">${art}<p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 อ่านการ์ดนี้ เพื่ออ่านตามทีละชุด</p>${nativeRowsMarkup(data)}</article>`;
+ return `<article class="native-flow-page source-faithful-page" aria-label="คาราโอเกะ ${escapeText(p.label)}"><p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 ข้างบรรทัด เพื่ออ่านตามทีละชุด · ภาพและข้อความจัดวางตามต้นฉบับ</p>${nativeSourceLayoutMarkup(p,data)}</article>`;
 }
 function clearNativeHighlights(){stage.querySelectorAll('.native-reading-active,.native-row-active').forEach(el=>el.classList.remove('native-reading-active','native-row-active'))}
-async function readNativeWord(r,i,run=null){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];peers.forEach(el=>{el.classList.add('native-reading-active');el.closest('.reading-card')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];await speak(token.s,target);if(id===karaokeRun)clearNativeHighlights()}
+async function readNativeWord(r,i,run=null){const id=run??beginKaraoke(),token=currentNative()?.rows[r]?.[i];if(!token||id!==karaokeRun||step!==3)return;clearNativeHighlights();const peers=[...stage.querySelectorAll(`[data-native-word="${r}:${i}"]`)];peers.forEach(el=>{el.classList.add('native-reading-active');el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];await speak(token.s,target);if(id===karaokeRun)clearNativeHighlights()}
 async function readNativeRow(r,run=null){const id=run??beginKaraoke(),row=currentNative()?.rows[r];if(!row)return;for(let i=0;i<row.length;i++){if(id!==karaokeRun||step!==3)return;await readNativeWord(r,i,id)}}
 async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}for(let r=0;r<rows.length;r++){if(id!==karaokeRun||step!==3)break;await readNativeRow(r,id)}if(id===karaokeRun&&document.body.contains(btn)){btn.disabled=false;btn.textContent='🔊 อ่านทั้งหน้า'}}
 function bindNative(){stage.querySelectorAll('[data-native-word]').forEach(b=>b.onclick=()=>{const [r,i]=b.dataset.nativeWord.split(':').map(Number);readNativeWord(r,i)});stage.querySelectorAll('[data-native-line]').forEach(b=>b.onclick=()=>readNativeRow(Number(b.dataset.nativeLine)))}
