@@ -30,7 +30,18 @@ function stopSpeech(){clearNativeHighlights();karaokeRun++;speechSeq++;window.sp
 function keepReadingVisible(target){if(![1,3].includes(step)||!target?.getBoundingClientRect)return;const r=target.getBoundingClientRect();if(r.top<165||r.bottom>window.innerHeight-32)target.scrollIntoView({block:"center",behavior:"smooth"})}
 const NORMAL_SPEECH_RATE=1.38;
 function speak(text,target=null){if(!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}const token=++speechSeq;if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();if(finishSpeech)finishSpeech();clearSpeechVisual();if(target){keepReadingVisible(target);speakingEl=target;target.classList.add("speaking-now")}return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(text);u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;let settled=false;const done=()=>{if(settled)return;settled=true;if(token===speechSeq)clearSpeechVisual();if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;u.onend=done;u.onerror=done;window.speechSynthesis.speak(u)})}
-function speakQueued(items){const list=(items||[]).filter(x=>x&&x.text);if(!list.length||!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}const token=++speechSeq;if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();if(finishSpeech)finishSpeech();clearSpeechVisual();return new Promise(resolve=>{let settled=false,finished=0;const done=()=>{if(settled)return;settled=true;if(token===speechSeq){clearSpeechVisual();clearNativeHighlights()}if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;for(const item of list){const u=new SpeechSynthesisUtterance(item.text);u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;u.onstart=()=>{if(token!==speechSeq)return;clearSpeechVisual();if(item.onStart)item.onStart();if(item.target){keepReadingVisible(item.target);speakingEl=item.target;item.target.classList.add("speaking-now")}};const ended=()=>{finished++;if(finished>=list.length)done()};u.onend=ended;u.onerror=ended;window.speechSynthesis.speak(u)}})}
+function speakQueued(items){
+ const list=(items||[]).filter(x=>x&&x.text);
+ if(!list.length||!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}
+ const token=++speechSeq;
+ if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();
+ if(finishSpeech)finishSpeech();
+ clearSpeechVisual();
+ const sep="\u200B",starts=[];let pos=0;
+ for(const item of list){starts.push(pos);pos+=item.text.length+sep.length}
+ const activate=index=>{if(token!==speechSeq||index<0||index>=list.length)return;const item=list[index];clearSpeechVisual();if(item.onStart)item.onStart();if(item.target){keepReadingVisible(item.target);speakingEl=item.target;item.target.classList.add("speaking-now")}};
+ return new Promise(resolve=>{let settled=false,last=-1;const done=()=>{if(settled)return;settled=true;if(token===speechSeq){clearSpeechVisual();clearNativeHighlights()}if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;const u=new SpeechSynthesisUtterance(list.map(x=>x.text).join(sep));u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;u.onstart=()=>{last=0;activate(0)};u.onboundary=e=>{if(token!==speechSeq)return;let idx=0;for(let i=1;i<starts.length;i++){if(starts[i]<=e.charIndex)idx=i;else break}if(idx!==last){last=idx;activate(idx)}};u.onend=done;u.onerror=done;window.speechSynthesis.speak(u)})
+}
 function speechToken(token){const map={"เ-":"เอ","แ-":"แอ","โ-":"โอ","ไ-":"ไอ","ใ-":"ใอ","_ือ":"อือ","เ-ีย":"เอีย","-ัว":"อัว","+":""};return map[token]??token.replace(/[“”"]/g,"")}
 function bookTokenClass(token){return token==="ใบโบก"?"book-blue":token==="ใบบัว"?"book-orange":""}
 function readingTokens(line){const parts=line.trim().split(/\s+/).filter(Boolean);if(unitNo<7||typeof Intl.Segmenter!=="function")return parts;const segmenter=new Intl.Segmenter("th",{granularity:"word"});return parts.flatMap(part=>part.split(/(ใบโบก|ใบบัว|ภูผา|พลายมะปิน|พลายมะค่า|พลายทะแนะ)/).filter(Boolean).flatMap(t=>/^(ใบโบก|ใบบัว|ภูผา|พลายมะปิน|พลายมะค่า|พลายทะแนะ)$/.test(t)?[t]:Array.from(segmenter.segment(t),x=>x.segment).filter(x=>x.trim())))}
@@ -38,7 +49,7 @@ function karaokeLineMarkup(line,lineIndex){const tokens=readingTokens(line);retu
 function beginKaraoke(){stopSpeech();return karaokeRun}
 async function readKaraokeLine(lineEl,runId=null){if(!lineEl)return;const run=runId??beginKaraoke();const tokens=[...lineEl.querySelectorAll("[data-k-token]")];lineEl.classList.add("line-reading");if(karaokeRun===run&&step===3)await speakQueued(tokens.filter(el=>document.body.contains(el)).map(el=>({text:el.dataset.speech||"",target:el})));lineEl.classList.remove("line-reading")}
 async function readKaraokeTitle(titleEl,runId=null){if(!titleEl)return;const run=runId??beginKaraoke();if(karaokeRun!==run||step!==3)return;const tokens=[...titleEl.querySelectorAll("[data-k-title-token]")].filter(el=>document.body.contains(el));await speakQueued(tokens.map(el=>({text:el.dataset.speech||"",target:el})))}
-async function readKaraokePage(){const run=beginKaraoke();const title=stage.querySelector("[data-k-title]"),lines=[...stage.querySelectorAll("[data-k-line]")],btn=$("#readPageKaraoke");if(btn){btn.disabled=true;btn.textContent="🔊 กำลังอ่าน..."}if(title)await readKaraokeTitle(title,run);for(const line of lines){if(karaokeRun!==run||step!==3||!document.body.contains(line))break;await readKaraokeLine(line,run)}if(run===karaokeRun&&btn&&document.body.contains(btn)){btn.disabled=false;btn.textContent="🔊 อ่านทั้งหน้า"}}
+async function readKaraokePage(){const run=beginKaraoke(),title=stage.querySelector("[data-k-title]"),lines=[...stage.querySelectorAll("[data-k-line]")],btn=$("#readPageKaraoke");if(btn){btn.disabled=true;btn.textContent="🔊 กำลังอ่าน..."}const els=[...(title?[...title.querySelectorAll("[data-k-title-token]")]:[]),...lines.flatMap(line=>[...line.querySelectorAll("[data-k-token]")])].filter(el=>document.body.contains(el));if(run===karaokeRun&&step===3)await speakQueued(els.map(el=>({text:el.dataset.speech||"",target:el})));if(run===karaokeRun&&btn&&document.body.contains(btn)){btn.disabled=false;btn.textContent="🔊 อ่านทั้งหน้า"}}
 function pagePictureWords(page){const text=(page?.lines||[]).join(" ");return unit.words.filter(w=>unit.pictures?.[w]!==undefined&&text.includes(w))}
 function shuffle(a){const x=[...a];for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
 function save(){localStorage.setItem(`p1-book-stars-${unitNo}`,stars);localStorage.setItem(`p1-book-done-${unitNo}`,JSON.stringify([...completed]));sessionStorage.setItem(`p1-book-step-${unitNo}`,step)}
@@ -198,16 +209,14 @@ function nativePhonicsSteps(r){
  }
  return steps.length>=3?steps:null;
 }
-async function readNativeRow(r,run=null){
- const id=run??beginKaraoke(),rows=currentNative()?.rows||[],row=rows[r];
- if(!row||id!==karaokeRun||step!==3)return;
- const phonics=!!nativePhonicsSteps(r);
- const activeSteps=phonics?nativePhonicsSteps(r):row.map((_,i)=>({r,i}));
- const items=activeSteps.map(item=>{const token=rows[item.r]?.[item.i],peers=[...stage.querySelectorAll(`[data-native-word="${item.r}:${item.i}"]`)],target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];return {text:token?.s||"",target,onStart:()=>{clearNativeHighlights();peers.forEach(el=>{el.classList.add('native-reading-active');if(!phonics)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')})}}}).filter(x=>x.text);
- await speakQueued(items);
- if(id===karaokeRun)clearNativeHighlights();
+function nativeRowSpeechItems(r){
+ const rows=currentNative()?.rows||[],row=rows[r];
+ if(!row)return [];
+ const phonics=!!nativePhonicsSteps(r),activeSteps=phonics?nativePhonicsSteps(r):row.map((_,i)=>({r,i}));
+ return activeSteps.map(item=>{const token=rows[item.r]?.[item.i],peers=[...stage.querySelectorAll(`[data-native-word="${item.r}:${item.i}"]`)],target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];return {text:token?.s||"",target,onStart:()=>{clearNativeHighlights();peers.forEach(el=>{el.classList.add('native-reading-active');if(!phonics)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')})}}}).filter(x=>x.text)
 }
-async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}for(let r=0;r<rows.length;r++){if(id!==karaokeRun||step!==3)break;await readNativeRow(r,id)}if(id===karaokeRun&&document.body.contains(btn)){btn.disabled=false;btn.textContent='🔊 อ่านทั้งหน้า'}}
+async function readNativeRow(r,run=null){const id=run??beginKaraoke();if(id!==karaokeRun||step!==3)return;await speakQueued(nativeRowSpeechItems(r));if(id===karaokeRun)clearNativeHighlights()}
+async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}const items=rows.flatMap((_,r)=>nativeRowSpeechItems(r));if(id===karaokeRun&&step===3)await speakQueued(items);if(id===karaokeRun&&document.body.contains(btn)){btn.disabled=false;btn.textContent='🔊 อ่านทั้งหน้า'}}
 function bindNative(){stage.querySelectorAll('[data-native-word]').forEach(b=>b.onclick=()=>{const [r,i]=b.dataset.nativeWord.split(':').map(Number);readNativeWord(r,i)});stage.querySelectorAll('[data-native-line]').forEach(b=>b.onclick=()=>readNativeRow(Number(b.dataset.nativeLine)))}
 function bindFlowWords(){stage.querySelectorAll('[data-k-token],[data-k-title-token]').forEach(el=>{el.setAttribute('role','button');el.setAttribute('tabindex','0');el.setAttribute('aria-label','อ่านคำ '+el.textContent);const read=e=>{e.stopPropagation();beginKaraoke();speak(el.dataset.speech,el)};el.onclick=read;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();read(e)}}})}
 function renderReading(){
