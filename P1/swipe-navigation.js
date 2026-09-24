@@ -1,206 +1,136 @@
 (() => {
-  const THRESHOLD = 58;
-  const AXIS_RATIO = 1.2;
-  const MAX_DURATION = 1100;
-  const EDGE_RESIST = 22;
+  const MIN_DISTANCE = 54;
+  const MAX_DISTANCE = 118;
+  const MAX_DURATION = 950;
+  const AXIS_RATIO = 1.18;
+  const FAST_VELOCITY = 0.42;
+  const LOCK_MS = 620;
   let gesture = null;
+  let lockUntil = 0;
   let suppressClickUntil = 0;
   let hintTimer = 0;
 
-  const nextSelectors = [
-    '[data-page-next]:not(:disabled)',
-    '#nextActivity:not(:disabled)',
-    '#nextStep:not(:disabled)',
-    '.next-unit a[href]',
-    'a[rel="next"][href]'
-  ];
-  const prevSelectors = [
-    '[data-page-prev]:not(:disabled)',
-    '#previousActivity:not(:disabled)',
-    '#prevStep:not(:disabled)',
-    'a[rel="prev"][href]'
-  ];
+  const NEXT = ['[data-page-next]:not(:disabled)','#nextActivity:not(:disabled)','#nextStep:not(:disabled)','.next-unit a[href]','a[rel="next"][href]'];
+  const PREV = ['[data-page-prev]:not(:disabled)','#previousActivity:not(:disabled)','#prevStep:not(:disabled)','a[rel="prev"][href]'];
 
-  function visible(el) {
-    if (!el) return false;
-    const style = getComputedStyle(el);
-    const rect = el.getBoundingClientRect();
-    return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+  function visible(el){
+    if(!el) return false;
+    const s=getComputedStyle(el), r=el.getBoundingClientRect();
+    return s.display!=='none' && s.visibility!=='hidden' && r.width>0 && r.height>0;
   }
-
-  function firstVisible(selectors) {
-    for (const selector of selectors) {
-      const items = [...document.querySelectorAll(selector)];
-      const found = items.find(visible);
-      if (found) return found;
+  function firstVisible(selectors){
+    for(const selector of selectors){
+      const found=[...document.querySelectorAll(selector)].find(visible);
+      if(found) return found;
     }
     return null;
   }
-
-  function isIgnoredTarget(target) {
-    if (!(target instanceof Element)) return false;
-    return !!target.closest([
-      'input','textarea','select','option','[contenteditable="true"]',
-      'audio','video','canvas','dialog[open]','.song-karaoke-player',
-      '.student-dialog','.bingo-example-dialog','[data-swipe-ignore]'
-    ].join(','));
+  function allowedBookWord(target){
+    return !!target?.closest?.('.book-paper .native-word,.book-paper .karaoke-token,.book-paper .exact-title-token,.book-paper .reading-card');
   }
-
-  function hasHorizontalScroller(target) {
-    let el = target instanceof Element ? target : null;
-    while (el && el !== document.body) {
-      const style = getComputedStyle(el);
-      const overflowX = style.overflowX;
-      if ((overflowX === 'auto' || overflowX === 'scroll') && el.scrollWidth > el.clientWidth + 12) return true;
-      el = el.parentElement;
-    }
-    return false;
+  function ignored(target){
+    if(!(target instanceof Element)) return false;
+    if(target.closest('input,textarea,select,option,[contenteditable="true"],audio,video,canvas,dialog[open],.song-karaoke-player,[data-swipe-ignore]')) return true;
+    const interactive=target.closest('a,button');
+    return !!interactive && !allowedBookWord(target);
   }
-
-  function fallbackHref(direction) {
-    const path = location.pathname;
-    const query = new URLSearchParams(location.search);
-
-    if (/\/P1\/00-prerequisite\/?$/.test(path)) {
-      return direction === 'next' ? '../01-bai-bok-bai-bua/' : '../index.html';
+  function fallback(direction){
+    const path=location.pathname, q=new URLSearchParams(location.search);
+    if(/\/P1\/00-prerequisite\/?$/.test(path)) return direction==='next'?'../01-bai-bok-bai-bua/':'../index.html';
+    if(/\/P1\/01-bai-bok-bai-bua\/?$/.test(path)) return direction==='next'?'../lesson.html?unit=1':'../00-prerequisite/';
+    if(/\/P1\/thai-consonants\.html$/.test(path)) return direction==='next'?'unit1-lesson1.html':'index.html';
+    const legacy=path.match(/\/P1\/unit(\d+)-lesson1\.html$/);
+    if(legacy){
+      const unit=Number(legacy[1]);
+      if(direction==='next') return unit<6?`unit${unit+1}-lesson1.html`:'index.html';
+      return unit>1?`unit${unit-1}-lesson1.html`:'thai-consonants.html';
     }
-    if (/\/P1\/01-bai-bok-bai-bua\/?$/.test(path)) {
-      return direction === 'next' ? '../lesson.html?unit=1' : '../00-prerequisite/';
-    }
-    if (/\/P1\/thai-consonants\.html$/.test(path)) {
-      return direction === 'next' ? 'unit1-lesson1.html' : 'index.html';
-    }
-
-    const legacy = path.match(/\/P1\/unit(\d+)-lesson1\.html$/);
-    if (legacy) {
-      const unit = Number(legacy[1]);
-      if (direction === 'next') {
-        if (unit < 6) return `unit${unit + 1}-lesson1.html`;
-        return 'index.html';
-      }
-      if (unit > 1) return `unit${unit - 1}-lesson1.html`;
-      return 'thai-consonants.html';
-    }
-
-    if (/\/P1\/lesson\.html$/.test(path)) {
-      const unit = Number(query.get('unit') || 1);
-      if (direction === 'next' && unit < 12 && !firstVisible(nextSelectors)) return `lesson.html?unit=${unit + 1}`;
-      if (direction === 'prev' && unit > 1 && !firstVisible(prevSelectors)) return `lesson.html?unit=${unit - 1}`;
+    if(/\/P1\/lesson\.html$/.test(path)){
+      const unit=Number(q.get('unit')||1);
+      if(direction==='next' && unit<12) return `lesson.html?unit=${unit+1}`;
+      if(direction==='prev' && unit>1) return `lesson.html?unit=${unit-1}`;
     }
     return null;
   }
-
-  function showHint(direction, available = true) {
-    let hint = document.getElementById('p1SwipeHint');
-    if (!hint) {
-      hint = document.createElement('div');
-      hint.id = 'p1SwipeHint';
-      hint.setAttribute('aria-live', 'polite');
-      Object.assign(hint.style, {
-        position:'fixed', top:'50%', zIndex:'99999', transform:'translateY(-50%)',
-        width:'54px', height:'54px', borderRadius:'999px', display:'grid',
-        placeItems:'center', fontSize:'32px', fontWeight:'800',
-        background:'rgba(255,255,255,.94)', color:'var(--unit,#5f4aa8)',
-        boxShadow:'0 8px 28px rgba(35,25,60,.22)', pointerEvents:'none',
-        opacity:'0', transition:'opacity .16s ease, transform .16s ease'
-      });
-      document.body.appendChild(hint);
-    }
-    hint.textContent = direction === 'next' ? '›' : '‹';
-    hint.style.left = direction === 'prev' ? '14px' : 'auto';
-    hint.style.right = direction === 'next' ? '14px' : 'auto';
-    hint.style.opacity = available ? '1' : '.35';
-    hint.style.transform = 'translateY(-50%) scale(1.08)';
+  function hint(direction, blocked=false){
+    let el=document.getElementById('p1SwipeHint');
+    if(!el){ el=document.createElement('div'); el.id='p1SwipeHint'; document.body.appendChild(el); }
+    el.textContent=direction==='next'?'›':'‹';
+    el.style.left=direction==='prev'?'14px':'auto';
+    el.style.right=direction==='next'?'14px':'auto';
+    el.classList.toggle('blocked',blocked);
+    el.classList.add('show');
     clearTimeout(hintTimer);
-    hintTimer = setTimeout(() => {
-      hint.style.opacity = '0';
-      hint.style.transform = 'translateY(-50%) scale(.92)';
-    }, 360);
+    hintTimer=setTimeout(()=>el.classList.remove('show'),320);
   }
-
-  function activate(direction) {
-    const target = firstVisible(direction === 'next' ? nextSelectors : prevSelectors);
-    if (target) {
-      showHint(direction, true);
+  function action(direction){
+    if(performance.now()<lockUntil) return false;
+    const target=firstVisible(direction==='next'?NEXT:PREV);
+    if(target){
+      lockUntil=performance.now()+LOCK_MS;
+      hint(direction,false);
       target.click();
       return true;
     }
-    const href = fallbackHref(direction);
-    if (href) {
-      showHint(direction, true);
-      location.href = href;
+    const href=fallback(direction);
+    if(href){
+      lockUntil=performance.now()+LOCK_MS;
+      hint(direction,false);
+      location.href=href;
       return true;
     }
-    showHint(direction, false);
+    hint(direction,true);
+    lockUntil=performance.now()+250;
     return false;
   }
-
-  function begin(clientX, clientY, pointerId, target) {
-    if (isIgnoredTarget(target)) return;
-    gesture = {
-      x: clientX, y: clientY, lastX: clientX, lastY: clientY,
-      time: performance.now(), pointerId, target, cancelled:false
-    };
+  function resetVisual(){
+    document.body.classList.remove('p1-swipe-tracking');
+    document.body.style.removeProperty('--p1-swipe-x');
+    document.body.style.removeProperty('--p1-swipe-rot');
   }
-
-  function move(clientX, clientY) {
-    if (!gesture) return;
-    gesture.lastX = clientX;
-    gesture.lastY = clientY;
-    const dx = clientX - gesture.x;
-    const dy = clientY - gesture.y;
-    if (Math.abs(dy) > Math.abs(dx) * 1.35 && Math.abs(dy) > EDGE_RESIST) gesture.cancelled = true;
+  function start(e){
+    if(performance.now()<lockUntil) return;
+    if(e.pointerType==='mouse' && e.button!==0) return;
+    if(ignored(e.target)) return;
+    gesture={id:e.pointerId,x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,t:performance.now(),horizontal:false,cancelled:false};
   }
-
-  function finish(clientX, clientY) {
-    if (!gesture) return;
-    const g = gesture;
-    gesture = null;
-    const dx = clientX - g.x;
-    const dy = clientY - g.y;
-    const duration = performance.now() - g.time;
-    if (g.cancelled || duration > MAX_DURATION) return;
-    if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy) * AXIS_RATIO) return;
-    const direction = dx < 0 ? 'next' : 'prev';
-    if (activate(direction)) suppressClickUntil = performance.now() + 420;
-  }
-
-  document.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    begin(e.clientX, e.clientY, e.pointerId, e.target);
-  }, {passive:true});
-
-  document.addEventListener('pointermove', e => {
-    if (!gesture || gesture.pointerId !== e.pointerId) return;
-    move(e.clientX, e.clientY);
-  }, {passive:true});
-
-  document.addEventListener('pointerup', e => {
-    if (!gesture || gesture.pointerId !== e.pointerId) return;
-    finish(e.clientX, e.clientY);
-  }, {passive:true});
-
-  document.addEventListener('pointercancel', () => { gesture = null; }, {passive:true});
-
-  document.addEventListener('click', e => {
-    if (performance.now() < suppressClickUntil) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
+  function move(e){
+    const g=gesture; if(!g||g.id!==e.pointerId) return;
+    const dx=e.clientX-g.x, dy=e.clientY-g.y;
+    g.lastX=e.clientX; g.lastY=e.clientY;
+    if(!g.horizontal){
+      if(Math.abs(dy)>18 && Math.abs(dy)>Math.abs(dx)*1.28){ g.cancelled=true; resetVisual(); return; }
+      if(Math.abs(dx)>14 && Math.abs(dx)>Math.abs(dy)*AXIS_RATIO) g.horizontal=true;
     }
-  }, true);
+    if(!g.horizontal||g.cancelled) return;
+    if(e.cancelable) e.preventDefault();
+    const cap=Math.max(-110,Math.min(110,dx));
+    document.body.classList.add('p1-swipe-tracking');
+    document.body.style.setProperty('--p1-swipe-x',`${cap*.22}px`);
+    document.body.style.setProperty('--p1-swipe-rot',`${cap*.008}deg`);
+  }
+  function end(e){
+    const g=gesture; if(!g||g.id!==e.pointerId) return;
+    gesture=null; resetVisual();
+    if(g.cancelled) return;
+    const dx=e.clientX-g.x, dy=e.clientY-g.y, duration=Math.max(1,performance.now()-g.t);
+    const velocity=Math.abs(dx)/duration;
+    const threshold=Math.min(MAX_DISTANCE,Math.max(MIN_DISTANCE,innerWidth*.12));
+    const horizontal=Math.abs(dx)>Math.abs(dy)*AXIS_RATIO;
+    const enough=Math.abs(dx)>=threshold || (Math.abs(dx)>=38 && velocity>=FAST_VELOCITY);
+    if(duration>MAX_DURATION || !horizontal || !enough) return;
+    const direction=dx<0?'next':'prev';
+    if(action(direction)) suppressClickUntil=performance.now()+450;
+  }
+
+  document.addEventListener('pointerdown',start,{passive:true});
+  document.addEventListener('pointermove',move,{passive:false});
+  document.addEventListener('pointerup',end,{passive:true});
+  document.addEventListener('pointercancel',()=>{gesture=null;resetVisual()},{passive:true});
+  document.addEventListener('click',e=>{
+    if(performance.now()<suppressClickUntil){e.preventDefault();e.stopImmediatePropagation();}
+  },true);
 
   document.documentElement.classList.add('p1-swipe-enabled');
-  const style = document.createElement('style');
-  style.textContent = `
-    .p1-swipe-enabled body{overscroll-behavior-x:none}
-    .p1-swipe-enabled .book-paper,
-    .p1-swipe-enabled .complete-reader,
-    .p1-swipe-enabled main{touch-action:pan-y pinch-zoom}
-    .p1-swipe-enabled input[type="range"],
-    .p1-swipe-enabled canvas,
-    .p1-swipe-enabled [data-swipe-ignore]{touch-action:auto}
-  `;
-  document.head.appendChild(style);
-
-  window.P1SwipeNavigation = { next:() => activate('next'), prev:() => activate('prev') };
+  window.P1SwipeNavigation={next:()=>action('next'),prev:()=>action('prev')};
 })();

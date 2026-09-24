@@ -1,0 +1,159 @@
+/* P1 kid-friendly UI — ป.1: ตัวใหญ่ แตะง่าย อ่านง่าย */
+:root{
+  --kid-touch:52px;
+  --kid-radius:20px;
+  --kid-shadow:0 8px 24px rgba(55,43,105,.10);
+}
+html{-webkit-tap-highlight-color:transparent}
+body{font-size:18px}
+button,a{touch-action:manipulation}
+button:focus-visible,a:focus-visible{outline:3px solid #6c55dc;outline-offset:3px}
+.kid-ui-ready button,.kid-ui-ready .primary,.kid-ui-ready .primary-action,.kid-ui-ready .big-action,.kid-ui-ready .secondary-action{min-height:var(--kid-touch)}
+.kid-ui-ready button{font-family:inherit}
+
+/* หน้าแรก: เน้นเลือกบท ไม่ให้ข้อมูลแน่นเกินไป */
+body.kid-home .welcome-shell{max-width:1320px}
+body.kid-home .welcome-hero{min-height:360px;padding:clamp(24px,4vw,52px);border-radius:28px}
+body.kid-home .hero-copy h1{font-size:clamp(38px,5vw,64px);line-height:1.16}
+body.kid-home .hero-copy>p{max-width:620px;font-size:clamp(18px,2vw,22px);font-weight:600;color:#514b68}
+body.kid-home .hero-stats{display:none}
+body.kid-home .hero-action{min-height:58px;padding:14px 22px;border-radius:18px;font-size:1.1rem}
+body.kid-home .hero-visual{height:300px}\nbody.kid-home .hero-badge{display:none}
+body.kid-home .units-section{margin-top:34px}
+body.kid-home .section-heading{align-items:center;margin-bottom:18px}
+body.kid-home .section-heading p{display:none}
+body.kid-home .section-heading h2{font-size:clamp(30px,4vw,44px)}
+body.kid-home .units-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+body.kid-home .unit-card,
+body.kid-home .unit-card.featured{
+  grid-column:auto;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  padding:16px;
+  gap:0;
+  border:2px solid color-mix(in srgb,var(--accent) 25%,#e8e4ef);
+  border-radius:24px;
+  background:#fff;
+  box-shadow:var(--kid-shadow);
+}
+body.kid-home .unit-card:before{width:7px}
+body.kid-home .unit-number{
+  z-index:3;top:12px;right:14px;
+  min-width:52px;height:52px;padding:0 8px;
+  display:grid;place-items:center;
+  border-radius:16px;
+  background:color-mix(in srgb,var(--accent) 14%,white);
+  color:color-mix(in srgb,var(--accent) 85%,#24203d);
+  font:800 28px/1 'Noto Serif Thai',serif;
+}
+body.kid-home .unit-cover,
+body.kid-home .featured .unit-cover,
+body.kid-home .ready-card .unit-cover{
+  width:100%;margin:0 0 14px;border-radius:18px;
+  box-shadow:0 8px 20px rgba(40,33,76,.12);
+}
+body.kid-home .unit-cover img{width:100%;max-height:250px;object-fit:contain;background:#faf8f2}
+body.kid-home .unit-content{display:flex;flex:1;flex-direction:column}
+body.kid-home .unit-status,
+body.kid-home .unit-card p,
+body.kid-home .lesson-row{display:none!important}
+body.kid-home .unit-card h3{
+  margin:2px 2px 12px;
+  font-size:clamp(25px,2.4vw,32px);
+  line-height:1.25;text-align:center;color:#26223b;
+}
+body.kid-home .kid-open-button{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  min-height:58px;margin-top:auto;padding:12px 14px;
+  border-radius:17px;background:var(--accent,#5a48d6);color:#fff;
+  text-decoration:none;font-weight:800;font-size:1.08rem;
+  box-shadow:0 7px 18px color-mix(in srgb,var(--accent,#5a48d6) 28%,transparent);
+}
+body.kid-home .kid-open-button:active{transform:scale(.98)}
+body.kid-home .kid-prerequisite{
+  display:flex;justify-content:center;margin:10px auto 0;
+  color:#55469d;font-weight:700;text-decoration:none;font-size:.95rem;
+}
+
+/* ทุกหน้าบทเรียน: ลดความแน่นและทำปุ่มให้เด็กแตะง่าย */
+body.kid-ui-ready .topbar,
+body.kid-ui-ready .bar{min-height:60px}
+body.kid-ui-ready .home-btn,
+body.kid-ui-ready .back{min-height:46px;display:flex;align-items:center}
+body.kid-ui-ready .activity-nav button{min-height:58px}
+body.kid-ui-ready .choices button,
+body.kid-ui-ready .tabs button{min-height:52px}
+
+/* โหมดหนังสือ */
+body.book-reader-mode .book-reader{gap:9px}
+body.book-reader-mode .book-reader::before{
+  content:"👈 ปัดซ้าย–ขวาเพื่อเปิดหน้า 👉";
+  display:block;margin:0 auto 2px;padding:7px 14px;
+  border-radius:999px;background:#fff8d9;color:#574d3c;
+  font-size:.94rem;font-weight:800;text-align:center;
+  box-shadow:0 2px 10px rgba(75,61,39,.08)
+}
+body.book-reader-mode .book-paper{
+  position:relative;
+  touch-action:pan-y pinch-zoom;
+  user-select:none;-webkit-user-select:none;
+  will-change:transform;
+  transition:transform .16s ease,box-shadow .16s ease;
+}
+body.book-reader-mode.p1-swipe-tracking .book-paper{
+  transform:translateX(var(--p1-swipe-x,0px)) rotate(var(--p1-swipe-rot,0deg));
+  box-shadow:0 18px 42px rgba(67,53,35,.18)
+}
+body.book-reader-mode .book-reader-controls{grid-template-columns:1fr 1.35fr 1fr}
+body.book-reader-mode .book-reader-controls button{min-height:64px}
+body.book-reader-mode .book-nav-button{font-size:1rem}
+body.book-reader-mode .book-read-button{font-size:1rem}
+body.book-reader-mode .book-page-count{font-size:1rem}
+body.book-reader-mode .native-word{touch-action:pan-y pinch-zoom}
+body.book-reader-mode .song-karaoke-player,
+body.book-reader-mode .song-karaoke-player *{touch-action:auto}
+
+/* Swipe feedback */
+#p1SwipeHint{
+  position:fixed;top:50%;z-index:100000;transform:translateY(-50%) scale(.9);
+  min-width:78px;min-height:78px;padding:10px;
+  display:grid;place-items:center;border-radius:999px;
+  background:rgba(255,255,255,.96);color:#4e3e9c;
+  box-shadow:0 12px 36px rgba(37,28,77,.24);
+  font-size:42px;font-weight:900;pointer-events:none;
+  opacity:0;transition:opacity .14s ease,transform .14s ease;
+}
+#p1SwipeHint.show{opacity:1;transform:translateY(-50%) scale(1)}
+#p1SwipeHint.blocked{opacity:.45}
+
+/* มือถือและแท็บเล็ต */
+@media(max-width:1000px){
+  body.kid-home .units-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body.kid-home .welcome-hero{grid-template-columns:1fr .8fr}
+}
+@media(max-width:720px){
+  :root{--kid-touch:54px}
+  body{font-size:17px}
+  body.kid-home .welcome-topbar{height:60px}
+  body.kid-home .welcome-shell{padding:12px 10px 36px}
+  body.kid-home .welcome-hero{grid-template-columns:1fr;padding:22px 16px;border-radius:22px}
+  body.kid-home .hero-copy{text-align:center}
+  body.kid-home .hero-copy h1{font-size:36px}
+  body.kid-home .hero-copy>p{font-size:18px;line-height:1.55}
+  body.kid-home .hero-action{width:100%;justify-content:center}
+  body.kid-home .hero-visual{height:200px}
+  body.kid-home .hero-badge{display:none}
+  body.kid-home .units-grid{grid-template-columns:1fr;gap:16px}
+  body.kid-home .unit-card,
+  body.kid-home .unit-card.featured{padding:14px;border-radius:22px}
+  body.kid-home .unit-cover img{max-height:220px}
+  body.kid-home .unit-card h3{font-size:28px}
+  body.book-reader-mode .book-reader::before{font-size:.86rem;padding:6px 11px}
+  body.book-reader-mode .book-reader-controls{grid-template-columns:1fr 1.25fr 1fr;gap:4px}
+  body.book-reader-mode .book-reader-controls button{min-height:60px}
+}
+@media(max-width:390px){
+  body.kid-home .hero-visual{height:175px}
+  body.book-reader-mode .book-reader-controls button span:not(.book-control-icon){font-size:.78rem}
+}
