@@ -136,7 +136,7 @@
   }
 
   function begin(clientX, clientY, pointerId, target) {
-    if (isIgnoredTarget(target) || hasHorizontalScroller(target)) return;
+    if (isIgnoredTarget(target)) return;
     gesture = {
       x: clientX, y: clientY, lastX: clientX, lastY: clientY,
       time: performance.now(), pointerId, target, cancelled:false
