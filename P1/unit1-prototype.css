@@ -1,0 +1,231 @@
+/* ต้นแบบบทที่ ๑: หนังสือเป็นพระเอก ปุ่มน้อย ใช้ง่ายสำหรับเด็ก ป.๑ */
+body.unit1-prototype{
+  background:#f4f0e7;
+  min-height:100dvh;
+  overscroll-behavior-x:none;
+}
+body.unit1-prototype .topbar,
+body.unit1-prototype .unit-hero,
+body.unit1-prototype #stepNav,
+body.unit1-prototype .activity-head,
+body.unit1-prototype .progress-track,
+body.unit1-prototype .activity-nav,
+body.unit1-prototype .teacher-note{display:none!important}
+body.unit1-prototype .shell{
+  width:min(100%,980px);
+  margin:0 auto;
+  padding:58px clamp(4px,1.2vw,12px) 92px;
+}
+body.unit1-prototype .learning-card{
+  margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;
+}
+body.unit1-prototype .activity-stage{min-height:0;padding:0}
+body.unit1-prototype .book-reader{
+  width:min(100%,900px);
+  gap:6px;
+}
+body.unit1-prototype .book-reader::before{display:none!important}
+body.unit1-prototype .book-reader-head{
+  min-height:30px;
+  justify-content:flex-end;
+  padding:0 8px 2px;
+}
+body.unit1-prototype .book-reader-heading{display:none}
+body.unit1-prototype .book-page-count{
+  min-width:0;min-height:28px;
+  padding:3px 9px;
+  border:0;background:rgba(255,255,255,.82);
+  color:#6b6256;font-size:.82rem;
+  box-shadow:none;
+}
+body.unit1-prototype .book-paper{
+  width:100%;
+  padding:clamp(3px,.8vw,7px);
+  border-radius:12px;
+  border:1px solid #e5ded2;
+  box-shadow:0 12px 30px rgba(65,49,29,.13);
+  touch-action:pan-y pinch-zoom;
+  -webkit-user-select:none;user-select:none;
+}
+body.unit1-prototype .book-reader-tip,
+body.unit1-prototype .book-finish-wrap{display:none!important}
+body.unit1-prototype .book-reader-controls{
+  position:fixed;
+  left:50%;bottom:max(10px,env(safe-area-inset-bottom));
+  z-index:80;
+  transform:translateX(-50%);
+  width:auto;
+  grid-template-columns:58px 66px 58px;
+  gap:8px;
+  margin:0;padding:7px;
+  border:1px solid rgba(211,202,188,.78);
+  border-radius:24px;
+  background:rgba(255,253,248,.92);
+  box-shadow:0 10px 30px rgba(55,42,25,.2);
+  backdrop-filter:blur(14px);
+}
+body.unit1-prototype .book-reader-controls button{
+  width:100%;
+  min-width:0;
+  min-height:56px;
+  padding:0;
+  border-radius:18px;
+  font-size:0;
+}
+body.unit1-prototype .book-reader-controls .book-control-icon{
+  display:block!important;
+  font-size:30px!important;
+  line-height:1;
+}
+body.unit1-prototype .book-reader-controls button>span:not(.book-control-icon){display:none!important}
+body.unit1-prototype .book-nav-button{
+  border:1px solid #ddd4c7;background:#fff;color:#40382f;
+}
+body.unit1-prototype .book-read-button{
+  border:0;background:var(--unit,#6755d9);color:#fff;
+}
+body.unit1-prototype .book-reader-controls button:disabled{opacity:.22}
+body.unit1-prototype .song-karaoke-player{
+  width:min(100%,760px);
+  margin:6px auto 0;
+  padding:10px 12px;
+  border-radius:16px;
+}
+body.unit1-prototype .song-karaoke-heading,
+body.unit1-prototype .song-sync-tools,
+body.unit1-prototype .song-karaoke-note{display:none!important}
+body.unit1-prototype .song-karaoke-actions{margin:0}
+body.unit1-prototype .song-karaoke-actions>button:not(.song-main-play){display:none!important}
+body.unit1-prototype .song-main-play{min-height:48px;border-radius:14px}
+body.unit1-prototype .song-seek{margin-top:8px}
+
+/* แถบเล็กด้านบน */
+.unit1-mini-bar{
+  position:fixed;left:0;right:0;top:0;z-index:95;
+  height:52px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px max(8px,env(safe-area-inset-left)) 5px max(8px,env(safe-area-inset-right));
+  background:rgba(255,253,248,.94);
+  border-bottom:1px solid rgba(218,208,193,.76);
+  backdrop-filter:blur(14px);
+}
+.unit1-mini-menu{
+  width:42px;height:42px;padding:0;
+  display:grid;place-items:center;
+  border:1px solid #ddd4c7;border-radius:14px;
+  background:#fff;color:#3f382f;
+  font-size:24px;font-weight:900;
+}
+.unit1-mini-title{
+  min-width:0;max-width:72vw;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:#39332b;font-weight:800;font-size:.98rem;
+}
+.unit1-mini-spacer{width:42px}
+
+/* เมนู ๓ ขีด */
+.unit1-menu-backdrop{
+  position:fixed;inset:0;z-index:120;
+  display:none;
+  background:rgba(35,29,23,.32);
+  backdrop-filter:blur(2px);
+}
+.unit1-menu-backdrop.open{display:block}
+.unit1-menu-panel{
+  position:absolute;top:0;left:0;
+  width:min(86vw,330px);height:100%;
+  padding:max(14px,env(safe-area-inset-top)) 14px 18px;
+  background:#fffdf9;
+  box-shadow:18px 0 45px rgba(44,34,25,.2);
+}
+.unit1-menu-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin-bottom:16px;
+}
+.unit1-menu-head strong{font-size:1.12rem}
+.unit1-menu-close{
+  width:42px;height:42px;padding:0;border:0;border-radius:13px;
+  background:#f0ece6;font-size:22px;
+}
+.unit1-menu-list{display:grid;gap:9px}
+.unit1-menu-list a,.unit1-menu-list button{
+  width:100%;min-height:54px;
+  display:flex;align-items:center;gap:12px;
+  padding:10px 14px;
+  border:1px solid #e3dcd1;border-radius:15px;
+  background:#fff;color:#302b25;text-decoration:none;text-align:left;
+  font-family:inherit;font-size:1rem;font-weight:800;
+}
+.unit1-menu-list .menu-icon{
+  flex:0 0 34px;width:34px;height:34px;
+  display:grid;place-items:center;border-radius:10px;
+  background:#f3effc;font-size:19px;
+}
+
+/* แนะนำการปัดเฉพาะครั้งแรก */
+.unit1-swipe-onboard{
+  position:fixed;left:50%;top:50%;z-index:140;
+  transform:translate(-50%,-50%);
+  width:min(88vw,330px);
+  padding:18px 20px;
+  border-radius:22px;
+  background:rgba(31,28,24,.9);color:#fff;
+  text-align:center;font-size:1.05rem;font-weight:800;
+  box-shadow:0 16px 44px rgba(0,0,0,.28);
+  pointer-events:none;
+  animation:u1Hint 2.4s ease forwards;
+}
+.unit1-swipe-onboard .arrows{display:block;font-size:32px;margin-bottom:4px}
+@keyframes u1Hint{0%{opacity:0;transform:translate(-50%,-46%) scale(.94)}12%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-54%) scale(.98)}}
+
+/* หน้าแรก: เน้นบทที่ ๑ เป็นตัวทดลอง ส่วนบทอื่นซ่อนไว้ */
+body.unit1-home-prototype .welcome-hero{
+  min-height:0;
+  grid-template-columns:1fr;
+  padding:clamp(22px,4vw,42px);
+  text-align:center;
+}
+body.unit1-home-prototype .hero-copy{margin:auto}
+body.unit1-home-prototype .hero-copy>p{max-width:620px;margin-inline:auto}
+body.unit1-home-prototype .hero-stats,
+body.unit1-home-prototype .hero-visual{display:none!important}
+body.unit1-home-prototype .hero-action{min-height:58px}
+body.unit1-home-prototype .units-grid{display:block}
+body.unit1-home-prototype .units-grid>.unit-card:first-child{
+  width:min(100%,640px);
+  margin:0 auto;
+}
+body.unit1-home-prototype .other-units{
+  width:min(100%,900px);
+  margin:20px auto 0;
+  border:1px solid #e5dfe9;border-radius:18px;
+  background:#fff;
+}
+body.unit1-home-prototype .other-units>summary{
+  min-height:54px;
+  display:flex;align-items:center;justify-content:center;
+  padding:10px 16px;
+  cursor:pointer;list-style:none;
+  color:#584b8b;font-weight:800;
+}
+body.unit1-home-prototype .other-units>summary::-webkit-details-marker{display:none}
+body.unit1-home-prototype .other-units-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;padding:0 12px 12px;
+}
+body.unit1-home-prototype .other-units-grid .unit-card{min-height:0}
+
+@media(max-width:640px){
+  body.unit1-prototype .shell{padding-top:56px;padding-inline:3px;padding-bottom:84px}
+  body.unit1-prototype .book-reader-head{padding-right:6px}
+  body.unit1-prototype .book-paper{padding:2px;border-radius:8px}
+  body.unit1-prototype .book-reader-controls{
+    grid-template-columns:54px 62px 54px;
+    gap:6px;padding:6px;border-radius:21px
+  }
+  body.unit1-prototype .book-reader-controls button{min-height:54px;border-radius:16px}
+  body.unit1-prototype .book-reader-controls .book-control-icon{font-size:28px!important}
+  .unit1-mini-title{font-size:.92rem}
+  body.unit1-home-prototype .welcome-shell{padding:12px 10px 36px}
+  body.unit1-home-prototype .other-units-grid{grid-template-columns:1fr}
+}
