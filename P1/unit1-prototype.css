@@ -678,3 +678,8 @@ body.unit1-prototype .native-layout-row.native-row-active,
 body.unit1-prototype .native-layout-row.song-karaoke-row-active{
  background:transparent!important; box-shadow:none!important; border:0!important;
 }
+
+/* Keep active letters readable without thick strokes obscuring Thai marks. */
+body.unit1-prototype .native-source-layout [data-native-word].native-reading-active{
+ color:#8d1b28!important;
+}
