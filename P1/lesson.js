@@ -302,15 +302,15 @@ function nativeRowsMarkup(data){
  }).join('')}</div>`;
 }
 function nativeArtMarkup(p,rect,i){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<div class="native-art" style="aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="ภาพประกอบหน้านี้ ${i+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></div>`}
-function nativePlacedArtMarkup(p,rect,i){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<div class="native-layout-art" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%;aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="ภาพประกอบหน้านี้ ${i+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></div>`}
-function nativePlacedArtCopyMarkup(p,sourceRect,placeRect,alt="ภาพประกอบหน้านี้"){const [sx,sy,sw,sh]=sourceRect,[x,y,w,h]=placeRect,cw=fullBook.w*sw/100,ch=p.h*sh/100;return `<div class="native-layout-art" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%;aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="${alt}" style="width:${10000/sw}%;left:${-sx/sw*100}%;top:${-(p.y+p.h*sy/100)/ch*100}%" loading="eager"></div>`}
-function nativeSourceRowMarkup(p,row,r){
- const x1=Math.min(...row.map(t=>t.b[0])),y1=Math.min(...row.map(t=>t.b[1]));
+function nativePlacedArtMarkup(p,rect,i,topShift=0){const [x,y,w,h]=rect,placeY=Math.max(.8,y-topShift),cw=fullBook.w*w/100,ch=p.h*h/100;return `<div class="native-layout-art" style="left:${x}%;top:${placeY.toFixed(3)}%;width:${w}%;height:${h}%;aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="ภาพประกอบหน้านี้ ${i+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></div>`}
+function nativePlacedArtCopyMarkup(p,sourceRect,placeRect,alt="ภาพประกอบหน้านี้",topShift=0){const [sx,sy,sw,sh]=sourceRect,[x,y,w,h]=placeRect,placeY=Math.max(.8,y-topShift),cw=fullBook.w*sw/100,ch=p.h*sh/100;return `<div class="native-layout-art" style="left:${x}%;top:${placeY.toFixed(3)}%;width:${w}%;height:${h}%;aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="${alt}" style="width:${10000/sw}%;left:${-sx/sw*100}%;top:${-(p.y+p.h*sy/100)/ch*100}%" loading="eager"></div>`}
+function nativeSourceRowMarkup(p,row,r,topShift=0){
+ const x1=Math.min(...row.map(t=>t.b[0])),y1=Math.min(...row.map(t=>t.b[1])),placeY=Math.max(.8,y1-topShift);
  const x2=Math.max(...row.map(t=>t.b[0]+t.b[2])),y2=Math.max(...row.map(t=>t.b[1]+t.b[3]));
  const w=Math.max(2,x2-x1),h=Math.max(3.7,y2-y1);
  const words=row.map((t,i)=>{const b=t.b,left=(b[0]-x1)/w*100,top=(b[1]-y1)/h*100,fs=Math.max(2.15,Math.min(4.45,b[3]*p.h/fullBook.w*.72));return `<button type="button" class="native-word native-layout-word ${bookTokenClass(t.t)}" data-native-word="${r}:${i}" aria-label="อ่านคำ ${escapeText(t.t)}" title="อ่าน ${escapeText(t.t)}" style="left:${left.toFixed(3)}%;top:${top.toFixed(3)}%;--native-fs:${fs.toFixed(2)}cqw">${escapeText(t.t)}</button>`}).join('');
  const phonicsClass=nativePhonicsSectionRow(r)?' native-phonics-row':'';
- return `<div class="native-layout-row reading-card${phonicsClass}" data-native-row="${r}" style="left:${x1}%;top:${y1}%;width:${w}%;height:${h}%"><button type="button" class="native-layout-speaker" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}" title="อ่านการ์ดนี้">🔊</button>${words}</div>`;
+ return `<div class="native-layout-row reading-card${phonicsClass}" data-native-row="${r}" style="left:${x1}%;top:${placeY.toFixed(3)}%;width:${w}%;height:${h}%"><button type="button" class="native-layout-speaker" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}" title="อ่านการ์ดนี้">🔊</button>${words}</div>`;
 }
 function nativeGridArtMarkup(p,rect,alt){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<span class="native-grid-art" style="aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="${escapeText(alt)}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></span>`}
 function nativePage19GridMarkup(p,data){
@@ -324,17 +324,25 @@ function nativePage19GridMarkup(p,data){
  ];
  return `<div class="native-three-col-grid" aria-label="รูปซ้าย ข้อความ และรูปขวา จัดตรงกัน 3 คอลัมน์">${data.rows.map((row,r)=>`<div class="native-grid-row reading-card" data-native-row="${r}"><div class="native-grid-cell native-grid-left">${nativeGridArtMarkup(p,pairs[r][0],`ภาพประกอบด้านซ้ายแถวที่ ${r+1}`)}</div><div class="native-grid-cell native-grid-text"><button type="button" class="native-grid-speaker" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}" title="อ่านการ์ดนี้">🔊</button><div class="native-grid-words">${row.map((t,i)=>`<button type="button" class="native-word native-grid-word ${bookTokenClass(t.t)}" data-native-word="${r}:${i}" aria-label="อ่านคำ ${escapeText(t.t)}" title="อ่าน ${escapeText(t.t)}">${escapeText(t.t)}</button>`).join('')}</div></div><div class="native-grid-cell native-grid-right">${nativeGridArtMarkup(p,pairs[r][1],`ภาพประกอบด้านขวาแถวที่ ${r+1}`)}</div></div>`).join('')}</div>`;
 }
+function unit1PageTopShift(p,data){
+ if(unitNo!==1||p.page===19)return 0;
+ const rowTops=(data?.rows||[]).flatMap(row=>row.map(t=>Number(t?.b?.[1])).filter(Number.isFinite));
+ if(!rowTops.length)return 0;
+ const first=Math.min(...rowTops);
+ return Math.min(14,Math.max(0,first-4.5))
+}
 function nativeSourceLayoutMarkup(p,data){
  if(p.page===19)return nativePage19GridMarkup(p,data);
+ const topShift=unit1PageTopShift(p,data);
  const seen=new Set(),arts=(data.arts||[]).filter(r=>{const k=r.map(n=>Number(n).toFixed(3)).join(':');if(seen.has(k))return false;seen.add(k);return true});
  // Page 18: restore the illustrations for the first row "ใบโบก มี ตา".
  // The artwork detector starts from the second row, so copy the matching
  // blue-elephant and eye crops already present later on the same source page.
  const firstRowMissingArt=p.page===18
-  ? nativePlacedArtCopyMarkup(p,[16.98,37.178,15.586,11.52],[16.98,15.00,15.586,11.52],"ภาพใบโบกประกอบข้อความ ใบโบก มี ตา")
-   +nativePlacedArtCopyMarkup(p,[64.95,25.803,16.434,9.15],[64.95,16.18,16.434,9.15],"ภาพตาประกอบข้อความ ใบโบก มี ตา")
+  ? nativePlacedArtCopyMarkup(p,[16.98,37.178,15.586,11.52],[16.98,15.00,15.586,11.52],"ภาพใบโบกประกอบข้อความ ใบโบก มี ตา",topShift)
+   +nativePlacedArtCopyMarkup(p,[64.95,25.803,16.434,9.15],[64.95,16.18,16.434,9.15],"ภาพตาประกอบข้อความ ใบโบก มี ตา",topShift)
   : '';
- return `<div class="native-source-layout-wrap"><div class="native-source-layout" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${firstRowMissingArt}${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r)).join('')}</div></div>`;
+ return `<div class="native-source-layout-wrap"><div class="native-source-layout unit1-top-trimmed" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${firstRowMissingArt}${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i,topShift)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r,topShift)).join('')}</div></div>`;
 }
 function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.page])return vocabCardsMarkup(p);const data=currentNative();if(original){const plain=fullPageMarkup(p);return plain.replace('</div>',`<div class="native-hotspots">${data.rows.map((row,r)=>row.map((t,i)=>nativeWordMarkup(t,r,i,true)).join('')).join('')}</div></div>`)+`<details class="native-word-details"><summary>รายการคำและชุดคำที่กดอ่านได้</summary>${nativeRowsMarkup(data)}</details>`}
  return `<article class="native-flow-page source-faithful-page" aria-label="คาราโอเกะ ${escapeText(p.label)}"><p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 ข้างบรรทัด เพื่ออ่านตามทีละชุด · ภาพและข้อความจัดวางตามต้นฉบับ</p>${nativeSourceLayoutMarkup(p,data)}</article>`;
