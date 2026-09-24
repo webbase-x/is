@@ -1,0 +1,32 @@
+name: P1 book integrity
+
+on:
+  pull_request:
+    paths:
+      - "P1/**"
+      - ".github/workflows/p1-book-integrity.yml"
+  push:
+    branches: [main]
+    paths:
+      - "P1/**"
+      - ".github/workflows/p1-book-integrity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check JavaScript syntax
+        run: |
+          node --check P1/lesson.js
+          node --check P1/unit1-prototype.js
+          node --check P1/swipe-navigation.js
+      - name: Verify every chapter from cover through อ่านคล่อง ร้องเล่น
+        run: node P1/tests/book-source-integrity.test.mjs
