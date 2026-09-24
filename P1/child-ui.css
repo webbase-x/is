@@ -18,7 +18,7 @@ body.kid-home .hero-copy h1{font-size:clamp(38px,5vw,64px);line-height:1.16}
 body.kid-home .hero-copy>p{max-width:620px;font-size:clamp(18px,2vw,22px);font-weight:600;color:#514b68}
 body.kid-home .hero-stats{display:none}
 body.kid-home .hero-action{min-height:58px;padding:14px 22px;border-radius:18px;font-size:1.1rem}
-body.kid-home .hero-visual{height:300px}
+body.kid-home .hero-visual{height:300px}\nbody.kid-home .hero-badge{display:none}
 body.kid-home .units-section{margin-top:34px}
 body.kid-home .section-heading{align-items:center;margin-bottom:18px}
 body.kid-home .section-heading p{display:none}
