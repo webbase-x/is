@@ -28,7 +28,7 @@ let speakingEl=null,speechSeq=0,karaokeRun=0,finishSpeech=null;
 let songAudio=null,songSyncRaf=0,songActiveWord=null,songActiveRow=null,songCues=[];
 function pictureMarkup(word,cls=""){const idx=unit.pictures?.[word];if(idx===undefined)return "";const x=(idx%3)*50,y=Math.floor(idx/3)*50;return `<span class="word-picture ${cls}" role="img" aria-label="ภาพประกอบคำ ${word}" style="background-image:url('book/word-img/unit${unitNo}-words.webp');background-position:${x}% ${y}%"></span>`}
 function clearSpeechVisual(){if(speakingEl){speakingEl.classList.remove("speaking-now");speakingEl=null}}
-function stopSpeech(){stopSongKaraoke(false);clearNativeHighlights();karaokeRun++;speechSeq++;window.speechSynthesis?.cancel?.();if(finishSpeech)finishSpeech();clearSpeechVisual();stage.querySelectorAll(".line-reading").forEach(el=>el.classList.remove("line-reading"));const btn=$("#readPageKaraoke");if(btn){btn.disabled=false;btn.textContent=currentSongConfig()?"▶ ร้องคาราโอเกะ":"🔊 อ่านหน้านี้"}}
+function stopSpeech(){stopSongKaraoke(false);clearNativeHighlights();karaokeRun++;speechSeq++;window.speechSynthesis?.cancel?.();if(finishSpeech)finishSpeech();clearSpeechVisual();stage.querySelectorAll(".line-reading").forEach(el=>el.classList.remove("line-reading"));const btn=$("#readPageKaraoke");if(btn){btn.disabled=false;const song=currentSongConfig();if(unitNo===1){btn.innerHTML=`<span class="book-control-icon">${song?"▶":"🔊"}</span><span>${song?"ร้องคาราโอเกะ":"อ่านหน้านี้"}</span>`}else{btn.textContent=song?"▶ ร้องคาราโอเกะ":"🔊 อ่านหน้านี้"}}}
 function keepReadingVisible(target){if(![1,3].includes(step)||!target?.getBoundingClientRect)return;const r=target.getBoundingClientRect();if(r.top<165||r.bottom>window.innerHeight-32)target.scrollIntoView({block:"center",behavior:"smooth"})}
 const NORMAL_SPEECH_RATE=1.00;
 function speak(text,target=null){if(!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}const token=++speechSeq;if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();if(finishSpeech)finishSpeech();clearSpeechVisual();if(target){keepReadingVisible(target);speakingEl=target;target.classList.add("speaking-now")}return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(text);u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;let settled=false;const done=()=>{if(settled)return;settled=true;if(token===speechSeq)clearSpeechVisual();if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;u.onend=done;u.onerror=done;window.speechSynthesis.speak(u)})}
@@ -493,9 +493,9 @@ function renderReading(turnDirection=""){
    ${songPlayer}
    <p class="book-reader-tip">${songCfg?"🎤 เล่นเพลงแล้วอ่านตามคำที่ไฮไลต์ทีละคำ":"👆 แตะคำบนหน้าเพื่อฟังเสียง"}</p>
    <nav class="book-reader-controls" aria-label="เปลี่ยนหน้าและฟังเสียง">
-     <button type="button" class="book-nav-button" data-page-prev ${fullIndex===0?'disabled':''}><span class="book-control-icon">‹</span><span>หน้าก่อน</span></button>
-     <button type="button" class="book-read-button" id="readPageKaraoke"><span class="book-control-icon">${songCfg?"▶":"🔊"}</span><span>${songCfg?"ร้องคาราโอเกะ":"อ่านหน้านี้"}</span></button>
-     <button type="button" class="book-nav-button" data-page-next ${last?'disabled':''}><span>หน้าถัดไป</span><span class="book-control-icon">›</span></button>
+     <button type="button" class="book-nav-button" data-page-prev aria-label="หน้าก่อน" title="หน้าก่อน" ${fullIndex===0?'disabled':''}><span class="book-control-icon">‹</span><span>หน้าก่อน</span></button>
+     <button type="button" class="book-read-button" id="readPageKaraoke" aria-label="${songCfg?"เล่นเพลงและอ่านตาม":"อ่านหน้านี้"}" title="${songCfg?"เล่นเพลง":"อ่านหน้านี้"}"><span class="book-control-icon">${songCfg?"▶":"🔊"}</span><span>${songCfg?"ร้องคาราโอเกะ":"อ่านหน้านี้"}</span></button>
+     <button type="button" class="book-nav-button" data-page-next aria-label="หน้าถัดไป" title="หน้าถัดไป" ${last?'disabled':''}><span>หน้าถัดไป</span><span class="book-control-icon">›</span></button>
    </nav>
    ${last?'<div class="book-finish-wrap"><button class="book-finish-button" id="finishFullChapter">อ่านจบบทแล้ว · ไปทบทวน ✓</button></div>':''}
  </div>`;
