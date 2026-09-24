@@ -1,10 +1,9 @@
 (() => {
-  const MIN_DISTANCE = 54;
-  const MAX_DISTANCE = 118;
-  const MAX_DURATION = 950;
-  const AXIS_RATIO = 1.18;
-  const FAST_VELOCITY = 0.42;
-  const LOCK_MS = 620;
+  const MIN_DISTANCE = 44;
+  const MAX_DURATION = 1300;
+  const AXIS_RATIO = 1.05;
+  const FAST_VELOCITY = 0.32;
+  const LOCK_MS = 460;
   let gesture = null;
   let lockUntil = 0;
   let suppressClickUntil = 0;
@@ -15,57 +14,57 @@
 
   function visible(el){
     if(!el) return false;
-    const s=getComputedStyle(el), r=el.getBoundingClientRect();
-    return s.display!=='none' && s.visibility!=='hidden' && r.width>0 && r.height>0;
+    const s=getComputedStyle(el),r=el.getBoundingClientRect();
+    return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0;
   }
   function firstVisible(selectors){
     for(const selector of selectors){
       const found=[...document.querySelectorAll(selector)].find(visible);
-      if(found) return found;
+      if(found)return found;
     }
     return null;
   }
   function allowedBookWord(target){
-    return !!target?.closest?.('.book-paper .native-word,.book-paper .karaoke-token,.book-paper .exact-title-token,.book-paper .reading-card');
+    return !!target?.closest?.('.book-paper .native-word,.book-paper .karaoke-token,.book-paper .exact-title-token,.book-paper .reading-card,.book-paper .book-source-page,.book-paper .book-cover-page');
   }
   function ignored(target){
-    if(!(target instanceof Element)) return false;
-    if(target.closest('input,textarea,select,option,[contenteditable="true"],audio,video,canvas,dialog[open],.song-karaoke-player,[data-swipe-ignore]')) return true;
+    if(!(target instanceof Element))return false;
+    if(target.closest('input,textarea,select,option,[contenteditable="true"],audio,video,canvas,dialog[open],.song-karaoke-player,[data-swipe-ignore]'))return true;
     const interactive=target.closest('a,button');
-    return !!interactive && !allowedBookWord(target);
+    return !!interactive&&!allowedBookWord(target);
   }
   function fallback(direction){
-    const path=location.pathname, q=new URLSearchParams(location.search);
-    if(/\/P1\/00-prerequisite\/?$/.test(path)) return direction==='next'?'../01-bai-bok-bai-bua/':'../index.html';
-    if(/\/P1\/01-bai-bok-bai-bua\/?$/.test(path)) return direction==='next'?'../lesson.html?unit=1':'../00-prerequisite/';
-    if(/\/P1\/thai-consonants\.html$/.test(path)) return direction==='next'?'unit1-lesson1.html':'index.html';
+    const path=location.pathname,q=new URLSearchParams(location.search);
+    if(/\/P1\/00-prerequisite\/?$/.test(path))return direction==='next'?'../01-bai-bok-bai-bua/':'../index.html';
+    if(/\/P1\/01-bai-bok-bai-bua\/?$/.test(path))return direction==='next'?'../lesson.html?unit=1':'../00-prerequisite/';
+    if(/\/P1\/thai-consonants\.html$/.test(path))return direction==='next'?'unit1-lesson1.html':'index.html';
     const legacy=path.match(/\/P1\/unit(\d+)-lesson1\.html$/);
     if(legacy){
       const unit=Number(legacy[1]);
-      if(direction==='next') return unit<6?`unit${unit+1}-lesson1.html`:'index.html';
+      if(direction==='next')return unit<6?`unit${unit+1}-lesson1.html`:'index.html';
       return unit>1?`unit${unit-1}-lesson1.html`:'thai-consonants.html';
     }
     if(/\/P1\/lesson\.html$/.test(path)){
       const unit=Number(q.get('unit')||1);
-      if(unit===1 && document.body?.classList.contains('unit1-prototype')) return null;
-      if(direction==='next' && unit<12) return `lesson.html?unit=${unit+1}`;
-      if(direction==='prev' && unit>1) return `lesson.html?unit=${unit-1}`;
+      if(unit===1&&document.body?.classList.contains('unit1-prototype'))return null;
+      if(direction==='next'&&unit<12)return `lesson.html?unit=${unit+1}`;
+      if(direction==='prev'&&unit>1)return `lesson.html?unit=${unit-1}`;
     }
     return null;
   }
-  function hint(direction, blocked=false){
+  function hint(direction,blocked=false){
     let el=document.getElementById('p1SwipeHint');
-    if(!el){ el=document.createElement('div'); el.id='p1SwipeHint'; document.body.appendChild(el); }
+    if(!el){el=document.createElement('div');el.id='p1SwipeHint';document.body.appendChild(el)}
     el.textContent=direction==='next'?'›':'‹';
     el.style.left=direction==='prev'?'14px':'auto';
     el.style.right=direction==='next'?'14px':'auto';
     el.classList.toggle('blocked',blocked);
     el.classList.add('show');
     clearTimeout(hintTimer);
-    hintTimer=setTimeout(()=>el.classList.remove('show'),320);
+    hintTimer=setTimeout(()=>el.classList.remove('show'),260);
   }
   function action(direction){
-    if(performance.now()<lockUntil) return false;
+    if(performance.now()<lockUntil)return false;
     const target=firstVisible(direction==='next'?NEXT:PREV);
     if(target){
       lockUntil=performance.now()+LOCK_MS;
@@ -81,7 +80,7 @@
       return true;
     }
     hint(direction,true);
-    lockUntil=performance.now()+250;
+    lockUntil=performance.now()+220;
     return false;
   }
   function resetVisual(){
@@ -90,46 +89,62 @@
     document.body.style.removeProperty('--p1-swipe-rot');
   }
   function start(e){
-    if(performance.now()<lockUntil) return;
-    if(e.pointerType==='mouse' && e.button!==0) return;
-    if(ignored(e.target)) return;
-    gesture={id:e.pointerId,x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,t:performance.now(),horizontal:false,cancelled:false};
+    if(performance.now()<lockUntil||gesture)return;
+    if(e.isPrimary===false)return;
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    if(ignored(e.target))return;
+    const unit1Book=document.body?.classList.contains('unit1-prototype');
+    const paper=e.target instanceof Element?e.target.closest('.book-paper'):null;
+    if(unit1Book&&!paper)return;
+    gesture={
+      id:e.pointerId,
+      x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,
+      t:performance.now(),axis:null,cancelled:false,
+      capture:paper||document.documentElement
+    };
+    try{gesture.capture.setPointerCapture?.(e.pointerId)}catch{}
   }
   function move(e){
-    const g=gesture; if(!g||g.id!==e.pointerId) return;
-    const dx=e.clientX-g.x, dy=e.clientY-g.y;
-    g.lastX=e.clientX; g.lastY=e.clientY;
-    if(!g.horizontal){
-      if(Math.abs(dy)>18 && Math.abs(dy)>Math.abs(dx)*1.28){ g.cancelled=true; resetVisual(); return; }
-      if(Math.abs(dx)>14 && Math.abs(dx)>Math.abs(dy)*AXIS_RATIO) g.horizontal=true;
+    const g=gesture;if(!g||g.id!==e.pointerId)return;
+    const dx=e.clientX-g.x,dy=e.clientY-g.y;
+    g.lastX=e.clientX;g.lastY=e.clientY;
+    if(!g.axis){
+      if(Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)*1.15){g.axis='y';g.cancelled=true;resetVisual();return}
+      if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*AXIS_RATIO)g.axis='x';
     }
-    if(!g.horizontal||g.cancelled) return;
-    if(e.cancelable) e.preventDefault();
-    const cap=Math.max(-110,Math.min(110,dx));
+    if(g.axis!=='x'||g.cancelled)return;
+    if(e.cancelable)e.preventDefault();
+    const cap=Math.max(-120,Math.min(120,dx));
     document.body.classList.add('p1-swipe-tracking');
-    document.body.style.setProperty('--p1-swipe-x',`${cap*.22}px`);
-    document.body.style.setProperty('--p1-swipe-rot',`${cap*.008}deg`);
+    document.body.style.setProperty('--p1-swipe-x',`${cap*.18}px`);
+    document.body.style.setProperty('--p1-swipe-rot',`${cap*.006}deg`);
   }
-  function end(e){
-    const g=gesture; if(!g||g.id!==e.pointerId) return;
-    gesture=null; resetVisual();
-    if(g.cancelled) return;
-    const dx=e.clientX-g.x, dy=e.clientY-g.y, duration=Math.max(1,performance.now()-g.t);
+  function finish(e){
+    const g=gesture;if(!g||g.id!==e.pointerId)return;
+    gesture=null;
+    try{g.capture.releasePointerCapture?.(e.pointerId)}catch{}
+    resetVisual();
+    if(g.cancelled||g.axis==='y')return;
+    const ex=Number.isFinite(e.clientX)?e.clientX:g.lastX;
+    const ey=Number.isFinite(e.clientY)?e.clientY:g.lastY;
+    const dx=ex-g.x,dy=ey-g.y,duration=Math.max(1,performance.now()-g.t);
     const velocity=Math.abs(dx)/duration;
-    const threshold=Math.min(MAX_DISTANCE,Math.max(MIN_DISTANCE,innerWidth*.12));
     const horizontal=Math.abs(dx)>Math.abs(dy)*AXIS_RATIO;
-    const enough=Math.abs(dx)>=threshold || (Math.abs(dx)>=38 && velocity>=FAST_VELOCITY);
-    if(duration>MAX_DURATION || !horizontal || !enough) return;
+    const threshold=Math.max(MIN_DISTANCE,Math.min(72,innerWidth*.085));
+    const enough=Math.abs(dx)>=threshold||(Math.abs(dx)>=32&&velocity>=FAST_VELOCITY);
+    if(duration>MAX_DURATION||!horizontal||!enough)return;
     const direction=dx<0?'next':'prev';
-    if(action(direction)) suppressClickUntil=performance.now()+450;
+    if(action(direction))suppressClickUntil=performance.now()+380;
   }
 
   document.addEventListener('pointerdown',start,{passive:true});
   document.addEventListener('pointermove',move,{passive:false});
-  document.addEventListener('pointerup',end,{passive:true});
-  document.addEventListener('pointercancel',()=>{gesture=null;resetVisual()},{passive:true});
+  document.addEventListener('pointerup',finish,{passive:true});
+  document.addEventListener('pointercancel',e=>{
+    if(gesture&&gesture.id===e.pointerId){gesture=null;resetVisual()}
+  },{passive:true});
   document.addEventListener('click',e=>{
-    if(performance.now()<suppressClickUntil){e.preventDefault();e.stopImmediatePropagation();}
+    if(performance.now()<suppressClickUntil){e.preventDefault();e.stopImmediatePropagation()}
   },true);
 
   document.documentElement.classList.add('p1-swipe-enabled');
