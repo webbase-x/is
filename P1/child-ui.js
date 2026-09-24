@@ -1,7 +1,7 @@
 (() => {
   function onHome() {
-    const path = location.pathname.replace(/\\/+$/,'');
-    return /\\/P1(?:\\/index\\.html)?$/.test(path);
+    const path = location.pathname.replace(/\/+$/,'');
+    return path.endsWith('/P1') || path.endsWith('/P1/index.html');
   }
 
   function enhanceHome() {
