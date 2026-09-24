@@ -35,7 +35,7 @@ const NORMAL_SPEECH_RATE=1.00;
 function ttsSafeText(text){
  let out=String(text??"");
  out=out.replace(/ใบบัว/g,"ใบ\u200Bบัว");
- out=out.replace(/สะ(?:[\s-]*หะ[\s-]*ระ|[\s-]*หระ)|สระ/g,"สะหฺระ");
+ out=out.replace(/สะ(?:[\s-]*หะ[\s-]*ระ|[\s-]*หฺ?ระ)|สระ/g,"สะระ");
  if(out==="ดอ"||out==="ดอ,")return "ดอร์";
  return out
 }

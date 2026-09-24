@@ -33,8 +33,8 @@ test('every result repeats consonant, vowel, result',()=>{
  page=32;assert.equal(sounds(2),'กอ อี กี จอ อู จู');
 });
 test('vowel label has no extra ha syllable',()=>{
- assert.equal(context.ttsSafeText('สะหะระ'),'สะหฺระ');
- assert.equal(context.ttsSafeText('สะหระ'),'สะหฺระ');
+ assert.equal(context.ttsSafeText('สะหะระ'),'สะระ');
+ assert.equal(context.ttsSafeText('สะหระ'),'สะระ');
 });
 test('all twelve chapters retain token data and bounded illustration geometry',()=>{
  assert.equal(Object.keys(data).length,104);
