@@ -331,18 +331,30 @@ function unit1PageTopShift(p,data){
  const first=Math.min(...rowTops);
  return Math.min(14,Math.max(0,first-4.5))
 }
+function unit1PageVisibleBottom(p,data,arts,topShift){
+ if(unitNo!==1)return 100;
+ const rowBottoms=(data?.rows||[]).flatMap(row=>row.map(t=>Number(t?.b?.[1])+Number(t?.b?.[3])-topShift).filter(Number.isFinite));
+ const artBottoms=(arts||[]).map(r=>Number(r?.[1])+Number(r?.[3])-topShift).filter(Number.isFinite);
+ if(p.page===18){
+  artBottoms.push(15+11.52-topShift,16.18+9.15-topShift)
+ }
+ const bottom=Math.max(28,...rowBottoms,...artBottoms);
+ return Math.min(96,Math.max(32,bottom+3.2))
+}
 function nativeSourceLayoutMarkup(p,data){
  if(p.page===19)return nativePage19GridMarkup(p,data);
  const topShift=unit1PageTopShift(p,data);
  const seen=new Set(),arts=(data.arts||[]).filter(r=>{const k=r.map(n=>Number(n).toFixed(3)).join(':');if(seen.has(k))return false;seen.add(k);return true});
  // Page 18: restore the illustrations for the first row "ใบโบก มี ตา".
- // The artwork detector starts from the second row, so copy the matching
- // blue-elephant and eye crops already present later on the same source page.
  const firstRowMissingArt=p.page===18
   ? nativePlacedArtCopyMarkup(p,[16.98,37.178,15.586,11.52],[16.98,15.00,15.586,11.52],"ภาพใบโบกประกอบข้อความ ใบโบก มี ตา",topShift)
    +nativePlacedArtCopyMarkup(p,[64.95,25.803,16.434,9.15],[64.95,16.18,16.434,9.15],"ภาพตาประกอบข้อความ ใบโบก มี ตา",topShift)
   : '';
- return `<div class="native-source-layout-wrap"><div class="native-source-layout unit1-top-trimmed" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${firstRowMissingArt}${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i,topShift)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r,topShift)).join('')}</div></div>`;
+ const inner=`<div class="native-source-layout unit1-top-trimmed" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${firstRowMissingArt}${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i,topShift)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r,topShift)).join('')}</div>`;
+ if(unitNo!==1)return `<div class="native-source-layout-wrap">${inner}</div>`;
+ const visibleBottom=unit1PageVisibleBottom(p,data,arts,topShift);
+ const croppedH=(p.h*visibleBottom/100).toFixed(3);
+ return `<div class="native-source-layout-wrap"><div class="unit1-page-crop" style="aspect-ratio:${fullBook.w}/${croppedH}">${inner}</div></div>`;
 }
 function nativePageMarkup(p,original){if(!original&&window.P1_VOCAB_CARDS?.[p.page])return vocabCardsMarkup(p);const data=currentNative();if(original){const plain=fullPageMarkup(p);return plain.replace('</div>',`<div class="native-hotspots">${data.rows.map((row,r)=>row.map((t,i)=>nativeWordMarkup(t,r,i,true)).join('')).join('')}</div></div>`)+`<details class="native-word-details"><summary>รายการคำและชุดคำที่กดอ่านได้</summary>${nativeRowsMarkup(data)}</details>`}
  return `<article class="native-flow-page source-faithful-page" aria-label="คาราโอเกะ ${escapeText(p.label)}"><p class="native-instruction">แตะคำเพื่อฟังทีละคำ หรือกด 🔊 ข้างบรรทัด เพื่ออ่านตามทีละชุด · ภาพและข้อความจัดวางตามต้นฉบับ</p>${nativeSourceLayoutMarkup(p,data)}</article>`;
