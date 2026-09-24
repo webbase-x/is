@@ -31,7 +31,7 @@ function clearSpeechVisual(){if(speakingEl){speakingEl.classList.remove("speakin
 function setBookMainButton(icon,label,disabled=false){const btn=$("#readPageKaraoke");if(!btn)return;btn.disabled=disabled;btn.setAttribute("aria-label",label);btn.setAttribute("title",label);btn.innerHTML=`<span class="book-control-icon">${icon}</span><span>${label}</span>`}
 function stopSpeech(){stopSongKaraoke(false);clearNativeHighlights();karaokeRun++;speechSeq++;window.speechSynthesis?.cancel?.();if(finishSpeech)finishSpeech();clearSpeechVisual();stage.querySelectorAll(".line-reading").forEach(el=>el.classList.remove("line-reading"));const song=currentSongConfig();setBookMainButton(song?"▶":"🔊",song?"เล่นเพลง":"อ่านหน้านี้",false)}
 function keepReadingVisible(target){if(![1,3].includes(step)||!target?.getBoundingClientRect)return;const r=target.getBoundingClientRect();if(r.top<165||r.bottom>window.innerHeight-32)target.scrollIntoView({block:"center",behavior:"smooth"})}
-const NORMAL_SPEECH_RATE=1.00;
+const NORMAL_SPEECH_RATE=0.90;
 function ttsSafeText(text){
  let out=String(text??"");
  out=out.replace(/ใบบัว/g,"ใบ\u200Bบัว");
