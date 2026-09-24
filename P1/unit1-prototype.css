@@ -313,3 +313,23 @@ body.unit1-prototype .song-karaoke-player{display:none!important}
   }
   body.unit1-prototype .book-reader-controls .book-control-icon{font-size:23px!important}
 }
+
+
+/* คำที่เขียนติดกันและถูกแบ่งเป็นหลาย token ให้เห็นกรอบไฮไลต์เดียว */
+body.unit1-prototype .native-reading-group-member.native-reading-active{
+  background:transparent!important;
+  box-shadow:none!important;
+  outline:0!important;
+}
+body.unit1-prototype .native-reading-group-box{
+  position:absolute;
+  z-index:66;
+  pointer-events:none;
+  border:3px solid #f0b400;
+  border-radius:10px;
+  background:rgba(255,226,91,.22);
+  box-shadow:0 0 0 3px rgba(255,210,35,.12);
+}
+body.unit1-prototype [data-page-next] .book-control-icon{
+  white-space:nowrap;
+}
