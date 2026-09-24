@@ -15,7 +15,7 @@ body.unit1-prototype .teacher-note{display:none!important}
 body.unit1-prototype .shell{
   width:min(100%,980px);
   margin:0 auto;
-  padding:58px clamp(4px,1.2vw,12px) 92px;
+  padding:46px clamp(4px,1.2vw,12px) 92px;
 }
 body.unit1-prototype .learning-card{
   margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;
@@ -104,26 +104,27 @@ body.unit1-prototype .song-seek{margin-top:8px}
 /* แถบเล็กด้านบน */
 .unit1-mini-bar{
   position:fixed;left:0;right:0;top:0;z-index:95;
-  height:52px;
+  height:42px;
   display:flex;align-items:center;justify-content:space-between;
-  padding:5px max(8px,env(safe-area-inset-left)) 5px max(8px,env(safe-area-inset-right));
-  background:rgba(255,253,248,.94);
-  border-bottom:1px solid rgba(218,208,193,.76);
-  backdrop-filter:blur(14px);
+  padding:3px max(7px,env(safe-area-inset-left)) 3px max(7px,env(safe-area-inset-right));
+  background:rgba(255,253,248,.92);
+  border-bottom:1px solid rgba(218,208,193,.68);
+  backdrop-filter:blur(12px);
 }
 .unit1-mini-menu{
-  width:42px;height:42px;padding:0;
+  width:36px;height:36px;padding:0;
   display:grid;place-items:center;
-  border:1px solid #ddd4c7;border-radius:14px;
+  border:1px solid #ddd4c7;border-radius:11px;
   background:#fff;color:#3f382f;
-  font-size:24px;font-weight:900;
+  font-size:20px;font-weight:900;
 }
 .unit1-mini-title{
-  min-width:0;max-width:72vw;
+  min-width:0;max-width:74vw;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  color:#39332b;font-weight:800;font-size:.98rem;
+  color:#39332b;font-weight:800;font-size:.88rem;
+  line-height:1.1;
 }
-.unit1-mini-spacer{width:42px}
+.unit1-mini-spacer{width:36px}
 
 /* เมนู ๓ ขีด */
 .unit1-menu-backdrop{
@@ -218,7 +219,7 @@ body.unit1-home-prototype .other-units-grid{
 body.unit1-home-prototype .other-units-grid .unit-card{min-height:0}
 
 @media(max-width:640px){
-  body.unit1-prototype .shell{padding-top:56px;padding-inline:3px;padding-bottom:84px}
+  body.unit1-prototype .shell{padding-top:44px;padding-inline:3px;padding-bottom:84px}
   body.unit1-prototype .book-reader-head{padding-right:6px}
   body.unit1-prototype .book-paper{padding:2px;border-radius:8px}
   body.unit1-prototype .book-reader-controls{
@@ -227,7 +228,7 @@ body.unit1-home-prototype .other-units-grid .unit-card{min-height:0}
   }
   body.unit1-prototype .book-reader-controls button{min-height:54px;border-radius:16px}
   body.unit1-prototype .book-reader-controls .book-control-icon{font-size:28px!important}
-  .unit1-mini-title{font-size:.92rem}
+  .unit1-mini-title{font-size:.84rem}
   body.unit1-home-prototype .welcome-shell{padding:12px 10px 36px}
   body.unit1-home-prototype .other-units-grid{grid-template-columns:1fr}
 }
