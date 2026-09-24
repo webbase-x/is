@@ -397,3 +397,43 @@ body.unit1-prototype .shell{
   }
   .unit1-mini-spacer{width:28px}
 }
+
+
+/* รอบแก้หัวกระดาษ: ลดช่องว่างภายในหน้าหนังสือ ไม่ย่อไตเติลบาร์เกินไป */
+body.unit1-prototype .shell{
+  padding-top:36px;
+}
+.unit1-mini-bar{
+  height:34px;
+  padding:2px max(4px,env(safe-area-inset-left)) 2px max(4px,env(safe-area-inset-right));
+}
+.unit1-mini-menu{
+  width:30px;
+  height:30px;
+}
+.unit1-mini-title{
+  font-size:.80rem;
+  line-height:1.05;
+}
+.unit1-mini-spacer{width:30px}
+
+/* ลดหัวกระดาษภายในเนื้อหาหนังสือ */
+body.unit1-prototype .source-faithful-page{padding-top:0!important}
+body.unit1-prototype .native-source-layout-wrap{padding-top:0!important}
+body.unit1-prototype .native-three-col-grid{padding-top:2px!important}
+
+@media(max-width:640px){
+  body.unit1-prototype .shell{padding-top:34px}
+  .unit1-mini-bar{
+    height:32px;
+    padding:2px 4px;
+  }
+  .unit1-mini-menu{
+    width:28px;
+    height:28px;
+  }
+  .unit1-mini-title{
+    font-size:.76rem;
+  }
+  .unit1-mini-spacer{width:28px}
+}
