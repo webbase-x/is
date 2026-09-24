@@ -1,0 +1,74 @@
+name: Sync P1 karaoke songs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/p1-sync-karaoke-songs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-songs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download karaoke MP3 files from Google Drive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p P1/sounds
+          download_song() {
+            unit="$1"
+            id="$2"
+            out="P1/sounds/karaoke-unit-${unit}.mp3"
+            url="https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t"
+            echo "Downloading unit ${unit}..."
+            curl --fail --location --retry 4 --retry-delay 2 --connect-timeout 20 --max-time 180 "$url" -o "$out"
+            test -s "$out"
+            size=$(wc -c < "$out")
+            if [ "$size" -lt 100000 ]; then
+              echo "Downloaded file is unexpectedly small: $size bytes"
+              head -c 200 "$out" || true
+              exit 1
+            fi
+            mime=$(file -b --mime-type "$out")
+            echo "$out -> $mime ($size bytes)"
+            case "$mime" in
+              audio/*|application/octet-stream) ;;
+              *) echo "Unexpected MIME type: $mime"; exit 1 ;;
+            esac
+          }
+
+          download_song 01 "1mRUcfGRtSZhQKrCAnhwpMa_z-XZeYLxa"
+          download_song 02 "14WaMWmBmkhDBCeb9jQQ6Bs_KrM7Cv03S"
+          download_song 03 "1XVDii5UgtAESMNbDNVkZC6AZ4p4DDiQV"
+          download_song 04 "1Q6y-bP9L2f-tnuLAdXMZBuzw2H9xbSS4"
+          download_song 05 "1YcEOfinsHiOg6uN8d5gJH7TPaOerltbD"
+          download_song 06 "1zFBFGZsJTg8-UJSxxThYa9SAtmb0lig2"
+          download_song 07 "1_y7pyQyONxgylGieg27SJKcdOxZMZC6f"
+          download_song 08 "1X-vcZFacrk_jFIgvuI-XvsCfUmiz3bdK"
+          download_song 09 "1r0UJBovuPpJDibhw5GIVCOzLUfzKPxXk"
+          download_song 10 "1kfnd_Wo-Taq9S9uYc7YCamHMzH_gP-Zy"
+          download_song 11 "1gsN-YAfjotwe4xq1Y9mCL0bskEQebrsr"
+          download_song 12 "1kCjstBxa0POpfyzObK1-N2-cwnu7CD1Q"
+
+      - name: Commit songs when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add P1/sounds/karaoke-unit-*.mp3
+          if git diff --cached --quiet; then
+            echo "No song changes."
+            exit 0
+          fi
+          git commit -m "P1: sync karaoke songs for อ่านคล่องร้องเล่น"
+          git push origin HEAD:main

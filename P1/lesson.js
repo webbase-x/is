@@ -139,7 +139,7 @@ async function readAllVocabulary(){const run=beginKaraoke(),buttons=[...stage.qu
 function escapeText(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function currentNative(){return window.P1_PAGE_KARAOKE[fullBook.pages[fullIndex].page]}
 function currentSongConfig(p=fullBook?.pages?.[fullIndex]){const cfg=window.P1_SONG_KARAOKE?.[unitNo];return cfg&&Number(cfg.page)===Number(p?.page)?cfg:null}
-function songAudioUrl(cfg){return `https://drive.google.com/uc?export=download&id=${encodeURIComponent(cfg.driveId)}`}
+function songAudioUrl(cfg){return cfg.src||`https://drive.usercontent.google.com/download?id=${encodeURIComponent(cfg.driveId)}&export=download&confirm=t`}
 function songOffsetKey(cfg){return `p1-song-offset-${cfg.page}`}
 function songOffset(cfg){return Number(localStorage.getItem(songOffsetKey(cfg))||0)}
 function clearSongHighlights(){
@@ -237,7 +237,7 @@ function bindSongKaraoke(cfg){
  audio.addEventListener("play",()=>{if(play)play.textContent="⏸ หยุดชั่วคราว";if(status)status.textContent="กำลังร้องตามเพลง · อ่านคำที่ไฮไลต์สีเหลือง";if(songSyncRaf)cancelAnimationFrame(songSyncRaf);songSyncRaf=requestAnimationFrame(syncSongFrame)});
  audio.addEventListener("pause",()=>{if(play)play.textContent="▶ เล่นต่อ";if(status&&!audio.ended)status.textContent="หยุดชั่วคราว · กดเล่นต่อได้"});
  audio.addEventListener("ended",()=>{clearSongHighlights();if(play)play.textContent="▶ เล่นอีกครั้ง";if(status)status.textContent="จบเพลงแล้ว · กดเล่นอีกครั้งเพื่อฝึกซ้ำ"});
- audio.addEventListener("error",()=>{if(status)status.innerHTML='เปิดเพลงจาก Drive ไม่สำเร็จ <a href="https://drive.google.com/file/d/'+encodeURIComponent(cfg.driveId)+'/view" target="_blank" rel="noopener">เปิดไฟล์เพลง</a>'});
+ audio.addEventListener("error",()=>{if(status)status.textContent="เปิดไฟล์เพลงไม่สำเร็จ กรุณารีเฟรชหน้าเว็บอีกครั้ง";if(play){play.disabled=true;play.textContent="เพลงยังไม่พร้อม"}});
  const toggle=async()=>{if(audio.paused){window.speechSynthesis?.cancel?.();speechSeq++;clearSpeechVisual();try{await audio.play()}catch{if(status)status.textContent="เบราว์เซอร์ป้องกันการเล่นอัตโนมัติ กรุณากด ▶ อีกครั้ง"}}else audio.pause()};
  if(play)play.onclick=toggle;
  const read=$("#readPageKaraoke");if(read)read.onclick=toggle;
