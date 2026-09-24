@@ -349,3 +349,51 @@ body.unit1-prototype .native-reading-group-member.speaking-now{
 body.unit1-prototype .native-reading-group-member.speaking-now{
   transform:none!important;
 }
+
+
+/* หัวกระดาษแบบเกือบชิดขอบ */
+body.unit1-prototype .shell{
+  padding-top:34px;
+  padding-inline:clamp(2px,.6vw,6px);
+}
+.unit1-mini-bar{
+  height:32px;
+  padding:1px max(4px,env(safe-area-inset-left)) 1px max(4px,env(safe-area-inset-right));
+  background:rgba(255,253,248,.90);
+  border-bottom-color:rgba(218,208,193,.55);
+  backdrop-filter:blur(10px);
+}
+.unit1-mini-menu{
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  font-size:18px;
+}
+.unit1-mini-title{
+  max-width:78vw;
+  font-size:.78rem;
+  line-height:1;
+}
+.unit1-mini-spacer{width:30px}
+
+@media(max-width:640px){
+  body.unit1-prototype .shell{
+    padding-top:32px;
+    padding-inline:2px;
+  }
+  .unit1-mini-bar{
+    height:30px;
+    padding:1px 4px;
+  }
+  .unit1-mini-menu{
+    width:28px;
+    height:28px;
+    border-radius:8px;
+    font-size:17px;
+  }
+  .unit1-mini-title{
+    max-width:80vw;
+    font-size:.74rem;
+  }
+  .unit1-mini-spacer{width:28px}
+}
