@@ -140,7 +140,7 @@ function escapeText(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 function currentNative(){return window.P1_PAGE_KARAOKE[fullBook.pages[fullIndex].page]}
 function currentSongConfig(p=fullBook?.pages?.[fullIndex]){const cfg=window.P1_SONG_KARAOKE?.[unitNo];return cfg&&Number(cfg.page)===Number(p?.page)?cfg:null}
 function songAudioUrl(cfg){return cfg.src||`https://drive.usercontent.google.com/download?id=${encodeURIComponent(cfg.driveId)}&export=download&confirm=t`}
-function songOffsetKey(cfg){return `p1-song-offset-${cfg.page}`}
+function songOffsetKey(cfg){return `p1-song-offset-v2-${cfg.page}`}
 function songOffset(cfg){return Number(localStorage.getItem(songOffsetKey(cfg))||0)}
 function clearSongHighlights(){
  if(songActiveWord){songActiveWord.classList.remove("song-karaoke-active");songActiveWord=null}
@@ -163,9 +163,30 @@ function buildSongCues(cfg,duration){
   const words=rows[r].map((t,i)=>({r,i,text:t.t,weight:songTokenWeight(t.t)}));
   if(words.length)lyricRows.push(words)
  }
+ const timedPasses=window.P1_SONG_CUE_PASSES?.[unitNo];
+ if(Array.isArray(timedPasses)&&timedPasses.length){
+  const cues=[];
+  timedPasses.forEach((pass,passIndex)=>{
+   pass.forEach((window,rowIndex)=>{
+    const row=lyricRows[rowIndex];
+    if(!row||!Array.isArray(window)||window.length<2)return;
+    const lineStart=Number(window[0]),lineEnd=Number(window[1]);
+    if(!Number.isFinite(lineStart)||!Number.isFinite(lineEnd)||lineEnd<=lineStart)return;
+    const lineDur=lineEnd-lineStart,breath=Math.min(.22,lineDur*.06),wordEnd=Math.max(lineStart+.12,lineEnd-breath);
+    const usable=Math.max(.12,wordEnd-lineStart),sum=row.reduce((n,w)=>n+w.weight,0)||1;
+    let cursor=lineStart;
+    row.forEach((w,idx)=>{
+     const dur=usable*(w.weight/sum),end=idx===row.length-1?wordEnd:cursor+dur;
+     cues.push({start:cursor,end,r:w.r,i:w.i,pass:passIndex+1,line:rowIndex+1});
+     cursor=end;
+    });
+   });
+  });
+  return cues.sort((a,b)=>a.start-b.start)
+ }
  const d=Number.isFinite(duration)&&duration>1?duration:Number(cfg.duration)||60;
- const start=Math.max(0,Number(cfg.intro)||0),end=Math.max(start+1,d-(Number(cfg.outro)||0));
- const cycles=Math.max(1,Number(cfg.cycles)||1),cycleDur=(end-start)/cycles,cues=[];
+ const start=Math.max(0,Number(cfg.intro)||0),endTime=Math.max(start+1,d-(Number(cfg.outro)||0));
+ const cycles=Math.max(1,Number(cfg.cycles)||1),cycleDur=(endTime-start)/cycles,cues=[];
  const lineWeights=lyricRows.map(row=>row.reduce((n,w)=>n+w.weight,0)+1.15);
  const totalLineWeight=lineWeights.reduce((a,b)=>a+b,0)||1;
  for(let cycle=0;cycle<cycles;cycle++){
@@ -176,7 +197,7 @@ function buildSongCues(cfg,duration){
    let wordCursor=cursor;
    row.forEach((w,idx)=>{
     const dur=wordDur*(w.weight/sum);
-    cues.push({start:wordCursor,end:idx===row.length-1?cursor+wordDur:wordCursor+dur,r:w.r,i:w.i});
+    cues.push({start:wordCursor,end:idx===row.length-1?cursor+wordDur:wordCursor+dur,r:w.r,i:w.i,pass:cycle+1,line:rowIndex+1});
     wordCursor+=dur
    });
    cursor+=lineDur
@@ -197,6 +218,7 @@ function paintSongCue(cue){
  const row=el.closest(".reading-card,.native-layout-row,.native-grid-row");
  if(songActiveWord!==el){if(songActiveWord)songActiveWord.classList.remove("song-karaoke-active");songActiveWord=el;el.classList.add("song-karaoke-active")}
  if(songActiveRow!==row){if(songActiveRow)songActiveRow.classList.remove("song-karaoke-row-active");songActiveRow=row;if(row)row.classList.add("song-karaoke-row-active")}
+ const status=$("#songStatus");if(status&&cue.pass&&cue.line)status.textContent=`กำลังร้องตามเพลง · รอบที่ ${cue.pass} · บรรทัดที่ ${cue.line}`;
  keepReadingVisible(el)
 }
 function syncSongFrame(){
