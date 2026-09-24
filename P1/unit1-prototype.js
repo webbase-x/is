@@ -30,6 +30,61 @@
 
   if (!isUnit1) return;
 
+  const UNIT1_MEDIA = [
+    'book/unit1-cover.webp',
+    'book/unit1-complete.webp',
+    'book/unit1-book.webp',
+    'book/word-img/unit1-words.webp',
+    'sounds/karaoke-unit-01.mp3'
+  ];
+
+  function setMediaStatus(text,state='') {
+    const el=document.getElementById('unit1MediaStatus');
+    if(!el)return;
+    el.textContent=text;
+    el.classList.remove('ready','error');
+    if(state)el.classList.add(state);
+  }
+
+  async function warmUnit1Media() {
+    setMediaStatus('⏳ กำลังเตรียมสื่อ');
+    try {
+      if('fonts' in document) {
+        document.fonts.load('1em "Noto Sans Thai Looped"').catch(()=>{});
+      }
+
+      let registration=null;
+      if('serviceWorker' in navigator) {
+        try {
+          registration=await navigator.serviceWorker.register('p1-media-sw.js?v=1',{scope:'./'});
+          await navigator.serviceWorker.ready;
+          const worker=registration.active||registration.waiting||registration.installing;
+          worker?.postMessage?.({type:'PRECACHE_MEDIA',assets:UNIT1_MEDIA});
+        } catch {}
+      }
+
+      const loaded=await Promise.allSettled(UNIT1_MEDIA.map(async raw=>{
+        const url=new URL(raw,location.href).href;
+        const response=await fetch(url,{cache:'force-cache',credentials:'same-origin'});
+        if(!response.ok)throw new Error('โหลดสื่อไม่สำเร็จ');
+        await response.arrayBuffer();
+        if(/\.(?:webp|png|jpe?g|gif|svg)$/i.test(new URL(url).pathname)){
+          const img=new Image();
+          img.decoding='async';
+          img.src=url;
+          try{await img.decode()}catch{}
+        }
+        return true;
+      }));
+      const ok=loaded.filter(x=>x.status==='fulfilled').length;
+      if(ok===UNIT1_MEDIA.length)setMediaStatus('✓ สื่อพร้อม','ready');
+      else if(ok>0)setMediaStatus('✓ สื่อหลักพร้อม','ready');
+      else setMediaStatus('สื่อจะโหลดเมื่อเปิดหน้า','error');
+    } catch {
+      setMediaStatus('สื่อจะโหลดเมื่อเปิดหน้า','error');
+    }
+  }
+
   document.body.classList.add('unit1-prototype');
   sessionStorage.setItem('p1-book-step-1','3');
   if (params.get('start') === '1') {
@@ -49,7 +104,7 @@
     const backdrop = document.createElement('div');
     backdrop.className = 'unit1-menu-backdrop';
     backdrop.id = 'unit1MenuBackdrop';
-    backdrop.innerHTML = '<aside class="unit1-menu-panel" role="dialog" aria-modal="true" aria-label="เมนูบทเรียน"><div class="unit1-menu-head"><strong>เมนู</strong><button class="unit1-menu-close" id="unit1MenuClose" type="button" aria-label="ปิดเมนู">✕</button></div><div class="unit1-menu-list"><a href="index.html"><span class="menu-icon">🏠</span><span>หน้าเลือกบท</span></a><button id="unit1GoCover" type="button"><span class="menu-icon">📘</span><span>หน้าปกบท</span></button><button id="unit1Sound" type="button"><span class="menu-icon" id="unit1SoundIcon">🔊</span><span id="unit1SoundLabel">เสียงเปิด</span></button><button id="unit1Restart" type="button"><span class="menu-icon">↺</span><span>เริ่มบทใหม่</span></button></div></aside>';
+    backdrop.innerHTML = '<aside class="unit1-menu-panel" role="dialog" aria-modal="true" aria-label="เมนูบทเรียน"><div class="unit1-menu-head"><strong>เมนู</strong><button class="unit1-menu-close" id="unit1MenuClose" type="button" aria-label="ปิดเมนู">✕</button></div><div class="unit1-menu-list"><a href="index.html"><span class="menu-icon">🏠</span><span>หน้าเลือกบท</span></a><button id="unit1GoCover" type="button"><span class="menu-icon">📘</span><span>หน้าปกบท</span></button><button id="unit1Sound" type="button"><span class="menu-icon" id="unit1SoundIcon">🔊</span><span id="unit1SoundLabel">เสียงเปิด</span></button><button id="unit1Restart" type="button"><span class="menu-icon">↺</span><span>เริ่มบทใหม่</span></button></div><div class="unit1-media-status" id="unit1MediaStatus">⏳ กำลังเตรียมสื่อ</div></aside>';
     document.body.appendChild(backdrop);
 
     const openBtn = document.getElementById('unit1MenuOpen');
@@ -76,6 +131,7 @@
     };
     soundBtn.addEventListener('click', () => { document.getElementById('soundToggle')?.click(); syncSound(); });
     syncSound();
+    warmUnit1Media();
 
     if (!localStorage.getItem('p1-unit1-swipe-onboard-v1')) {
       const hint = document.createElement('div');

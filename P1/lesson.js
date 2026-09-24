@@ -28,7 +28,8 @@ let speakingEl=null,speechSeq=0,karaokeRun=0,finishSpeech=null;
 let songAudio=null,songSyncRaf=0,songActiveWord=null,songActiveRow=null,songCues=[];
 function pictureMarkup(word,cls=""){const idx=unit.pictures?.[word];if(idx===undefined)return "";const x=(idx%3)*50,y=Math.floor(idx/3)*50;return `<span class="word-picture ${cls}" role="img" aria-label="ภาพประกอบคำ ${word}" style="background-image:url('book/word-img/unit${unitNo}-words.webp');background-position:${x}% ${y}%"></span>`}
 function clearSpeechVisual(){if(speakingEl){speakingEl.classList.remove("speaking-now");speakingEl=null}}
-function stopSpeech(){stopSongKaraoke(false);clearNativeHighlights();karaokeRun++;speechSeq++;window.speechSynthesis?.cancel?.();if(finishSpeech)finishSpeech();clearSpeechVisual();stage.querySelectorAll(".line-reading").forEach(el=>el.classList.remove("line-reading"));const btn=$("#readPageKaraoke");if(btn){btn.disabled=false;const song=currentSongConfig();if(unitNo===1){btn.innerHTML=`<span class="book-control-icon">${song?"▶":"🔊"}</span><span>${song?"ร้องคาราโอเกะ":"อ่านหน้านี้"}</span>`}else{btn.textContent=song?"▶ ร้องคาราโอเกะ":"🔊 อ่านหน้านี้"}}}
+function setBookMainButton(icon,label,disabled=false){const btn=$("#readPageKaraoke");if(!btn)return;btn.disabled=disabled;btn.setAttribute("aria-label",label);btn.setAttribute("title",label);if(unitNo===1){btn.innerHTML=`<span class="book-control-icon">${icon}</span><span>${label}</span>`}else{btn.textContent=`${icon} ${label}`}}
+function stopSpeech(){stopSongKaraoke(false);clearNativeHighlights();karaokeRun++;speechSeq++;window.speechSynthesis?.cancel?.();if(finishSpeech)finishSpeech();clearSpeechVisual();stage.querySelectorAll(".line-reading").forEach(el=>el.classList.remove("line-reading"));const song=currentSongConfig();setBookMainButton(song?"▶":"🔊",song?(unitNo===1?"เล่นเพลง":"ร้องคาราโอเกะ"):"อ่านหน้านี้",false)}
 function keepReadingVisible(target){if(![1,3].includes(step)||!target?.getBoundingClientRect)return;const r=target.getBoundingClientRect();if(r.top<165||r.bottom>window.innerHeight-32)target.scrollIntoView({block:"center",behavior:"smooth"})}
 const NORMAL_SPEECH_RATE=1.00;
 function speak(text,target=null){if(!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}const token=++speechSeq;if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();if(finishSpeech)finishSpeech();clearSpeechVisual();if(target){keepReadingVisible(target);speakingEl=target;target.classList.add("speaking-now")}return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(text);u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;let settled=false;const done=()=>{if(settled)return;settled=true;if(token===speechSeq)clearSpeechVisual();if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;u.onend=done;u.onerror=done;window.speechSynthesis.speak(u)})}
@@ -65,7 +66,7 @@ function karaokeLineMarkup(line,lineIndex){const tokens=readingTokens(line);retu
 function beginKaraoke(){stopSpeech();return karaokeRun}
 async function readKaraokeLine(lineEl,runId=null){if(!lineEl)return;const run=runId??beginKaraoke();const tokens=[...lineEl.querySelectorAll("[data-k-token]")];lineEl.classList.add("line-reading");if(karaokeRun===run&&step===3)await speakQueued(tokens.filter(el=>document.body.contains(el)).map(el=>({text:el.dataset.speech||"",target:el})));lineEl.classList.remove("line-reading")}
 async function readKaraokeTitle(titleEl,runId=null){if(!titleEl)return;const run=runId??beginKaraoke();if(karaokeRun!==run||step!==3)return;const tokens=[...titleEl.querySelectorAll("[data-k-title-token]")].filter(el=>document.body.contains(el));await speakQueued(tokens.map(el=>({text:el.dataset.speech||"",target:el})))}
-async function readKaraokePage(){const run=beginKaraoke(),title=stage.querySelector("[data-k-title]"),lines=[...stage.querySelectorAll("[data-k-line]")],btn=$("#readPageKaraoke");if(btn){btn.disabled=true;btn.textContent="🔊 กำลังอ่าน..."}const els=[...(title?[...title.querySelectorAll("[data-k-title-token]")]:[]),...lines.flatMap(line=>[...line.querySelectorAll("[data-k-token]")])].filter(el=>document.body.contains(el));if(run===karaokeRun&&step===3)await speakQueued(els.map(el=>({text:el.dataset.speech||"",target:el})));if(run===karaokeRun&&btn&&document.body.contains(btn)){btn.disabled=false;btn.textContent="🔊 อ่านหน้านี้"}}
+async function readKaraokePage(){const run=beginKaraoke(),title=stage.querySelector("[data-k-title]"),lines=[...stage.querySelectorAll("[data-k-line]")],btn=$("#readPageKaraoke");if(btn)setBookMainButton("⏸","กำลังอ่าน",true);const els=[...(title?[...title.querySelectorAll("[data-k-title-token]")]:[]),...lines.flatMap(line=>[...line.querySelectorAll("[data-k-token]")])].filter(el=>document.body.contains(el));if(run===karaokeRun&&step===3)await speakQueued(els.map(el=>({text:el.dataset.speech||"",target:el})));if(run===karaokeRun&&btn&&document.body.contains(btn))setBookMainButton("🔊","อ่านหน้านี้",false)}
 function pagePictureWords(page){const text=(page?.lines||[]).join(" ");return unit.words.filter(w=>unit.pictures?.[w]!==undefined&&text.includes(w))}
 function shuffle(a){const x=[...a];for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
 function save(){localStorage.setItem(`p1-book-stars-${unitNo}`,stars);localStorage.setItem(`p1-book-done-${unitNo}`,JSON.stringify([...completed]));sessionStorage.setItem(`p1-book-step-${unitNo}`,step)}
@@ -262,10 +263,10 @@ function bindSongKaraoke(cfg){
  audio.addEventListener("loadedmetadata",refreshCues);
  if(audio.readyState>=1)refreshCues();else songCues=buildSongCues(cfg,cfg.duration);
  audio.addEventListener("timeupdate",()=>{if(seek&&!seek.matches(":active"))seek.value=audio.currentTime;const t=$("#songCurrentTime");if(t)t.textContent=formatSongTime(audio.currentTime);paintSongCue(activeSongCue(audio.currentTime-songOffset(cfg)))});
- audio.addEventListener("play",()=>{if(play)play.textContent="⏸ หยุดชั่วคราว";if(status)status.textContent="กำลังร้องตามเพลง · อ่านคำที่ไฮไลต์สีเหลือง";if(songSyncRaf)cancelAnimationFrame(songSyncRaf);songSyncRaf=requestAnimationFrame(syncSongFrame)});
- audio.addEventListener("pause",()=>{if(play)play.textContent="▶ เล่นต่อ";if(status&&!audio.ended)status.textContent="หยุดชั่วคราว · กดเล่นต่อได้"});
- audio.addEventListener("ended",()=>{clearSongHighlights();if(play)play.textContent="▶ เล่นอีกครั้ง";if(status)status.textContent="จบเพลงแล้ว · กดเล่นอีกครั้งเพื่อฝึกซ้ำ"});
- audio.addEventListener("error",()=>{if(status)status.textContent="เปิดไฟล์เพลงไม่สำเร็จ กรุณารีเฟรชหน้าเว็บอีกครั้ง";if(play){play.disabled=true;play.textContent="เพลงยังไม่พร้อม"}});
+ audio.addEventListener("play",()=>{if(play)play.textContent="⏸ หยุดชั่วคราว";if(unitNo===1)setBookMainButton("⏸","หยุดเพลง",false);if(status)status.textContent="กำลังร้องตามเพลง · อ่านคำที่ไฮไลต์สีเหลือง";if(songSyncRaf)cancelAnimationFrame(songSyncRaf);songSyncRaf=requestAnimationFrame(syncSongFrame)});
+ audio.addEventListener("pause",()=>{if(play)play.textContent="▶ เล่นต่อ";if(unitNo===1)setBookMainButton("▶","เล่นเพลง",false);if(status&&!audio.ended)status.textContent="หยุดชั่วคราว · กดเล่นต่อได้"});
+ audio.addEventListener("ended",()=>{clearSongHighlights();if(play)play.textContent="▶ เล่นอีกครั้ง";if(unitNo===1)setBookMainButton("▶","เล่นเพลง",false);if(status)status.textContent="จบเพลงแล้ว · กดเล่นอีกครั้งเพื่อฝึกซ้ำ"});
+ audio.addEventListener("error",()=>{if(status)status.textContent="เปิดไฟล์เพลงไม่สำเร็จ กรุณารีเฟรชหน้าเว็บอีกครั้ง";if(play){play.disabled=true;play.textContent="เพลงยังไม่พร้อม"}if(unitNo===1)setBookMainButton("⚠","เพลงยังไม่พร้อม",true)});
  const toggle=async()=>{if(audio.paused){window.speechSynthesis?.cancel?.();speechSeq++;clearSpeechVisual();try{await audio.play()}catch{if(status)status.textContent="เบราว์เซอร์ป้องกันการเล่นอัตโนมัติ กรุณากด ▶ อีกครั้ง"}}else audio.pause()};
  if(play)play.onclick=toggle;
  const read=$("#readPageKaraoke");if(read)read.onclick=toggle;
@@ -467,7 +468,7 @@ function speakContinuousItems(items){
  return new Promise(resolve=>{let settled=false,last=-1;const done=()=>{if(settled)return;settled=true;if(token===speechSeq){clearSpeechVisual();clearNativeHighlights()}if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;const u=new SpeechSynthesisUtterance(spoken.join(sep));u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;u.onstart=()=>{last=0;activate(0)};u.onboundary=e=>{if(token!==speechSeq)return;let idx=0;for(let i=1;i<starts.length;i++){if(starts[i]<=e.charIndex)idx=i;else break}if(idx!==last){last=idx;activate(idx)}};u.onend=()=>{if(last<list.length-1){last=list.length-1;activate(last);setTimeout(done,120)}else done()};u.onerror=done;window.speechSynthesis.speak(u)})
 }
 async function readNativeRow(r,run=null){const id=run??beginKaraoke();if(id!==karaokeRun||step!==3)return;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items));if(id===karaokeRun)clearNativeHighlights()}
-async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn){btn.disabled=true;btn.textContent='🔊 กำลังอ่าน...'}for(let r=0;r<rows.length;r++){if(id!==karaokeRun||step!==3)break;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items))}if(id===karaokeRun&&document.body.contains(btn)){btn.disabled=false;btn.textContent='🔊 อ่านหน้านี้'}}
+async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn)setBookMainButton('⏸','กำลังอ่าน',true);for(let r=0;r<rows.length;r++){if(id!==karaokeRun||step!==3)break;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items))}if(id===karaokeRun&&document.body.contains(btn))setBookMainButton('🔊','อ่านหน้านี้',false)}
 function bindNative(){stage.querySelectorAll('[data-native-word]').forEach(b=>b.onclick=()=>{const [r,i]=b.dataset.nativeWord.split(':').map(Number);readNativeWord(r,i)});stage.querySelectorAll('[data-native-line]').forEach(b=>b.onclick=()=>readNativeRow(Number(b.dataset.nativeLine)))}
 function bindFlowWords(){stage.querySelectorAll('[data-k-token],[data-k-title-token]').forEach(el=>{el.setAttribute('role','button');el.setAttribute('tabindex','0');el.setAttribute('aria-label','อ่านคำ '+el.textContent);const read=e=>{e.stopPropagation();beginKaraoke();speak(el.dataset.speech,el)};el.onclick=read;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();read(e)}}})}
 function renderReading(turnDirection=""){
@@ -479,18 +480,13 @@ function renderReading(turnDirection=""){
  const pageContent=cover
   ? `<article class="book-cover-page" aria-label="หน้าปกบทที่ ${unitNo}">${spread([0,1],'cover-spread')}<div class="karaoke-text cover-karaoke">${karaokeLineMarkup('บทที่ '+unitNo,0)}${karaokeLineMarkup(unit.title,1)}</div></article>`
   : `<article class="book-source-page" aria-label="${escapeText(p.label)}">${nativeSourceLayoutMarkup(p,currentNative())}</article>`;
- const songPlayer=songCfg?songPlayerMarkup(songCfg):"";
+ const songPlayer=songCfg?(unitNo===1?`<audio id="songAudio" class="unit1-song-audio" preload="auto" playsinline src="${songAudioUrl(songCfg)}"></audio>`:songPlayerMarkup(songCfg)):"";
  const last=fullIndex===fullBook.pages.length-1;
+ const pageCount=`<span class="book-page-count ${unitNo===1?"book-page-count-on-paper":""}" aria-label="หน้าที่ ${fullIndex+1} จาก ${fullBook.pages.length}">${fullIndex+1} / ${fullBook.pages.length}</span>`;
  stage.innerHTML=`<div class="book-reader">
-   <header class="book-reader-head">
-     <div class="book-reader-heading">
-       <small>บทที่ ${unitNo} · ${escapeText(unit.title)}</small>
-       <strong>${escapeText(p.label)}</strong>
-     </div>
-     <span class="book-page-count" aria-label="หน้าที่ ${fullIndex+1} จาก ${fullBook.pages.length}">${fullIndex+1} / ${fullBook.pages.length}</span>
-   </header>
-   <section class="book-paper" aria-label="หน้าหนังสือ">${pageContent}</section>
-   ${songPlayer}
+   ${unitNo===1?"":`<header class="book-reader-head"><div class="book-reader-heading"><small>บทที่ ${unitNo} · ${escapeText(unit.title)}</small><strong>${escapeText(p.label)}</strong></div>${pageCount}</header>`}
+   <section class="book-paper" aria-label="หน้าหนังสือ">${pageContent}${unitNo===1?pageCount:""}${unitNo===1?songPlayer:""}</section>
+   ${unitNo===1?"":songPlayer}
    <p class="book-reader-tip">${songCfg?"🎤 เล่นเพลงแล้วอ่านตามคำที่ไฮไลต์ทีละคำ":"👆 แตะคำบนหน้าเพื่อฟังเสียง"}</p>
    <nav class="book-reader-controls" aria-label="เปลี่ยนหน้าและฟังเสียง">
      <button type="button" class="book-nav-button" data-page-prev aria-label="หน้าก่อน" title="หน้าก่อน" ${fullIndex===0?'disabled':''}><span class="book-control-icon">‹</span><span>หน้าก่อน</span></button>
@@ -499,6 +495,7 @@ function renderReading(turnDirection=""){
    </nav>
    ${last?'<div class="book-finish-wrap"><button class="book-finish-button" id="finishFullChapter">อ่านจบบทแล้ว · ไปทบทวน ✓</button></div>':''}
  </div>`;
+ if(unitNo===1){const paper=stage.querySelector('.book-paper'),controls=stage.querySelector('.book-reader-controls');if(paper&&controls)paper.appendChild(controls)}
  if(turnDirection&&!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches){
   const paper=stage.querySelector(".book-paper");
   if(paper){
