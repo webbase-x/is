@@ -53,7 +53,7 @@ for(let unit=1;unit<=12;unit++){
 
   const expected=[];
   for(let p=book.start+2;p<=book.end;p++)expected.push(p);
-  const actual=book.pages.slice(1).map(p=>p.page);
+  const actual=Array.from(book.pages.slice(1),p=>Number(p.page));
   assert.deepEqual(actual,expected,`บทที่ ${unit}: มีหน้าระหว่างปกถึงท้ายบทตกหล่นหรือเกินมา`);
 
   const last=book.pages.at(-1);
