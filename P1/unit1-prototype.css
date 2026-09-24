@@ -48,7 +48,8 @@ body.unit1-prototype .book-paper{
   -webkit-user-select:none;user-select:none;
 }
 body.unit1-prototype .book-reader-tip,
-body.unit1-prototype .book-finish-wrap{display:none!important}
+body.unit1-prototype .book-finish-wrap,
+body.unit1-prototype .cover-karaoke{display:none!important}
 body.unit1-prototype .book-reader-controls{
   position:fixed;
   left:50%;bottom:max(10px,env(safe-area-inset-bottom));
