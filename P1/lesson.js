@@ -163,6 +163,12 @@ function buildSongCues(cfg,duration){
   const words=rows[r].map((t,i)=>({r,i,text:t.t,weight:songTokenWeight(t.t)}));
   if(words.length)lyricRows.push(words)
  }
+ const exactWordCues=window.P1_SONG_WORD_CUES?.[unitNo];
+ if(Array.isArray(exactWordCues)&&exactWordCues.length){
+  return exactWordCues.map(c=>({start:Number(c[0]),end:Number(c[1]),r:Number(c[2]),i:Number(c[3]),pass:Number(c[4])||1,line:Number(c[5])||1}))
+    .filter(c=>Number.isFinite(c.start)&&Number.isFinite(c.end)&&c.end>c.start)
+    .sort((a,b)=>a.start-b.start)
+ }
  const timedPasses=window.P1_SONG_CUE_PASSES?.[unitNo];
  if(Array.isArray(timedPasses)&&timedPasses.length){
   const cues=[];
