@@ -35,6 +35,7 @@ const NORMAL_SPEECH_RATE=1.00;
 function ttsSafeText(text){
  let out=String(text??"");
  out=out.replace(/ใบบัว/g,"ใบ\u200Bบัว");
+ out=out.replace(/สะ(?:[\s-]*หะ[\s-]*ระ|[\s-]*หระ)|สระ/g,"สะหฺระ");
  if(out==="ดอ"||out==="ดอ,")return "ดอร์";
  return out
 }
@@ -156,6 +157,7 @@ function songVisualTime(audio,cfg){
 function clearSongHighlights(){
  if(songActiveWord){songActiveWord.classList.remove("song-karaoke-active");songActiveWord=null}
  if(songActiveRow){songActiveRow.classList.remove("song-karaoke-row-active");songActiveRow=null}
+ clearNativeHighlights();
  stage.querySelectorAll(".song-karaoke-active,.song-karaoke-row-active").forEach(el=>el.classList.remove("song-karaoke-active","song-karaoke-row-active"))
 }
 function stopSongKaraoke(reset=false){
@@ -232,9 +234,12 @@ function paintSongCue(cue){
  if(!cue){clearSongHighlights();return}
  const el=stage.querySelector(`[data-native-word="${cue.r}:${cue.i}"]`);
  if(!el)return;
- const row=el.closest(".reading-card,.native-layout-row,.native-grid-row");
- if(songActiveWord!==el){if(songActiveWord)songActiveWord.classList.remove("song-karaoke-active");songActiveWord=el;el.classList.add("song-karaoke-active")}
- if(songActiveRow!==row){if(songActiveRow)songActiveRow.classList.remove("song-karaoke-row-active");songActiveRow=row;if(row)row.classList.add("song-karaoke-row-active")}
+ if(songActiveWord!==el){
+  clearNativeHighlights();
+  const refs=nativeJoinedWordRefs(cue.r,cue.i);
+  showNativeGroupHighlight(refs.flatMap(ref=>[...stage.querySelectorAll(`[data-native-word="${ref.r}:${ref.i}"]`)]),false);
+  songActiveWord=el;
+ }
  const status=$("#songStatus");if(status&&cue.pass&&cue.line)status.textContent=`กำลังร้องตามเพลง · รอบที่ ${cue.pass} · บรรทัดที่ ${cue.line}`;
  keepReadingVisible(el)
 }
@@ -308,7 +313,15 @@ function nativeSourceRowMarkup(p,row,r,topShift=0){
  const x1=Math.min(...row.map(t=>t.b[0])),y1=Math.min(...row.map(t=>t.b[1])),placeY=Math.max(.8,y1-topShift);
  const x2=Math.max(...row.map(t=>t.b[0]+t.b[2])),y2=Math.max(...row.map(t=>t.b[1]+t.b[3]));
  const w=Math.max(2,x2-x1),h=Math.max(3.7,y2-y1);
- const words=row.map((t,i)=>{const b=t.b,left=(b[0]-x1)/w*100,top=(b[1]-y1)/h*100,fs=Math.max(2.15,Math.min(4.45,b[3]*p.h/fullBook.w*.72));return `<button type="button" class="native-word native-layout-word ${bookTokenClass(t.t)}" data-native-word="${r}:${i}" aria-label="อ่านคำ ${escapeText(t.t)}" title="อ่าน ${escapeText(t.t)}" style="left:${left.toFixed(3)}%;top:${top.toFixed(3)}%;--native-fs:${fs.toFixed(2)}cqw">${escapeText(t.t)}</button>`}).join('');
+ const groups=[];
+ row.forEach((t,i)=>{const last=groups.at(-1);if(last&&!nativePhonicsSectionRow(r)&&nativeTokensTouch(row[i-1],t))last.push(i);else groups.push([i])});
+ const words=groups.map(indices=>{
+  const t=row[indices[0]],b=t.b,left=(b[0]-x1)/w*100,top=(b[1]-y1)/h*100;
+  const right=Math.max(...indices.map(i=>row[i].b[0]+row[i].b[2]));
+  const fs=Math.max(1,Math.min(4.45,b[3]*p.h/fullBook.w*.72));
+  const label=indices.map(i=>row[i].t).join('');
+  return `<button type="button" class="native-word native-layout-word" data-native-group="${r}:${indices[0]}" aria-label="อ่านคำ ${escapeText(label)}" style="left:${left.toFixed(3)}%;top:${top.toFixed(3)}%;max-width:${(right-b[0])/w*100}%;--native-fs:${fs.toFixed(2)}cqw">${indices.map(i=>`<span data-native-word="${r}:${i}" class="${bookTokenClass(row[i].t)}">${escapeText(row[i].t)}</span>`).join('')}</button>`;
+ }).join('');
  const phonicsClass=nativePhonicsSectionRow(r)?' native-phonics-row':'';
  return `<div class="native-layout-row reading-card${phonicsClass}" data-native-row="${r}" style="left:${x1}%;top:${placeY.toFixed(3)}%;width:${w}%;height:${h}%"><button type="button" class="native-layout-speaker" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}" title="อ่านการ์ดนี้">🔊</button>${words}</div>`;
 }
@@ -342,15 +355,10 @@ function unit1PageVisibleBottom(p,data,arts,topShift){
  return Math.min(96,Math.max(32,bottom+3.2))
 }
 function nativeSourceLayoutMarkup(p,data){
- if(p.page===19)return nativePage19GridMarkup(p,data);
+
  const topShift=unit1PageTopShift(p,data);
  const seen=new Set(),arts=(data.arts||[]).filter(r=>{const k=r.map(n=>Number(n).toFixed(3)).join(':');if(seen.has(k))return false;seen.add(k);return true});
- // Page 18: restore the illustrations for the first row "ใบโบก มี ตา".
- const firstRowMissingArt=p.page===18
-  ? nativePlacedArtCopyMarkup(p,[16.98,37.178,15.586,11.52],[16.98,15.00,15.586,11.52],"ภาพใบโบกประกอบข้อความ ใบโบก มี ตา",topShift)
-   +nativePlacedArtCopyMarkup(p,[64.95,25.803,16.434,9.15],[64.95,16.18,16.434,9.15],"ภาพตาประกอบข้อความ ใบโบก มี ตา",topShift)
-  : '';
- const inner=`<div class="native-source-layout unit1-top-trimmed" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${firstRowMissingArt}${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i,topShift)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r,topShift)).join('')}</div>`;
+ const inner=`<div class="native-source-layout unit1-top-trimmed" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i,topShift)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r,topShift)).join('')}</div>`;
  if(unitNo!==1)return `<div class="native-source-layout-wrap">${inner}</div>`;
  const visibleBottom=unit1PageVisibleBottom(p,data,arts,topShift);
  const croppedH=(p.h*visibleBottom/100).toFixed(3);
@@ -366,8 +374,8 @@ function clearNativeHighlights(){
 function showNativeGroupHighlight(peers,showRow=false){
  const visible=(peers||[]).filter(el=>el&&el.getClientRects().length);
  visible.forEach(el=>{el.classList.add('native-reading-active');if(showRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});
- if(visible.length<2)return;
- const host=stage.querySelector('.book-paper');if(!host)return;
+ if(!visible.length)return;
+ const host=visible[0].closest('.native-source-layout,.native-three-col-grid')||stage.querySelector('.book-paper');if(!host)return;
  const hr=host.getBoundingClientRect(),rects=visible.map(el=>el.getBoundingClientRect());
  const left=Math.min(...rects.map(r=>r.left))-hr.left;
  const top=Math.min(...rects.map(r=>r.top))-hr.top;
@@ -375,7 +383,7 @@ function showNativeGroupHighlight(peers,showRow=false){
  const bottom=Math.max(...rects.map(r=>r.bottom))-hr.top;
  const box=document.createElement('span');
  box.className='native-reading-group-box';
- box.style.left=`${left-3}px`;box.style.top=`${top-3}px`;box.style.width=`${right-left+6}px`;box.style.height=`${bottom-top+6}px`;
+ box.style.left=`${left}px`;box.style.top=`${top}px`;box.style.width=`${right-left}px`;box.style.height=`${bottom-top}px`;
  host.appendChild(box);
  visible.forEach(el=>el.classList.add('native-reading-group-member'))
 }
@@ -393,7 +401,7 @@ function nativeTokensTouch(a,b){
  const gap=b.b[0]-(a.b[0]+a.b[2]);
  const overlap=Math.min(a.b[1]+a.b[3],b.b[1]+b.b[3])-Math.max(a.b[1],b.b[1]);
  const minH=Math.min(a.b[3],b.b[3]);
- return gap<=Math.max(.85,minH*.18)&&overlap>=minH*.45;
+ return gap>=-.15&&gap<=.30&&overlap>=minH*.45;
 }
 function nativeJoinedWordRefs(r,i){
  const rows=currentNative()?.rows||[],row=rows[r],token=row?.[i];
@@ -422,54 +430,48 @@ const nativeVowelSounds=new Set(["อะ","อา","อิ","อี","อึ","�
 function nativeTokenCenter(t){return [t.b[0]+t.b[2]/2,t.b[1]+t.b[3]/2]}
 function nativeConsonantToken(t){return /^[ก-ฮ]$/.test(t?.t||"")}
 function nativeVowelMarkerToken(t){return !!t&&nativeVowelSounds.has(t.s)&&t.t!==t.s&&!nativeConsonantToken(t)}
-function nativePhonicsSectionRow(r){
+function nativePhonicsRange(r){
  const rows=currentNative()?.rows||[];
  let start=-1;
- for(let i=0;i<r;i++){const ts=rows[i].map(t=>t.t);if(ts.includes("แจก")&&ts.includes("ลูก"))start=i}
- if(start<0||r<=start)return false;
- for(let i=start+1;i<=r&&i<rows.length;i++){
-  const ts=rows[i].map(t=>t.t);
-  if((ts.includes("อ่าน")&&ts.includes("สะกด")&&ts.includes("คำ"))||ts.includes("ฝึก"))return false;
+ // A continuation page may start with a row of vowel markers.
+ if(rows[0]?.some(nativeVowelMarkerToken))start=-.5;
+ for(let i=0;i<=r;i++){
+  const title=rows[i].map(t=>t.t).join('');
+  if(title.includes('อ่านแจกลูก'))start=i;
+  else if(/อ่านสะกดคำ|ฝึก|รู้จักรูป|อ่านผัน/.test(title))start=-1;
  }
- return true;
-}
-function nativePhonicsSteps(r){
- const data=currentNative(),rows=data?.rows||[],row=rows[r];
- if(!row)return null;
- let start=-1;
- for(let i=0;i<r;i++){const ts=rows[i].map(t=>t.t);if(ts.includes("แจก")&&ts.includes("ลูก"))start=i}
- if(start<0||r<=start)return null;
+ if(start===-1||r<=start)return null;
  let end=rows.length;
- for(let i=start+1;i<rows.length;i++){
-  const ts=rows[i].map(t=>t.t);
-  if((ts.includes("อ่าน")&&ts.includes("สะกด")&&ts.includes("คำ"))||ts.includes("ฝึก")){end=i;break}
+ for(let i=Math.ceil(start+1);i<rows.length;i++){
+  const title=rows[i].map(t=>t.t).join('');
+  if(/อ่านสะกดคำ|ฝึก|รู้จักรูป|อ่านผัน/.test(title)){end=i;break}
  }
- if(r>=end)return null;
+ return {start:start===-.5?0:Math.max(0,Math.ceil(start+1)),end};
+}
+function nativePhonicsSectionRow(r){return !!nativePhonicsRange(r)}
+function nativePhonicsSteps(r){
+ const rows=currentNative()?.rows||[],row=rows[r],range=nativePhonicsRange(r);
+ if(!row||!range)return null;
  const markers=[];
- for(let rr=start+1;rr<end;rr++)for(let i=0;i<rows[rr].length;i++){const t=rows[rr][i];if(nativeVowelMarkerToken(t))markers.push({r:rr,i,t})}
- if(!markers.length)return null;
- const consonants=row.map((t,i)=>nativeConsonantToken(t)?i:-1).filter(i=>i>=0);
- if(!consonants.length)return null;
- const steps=[];
+ for(let rr=range.start;rr<range.end;rr++)rows[rr].forEach((t,i)=>{if(nativeVowelMarkerToken(t))markers.push({r:rr,i,t})});
+ const consonants=row.map((t,i)=>nativeConsonantToken(t)?i:-1).filter(i=>i>=0),steps=[];
  for(let g=0;g<consonants.length;g++){
-  const ci=consonants[g],next=consonants[g+1]??row.length;
-  const results=[];
-  for(let i=ci+1;i<next;i++){const t=row[i];if(!nativeVowelMarkerToken(t)&&!["อ่าน","แจก","ลูก"].includes(t.t))results.push({i,t})}
-  if(!results.length)continue;
-  steps.push({r,i:ci});
-  for(const result of results){
-   let marker=null;
-   for(let i=ci+1;i<result.i;i++)if(nativeVowelMarkerToken(row[i]))marker={r,i,t:row[i]};
-   if(!marker){
-    const [x,y]=nativeTokenCenter(result.t);
-    let best=Infinity;
-    for(const m of markers){const [mx,my]=nativeTokenCenter(m.t),score=Math.abs(x-mx)*2+Math.abs(y-my);if(score<best){best=score;marker=m}}
-   }
-   if(marker)steps.push({r:marker.r,i:marker.i});
-   steps.push({r,i:result.i});
+  const ci=consonants[g],next=consonants[g+1]??row.length,c=row[ci].t;
+  for(let i=ci+1;i<next;i++){
+   const result=row[i];if(nativeVowelMarkerToken(result))continue;
+   const matches=markers.filter(m=>{
+    const form=m.t.t.replace(/[\s\u200B]/g,'');
+    return (/[ _-]/.test(form)?form.replace(/[_-]/g,c):c+form)===result.t;
+   });
+   if(!matches.length)continue;
+   const [x,y]=nativeTokenCenter(result);
+   matches.sort((a,b)=>{const [ax,ay]=nativeTokenCenter(a.t),[bx,by]=nativeTokenCenter(b.t);return (Math.abs(x-ax)*2+Math.abs(y-ay))-(Math.abs(x-bx)*2+Math.abs(y-by))});
+   const marker=matches[0];
+   // Repeat all three parts for every resulting word, including vowel tables.
+   steps.push({r,i:ci},{r:marker.r,i:marker.i},{r,i});
   }
  }
- return steps.length>=3?steps:null;
+ return steps.length?steps:null;
 }
 function nativeRowSpeechItems(r){
  const rows=currentNative()?.rows||[],row=rows[r];
@@ -516,7 +518,17 @@ function speakContinuousItems(items){
 }
 async function readNativeRow(r,run=null){const id=run??beginKaraoke();if(id!==karaokeRun||step!==3)return;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items));if(id===karaokeRun)clearNativeHighlights()}
 async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn)setBookMainButton('⏸','กำลังอ่าน',true);for(let r=0;r<rows.length;r++){if(id!==karaokeRun||step!==3)break;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items))}if(id===karaokeRun&&document.body.contains(btn))setBookMainButton('🔊','อ่านหน้านี้',false)}
-function bindNative(){stage.querySelectorAll('[data-native-word]').forEach(b=>b.onclick=()=>{const [r,i]=b.dataset.nativeWord.split(':').map(Number);readNativeWord(r,i)});stage.querySelectorAll('[data-native-line]').forEach(b=>b.onclick=()=>readNativeRow(Number(b.dataset.nativeLine)))}
+function fitNativeWords(){
+ stage.querySelectorAll('[data-native-group]').forEach(el=>{
+  el.style.fontSize='';
+  const width=el.getBoundingClientRect().width;
+  const content=document.createRange();content.selectNodeContents(el);
+  const natural=content.getBoundingClientRect().width;
+  if(width>0&&natural>width)el.style.fontSize=`${parseFloat(getComputedStyle(el).fontSize)*width/natural}px`;
+ });
+}
+window.addEventListener('resize',()=>requestAnimationFrame(fitNativeWords));
+function bindNative(){requestAnimationFrame(fitNativeWords);document.fonts?.ready.then(fitNativeWords);stage.querySelectorAll('[data-native-word],[data-native-group]').forEach(b=>b.onclick=e=>{e.stopPropagation();const [r,i]=(b.dataset.nativeGroup||b.dataset.nativeWord).split(':').map(Number);readNativeWord(r,i)});stage.querySelectorAll('[data-native-line]').forEach(b=>b.onclick=()=>readNativeRow(Number(b.dataset.nativeLine)))}
 function bindFlowWords(){stage.querySelectorAll('[data-k-token],[data-k-title-token]').forEach(el=>{el.setAttribute('role','button');el.setAttribute('tabindex','0');el.setAttribute('aria-label','อ่านคำ '+el.textContent);const read=e=>{e.stopPropagation();beginKaraoke();speak(el.dataset.speech,el)};el.onclick=read;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();read(e)}}})}
 function renderReading(turnDirection=""){
  stopSpeech();
@@ -594,6 +606,7 @@ $("#unitHero").style.setProperty("--unit",unit.color);
 $("#heroBookImage").innerHTML=spread([0,1],"hero-spread");
 render();
 })();
+
 
 
 

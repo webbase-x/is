@@ -655,3 +655,26 @@ body.unit1-prototype .book-paper:has(.native-three-col-grid){
     padding-bottom:44px!important;
   }
 }
+
+
+/* Source text is not a toolbar button: keep its printed geometry while reading. */
+body.unit1-prototype .native-source-layout .native-layout-word.native-word,
+body.unit1-prototype .native-source-layout .native-layout-word.native-word.speaking-now{
+ position:absolute!important; min-height:0!important; min-width:0!important;
+ height:auto!important; padding:0!important; margin:0!important; border:0!important;
+ line-height:1.2!important; transform:none!important; box-shadow:none!important;
+ outline:0!important; background:transparent!important;
+}
+body.unit1-prototype .native-source-layout [data-native-word]{
+ display:inline; padding:0!important; margin:0!important; border:0!important;
+ min-height:0!important; transform:none!important; position:static!important;
+ box-shadow:none!important; outline:0!important; background:transparent!important;
+}
+body.unit1-prototype .native-source-layout .native-reading-group-box{
+ z-index:1; border:0; border-radius:3px; box-shadow:none;
+ background:rgba(255,213,45,.5); box-sizing:border-box;
+}
+body.unit1-prototype .native-layout-row.native-row-active,
+body.unit1-prototype .native-layout-row.song-karaoke-row-active{
+ background:transparent!important; box-shadow:none!important; border:0!important;
+}
