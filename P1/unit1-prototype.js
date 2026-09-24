@@ -98,7 +98,7 @@
     if (document.querySelector('.unit1-mini-bar')) return;
     const bar = document.createElement('header');
     bar.className = 'unit1-mini-bar';
-    bar.innerHTML = '<button class="unit1-mini-menu" id="unit1MenuOpen" type="button" aria-label="เปิดเมนู" aria-expanded="false">☰</button><strong class="unit1-mini-title">บทที่ ๑ · ใบโบก ใบบัว</strong><span class="unit1-mini-spacer" aria-hidden="true"></span>';
+    bar.innerHTML = '<button class="unit1-mini-menu" id="unit1MenuOpen" type="button" aria-label="เปิดเมนู" aria-expanded="false">☰</button><strong class="unit1-mini-title">บทที่ ๑ · ใบโบก ใบบัว</strong><button class="unit1-top-audio" id="unit1TopAudio" type="button" aria-label="ฟังหน้านี้" title="ฟังหน้านี้">🔊</button>';
     document.body.prepend(bar);
 
     const backdrop = document.createElement('div');
@@ -131,6 +131,32 @@
     };
     soundBtn.addEventListener('click', () => { document.getElementById('soundToggle')?.click(); syncSound(); });
     syncSound();
+
+    const topAudio = document.getElementById('unit1TopAudio');
+    const syncTopAudio = () => {
+      const source = document.getElementById('readPageKaraoke');
+      if (!topAudio) return;
+      if (!source) {
+        topAudio.disabled = true;
+        topAudio.textContent = '🔊';
+        topAudio.setAttribute('aria-label','ฟังหน้านี้');
+        topAudio.title = 'ฟังหน้านี้';
+        return;
+      }
+      const icon = source.querySelector('.book-control-icon')?.textContent?.trim() || (source.textContent.includes('⏸') ? '⏸' : source.textContent.includes('▶') ? '▶' : '🔊');
+      const label = source.getAttribute('aria-label') || source.getAttribute('title') || 'ฟังหน้านี้';
+      topAudio.textContent = icon;
+      topAudio.disabled = source.disabled;
+      topAudio.setAttribute('aria-label',label);
+      topAudio.title = label;
+    };
+    topAudio?.addEventListener('click', () => document.getElementById('readPageKaraoke')?.click());
+    const stage = document.getElementById('activityStage');
+    if (stage) {
+      const observer = new MutationObserver(() => queueMicrotask(syncTopAudio));
+      observer.observe(stage,{subtree:true,childList:true,attributes:true,attributeFilter:['disabled','aria-label','title']});
+    }
+    queueMicrotask(syncTopAudio);
     warmUnit1Media();
 
     if (!localStorage.getItem('p1-unit1-swipe-onboard-v1')) {
