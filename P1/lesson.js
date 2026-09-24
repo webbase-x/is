@@ -28,8 +28,8 @@ let speakingEl=null,speechSeq=0,karaokeRun=0,finishSpeech=null;
 let songAudio=null,songSyncRaf=0,songActiveWord=null,songActiveRow=null,songCues=[];
 function pictureMarkup(word,cls=""){const idx=unit.pictures?.[word];if(idx===undefined)return "";const x=(idx%3)*50,y=Math.floor(idx/3)*50;return `<span class="word-picture ${cls}" role="img" aria-label="ภาพประกอบคำ ${word}" style="background-image:url('book/word-img/unit${unitNo}-words.webp');background-position:${x}% ${y}%"></span>`}
 function clearSpeechVisual(){if(speakingEl){speakingEl.classList.remove("speaking-now");speakingEl=null}}
-function setBookMainButton(icon,label,disabled=false){const btn=$("#readPageKaraoke");if(!btn)return;btn.disabled=disabled;btn.setAttribute("aria-label",label);btn.setAttribute("title",label);if(unitNo===1){btn.innerHTML=`<span class="book-control-icon">${icon}</span><span>${label}</span>`}else{btn.textContent=`${icon} ${label}`}}
-function stopSpeech(){stopSongKaraoke(false);clearNativeHighlights();karaokeRun++;speechSeq++;window.speechSynthesis?.cancel?.();if(finishSpeech)finishSpeech();clearSpeechVisual();stage.querySelectorAll(".line-reading").forEach(el=>el.classList.remove("line-reading"));const song=currentSongConfig();setBookMainButton(song?"▶":"🔊",song?(unitNo===1?"เล่นเพลง":"ร้องคาราโอเกะ"):"อ่านหน้านี้",false)}
+function setBookMainButton(icon,label,disabled=false){const btn=$("#readPageKaraoke");if(!btn)return;btn.disabled=disabled;btn.setAttribute("aria-label",label);btn.setAttribute("title",label);btn.innerHTML=`<span class="book-control-icon">${icon}</span><span>${label}</span>`}
+function stopSpeech(){stopSongKaraoke(false);clearNativeHighlights();karaokeRun++;speechSeq++;window.speechSynthesis?.cancel?.();if(finishSpeech)finishSpeech();clearSpeechVisual();stage.querySelectorAll(".line-reading").forEach(el=>el.classList.remove("line-reading"));const song=currentSongConfig();setBookMainButton(song?"▶":"🔊",song?"เล่นเพลง":"อ่านหน้านี้",false)}
 function keepReadingVisible(target){if(![1,3].includes(step)||!target?.getBoundingClientRect)return;const r=target.getBoundingClientRect();if(r.top<165||r.bottom>window.innerHeight-32)target.scrollIntoView({block:"center",behavior:"smooth"})}
 const NORMAL_SPEECH_RATE=1.00;
 function ttsSafeText(text){
@@ -273,10 +273,10 @@ function bindSongKaraoke(cfg){
  audio.addEventListener("loadedmetadata",refreshCues);
  if(audio.readyState>=1)refreshCues();else songCues=buildSongCues(cfg,cfg.duration);
  audio.addEventListener("timeupdate",()=>{if(seek&&!seek.matches(":active"))seek.value=audio.currentTime;const t=$("#songCurrentTime");if(t)t.textContent=formatSongTime(audio.currentTime);paintSongCue(activeSongCue(songVisualTime(audio,cfg)))});
- audio.addEventListener("play",()=>{if(play)play.textContent="⏸ หยุดชั่วคราว";if(unitNo===1)setBookMainButton("⏸","หยุดเพลง",false);if(status)status.textContent="กำลังร้องตามเพลง · อ่านคำที่ไฮไลต์สีเหลือง";if(songSyncRaf)cancelAnimationFrame(songSyncRaf);songSyncRaf=requestAnimationFrame(syncSongFrame)});
- audio.addEventListener("pause",()=>{if(play)play.textContent="▶ เล่นต่อ";if(unitNo===1)setBookMainButton("▶","เล่นเพลง",false);if(status&&!audio.ended)status.textContent="หยุดชั่วคราว · กดเล่นต่อได้"});
- audio.addEventListener("ended",()=>{clearSongHighlights();if(play)play.textContent="▶ เล่นอีกครั้ง";if(unitNo===1)setBookMainButton("▶","เล่นเพลง",false);if(status)status.textContent="จบเพลงแล้ว · กดเล่นอีกครั้งเพื่อฝึกซ้ำ"});
- audio.addEventListener("error",()=>{if(status)status.textContent="เปิดไฟล์เพลงไม่สำเร็จ กรุณารีเฟรชหน้าเว็บอีกครั้ง";if(play){play.disabled=true;play.textContent="เพลงยังไม่พร้อม"}if(unitNo===1)setBookMainButton("⚠","เพลงยังไม่พร้อม",true)});
+ audio.addEventListener("play",()=>{if(play)play.textContent="⏸ หยุดชั่วคราว";setBookMainButton("⏸","หยุดเพลง",false);if(status)status.textContent="กำลังร้องตามเพลง · อ่านคำที่ไฮไลต์สีเหลือง";if(songSyncRaf)cancelAnimationFrame(songSyncRaf);songSyncRaf=requestAnimationFrame(syncSongFrame)});
+ audio.addEventListener("pause",()=>{if(play)play.textContent="▶ เล่นต่อ";setBookMainButton("▶","เล่นเพลง",false);if(status&&!audio.ended)status.textContent="หยุดชั่วคราว · กดเล่นต่อได้"});
+ audio.addEventListener("ended",()=>{clearSongHighlights();if(play)play.textContent="▶ เล่นอีกครั้ง";setBookMainButton("▶","เล่นเพลง",false);if(status)status.textContent="จบเพลงแล้ว · กดเล่นอีกครั้งเพื่อฝึกซ้ำ"});
+ audio.addEventListener("error",()=>{if(status)status.textContent="เปิดไฟล์เพลงไม่สำเร็จ กรุณารีเฟรชหน้าเว็บอีกครั้ง";if(play){play.disabled=true;play.textContent="เพลงยังไม่พร้อม"}setBookMainButton("⚠","เพลงยังไม่พร้อม",true)});
  const toggle=async()=>{if(audio.paused){window.speechSynthesis?.cancel?.();speechSeq++;clearSpeechVisual();try{await audio.play()}catch{if(status)status.textContent="เบราว์เซอร์ป้องกันการเล่นอัตโนมัติ กรุณากด ▶ อีกครั้ง"}}else audio.pause()};
  if(play)play.onclick=toggle;
  const read=$("#readPageKaraoke");if(read)read.onclick=toggle;
@@ -366,7 +366,7 @@ function clearNativeHighlights(){
 function showNativeGroupHighlight(peers,showRow=false){
  const visible=(peers||[]).filter(el=>el&&el.getClientRects().length);
  visible.forEach(el=>{el.classList.add('native-reading-active');if(showRow)el.closest('.reading-card,.native-layout-row')?.classList.add('native-row-active')});
- if(unitNo!==1||visible.length<2)return;
+ if(visible.length<2)return;
  const host=stage.querySelector('.book-paper');if(!host)return;
  const hr=host.getBoundingClientRect(),rects=visible.map(el=>el.getBoundingClientRect());
  const left=Math.min(...rects.map(r=>r.left))-hr.left;
@@ -527,23 +527,25 @@ function renderReading(turnDirection=""){
  const pageContent=cover
   ? `<article class="book-cover-page" aria-label="หน้าปกบทที่ ${unitNo}">${spread([0,1],'cover-spread')}<div class="karaoke-text cover-karaoke">${karaokeLineMarkup('บทที่ '+unitNo,0)}${karaokeLineMarkup(unit.title,1)}</div></article>`
   : `<article class="book-source-page" aria-label="${escapeText(p.label)}">${nativeSourceLayoutMarkup(p,currentNative())}</article>`;
- const songPlayer=songCfg?(unitNo===1?`<audio id="songAudio" class="unit1-song-audio" preload="auto" playsinline src="${songAudioUrl(songCfg)}"></audio>`:songPlayerMarkup(songCfg)):"";
+ const songPlayer=songCfg?`<audio id="songAudio" class="unit1-song-audio" preload="auto" playsinline src="${songAudioUrl(songCfg)}"></audio>`:"";
  const last=fullIndex===fullBook.pages.length-1;
- const nextUnitFromLast=unitNo===1&&last&&unitNo<Math.max(...Object.keys(units).map(Number));
- const pageCount=`<span class="book-page-count ${unitNo===1?"book-page-count-on-paper":""}" aria-label="หน้าที่ ${fullIndex+1} จาก ${fullBook.pages.length}">${fullIndex+1} / ${fullBook.pages.length}</span>`;
+ const maxUnit=Math.max(...Object.keys(units).map(Number));
+ const nextUnitFromLast=last&&unitNo<maxUnit;
+ const returnHomeFromLast=last&&unitNo===maxUnit;
+ const nextLabel=nextUnitFromLast?"ไปบทถัดไป":returnHomeFromLast?"กลับหน้าเลือกบท":"หน้าถัดไป";
+ const nextIcon=nextUnitFromLast?">>":returnHomeFromLast?"⌂":"›";
+ const pageCount=`<span class="book-page-count book-page-count-on-paper" aria-label="หน้าที่ ${fullIndex+1} จาก ${fullBook.pages.length}">${fullIndex+1} / ${fullBook.pages.length}</span>`;
  stage.innerHTML=`<div class="book-reader">
-   ${unitNo===1?"":`<header class="book-reader-head"><div class="book-reader-heading"><small>บทที่ ${unitNo} · ${escapeText(unit.title)}</small><strong>${escapeText(p.label)}</strong></div>${pageCount}</header>`}
-   <section class="book-paper" aria-label="หน้าหนังสือ">${pageContent}${unitNo===1?pageCount:""}${unitNo===1?songPlayer:""}</section>
-   ${unitNo===1?"":songPlayer}
+   <section class="book-paper" aria-label="หน้าหนังสือ">${pageContent}${pageCount}${songPlayer}</section>
    <p class="book-reader-tip">${songCfg?"🎤 เล่นเพลงแล้วอ่านตามคำที่ไฮไลต์ทีละคำ":"👆 แตะคำบนหน้าเพื่อฟังเสียง"}</p>
    <nav class="book-reader-controls" aria-label="เปลี่ยนหน้าและฟังเสียง">
      <button type="button" class="book-nav-button" data-page-prev aria-label="หน้าก่อน" title="หน้าก่อน" ${fullIndex===0?'disabled':''}><span class="book-control-icon">‹</span><span>หน้าก่อน</span></button>
-     <button type="button" class="book-read-button" id="readPageKaraoke" aria-label="${songCfg?"เล่นเพลงและอ่านตาม":"อ่านหน้านี้"}" title="${songCfg?"เล่นเพลง":"อ่านหน้านี้"}"><span class="book-control-icon">${songCfg?"▶":"🔊"}</span><span>${songCfg?"ร้องคาราโอเกะ":"อ่านหน้านี้"}</span></button>
-     <button type="button" class="book-nav-button" data-page-next aria-label="${nextUnitFromLast?"ไปบทถัดไป":"หน้าถัดไป"}" title="${nextUnitFromLast?"ไปบทถัดไป":"หน้าถัดไป"}" ${(last&&!nextUnitFromLast)?'disabled':''}><span>${nextUnitFromLast?"ไปบทถัดไป":"หน้าถัดไป"}</span><span class="book-control-icon">${nextUnitFromLast?">>":"›"}</span></button>
+     <button type="button" class="book-read-button" id="readPageKaraoke" aria-label="${songCfg?"เล่นเพลงและอ่านตาม":"อ่านหน้านี้"}" title="${songCfg?"เล่นเพลง":"อ่านหน้านี้"}"><span class="book-control-icon">${songCfg?"▶":"🔊"}</span><span>${songCfg?"เล่นเพลง":"อ่านหน้านี้"}</span></button>
+     <button type="button" class="book-nav-button" data-page-next aria-label="${nextLabel}" title="${nextLabel}"><span>${nextLabel}</span><span class="book-control-icon">${nextIcon}</span></button>
    </nav>
    ${last?'<div class="book-finish-wrap"><button class="book-finish-button" id="finishFullChapter">อ่านจบบทแล้ว · ไปทบทวน ✓</button></div>':''}
  </div>`;
- if(unitNo===1){const paper=stage.querySelector('.book-paper'),controls=stage.querySelector('.book-reader-controls');if(paper&&controls)paper.appendChild(controls)}
+ {const paper=stage.querySelector('.book-paper'),controls=stage.querySelector('.book-reader-controls');if(paper&&controls)paper.appendChild(controls)}
  if(turnDirection&&!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches){
   const paper=stage.querySelector(".book-paper");
   if(paper){
@@ -557,9 +559,10 @@ function renderReading(turnDirection=""){
    stopSpeech();
    sessionStorage.setItem(`p1-book-step-${unitNo+1}`,'3');
    sessionStorage.setItem(`p1-full-page-${unitNo+1}`,'0');
-   location.href=`lesson.html?unit=${unitNo+1}`;
+   location.href=`lesson.html?unit=${unitNo+1}&start=1`;
    return
   }
+  if(returnHomeFromLast){stopSpeech();location.href="index.html";return}
   changeFullPage(fullIndex+1)
  });
  if(cover){
