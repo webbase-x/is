@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai+Looped:wght@400;500;600;700;800&display=swap');
 /* ต้นแบบบทที่ ๑: หนังสือเป็นพระเอก ปุ่มน้อย ใช้ง่ายสำหรับเด็ก ป.๑ */
 body.unit1-prototype{
   background:#f4f0e7;
@@ -229,4 +230,86 @@ body.unit1-home-prototype .other-units-grid .unit-card{min-height:0}
   .unit1-mini-title{font-size:.92rem}
   body.unit1-home-prototype .welcome-shell{padding:12px 10px 36px}
   body.unit1-home-prototype .other-units-grid{grid-template-columns:1fr}
+}
+
+
+/* รอบปรับแต่ง: เลขหน้า ปุ่มแก้วใส ฟอนต์ และเพลงปุ่มเดียว */
+body.unit1-prototype,
+body.unit1-prototype button,
+body.unit1-prototype a,
+body.unit1-prototype input,
+body.unit1-prototype select,
+body.unit1-prototype textarea,
+body.unit1-home-prototype,
+body.unit1-home-prototype button,
+body.unit1-home-prototype a{
+  font-family:'Noto Sans Thai Looped','Noto Sans Thai','Leelawadee UI',Tahoma,sans-serif!important;
+}
+body.unit1-prototype .book-reader-head{display:none!important}
+body.unit1-prototype .book-paper{position:relative}
+body.unit1-prototype .book-page-count-on-paper{
+  position:absolute;
+  top:6px;
+  right:7px;
+  z-index:70;
+  min-width:0;
+  min-height:0;
+  padding:3px 7px;
+  border:1px solid rgba(199,188,171,.62);
+  border-radius:999px;
+  background:rgba(255,253,247,.82);
+  color:#655d52;
+  font-size:.72rem;
+  font-weight:800;
+  line-height:1.15;
+  box-shadow:0 2px 8px rgba(55,44,31,.08);
+  backdrop-filter:blur(5px);
+  pointer-events:none;
+}
+body.unit1-prototype .unit1-song-audio{display:none!important}
+
+/* แถบแก้วใสให้เตี้ยลงและไม่บังข้อความ */
+body.unit1-prototype .book-reader-controls{
+  grid-template-columns:44px 50px 44px;
+  gap:5px;
+  padding:4px;
+  border-radius:18px;
+  background:rgba(255,253,248,.78);
+  box-shadow:0 7px 22px rgba(55,42,25,.16);
+}
+body.unit1-prototype .book-reader-controls button{
+  min-height:44px;
+  height:44px;
+  border-radius:14px;
+}
+body.unit1-prototype .book-reader-controls .book-control-icon{
+  font-size:24px!important;
+}
+body.unit1-prototype .song-karaoke-player{display:none!important}
+
+/* สถานะโหลดสื่ออยู่ในเมนู ไม่รบกวนหน้าหนังสือ */
+.unit1-media-status{
+  margin-top:12px;
+  padding:9px 11px;
+  border-radius:12px;
+  background:#f5f2ec;
+  color:#6a6258;
+  font-size:.86rem;
+  font-weight:700;
+}
+.unit1-media-status.ready{background:#e7f7ec;color:#267244}
+.unit1-media-status.error{background:#fff0ed;color:#9b463c}
+
+@media(max-width:640px){
+  body.unit1-prototype .book-page-count-on-paper{
+    top:4px;right:5px;padding:2px 6px;font-size:.68rem
+  }
+  body.unit1-prototype .book-reader-controls{
+    grid-template-columns:42px 48px 42px;
+    gap:4px;padding:3px;border-radius:16px
+  }
+  body.unit1-prototype .book-reader-controls button{
+    min-height:42px;height:42px;border-radius:12px
+  }
+  body.unit1-prototype .book-reader-controls .book-control-icon{font-size:23px!important}
 }
