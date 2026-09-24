@@ -523,8 +523,35 @@ function speakContinuousItems(items){
  return speakQueued(items);
 }
 
+function nativeSpellingGroups(){
+ const rows=currentNative()?.rows||[],groups=[];
+ const text=row=>(row||[]).map(t=>t.t).join('');
+ const spelling=row=>!!row&&row.some(nativeVowelMarkerToken)&&row.some(t=>/[ก-ฮ].*-/.test(t.t));
+ let inSpelling=false;
+ for(let r=0;r<rows.length;r++){
+  const label=text(rows[r]);
+  if(label.includes('อ่านสะกดคำ'))inSpelling=true;
+  else if(/ฝึก|อ่านแจกลูก|อ่านผัน/.test(label))inSpelling=false;
+  if(!inSpelling||!spelling(rows[r])||!spelling(rows[r+2]))continue;
+  const word=text(rows[r+1]);
+  if(word!==rows[r].at(-1).t+rows[r+2].at(-1).t)continue;
+  const title=r>=2&&text(rows[r-2])===word&&text(rows[r-1]).includes('พยัญชนะ')?r-2:null;
+  groups.push({first:r,second:r+2,word:r+1,title});
+ }
+ return groups;
+}
+function nativeReadingRowOrder(){
+ const rows=currentNative()?.rows||[],groups=nativeSpellingGroups(),order=[];
+ const deferred=new Set(groups.map(g=>g.word)),titles=new Set(groups.map(g=>g.title).filter(r=>r!==null));
+ for(let r=0;r<rows.length;r++){
+  if(deferred.has(r)||titles.has(r))continue;
+  order.push(r);
+  const group=groups.find(g=>g.second===r);if(group)order.push(group.word);
+ }
+ return order;
+}
 async function readNativeRow(r,run=null){const id=run??beginKaraoke();if(id!==karaokeRun||step!==3)return;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items));if(id===karaokeRun)clearNativeHighlights()}
-async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn)setBookMainButton('⏸','กำลังอ่าน',true);for(let r=0;r<rows.length;r++){if(id!==karaokeRun||step!==3)break;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items))}if(id===karaokeRun&&document.body.contains(btn))setBookMainButton('🔊','อ่านหน้านี้',false)}
+async function readNativePage(){const id=beginKaraoke(),rows=currentNative()?.rows||[],btn=$('#readPageKaraoke');if(btn)setBookMainButton('⏸','กำลังอ่าน',true);for(const r of nativeReadingRowOrder()){if(id!==karaokeRun||step!==3)break;const items=nativeRowSpeechItems(r);await (nativeContinuousReadingRow(r)?speakContinuousItems(items):speakQueued(items))}if(id===karaokeRun&&document.body.contains(btn))setBookMainButton('🔊','อ่านหน้านี้',false)}
 function fitNativeWords(){
  stage.querySelectorAll('[data-native-group]').forEach(el=>{
   el.style.fontSize='';
