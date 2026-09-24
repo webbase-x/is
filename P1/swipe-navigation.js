@@ -47,6 +47,7 @@
     }
     if(/\/P1\/lesson\.html$/.test(path)){
       const unit=Number(q.get('unit')||1);
+      if(unit===1 && document.body?.classList.contains('unit1-prototype')) return null;
       if(direction==='next' && unit<12) return `lesson.html?unit=${unit+1}`;
       if(direction==='prev' && unit>1) return `lesson.html?unit=${unit-1}`;
     }
