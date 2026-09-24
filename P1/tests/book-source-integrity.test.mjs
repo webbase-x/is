@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 
 const ROOT=path.resolve(new URL('..',import.meta.url).pathname);
 const read=name=>fs.readFileSync(path.join(ROOT,name),'utf8');
@@ -23,7 +24,7 @@ function extractObject(src,marker){
     if(ch==='{')depth++;
     else if(ch==='}'){
       depth--;
-      if(depth===0)return JSON.parse(src.slice(start,i+1));
+      if(depth===0)return vm.runInNewContext('('+src.slice(start,i+1)+')',Object.create(null));
     }
   }
   throw new Error(`object ของ ${marker} ปิดไม่ครบ`);
