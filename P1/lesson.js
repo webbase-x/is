@@ -139,8 +139,8 @@ async function readAllVocabulary(){const run=beginKaraoke(),buttons=[...stage.qu
 function escapeText(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function currentNative(){return window.P1_PAGE_KARAOKE[fullBook.pages[fullIndex].page]}
 function currentSongConfig(p=fullBook?.pages?.[fullIndex]){const cfg=window.P1_SONG_KARAOKE?.[unitNo];return cfg&&Number(cfg.page)===Number(p?.page)?cfg:null}
-function songAudioUrl(cfg){return cfg.src||`https://drive.usercontent.google.com/download?id=${encodeURIComponent(cfg.driveId)}&export=download&confirm=t`}
-function songOffsetKey(cfg){return `p1-song-offset-v2-${cfg.page}`}
+function songAudioUrl(cfg){return cfg.src}
+function songOffsetKey(cfg){return `p1-song-offset-v3-${cfg.page}`}
 function songOffset(cfg){return Number(localStorage.getItem(songOffsetKey(cfg))||0)}
 function clearSongHighlights(){
  if(songActiveWord){songActiveWord.classList.remove("song-karaoke-active");songActiveWord=null}
