@@ -2,41 +2,42 @@
   const params = new URLSearchParams(location.search);
   const path = location.pathname.replace(/\/+$/,'');
   const isHome = /\/P1(?:\/index\.html)?$/.test(path);
-  const isUnit1 = /\/P1\/lesson\.html$/.test(path) && Number(params.get('unit') || 1) === 1;
+  const isLesson = /\/P1\/lesson\.html$/.test(path);
+
+  function withStart(href){
+    try{
+      const url=new URL(href,location.href);
+      if(!/\/P1\/lesson\.html$/.test(url.pathname))return href;
+      url.searchParams.set('start','1');
+      return url.pathname.split('/').pop()+'?'+url.searchParams.toString();
+    }catch{return href}
+  }
 
   if (isHome) {
-    document.body.classList.add('unit1-home-prototype');
     const applyHome = () => {
-      const hero = document.querySelector('.hero-action');
-      if (hero) hero.href = 'lesson.html?unit=1&start=1';
-      const grid = document.querySelector('.units-grid');
-      if (!grid || grid.querySelector('.other-units')) return;
-      const cards = [...grid.querySelectorAll(':scope > .unit-card')];
-      if (!cards.length) return;
-      const first = cards[0];
-      first.querySelectorAll('a[href*="lesson.html?unit=1"]').forEach(a => a.href = 'lesson.html?unit=1&start=1');
-      if (cards.length > 1) {
-        const details = document.createElement('details');
-        details.className = 'other-units';
-        details.innerHTML = '<summary>☰ บทอื่น ๆ</summary><div class="other-units-grid"></div>';
-        const inner = details.querySelector('.other-units-grid');
-        cards.slice(1).forEach(card => inner.appendChild(card));
-        grid.appendChild(details);
-      }
+      document.querySelectorAll('a[href*="lesson.html?unit="]').forEach(a => {
+        a.href = withStart(a.getAttribute('href'));
+      });
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyHome, {once:true});
     else applyHome();
   }
 
-  if (!isUnit1) return;
+  if (!isLesson) return;
 
-  const UNIT1_MEDIA = [
-    'book/unit1-cover.webp',
-    'book/unit1-complete.webp',
-    'book/unit1-book.webp',
-    'book/word-img/unit1-words.webp',
-    'sounds/karaoke-unit-01.mp3'
-  ];
+  const units = window.P1_BOOK_UNITS || {};
+  const maxUnit = Math.max(1,...Object.keys(units).map(Number).filter(Number.isFinite));
+  const unitNo = Math.min(maxUnit,Math.max(1,Number(params.get('unit'))||1));
+  const unit = units[unitNo] || {};
+  const title = unit.title || ('บทที่ '+unitNo);
+  const song = window.P1_SONG_KARAOKE?.[unitNo];
+
+  const UNIT_MEDIA = [
+    `book/unit${unitNo}-cover.webp`,
+    `book/unit${unitNo}-complete.webp`,
+    `book/unit${unitNo}-book.webp`,
+    song?.src
+  ].filter(Boolean);
 
   function setMediaStatus(text,state='') {
     const el=document.getElementById('unit1MediaStatus');
@@ -46,24 +47,21 @@
     if(state)el.classList.add(state);
   }
 
-  async function warmUnit1Media() {
+  async function warmUnitMedia() {
     setMediaStatus('⏳ กำลังเตรียมสื่อ');
     try {
-      if('fonts' in document) {
-        document.fonts.load('1em "Noto Sans Thai Looped"').catch(()=>{});
-      }
+      if('fonts' in document) document.fonts.load('1em "Noto Sans Thai Looped"').catch(()=>{});
 
-      let registration=null;
       if('serviceWorker' in navigator) {
         try {
-          registration=await navigator.serviceWorker.register('p1-media-sw.js?v=1',{scope:'./'});
+          const registration=await navigator.serviceWorker.register('p1-media-sw.js?v=1',{scope:'./'});
           await navigator.serviceWorker.ready;
           const worker=registration.active||registration.waiting||registration.installing;
-          worker?.postMessage?.({type:'PRECACHE_MEDIA',assets:UNIT1_MEDIA});
+          worker?.postMessage?.({type:'PRECACHE_MEDIA',assets:UNIT_MEDIA});
         } catch {}
       }
 
-      const loaded=await Promise.allSettled(UNIT1_MEDIA.map(async raw=>{
+      const loaded=await Promise.allSettled(UNIT_MEDIA.map(async raw=>{
         const url=new URL(raw,location.href).href;
         const response=await fetch(url,{cache:'force-cache',credentials:'same-origin'});
         if(!response.ok)throw new Error('โหลดสื่อไม่สำเร็จ');
@@ -77,7 +75,7 @@
         return true;
       }));
       const ok=loaded.filter(x=>x.status==='fulfilled').length;
-      if(ok===UNIT1_MEDIA.length)setMediaStatus('✓ สื่อพร้อม','ready');
+      if(ok===UNIT_MEDIA.length)setMediaStatus('✓ สื่อพร้อม','ready');
       else if(ok>0)setMediaStatus('✓ สื่อหลักพร้อม','ready');
       else setMediaStatus('สื่อจะโหลดเมื่อเปิดหน้า','error');
     } catch {
@@ -86,9 +84,9 @@
   }
 
   document.body.classList.add('unit1-prototype');
-  sessionStorage.setItem('p1-book-step-1','3');
+  sessionStorage.setItem(`p1-book-step-${unitNo}`,'3');
   if (params.get('start') === '1') {
-    sessionStorage.setItem('p1-full-page-1','0');
+    sessionStorage.setItem(`p1-full-page-${unitNo}`,'0');
     params.delete('start');
     const next = location.pathname + (params.toString() ? '?' + params.toString() : '');
     history.replaceState(null,'',next);
@@ -98,7 +96,8 @@
     if (document.querySelector('.unit1-mini-bar')) return;
     const bar = document.createElement('header');
     bar.className = 'unit1-mini-bar';
-    bar.innerHTML = '<button class="unit1-mini-menu" id="unit1MenuOpen" type="button" aria-label="เปิดเมนู" aria-expanded="false">☰</button><strong class="unit1-mini-title">บทที่ ๑ · ใบโบก ใบบัว</strong><button class="unit1-top-audio" id="unit1TopAudio" type="button" aria-label="ฟังหน้านี้" title="ฟังหน้านี้">🔊</button>';
+    bar.innerHTML = '<button class="unit1-mini-menu" id="unit1MenuOpen" type="button" aria-label="เปิดเมนู" aria-expanded="false">☰</button><strong class="unit1-mini-title"></strong><button class="unit1-top-audio" id="unit1TopAudio" type="button" aria-label="ฟังหน้านี้" title="ฟังหน้านี้">🔊</button>';
+    bar.querySelector('.unit1-mini-title').textContent = `บทที่ ${unitNo} · ${title}`;
     document.body.prepend(bar);
 
     const backdrop = document.createElement('div');
@@ -118,7 +117,11 @@
     panel.addEventListener('click', e => e.stopPropagation());
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && backdrop.classList.contains('open')) close(); });
 
-    const goCover = () => { sessionStorage.setItem('p1-book-step-1','3'); sessionStorage.setItem('p1-full-page-1','0'); location.href='lesson.html?unit=1'; };
+    const goCover = () => {
+      sessionStorage.setItem(`p1-book-step-${unitNo}`,'3');
+      sessionStorage.setItem(`p1-full-page-${unitNo}`,'0');
+      location.href=`lesson.html?unit=${unitNo}`;
+    };
     document.getElementById('unit1GoCover').addEventListener('click', goCover);
     document.getElementById('unit1Restart').addEventListener('click', goCover);
 
@@ -157,14 +160,14 @@
       observer.observe(stage,{subtree:true,childList:true,attributes:true,attributeFilter:['disabled','aria-label','title']});
     }
     queueMicrotask(syncTopAudio);
-    warmUnit1Media();
+    warmUnitMedia();
 
-    if (!localStorage.getItem('p1-unit1-swipe-onboard-v1')) {
+    if (!localStorage.getItem('p1-book-swipe-onboard-v2')) {
       const hint = document.createElement('div');
       hint.className = 'unit1-swipe-onboard';
       hint.innerHTML = '<span class="arrows">‹ 👆 ›</span>ปัดซ้าย–ขวาเพื่อเปิดหน้า';
       document.body.appendChild(hint);
-      localStorage.setItem('p1-unit1-swipe-onboard-v1','1');
+      localStorage.setItem('p1-book-swipe-onboard-v2','1');
       setTimeout(() => hint.remove(), 2600);
     }
   }
