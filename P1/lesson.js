@@ -309,6 +309,19 @@ function nativeRowsMarkup(data){
 function nativeArtMarkup(p,rect,i){const [x,y,w,h]=rect,cw=fullBook.w*w/100,ch=p.h*h/100;return `<div class="native-art" style="aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="ภาพประกอบหน้านี้ ${i+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></div>`}
 function nativePlacedArtMarkup(p,rect,i,topShift=0){const [x,y,w,h]=rect,placeY=Math.max(.8,y-topShift),cw=fullBook.w*w/100,ch=p.h*h/100;return `<div class="native-layout-art" style="left:${x}%;top:${placeY.toFixed(3)}%;width:${w}%;height:${h}%;aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="ภาพประกอบหน้านี้ ${i+1}" style="width:${10000/w}%;left:${-x/w*100}%;top:${-(p.y+p.h*y/100)/ch*100}%" loading="eager"></div>`}
 function nativePlacedArtCopyMarkup(p,sourceRect,placeRect,alt="ภาพประกอบหน้านี้",topShift=0){const [sx,sy,sw,sh]=sourceRect,[x,y,w,h]=placeRect,placeY=Math.max(.8,y-topShift),cw=fullBook.w*sw/100,ch=p.h*sh/100;return `<div class="native-layout-art" style="left:${x}%;top:${placeY.toFixed(3)}%;width:${w}%;height:${h}%;aspect-ratio:${cw}/${ch}"><img src="${fullBook.asset}" alt="${alt}" style="width:${10000/sw}%;left:${-sx/sw*100}%;top:${-(p.y+p.h*sy/100)/ch*100}%" loading="eager"></div>`}
+function nativeTokenMarkup(token){
+ // A spacing anchor keeps Thai combining marks off the dotted-circle fallback.
+ // Draw the consonant placeholder independently from its upper/lower vowel mark.
+ const slot=mark=>`<span class="native-symbol-slot">\u00a0${mark}</span>`;
+ if(/^[่้๊๋]$/.test(token.t))return slot(token.t);
+ if(nativeVowelMarkerToken(token)){
+  return token.t.split(/(_[ัิีึืุู]?)/).map(part=>{
+   if(part.startsWith('_'))return slot(part.slice(1));
+   return escapeText(part);
+  }).join('');
+ }
+ return escapeText(token.t);
+}
 function nativeSourceRowMarkup(p,row,r,topShift=0){
  const x1=Math.min(...row.map(t=>t.b[0])),y1=Math.min(...row.map(t=>t.b[1])),placeY=Math.max(.8,y1-topShift);
  const x2=Math.max(...row.map(t=>t.b[0]+t.b[2])),y2=Math.max(...row.map(t=>t.b[1]+t.b[3]));
@@ -320,7 +333,7 @@ function nativeSourceRowMarkup(p,row,r,topShift=0){
   const right=Math.max(...indices.map(i=>row[i].b[0]+row[i].b[2]));
   const fs=Math.max(1,Math.min(4.45,b[3]*p.h/fullBook.w*.72));
   const label=indices.map(i=>row[i].t).join('');
-  return `<button type="button" class="native-word native-layout-word" data-native-group="${r}:${indices[0]}" aria-label="อ่านคำ ${escapeText(label)}" style="left:${left.toFixed(3)}%;top:${top.toFixed(3)}%;max-width:${(right-b[0])/w*100}%;--native-fs:${fs.toFixed(2)}cqw">${indices.map(i=>`<span data-native-word="${r}:${i}" class="${bookTokenClass(row[i].t)}">${escapeText(row[i].t)}</span>`).join('')}</button>`;
+  return `<button type="button" class="native-word native-layout-word" data-native-group="${r}:${indices[0]}" aria-label="อ่านคำ ${escapeText(label)}" style="left:${left.toFixed(3)}%;top:${top.toFixed(3)}%;max-width:${(right-b[0])/w*100}%;--native-fs:${fs.toFixed(2)}cqw">${indices.map(i=>`<span data-native-word="${r}:${i}" class="${bookTokenClass(row[i].t)}">${nativeTokenMarkup(row[i])}</span>`).join('')}</button>`;
  }).join('');
  const phonicsClass=nativePhonicsSectionRow(r)?' native-phonics-row':'';
  return `<div class="native-layout-row reading-card${phonicsClass}" data-native-row="${r}" style="left:${x1}%;top:${placeY.toFixed(3)}%;width:${w}%;height:${h}%"><button type="button" class="native-layout-speaker" data-native-line="${r}" aria-label="อ่านการ์ดที่ ${r+1}: ${escapeText(row.map(t=>t.t).join(' '))}" title="อ่านการ์ดนี้">🔊</button>${words}</div>`;
@@ -434,7 +447,7 @@ function nativePhonicsRange(r){
  const rows=currentNative()?.rows||[];
  let start=-1;
  // A continuation page may start with a row of vowel markers.
- if(rows[0]?.some(nativeVowelMarkerToken))start=-.5;
+ if(rows[0]?.some(nativeVowelMarkerToken)||currentNative()?.phonicsStart===0)start=-.5;
  for(let i=0;i<=r;i++){
   const title=rows[i].map(t=>t.t).join('');
   if(title.includes('อ่านแจกลูก'))start=i;

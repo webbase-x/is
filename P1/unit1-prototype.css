@@ -683,3 +683,10 @@ body.unit1-prototype .native-layout-row.song-karaoke-row-active{
 body.unit1-prototype .native-source-layout [data-native-word].native-reading-active{
  color:#8d1b28!important;
 }
+
+/* Place Thai vowel/tone marks over a visible consonant slot, at normal text size. */
+body.unit1-prototype .native-source-layout .native-symbol-slot{
+ display:inline-block; position:relative; width:.58em; min-width:.58em;
+ height:.85em; line-height:1; vertical-align:baseline;
+ border-bottom:.065em solid currentColor; text-align:center;
+}
