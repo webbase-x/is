@@ -494,6 +494,7 @@ function renderReading(turnDirection=""){
    </nav>
    ${last?'<div class="book-finish-wrap"><button class="book-finish-button" id="finishFullChapter">อ่านจบบทแล้ว · ไปทบทวน ✓</button></div>':''}
  </div>`;
+ if(unitNo===1){const paper=stage.querySelector('.book-paper'),controls=stage.querySelector('.book-reader-controls');if(paper&&controls)paper.appendChild(controls)}
  if(turnDirection&&!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches){
   const paper=stage.querySelector(".book-paper");
   if(paper){
