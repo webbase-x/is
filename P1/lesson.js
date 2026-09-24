@@ -149,6 +149,10 @@ function currentSongConfig(p=fullBook?.pages?.[fullIndex]){const cfg=window.P1_S
 function songAudioUrl(cfg){return cfg.src}
 function songOffsetKey(cfg){return `p1-song-offset-v3-${cfg.page}`}
 function songOffset(cfg){return Number(localStorage.getItem(songOffsetKey(cfg))||0)}
+const SONG_HIGHLIGHT_LEAD_UNIT1=.16;
+function songVisualTime(audio,cfg){
+ return Math.max(0,(audio?.currentTime||0)+(unitNo===1?SONG_HIGHLIGHT_LEAD_UNIT1:0)-songOffset(cfg))
+}
 function clearSongHighlights(){
  if(songActiveWord){songActiveWord.classList.remove("song-karaoke-active");songActiveWord=null}
  if(songActiveRow){songActiveRow.classList.remove("song-karaoke-row-active");songActiveRow=null}
@@ -237,7 +241,7 @@ function paintSongCue(cue){
 function syncSongFrame(){
  if(!songAudio||songAudio.paused||songAudio.ended){songSyncRaf=0;return}
  const cfg=currentSongConfig();if(!cfg){songSyncRaf=0;return}
- paintSongCue(activeSongCue(songAudio.currentTime-songOffset(cfg)));
+ paintSongCue(activeSongCue(songVisualTime(songAudio,cfg)));
  const time=$("#songCurrentTime");if(time)time.textContent=formatSongTime(songAudio.currentTime);
  songSyncRaf=requestAnimationFrame(syncSongFrame)
 }
@@ -268,7 +272,7 @@ function bindSongKaraoke(cfg){
  const refreshCues=()=>{songCues=buildSongCues(cfg,audio.duration);if(dur&&Number.isFinite(audio.duration))dur.textContent=formatSongTime(audio.duration);if(seek&&Number.isFinite(audio.duration))seek.max=audio.duration;updateSongOffsetLabel(cfg)};
  audio.addEventListener("loadedmetadata",refreshCues);
  if(audio.readyState>=1)refreshCues();else songCues=buildSongCues(cfg,cfg.duration);
- audio.addEventListener("timeupdate",()=>{if(seek&&!seek.matches(":active"))seek.value=audio.currentTime;const t=$("#songCurrentTime");if(t)t.textContent=formatSongTime(audio.currentTime);paintSongCue(activeSongCue(audio.currentTime-songOffset(cfg)))});
+ audio.addEventListener("timeupdate",()=>{if(seek&&!seek.matches(":active"))seek.value=audio.currentTime;const t=$("#songCurrentTime");if(t)t.textContent=formatSongTime(audio.currentTime);paintSongCue(activeSongCue(songVisualTime(audio,cfg)))});
  audio.addEventListener("play",()=>{if(play)play.textContent="⏸ หยุดชั่วคราว";if(unitNo===1)setBookMainButton("⏸","หยุดเพลง",false);if(status)status.textContent="กำลังร้องตามเพลง · อ่านคำที่ไฮไลต์สีเหลือง";if(songSyncRaf)cancelAnimationFrame(songSyncRaf);songSyncRaf=requestAnimationFrame(syncSongFrame)});
  audio.addEventListener("pause",()=>{if(play)play.textContent="▶ เล่นต่อ";if(unitNo===1)setBookMainButton("▶","เล่นเพลง",false);if(status&&!audio.ended)status.textContent="หยุดชั่วคราว · กดเล่นต่อได้"});
  audio.addEventListener("ended",()=>{clearSongHighlights();if(play)play.textContent="▶ เล่นอีกครั้ง";if(unitNo===1)setBookMainButton("▶","เล่นเพลง",false);if(status)status.textContent="จบเพลงแล้ว · กดเล่นอีกครั้งเพื่อฝึกซ้ำ"});
@@ -277,10 +281,10 @@ function bindSongKaraoke(cfg){
  if(play)play.onclick=toggle;
  const read=$("#readPageKaraoke");if(read)read.onclick=toggle;
  const restart=$("#songRestart");if(restart)restart.onclick=()=>{audio.currentTime=0;clearSongHighlights();audio.play().catch(()=>{})};
- if(seek){seek.oninput=()=>{audio.currentTime=Number(seek.value)||0;paintSongCue(activeSongCue(audio.currentTime-songOffset(cfg)))}}
- const adjust=delta=>{const next=Math.max(-8,Math.min(8,songOffset(cfg)+delta));localStorage.setItem(songOffsetKey(cfg),next.toFixed(1));updateSongOffsetLabel(cfg);paintSongCue(activeSongCue(audio.currentTime-next))};
+ if(seek){seek.oninput=()=>{audio.currentTime=Number(seek.value)||0;paintSongCue(activeSongCue(songVisualTime(audio,cfg)))}}
+ const adjust=delta=>{const next=Math.max(-8,Math.min(8,songOffset(cfg)+delta));localStorage.setItem(songOffsetKey(cfg),next.toFixed(1));updateSongOffsetLabel(cfg);paintSongCue(activeSongCue(Math.max(0,audio.currentTime+(unitNo===1?SONG_HIGHLIGHT_LEAD_UNIT1:0)-next)))};
  const minus=$("#songOffsetMinus"),plus=$("#songOffsetPlus"),reset=$("#songOffsetReset");
- if(minus)minus.onclick=()=>adjust(-.5);if(plus)plus.onclick=()=>adjust(.5);if(reset)reset.onclick=()=>{localStorage.removeItem(songOffsetKey(cfg));updateSongOffsetLabel(cfg);paintSongCue(activeSongCue(audio.currentTime))}
+ if(minus)minus.onclick=()=>adjust(-.5);if(plus)plus.onclick=()=>adjust(.5);if(reset)reset.onclick=()=>{localStorage.removeItem(songOffsetKey(cfg));updateSongOffsetLabel(cfg);paintSongCue(activeSongCue(Math.max(0,audio.currentTime+(unitNo===1?SONG_HIGHLIGHT_LEAD_UNIT1:0))))}
  updateSongOffsetLabel(cfg)
 }
 
@@ -369,7 +373,7 @@ function nativeTokensTouch(a,b){
  const gap=b.b[0]-(a.b[0]+a.b[2]);
  const overlap=Math.min(a.b[1]+a.b[3],b.b[1]+b.b[3])-Math.max(a.b[1],b.b[1]);
  const minH=Math.min(a.b[3],b.b[3]);
- return gap<=.30&&overlap>=minH*.45;
+ return gap<=Math.max(.85,minH*.18)&&overlap>=minH*.45;
 }
 function nativeJoinedWordRefs(r,i){
  const rows=currentNative()?.rows||[],row=rows[r],token=row?.[i];
@@ -390,7 +394,8 @@ async function readNativeWord(r,i,run=null,highlightRow=true){
  showNativeGroupHighlight(peers,showRow);
  const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];
  const speech=refs.map(ref=>nativeWrittenSpeech(ref.token)).join("");
- await speak(phonics?phonicsTtsText(speech):speech,target);
+ if(refs.length>1&&target)keepReadingVisible(target);
+ await speak(phonics?phonicsTtsText(speech):speech,refs.length>1?null:target);
  if(id===karaokeRun)clearNativeHighlights()
 }
 const nativeVowelSounds=new Set(["อะ","อา","อิ","อี","อึ","อือ","อุ","อู","เอ","แอ","โอ","ไอ","ใอ","อำ","เอา","เอะ","แอะ","เอีย","อัว","โอะ","เอาะ","ออ","เออะ","เออ","เอือ"]);
@@ -466,7 +471,7 @@ function nativeRowSpeechItems(r){
   const peers=group.refs.flatMap(ref=>[...stage.querySelectorAll(`[data-native-word="${ref.r}:${ref.i}"]`)]);
   const target=peers.find(el=>!el.closest('details:not([open])'))||peers[0];
   const text=group.refs.map(ref=>nativeWrittenSpeech(ref.token)).join("");
-  return {text,target,onStart:()=>{clearNativeHighlights();showNativeGroupHighlight(peers,true)}}
+  return {text,target:group.refs.length>1?null:target,onStart:()=>{clearNativeHighlights();showNativeGroupHighlight(peers,true);if(group.refs.length>1&&target)keepReadingVisible(target)}}
  }).filter(x=>x.text)
 }
 
