@@ -333,3 +333,18 @@ body.unit1-prototype .native-reading-group-box{
 body.unit1-prototype [data-page-next] .book-control-icon{
   white-space:nowrap;
 }
+
+
+/* กรอบคำติดกัน: ไม่ให้ token แรก/ย่อยมีกรอบซ้อน */
+body.unit1-prototype .native-reading-group-member,
+body.unit1-prototype .native-reading-group-member.native-reading-active,
+body.unit1-prototype .native-reading-group-member.speaking-now{
+  border-color:transparent!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  outline:0!important;
+  filter:none!important;
+}
+body.unit1-prototype .native-reading-group-member.speaking-now{
+  transform:none!important;
+}
