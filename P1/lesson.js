@@ -345,7 +345,7 @@ function unit1PageTopShift(p,data){
  return Math.min(14,Math.max(0,first-4.5))
 }
 function unit1PageVisibleBottom(p,data,arts,topShift){
- if(unitNo!==1)return 100;
+ if(unitNo!==1)return data.contentBottom||100;
  const rowBottoms=(data?.rows||[]).flatMap(row=>row.map(t=>Number(t?.b?.[1])+Number(t?.b?.[3])-topShift).filter(Number.isFinite));
  const artBottoms=(arts||[]).map(r=>Number(r?.[1])+Number(r?.[3])-topShift).filter(Number.isFinite);
  if(p.page===18){
@@ -359,7 +359,7 @@ function nativeSourceLayoutMarkup(p,data){
  const topShift=unit1PageTopShift(p,data);
  const seen=new Set(),arts=(data.arts||[]).filter(r=>{const k=r.map(n=>Number(n).toFixed(3)).join(':');if(seen.has(k))return false;seen.add(k);return true});
  const inner=`<div class="native-source-layout unit1-top-trimmed" style="aspect-ratio:${fullBook.w}/${p.h}" aria-label="ข้อความและภาพจัดวางตามต้นฉบับ">${arts.map((r,i)=>nativePlacedArtMarkup(p,r,i,topShift)).join('')}${data.rows.map((row,r)=>nativeSourceRowMarkup(p,row,r,topShift)).join('')}</div>`;
- if(unitNo!==1)return `<div class="native-source-layout-wrap">${inner}</div>`;
+ if(unitNo!==1&&!data.contentBottom)return `<div class="native-source-layout-wrap">${inner}</div>`;
  const visibleBottom=unit1PageVisibleBottom(p,data,arts,topShift);
  const croppedH=(p.h*visibleBottom/100).toFixed(3);
  return `<div class="native-source-layout-wrap"><div class="unit1-page-crop" style="aspect-ratio:${fullBook.w}/${croppedH}">${inner}</div></div>`;
