@@ -460,3 +460,15 @@ img{height:auto}
  .book-paper,
  .book-paper::after{animation:none!important;transition:none!important;transform:none!important}
 }
+
+
+/* เพลงจริง + คาราโอเกะทีละคำในหน้า “อ่านคล่อง ร้องเล่น” */
+.song-karaoke-player{width:min(900px,100%);margin:18px auto 6px;padding:16px;border:2px solid #e8def5;border-radius:20px;background:linear-gradient(180deg,#fff 0%,#fbf8ff 100%);box-shadow:0 7px 22px #33234f10}
+.song-karaoke-heading{display:flex;align-items:center;gap:12px;margin-bottom:12px}.song-karaoke-heading>span{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#f1e9ff;font-size:24px}.song-karaoke-heading strong{display:block;font-size:clamp(20px,2.4vw,28px);color:#382a57}.song-karaoke-heading small{display:block;margin-top:2px;color:#70647d}
+.song-karaoke-player audio{display:none}
+.song-karaoke-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px}.song-karaoke-actions button,.song-sync-tools button{min-height:42px;border:1px solid #d9ccec;border-radius:12px;background:#fff;color:#4f367d;font:700 15px 'Sarabun',sans-serif;padding:8px 13px;cursor:pointer}.song-karaoke-actions button:hover,.song-sync-tools button:hover{background:#f1e9ff}.song-main-play{background:var(--unit)!important;color:#fff!important;border-color:transparent!important;min-width:150px}.song-time{margin-left:auto;color:#544b62;font-variant-numeric:tabular-nums}.song-time b{color:#2d2340}
+.song-seek{width:100%;margin:12px 0 8px;accent-color:var(--unit);cursor:pointer}
+.song-sync-tools{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px dashed #ded4e9}.song-sync-tools span{font-size:14px;font-weight:700;color:#615570;min-width:150px;text-align:center}.song-karaoke-note{margin:10px 0 0;text-align:center;color:#6c6177;font-size:.95rem}
+.native-word.song-karaoke-active{background:#ffe048!important;color:#8d1b28!important;outline:3px solid #f4b400!important;box-shadow:0 0 0 5px #ffd84c55!important;transform:scale(1.05)!important;transform-origin:center;z-index:8!important}
+.native-layout-row.song-karaoke-row-active,.native-grid-row.song-karaoke-row-active,.reading-card.song-karaoke-row-active{background:#fff9dc!important;border-color:#e2b52b!important;box-shadow:0 0 0 4px #ffd84c33!important}
+@media(max-width:600px){.song-karaoke-player{padding:12px 10px;border-radius:16px}.song-karaoke-actions{justify-content:center}.song-time{width:100%;margin-left:0;text-align:center;order:3}.song-main-play{flex:1 1 150px}.song-sync-tools button{min-height:40px;padding:7px 10px}.native-word.song-karaoke-active{transform:scale(1.02)!important}}
