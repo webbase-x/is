@@ -669,3 +669,18 @@ header>a,header>button{display:grid;place-items:center;min-width:46px;background
   .seq-slot .game-tile{min-width:46px;min-height:40px}
   .trace-card{padding:7px}.trace-toolbar{font-size:.78rem}.trace-pad{min-height:105px}
 }
+
+
+/* choice-result feedback before automatic advance */
+.game-status.result-correct,.game-status.result-wrong{
+  max-width:720px;
+  margin:14px auto;
+  padding:12px 14px;
+  border-radius:16px;
+  font-size:1.05rem;
+  font-weight:900;
+  line-height:1.55;
+}
+.game-status.result-correct{background:#e5f7ea;border:2px solid #49a86a;color:#17643a}
+.game-status.result-wrong{background:#fff0f0;border:2px solid #d86767;color:#8e2f2f}
+.choice-btn:disabled{cursor:default;opacity:1}
