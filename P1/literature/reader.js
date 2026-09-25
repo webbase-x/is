@@ -4,6 +4,18 @@ const $=s=>document.querySelector(s),ns='http://www.w3.org/2000/svg',th=n=>Strin
 let book,chapter,index=0,plain=false,readId=0,reading=false,timer,renderId=0,words=[];
 const LITERATURE_WORD_GAP_MS=0.1;
 const fonts=new Set();
+const iosThaiTextFix=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function appendWordGlyphs(group,w,needed){
+ if(iosThaiTextFix&&/[\u0E00-\u0E7F]/.test(w.text)&&w.chars?.length){
+  const first=w.chars[0],x=w.box?.[0]??first[1],y=first[2],size=first[4],color=first[5],width=Math.max(1,(w.box?.[2]??x+size)-(w.box?.[0]??x));
+  group.append(el('text',{x,y,'font-family':"Sarabun,Thonburi,'Sukhumvit Set',Tahoma,sans-serif",'font-size':size,fill:color,'textLength':width,'lengthAdjust':'spacingAndGlyphs',class:'ios-thai-unicode','aria-hidden':'true'},w.text));
+  return;
+ }
+ for(const [raw,x,y,f,size,color] of w.chars){
+  needed.set(f,(needed.get(f)||'')+raw);
+  group.append(el('text',{x,y,'font-family':f,'font-size':size,fill:color,'aria-hidden':'true'},raw));
+ }
+}
 function el(tag,attrs={},text){const e=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;return e}
 function stop(){readId++;reading=false;clearTimeout(timer);window.speechSynthesis?.cancel();document.querySelectorAll('.speaking').forEach(e=>e.classList.remove('speaking'));$('#read').textContent='🔊';$('#read').setAttribute('aria-label','ฟังหน้านี้')}
 function speak(items){
@@ -49,10 +61,7 @@ async function render(){
   for(const w of line.words){
    const interactive=line.read&&readable(w),group=el('g',interactive?{class:'word',role:'button',tabindex:0,'aria-label':'ฟัง '+w.text}:{'aria-hidden':'true'});
    if(interactive){const [x,y,x2,y2]=w.highlightBox||w.box;group.append(el('rect',{x:x,y:y,width:Math.max(2,x2-x),height:Math.max(2,y2-y)}));const item={text:w.text,node:group};group.addEventListener('click',()=>speak([item]));group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();speak([item])}});words.push(item)}
-   for(const [raw,x,y,f,size,color] of w.chars){
-    needed.set(f,(needed.get(f)||'')+raw);
-    group.append(el('text',{x,y,'font-family':f,'font-size':size,fill:color,'aria-hidden':'true'},raw));
-   }
+   appendWordGlyphs(group,w,needed);
    svg.append(group);
   }
   if(line.read&&words.length)words[words.length-1].lineEnd=true;
