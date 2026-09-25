@@ -93,7 +93,8 @@ function loadInk(){stroke=null;redo=[];ink=drawings.get(inkKey())||[];paintInk()
 function saveInk(){drawings.set(inkKey(),ink)}
 function paintInk(){const layer=$('#ink');if(!layer)return;layer.replaceChildren();for(const s of ink){const line=document.createElementNS('http://www.w3.org/2000/svg','polyline');line.setAttribute('points',s.points.map(p=>p.join(',')).join(' '));line.setAttribute('stroke',s.color);line.setAttribute('stroke-width','5');line.setAttribute('stroke-linecap','round');line.setAttribute('stroke-linejoin','round');line.setAttribute('fill','none');layer.append(line)}}
 function drawGuide(p){
- $('#practiceLabel').textContent=selected==='เส้น'?p.title.replace(/^แบบฝึกชุดที่ . · /,''):`ฝึกเขียน ${symbol(selected)}`;
+ $('#practiceLabel').textContent=selected==='เส้น'?p.title.replace(/^แบบฝึกชุดที่ . · /,''):`ฝึกเขียน ${p.vowels?'สระ'+symbolText(selected):(/^[\u0e48-\u0e4b]$/.test(selected)?symbolText(selected):selected)}`;
+ $('.write-help').textContent=(selected==='เส้น'?'เริ่มที่จุดสีเขียว ค่อย ๆ ลากตามเส้น':'เขียนตามตัวอย่าง แล้วลองเขียนด้วยตนเอง')+' · ปัดเปลี่ยนหน้าบริเวณนอกกระดาน';
  let s='';for(const y of [85,155,230,300])s+=`<path d="M 20 ${y} H 700" stroke="#c6dae4" stroke-width="1.5"/>`;
  if(selected!=='เส้น')for(const y of [155,300])for(const x of [55,260,465]){
   const size=selected.length>3?80:112;
@@ -105,7 +106,12 @@ function drawGuide(p){
  }
  else{
   const patterns={vertical:'M 0 0 V 90',diagonal:'M 0 0 L 70 90',horizontal:'M 0 0 H 100',curve:'M 0 45 C 0 -25 100 -25 100 45 M 0 55 C 0 125 100 125 100 55',circle:'M 50 0 A 45 45 0 1 1 49.9 0',loop:'M 0 0 C 70 -40 110 30 60 60 C 20 80 10 30 45 25 L 80 100'};
-  for(const y of [52,207])for(const x of [45,265,485])s+=`<g transform="translate(${x},${y})"><path d="${patterns[p.pattern]}" fill="none" stroke="#9eafbd" stroke-width="5" stroke-dasharray="6 8"/><circle cx="${p.pattern==='circle'?50:0}" cy="${p.pattern==='curve'?45:0}" r="7" fill="#237b69"/></g>`;
+  for(const y of [52,207])for(const x of [45,265,485]){
+   const reverse=y===207, alt={vertical:'M 0 90 V 0',horizontal:'M 100 0 H 0',diagonal:'M 70 0 L 0 90'};
+   const sx=p.pattern==='circle'?50:reverse&&p.pattern==='horizontal'?100:reverse&&p.pattern==='diagonal'?70:0;
+   const sy=p.pattern==='curve'?45:reverse&&p.pattern==='vertical'?90:0;
+   s+=`<g transform="translate(${x},${y})"><path d="${reverse&&alt[p.pattern]||patterns[p.pattern]}" fill="none" stroke="#9eafbd" stroke-width="5" stroke-dasharray="6 8"/><circle cx="${sx}" cy="${sy}" r="7" fill="#237b69"/></g>`;
+  }
  }
  $('#guides').innerHTML=s;
 }
