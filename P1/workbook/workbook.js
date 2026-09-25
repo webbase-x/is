@@ -321,6 +321,14 @@ function renderUnit1BuildWord(){
 }
 
 const HANDWRITING_TEXT={"1":["อา ตา มา หา กา","อา ตา มา หา ปู","อา ตา มา ดู กา","อา ตา มา ดู ปู"],"2":["ดู ดี ดี มี ปู นา","ดู ภูผา มา หา ตา","ภูผา หา ปูนา","อารี มา ดู ภูผา"],"3":["เด็ก เด็ก เป็น เพื่อน ลูกช้าง","ลูกช้าง เป็น เพื่อน เด็ก เด็ก","ลูกช้าง แม้ ตัว ยัง เล็ก","แต่ เด็ก เด็ก ตัว เล็ก กว่า ลูกช้าง"],"4":["หนึ่ง สอง สาม สี่ ห้า","มา ซิ มา เรียง เลข ตาม","ถอย หลัง อย่า นับ ข้าม","ห้า สี่ สาม สอง และ หนึ่ง"],"5":["ถือกระเป๋าไปโรงเรียน","หัดอ่านเขียนสะกดคำ","เรียนไปใจจดจำ","อ่านเป็นคำอ่านเป็นความ"],"6":["โรงเรียนให้ความรู้","คุณครูให้ความรัก","พ่อแม่ชื่นใจนัก","ลูกที่รักเป็นคนดี"],"7":["ฝนตกแดดออก","นกกระจอกแปลกใจ","เห็นช้างตัวใหญ่","เดินโซเซมา"],"8":["พวกเราเป็นคนไทย","ต่างรักใคร่สร้างไมตรี","พูดเพราะเพลินพาที","ผูกใจกันฉันและเธอ"],"9":["งูตัวยาวยาว","ช้างเชือกใหญ่ใหญ่","กระดาษแผ่นบางบาง","จานใบแบนแบน"],"10":["เราอ่านเราเขียน","เราเรียนเรื่องแมว","มาเรียนมารู้","ดูตัวอย่างแมว","มาเถิดมาร้อง","ทำนองเพลงแมว"]};
+const HANDWRITING_PAGE_TEXT={
+ "3-6":["๖ ๖ ๖ ๖ ๖","หก หก หก หก หก"],
+ "3-7":["๗ ๗ ๗ ๗ ๗","เจ็ด เจ็ด เจ็ด เจ็ด"],
+ "3-9":["๙ ๙ ๙ ๙ ๙","เก้า เก้า เก้า เก้า"],
+ "3-10":["๑๐ ๑๐ ๑๐ ๑๐","สิบ สิบ สิบ สิบ"],
+ "3-12":["เ เ เ เ เ เ เ"],
+ "3-14":["แ แ แ แ แ แ แ"]
+};
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function unitData(){return window.P1_BOOK_UNITS?.[unit]||{}}
 function stableShuffle(items,seed){
@@ -415,16 +423,19 @@ function renderGamifiedPage(){
  if(mode==='listen')renderListenChoice(p);else if(mode==='quiz')renderQuizGame(p);else renderSequenceGame(p,mode)
 }
 function handwritingLines(){
- if(HANDWRITING_TEXT[unit])return HANDWRITING_TEXT[unit];
+ const pageKey=unit+'-'+index;
+ if(HANDWRITING_PAGE_TEXT[pageKey])return HANDWRITING_PAGE_TEXT[pageKey];
+ if(index===chapter.pages.length&&HANDWRITING_TEXT[unit])return HANDWRITING_TEXT[unit];
  const lines=(unitData().readingPages||[]).flatMap(x=>x.lines||[]).map(s=>String(s).trim()).filter(s=>s&&[...s].length<=34);
  const pick=lines.slice(0,4);return pick.length?pick:[chapter.title,'อ่าน เขียน ภาษาไทย','ตั้งใจ ฝึก ทุกวัน']
 }
 function renderHandwritingPage(){
  const r=row(),lines=handwritingLines();
- if(r.handwritingVersion!==1){r.handwritingVersion=1;r.handwritingStrokes=Array.from({length:lines.length},()=>[]);r.handwritingScores=[];r.done=false;r.confirmed=false;save(r)}
+ if(r.handwritingVersion!==2){r.handwritingVersion=2;r.handwritingStrokes=Array.from({length:lines.length},()=>[]);r.handwritingScores=[];r.done=false;r.confirmed=false;save(r)}
  if(!Array.isArray(r.handwritingStrokes)||r.handwritingStrokes.length!==lines.length)r.handwritingStrokes=Array.from({length:lines.length},(_,i)=>r.handwritingStrokes?.[i]||[]);
  $('#next').disabled=!r.done;
- $('#content').innerHTML=`<section class="handwriting-game">${gameHeader('✍️','คัดลายมือตัวบรรจงเต็มบรรทัด','ลากนิ้วหรือปากกาตามตัวอักษรจางให้ครบทุกบรรทัด')}<div class="trace-list">${lines.map((line,i)=>{const size=Math.max(28,Math.min(56,760/Math.max(8,[...line].length)));return `<div class="trace-card"><div class="trace-toolbar"><button class="trace-speak" data-i="${i}">🔊 ฟัง</button><span id="traceScore${i}">${r.handwritingScores?.[i]!=null?'คะแนน '+th(r.handwritingScores[i]):'คัดตามแบบ'}</span></div><svg class="trace-pad" data-i="${i}" viewBox="0 0 900 140" aria-label="คัดลายมือ ${esc(line)}"><text class="trace-guide" x="28" y="92" style="font-size:${size}px">${esc(line)}</text><g class="trace-ink"></g></svg></div>`}).join('')}</div><div class="game-actions"><button id="undoTrace">↶ ย้อนเส้น</button><button id="resetTrace">↻ เริ่มใหม่</button><button class="primary" id="checkTrace">✓ ตรวจลายมือ</button></div><p class="game-status" id="gameStatus">${r.done?'⭐ ผ่านแบบคัดลายมือแล้ว':'คัดให้ครบ แล้วกดตรวจลายมือ'}</p><details class="source-preview"><summary>ดูข้อความต้นฉบับที่ใช้คัด</summary><p class="source-text-copy">${lines.map(esc).join('<br>')}</p></details></section>`;
+ const pageSpecific=Boolean(HANDWRITING_PAGE_TEXT[unit+'-'+index]),traceTitle=pageSpecific?'ฝึกคัดตัวอักษรและคำ':'คัดลายมือตัวบรรจงเต็มบรรทัด',tracePrompt=pageSpecific?'ลากนิ้วหรือปากกาตามตัวเลข สระ หรือคำต้นแบบจากหน้าฝึกเดิม':'ลากนิ้วหรือปากกาตามตัวอักษรจางให้ครบทุกบรรทัด';
+ $('#content').innerHTML=`<section class="handwriting-game">${gameHeader('✍️',traceTitle,tracePrompt)}<div class="trace-list">${lines.map((line,i)=>{const size=Math.max(28,Math.min(56,760/Math.max(8,[...line].length)));return `<div class="trace-card"><div class="trace-toolbar"><button class="trace-speak" data-i="${i}">🔊 ฟัง</button><span id="traceScore${i}">${r.handwritingScores?.[i]!=null?'คะแนน '+th(r.handwritingScores[i]):'คัดตามแบบ'}</span></div><svg class="trace-pad" data-i="${i}" viewBox="0 0 900 140" aria-label="คัดลายมือ ${esc(line)}"><text class="trace-guide" x="28" y="92" style="font-size:${size}px">${esc(line)}</text><g class="trace-ink"></g></svg></div>`}).join('')}</div><div class="game-actions"><button id="undoTrace">↶ ย้อนเส้น</button><button id="resetTrace">↻ เริ่มใหม่</button><button class="primary" id="checkTrace">✓ ตรวจลายมือ</button></div><p class="game-status" id="gameStatus">${r.done?'⭐ ผ่านแบบคัดลายมือแล้ว':'คัดให้ครบ แล้วกดตรวจลายมือ'}</p><details class="source-preview"><summary>ดูข้อความต้นฉบับที่ใช้คัด</summary><p class="source-text-copy">${lines.map(esc).join('<br>')}</p></details></section>`;
  const pads=[...document.querySelectorAll('.trace-pad')];let active=null,lastLine=0;
  function paintPad(i){const g=pads[i].querySelector('.trace-ink');g.replaceChildren();for(const stroke of r.handwritingStrokes[i]||[]){const path=document.createElementNS(ns,'path');path.setAttribute('d',stroke.map(([x,y],j)=>(j?'L':'M')+x+' '+y).join(' '));path.setAttribute('class','trace-stroke');g.append(path)}}
  pads.forEach((svg,i)=>{
