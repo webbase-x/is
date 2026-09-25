@@ -40,7 +40,7 @@ function speak(items){
   if(id!==readId)return;
   if(i>=items.length){stop();return}
   const {text,el}=items[i],u=new SpeechSynthesisUtterance(text);
-  u.lang='th-TH';u.rate=.85;const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(voice)u.voice=voice;
+  u.lang='th-TH';u.rate=window.P1ReadingSpeed?.get()??.85;const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(voice)u.voice=voice;
   el?.classList.add('speaking');
   u.onend=()=>{if(id!==readId)return;el?.classList.remove('speaking');timer=setTimeout(()=>next(i+1),220)};
   u.onerror=()=>{if(id!==readId)return;stop();$('#speechStatus').textContent='เสียงอ่านยังไม่พร้อม ลองแตะฟังอีกครั้ง'};
@@ -188,7 +188,7 @@ paper.addEventListener('pointerup',e=>{
 paper.addEventListener('pointercancel',()=>swipe=null);
 paper.addEventListener('click',e=>{if(Date.now()<suppressTapUntil){e.preventDefault();e.stopImmediatePropagation()}},true);
 document.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||e.target.closest('input,select,textarea,button,a'))return;if(e.key==='ArrowRight'){e.preventDefault();go(page+1)}if(e.key==='ArrowLeft'){e.preventDefault();go(page-1)}});
-window.addEventListener('pagehide',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
+document.addEventListener('p1-reading-speed-change',stop);window.addEventListener('pagehide',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
 const initial=new URLSearchParams(location.search).get('page');page=Math.max(0,Math.min(pages.length-1,initial?Number(initial)-1:Number(safeGet('p1-readiness-single-page')||0)));if(!Number.isFinite(page))page=0;
 render();syncTraceContext();
 })();

@@ -11,7 +11,7 @@ function speak(items){
  function next(n){
   if(id!==readId)return;if(n>=items.length){stop();return}
   const item=items[n],u=new SpeechSynthesisUtterance(item.text.replaceAll('สระ','สะระ'));
-  u.lang='th-TH';u.rate=Number($('#speed').value);const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(voice)u.voice=voice;
+  u.lang='th-TH';u.rate=window.P1ReadingSpeed?.get()??Number($('#speed').value);const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(voice)u.voice=voice;
   item.node?.classList.add('speaking');u.onend=()=>{if(id!==readId)return;item.node?.classList.remove('speaking');timer=setTimeout(()=>next(n+1),item.lineEnd?300:120)};
   u.onerror=()=>{if(id!==readId)return;stop();$('#status').textContent='เสียงอ่านยังไม่พร้อม ลองแตะฟังอีกครั้ง'};speechSynthesis.speak(u);
  }next(0);
@@ -19,8 +19,8 @@ function speak(items){
 function readable(w){return /[ก-๛A-Za-z0-9]/.test(w.text)}
 async function render(){
  stop();const ticket=++renderId,isCover=index<2,source=chapter.pages[index];
- const top=chapter.id===7?49:52;
- const p=isCover?{...chapter.pages[0],width:1052,height:739,lines:chapter.pages.slice(0,2).flatMap((pg,i)=>pg.lines.map(l=>({...l,words:l.words.map(w=>({...w,box:w.box.map((v,k)=>v+(k%2===0?526*i-34:-top)),highlightBox:(w.highlightBox||w.box).map((v,k)=>v+(k%2===0?526*i-34:-top)),chars:w.chars.map(c=>[c[0],c[1]+526*i-34,c[2]-top,...c.slice(3)])}))})))}:source;words=[];
+ const top=chapter.id===7?50:53;
+ const p=isCover?{...chapter.pages[0],width:1047.5,height:737,lines:chapter.pages.slice(0,2).flatMap((pg,i)=>pg.lines.map(l=>({...l,words:l.words.map(w=>({...w,box:w.box.map((v,k)=>v+(k%2===0?523.5*i-35:-top)),highlightBox:(w.highlightBox||w.box).map((v,k)=>v+(k%2===0?523.5*i-35:-top)),chars:w.chars.map(c=>[c[0],c[1]+523.5*i-35,c[2]-top,...c.slice(3)])}))})))}:source;words=[];
  $('#paper').classList.toggle('cover-spread',isCover);
  const url=new URL(location.href);url.searchParams.set('chapter',chapter.id);url.searchParams.set('page',index+1);history.replaceState(null,'',url);
  $('#chapterTitle').textContent=`บทที่ ${th(chapter.id)} · ${chapter.title}`;document.title=chapter.title+' · วรรณคดีลำนำ ป.๑';
@@ -34,13 +34,13 @@ async function render(){
  if(plain){
   const wrap=document.createElement('div');wrap.className='plain';
   for(const line of p.lines.filter(l=>l.read)){const para=document.createElement('p');for(const w of line.words.filter(readable)){const b=document.createElement('button');b.textContent=w.text;const item={text:w.text,node:b};b.onclick=()=>speak([item]);words.push(item);para.append(b)}if(para.childElementCount){words[words.length-1].lineEnd=true;wrap.append(para)}}
-  if(!words.length){const img=document.createElement('img');img.src=isCover?`assets/cover-${chapter.id}.webp?v=2`:`assets/page-${p.pdfPage}.webp`;img.className='plain-cover';img.alt='ภาพประกอบ '+chapter.title;wrap.append(img);const title=document.createElement('h2');title.textContent=chapter.title;wrap.append(title)}
+  if(!words.length){const img=document.createElement('img');img.src=isCover?`assets/cover-${chapter.id}.webp?v=3`:`assets/page-${p.pdfPage}.webp`;img.className='plain-cover';img.alt='ภาพประกอบ '+chapter.title;wrap.append(img);const title=document.createElement('h2');title.textContent=chapter.title;wrap.append(title)}
   $('#pageContent').append(wrap);return;
  }
  const svg=el('svg',{viewBox:`0 0 ${p.width||595} ${p.height||842}`,class:'source-page','aria-label':chapter.title+' หน้าที่ '+(index+1)});svg.style.visibility='hidden';
  for(const [i,pg] of (isCover?chapter.pages.slice(0,2):[p]).entries()){
-  const attrs={href:`assets/page-${pg.pdfPage}.webp`,x:isCover?526*i-34:0,y:isCover?-top:0,width:595,height:842,'aria-hidden':'true'};
-  if(isCover){const clip=el('clipPath',{id:`coverClip${i}`});clip.append(el('rect',{x:526*i,y:0,width:526,height:739}));svg.append(clip);attrs['clip-path']=`url(#coverClip${i})`}
+  const attrs={href:`assets/page-${pg.pdfPage}.webp`,x:isCover?523.5*i-35:0,y:isCover?-top:0,width:595,height:842,'aria-hidden':'true'};
+  if(isCover){const clip=el('clipPath',{id:`coverClip${i}`});clip.append(el('rect',{x:523.5*i,y:0,width:524,height:737}));svg.append(clip);attrs['clip-path']=`url(#coverClip${i})`}
   svg.append(el('image',attrs));
  }
  const needed=new Map();
@@ -71,7 +71,7 @@ function pageSequence(){
  if(start<0||center.length!==2)return words;
  const sequence=words.slice(0,start);for(const name of ['ปู่','ย่า','ตา','ยาย','พ่อ','แม่','ครู','ลุง','ป้า','น้า','อา','พี่','น้อง','เพื่อน']){const item=words.find(w=>w.text===name);if(item)sequence.push(...center,item)}return sequence;
 }
-$('#read').onclick=()=>{if(reading){stop();return}speak(words.length?pageSequence():[{text:chapter.title}])};$('#speed').onchange=stop;
+$('#read').onclick=()=>{if(reading){stop();return}speak(words.length?pageSequence():[{text:chapter.title}])};document.addEventListener('p1-reading-speed-change',stop);
 $('#prev').onclick=()=>go(index===2?0:index-1);$('#next').onclick=()=>{if(index<chapter.pages.length-1)go(index===0?2:index+1);else{stop();P1Course.mark(chapter.pairedUnit,'literature');location.href=P1Course.route(chapter.pairedUnit,'workbook')}};
 $('#viewMode').onclick=()=>{plain=!plain;$('#viewMode').setAttribute('aria-pressed',String(plain));render()};
 $('#openMenu').onclick=()=>{stop();$('#menu').showModal()};$('#closeMenu').onclick=()=>$('#menu').close();
