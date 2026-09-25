@@ -183,7 +183,7 @@ header>a,header>button{display:grid;place-items:center;min-width:46px;background
 .elephant-crop{
   position:relative;
   width:100%;
-  aspect-ratio:1/1;
+  aspect-ratio:724 / 1086;
   overflow:hidden;
   border-radius:18px;
   background:#fff;
@@ -194,9 +194,9 @@ header>a,header>button{display:grid;place-items:center;min-width:46px;background
   left:-100%;
   width:200%;
   max-width:none;
-  height:100%;
+  height:auto;
   max-height:none;
-  object-fit:fill;
+  object-fit:contain;
   border-radius:0;
   background:transparent;
 }
