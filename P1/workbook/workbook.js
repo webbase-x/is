@@ -2,7 +2,7 @@
 'use strict';
 const $=s=>document.querySelector(s),th=n=>String(n).replace(/\d/g,d=>'๐๑๒๓๔๕๖๗๘๙'[d]),ns='http://www.w3.org/2000/svg';
 const unit=Math.min(12,Math.max(1,Number(new URLSearchParams(location.search).get('unit'))||1));
-let chapter,index=0,scope=P1Course.context().key,stroke=null,draw=true,color='#c72f4f',saveTimer,choiceAdvanceTimer,loaded=false;
+let chapter,index=0,scope=P1Course.context().key,stroke=null,draw=true,color='#c72f4f',saveTimer,choiceAdvanceTimer,instructionTimer,instructionReadId=0,loaded=false;
 function state(){return P1Course.read(unit).worksheets||{}}
 function row(){return state()[index]||{ink:[],text:'',confirmed:false,done:false}}
 function save(r){const data=P1Course.read(unit);data.worksheets=data.worksheets||{};data.worksheets[index]=r;if(index&&!r.done)data.workbook=false;return P1Course.write(unit,data)}
@@ -40,7 +40,7 @@ function renderUnit1Match(){
    <div class="match-heading">
      <span class="match-kicker">ข้อ ๑</span>
      <h2 id="matchTitle">ลากคำให้ตรงกับอวัยวะของช้าง</h2>
-     <p>ลาก <strong>ตา หู งวง ขา</strong> ไปยังกรอบที่ลูกศรชี้</p>
+     ${instructionMarkup('ลาก ตา หู งวง ขา ไปยังกรอบที่ลูกศรชี้')}
    </div>
    <div class="match-word-bank" id="matchWordBank" aria-label="คำสำหรับลาก">
      ${matchItems.map(x=>`<button type="button" class="match-word" data-word="${x.word}" aria-label="ลากคำ ${x.word}">${x.word}</button>`).join('')}
@@ -183,7 +183,7 @@ function renderUnit1BuildWord(){
    <div class="match-heading">
      <span class="match-kicker">ข้อ ๒</span>
      <h2 id="buildWordTitle">ลากตัวอักษรมาสร้างคำ</h2>
-     <p>สร้างคำ <strong>ตา หู งวง ขา</strong> ให้ถูกต้อง มีตัวลวงปะปนอยู่</p>
+     ${instructionMarkup('สร้างคำ ตา หู งวง ขา ให้ถูกต้อง มีตัวลวงปะปนอยู่')}
    </div>
 
    <div class="letter-bank full-letter-bank" id="letterBank" aria-label="พยัญชนะ สระ และตัวลวงสำหรับลาก">
@@ -344,9 +344,63 @@ function shortWords(){
  return a.length?a:gameWords().filter(w=>!/\s/.test(w))
 }
 function sourcePreview(){return''}
+function instructionSegments(text){
+ const value=String(text??'');
+ try{
+  if(Intl?.Segmenter){
+   const seg=new Intl.Segmenter('th',{granularity:'word'});
+   return [...seg.segment(value)].map(x=>({text:x.segment,speak:Boolean(x.isWordLike)&&/[ก-๛A-Za-z0-9๐-๙]/.test(x.segment)}))
+  }
+ }catch{}
+ return value.split(/(\s+)/).filter(Boolean).map(part=>({text:part,speak:/\S/.test(part)&&/[ก-๛A-Za-z0-9๐-๙]/.test(part)}))
+}
+function instructionMarkup(text){
+ const parts=instructionSegments(text);let n=0;
+ return `<div class="instruction-read"><button type="button" class="instruction-speak" aria-label="อ่านคำสั่ง">🔊 อ่านคำสั่ง</button><p class="instruction-text">${parts.map(part=>part.speak?`<span class="instruction-word" data-instruction-word="${n++}">${esc(part.text)}</span>`:esc(part.text)).join('')}</p></div>`
+}
+function stopInstructionReading(){
+ instructionReadId++;clearTimeout(instructionTimer);window.speechSynthesis?.cancel();
+ document.querySelectorAll('.instruction-word.speaking').forEach(x=>x.classList.remove('speaking'));
+ document.querySelectorAll('.instruction-read.reading').forEach(x=>x.classList.remove('reading'));
+ document.querySelectorAll('.instruction-speak').forEach(b=>{b.textContent='🔊 อ่านคำสั่ง';b.setAttribute('aria-label','อ่านคำสั่ง')})
+}
+function keepInstructionVisible(node){
+ if(!node?.getBoundingClientRect)return;
+ requestAnimationFrame(()=>{
+  if(!node.classList.contains('speaking'))return;
+  const rect=node.getBoundingClientRect(),header=document.querySelector('header'),pager=document.querySelector('.pager');
+  const topSafe=(header?.getBoundingClientRect().bottom||0)+12;
+  const bottomSafe=window.innerHeight-(pager?.getBoundingClientRect().height||0)-14;
+  if(rect.top>=topSafe&&rect.bottom<=bottomSafe)return;
+  const target=Math.max(0,window.scrollY+rect.top-topSafe-Math.min(100,(bottomSafe-topSafe)*.18));
+  window.scrollTo({top:target,behavior:'smooth'})
+ })
+}
+function speakInstruction(box){
+ if(!box)return;
+ if(box.classList.contains('reading')){stopInstructionReading();return}
+ if(!window.speechSynthesis||!window.SpeechSynthesisUtterance){$('#status').textContent='เครื่องนี้ยังไม่มีเสียงอ่านภาษาไทย';return}
+ stopInstructionReading();const id=++instructionReadId,nodes=[...box.querySelectorAll('.instruction-word')],button=box.querySelector('.instruction-speak');
+ if(!nodes.length)return;
+ box.classList.add('reading');button.textContent='■ หยุด';button.setAttribute('aria-label','หยุดอ่านคำสั่ง');
+ function next(i){
+  if(id!==instructionReadId)return;
+  if(i>=nodes.length){stopInstructionReading();return}
+  const node=nodes[i],u=new SpeechSynthesisUtterance(node.textContent.replaceAll('สระ','สะระ'));
+  u.lang='th-TH';u.rate=window.P1ReadingSpeed?.get()??.75;
+  const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(voice)u.voice=voice;
+  node.classList.add('speaking');keepInstructionVisible(node);
+  u.onstart=()=>{if(id===instructionReadId)keepInstructionVisible(node)};
+  u.onend=()=>{if(id!==instructionReadId)return;node.classList.remove('speaking');instructionTimer=setTimeout(()=>next(i+1),0.1)};
+  u.onerror=()=>{if(id!==instructionReadId)return;stopInstructionReading();$('#status').textContent='เสียงอ่านยังไม่พร้อม ลองแตะอ่านคำสั่งอีกครั้ง'};
+  speechSynthesis.speak(u)
+ }
+ next(0)
+}
+document.addEventListener('click',e=>{const button=e.target.closest?.('.instruction-speak');if(button)speakInstruction(button.closest('.instruction-read'))});
 function speakThai(textValue){
  if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return;
- speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(textValue).replaceAll('สระ','สะระ'));u.lang='th-TH';u.rate=.82;
+ stopInstructionReading();const u=new SpeechSynthesisUtterance(String(textValue).replaceAll('สระ','สะระ'));u.lang='th-TH';u.rate=window.P1ReadingSpeed?.get()??.82;
  const v=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(v)u.voice=v;speechSynthesis.speak(u)
 }
 function gameAttempt(ok,score=100,message=''){
@@ -374,7 +428,7 @@ function submitChoiceAnswer(ok,correctAnswer,selectedButton){
  advanceChoiceAutomatically()
 }
 function gameHeader(icon,title,prompt){
- const r=row();return `<div class="game-top"><span class="game-level">${icon} ${th(index)} / ${th(chapter.pages.length)}</span><span class="game-xp">${r.done?'⭐ ผ่านแล้ว':'⭐ ๑๐'}</span></div><h2>${esc(title)}</h2><p>${prompt}</p>`
+ const r=row();return `<div class="game-top"><span class="game-level">${icon} ${th(index)} / ${th(chapter.pages.length)}</span><span class="game-xp">${r.done?'⭐ ผ่านแล้ว':'⭐ ๑๐'}</span></div><h2>${esc(title)}</h2>${instructionMarkup(prompt)}`
 }
 function renderListenChoice(p){
  const words=gameWords(),target=words[(unit*7+index*3)%words.length];
@@ -474,7 +528,7 @@ function renderHandwritingPage(){
  $('#checkTrace').onclick=()=>{const scores=lines.map((_,i)=>lineScore(i)),avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);r.handwritingScores=scores;r.handwritingScore=avg;scores.forEach((s,i)=>$('#traceScore'+i).textContent='คะแนน '+th(s));if(scores.every(s=>s>=50)&&avg>=60){r.done=true;r.confirmed=true;save(r);progress();$('#next').disabled=false;$('#gameStatus').textContent='⭐ ผ่านการคัดลายมือ '+th(avg)+' คะแนน รับ ๑๐ XP';if(progress()===chapter.pages.length)P1Course.mark(unit,'workbook')}else{r.done=false;save(r);$('#next').disabled=true;$('#gameStatus').textContent='ได้ '+th(avg)+' คะแนน ลองคัดตามแนวตัวอักษรให้ครบและต่อเนื่องขึ้นอีกนิดนะ'}}
 }
 function render(){
- clearTimeout(choiceAdvanceTimer);loaded=false;stroke=null;$('#status').textContent='';$('#next').hidden=false;$('#title').textContent=`บทที่ ${th(unit)} · ${chapter.title}`;document.title=`แบบฝึก ${$('#title').textContent}`;
+ stopInstructionReading();clearTimeout(choiceAdvanceTimer);loaded=false;stroke=null;$('#status').textContent='';$('#next').hidden=false;$('#title').textContent=`บทที่ ${th(unit)} · ${chapter.title}`;document.title=`แบบฝึก ${$('#title').textContent}`;
  const done=progress();$('#counter').textContent=index?`${th(index)} / ${th(chapter.pages.length)}`:'หน้าปก';$('#prev').disabled=index===0;
  $('#next').disabled=index>0&&!row().done;$('#next').textContent=index===0?'เริ่มภารกิจ →':index===chapter.pages.length?'ไปทบทวนและเกม →':'ภารกิจถัดไป ›';
  $('#pageList').replaceChildren();for(let i=0;i<=chapter.pages.length;i++){const b=document.createElement('button');b.textContent=i?th(i):'ปก';if(state()[i]?.done)b.className='completed';b.onclick=()=>{flush();index=i;$('#menu').close();render()};$('#pageList').append(b)}

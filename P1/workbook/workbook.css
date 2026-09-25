@@ -1081,3 +1081,83 @@ main{
   .pager{min-height:66px;padding:7px 9px calc(7px + env(safe-area-inset-bottom))!important}
   .pager button{min-height:46px!important;padding:7px 8px!important;font-size:.9rem}
 }
+
+
+/* spoken instructions with karaoke-style highlighting */
+.instruction-read{
+  width:min(100%,680px);
+  margin:8px auto 14px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  gap:10px;
+}
+.instruction-speak{
+  flex:0 0 auto;
+  min-height:42px;
+  padding:7px 11px;
+  border:1px solid #9fcbbd;
+  border-radius:13px;
+  background:#eaf6f1;
+  color:#216a5e;
+  box-shadow:none;
+  font:inherit;
+  font-size:.88rem;
+  font-weight:800;
+  white-space:nowrap;
+}
+.instruction-read.reading .instruction-speak{
+  background:#2f7f70;
+  border-color:#2f7f70;
+  color:#fff;
+}
+.instruction-text{
+  flex:1 1 auto;
+  margin:3px 0 0!important;
+  padding:6px 8px!important;
+  color:#405f59!important;
+  font-size:clamp(.96rem,3.2vw,1.08rem)!important;
+  line-height:1.9!important;
+  text-align:left!important;
+}
+.instruction-word{
+  display:inline;
+  padding:2px 3px;
+  border-radius:6px;
+  box-decoration-break:clone;
+  -webkit-box-decoration-break:clone;
+  transition:background-color .12s ease,color .12s ease,box-shadow .12s ease;
+}
+.instruction-word.speaking{
+  background:#fff0a8;
+  color:#183f3d;
+  box-shadow:0 0 0 2px #f2ce58;
+}
+.match-heading .instruction-read{
+  margin-top:6px;
+  margin-bottom:12px;
+}
+.match-heading .instruction-text{
+  max-width:none;
+  margin-top:2px!important;
+}
+@media(max-width:640px){
+  .instruction-read{
+    gap:7px;
+    margin:6px auto 11px;
+  }
+  .instruction-speak{
+    min-height:40px;
+    padding:6px 9px;
+    border-radius:12px;
+    font-size:.82rem;
+  }
+  .instruction-text{
+    padding:5px 4px!important;
+    font-size:.96rem!important;
+    line-height:1.85!important;
+  }
+  .instruction-word{
+    padding:2px;
+  }
+}
