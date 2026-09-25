@@ -387,7 +387,7 @@ function renderListenChoice(p){
 }
 function renderQuizGame(p){
  const reviews=unitData().review||[],q=reviews[(index-1)%Math.max(1,reviews.length)]||{q:'คำใดอยู่ในบทเรียนนี้?',o:gameWords().slice(0,3),a:gameWords()[0]};
- $('#content').innerHTML=`<section class="game-card">${gameHeader('❓','ตอบคำถามพิชิตดาว',esc(q.q))}<div class="choice-grid">${q.o.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ทำภารกิจนี้แล้ว':'เลือก ๑ คำตอบ ระบบจะตรวจคะแนนแล้วไปข้อถัดไปอัตโนมัติ'}</p>${sourcePreview(p)}</section>`;
+ $('#content').innerHTML=`<section class="game-card">${gameHeader('❓','ตอบคำถามพิชิตดาว',esc(q.q))}<div class="choice-grid">${q.o.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ทำแล้ว':'เลือกคำตอบ'}</p>${sourcePreview(p)}</section>`;
  $('#next').hidden=true;let locked=false;
  document.querySelectorAll('.choice-btn').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;submitChoiceAnswer(b.dataset.value===q.a,q.a,b)})
 }
