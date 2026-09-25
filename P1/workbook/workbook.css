@@ -606,3 +606,66 @@ header>a,header>button{display:grid;place-items:center;min-width:46px;background
   .build-trunk{left:1%;bottom:7%;min-width:122px}
   .build-leg{right:1%;bottom:7%}
 }
+
+
+/* 2026-09-25: all-workbook gamification */
+.game-card,.handwriting-game{
+  max-width:920px;
+  margin:0 auto;
+  padding:clamp(14px,3vw,26px);
+  border:1px solid #d6e7df;
+  border-radius:24px;
+  background:linear-gradient(180deg,#fff,#f6fbf8);
+  box-shadow:0 16px 40px #23453414;
+}
+.game-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.game-level,.game-xp{display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:999px;font-weight:800;font-size:.84rem}
+.game-level{background:#e5f5ee;color:#236b67}.game-xp{background:#fff4c7;color:#795d12}
+.game-card>h2,.handwriting-game>h2{display:block!important;margin:10px 0 6px!important;padding:0!important;background:none!important;color:#174f4c!important;font-size:clamp(1.35rem,4vw,2rem)!important;border-radius:0!important;text-align:center}
+.game-card>p,.handwriting-game>p{text-align:center}
+.listen-button{display:block;margin:14px auto;min-width:180px;background:#236b67;color:#fff;border-color:#236b67;font-weight:800;font-size:1.05rem}
+.choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:720px;margin:14px auto}
+.choice-btn{min-height:62px;padding:10px;border:2px solid #bdd8ce;border-radius:16px;background:#fff;color:#174f4c;font-size:1.1rem;font-weight:800;box-shadow:0 6px 14px #2345340b}
+.choice-btn.correct{border-color:#2f9b5f;background:#e4f7ea}.choice-btn.wrong{border-color:#d45b5b;background:#fff0f0}
+.game-status{min-height:1.7em;margin:12px 0;text-align:center;color:#236b67;font-weight:800}
+.game-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:16px 0 5px}
+.source-preview{max-width:760px;margin:16px auto 0;border:1px solid #dbe8e3;border-radius:16px;background:#fff;overflow:hidden}
+.source-preview summary{cursor:pointer;padding:11px 14px;font-weight:800;color:#52746c}
+.source-preview-frame{padding:10px;background:#f4f8f6}.source-preview-frame img{display:block;width:100%;height:auto;border-radius:10px}
+.source-preview-frame.source-rotated img{transform:rotate(180deg)}
+.source-text-copy{padding:4px 16px 16px;text-align:left!important;line-height:1.8}
+.sequence-slots{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:14px auto;min-height:66px}
+.seq-slot{min-width:72px;min-height:58px;padding:5px;display:grid;place-items:center;border:2px dashed #74b29f;border-radius:14px;background:#f8fcfa;transition:.15s}
+.seq-slot.over{border-color:#236b67;background:#e5f5ee;transform:scale(1.04)}
+.seq-slot.correct{border-color:#2f9b5f;background:#e4f7ea}.seq-slot.wrong{border-color:#d45b5b;background:#fff0f0}
+.seq-slot>span{color:#78908a;font-weight:800}
+.tile-bank{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:12px;border:1px dashed #9ccdbd;border-radius:17px;background:#eef9f4}
+.game-tile{min-width:62px;min-height:50px;padding:7px 11px;border:2px solid #75b9a3;border-radius:13px;background:#fff;color:#174f4c;font-size:1.05rem;font-weight:800;touch-action:none;user-select:none;-webkit-user-select:none}
+.game-tile.selected{outline:4px solid #ffd76a;outline-offset:2px}.game-tile.drag-source{opacity:.35}
+.seq-slot .game-tile{min-width:60px;min-height:46px;margin:0}
+.tile-drag-ghost{position:fixed;z-index:9999;transform:translate(-50%,-50%) scale(1.06);min-width:62px;min-height:50px;padding:7px 11px;border:2px solid #236b67;border-radius:13px;background:#fff;color:#174f4c;font:800 1.05rem Sarabun,Tahoma,sans-serif;box-shadow:0 12px 30px #173f3735;pointer-events:none}
+
+/* rebuilt handwriting pages */
+.trace-list{display:grid;gap:14px;margin:16px auto;max-width:900px}
+.trace-card{padding:10px;border:1px solid #dbe8e3;border-radius:18px;background:#fff;box-shadow:0 6px 16px #2345340b}
+.trace-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;color:#52746c;font-weight:800}
+.trace-speak{padding:6px 10px;border-radius:10px}
+.trace-pad{display:block;width:100%;height:auto;min-height:120px;border:1px solid #c8dfd6;border-radius:14px;background:
+ linear-gradient(to bottom,transparent 66%,#b9d8ce 66%,#b9d8ce 67%,transparent 67%),
+ linear-gradient(to bottom,#fff,#fbfefd);touch-action:none}
+.trace-guide{font-family:"Sarabun","Thonburi","Sukhumvit Set",Tahoma,sans-serif;fill:#eff7f3;stroke:#9bc9ba;stroke-width:1.25;stroke-dasharray:3 3;paint-order:stroke fill}
+.trace-stroke{fill:none;stroke:#d84464;stroke-width:5.5;stroke-linecap:round;stroke-linejoin:round}
+.handwriting-game .source-preview{max-width:620px}
+
+/* Hide legacy free-writing affordances when old markup is not in use */
+.game-card textarea,.game-card .confirm,.handwriting-game textarea,.handwriting-game .confirm{display:none!important}
+
+@media(max-width:640px){
+  .game-card,.handwriting-game{padding:12px 9px;border-radius:18px}
+  .game-top{align-items:flex-start}.game-level,.game-xp{font-size:.72rem;padding:6px 8px}
+  .choice-grid{grid-template-columns:1fr 1fr;gap:7px}.choice-btn{min-height:54px;font-size:.95rem;padding:7px}
+  .sequence-slots{gap:5px}.seq-slot{min-width:52px;min-height:49px;padding:3px}
+  .tile-bank{gap:5px;padding:8px}.game-tile{min-width:50px;min-height:44px;padding:5px 8px;font-size:.92rem}
+  .seq-slot .game-tile{min-width:46px;min-height:40px}
+  .trace-card{padding:7px}.trace-toolbar{font-size:.78rem}.trace-pad{min-height:105px}
+}
