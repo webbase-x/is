@@ -6,6 +6,18 @@ let chapter,index=0,scope=P1Course.context().key,stroke=null,draw=true,color='#c
 function state(){return P1Course.read(unit).worksheets||{}}
 function row(){return state()[index]||{ink:[],text:'',confirmed:false,done:false}}
 function save(r){const data=P1Course.read(unit);data.worksheets=data.worksheets||{};data.worksheets[index]=r;if(index&&!r.done)data.workbook=false;return P1Course.write(unit,data)}
+const WORKBOOK_GAMIFIED_VERSION=1;
+function migrateGamifiedRows(){
+ const data=P1Course.read(unit);data.worksheets=data.worksheets||{};let changed=false;
+ chapter.pages.forEach((p,i)=>{
+  const key=i+1,r=data.worksheets[key]||{};
+  if(r.gamifiedVersion!==WORKBOOK_GAMIFIED_VERSION){
+   r.gamifiedVersion=WORKBOOK_GAMIFIED_VERSION;r.done=false;r.confirmed=false;
+   data.worksheets[key]=r;changed=true
+  }
+ });
+ if(changed){data.workbook=false;P1Course.write(unit,data)}
+}
 function progress(){const rows=state(),done=chapter.pages.filter((_,i)=>rows[i+1]?.done).length;$('#progress').textContent=`⭐ ผ่านแล้ว ${th(done)} / ${th(chapter.pages.length)} ภารกิจ`;$('#owner').textContent=P1Course.context().label+' · เกมตรวจคำตอบอัตโนมัติ · หน้าคัดลายมือประเมินจากการลากเส้น · ความคืบหน้าเก็บในเครื่องนี้';return done}
 function paint(){const svg=$('#ink');if(!svg)return;svg.replaceChildren();for(const s of [...row().ink,...(stroke?[stroke]:[])]){const p=document.createElementNS(ns,'path');p.setAttribute('d',s.points.map(([x,y],i)=>(i?'L':'M')+x+' '+y).join(' '));p.setAttribute('stroke',s.color);p.setAttribute('stroke-width','3');svg.append(p)}}
 function flush(){clearTimeout(saveTimer);const input=$('#answer');if(input){const r=row();if(r.text!==input.value){r.text=input.value;r.done=false;save(r);$('#next').disabled=true;progress()}}}
@@ -451,5 +463,5 @@ $('#openMenu').onclick=()=>{flush();$('#menu').showModal()};$('#closeMenu').oncl
 function switchContext(){const next=P1Course.context().key;if(next!==scope){clearTimeout(saveTimer);scope=next;stroke=null;index=0;if(chapter)render()}else if(chapter)progress()}
 for(const event of ['p1-classroom-ready','p1-trace-context'])document.addEventListener(event,switchContext);
 document.addEventListener('p1-course-storage-error',()=>$('#status').textContent='ยังบันทึกในเครื่องไม่ได้ พื้นที่อาจเต็ม กรุณาเก็บคำตอบก่อนปิดหน้า');window.addEventListener('pagehide',flush);
-fetch('book.json?v=1').then(r=>{if(!r.ok)throw Error();return r.json()}).then(b=>{chapter=b.chapters.find(c=>c.unit===unit);$('#reading').href=P1Course.route(unit,'reading');$('#literature').hidden=unit<4||unit>11;$('#literature').href=P1Course.route(unit,'literature');render()}).catch(()=>$('#status').textContent='เปิดแบบฝึกไม่สำเร็จ กรุณาลองโหลดใหม่');
+fetch('book.json?v=20260925-gamified-all-1').then(r=>{if(!r.ok)throw Error();return r.json()}).then(b=>{chapter=b.chapters.find(c=>c.unit===unit);migrateGamifiedRows();$('#reading').href=P1Course.route(unit,'reading');$('#literature').hidden=unit<4||unit>11;$('#literature').href=P1Course.route(unit,'literature');render()}).catch(()=>$('#status').textContent='เปิดแบบฝึกไม่สำเร็จ กรุณาลองโหลดใหม่');
 })();
