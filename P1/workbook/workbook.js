@@ -398,7 +398,7 @@ function renderSequenceGame(p,mode){
  $('#checkSequence').onclick=()=>{let ok=true;slots.forEach((s,i)=>{const good=s.querySelector('.game-tile')?.dataset.token===expected[i];s.classList.toggle('correct',good);s.classList.toggle('wrong',!good);if(!good)ok=false});if(ok)gameAttempt(true,100,'⭐ เรียงถูกทั้งหมด รับ ๑๐ XP');else gameAttempt(false,0,'ยังมีบางช่องไม่ถูก ดูช่องสีแดงแล้วลองใหม่')}
 }
 function renderGamifiedPage(){
- const p=chapter.pages[index-1],mode=['listen','build','order','quiz'][(index+unit)%4];
+ const p=chapter.pages[index-1],mode=p.activityType||['listen','build','order','quiz'][(index+unit)%4];
  $('#next').disabled=!row().done;
  if(mode==='listen')renderListenChoice(p);else if(mode==='quiz')renderQuizGame(p);else renderSequenceGame(p,mode)
 }
@@ -442,7 +442,7 @@ function render(){
  if(!index){$('#content').innerHTML=`<section class="cover"><span class="cover-kicker">แบบฝึกเกมมิฟิเคชันภาษาไทย ป.๑</span><div class="cover-book"><img src="assets/volume-${chapter.volume}.webp" alt="ปกแบบฝึกทักษะภาษาไทย ป.๑ เล่ม ${th(chapter.volume)}"></div><h2>บทที่ ${th(unit)} · ${chapter.title}</h2><p class="cover-meta">เล่ม ${th(chapter.volume)} · ${th(chapter.pages.length)} ภารกิจ</p><div class="cover-steps"><span>🔊 ฟัง–เลือก</span><span>🧩 สร้างคำ</span><span>🚂 เรียงประโยค</span><span>❓ ตอบคำถาม</span><span>✍️ คัดลายมือ</span></div><p class="cover-help">ทุกหน้าปรับเป็นเกม ไม่เขียนทับแบบฝึกเดิม<br>หน้าคัดลายมือสร้างใหม่ให้ลากตามตัวอักษรต้นฉบับ</p>${done===chapter.pages.length?'<p class="reward">🏅</p><p class="complete-copy">ผ่านทุกภารกิจในบทนี้แล้ว เก่งมาก!</p>':''}</section><p class="note center-note">ทำถูกจึงได้รับดาวและปลดล็อกภารกิจถัดไป</p>`;return}
  if(isUnit1MatchPage()){renderUnit1Match();return}
  if(isUnit1BuildWordPage()){renderUnit1BuildWord();return}
- if(index===chapter.pages.length){renderHandwritingPage();return}
+ if(chapter.pages[index-1]?.activityType==='handwriting'){renderHandwritingPage();return}
  renderGamifiedPage();
 }
 $('#prev').onclick=()=>{flush();if(index>0){index--;render();scrollTo(0,0)}};
