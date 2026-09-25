@@ -21,7 +21,7 @@ let soundOn=true,step=Number(sessionStorage.getItem(`p1-book-step-${unitNo}`)||0
 const fullBook=window.P1_COMPLETE_PAGES[unitNo];
 let fullIndex=Math.max(0,Math.min(fullBook.pages.length-1,Number(sessionStorage.getItem(`p1-full-page-${unitNo}`))||0)),originalMode=false;
 let wordIndex=0,readingIndex=0,quizIndex=0,quizScore=0,gameIndex=0,gameScore=0;
-let pageTurnBusy=false;
+let pageTurnBusy=false,activityRun=0;
 const completed=new Set(JSON.parse(localStorage.getItem(`p1-book-done-${unitNo}`)||"[]"));
 
 let speakingEl=null,speechSeq=0,karaokeRun=0,finishSpeech=null;
@@ -576,10 +576,8 @@ function renderReading(turnDirection=""){
  const songPlayer=songCfg?`<audio id="songAudio" class="unit1-song-audio" preload="auto" playsinline src="${songAudioUrl(songCfg)}"></audio>`:"";
  const last=fullIndex===fullBook.pages.length-1;
  const maxUnit=Math.max(...Object.keys(units).map(Number));
- const nextUnitFromLast=last&&unitNo<maxUnit;
- const returnHomeFromLast=last&&unitNo===maxUnit;
- const nextLabel=nextUnitFromLast?"ไปบทถัดไป":returnHomeFromLast?"กลับหน้าเลือกบท":"หน้าถัดไป";
- const nextIcon=nextUnitFromLast?">>":returnHomeFromLast?"⌂":"›";
+ const nextLabel=last?(unitNo>=4&&unitNo<=11?"อ่านวรรณคดีลำนำต่อ":"ไปแบบฝึกบทนี้"):"หน้าถัดไป";
+ const nextIcon=last?">>":"›";
  const pageCount=`<span class="book-page-count book-page-count-on-paper" aria-label="หน้าที่ ${fullIndex+1} จาก ${fullBook.pages.length}">${fullIndex+1} / ${fullBook.pages.length}</span>`;
  stage.innerHTML=`<div class="book-reader">
    <section class="book-paper" aria-label="หน้าหนังสือ">${pageContent}${pageCount}${songPlayer}</section>
@@ -589,7 +587,7 @@ function renderReading(turnDirection=""){
      <button type="button" class="book-read-button" id="readPageKaraoke" aria-label="${songCfg?"เล่นเพลงและอ่านตาม":"อ่านหน้านี้"}" title="${songCfg?"เล่นเพลง":"อ่านหน้านี้"}"><span class="book-control-icon">${songCfg?"▶":"🔊"}</span><span>${songCfg?"เล่นเพลง":"อ่านหน้านี้"}</span></button>
      <button type="button" class="book-nav-button" data-page-next aria-label="${nextLabel}" title="${nextLabel}"><span>${nextLabel}</span><span class="book-control-icon">${nextIcon}</span></button>
    </nav>
-   ${last?'<div class="book-finish-wrap"><button class="book-finish-button" id="finishFullChapter">อ่านจบบทแล้ว · ไปทบทวน ✓</button></div>':''}
+   ${last?'<div class="book-finish-wrap"><button class="book-finish-button" id="finishFullChapter">อ่านจบบทแล้ว · เรียนต่อในบทนี้ →</button></div>':''}
  </div>`;
  {const paper=stage.querySelector('.book-paper'),controls=stage.querySelector('.book-reader-controls');if(paper&&controls)paper.appendChild(controls)}
  if(turnDirection&&!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches){
@@ -601,14 +599,7 @@ function renderReading(turnDirection=""){
  }
  stage.querySelectorAll('[data-page-prev]').forEach(b=>b.onclick=()=>changeFullPage(fullIndex-1));
  stage.querySelectorAll('[data-page-next]').forEach(b=>b.onclick=()=>{
-  if(nextUnitFromLast){
-   stopSpeech();
-   sessionStorage.setItem(`p1-book-step-${unitNo+1}`,'3');
-   sessionStorage.setItem(`p1-full-page-${unitNo+1}`,'0');
-   location.href=`lesson.html?unit=${unitNo+1}&start=1`;
-   return
-  }
-  if(returnHomeFromLast){stopSpeech();location.href="index.html";return}
+  if(last){stopSpeech();P1Course.mark(unitNo,'reading');location.href=P1Course.afterReading(unitNo);return}
   changeFullPage(fullIndex+1)
  });
  if(cover){
@@ -620,18 +611,20 @@ function renderReading(turnDirection=""){
   if(songCfg)bindSongKaraoke(songCfg);
  }
  if(!songCfg){const readPage=cover?readKaraokePage:readNativePage;$('#readPageKaraoke').onclick=readPage}
- const finish=$('#finishFullChapter');if(finish)finish.onclick=()=>{markDone();step=4;render()};
+ const finish=$('#finishFullChapter');if(finish)finish.onclick=()=>{markDone();P1Course.mark(unitNo,'reading');location.href=P1Course.afterReading(unitNo)};
 }
-function renderQuiz(){if(quizIndex>=unit.review.length){markDone();stage.innerHTML=`<div class="completion"><div><div class="medal">🏅</div><h3>ทบทวนจบแล้ว</h3><p>ตอบถูก ${quizScore} จาก ${unit.review.length} ข้อ</p><button class="big-action" id="toGame">ไปเกมสะสมดาว →</button></div></div>`;$("#toGame").onclick=()=>{step=5;render()};return}const q=unit.review[quizIndex];stage.innerHTML=`<div class="quiz"><div class="quiz-box"><div class="quiz-meta"><span>ข้อ ${quizIndex+1} / ${unit.review.length}</span><span>คะแนน ${quizScore}</span></div><h3>${q.q}</h3><div class="quiz-options">${shuffle(q.o).map(o=>`<button class="quiz-option ${unit.pictures?.[o]!==undefined?"has-picture":""}" data-answer="${o.replace(/"/g,"&quot;")}">${pictureMarkup(o,"option-picture")}<span>${o}</span></button>`).join("")}</div><p id="quizFeedback" class="feedback"></p></div><div class="instruction-card"><strong>ทบทวนจากภาพต้นฉบับ</strong><p>คำที่มีภาพประกอบจะแสดงภาพจากหนังสือเพื่อช่วยเชื่อมโยงความหมาย</p><div style="margin-top:13px">${crop(unit.segments[2],"compact")}</div></div></div>`;stage.querySelectorAll("[data-answer]").forEach(b=>b.onclick=()=>{const buttons=[...stage.querySelectorAll("[data-answer]")],ok=b.dataset.answer===q.a;buttons.forEach(x=>x.disabled=true);b.classList.add(ok?"correct":"wrong");const correct=buttons.find(x=>x.dataset.answer===q.a);if(!ok&&correct)correct.classList.add("correct");const fb=$("#quizFeedback");fb.textContent=ok?"✓ ถูกต้อง เก่งมาก!":`คำตอบที่ถูกคือ “${q.a}”`;fb.className=`feedback ${ok?"good":"bad"}`;if(ok){quizScore++;addStar(1)}speak(q.a,ok?b:correct).then(()=>setTimeout(()=>{quizIndex++;renderQuiz()},220))})}
-function gameQuestion(){const qs=unit.review;if(gameIndex>=qs.length){completed.add(5);save();const perfect=gameScore===qs.length;if(perfect)addStar(2);stage.innerHTML=`<div class="completion"><div><div class="medal">${perfect?"🏆":"🎖️"}</div><h3>${perfect?"นักอ่านดาวทอง!":"ผ่านด่านแล้ว!"}</h3><p>ภารกิจเกม ${gameScore}/${qs.length} · ดาวสะสมทั้งหมด ${stars}</p><div class="unit-links"><button class="big-action" id="playAgain">เล่นเกมอีกครั้ง</button><a class="secondary-action" href="index.html">กลับสารบัญ</a>${unitNo<Math.max(...Object.keys(units).map(Number))?`<a class="secondary-action" href="lesson.html?unit=${unitNo+1}">ไปหน่วยถัดไป →</a>`:""}</div></div></div>`;$("#playAgain").onclick=()=>{gameIndex=0;gameScore=0;renderGame()};renderNav();return}const q=qs[gameIndex];stage.innerHTML=`<div class="game-shell"><div class="reward-card"><div class="trophy">⭐</div><h3>ภารกิจนักอ่าน</h3><div class="xp">${stars} ดาว</div><p>ตอบให้ถูกเพื่อสะสมดาว<br>ครบทุกข้อรับเหรียญผ่านด่าน</p><div class="book-mini">${crop(unit.segments[2],"compact")}</div></div><div class="mission"><span class="kicker">ภารกิจ ${gameIndex+1} / ${qs.length}</span><h3>${q.q}</h3><div class="mission-options">${shuffle(q.o).map(o=>`<button class="${unit.pictures?.[o]!==undefined?"has-picture":""}" data-game-answer="${o.replace(/"/g,"&quot;")}">${pictureMarkup(o,"option-picture")}<span>${o}</span></button>`).join("")}</div><p id="gameFeedback" class="feedback"></p></div></div>`;stage.querySelectorAll("[data-game-answer]").forEach(b=>b.onclick=()=>{const buttons=[...stage.querySelectorAll("[data-game-answer]")],ok=b.dataset.gameAnswer===q.a;buttons.forEach(x=>x.disabled=true);b.classList.add(ok?"correct":"wrong");const correct=buttons.find(x=>x.dataset.gameAnswer===q.a);if(!ok&&correct)correct.classList.add("correct");const fb=$("#gameFeedback");fb.textContent=ok?"⭐ ได้ดาว!":`คำตอบคือ “${q.a}”`;fb.className=`feedback ${ok?"good":"bad"}`;if(ok){gameScore++;addStar(1)}speak(q.a,ok?b:correct).then(()=>setTimeout(()=>{gameIndex++;gameQuestion()},220))})}
+function renderQuiz(){if(quizIndex>=unit.review.length){markDone();P1Course.mark(unitNo,'review');stage.innerHTML=`<div class="completion"><div><div class="medal">🏅</div><h3>ทบทวนจบแล้ว</h3><p>ตอบถูก ${quizScore} จาก ${unit.review.length} ข้อ</p><button class="big-action" id="toGame">ไปเกมสะสมดาว →</button></div></div>`;$("#toGame").onclick=()=>{step=5;render()};return}const q=unit.review[quizIndex];stage.innerHTML=`<div class="quiz"><div class="quiz-box"><div class="quiz-meta"><span>ข้อ ${quizIndex+1} / ${unit.review.length}</span><span>คะแนน ${quizScore}</span></div><h3>${q.q}</h3><div class="quiz-options">${shuffle(q.o).map(o=>`<button class="quiz-option ${unit.pictures?.[o]!==undefined?"has-picture":""}" data-answer="${o.replace(/"/g,"&quot;")}">${pictureMarkup(o,"option-picture")}<span>${o}</span></button>`).join("")}</div><p id="quizFeedback" class="feedback"></p></div><div class="instruction-card"><strong>ทบทวนจากภาพต้นฉบับ</strong><p>คำที่มีภาพประกอบจะแสดงภาพจากหนังสือเพื่อช่วยเชื่อมโยงความหมาย</p><div style="margin-top:13px">${crop(unit.segments[2],"compact")}</div></div></div>`;stage.querySelectorAll("[data-answer]").forEach(b=>b.onclick=()=>{const run=activityRun;const buttons=[...stage.querySelectorAll("[data-answer]")],ok=b.dataset.answer===q.a;buttons.forEach(x=>x.disabled=true);b.classList.add(ok?"correct":"wrong");const correct=buttons.find(x=>x.dataset.answer===q.a);if(!ok&&correct)correct.classList.add("correct");const fb=$("#quizFeedback");fb.textContent=ok?"✓ ถูกต้อง เก่งมาก!":`คำตอบที่ถูกคือ “${q.a}”`;fb.className=`feedback ${ok?"good":"bad"}`;if(ok){quizScore++;addStar(1)}speak(q.a,ok?b:correct).then(()=>setTimeout(()=>{if(run!==activityRun)return;quizIndex++;renderQuiz()},220))})}
+function gameQuestion(){const qs=unit.review;if(gameIndex>=qs.length){completed.add(5);save();P1Course.mark(unitNo,'game');const continuation=P1Course.next(unitNo);const perfect=gameScore===qs.length;if(perfect)addStar(2);stage.innerHTML=`<div class="completion"><div><div class="medal">${perfect?"🏆":"🎖️"}</div><h3>${perfect?"นักอ่านดาวทอง!":"ผ่านด่านแล้ว!"}</h3><p>ภารกิจเกม ${gameScore}/${qs.length} · ดาวสะสมทั้งหมด ${stars}</p><div class="unit-links"><button class="big-action" id="playAgain">เล่นเกมอีกครั้ง</button><a class="secondary-action" href="index.html">กลับสารบัญ</a><a class="secondary-action" id="chapterContinue" href="${continuation.href}">${continuation.label}</a></div></div></div>`;$("#playAgain").onclick=()=>{gameIndex=0;gameScore=0;renderGame()};renderNav();return}const q=qs[gameIndex];stage.innerHTML=`<div class="game-shell"><div class="reward-card"><div class="trophy">⭐</div><h3>ภารกิจนักอ่าน</h3><div class="xp">${stars} ดาว</div><p>ตอบให้ถูกเพื่อสะสมดาว<br>ครบทุกข้อรับเหรียญผ่านด่าน</p><div class="book-mini">${crop(unit.segments[2],"compact")}</div></div><div class="mission"><span class="kicker">ภารกิจ ${gameIndex+1} / ${qs.length}</span><h3>${q.q}</h3><div class="mission-options">${shuffle(q.o).map(o=>`<button class="${unit.pictures?.[o]!==undefined?"has-picture":""}" data-game-answer="${o.replace(/"/g,"&quot;")}">${pictureMarkup(o,"option-picture")}<span>${o}</span></button>`).join("")}</div><p id="gameFeedback" class="feedback"></p></div></div>`;stage.querySelectorAll("[data-game-answer]").forEach(b=>b.onclick=()=>{const run=activityRun;const buttons=[...stage.querySelectorAll("[data-game-answer]")],ok=b.dataset.gameAnswer===q.a;buttons.forEach(x=>x.disabled=true);b.classList.add(ok?"correct":"wrong");const correct=buttons.find(x=>x.dataset.gameAnswer===q.a);if(!ok&&correct)correct.classList.add("correct");const fb=$("#gameFeedback");fb.textContent=ok?"⭐ ได้ดาว!":`คำตอบคือ “${q.a}”`;fb.className=`feedback ${ok?"good":"bad"}`;if(ok){gameScore++;addStar(1)}speak(q.a,ok?b:correct).then(()=>setTimeout(()=>{if(run!==activityRun)return;gameIndex++;gameQuestion()},220))})}
 function renderGame(){gameQuestion()}
 function zoomSegment(index){const seg=unit.segments[index];$("#zoomContent").innerHTML=crop(seg,"reading");$("#zoomDialog").showModal()}
 function zoomSpread(indices){$("#zoomContent").innerHTML=spread(indices,"zoom-spread");$("#zoomDialog").showModal()}
 function bindZoom(){stage.querySelectorAll("[data-zoom]").forEach(b=>b.onclick=()=>zoomSegment(Number(b.dataset.zoom)));stage.querySelectorAll("[data-zoom-spread]").forEach(b=>b.onclick=()=>zoomSpread(b.dataset.zoomSpread.split(",").map(Number)))}
 function resetStep(){stopSpeech();if(step===2)wordIndex=0;if(step===3){readingIndex=0;fullIndex=0;originalMode=false}if(step===4){quizIndex=0;quizScore=0}if(step===5){gameIndex=0;gameScore=0}render()}
-function render(){stopSpeech();step=Math.max(0,Math.min(5,step));document.body.classList.toggle("book-reader-mode",step===3);save();setHead();renderNav();if(step===0)renderCover();if(step===1)renderVocab();if(step===2)renderWordPractice();if(step===3)renderReading();if(step===4)renderQuiz();if(step===5)renderGame();bindZoom();window.scrollTo({top:0,behavior:"smooth"})}
+function render(){activityRun++;stopSpeech();step=Math.max(0,Math.min(5,step));document.body.classList.toggle("book-reader-mode",step===3);save();setHead();renderNav();if(step===0)renderCover();if(step===1)renderVocab();if(step===2)renderWordPractice();if(step===3)renderReading();if(step===4)renderQuiz();if(step===5)renderGame();bindZoom();window.scrollTo({top:0,behavior:"smooth"})}
 $("#prevStep").onclick=()=>{if(step>0){step--;render()}};
-$("#nextStep").onclick=()=>{markDone();if(step<5){step++;render()}else location.href="index.html"};
+$("#nextStep").onclick=()=>{if(step===3){if(fullIndex<fullBook.pages.length-1){changeFullPage(fullIndex+1);return}P1Course.mark(unitNo,'reading');location.href=P1Course.afterReading(unitNo);return}if(step===4){if(quizIndex<unit.review.length)return;step=5;render();return}if(step===5){if(gameIndex<unit.review.length)return;location.href=P1Course.next(unitNo).href;return}markDone();step++;render()};
+let courseScope=P1Course.context().key;
+for(const event of ['p1-classroom-ready','p1-trace-context'])document.addEventListener(event,()=>{const next=P1Course.context().key;if(next!==courseScope){courseScope=next;if(step>=4){quizIndex=0;quizScore=0;gameIndex=0;gameScore=0;render()}}});
 $("#restartStep").onclick=resetStep;
 $("#soundToggle").onclick=e=>{soundOn=!soundOn;e.currentTarget.textContent=soundOn?"🔊":"🔇";e.currentTarget.setAttribute("aria-pressed",String(soundOn));if(!soundOn)stopSpeech()};
 $("#closeZoom").onclick=()=>$("#zoomDialog").close();

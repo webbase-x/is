@@ -1,0 +1,40 @@
+(() => {
+'use strict';
+const $=s=>document.querySelector(s),th=n=>String(n).replace(/\d/g,d=>'๐๑๒๓๔๕๖๗๘๙'[d]),ns='http://www.w3.org/2000/svg';
+const unit=Math.min(12,Math.max(1,Number(new URLSearchParams(location.search).get('unit'))||1));
+let chapter,index=0,scope=P1Course.context().key,stroke=null,draw=true,color='#c72f4f',saveTimer,loaded=false;
+function state(){return P1Course.read(unit).worksheets||{}}
+function row(){return state()[index]||{ink:[],text:'',confirmed:false,done:false}}
+function save(r){const data=P1Course.read(unit);data.worksheets=data.worksheets||{};data.worksheets[index]=r;if(index&&!r.done)data.workbook=false;return P1Course.write(unit,data)}
+function progress(){const rows=state(),done=chapter.pages.filter((_,i)=>rows[i+1]?.done).length;$('#progress').textContent=`⭐ ทำแล้ว ${th(done)} / ${th(chapter.pages.length)} กิจกรรม`;$('#owner').textContent=P1Course.context().label+' · คำตอบและความคืบหน้าเก็บในเครื่องนี้ · ดาวแสดงการทำครบ ส่วนความถูกต้องให้ครูตรวจ';return done}
+function paint(){const svg=$('#ink');if(!svg)return;svg.replaceChildren();for(const s of [...row().ink,...(stroke?[stroke]:[])]){const p=document.createElementNS(ns,'path');p.setAttribute('d',s.points.map(([x,y],i)=>(i?'L':'M')+x+' '+y).join(' '));p.setAttribute('stroke',s.color);p.setAttribute('stroke-width','3');svg.append(p)}}
+function flush(){clearTimeout(saveTimer);const input=$('#answer');if(input){const r=row();if(r.text!==input.value){r.text=input.value;r.done=false;save(r);$('#next').disabled=true;progress()}}}
+function render(){
+ loaded=false;stroke=null;$('#status').textContent='';$('#title').textContent=`แบบฝึกบทที่ ${th(unit)} · ${chapter.title}`;document.title=$('#title').textContent;
+ const done=progress();$('#counter').textContent=index?`${th(index)} / ${th(chapter.pages.length)}`:'หน้าปก';$('#prev').disabled=index===0;
+ $('#next').disabled=index>0&&!row().done;$('#next').textContent=index===0?'เริ่มกิจกรรม →':index===chapter.pages.length?'ไปทบทวนและเกม →':'กิจกรรมถัดไป ›';
+ $('#pageList').replaceChildren();for(let i=0;i<=chapter.pages.length;i++){const b=document.createElement('button');b.textContent=i?th(i):'ปก';if(state()[i]?.done)b.className='completed';b.onclick=()=>{flush();index=i;$('#menu').close();render()};$('#pageList').append(b)}
+ if(!index){$('#content').innerHTML=`<section class="cover"><img src="assets/volume-${chapter.volume}.webp" alt="ปกแบบฝึกทักษะภาษาไทย ป.๑ เล่ม ${th(chapter.volume)}"><h2>บทที่ ${th(unit)} · ${chapter.title}</h2><p>แบบฝึกเล่ม ${th(chapter.volume)} · ${th(chapter.pages.length)} กิจกรรม</p><p>เขียน วงกลม หรือโยงเส้นบนหน้าแบบฝึก<br>ทำตามคำสั่งให้ครบ แล้วรับดาวทีละหน้า</p>${done===chapter.pages.length?'<p class="reward">🏅</p><p>ทำแบบฝึกบทนี้ครบแล้ว</p>':''}</section><p class="note">หน้ากิจกรรมมาจากไฟล์ต้นฉบับที่ครูให้มา บางหน้ามีรอยเขียนเดิมอยู่แล้ว</p>`;return}
+ const p=chapter.pages[index-1],r=row();
+ $('#content').innerHTML=`<h2>ภารกิจที่ ${th(index)}</h2><p>อ่านคำสั่งบนหน้าแบบฝึก แล้วลงมือทำ</p><div class="tools"><button id="drawMode" aria-pressed="${draw}">${draw?'✎ กำลังเขียน':'↕ เลื่อนดูหน้า'}</button><label>สี <input id="color" type="color" value="${color}"></label><button id="undo">↶ ย้อนกลับ</button><button id="clear">ล้างเส้นหน้านี้</button></div><div class="sheet"><img id="sourceImage" src="${p.image}" alt="แบบฝึกบท ${th(unit)} กิจกรรม ${th(index)}"><svg id="ink" aria-label="เขียนคำตอบบนแบบฝึก" class="${draw?'':'pan'}" data-swipe-ignore></svg></div><p class="note">แบบฝึกเล่ม ${th(chapter.volume)} · หน้า PDF ${th(p.pdfPage)} · แตะ “เลื่อนดูหน้า” เพื่อเลื่อนบนภาพ</p><label class="response">พิมพ์คำตอบหรือบันทึกกิจกรรมเพิ่มเติม<textarea id="answer" maxlength="6000" placeholder="ใช้แทนการเขียนบนภาพได้"></textarea></label><label class="confirm"><input type="checkbox" id="confirmed">ฉันทำตามคำสั่งครบหน้านี้แล้ว (กิจกรรมพูด อ่าน หรือทำในสมุด ให้ครูหรือผู้ปกครองช่วยยืนยัน)</label><button class="primary" id="submit">${r.done?'✓ ทำหน้านี้แล้ว':'ทำครบแล้ว · รับดาว ☆'}</button>`;
+ $('#answer').value=r.text;$('#confirmed').checked=r.confirmed;
+ const img=$('#sourceImage'),svg=$('#ink');function ready(){if(!img.naturalWidth)return;loaded=true;svg.setAttribute('viewBox',`0 0 720 ${720*img.naturalHeight/img.naturalWidth}`);paint()};img.onload=ready;img.onerror=()=>{loaded=false;$('#status').textContent='โหลดหน้าแบบฝึกไม่สำเร็จ กรุณาโหลดใหม่ก่อนทำกิจกรรม';$('#submit').disabled=true};if(img.complete)ready();
+ $('#drawMode').onclick=()=>{draw=!draw;svg.classList.toggle('pan',!draw);$('#drawMode').setAttribute('aria-pressed',String(draw));$('#drawMode').textContent=draw?'✎ กำลังเขียน':'↕ เลื่อนดูหน้า'};$('#color').oninput=e=>color=e.target.value;
+ function update(r){r.done=false;save(r);$('#next').disabled=true;$('#submit').textContent='ทำครบแล้ว · รับดาว ☆';progress();paint()}
+ $('#answer').oninput=()=>{clearTimeout(saveTimer);saveTimer=setTimeout(()=>{const r=row();r.text=$('#answer').value;update(r)},180)};
+ $('#confirmed').onchange=()=>{const r=row();r.confirmed=$('#confirmed').checked;update(r)};
+ $('#undo').onclick=()=>{const r=row();r.ink.pop();update(r)};$('#clear').onclick=()=>{const r=row();r.ink=[];update(r)};
+ function point(e){const b=svg.getBoundingClientRect();return [Math.round(Math.max(0,Math.min(720,(e.clientX-b.left)*720/b.width))*10)/10,Math.round(Math.max(0,Math.min(720*b.height/b.width,(e.clientY-b.top)*720/b.width))*10)/10]}
+ svg.onpointerdown=e=>{if(!loaded||!draw||e.isPrimary===false||e.button>0)return;e.preventDefault();svg.setPointerCapture(e.pointerId);stroke={color,points:[point(e)],id:e.pointerId}};
+ svg.onpointermove=e=>{if(!stroke||stroke.id!==e.pointerId)return;if(stroke.points.length<3000)stroke.points.push(point(e));paint()};
+ function end(e){if(!stroke||stroke.id!==e.pointerId)return;stroke.points.push(point(e));const r=row();r.ink.push({color:stroke.color,points:stroke.points});stroke=null;update(r)}svg.onpointerup=end;svg.onpointercancel=()=>{stroke=null;paint()};
+ $('#submit').onclick=()=>{flush();if(!loaded){$('#status').textContent='รอภาพแบบฝึกโหลดครบก่อนนะ';return}const r=row();if(!r.confirmed){$('#status').textContent='ทำตามคำสั่งให้ครบ แล้วติ๊กยืนยันก่อนรับดาวนะ';return}r.done=true;if(!save(r))return;const done=progress();$('#submit').textContent='✓ ทำหน้านี้แล้ว';$('#status').textContent='⭐ รับดาวการทำกิจกรรมแล้ว · คำตอบรอครูตรวจ';$('#next').disabled=false;if(done===chapter.pages.length)P1Course.mark(unit,'workbook')};
+}
+$('#prev').onclick=()=>{flush();if(index>0){index--;render();scrollTo(0,0)}};
+$('#next').onclick=()=>{flush();if(index&& !row().done)return;if(index<chapter.pages.length){index++;render();scrollTo(0,0)}else{if(progress()!==chapter.pages.length){index=chapter.pages.findIndex((_,i)=>!state()[i+1]?.done)+1;render();$('#status').textContent='ทำหน้านี้ให้ครบก่อน แล้วไปทบทวนกัน';return}if(P1Course.mark(unit,'workbook'))location.href=P1Course.route(unit,'review')}};
+$('#openMenu').onclick=()=>{flush();$('#menu').showModal()};$('#closeMenu').onclick=()=>$('#menu').close();
+function switchContext(){const next=P1Course.context().key;if(next!==scope){clearTimeout(saveTimer);scope=next;stroke=null;index=0;if(chapter)render()}else if(chapter)progress()}
+for(const event of ['p1-classroom-ready','p1-trace-context'])document.addEventListener(event,switchContext);
+document.addEventListener('p1-course-storage-error',()=>$('#status').textContent='ยังบันทึกในเครื่องไม่ได้ พื้นที่อาจเต็ม กรุณาเก็บคำตอบก่อนปิดหน้า');window.addEventListener('pagehide',flush);
+fetch('book.json?v=1').then(r=>{if(!r.ok)throw Error();return r.json()}).then(b=>{chapter=b.chapters.find(c=>c.unit===unit);$('#reading').href=P1Course.route(unit,'reading');$('#literature').hidden=unit<4||unit>11;$('#literature').href=P1Course.route(unit,'literature');render()}).catch(()=>$('#status').textContent='เปิดแบบฝึกไม่สำเร็จ กรุณาลองโหลดใหม่');
+})();

@@ -84,10 +84,11 @@
   }
 
   document.body.classList.add('unit1-prototype');
-  sessionStorage.setItem(`p1-book-step-${unitNo}`,'3');
+  sessionStorage.setItem(`p1-book-step-${unitNo}`,params.get('phase')==='review'?'4':params.get('phase')==='game'?'5':'3');
   if (params.get('start') === '1') {
     sessionStorage.setItem(`p1-full-page-${unitNo}`,'0');
     params.delete('start');
+    params.delete('phase');
     const next = location.pathname + (params.toString() ? '?' + params.toString() : '');
     history.replaceState(null,'',next);
   }

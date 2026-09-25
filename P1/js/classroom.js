@@ -57,8 +57,8 @@ function traceContext(){
 }
 async function traceResults(){
  await loadRooms();let rows=[];if(room){for(let start=0;;start+=500){const r=await db.from('p1_trace_attempts').select('*').eq('room_id',room.id).order('created_at',{ascending:true}).order('id').range(start,start+499);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<500)break}}
- const groups=new Map();for(const r of rows){const k=[r.pupil_id,r.mode,r.activity,r.symbol].join('|');const prev=groups.get(k);if(prev){prev.best=Math.max(prev.best,r.score);prev.count++}else groups.set(k,{...r,first:r.score,best:r.score,count:1})}
- open('คะแนนฝึกเขียน',`${roomSelect()}<p>ความใกล้เคียงกับตัวอย่าง · ครั้งแรก / ดีที่สุด · ผลทั้งห้องแยกจากรายบุคคล</p><div class="p1c-results">${[...groups.values()].map(r=>`<p>${esc(r.mode==='class'?'ทั้งห้อง':pupils.find(p=>p.id===r.pupil_id)?.name||'ผู้เรียน')} · ${esc(r.activity)} · ${esc(r.symbol)} · ${r.first}% / ${r.best}% (${th(r.count)} ครั้ง)</p>`).join('')||'<p>ยังไม่มีคะแนนฝึกเขียน</p>'}</div>`);bindRoom(traceResults);
+ const groups=new Map();for(const r of rows){const k=[r.pupil_id,r.mode,r.activity,r.symbol,r.algorithm].join('|');const prev=groups.get(k);if(prev){prev.best=Math.max(prev.best,r.score);prev.count++}else groups.set(k,{...r,first:r.score,best:r.score,count:1})}
+ open('คะแนนฝึกเขียน',`${roomSelect()}<p>ความใกล้เคียงกับตัวอย่าง · ครั้งแรก / ดีที่สุด · ผลทั้งห้องแยกจากรายบุคคล</p><div class="p1c-results">${[...groups.values()].map(r=>`<p>${esc(r.mode==='class'?'ทั้งห้อง':pupils.find(p=>p.id===r.pupil_id)?.name||'ผู้เรียน')} · ${esc(r.activity)} · ${esc(r.symbol)} · ${r.algorithm==='trace-v2'?'เกณฑ์ใหม่':'เกณฑ์เดิม'} · ${th(r.first)}% / ${th(r.best)}% (${th(r.count)} ครั้ง)</p>`).join('')||'<p>ยังไม่มีคะแนนฝึกเขียน</p>'}</div>`);bindRoom(traceResults);
 }
 
 // Page-relative drawing: a separate overlay never changes reading tokens or audio.

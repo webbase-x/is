@@ -18,24 +18,26 @@ function speak(items){
 }
 function readable(w){return /[ก-๛A-Za-z0-9]/.test(w.text)}
 async function render(){
- stop();const ticket=++renderId,p=chapter.pages[index];words=[];
+ stop();const ticket=++renderId,isCover=index<2,source=chapter.pages[index];
+ const p=isCover?{...chapter.pages[0],width:1190,lines:chapter.pages.slice(0,2).flatMap((pg,i)=>pg.lines.map(l=>({...l,words:l.words.map(w=>({...w,box:w.box.map((v,k)=>v+(k%2===0?595*i:0)),highlightBox:(w.highlightBox||w.box).map((v,k)=>v+(k%2===0?595*i:0)),chars:w.chars.map(c=>[c[0],c[1]+595*i,...c.slice(2)])}))})))}:source;words=[];
+ $('#paper').classList.toggle('cover-spread',isCover);
  const url=new URL(location.href);url.searchParams.set('chapter',chapter.id);url.searchParams.set('page',index+1);history.replaceState(null,'',url);
  $('#chapterTitle').textContent=`บทที่ ${th(chapter.id)} · ${chapter.title}`;document.title=chapter.title+' · วรรณคดีลำนำ ป.๑';
  $('#paired').textContent=`ภาษาพาที ${th(chapter.pairedUnit)} · ${chapter.pairedTitle}`;$('#paired').href=`../lesson.html?unit=${chapter.pairedUnit}&start=1`;
- $('#counter').textContent=`${th(index+1)} / ${th(chapter.pages.length)}`;$('#prev').disabled=index===0;$('#next').disabled=index===chapter.pages.length-1&&chapter.id===8;
- $('#next').textContent=index===chapter.pages.length-1?'»':'›';$('#next').setAttribute('aria-label',index===chapter.pages.length-1?'บทถัดไป':'หน้าถัดไป');
- $('#source').textContent=`วรรณคดีลำนำ · ${p.printedPage?`หน้าหนังสือ ${th(p.printedPage)}`:'หน้าปกบทที่ ๑'} · คู่บทตามแบบฝึกเล่ม ${th(chapter.workbook)}`;
+ $('#counter').textContent=`${th(isCover?1:index)} / ${th(chapter.pages.length-1)}`;$('#prev').disabled=index===0;$('#next').disabled=false;
+ $('#next').textContent=index===chapter.pages.length-1?'»':'›';$('#next').setAttribute('aria-label',index===chapter.pages.length-1?'ไปแบบฝึกบทนี้':'หน้าถัดไป');
+ $('#source').textContent=`วรรณคดีลำนำ · ${p.printedPage?`หน้าหนังสือ ${th(p.printedPage)}`:'หน้าปกบทที่ '+th(chapter.id)} · คู่บทตามแบบฝึกเล่ม ${th(chapter.workbook)}`;
  $('#pageContent').replaceChildren();$('#status').textContent=plain?'':'กำลังเปิดหน้า…';$('#read').disabled=!plain;
- $('#pages').replaceChildren();chapter.pages.forEach((pg,i)=>{const b=document.createElement('button');b.textContent=i===0?'หน้าบท':`หน้า ${th(i+1)}${pg.printedPage?' · หนังสือ '+th(pg.printedPage):''}`;b.setAttribute('aria-current',index===i?'page':'false');b.onclick=()=>{$('#menu').close();go(i)};$('#pages').append(b)});
+ $('#pages').replaceChildren();chapter.pages.forEach((pg,i)=>{if(i===1)return;const b=document.createElement('button');b.textContent=i===0?'หน้าบท':`หน้า ${th(i)}${pg.printedPage?' · หนังสือ '+th(pg.printedPage):''}`;b.setAttribute('aria-current',index===i?'page':'false');b.onclick=()=>{$('#menu').close();go(i)};$('#pages').append(b)});
  document.querySelectorAll('[data-chapter]').forEach(b=>b.setAttribute('aria-current',+b.dataset.chapter===chapter.id?'page':'false'));
  if(plain){
   const wrap=document.createElement('div');wrap.className='plain';
   for(const line of p.lines.filter(l=>l.read)){const para=document.createElement('p');for(const w of line.words.filter(readable)){const b=document.createElement('button');b.textContent=w.text;const item={text:w.text,node:b};b.onclick=()=>speak([item]);words.push(item);para.append(b)}if(para.childElementCount){words[words.length-1].lineEnd=true;wrap.append(para)}}
-  if(!words.length){const img=document.createElement('img');img.src=`assets/page-${p.pdfPage}.webp`;img.className='plain-cover';img.alt='ภาพประกอบ '+chapter.title;wrap.append(img);const title=document.createElement('h2');title.textContent=chapter.title;wrap.append(title)}
+  if(!words.length){const img=document.createElement('img');img.src=isCover?`assets/cover-${chapter.id}.webp`:`assets/page-${p.pdfPage}.webp`;img.className='plain-cover';img.alt='ภาพประกอบ '+chapter.title;wrap.append(img);const title=document.createElement('h2');title.textContent=chapter.title;wrap.append(title)}
   $('#pageContent').append(wrap);return;
  }
- const svg=el('svg',{viewBox:'0 0 595 842',class:'source-page','aria-label':chapter.title+' หน้าที่ '+(index+1)});svg.style.visibility='hidden';
- const bg=el('image',{href:`assets/page-${p.pdfPage}.webp`,x:0,y:0,width:595,height:842,'aria-hidden':'true'});svg.append(bg);
+ const svg=el('svg',{viewBox:`0 0 ${p.width||595} 842`,class:'source-page','aria-label':chapter.title+' หน้าที่ '+(index+1)});svg.style.visibility='hidden';
+ for(const [i,pg] of (isCover?chapter.pages.slice(0,2):[p]).entries())svg.append(el('image',{href:`assets/page-${pg.pdfPage}.webp`,x:595*i,y:0,width:595,height:842,'aria-hidden':'true'}));
  const needed=new Map();
  for(const line of p.lines){
   for(const w of line.words){
@@ -53,11 +55,11 @@ async function render(){
  try{
   if(!document.fonts||!window.FontFace)throw Error('font');
   await Promise.all([...needed].map(async([name])=>{if(fonts.has(name))return;const face=new FontFace(name,`url(fonts/${name}.otf)`);await face.load();document.fonts.add(face);fonts.add(name)}));
-  const check=new Image();check.src=`assets/page-${p.pdfPage}.webp`;await check.decode();
+  const check=new Image();check.src=`assets/page-${p.pdfPage}.webp`;await check.decode();if(isCover){const right=new Image();right.src=`assets/page-${chapter.pages[1].pdfPage}.webp`;await right.decode()}
   if(ticket!==renderId)return;svg.style.visibility='visible';$('#read').disabled=false;$('#status').textContent=words.length?'แตะคำเพื่อฟัง หรือกดลำโพงอ่านทั้งหน้า':'ภาพประกอบ · ปัดซ้ายเพื่ออ่านต่อ';
  }catch{if(ticket!==renderId)return;plain=true;$('#viewMode').setAttribute('aria-pressed','true');await render();$('#status').textContent='เปิดข้อความใหญ่ให้แล้ว เนื่องจากโหลดภาพหรือแบบอักษรไม่สำเร็จ'}
 }
-function go(n){if(n<0||n>=chapter.pages.length)return;index=n;render();window.scrollTo({top:0,behavior:'instant'})}
+function go(n){if(n<0||n>=chapter.pages.length)return;index=n===1?0:n;render();window.scrollTo({top:0,behavior:'instant'})}
 function pageSequence(){
  if(chapter.pages[index].pdfPage!==13)return words;
  const start=words.findIndex(w=>w.text==='ปู่'),center=words.filter(w=>w.text==='ฉัน'||w.text==='รัก');
@@ -65,7 +67,7 @@ function pageSequence(){
  const sequence=words.slice(0,start);for(const name of ['ปู่','ย่า','ตา','ยาย','พ่อ','แม่','ครู','ลุง','ป้า','น้า','อา','พี่','น้อง','เพื่อน']){const item=words.find(w=>w.text===name);if(item)sequence.push(...center,item)}return sequence;
 }
 $('#read').onclick=()=>{if(reading){stop();return}speak(words.length?pageSequence():[{text:chapter.title}])};$('#speed').onchange=stop;
-$('#prev').onclick=()=>go(index-1);$('#next').onclick=()=>{if(index<chapter.pages.length-1)go(index+1);else if(chapter.id<8){chapter=book.chapters[chapter.id];go(0)}};
+$('#prev').onclick=()=>go(index===2?0:index-1);$('#next').onclick=()=>{if(index<chapter.pages.length-1)go(index===0?2:index+1);else{stop();P1Course.mark(chapter.pairedUnit,'literature');location.href=P1Course.route(chapter.pairedUnit,'workbook')}};
 $('#viewMode').onclick=()=>{plain=!plain;$('#viewMode').setAttribute('aria-pressed',String(plain));render()};
 $('#openMenu').onclick=()=>{stop();$('#menu').showModal()};$('#closeMenu').onclick=()=>$('#menu').close();
 let swipe,suppress=0;$('#paper').addEventListener('pointerdown',e=>{if(e.isPrimary===false||e.button>0||e.target.closest('[data-swipe-ignore]'))return;swipe={x:e.clientX,y:e.clientY,id:e.pointerId,t:Date.now()}});
@@ -75,6 +77,7 @@ window.addEventListener('pagehide',stop);document.addEventListener('visibilitych
 document.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||e.target.closest('button,select,a,[role=button]'))return;if(e.key==='ArrowRight')$('#next').click();if(e.key==='ArrowLeft')$('#prev').click()});
 fetch('book.json?v=1').then(r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{
  book=data;const q=new URLSearchParams(location.search);chapter=book.chapters.find(c=>c.id===Number(q.get('chapter')))||book.chapters[0];index=Math.max(0,Math.min(chapter.pages.length-1,(Number(q.get('page'))||1)-1));
+ if(index===1)index=0;
  for(const c of book.chapters){const b=document.createElement('button');b.dataset.chapter=c.id;b.textContent=`${th(c.id)} · ${c.title}`;b.onclick=()=>{chapter=c;$('#menu').close();go(0)};$('#chapters').append(b)}render();
 }).catch(()=>{$('#status').textContent='เปิดหนังสือไม่สำเร็จ กรุณาลองโหลดหน้าใหม่';$('#read').disabled=true;$('#prev').disabled=true;$('#next').disabled=true});
 })();

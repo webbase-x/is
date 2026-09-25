@@ -17,6 +17,11 @@ begin
  answer:=public.p1_tracing('save',jsonb_build_object('id',gen_random_uuid(),'activity','test','symbol','ก','score',85));
  if answer->0->>'first'<>'60' or answer->0->>'best'<>'85' or answer->0->>'attempts'<>'2' then raise exception 'Aggregate or idempotency failed'; end if;
  if exists(select 1 from public.p1_trace_attempts where room_id=r and pupil_id<>p) then raise exception 'Spoof succeeded'; end if;
+ if public.p1_tracing('history','{"algorithm":"trace-v2"}')<>'[]'::jsonb then raise exception 'Old scores mixed into new algorithm'; end if;
+ answer:=public.p1_tracing('save',jsonb_build_object('id',gen_random_uuid(),'activity','test','symbol','ก','score',72,'algorithm','trace-v2'));
+ if answer->0->>'first'<>'72' or answer->0->>'attempts'<>'1' then raise exception 'New algorithm history failed'; end if;
+ answer:=public.p1_tracing('history','{}');
+ if answer->0->>'best'<>'85' then raise exception 'Historical score changed'; end if;
  perform set_config('request.jwt.claim.sub',other_student::text,true);
  if public.p1_tracing('history','{}')<>'[]'::jsonb then raise exception 'Cross-student leak'; end if;
  perform set_config('request.jwt.claim.sub',student::text,true);

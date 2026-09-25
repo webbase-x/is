@@ -1,1 +1,1 @@
-{"name": "p1-classroom-tests", "private": true, "version": "1.0.0", "scripts": {"test": "node --test classroom-ui.test.cjs readiness.test.cjs tracing.test.cjs literature.test.cjs"}, "devDependencies": {"jsdom": "26.1.0"}}
+{"name": "p1-classroom-tests", "private": true, "version": "1.0.0", "scripts": {"test": "node --test classroom-ui.test.cjs readiness.test.cjs tracing.test.cjs literature.test.cjs course-flow.test.cjs"}, "devDependencies": {"jsdom": "26.1.0"}}
