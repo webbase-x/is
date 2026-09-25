@@ -10,56 +10,64 @@
           "image": "assets/volume-1-page-31.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "elephant-match"
+          "activityType": "elephant-match",
+          "activityReviewed": true
         },
         {
           "pdfPage": 33,
           "image": "assets/volume-1-page-33.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "full-word-build"
+          "activityType": "full-word-build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 34,
           "image": "assets/volume-1-page-34.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 35,
           "image": "assets/volume-1-page-35.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 36,
           "image": "assets/volume-1-page-36.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 37,
           "image": "assets/volume-1-page-37.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 38,
           "image": "assets/volume-1-page-38.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 41,
           "image": "assets/volume-1-page-41.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -73,56 +81,64 @@
           "image": "assets/volume-1-page-43.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 44,
           "image": "assets/volume-1-page-44.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 45,
           "image": "assets/volume-1-page-45.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 46,
           "image": "assets/volume-1-page-46.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 47,
           "image": "assets/volume-1-page-47.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 48,
           "image": "assets/volume-1-page-48.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 50,
           "image": "assets/volume-1-page-50.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 51,
           "image": "assets/volume-1-page-51.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -136,126 +152,144 @@
           "image": "assets/volume-1-page-53.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 54,
           "image": "assets/volume-1-page-54.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 55,
           "image": "assets/volume-1-page-55.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 56,
           "image": "assets/volume-1-page-56.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 57,
           "image": "assets/volume-1-page-57.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 58,
           "image": "assets/volume-1-page-58.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "handwriting",
+          "activityReviewed": true
         },
         {
           "pdfPage": 59,
           "image": "assets/volume-1-page-59.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "handwriting",
+          "activityReviewed": true
         },
         {
           "pdfPage": 60,
           "image": "assets/volume-1-page-60.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 61,
           "image": "assets/volume-1-page-61.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "handwriting",
+          "activityReviewed": true
         },
         {
           "pdfPage": 62,
           "image": "assets/volume-1-page-62.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "handwriting",
+          "activityReviewed": true
         },
         {
           "pdfPage": 63,
           "image": "assets/volume-1-page-63.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 64,
           "image": "assets/volume-1-page-64.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "handwriting",
+          "activityReviewed": true
         },
         {
           "pdfPage": 65,
           "image": "assets/volume-1-page-65.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 66,
           "image": "assets/volume-1-page-66.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "handwriting",
+          "activityReviewed": true
         },
         {
           "pdfPage": 67,
           "image": "assets/volume-1-page-67.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 68,
           "image": "assets/volume-1-page-68.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 69,
           "image": "assets/volume-1-page-69.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 70,
           "image": "assets/volume-1-page-70.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -269,105 +303,120 @@
           "image": "assets/volume-1-page-71.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 72,
           "image": "assets/volume-1-page-72.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 73,
           "image": "assets/volume-1-page-73.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 74,
           "image": "assets/volume-1-page-74.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 75,
           "image": "assets/volume-1-page-75.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 76,
           "image": "assets/volume-1-page-76.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 77,
           "image": "assets/volume-1-page-77.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 78,
           "image": "assets/volume-1-page-78.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 79,
           "image": "assets/volume-1-page-79.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 80,
           "image": "assets/volume-1-page-80.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 81,
           "image": "assets/volume-1-page-81.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 82,
           "image": "assets/volume-1-page-82.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 83,
           "image": "assets/volume-1-page-83.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 84,
           "image": "assets/volume-1-page-84.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 85,
           "image": "assets/volume-1-page-85.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -381,77 +430,88 @@
           "image": "assets/volume-1-page-86.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 87,
           "image": "assets/volume-1-page-87.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 88,
           "image": "assets/volume-1-page-88.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 89,
           "image": "assets/volume-1-page-89.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 90,
           "image": "assets/volume-1-page-90.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 91,
           "image": "assets/volume-1-page-91.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 92,
           "image": "assets/volume-1-page-92.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 93,
           "image": "assets/volume-1-page-93.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 94,
           "image": "assets/volume-1-page-94.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 95,
           "image": "assets/volume-1-page-95.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 96,
           "image": "assets/volume-1-page-96.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -465,84 +525,96 @@
           "image": "assets/volume-1-page-97.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 98,
           "image": "assets/volume-1-page-98.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 99,
           "image": "assets/volume-1-page-99.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 100,
           "image": "assets/volume-1-page-100.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 101,
           "image": "assets/volume-1-page-101.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 102,
           "image": "assets/volume-1-page-102.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 103,
           "image": "assets/volume-1-page-103.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 104,
           "image": "assets/volume-1-page-104.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 105,
           "image": "assets/volume-1-page-105.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 106,
           "image": "assets/volume-1-page-106.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 107,
           "image": "assets/volume-1-page-107.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 108,
           "image": "assets/volume-1-page-108.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -556,70 +628,80 @@
           "image": "assets/volume-2-page-7.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 8,
           "image": "assets/volume-2-page-8.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 9,
           "image": "assets/volume-2-page-9.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 10,
           "image": "assets/volume-2-page-10.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 12,
           "image": "assets/volume-2-page-12.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 13,
           "image": "assets/volume-2-page-13.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 14,
           "image": "assets/volume-2-page-14.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 15,
           "image": "assets/volume-2-page-15.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 16,
           "image": "assets/volume-2-page-16.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 17,
           "image": "assets/volume-2-page-17.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -633,84 +715,96 @@
           "image": "assets/volume-2-page-18.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 19,
           "image": "assets/volume-2-page-19.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 20,
           "image": "assets/volume-2-page-20.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 21,
           "image": "assets/volume-2-page-21.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 22,
           "image": "assets/volume-2-page-22.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 23,
           "image": "assets/volume-2-page-23.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 24,
           "image": "assets/volume-2-page-24.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 25,
           "image": "assets/volume-2-page-25.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 26,
           "image": "assets/volume-2-page-26.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 27,
           "image": "assets/volume-2-page-27.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 28,
           "image": "assets/volume-2-page-28.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 29,
           "image": "assets/volume-2-page-29.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -724,63 +818,72 @@
           "image": "assets/volume-2-page-30.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 31,
           "image": "assets/volume-2-page-31.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 32,
           "image": "assets/volume-2-page-32.webp",
           "rotation": 180,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 33,
           "image": "assets/volume-2-page-33.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 34,
           "image": "assets/volume-2-page-34.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 35,
           "image": "assets/volume-2-page-35.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 36,
           "image": "assets/volume-2-page-36.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 37,
           "image": "assets/volume-2-page-37.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 38,
           "image": "assets/volume-2-page-38.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -794,91 +897,104 @@
           "image": "assets/volume-2-page-39.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 40,
           "image": "assets/volume-2-page-40.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 41,
           "image": "assets/volume-2-page-41.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 42,
           "image": "assets/volume-2-page-42.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 43,
           "image": "assets/volume-2-page-43.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 44,
           "image": "assets/volume-2-page-44.webp",
           "rotation": 180,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 45,
           "image": "assets/volume-2-page-45.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 46,
           "image": "assets/volume-2-page-46.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 47,
           "image": "assets/volume-2-page-47.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 48,
           "image": "assets/volume-2-page-48.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 49,
           "image": "assets/volume-2-page-49.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 50,
           "image": "assets/volume-2-page-50.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 51,
           "image": "assets/volume-2-page-51.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -892,112 +1008,128 @@
           "image": "assets/volume-2-page-52.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 53,
           "image": "assets/volume-2-page-53.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 54,
           "image": "assets/volume-2-page-54.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 55,
           "image": "assets/volume-2-page-55.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 56,
           "image": "assets/volume-2-page-56.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 57,
           "image": "assets/volume-2-page-57.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 58,
           "image": "assets/volume-2-page-58.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 59,
           "image": "assets/volume-2-page-59.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 60,
           "image": "assets/volume-2-page-60.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 61,
           "image": "assets/volume-2-page-61.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 62,
           "image": "assets/volume-2-page-62.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 63,
           "image": "assets/volume-2-page-63.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 64,
           "image": "assets/volume-2-page-64.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 65,
           "image": "assets/volume-2-page-65.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 66,
           "image": "assets/volume-2-page-66.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 67,
           "image": "assets/volume-2-page-67.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     },
@@ -1011,126 +1143,144 @@
           "image": "assets/volume-2-page-68.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 69,
           "image": "assets/volume-2-page-69.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 70,
           "image": "assets/volume-2-page-70.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 71,
           "image": "assets/volume-2-page-71.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 72,
           "image": "assets/volume-2-page-72.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 73,
           "image": "assets/volume-2-page-73.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "order",
+          "activityReviewed": true
         },
         {
           "pdfPage": 76,
           "image": "assets/volume-2-page-76.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "listen",
+          "activityReviewed": true
         },
         {
           "pdfPage": 77,
           "image": "assets/volume-2-page-77.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 78,
           "image": "assets/volume-2-page-78.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 79,
           "image": "assets/volume-2-page-79.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 80,
           "image": "assets/volume-2-page-80.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 81,
           "image": "assets/volume-2-page-81.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 82,
           "image": "assets/volume-2-page-82.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 83,
           "image": "assets/volume-2-page-83.webp",
           "rotation": 180,
           "gamified": true,
-          "activityType": "order"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 84,
           "image": "assets/volume-2-page-84.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "quiz"
+          "activityType": "build",
+          "activityReviewed": true
         },
         {
           "pdfPage": 85,
           "image": "assets/volume-2-page-85.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "listen"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 86,
           "image": "assets/volume-2-page-86.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "build"
+          "activityType": "quiz",
+          "activityReviewed": true
         },
         {
           "pdfPage": 87,
           "image": "assets/volume-2-page-87.webp",
           "rotation": 0,
           "gamified": true,
-          "activityType": "handwriting"
+          "activityType": "handwriting",
+          "activityReviewed": true
         }
       ]
     }
