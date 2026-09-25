@@ -19,33 +19,48 @@ const matchItems=[
 function renderUnit1Match(){
  loaded=true;stroke=null;
  const r=row();
- if(r.matchVersion!==2){r.matchPlacements={};r.done=false;r.confirmed=false;r.matchVersion=2;save(r)}
+ if(r.matchVersion!==3){r.matchPlacements={};r.done=false;r.confirmed=false;r.matchVersion=3;save(r)}
  const placements=r.matchPlacements||{};
  $('#next').disabled=!r.done;
  $('#content').innerHTML=`
  <section class="match-activity elephant-body-match" aria-labelledby="matchTitle">
    <div class="match-heading">
      <span class="match-kicker">กิจกรรมที่ ๑ · รู้จักอวัยวะของช้าง</span>
-     <h2 id="matchTitle">ลากคำไปวางตรงอวัยวะของช้าง</h2>
-     <p>ลากคำ <strong>ตา หู งวง ขา</strong> ไปวางบนตำแหน่งที่ถูกต้องของช้างใบบัว</p>
+     <h2 id="matchTitle">ลากคำไปวางในกรอบที่ชี้ไปยังอวัยวะของช้าง</h2>
+     <p>ลากคำ <strong>ตา หู งวง ขา</strong> ไปวางในกรอบคำพูด โดยดูเส้นชี้ไปยังอวัยวะที่ถูกต้องของช้างใบบัว</p>
    </div>
    <div class="match-word-bank" id="matchWordBank" aria-label="คำสำหรับลาก">
      ${matchItems.map(x=>`<button type="button" class="match-word" data-word="${x.word}" aria-label="ลากคำ ${x.word}">${x.word}</button>`).join('')}
    </div>
-   <div class="elephant-body-board" aria-label="ภาพช้างสำหรับจับคู่อวัยวะ">
+   <div class="elephant-body-board callout-board" aria-label="ภาพช้างสำหรับจับคู่อวัยวะ">
      <div class="elephant-crop">
        <img src="../img/ใบบัว.png" alt="ช้างใบบัวสีจากบทเรียนภาษาพาที" class="elephant-body-image" loading="eager">
-       <div class="match-slot body-slot slot-eye" data-answer="ตา" role="button" tabindex="0" aria-label="ตำแหน่งตาของช้าง"><span class="match-placeholder">วางคำ</span></div>
-       <div class="match-slot body-slot slot-ear" data-answer="หู" role="button" tabindex="0" aria-label="ตำแหน่งหูของช้าง"><span class="match-placeholder">วางคำ</span></div>
-       <div class="match-slot body-slot slot-trunk" data-answer="งวง" role="button" tabindex="0" aria-label="ตำแหน่งงวงของช้าง"><span class="match-placeholder">วางคำ</span></div>
-       <div class="match-slot body-slot slot-leg" data-answer="ขา" role="button" tabindex="0" aria-label="ตำแหน่งขาของช้าง"><span class="match-placeholder">วางคำ</span></div>
+       <svg class="callout-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+         <defs>
+           <marker id="calloutArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="strokeWidth">
+             <path d="M0,0 L7,3.5 L0,7 Z"></path>
+           </marker>
+         </defs>
+         <line class="callout-line eye-line" x1="24" y1="16" x2="17" y2="36" marker-end="url(#calloutArrow)"></line>
+         <line class="callout-line ear-line" x1="58" y1="17" x2="31" y2="41" marker-end="url(#calloutArrow)"></line>
+         <line class="callout-line trunk-line" x1="18" y1="72" x2="14" y2="61" marker-end="url(#calloutArrow)"></line>
+         <line class="callout-line leg-line" x1="84" y1="84" x2="78" y2="77" marker-end="url(#calloutArrow)"></line>
+         <circle class="callout-dot" cx="17" cy="36" r="1.2"></circle>
+         <circle class="callout-dot" cx="31" cy="41" r="1.2"></circle>
+         <circle class="callout-dot" cx="14" cy="61" r="1.2"></circle>
+         <circle class="callout-dot" cx="78" cy="77" r="1.2"></circle>
+       </svg>
+       <div class="match-slot body-slot callout-bubble slot-eye" data-answer="ตา" role="button" tabindex="0" aria-label="กรอบคำชี้ไปยังตาของช้าง"><span class="match-placeholder">วางคำ</span></div>
+       <div class="match-slot body-slot callout-bubble slot-ear" data-answer="หู" role="button" tabindex="0" aria-label="กรอบคำชี้ไปยังหูของช้าง"><span class="match-placeholder">วางคำ</span></div>
+       <div class="match-slot body-slot callout-bubble slot-trunk" data-answer="งวง" role="button" tabindex="0" aria-label="กรอบคำชี้ไปยังงวงของช้าง"><span class="match-placeholder">วางคำ</span></div>
+       <div class="match-slot body-slot callout-bubble slot-leg" data-answer="ขา" role="button" tabindex="0" aria-label="กรอบคำชี้ไปยังขาของช้าง"><span class="match-placeholder">วางคำ</span></div>
      </div>
    </div>
    <div class="match-actions">
      <button type="button" id="resetMatch">↻ เริ่มใหม่</button>
      <button type="button" class="primary" id="checkMatch">✓ ตรวจคำตอบ</button>
    </div>
-   <p class="match-status" id="matchStatus" role="status" aria-live="polite">${r.done?'⭐ ทำถูกครบแล้ว เก่งมาก!':'ลากคำไปวางบนตัวช้างให้ครบทั้ง ๔ จุด แล้วกดตรวจคำตอบ'}</p>
+   <p class="match-status" id="matchStatus" role="status" aria-live="polite">${r.done?'⭐ ทำถูกครบแล้ว เก่งมาก!':'ลากคำไปวางในกรอบคำพูดให้ครบทั้ง ๔ จุด แล้วกดตรวจคำตอบ'}</p>
  </section>
  <p class="note center-note">ใช้ภาพช้างสีจากภาษาพาที และรองรับการลากด้วยนิ้วบน iPhone/iPad</p>`;
 
