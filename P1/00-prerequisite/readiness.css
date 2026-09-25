@@ -14,3 +14,5 @@
 .single-letter-page .letter-card span{font-size:clamp(28px,5dvh,42px);line-height:1.4}
 .single-letter-page .source{margin:8px 0 0}
 @media(max-width:520px){.single-letter-page .letter-card img{height:clamp(110px,22dvh,180px)}.single-letter-page .letter-card b{font-size:clamp(78px,13dvh,112px)}.single-letter-page .letter-card span{font-size:30px}}
+
+#traceSummary{background:#f0f7ee;padding:14px;border-radius:16px;margin:12px 0;font-size:.85rem}.trace-checked::after{content:" ✓";font-size:.65em;color:#237b69}#traceResult{margin:12px 0;color:#185c4e;font-weight:700}#retryTrace{margin:8px}.writing-area .guide{font-family:Sarabun,Tahoma,sans-serif;font-weight:400}
