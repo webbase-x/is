@@ -18,7 +18,9 @@ const matchItems=[
 ];
 function renderUnit1Match(){
  loaded=true;stroke=null;
- const r=row(),placements=r.matchPlacements||{};
+ const r=row();
+ if(r.matchVersion!==2){r.matchPlacements={};r.done=false;r.confirmed=false;r.matchVersion=2;save(r)}
+ const placements=r.matchPlacements||{};
  $('#next').disabled=!r.done;
  $('#content').innerHTML=`
  <section class="match-activity elephant-body-match" aria-labelledby="matchTitle">
@@ -31,11 +33,13 @@ function renderUnit1Match(){
      ${matchItems.map(x=>`<button type="button" class="match-word" data-word="${x.word}" aria-label="ลากคำ ${x.word}">${x.word}</button>`).join('')}
    </div>
    <div class="elephant-body-board" aria-label="ภาพช้างสำหรับจับคู่อวัยวะ">
-     <img src="../img/ใบบัว.png" alt="ช้างใบบัวจากบทเรียนภาษาพาที" class="elephant-body-image" loading="eager">
-     <div class="match-slot body-slot slot-eye" data-answer="ตา" role="button" tabindex="0" aria-label="ตำแหน่งตาของช้าง"><span class="match-placeholder">วางคำ</span></div>
-     <div class="match-slot body-slot slot-ear" data-answer="หู" role="button" tabindex="0" aria-label="ตำแหน่งหูของช้าง"><span class="match-placeholder">วางคำ</span></div>
-     <div class="match-slot body-slot slot-trunk" data-answer="งวง" role="button" tabindex="0" aria-label="ตำแหน่งงวงของช้าง"><span class="match-placeholder">วางคำ</span></div>
-     <div class="match-slot body-slot slot-leg" data-answer="ขา" role="button" tabindex="0" aria-label="ตำแหน่งขาของช้าง"><span class="match-placeholder">วางคำ</span></div>
+     <div class="elephant-crop">
+       <img src="../img/ใบบัว.png" alt="ช้างใบบัวสีจากบทเรียนภาษาพาที" class="elephant-body-image" loading="eager">
+       <div class="match-slot body-slot slot-eye" data-answer="ตา" role="button" tabindex="0" aria-label="ตำแหน่งตาของช้าง"><span class="match-placeholder">วางคำ</span></div>
+       <div class="match-slot body-slot slot-ear" data-answer="หู" role="button" tabindex="0" aria-label="ตำแหน่งหูของช้าง"><span class="match-placeholder">วางคำ</span></div>
+       <div class="match-slot body-slot slot-trunk" data-answer="งวง" role="button" tabindex="0" aria-label="ตำแหน่งงวงของช้าง"><span class="match-placeholder">วางคำ</span></div>
+       <div class="match-slot body-slot slot-leg" data-answer="ขา" role="button" tabindex="0" aria-label="ตำแหน่งขาของช้าง"><span class="match-placeholder">วางคำ</span></div>
+     </div>
    </div>
    <div class="match-actions">
      <button type="button" id="resetMatch">↻ เริ่มใหม่</button>

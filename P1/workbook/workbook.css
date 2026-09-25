@@ -172,3 +172,45 @@ header>a,header>button{display:grid;place-items:center;min-width:46px;background
   .elephant-body-board .slot-trunk{left:14%;top:45%}
   .elephant-body-board .slot-leg{right:16%;top:68%}
 }
+
+
+/* 2026-09-25: show only the colored elephant on Unit 1 matching */
+.elephant-body-board{
+  width:min(100%,680px);
+  padding:10px;
+  background:linear-gradient(180deg,#fffef9,#eef8f4);
+}
+.elephant-crop{
+  position:relative;
+  width:100%;
+  aspect-ratio:1/1;
+  overflow:hidden;
+  border-radius:18px;
+  background:#fff;
+}
+.elephant-crop .elephant-body-image{
+  position:absolute;
+  top:0;
+  left:-100%;
+  width:200%;
+  max-width:none;
+  height:100%;
+  max-height:none;
+  object-fit:fill;
+  border-radius:0;
+  background:transparent;
+}
+.elephant-crop .body-slot{position:absolute;z-index:3}
+/* Targets calibrated to the colored elephant after cropping the right half. */
+.elephant-crop .slot-eye{left:27%;top:29%}
+.elephant-crop .slot-ear{left:48%;top:25%}
+.elephant-crop .slot-trunk{left:20%;top:50%}
+.elephant-crop .slot-leg{right:18%;top:69%}
+@media(max-width:640px){
+  .elephant-body-board{padding:6px}
+  .elephant-crop{border-radius:13px}
+  .elephant-crop .slot-eye{left:25%;top:28%}
+  .elephant-crop .slot-ear{left:46%;top:24%}
+  .elephant-crop .slot-trunk{left:17%;top:49%}
+  .elephant-crop .slot-leg{right:14%;top:68%}
+}
