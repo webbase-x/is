@@ -342,6 +342,66 @@ function gameAttempt(ok,score=100,message=''){
 function gameHeader(icon,title,prompt){
  const r=row();return `<div class="game-top"><span class="game-level">${icon} ภารกิจ ${th(index)}</span><span class="game-xp">${r.done?'⭐ ผ่านแล้ว':'🏆 ๑๐ XP'}</span></div><h2>${esc(title)}</h2><p>${prompt}</p>`
 }
+function renderListenChoice(p){
+ const words=gameWords(),target=words[(unit*7+index*3)%words.length];
+ const others=stableShuffle(words.filter(w=>w!==target),unit*100+index).slice(0,3);
+ const opts=stableShuffle([target,...others],unit*1000+index);
+ $('#content').innerHTML=`<section class="game-card">${gameHeader('🔊','ฟังแล้วเลือกคำ','กดฟัง แล้วเลือกคำที่ได้ยินให้ถูกต้อง')}<button class="listen-button" id="listenTarget">🔊 ฟังคำ</button><div class="choice-grid">${opts.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ผ่านภารกิจนี้แล้ว':'เลือกคำตอบได้ แล้วลองใหม่ได้ถ้ายังไม่ถูก'}</p>${sourcePreview(p)}</section>`;
+ $('#listenTarget').onclick=()=>speakThai(target);
+ document.querySelectorAll('.choice-btn').forEach(b=>b.onclick=()=>{const ok=b.dataset.value===target;b.classList.add(ok?'correct':'wrong');if(ok){document.querySelectorAll('.choice-btn').forEach(x=>x.disabled=true);gameAttempt(true,100,'⭐ ถูกต้อง! “'+target+'” รับ ๑๐ XP')}else gameAttempt(false,0,'ยังไม่ใช่ ลองกดฟังแล้วเลือกใหม่อีกครั้ง')})
+}
+function renderQuizGame(p){
+ const reviews=unitData().review||[],q=reviews[(index-1)%Math.max(1,reviews.length)]||{q:'คำใดอยู่ในบทเรียนนี้?',o:gameWords().slice(0,3),a:gameWords()[0]};
+ $('#content').innerHTML=`<section class="game-card">${gameHeader('❓','ตอบคำถามพิชิตดาว',esc(q.q))}<div class="choice-grid">${q.o.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ผ่านภารกิจนี้แล้ว':'เลือกคำตอบที่ถูกต้อง'}</p>${sourcePreview(p)}</section>`;
+ document.querySelectorAll('.choice-btn').forEach(b=>b.onclick=()=>{const ok=b.dataset.value===q.a;b.classList.add(ok?'correct':'wrong');if(ok){document.querySelectorAll('.choice-btn').forEach(x=>x.disabled=true);gameAttempt(true,100,'⭐ ถูกต้อง รับ ๑๐ XP')}else gameAttempt(false,0,'ยังไม่ถูก ลองเลือกใหม่อีกครั้งนะ')})
+}
+function renderSequenceGame(p,mode){
+ const data=unitData(),r=row();let expected=[],speakText='',title='',prompt='';
+ if(mode==='build'){
+  const list=shortWords(),target=list[(unit*5+index*2)%list.length];expected=[...target];speakText=target;title='ประกอบคำให้สำเร็จ';prompt='ฟังคำ แล้วลากพยัญชนะและสระมาเรียงให้ถูกต้อง'
+ }else{
+  const lines=(data.readingPages||[]).flatMap(x=>x.lines||[]).filter(x=>x.trim().split(/\s+/).length>=3);
+  const line=lines[(unit*3+index)%Math.max(1,lines.length)]||gameWords().slice(0,4).join(' ');
+  expected=line.trim().split(/\s+/).slice(0,6);speakText=expected.join(' ');title='เรียงคำเป็นประโยค';prompt='ฟังประโยค แล้วเรียงคำให้ถูกลำดับ'
+ }
+ const pool=[...expected];
+ if(mode==='build'){
+  const extras=[...new Set(shortWords().join(''))].filter(ch=>!expected.includes(ch)).slice(0,2);
+  pool.push(...extras)
+ }
+ const shuffled=stableShuffle(pool.map((token,i)=>({id:`${mode}-${index}-${i}`,token})),unit*997+index*37);
+ if(r.sequenceMode!==mode){r.sequenceMode=mode;r.sequencePlacements={};r.done=false;r.confirmed=false;save(r)}
+ const placements=r.sequencePlacements||{};
+ $('#content').innerHTML=`<section class="game-card sequence-game">${gameHeader(mode==='build'?'🧩':'🚂',title,prompt)}<button class="listen-button" id="listenSequence">🔊 ฟัง${mode==='build'?'คำ':'ประโยค'}</button><div class="sequence-slots">${expected.map((_,i)=>`<div class="seq-slot" data-index="${i}" role="button" tabindex="0"><span>${th(i+1)}</span></div>`).join('')}</div><div class="tile-bank" id="tileBank">${shuffled.map(t=>`<button class="game-tile" data-id="${t.id}" data-token="${esc(t.token)}">${esc(t.token.match(/^[\u0E31-\u0E4E]$/)?'◌'+t.token:t.token)}</button>`).join('')}</div><div class="game-actions"><button id="resetSequence">↻ เริ่มใหม่</button><button class="primary" id="checkSequence">✓ ตรวจคำตอบ</button></div><p class="game-status" id="gameStatus">${r.done?'⭐ ผ่านภารกิจนี้แล้ว':'ลากหรือแตะตัวเลือกไปวางในช่อง'}</p>${sourcePreview(p)}</section>`;
+ const bank=$('#tileBank'),tiles=[...document.querySelectorAll('.game-tile')],slots=[...document.querySelectorAll('.seq-slot')];
+ function placeholder(s){if(!s.querySelector('.game-tile'))s.innerHTML=`<span>${th(Number(s.dataset.index)+1)}</span>`}
+ function collect(){const out={};for(const s of slots){const t=s.querySelector('.game-tile');if(t)out[s.dataset.index]=t.dataset.id}return out}
+ function savePartial(){const rr=row();rr.sequenceMode=mode;rr.sequencePlacements=collect();rr.done=false;rr.confirmed=false;save(rr);$('#next').disabled=true;slots.forEach(s=>s.classList.remove('correct','wrong'))}
+ function place(tile,slot,write=true){
+  if(!tile||!slot)return;const old=tile.closest('.seq-slot'),occ=slot.querySelector('.game-tile');if(occ&&occ!==tile)bank.append(occ);slot.replaceChildren(tile);if(old&&old!==slot)placeholder(old);if(write)savePartial()
+ }
+ for(const s of slots){const id=placements[s.dataset.index],tile=tiles.find(t=>t.dataset.id===id);if(tile)place(tile,s,false)}
+ slots.forEach(placeholder);
+ let selected=null,drag=null;
+ function select(t){tiles.forEach(x=>x.classList.remove('selected'));selected=t||null;if(selected){selected.classList.add('selected');$('#gameStatus').textContent='เลือก “'+selected.dataset.token+'” แล้ว แตะช่องที่ต้องการ'}}
+ function finish(e){if(!drag||drag.id!==e.pointerId)return;const slot=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('.seq-slot');drag.ghost.remove();drag.tile.classList.remove('drag-source');const tile=drag.tile,moved=drag.moved;drag=null;if(slot)place(tile,slot);if(moved){tile.dataset.skip='1';setTimeout(()=>delete tile.dataset.skip,0)}}
+ tiles.forEach(t=>{
+  t.onclick=()=>{if(t.dataset.skip)return;select(selected===t?null:t)};
+  t.onpointerdown=e=>{if(e.isPrimary===false||e.button>0)return;e.preventDefault();select(t);const g=t.cloneNode(true);g.className='tile-drag-ghost';document.body.append(g);g.style.left=e.clientX+'px';g.style.top=e.clientY+'px';t.classList.add('drag-source');drag={id:e.pointerId,tile:t,ghost:g,x:e.clientX,y:e.clientY,moved:false};try{t.setPointerCapture(e.pointerId)}catch{}};
+  t.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>7)drag.moved=true;drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px';const s=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('.seq-slot');slots.forEach(x=>x.classList.toggle('over',x===s))};
+  t.onpointerup=e=>{slots.forEach(x=>x.classList.remove('over'));finish(e)};
+  t.onpointercancel=e=>{if(drag&&drag.id===e.pointerId){drag.ghost.remove();drag.tile.classList.remove('drag-source');drag=null}}
+ });
+ slots.forEach(s=>{const use=()=>{if(selected){place(selected,s);select(null)}};s.onclick=e=>{if(!e.target.closest('.game-tile'))use()};s.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&selected){e.preventDefault();use()}}});
+ $('#listenSequence').onclick=()=>speakThai(speakText);
+ $('#resetSequence').onclick=()=>{tiles.forEach(t=>bank.append(t));slots.forEach(s=>{s.classList.remove('correct','wrong');placeholder(s)});select(null);const rr=row();rr.sequencePlacements={};rr.done=false;rr.confirmed=false;save(rr);$('#next').disabled=true;$('#gameStatus').textContent='เริ่มใหม่แล้ว ลองอีกครั้งนะ'};
+ $('#checkSequence').onclick=()=>{let ok=true;slots.forEach((s,i)=>{const good=s.querySelector('.game-tile')?.dataset.token===expected[i];s.classList.toggle('correct',good);s.classList.toggle('wrong',!good);if(!good)ok=false});if(ok)gameAttempt(true,100,'⭐ เรียงถูกทั้งหมด รับ ๑๐ XP');else gameAttempt(false,0,'ยังมีบางช่องไม่ถูก ดูช่องสีแดงแล้วลองใหม่')}
+}
+function renderGamifiedPage(){
+ const p=chapter.pages[index-1],mode=['listen','build','order','quiz'][(index+unit)%4];
+ $('#next').disabled=!row().done;
+ if(mode==='listen')renderListenChoice(p);else if(mode==='quiz')renderQuizGame(p);else renderSequenceGame(p,mode)
+}
 function render(){
  loaded=false;stroke=null;$('#status').textContent='';$('#title').textContent=`แบบฝึกบทที่ ${th(unit)} · ${chapter.title}`;document.title=$('#title').textContent;
  const done=progress();$('#counter').textContent=index?`${th(index)} / ${th(chapter.pages.length)}`:'หน้าปก';$('#prev').disabled=index===0;
