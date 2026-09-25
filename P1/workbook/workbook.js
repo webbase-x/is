@@ -391,7 +391,7 @@ function speakInstruction(box){
   const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(voice)u.voice=voice;
   node.classList.add('speaking');keepInstructionVisible(node);
   u.onstart=()=>{if(id===instructionReadId)keepInstructionVisible(node)};
-  u.onend=()=>{if(id!==instructionReadId)return;node.classList.remove('speaking');instructionTimer=setTimeout(()=>next(i+1),0.1)};
+  u.onend=()=>{if(id!==instructionReadId)return;node.classList.remove('speaking');instructionTimer=setTimeout(()=>next(i+1),1)};
   u.onerror=()=>{if(id!==instructionReadId)return;stopInstructionReading();$('#status').textContent='เสียงอ่านยังไม่พร้อม ลองแตะอ่านคำสั่งอีกครั้ง'};
   speechSynthesis.speak(u)
  }

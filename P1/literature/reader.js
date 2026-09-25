@@ -2,7 +2,7 @@
 'use strict';
 const $=s=>document.querySelector(s),ns='http://www.w3.org/2000/svg',th=n=>String(n).replace(/\d/g,d=>'๐๑๒๓๔๕๖๗๘๙'[d]);
 let book,chapter,index=0,plain=false,readId=0,reading=false,timer,renderId=0,words=[];
-const LITERATURE_WORD_GAP_MS=0.1;
+const LITERATURE_WORD_GAP_MS=1;
 const fonts=new Set();
 const iosThaiTextFix=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function appendWordGlyphs(group,w,needed){
