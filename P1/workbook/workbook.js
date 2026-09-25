@@ -6,7 +6,7 @@ let chapter,index=0,scope=P1Course.context().key,stroke=null,draw=true,color='#c
 function state(){return P1Course.read(unit).worksheets||{}}
 function row(){return state()[index]||{ink:[],text:'',confirmed:false,done:false}}
 function save(r){const data=P1Course.read(unit);data.worksheets=data.worksheets||{};data.worksheets[index]=r;if(index&&!r.done)data.workbook=false;return P1Course.write(unit,data)}
-function progress(){const rows=state(),done=chapter.pages.filter((_,i)=>rows[i+1]?.done).length;$('#progress').textContent=`⭐ ทำแล้ว ${th(done)} / ${th(chapter.pages.length)} กิจกรรม`;$('#owner').textContent=P1Course.context().label+' · คำตอบและความคืบหน้าเก็บในเครื่องนี้ · ดาวแสดงการทำครบ ส่วนความถูกต้องให้ครูตรวจ';return done}
+function progress(){const rows=state(),done=chapter.pages.filter((_,i)=>rows[i+1]?.done).length;$('#progress').textContent=`⭐ ผ่านแล้ว ${th(done)} / ${th(chapter.pages.length)} ภารกิจ`;$('#owner').textContent=P1Course.context().label+' · เกมตรวจคำตอบอัตโนมัติ · หน้าคัดลายมือประเมินจากการลากเส้น · ความคืบหน้าเก็บในเครื่องนี้';return done}
 function paint(){const svg=$('#ink');if(!svg)return;svg.replaceChildren();for(const s of [...row().ink,...(stroke?[stroke]:[])]){const p=document.createElementNS(ns,'path');p.setAttribute('d',s.points.map(([x,y],i)=>(i?'L':'M')+x+' '+y).join(' '));p.setAttribute('stroke',s.color);p.setAttribute('stroke-width','3');svg.append(p)}}
 function flush(){clearTimeout(saveTimer);const input=$('#answer');if(input){const r=row();if(r.text!==input.value){r.text=input.value;r.done=false;save(r);$('#next').disabled=true;progress()}}}
 function isUnit1MatchPage(){return unit===1&&index===1}
@@ -308,6 +308,40 @@ function renderUnit1BuildWord(){
  };
 }
 
+const HANDWRITING_TEXT={"1":["อา ตา มา หา กา","อา ตา มา หา ปู","อา ตา มา ดู กา","อา ตา มา ดู ปู"],"2":["ดู ดี ดี มี ปู นา","ดู ภูผา มา หา ตา","ภูผา หา ปูนา","อารี มา ดู ภูผา"],"3":["เด็ก เด็ก เป็น เพื่อน ลูกช้าง","ลูกช้าง เป็น เพื่อน เด็ก เด็ก","ลูกช้าง แม้ ตัว ยัง เล็ก","แต่ เด็ก เด็ก ตัว เล็ก กว่า ลูกช้าง"],"4":["หนึ่ง สอง สาม สี่ ห้า","มา ซิ มา เรียง เลข ตาม","ถอย หลัง อย่า นับ ข้าม","ห้า สี่ สาม สอง และ หนึ่ง"],"5":["ถือกระเป๋าไปโรงเรียน","หัดอ่านเขียนสะกดคำ","เรียนไปใจจดจำ","อ่านเป็นคำอ่านเป็นความ"],"6":["โรงเรียนให้ความรู้","คุณครูให้ความรัก","พ่อแม่ชื่นใจนัก","ลูกที่รักเป็นคนดี"],"7":["ฝนตกแดดออก","นกกระจอกแปลกใจ","เห็นช้างตัวใหญ่","เดินโซเซมา"],"8":["พวกเราเป็นคนไทย","ต่างรักใคร่สร้างไมตรี","พูดเพราะเพลินพาที","ผูกใจกันฉันและเธอ"],"9":["งูตัวยาวยาว","ช้างเชือกใหญ่ใหญ่","กระดาษแผ่นบางบาง","จานใบแบนแบน"],"10":["เราอ่านเราเขียน","เราเรียนเรื่องแมว","มาเรียนมารู้","ดูตัวอย่างแมว","มาเถิดมาร้อง","ทำนองเพลงแมว"]};
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function unitData(){return window.P1_BOOK_UNITS?.[unit]||{}}
+function stableShuffle(items,seed){
+ const a=[...items];let x=(seed*9301+49297)%233280;
+ for(let i=a.length-1;i>0;i--){x=(x*9301+49297)%233280;const j=Math.floor(x/233280*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+ return a
+}
+function gameWords(){
+ const raw=(unitData().words||[]).map(String).filter(Boolean);
+ return raw.length?raw:[chapter.title,'ภาษาไทย','อ่าน','คำ']
+}
+function shortWords(){
+ const a=gameWords().filter(w=>!/\s/.test(w)&&[...w].length>=2&&[...w].length<=8);
+ return a.length?a:gameWords().filter(w=>!/\s/.test(w))
+}
+function sourcePreview(p){
+ if(!p?.image)return'';
+ return `<details class="source-preview"><summary>ดูโจทย์ต้นฉบับของภารกิจนี้</summary><div class="source-preview-frame ${p.rotation===180?'source-rotated':''}"><img src="${p.image}" alt="โจทย์ต้นฉบับบท ${th(unit)} ภารกิจ ${th(index)}" loading="lazy"></div></details>`
+}
+function speakThai(textValue){
+ if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return;
+ speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(textValue).replaceAll('สระ','สะระ'));u.lang='th-TH';u.rate=.82;
+ const v=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(v)u.voice=v;speechSynthesis.speak(u)
+}
+function gameAttempt(ok,score=100,message=''){
+ const r=row();r.gameAttempts=(r.gameAttempts||0)+1;r.gameScore=ok?Math.max(r.gameScore||0,score):(r.gameScore||0);
+ if(ok){r.done=true;r.confirmed=true}save(r);progress();$('#next').disabled=!r.done;
+ const status=$('#gameStatus')||$('#status');if(status)status.textContent=message||(ok?'⭐ ผ่านภารกิจแล้ว รับ ๑๐ XP':'ยังไม่ถูก ลองใหม่อีกครั้งนะ');
+ if(ok&&progress()===chapter.pages.length)P1Course.mark(unit,'workbook')
+}
+function gameHeader(icon,title,prompt){
+ const r=row();return `<div class="game-top"><span class="game-level">${icon} ภารกิจ ${th(index)}</span><span class="game-xp">${r.done?'⭐ ผ่านแล้ว':'🏆 ๑๐ XP'}</span></div><h2>${esc(title)}</h2><p>${prompt}</p>`
+}
 function render(){
  loaded=false;stroke=null;$('#status').textContent='';$('#title').textContent=`แบบฝึกบทที่ ${th(unit)} · ${chapter.title}`;document.title=$('#title').textContent;
  const done=progress();$('#counter').textContent=index?`${th(index)} / ${th(chapter.pages.length)}`:'หน้าปก';$('#prev').disabled=index===0;
