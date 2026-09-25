@@ -171,12 +171,13 @@ function renderUnit1BuildWord(){
    </div>
    <div class="build-word-grid">
      ${items.map(item=>`
-       <article class="build-word-card" data-key="${item.key}" data-answer="${item.lead}">
+       <article class="build-word-card" data-key="${item.key}" data-answer="${item.lead}" data-tail="${item.tail}">
          <div class="build-word-picture"><img src="${item.image}" alt="${item.alt}" loading="lazy"></div>
          <div class="build-word-form" aria-label="เติมพยัญชนะให้เป็นคำ ${item.word}">
            <div class="letter-slot" data-key="${item.key}" role="button" tabindex="0" aria-label="ช่องวางพยัญชนะของคำ ${item.word}"><span>?</span></div>
-           <span class="word-tail">${item.tail}</span>
+           <span class="word-tail">${item.tail==='ู'?'◌ู':item.tail}</span>
          </div>
+         <div class="built-word-preview" aria-live="polite">＿${item.tail==='ู'?'◌ู':item.tail}</div>
        </article>`).join('')}
    </div>
    <div class="match-actions">
@@ -190,9 +191,13 @@ function renderUnit1BuildWord(){
  const bank=$('#letterBank'),chips=[...document.querySelectorAll('.letter-chip')],slots=[...document.querySelectorAll('.letter-slot')],cards=[...document.querySelectorAll('.build-word-card')];
  function slotPlaceholder(slot){if(!slot.querySelector('.letter-chip'))slot.innerHTML='<span>?</span>'}
  function collect(){const out={};for(const slot of slots){const chip=slot.querySelector('.letter-chip');if(chip)out[slot.dataset.key]=chip.dataset.char}return out}
+ function updatePreview(card){
+  const chip=card.querySelector('.letter-slot .letter-chip'),preview=card.querySelector('.built-word-preview'),tail=card.dataset.tail;
+  preview.textContent=chip?chip.dataset.char+tail:'＿'+(tail==='ู'?'◌ู':tail);
+ }
  function changed(){
   const rr=row();rr.buildWordPlacements=collect();rr.done=false;rr.confirmed=false;save(rr);$('#next').disabled=true;progress();
-  cards.forEach(card=>card.classList.remove('correct','wrong'));$('#buildWordStatus').textContent='จัดพยัญชนะใหม่แล้ว กดตรวจคำตอบเมื่อพร้อม';
+  cards.forEach(card=>{card.classList.remove('correct','wrong');updatePreview(card)});$('#buildWordStatus').textContent='จัดพยัญชนะใหม่แล้ว กดตรวจคำตอบเมื่อพร้อม';
  }
  function place(chip,slot,markChanged=true){
   if(!chip||!slot)return;
@@ -206,7 +211,7 @@ function renderUnit1BuildWord(){
   const saved=placements[slot.dataset.key],chip=chips.find(x=>x.dataset.char===saved);
   if(chip)place(chip,slot,false);
  }
- slots.forEach(slotPlaceholder);
+ slots.forEach(slotPlaceholder);cards.forEach(updatePreview);
  if(r.done)cards.forEach(card=>card.classList.add('correct'));
 
  let selected=null,drag=null;
@@ -249,7 +254,7 @@ function renderUnit1BuildWord(){
  }
  $('#resetBuildWord').onclick=()=>{
   chips.forEach(chip=>bank.append(chip));slots.forEach(slot=>{slot.classList.remove('over');slotPlaceholder(slot)});
-  cards.forEach(card=>card.classList.remove('correct','wrong'));selectChip(null);
+  cards.forEach(card=>{card.classList.remove('correct','wrong');updatePreview(card)});selectChip(null);
   const rr=row();rr.buildWordPlacements={};rr.done=false;rr.confirmed=false;save(rr);$('#next').disabled=true;progress();
   $('#buildWordStatus').textContent='เริ่มใหม่แล้ว ลากพยัญชนะไปเติมคำอีกครั้งนะ';
  };
