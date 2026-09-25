@@ -25,6 +25,7 @@ pages.push({kind:'practice',title:'ฝึกเขียนวรรณยุก
 pages.push({kind:'practice',title:'ฝึกเขียนเลขไทย',chars:['๑','๒','๓','๔','๕','๖','๗','๘','๙','๑๐'],pages:[30],printed:'๒๗'});
 pages.push({kind:'quiz',title:'เกมฟังเสียง เลือกพยัญชนะ'},{kind:'finish',title:'พร้อมเริ่มบทที่ ๑'});
 let page=0,readId=0,reading=false,timer,selected='เส้น',ink=[],redo=[],stroke=null,pen='#245eae',quizIndex=0,quizSolved=false;
+let traceScope='' ,traceRecords={},traceBusy=false,traceLoad=0;
 const drawings=new Map(), selections=new Map(),stars=new Set();
 const quiz=[0,6,7,19,20,25,26,32];
 const menu=$('#menu'),paper=$('#paper');
@@ -75,46 +76,78 @@ function render(){
 function go(n){if(n<0||n>=pages.length)return;page=n;render();window.scrollTo({top:0,behavior:'instant'})}
 function renderPractice(p){
  const chars=Array.from(p.chars);selected=selections.get(page)||(p.pattern?'เส้น':chars[0]);
- paper.innerHTML=`<h2>${p.title}</h2><p class="lead">เลือกตัวอย่าง แล้วใช้นิ้วหรือปากกาเขียนตาม</p><div class="sample-picks">${(p.pattern?['เส้น',...chars]:chars).map(c=>`<button data-sample="${c}" aria-label="${c==='เส้น'?'ฝึกลากเส้น':symbolText(c)}" aria-pressed="${selected===c}">${c==='เส้น'?'เส้น':symbolHTML(c)}</button>`).join('')}</div><h3 id="practiceLabel" class="practice-title"></h3><div class="tools" data-swipe-ignore><label>สีปากกา <input id="penColor" type="color" value="${pen}" aria-label="สีปากกาฝึกเขียน"></label><button id="undoInk">↶ ย้อนกลับ</button><button id="redoInk">↷ ทำซ้ำ</button><button id="clearInk">ล้างลายเขียน</button></div><svg class="writing-area" id="writing" viewBox="0 0 720 340" role="img" aria-label="กระดานฝึกเขียน ใช้นิ้วหรือปากกาลากตามตัวอย่าง" data-swipe-ignore><g id="guides"></g><g id="ink"></g></svg><p class="write-help">เริ่มที่จุดสีเขียวสำหรับฝึกลากเส้น · ปัดเปลี่ยนหน้าบริเวณนอกกระดาน</p><button id="practiceDone">☆ ฝึกหน้านี้แล้ว</button><span id="practiceStar" class="done-note" role="status"></span><p class="toolbar-note">ครูหรือผู้ปกครองช่วยดูทิศทางและรูปตัวอักษร</p>${source(p)}`;
+ paper.innerHTML=`<h2>${p.title}</h2><p class="lead">เลือกตัวอย่าง แล้วใช้นิ้วหรือปากกาเขียนตาม</p><div class="sample-picks">${(p.pattern?['เส้น',...chars]:chars).map(c=>`<button data-sample="${c}" aria-label="${c==='เส้น'?'ฝึกลากเส้น':symbolText(c)}" aria-pressed="${selected===c}">${c==='เส้น'?'เส้น':symbolHTML(c)}</button>`).join('')}</div><h3 id="practiceLabel" class="practice-title"></h3><div class="tools" data-swipe-ignore><label>สีปากกา <input id="penColor" type="color" value="${pen}" aria-label="สีปากกาฝึกเขียน"></label><button id="undoInk">↶ ย้อนกลับ</button><button id="redoInk">↷ ทำซ้ำ</button><button id="clearInk">ล้างลายเขียน</button></div><svg class="writing-area" id="writing" viewBox="0 0 720 340" role="img" aria-label="กระดานฝึกเขียน ใช้นิ้วหรือปากกาลากตามตัวอย่าง" data-swipe-ignore><g id="guides"></g><g id="ink"></g></svg><p class="write-help">เริ่มที่จุดสีเขียวสำหรับฝึกลากเส้น · ปัดเปลี่ยนหน้าบริเวณนอกกระดาน</p><button id="checkTrace" class="primary">ตรวจลายเขียน</button><button id="retryTrace">เขียนใหม่</button><p id="traceResult" role="status"></p><div id="traceSummary"></div><p id="traceOwner" class="toolbar-note"></p><button id="practiceDone">☆ ฝึกหน้านี้แล้ว</button><span id="practiceStar" class="done-note" role="status"></span><p class="toolbar-note">ครูหรือผู้ปกครองช่วยดูทิศทางและรูปตัวอักษร</p>${source(p)}`;
  paper.querySelectorAll('[data-sample]').forEach(b=>b.onclick=()=>{selected=b.dataset.sample;selections.set(page,selected);paper.querySelectorAll('[data-sample]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));loadInk();drawGuide(p);if(selected!=='เส้น')speak([{text:symbolText(selected),el:b}])});
  $('#penColor').oninput=e=>pen=e.target.value;
  $('#undoInk').onclick=()=>{if(ink.length)redo.push(ink.pop());saveInk();paintInk()};$('#redoInk').onclick=()=>{if(redo.length)ink.push(redo.pop());saveInk();paintInk()};
  $('#clearInk').onclick=()=>{if(!ink.length)return;redo.push(...ink.slice().reverse());ink=[];saveInk();paintInk()};
  $('#practiceDone').onclick=()=>{stars.add(page);$('#practiceStar').textContent=' ★ เยี่ยมมาก ฝึกต่อได้เลย';$('#practiceDone').textContent='★ ฝึกหน้านี้แล้ว'};
  if(stars.has(page))$('#practiceDone').textContent='★ ฝึกหน้านี้แล้ว';
- loadInk();drawGuide(p);const board=$('#writing');
+ loadInk();drawGuide(p);$('#checkTrace').onclick=checkTrace;$('#retryTrace').onclick=()=>{ink=[];redo=[];saveInk();paintInk();$('#traceResult').textContent='ลองเขียนใหม่ แล้วกดตรวจอีกครั้ง'};const board=$('#writing');
  function point(e){const r=board.getBoundingClientRect();return [(e.clientX-r.left)/r.width*720,(e.clientY-r.top)/r.height*340]}
  board.onpointerdown=e=>{if(e.isPrimary===false||e.button>0)return;e.preventDefault();e.stopPropagation();board.setPointerCapture?.(e.pointerId);const a=point(e);stroke={color:pen,points:[a,[a[0]+.1,a[1]+.1]]};ink.push(stroke);redo=[];paintInk()};
  board.onpointermove=e=>{if(!stroke)return;e.preventDefault();stroke.points.push(point(e));paintInk()};
  board.onpointerup=board.onpointercancel=()=>{stroke=null;saveInk()};
 }
-function inkKey(){return page+':'+selected}
+function inkKey(){return traceScope+':'+page+':'+selected}
 function loadInk(){stroke=null;redo=[];ink=drawings.get(inkKey())||[];paintInk()}
 function saveInk(){drawings.set(inkKey(),ink)}
 function paintInk(){const layer=$('#ink');if(!layer)return;layer.replaceChildren();for(const s of ink){const line=document.createElementNS('http://www.w3.org/2000/svg','polyline');line.setAttribute('points',s.points.map(p=>p.join(',')).join(' '));line.setAttribute('stroke',s.color);line.setAttribute('stroke-width','5');line.setAttribute('stroke-linecap','round');line.setAttribute('stroke-linejoin','round');line.setAttribute('fill','none');layer.append(line)}}
+const tracePatterns={vertical:'M 320 65 V 275',diagonal:'M 270 65 L 450 275',horizontal:'M 230 170 H 490',curve:'M 230 170 C 230 15 490 15 490 170 C 490 325 230 325 230 170',circle:'M 360 65 A 105 105 0 1 1 359.9 65',loop:'M 260 80 C 400 0 490 120 385 180 C 300 225 280 120 350 115 L 450 275'};
+function activityKey(){return 'เตรียมความพร้อม / '+pages[page].title}
+function currentRecords(){return traceRecords[activityKey()]||{}}
 function drawGuide(p){
  $('#practiceLabel').textContent=selected==='เส้น'?p.title.replace(/^แบบฝึกชุดที่ . · /,''):`ฝึกเขียน ${p.vowels?'สระ'+symbolText(selected):(/^[\u0e48-\u0e4b]$/.test(selected)?symbolText(selected):selected)}`;
- $('.write-help').textContent=(selected==='เส้น'?'เริ่มที่จุดสีเขียว ค่อย ๆ ลากตามเส้น':'เขียนตามตัวอย่าง แล้วลองเขียนด้วยตนเอง')+' · ปัดเปลี่ยนหน้าบริเวณนอกกระดาน';
- let s='';for(const y of [85,155,230,300])s+=`<path d="M 20 ${y} H 700" stroke="#c6dae4" stroke-width="1.5"/>`;
- if(selected!=='เส้น')for(const y of [155,300])for(const x of [55,260,465]){
-  const size=selected.length>3?80:112;
-  s+=`<text x="${x}" y="${y}" class="guide" font-size="${size}" xml:space="preserve">${symbol(selected)}</text>`;
-  if(selected.includes('-')||/^[\u0e48-\u0e4b]$/.test(selected)){
-   const offset=selected.indexOf('-')>0?size*.42:0;
-   s+=`<path d="M ${x+offset} ${y+5} h ${size*.28}" stroke="#a9b7bd" stroke-width="2"/>`;
-  }
- }
- else{
-  const patterns={vertical:'M 0 0 V 90',diagonal:'M 0 0 L 70 90',horizontal:'M 0 0 H 100',curve:'M 0 45 C 0 -25 100 -25 100 45 M 0 55 C 0 125 100 125 100 55',circle:'M 50 0 A 45 45 0 1 1 49.9 0',loop:'M 0 0 C 70 -40 110 30 60 60 C 20 80 10 30 45 25 L 80 100'};
-  for(const y of [52,207])for(const x of [45,265,485]){
-   const reverse=y===207, alt={vertical:'M 0 90 V 0',horizontal:'M 100 0 H 0',diagonal:'M 70 0 L 0 90'};
-   const sx=p.pattern==='circle'?50:reverse&&p.pattern==='horizontal'?100:reverse&&p.pattern==='diagonal'?70:0;
-   const sy=p.pattern==='curve'?45:reverse&&p.pattern==='vertical'?90:0;
-   s+=`<g transform="translate(${x},${y})"><path d="${reverse&&alt[p.pattern]||patterns[p.pattern]}" fill="none" stroke="#9eafbd" stroke-width="5" stroke-dasharray="6 8"/><circle cx="${sx}" cy="${sy}" r="7" fill="#237b69"/></g>`;
-  }
- }
- $('#guides').innerHTML=s;
+ $('.write-help').textContent='เขียนทับตัวอย่างให้ครบ แล้วกดตรวจ · คะแนนวัดความครบและความใกล้เคียงของเส้น';
+ let s='<path d="M 30 230 H 690" stroke="#d6e2e9" stroke-width="1"/>';
+ if(selected!=='เส้น')s+=`<text id="traceTarget" x="360" y="230" text-anchor="middle" class="guide" font-size="164" xml:space="preserve">${symbol(selected)}</text>`;
+ else {const start={vertical:[320,65],diagonal:[270,65],horizontal:[230,170],curve:[230,170],circle:[360,65],loop:[260,80]}[p.pattern];s+=`<path id="traceTarget" d="${tracePatterns[p.pattern]}" fill="none" stroke="#a8b6bf" stroke-width="7"/><circle cx="${start[0]}" cy="${start[1]}" r="6" fill="#237b69"/>`}
+ $('#guides').innerHTML=s;$('#traceResult').textContent='';renderTraceSummary();
 }
+function traceContext(){return window.P1Classroom?.getTraceContext?.()||{key:'guest',ready:false,label:'ฝึกโดยไม่เข้าห้องเรียน'}}
+function renderTraceSummary(){
+ if(!$('#traceSummary'))return;
+ const symbols=Array.from(pages[page].chars), records=currentRecords(),sum=P1TraceScore.summary(symbols,records),row=records[selected];
+ $('#traceSummary').replaceChildren();
+ const line=document.createElement('p');line.textContent=row?`ตัวนี้: ครั้งแรก ${row.first}% · ดีที่สุด ${row.best}% · ฝึก ${row.attempts} ครั้ง`:'ตัวนี้ยังไม่ได้ตรวจ';$('#traceSummary').append(line);
+ const avg=document.createElement('p');avg.textContent=sum.first===null?`ตรวจแล้ว ${th(sum.done)} / ${th(sum.total)} ตัว — ทำครบทุกตัวเพื่อดูค่าเฉลี่ย`:`เฉลี่ยทั้งกิจกรรม: ครั้งแรก ${sum.first}% · ดีที่สุด ${sum.best}%`;$('#traceSummary').append(avg);
+ const context=traceContext();$('#traceOwner').textContent=context.label+(context.ready?' · บันทึกคะแนนในห้องเรียน':' · คะแนนเก็บชั่วคราวในแท็บนี้');
+ paper.querySelectorAll('[data-sample]').forEach(b=>b.classList.toggle('trace-checked',!!records[b.dataset.sample]));
+}
+function mask(ctx){const data=ctx.getImageData(0,0,360,170).data;return Uint8Array.from({length:360*170},(_,i)=>data[i*4+3]>64?1:0)}
+async function checkTrace(){
+ if(traceBusy)return;if(!ink.length){$('#traceResult').textContent='ลองเขียนตามตัวอย่างก่อนนะ';return}
+ const key=inkKey(),act=activityKey(),sym=selected,scope=traceScope,context=traceContext(),captured=structuredClone(ink);
+ traceBusy=true;$('#checkTrace').disabled=true;
+ try{
+  await document.fonts?.ready;if(key!==inkKey()||scope!==traceContext().key)return;
+  const make=()=>{const c=document.createElement('canvas');c.width=360;c.height=170;const x=c.getContext('2d',{willReadFrequently:true});if(!x)throw Error('เครื่องนี้ยังตรวจลายเขียนไม่ได้');x.scale(.5,.5);return x},target=make(),drawn=make();
+  target.fillStyle='#000';target.strokeStyle='#000';target.lineWidth=7;target.lineCap='round';
+  if(sym==='เส้น')target.stroke(new Path2D(tracePatterns[pages[page].pattern]));
+  else {const style=getComputedStyle($('#traceTarget'));target.font=`400 164px ${style.fontFamily}`;target.textAlign='center';target.fillText(symbol(sym),360,230)}
+  drawn.strokeStyle='#000';drawn.lineWidth=5;drawn.lineCap='round';drawn.lineJoin='round';
+  for(const stroke of captured){drawn.beginPath();stroke.points.forEach(([x,y],i)=>i?drawn.lineTo(x,y):drawn.moveTo(x,y));drawn.stroke()}
+  const result=P1TraceScore.compare(mask(target),mask(drawn),360,170,6);
+  if(key!==inkKey()||scope!==traceContext().key)return;
+  const activity=traceRecords[act]||(traceRecords[act]={});activity[sym]=P1TraceScore.record(activity[sym],result.score);
+  safeSet('p1-trace:'+scope,JSON.stringify(traceRecords));
+  $('#traceResult').textContent=`${result.score}% · เขียนครบ ${result.coverage}% · เส้นอยู่ใกล้ตัวอย่าง ${result.precision}%`;
+  renderTraceSummary();
+  if(context.ready){
+   const rows=await window.P1Classroom.tracing('save',{id:crypto.randomUUID(),activity:act,symbol:sym,score:result.score},scope);
+   if(traceContext().key===scope){mergeTraceRows(rows);if(key===inkKey()){$('#traceResult').textContent+=' · บันทึกแล้ว';renderTraceSummary()}}
+  }
+ }catch(e){if(key===inkKey())$('#traceResult').textContent+=' · ยังบันทึกไม่ได้: '+e.message+' กรุณาตรวจอีกครั้งเมื่อเชื่อมต่อได้'}
+ finally{traceBusy=false;if($('#checkTrace'))$('#checkTrace').disabled=false}
+}
+function mergeTraceRows(rows){traceRecords={};for(const r of rows){(traceRecords[r.activity]||(traceRecords[r.activity]={}))[r.symbol]=r}safeSet('p1-trace:'+traceScope,JSON.stringify(traceRecords))}
+async function syncTraceContext(){
+ const context=traceContext(),ticket=++traceLoad;
+ if(context.key!==traceScope){traceScope=context.key;drawings.clear();ink=[];redo=[];stroke=null;paintInk();traceRecords={};try{traceRecords=JSON.parse(safeGet('p1-trace:'+traceScope)||'{}')}catch{};renderTraceSummary();if($('#traceResult'))$('#traceResult').textContent=''}
+ if(context.ready)try{const rows=await window.P1Classroom.tracing('history',{},context.key);if(ticket===traceLoad&&context.key===traceContext().key){mergeTraceRows(rows);renderTraceSummary()}}catch(e){if(ticket===traceLoad&&$('#traceOwner'))$('#traceOwner').textContent=context.label+' · โหลดคะแนนเดิมไม่ได้: '+e.message}
+}
+document.addEventListener('p1-classroom-ready',()=>{if(traceContext().key!==traceScope)syncTraceContext()});
+document.addEventListener('p1-trace-context',syncTraceContext);
 function renderQuiz(){
  const i=quiz[quizIndex],options=[i,(i+7)%44,(i+19)%44].sort((a,b)=>a-b);quizSolved=false;
  paper.innerHTML=`<h2>ฟังเสียง เลือกพยัญชนะ</h2><p>ข้อ ${th(quizIndex+1)} จาก ${th(quiz.length)}</p><img class="quiz-image" src="assets/letter-${i+1}.webp" alt="${names[i]}"><div style="text-align:center"><button id="quizSound">🔊 ฟังเสียง</button></div><div class="choices">${options.map(j=>`<button data-answer="${j}" aria-label="เลือก ${letters[j]}">${letters[j]}</button>`).join('')}</div><p class="feedback" role="status" id="feedback">ฟังแล้วเลือกตัวที่ตรงกับภาพ</p><button id="quizNext" class="primary" hidden>ข้อต่อไป →</button>`;
@@ -157,5 +190,5 @@ paper.addEventListener('click',e=>{if(Date.now()<suppressTapUntil){e.preventDefa
 document.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||e.target.closest('input,select,textarea,button,a'))return;if(e.key==='ArrowRight'){e.preventDefault();go(page+1)}if(e.key==='ArrowLeft'){e.preventDefault();go(page-1)}});
 window.addEventListener('pagehide',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
 const initial=new URLSearchParams(location.search).get('page');page=Math.max(0,Math.min(pages.length-1,initial?Number(initial)-1:Number(safeGet('p1-readiness-single-page')||0)));if(!Number.isFinite(page))page=0;
-render();
+render();syncTraceContext();
 })();
