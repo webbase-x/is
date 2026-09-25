@@ -45,3 +45,36 @@ header>a,header>button{display:grid;place-items:center;min-width:46px;background
  .pager{gap:6px}
  .pager button{padding:8px 10px;font-size:.8rem}
 }
+
+
+/* Unit 1 activity 1: touch-friendly word-to-picture matching */
+.match-activity{max-width:920px;margin:0 auto;padding:clamp(14px,3vw,26px);border:1px solid #d8e8e1;border-radius:24px;background:linear-gradient(180deg,#fff,#f8fcfa);box-shadow:0 16px 40px #23453414}
+.match-heading{text-align:center}.match-kicker{display:inline-block;padding:6px 11px;border-radius:999px;background:#e7f5ef;color:#236b67;font-size:.82rem;font-weight:800}
+.match-heading h2{display:block!important;margin:10px 0 5px!important;padding:0!important;background:none!important;color:#174f4c!important;font-size:clamp(1.35rem,4vw,2rem)!important;border-radius:0!important}
+.match-heading p{margin:0 auto 14px;max-width:680px;color:#61736e}
+.match-elephant-hero{display:flex;align-items:center;justify-content:center;gap:14px;max-width:520px;margin:14px auto 18px;padding:12px 16px;border-radius:20px;background:linear-gradient(135deg,#fff8d7,#eef9f5);border:1px solid #e5dfbd}
+.match-elephant-hero img{width:120px;height:100px;object-fit:contain;border-radius:14px;background:#fff}
+.match-elephant-hero strong,.match-elephant-hero span{display:block}.match-elephant-hero strong{font-size:1.15rem;color:#236b67}.match-elephant-hero span{font-size:.8rem;color:#6d7773}
+.match-word-bank{position:sticky;top:74px;z-index:3;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:0 auto 18px;padding:12px;border:1px dashed #9ccdbd;border-radius:18px;background:#eef9f4e8;backdrop-filter:blur(8px)}
+.match-word{min-width:78px;min-height:50px;border:2px solid #75b9a3;border-radius:15px;background:#fff;color:#174f4c;font-size:1.15rem;font-weight:800;box-shadow:0 5px 12px #23453410;touch-action:none;user-select:none;-webkit-user-select:none}
+.match-word.selected{outline:4px solid #ffd76a;outline-offset:2px}.match-word.drag-source{opacity:.35}
+.match-drag-ghost{position:fixed;z-index:9999;transform:translate(-50%,-50%) scale(1.08);min-width:78px;min-height:50px;padding:8px 16px;border:2px solid #236b67;border-radius:15px;background:#fff;color:#174f4c;font:800 1.15rem Sarabun,Tahoma,sans-serif;box-shadow:0 12px 30px #173f3735;pointer-events:none}
+.match-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.match-card{overflow:hidden;border:1px solid #dbe8e3;border-radius:20px;background:#fff;box-shadow:0 8px 22px #2345340d}
+.match-picture{aspect-ratio:4/3;display:grid;place-items:center;padding:10px;background:linear-gradient(180deg,#fbfefe,#f1f8f5)}
+.match-picture img{display:block;width:100%;height:100%;object-fit:contain}
+.match-slot{min-height:64px;margin:12px;padding:7px;border:2px dashed #91c5b3;border-radius:15px;background:#f8fcfa;display:flex;align-items:center;justify-content:center;transition:.16s;cursor:pointer}
+.match-slot.over{border-color:#236b67;background:#e5f5ee;transform:scale(1.02)}
+.match-slot.correct{border-style:solid;border-color:#3b9d68;background:#e7f7ec}.match-slot.wrong{border-style:solid;border-color:#d66b6b;background:#fff0f0}
+.match-slot.correct::after{content:"✓";margin-left:8px;color:#238657;font-size:1.35rem;font-weight:900}.match-slot.wrong::after{content:"ลองใหม่";margin-left:8px;color:#b74f4f;font-size:.78rem;font-weight:800}
+.match-placeholder{color:#78908a;font-size:.82rem;font-weight:700}.match-slot .match-word{min-height:44px;margin:0}
+.match-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:18px 0 6px}.match-actions button{font-weight:800}
+.match-status{min-height:1.6em;margin:8px 0 0;text-align:center;color:#236b67;font-weight:800}
+@media(max-width:640px){
+ .match-activity{padding:12px 9px;border-radius:18px}
+ .match-elephant-hero{justify-content:flex-start}.match-elephant-hero img{width:92px;height:82px}
+ .match-word-bank{top:66px;gap:7px;padding:9px}.match-word{min-width:66px;min-height:46px;font-size:1rem}
+ .match-grid{grid-template-columns:1fr 1fr;gap:8px}.match-card{border-radius:15px}.match-picture{padding:5px}
+ .match-slot{min-height:58px;margin:7px;padding:5px}.match-placeholder{font-size:.7rem}
+ .match-slot.correct::after,.match-slot.wrong::after{font-size:.7rem;margin-left:4px}
+}
