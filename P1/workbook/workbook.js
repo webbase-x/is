@@ -2,7 +2,7 @@
 'use strict';
 const $=s=>document.querySelector(s),th=n=>String(n).replace(/\d/g,d=>'๐๑๒๓๔๕๖๗๘๙'[d]),ns='http://www.w3.org/2000/svg';
 const unit=Math.min(12,Math.max(1,Number(new URLSearchParams(location.search).get('unit'))||1));
-let chapter,index=0,scope=P1Course.context().key,stroke=null,draw=true,color='#c72f4f',saveTimer,loaded=false;
+let chapter,index=0,scope=P1Course.context().key,stroke=null,draw=true,color='#c72f4f',saveTimer,choiceAdvanceTimer,loaded=false;
 function state(){return P1Course.read(unit).worksheets||{}}
 function row(){return state()[index]||{ink:[],text:'',confirmed:false,done:false}}
 function save(r){const data=P1Course.read(unit);data.worksheets=data.worksheets||{};data.worksheets[index]=r;if(index&&!r.done)data.workbook=false;return P1Course.write(unit,data)}
@@ -360,6 +360,24 @@ function gameAttempt(ok,score=100,message=''){
  const status=$('#gameStatus')||$('#status');if(status)status.textContent=message||(ok?'⭐ ผ่านภารกิจแล้ว รับ ๑๐ XP':'ยังไม่ถูก ลองใหม่อีกครั้งนะ');
  if(ok&&progress()===chapter.pages.length)P1Course.mark(unit,'workbook')
 }
+function advanceChoiceAutomatically(){
+ clearTimeout(choiceAdvanceTimer);
+ choiceAdvanceTimer=setTimeout(()=>{
+  if(index<chapter.pages.length){index++;render();scrollTo({top:0,behavior:'smooth'});return}
+  if(progress()===chapter.pages.length&&P1Course.mark(unit,'workbook'))location.href=P1Course.route(unit,'review')
+ },1400)
+}
+function submitChoiceAnswer(ok,correctAnswer,selectedButton){
+ const buttons=[...document.querySelectorAll('.choice-btn')];
+ buttons.forEach(b=>{b.disabled=true;if(b.dataset.value===correctAnswer)b.classList.add('correct')});
+ if(!ok)selectedButton.classList.add('wrong');
+ const r=row();r.gameAttempts=(r.gameAttempts||0)+1;r.gameScore=ok?100:0;r.gameCorrect=ok;r.selectedAnswer=selectedButton.dataset.value;r.correctAnswer=correctAnswer;r.done=true;r.confirmed=true;
+ save(r);progress();$('#next').disabled=true;
+ const status=$('#gameStatus')||$('#status');
+ if(status){status.classList.toggle('result-correct',ok);status.classList.toggle('result-wrong',!ok);status.textContent=ok?'✅ ถูกต้อง · คะแนน ๑๐๐/๑๐๐ · กำลังไปข้อถัดไป…':`❌ ผิด · คะแนน ๐/๑๐๐ · คำตอบที่ถูก: ${correctAnswer} · กำลังไปข้อถัดไป…`}
+ if(progress()===chapter.pages.length)P1Course.mark(unit,'workbook');
+ advanceChoiceAutomatically()
+}
 function gameHeader(icon,title,prompt){
  const r=row();return `<div class="game-top"><span class="game-level">${icon} ภารกิจ ${th(index)}</span><span class="game-xp">${r.done?'⭐ ผ่านแล้ว':'🏆 ๑๐ XP'}</span></div><h2>${esc(title)}</h2><p>${prompt}</p>`
 }
@@ -367,14 +385,16 @@ function renderListenChoice(p){
  const words=gameWords(),target=words[(unit*7+index*3)%words.length];
  const others=stableShuffle(words.filter(w=>w!==target),unit*100+index).slice(0,3);
  const opts=stableShuffle([target,...others],unit*1000+index);
- $('#content').innerHTML=`<section class="game-card">${gameHeader('🔊','ฟังแล้วเลือกคำ','กดฟัง แล้วเลือกคำที่ได้ยินให้ถูกต้อง')}<button class="listen-button" id="listenTarget">🔊 ฟังคำ</button><div class="choice-grid">${opts.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ผ่านภารกิจนี้แล้ว':'เลือกคำตอบได้ แล้วลองใหม่ได้ถ้ายังไม่ถูก'}</p>${sourcePreview(p)}</section>`;
+ $('#content').innerHTML=`<section class="game-card">${gameHeader('🔊','ฟังแล้วเลือกคำ','กดฟัง แล้วเลือกคำที่ได้ยินให้ถูกต้อง')}<button class="listen-button" id="listenTarget">🔊 ฟังคำ</button><div class="choice-grid">${opts.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ทำภารกิจนี้แล้ว':'เลือก ๑ คำตอบ ระบบจะตรวจคะแนนแล้วไปข้อถัดไปอัตโนมัติ'}</p>${sourcePreview(p)}</section>`;
  $('#listenTarget').onclick=()=>speakThai(target);
- document.querySelectorAll('.choice-btn').forEach(b=>b.onclick=()=>{const ok=b.dataset.value===target;b.classList.add(ok?'correct':'wrong');if(ok){document.querySelectorAll('.choice-btn').forEach(x=>x.disabled=true);gameAttempt(true,100,'⭐ ถูกต้อง! “'+target+'” รับ ๑๐ XP')}else gameAttempt(false,0,'ยังไม่ใช่ ลองกดฟังแล้วเลือกใหม่อีกครั้ง')})
+ let locked=false;
+ document.querySelectorAll('.choice-btn').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;submitChoiceAnswer(b.dataset.value===target,target,b)})
 }
 function renderQuizGame(p){
  const reviews=unitData().review||[],q=reviews[(index-1)%Math.max(1,reviews.length)]||{q:'คำใดอยู่ในบทเรียนนี้?',o:gameWords().slice(0,3),a:gameWords()[0]};
- $('#content').innerHTML=`<section class="game-card">${gameHeader('❓','ตอบคำถามพิชิตดาว',esc(q.q))}<div class="choice-grid">${q.o.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ผ่านภารกิจนี้แล้ว':'เลือกคำตอบที่ถูกต้อง'}</p>${sourcePreview(p)}</section>`;
- document.querySelectorAll('.choice-btn').forEach(b=>b.onclick=()=>{const ok=b.dataset.value===q.a;b.classList.add(ok?'correct':'wrong');if(ok){document.querySelectorAll('.choice-btn').forEach(x=>x.disabled=true);gameAttempt(true,100,'⭐ ถูกต้อง รับ ๑๐ XP')}else gameAttempt(false,0,'ยังไม่ถูก ลองเลือกใหม่อีกครั้งนะ')})
+ $('#content').innerHTML=`<section class="game-card">${gameHeader('❓','ตอบคำถามพิชิตดาว',esc(q.q))}<div class="choice-grid">${q.o.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ทำภารกิจนี้แล้ว':'เลือก ๑ คำตอบ ระบบจะตรวจคะแนนแล้วไปข้อถัดไปอัตโนมัติ'}</p>${sourcePreview(p)}</section>`;
+ let locked=false;
+ document.querySelectorAll('.choice-btn').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;submitChoiceAnswer(b.dataset.value===q.a,q.a,b)})
 }
 function renderSequenceGame(p,mode){
  const data=unitData(),r=row();let expected=[],speakText='',title='',prompt='';
@@ -459,7 +479,7 @@ function renderHandwritingPage(){
  $('#checkTrace').onclick=()=>{const scores=lines.map((_,i)=>lineScore(i)),avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);r.handwritingScores=scores;r.handwritingScore=avg;scores.forEach((s,i)=>$('#traceScore'+i).textContent='คะแนน '+th(s));if(scores.every(s=>s>=50)&&avg>=60){r.done=true;r.confirmed=true;save(r);progress();$('#next').disabled=false;$('#gameStatus').textContent='⭐ ผ่านการคัดลายมือ '+th(avg)+' คะแนน รับ ๑๐ XP';if(progress()===chapter.pages.length)P1Course.mark(unit,'workbook')}else{r.done=false;save(r);$('#next').disabled=true;$('#gameStatus').textContent='ได้ '+th(avg)+' คะแนน ลองคัดตามแนวตัวอักษรให้ครบและต่อเนื่องขึ้นอีกนิดนะ'}}
 }
 function render(){
- loaded=false;stroke=null;$('#status').textContent='';$('#title').textContent=`แบบฝึกบทที่ ${th(unit)} · ${chapter.title}`;document.title=$('#title').textContent;
+ clearTimeout(choiceAdvanceTimer);loaded=false;stroke=null;$('#status').textContent='';$('#title').textContent=`แบบฝึกบทที่ ${th(unit)} · ${chapter.title}`;document.title=$('#title').textContent;
  const done=progress();$('#counter').textContent=index?`${th(index)} / ${th(chapter.pages.length)}`:'หน้าปก';$('#prev').disabled=index===0;
  $('#next').disabled=index>0&&!row().done;$('#next').textContent=index===0?'เริ่มภารกิจ →':index===chapter.pages.length?'ไปทบทวนและเกม →':'ภารกิจถัดไป ›';
  $('#pageList').replaceChildren();for(let i=0;i<=chapter.pages.length;i++){const b=document.createElement('button');b.textContent=i?th(i):'ปก';if(state()[i]?.done)b.className='completed';b.onclick=()=>{flush();index=i;$('#menu').close();render()};$('#pageList').append(b)}
