@@ -18,7 +18,7 @@ function migrateGamifiedRows(){
  });
  if(changed){data.workbook=false;P1Course.write(unit,data)}
 }
-function progress(){const rows=state(),done=chapter.pages.filter((_,i)=>rows[i+1]?.done).length;$('#progress').textContent=`⭐ ผ่านแล้ว ${th(done)} / ${th(chapter.pages.length)} ภารกิจ`;$('#owner').textContent=P1Course.context().label+' · เกมตรวจคำตอบอัตโนมัติ · หน้าคัดลายมือประเมินจากการลากเส้น · ความคืบหน้าเก็บในเครื่องนี้';return done}
+function progress(){const rows=state(),done=chapter.pages.filter((_,i)=>rows[i+1]?.done).length;$('#progress').textContent=`⭐ ${th(done)} / ${th(chapter.pages.length)}`;$('#progress').setAttribute('aria-label',`ผ่านแล้ว ${done} จาก ${chapter.pages.length} ภารกิจ`);$('#owner').textContent='';return done}
 function paint(){const svg=$('#ink');if(!svg)return;svg.replaceChildren();for(const s of [...row().ink,...(stroke?[stroke]:[])]){const p=document.createElementNS(ns,'path');p.setAttribute('d',s.points.map(([x,y],i)=>(i?'L':'M')+x+' '+y).join(' '));p.setAttribute('stroke',s.color);p.setAttribute('stroke-width','3');svg.append(p)}}
 function flush(){clearTimeout(saveTimer);const input=$('#answer');if(input){const r=row();if(r.text!==input.value){r.text=input.value;r.done=false;save(r);$('#next').disabled=true;progress()}}}
 function isUnit1MatchPage(){return unit===1&&index===1}
@@ -38,9 +38,9 @@ function renderUnit1Match(){
  $('#content').innerHTML=`
  <section class="match-activity elephant-body-match" aria-labelledby="matchTitle">
    <div class="match-heading">
-     <span class="match-kicker">กิจกรรมที่ ๑ · รู้จักอวัยวะของช้าง</span>
-     <h2 id="matchTitle">ลากคำไปวางในกรอบที่ชี้ไปยังอวัยวะของช้าง</h2>
-     <p>ลากคำ <strong>ตา หู งวง ขา</strong> ไปวางในกรอบคำพูด โดยดูเส้นชี้ไปยังอวัยวะที่ถูกต้องของช้างใบบัว</p>
+     <span class="match-kicker">ข้อ ๑</span>
+     <h2 id="matchTitle">ลากคำให้ตรงกับอวัยวะของช้าง</h2>
+     <p>ลาก <strong>ตา หู งวง ขา</strong> ไปยังกรอบที่ลูกศรชี้</p>
    </div>
    <div class="match-word-bank" id="matchWordBank" aria-label="คำสำหรับลาก">
      ${matchItems.map(x=>`<button type="button" class="match-word" data-word="${x.word}" aria-label="ลากคำ ${x.word}">${x.word}</button>`).join('')}
@@ -74,8 +74,7 @@ function renderUnit1Match(){
      <button type="button" class="primary" id="checkMatch">✓ ตรวจคำตอบ</button>
    </div>
    <p class="match-status" id="matchStatus" role="status" aria-live="polite">${r.done?'⭐ ทำถูกครบแล้ว เก่งมาก!':'ลากคำไปวางในกรอบคำพูดให้ครบทั้ง ๔ จุด แล้วกดตรวจคำตอบ'}</p>
- </section>
- <p class="note center-note">ใช้ภาพช้างสีจากภาษาพาที และรองรับการลากด้วยนิ้วบน iPhone/iPad</p>`;
+ </section>`;
 
  const bank=$('#matchWordBank'),slots=[...document.querySelectorAll('.match-slot')],wordButtons=[...document.querySelectorAll('.match-word')];
  function placeholder(slot){if(!slot.querySelector('.match-word'))slot.innerHTML='<span class="match-placeholder">วางคำ</span>'}
@@ -182,9 +181,9 @@ function renderUnit1BuildWord(){
  $('#content').innerHTML=`
  <section class="build-word-activity elephant-word-builder" aria-labelledby="buildWordTitle">
    <div class="match-heading">
-     <span class="match-kicker">กิจกรรมที่ ๒ · สร้างคำจากอวัยวะช้าง</span>
-     <h2 id="buildWordTitle">ลากพยัญชนะและสระมาวางให้เป็นคำ</h2>
-     <p>ใช้ช้างตัวเดิมจากข้อ ๑ แล้วลากตัวอักษรไปประกอบคำ <strong>ตา หู งวง ขา</strong> ให้ถูกต้อง ระวังตัวลวงนะ</p>
+     <span class="match-kicker">ข้อ ๒</span>
+     <h2 id="buildWordTitle">ลากตัวอักษรมาสร้างคำ</h2>
+     <p>สร้างคำ <strong>ตา หู งวง ขา</strong> ให้ถูกต้อง มีตัวลวงปะปนอยู่</p>
    </div>
 
    <div class="letter-bank full-letter-bank" id="letterBank" aria-label="พยัญชนะ สระ และตัวลวงสำหรับลาก">
@@ -226,8 +225,7 @@ function renderUnit1BuildWord(){
      <button type="button" class="primary" id="checkBuildWord">✓ ตรวจคำตอบ</button>
    </div>
    <p class="match-status" id="buildWordStatus" role="status" aria-live="polite">${r.done?'⭐ ถูกต้องครบทั้ง ๔ คำ เก่งมาก!':'ลากตัวอักษรลงช่องให้ครบทั้ง ๔ คำ แล้วกดตรวจคำตอบ'}</p>
- </section>
- <p class="note center-note">มีตัวลวงปะปนอยู่ ให้สังเกตรูปและเลือกเฉพาะพยัญชนะกับสระที่ใช้สร้างคำนั้น</p>`;
+ </section>`;
 
  const bank=$('#letterBank'),chips=[...document.querySelectorAll('.letter-chip')],slots=[...document.querySelectorAll('.letter-slot')],panels=[...document.querySelectorAll('.build-callout')];
  function slotPlaceholder(slot){if(!slot.querySelector('.letter-chip'))slot.innerHTML='<span>?</span>'}
@@ -345,10 +343,7 @@ function shortWords(){
  const a=gameWords().filter(w=>!/\s/.test(w)&&[...w].length>=2&&[...w].length<=8);
  return a.length?a:gameWords().filter(w=>!/\s/.test(w))
 }
-function sourcePreview(p){
- if(!p?.image)return'';
- return `<details class="source-preview"><summary>ดูโจทย์ต้นฉบับของภารกิจนี้</summary><div class="source-preview-frame ${p.rotation===180?'source-rotated':''}"><img src="${p.image}" alt="โจทย์ต้นฉบับบท ${th(unit)} ภารกิจ ${th(index)}" loading="lazy"></div></details>`
-}
+function sourcePreview(){return''}
 function speakThai(textValue){
  if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return;
  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(textValue).replaceAll('สระ','สะระ'));u.lang='th-TH';u.rate=.82;
@@ -379,21 +374,21 @@ function submitChoiceAnswer(ok,correctAnswer,selectedButton){
  advanceChoiceAutomatically()
 }
 function gameHeader(icon,title,prompt){
- const r=row();return `<div class="game-top"><span class="game-level">${icon} ภารกิจ ${th(index)}</span><span class="game-xp">${r.done?'⭐ ผ่านแล้ว':'🏆 ๑๐ XP'}</span></div><h2>${esc(title)}</h2><p>${prompt}</p>`
+ const r=row();return `<div class="game-top"><span class="game-level">${icon} ${th(index)} / ${th(chapter.pages.length)}</span><span class="game-xp">${r.done?'⭐ ผ่านแล้ว':'⭐ ๑๐'}</span></div><h2>${esc(title)}</h2><p>${prompt}</p>`
 }
 function renderListenChoice(p){
  const words=gameWords(),target=words[(unit*7+index*3)%words.length];
  const others=stableShuffle(words.filter(w=>w!==target),unit*100+index).slice(0,3);
  const opts=stableShuffle([target,...others],unit*1000+index);
- $('#content').innerHTML=`<section class="game-card">${gameHeader('🔊','ฟังแล้วเลือกคำ','กดฟัง แล้วเลือกคำที่ได้ยินให้ถูกต้อง')}<button class="listen-button" id="listenTarget">🔊 ฟังคำ</button><div class="choice-grid">${opts.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ทำภารกิจนี้แล้ว':'เลือก ๑ คำตอบ ระบบจะตรวจคะแนนแล้วไปข้อถัดไปอัตโนมัติ'}</p>${sourcePreview(p)}</section>`;
- $('#listenTarget').onclick=()=>speakThai(target);
+ $('#content').innerHTML=`<section class="game-card">${gameHeader('🔊','ฟังแล้วเลือกคำ','กดฟัง แล้วเลือกคำที่ได้ยินให้ถูกต้อง')}<button class="listen-button" id="listenTarget">🔊 ฟังคำ</button><div class="choice-grid">${opts.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ทำแล้ว':'เลือกคำตอบ'}</p>${sourcePreview(p)}</section>`;
+ $('#next').hidden=true;$('#listenTarget').onclick=()=>speakThai(target);
  let locked=false;
  document.querySelectorAll('.choice-btn').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;submitChoiceAnswer(b.dataset.value===target,target,b)})
 }
 function renderQuizGame(p){
  const reviews=unitData().review||[],q=reviews[(index-1)%Math.max(1,reviews.length)]||{q:'คำใดอยู่ในบทเรียนนี้?',o:gameWords().slice(0,3),a:gameWords()[0]};
  $('#content').innerHTML=`<section class="game-card">${gameHeader('❓','ตอบคำถามพิชิตดาว',esc(q.q))}<div class="choice-grid">${q.o.map(o=>`<button class="choice-btn" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><p class="game-status" id="gameStatus">${row().done?'⭐ ทำภารกิจนี้แล้ว':'เลือก ๑ คำตอบ ระบบจะตรวจคะแนนแล้วไปข้อถัดไปอัตโนมัติ'}</p>${sourcePreview(p)}</section>`;
- let locked=false;
+ $('#next').hidden=true;let locked=false;
  document.querySelectorAll('.choice-btn').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;submitChoiceAnswer(b.dataset.value===q.a,q.a,b)})
 }
 function renderSequenceGame(p,mode){
@@ -456,7 +451,7 @@ function renderHandwritingPage(){
  if(!Array.isArray(r.handwritingStrokes)||r.handwritingStrokes.length!==lines.length)r.handwritingStrokes=Array.from({length:lines.length},(_,i)=>r.handwritingStrokes?.[i]||[]);
  $('#next').disabled=!r.done;
  const pageSpecific=Boolean(HANDWRITING_PAGE_TEXT[unit+'-'+index]),traceTitle=pageSpecific?'ฝึกคัดตัวอักษรและคำ':'คัดลายมือตัวบรรจงเต็มบรรทัด',tracePrompt=pageSpecific?'ลากนิ้วหรือปากกาตามตัวเลข สระ หรือคำต้นแบบจากหน้าฝึกเดิม':'ลากนิ้วหรือปากกาตามตัวอักษรจางให้ครบทุกบรรทัด';
- $('#content').innerHTML=`<section class="handwriting-game">${gameHeader('✍️',traceTitle,tracePrompt)}<div class="trace-list">${lines.map((line,i)=>{const size=Math.max(28,Math.min(56,760/Math.max(8,[...line].length)));return `<div class="trace-card"><div class="trace-toolbar"><button class="trace-speak" data-i="${i}">🔊 ฟัง</button><span id="traceScore${i}">${r.handwritingScores?.[i]!=null?'คะแนน '+th(r.handwritingScores[i]):'คัดตามแบบ'}</span></div><svg class="trace-pad" data-i="${i}" viewBox="0 0 900 140" aria-label="คัดลายมือ ${esc(line)}"><text class="trace-guide" x="28" y="92" style="font-size:${size}px">${esc(line)}</text><g class="trace-ink"></g></svg></div>`}).join('')}</div><div class="game-actions"><button id="undoTrace">↶ ย้อนเส้น</button><button id="resetTrace">↻ เริ่มใหม่</button><button class="primary" id="checkTrace">✓ ตรวจลายมือ</button></div><p class="game-status" id="gameStatus">${r.done?'⭐ ผ่านแบบคัดลายมือแล้ว':'คัดให้ครบ แล้วกดตรวจลายมือ'}</p><details class="source-preview"><summary>ดูข้อความต้นฉบับที่ใช้คัด</summary><p class="source-text-copy">${lines.map(esc).join('<br>')}</p></details></section>`;
+ $('#content').innerHTML=`<section class="handwriting-game">${gameHeader('✍️',traceTitle,tracePrompt)}<div class="trace-list">${lines.map((line,i)=>{const size=Math.max(28,Math.min(56,760/Math.max(8,[...line].length)));return `<div class="trace-card"><div class="trace-toolbar"><button class="trace-speak" data-i="${i}">🔊 ฟัง</button><span id="traceScore${i}">${r.handwritingScores?.[i]!=null?'คะแนน '+th(r.handwritingScores[i]):'คัดตามแบบ'}</span></div><svg class="trace-pad" data-i="${i}" viewBox="0 0 900 140" aria-label="คัดลายมือ ${esc(line)}"><text class="trace-guide" x="28" y="92" style="font-size:${size}px">${esc(line)}</text><g class="trace-ink"></g></svg></div>`}).join('')}</div><div class="game-actions"><button id="undoTrace">↶ ย้อนเส้น</button><button id="resetTrace">↻ เริ่มใหม่</button><button class="primary" id="checkTrace">✓ ตรวจลายมือ</button></div><p class="game-status" id="gameStatus">${r.done?'⭐ ผ่านแล้ว':'คัดให้ครบ แล้วกดตรวจ'}</p></section>`;
  const pads=[...document.querySelectorAll('.trace-pad')];let active=null,lastLine=0;
  function paintPad(i){const g=pads[i].querySelector('.trace-ink');g.replaceChildren();for(const stroke of r.handwritingStrokes[i]||[]){const path=document.createElementNS(ns,'path');path.setAttribute('d',stroke.map(([x,y],j)=>(j?'L':'M')+x+' '+y).join(' '));path.setAttribute('class','trace-stroke');g.append(path)}}
  pads.forEach((svg,i)=>{
@@ -479,11 +474,11 @@ function renderHandwritingPage(){
  $('#checkTrace').onclick=()=>{const scores=lines.map((_,i)=>lineScore(i)),avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);r.handwritingScores=scores;r.handwritingScore=avg;scores.forEach((s,i)=>$('#traceScore'+i).textContent='คะแนน '+th(s));if(scores.every(s=>s>=50)&&avg>=60){r.done=true;r.confirmed=true;save(r);progress();$('#next').disabled=false;$('#gameStatus').textContent='⭐ ผ่านการคัดลายมือ '+th(avg)+' คะแนน รับ ๑๐ XP';if(progress()===chapter.pages.length)P1Course.mark(unit,'workbook')}else{r.done=false;save(r);$('#next').disabled=true;$('#gameStatus').textContent='ได้ '+th(avg)+' คะแนน ลองคัดตามแนวตัวอักษรให้ครบและต่อเนื่องขึ้นอีกนิดนะ'}}
 }
 function render(){
- clearTimeout(choiceAdvanceTimer);loaded=false;stroke=null;$('#status').textContent='';$('#title').textContent=`แบบฝึกบทที่ ${th(unit)} · ${chapter.title}`;document.title=$('#title').textContent;
+ clearTimeout(choiceAdvanceTimer);loaded=false;stroke=null;$('#status').textContent='';$('#next').hidden=false;$('#title').textContent=`บทที่ ${th(unit)} · ${chapter.title}`;document.title=`แบบฝึก ${$('#title').textContent}`;
  const done=progress();$('#counter').textContent=index?`${th(index)} / ${th(chapter.pages.length)}`:'หน้าปก';$('#prev').disabled=index===0;
  $('#next').disabled=index>0&&!row().done;$('#next').textContent=index===0?'เริ่มภารกิจ →':index===chapter.pages.length?'ไปทบทวนและเกม →':'ภารกิจถัดไป ›';
  $('#pageList').replaceChildren();for(let i=0;i<=chapter.pages.length;i++){const b=document.createElement('button');b.textContent=i?th(i):'ปก';if(state()[i]?.done)b.className='completed';b.onclick=()=>{flush();index=i;$('#menu').close();render()};$('#pageList').append(b)}
- if(!index){$('#content').innerHTML=`<section class="cover"><span class="cover-kicker">แบบฝึกเกมมิฟิเคชันภาษาไทย ป.๑</span><div class="cover-book"><img src="${chapter.volume===1?'assets/volume-1.png?v=20260925-cover-2':'assets/volume-'+chapter.volume+'.webp'}" alt="ปกแบบฝึกทักษะภาษาไทย ป.๑ เล่ม ${th(chapter.volume)}"></div><h2>บทที่ ${th(unit)} · ${chapter.title}</h2><p class="cover-meta">เล่ม ${th(chapter.volume)} · ${th(chapter.pages.length)} ภารกิจ</p><div class="cover-steps"><span>🔊 ฟัง–เลือก</span><span>🧩 สร้างคำ</span><span>🚂 เรียงประโยค</span><span>❓ ตอบคำถาม</span><span>✍️ คัดลายมือ</span></div><p class="cover-help">ทุกหน้าปรับเป็นเกม ไม่เขียนทับแบบฝึกเดิม<br>หน้าคัดลายมือสร้างใหม่ให้ลากตามตัวอักษรต้นฉบับ</p>${done===chapter.pages.length?'<p class="reward">🏅</p><p class="complete-copy">ผ่านทุกภารกิจในบทนี้แล้ว เก่งมาก!</p>':''}</section><p class="note center-note">ทำถูกจึงได้รับดาวและปลดล็อกภารกิจถัดไป</p>`;return}
+ if(!index){$('#content').innerHTML=`<section class="cover kid-cover"><div class="cover-book"><img src="${chapter.volume===1?'assets/thai-workbook-volume-1-cover.webp?v=20260925-kidui-1':'assets/volume-'+chapter.volume+'.webp'}" alt="ปกแบบฝึกทักษะภาษาไทย ป.๑ เล่ม ${th(chapter.volume)}"></div><h2>บทที่ ${th(unit)} · ${chapter.title}</h2><p class="cover-meta">${th(chapter.pages.length)} ภารกิจ</p>${done===chapter.pages.length?'<p class="reward">🏅</p><p class="complete-copy">เก่งมาก! ผ่านครบแล้ว</p>':''}</section>`;return}
  if(isUnit1MatchPage()){renderUnit1Match();return}
  if(isUnit1BuildWordPage()){renderUnit1BuildWord();return}
  if(chapter.pages[index-1]?.activityType==='handwriting'){renderHandwritingPage();return}
