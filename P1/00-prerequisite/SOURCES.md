@@ -10,3 +10,5 @@ Standalone chapter before unit 1, using the existing /P1/00-prerequisite/ route.
 - Source artwork and workbook scans are separate assets; no reader data, songs, or existing chapter layout files are modified.
 
 Run: npm ci --prefix P1/tests --ignore-scripts && npm test --prefix P1/tests
+
+Consonants are displayed one card per page (44 cards), with taps for audio and horizontal swipes across the card for navigation. The preparation chapter now has 59 pages in total.
