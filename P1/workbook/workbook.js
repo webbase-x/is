@@ -10,6 +10,7 @@ function progress(){const rows=state(),done=chapter.pages.filter((_,i)=>rows[i+1
 function paint(){const svg=$('#ink');if(!svg)return;svg.replaceChildren();for(const s of [...row().ink,...(stroke?[stroke]:[])]){const p=document.createElementNS(ns,'path');p.setAttribute('d',s.points.map(([x,y],i)=>(i?'L':'M')+x+' '+y).join(' '));p.setAttribute('stroke',s.color);p.setAttribute('stroke-width','3');svg.append(p)}}
 function flush(){clearTimeout(saveTimer);const input=$('#answer');if(input){const r=row();if(r.text!==input.value){r.text=input.value;r.done=false;save(r);$('#next').disabled=true;progress()}}}
 function isUnit1MatchPage(){return unit===1&&index===1}
+function isUnit1BuildWordPage(){return unit===1&&index===2}
 const matchItems=[
  {word:'ตา',image:'../img/ตา.png',alt:'ภาพตาของช้าง'},
  {word:'หู',image:'../img/หู.png',alt:'ภาพหูของช้าง'},
@@ -44,11 +45,11 @@ function renderUnit1Match(){
          <line class="callout-line eye-line" x1="24" y1="16" x2="17" y2="36" marker-end="url(#calloutArrow)"></line>
          <line class="callout-line ear-line" x1="58" y1="17" x2="31" y2="41" marker-end="url(#calloutArrow)"></line>
          <line class="callout-line trunk-line" x1="18" y1="72" x2="14" y2="61" marker-end="url(#calloutArrow)"></line>
-         <line class="callout-line leg-line" x1="84" y1="84" x2="78" y2="77" marker-end="url(#calloutArrow)"></line>
+         <line class="callout-line leg-line" x1="84" y1="84" x2="76" y2="62" marker-end="url(#calloutArrow)"></line>
          <circle class="callout-dot" cx="17" cy="36" r="1.2"></circle>
          <circle class="callout-dot" cx="31" cy="41" r="1.2"></circle>
          <circle class="callout-dot" cx="14" cy="61" r="1.2"></circle>
-         <circle class="callout-dot" cx="78" cy="77" r="1.2"></circle>
+         <circle class="callout-dot" cx="76" cy="62" r="1.2"></circle>
        </svg>
        <div class="match-slot body-slot callout-bubble slot-eye" data-answer="ตา" role="button" tabindex="0" aria-label="กรอบคำชี้ไปยังตาของช้าง"><span class="match-placeholder">วางคำ</span></div>
        <div class="match-slot body-slot callout-bubble slot-ear" data-answer="หู" role="button" tabindex="0" aria-label="กรอบคำชี้ไปยังหูของช้าง"><span class="match-placeholder">วางคำ</span></div>
@@ -144,6 +145,131 @@ function renderUnit1Match(){
   }
  };
 }
+
+function renderUnit1BuildWord(){
+ loaded=true;stroke=null;
+ const r=row();
+ if(r.buildWordVersion!==1){r.buildWordPlacements={};r.done=false;r.confirmed=false;r.buildWordVersion=1;save(r)}
+ const placements=r.buildWordPlacements||{};
+ $('#next').disabled=!r.done;
+ const items=[
+  {key:'eye',word:'ตา',lead:'ต',tail:'า',image:'../img/ตา.png',alt:'ภาพตาของช้าง'},
+  {key:'ear',word:'หู',lead:'ห',tail:'ู',image:'../img/หู.png',alt:'ภาพหูของช้าง'},
+  {key:'trunk',word:'งวง',lead:'ง',tail:'วง',image:'../img/งวง.png',alt:'ภาพงวงของช้าง'},
+  {key:'leg',word:'ขา',lead:'ข',tail:'า',image:'../img/ขา.png',alt:'ภาพขาของช้าง'}
+ ];
+ const letters=['ง','ข','ต','ห'];
+ $('#content').innerHTML=`
+ <section class="build-word-activity" aria-labelledby="buildWordTitle">
+   <div class="match-heading">
+     <span class="match-kicker">กิจกรรมที่ ๒ · สร้างคำจากภาพ</span>
+     <h2 id="buildWordTitle">เลือกและลากพยัญชนะมาวางให้เป็นคำ</h2>
+     <p>ดูรูปจากข้อ ๑ แล้วลากพยัญชนะ <strong>ต ห ง ข</strong> ไปเติมหน้าคำให้ถูกต้อง</p>
+   </div>
+   <div class="letter-bank" id="letterBank" aria-label="พยัญชนะสำหรับลาก">
+     ${letters.map((ch,i)=>`<button type="button" class="letter-chip" data-char="${ch}" data-id="letter-${i}" aria-label="ลากพยัญชนะ ${ch}">${ch}</button>`).join('')}
+   </div>
+   <div class="build-word-grid">
+     ${items.map(item=>`
+       <article class="build-word-card" data-key="${item.key}" data-answer="${item.lead}">
+         <div class="build-word-picture"><img src="${item.image}" alt="${item.alt}" loading="lazy"></div>
+         <div class="build-word-form" aria-label="เติมพยัญชนะให้เป็นคำ ${item.word}">
+           <div class="letter-slot" data-key="${item.key}" role="button" tabindex="0" aria-label="ช่องวางพยัญชนะของคำ ${item.word}"><span>?</span></div>
+           <span class="word-tail">${item.tail}</span>
+         </div>
+       </article>`).join('')}
+   </div>
+   <div class="match-actions">
+     <button type="button" id="resetBuildWord">↻ เริ่มใหม่</button>
+     <button type="button" class="primary" id="checkBuildWord">✓ ตรวจคำตอบ</button>
+   </div>
+   <p class="match-status" id="buildWordStatus" role="status" aria-live="polite">${r.done?'⭐ ถูกต้องครบทั้ง ๔ คำ เก่งมาก!':'ลากพยัญชนะไปเติมให้ครบทั้ง ๔ คำ แล้วกดตรวจคำตอบ'}</p>
+ </section>
+ <p class="note center-note">ข้อ ๒ ใช้รูปและคำชุดเดียวกับข้อ ๑ เพื่อฝึกเชื่อมโยงภาพกับพยัญชนะต้น</p>`;
+
+ const bank=$('#letterBank'),chips=[...document.querySelectorAll('.letter-chip')],slots=[...document.querySelectorAll('.letter-slot')],cards=[...document.querySelectorAll('.build-word-card')];
+ function slotPlaceholder(slot){if(!slot.querySelector('.letter-chip'))slot.innerHTML='<span>?</span>'}
+ function collect(){const out={};for(const slot of slots){const chip=slot.querySelector('.letter-chip');if(chip)out[slot.dataset.key]=chip.dataset.char}return out}
+ function changed(){
+  const rr=row();rr.buildWordPlacements=collect();rr.done=false;rr.confirmed=false;save(rr);$('#next').disabled=true;progress();
+  cards.forEach(card=>card.classList.remove('correct','wrong'));$('#buildWordStatus').textContent='จัดพยัญชนะใหม่แล้ว กดตรวจคำตอบเมื่อพร้อม';
+ }
+ function place(chip,slot,markChanged=true){
+  if(!chip||!slot)return;
+  const oldSlot=chip.closest('.letter-slot'),occupant=slot.querySelector('.letter-chip');
+  if(occupant&&occupant!==chip)bank.append(occupant);
+  slot.replaceChildren(chip);
+  if(oldSlot&&oldSlot!==slot)slotPlaceholder(oldSlot);
+  if(markChanged)changed();
+ }
+ for(const slot of slots){
+  const saved=placements[slot.dataset.key],chip=chips.find(x=>x.dataset.char===saved);
+  if(chip)place(chip,slot,false);
+ }
+ slots.forEach(slotPlaceholder);
+ if(r.done)cards.forEach(card=>card.classList.add('correct'));
+
+ let selected=null,drag=null;
+ function selectChip(chip){
+  chips.forEach(x=>x.classList.remove('selected'));selected=chip||null;
+  if(selected){selected.classList.add('selected');$('#buildWordStatus').textContent='เลือก “'+selected.dataset.char+'” แล้ว แตะช่องที่ต้องการ หรือจะลากไปวางก็ได้'}
+ }
+ function finishDrag(e){
+  if(!drag||e.pointerId!==drag.id)return;
+  const target=document.elementFromPoint(e.clientX,e.clientY),slot=target?.closest?.('.letter-slot');
+  drag.ghost.remove();drag.chip.classList.remove('drag-source');
+  const moved=drag.moved,chip=drag.chip;drag=null;
+  if(slot)place(chip,slot,true);
+  if(moved){chip.dataset.skipClick='1';setTimeout(()=>delete chip.dataset.skipClick,0)}
+ }
+ for(const chip of chips){
+  chip.addEventListener('click',()=>{if(chip.dataset.skipClick)return;selectChip(selected===chip?null:chip)});
+  chip.addEventListener('pointerdown',e=>{
+   if(e.isPrimary===false||e.button>0)return;
+   e.preventDefault();selectChip(chip);
+   const ghost=chip.cloneNode(true);ghost.className='letter-drag-ghost';document.body.append(ghost);
+   ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';chip.classList.add('drag-source');
+   drag={id:e.pointerId,chip,ghost,startX:e.clientX,startY:e.clientY,moved:false};
+   try{chip.setPointerCapture(e.pointerId)}catch{}
+  });
+  chip.addEventListener('pointermove',e=>{
+   if(!drag||e.pointerId!==drag.id)return;
+   const dx=e.clientX-drag.startX,dy=e.clientY-drag.startY;if(Math.hypot(dx,dy)>7)drag.moved=true;
+   drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px';
+   const target=document.elementFromPoint(e.clientX,e.clientY),slot=target?.closest?.('.letter-slot');
+   slots.forEach(s=>s.classList.toggle('over',s===slot));
+  });
+  chip.addEventListener('pointerup',e=>{slots.forEach(s=>s.classList.remove('over'));finishDrag(e)});
+  chip.addEventListener('pointercancel',e=>{slots.forEach(s=>s.classList.remove('over'));if(drag&&e.pointerId===drag.id){drag.ghost.remove();drag.chip.classList.remove('drag-source');drag=null}});
+ }
+ for(const slot of slots){
+  const useSelected=()=>{if(selected){place(selected,slot,true);selectChip(null)}};
+  slot.addEventListener('click',e=>{if(!e.target.closest('.letter-chip'))useSelected()});
+  slot.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&selected){e.preventDefault();useSelected()}});
+ }
+ $('#resetBuildWord').onclick=()=>{
+  chips.forEach(chip=>bank.append(chip));slots.forEach(slot=>{slot.classList.remove('over');slotPlaceholder(slot)});
+  cards.forEach(card=>card.classList.remove('correct','wrong'));selectChip(null);
+  const rr=row();rr.buildWordPlacements={};rr.done=false;rr.confirmed=false;save(rr);$('#next').disabled=true;progress();
+  $('#buildWordStatus').textContent='เริ่มใหม่แล้ว ลากพยัญชนะไปเติมคำอีกครั้งนะ';
+ };
+ $('#checkBuildWord').onclick=()=>{
+  let correct=0;
+  for(const card of cards){
+   const chip=card.querySelector('.letter-slot .letter-chip'),ok=chip?.dataset.char===card.dataset.answer;
+   card.classList.toggle('correct',ok);card.classList.toggle('wrong',!ok);if(ok)correct++;
+  }
+  const rr=row();rr.buildWordPlacements=collect();
+  if(correct===cards.length){
+   rr.done=true;rr.confirmed=true;save(rr);progress();$('#next').disabled=false;
+   $('#buildWordStatus').textContent='⭐ ถูกต้องครบทั้ง ๔ คำ เก่งมาก! ไปกิจกรรมถัดไปได้เลย';
+   if(progress()===chapter.pages.length)P1Course.mark(unit,'workbook');
+  }else{
+   rr.done=false;rr.confirmed=false;save(rr);progress();$('#next').disabled=true;
+   $('#buildWordStatus').textContent='ถูก '+th(correct)+' จาก '+th(cards.length)+' คำ ลองดูกรอบสีแดงแล้วแก้ใหม่อีกครั้งนะ';
+  }
+ };
+}
 function render(){
  loaded=false;stroke=null;$('#status').textContent='';$('#title').textContent=`แบบฝึกบทที่ ${th(unit)} · ${chapter.title}`;document.title=$('#title').textContent;
  const done=progress();$('#counter').textContent=index?`${th(index)} / ${th(chapter.pages.length)}`:'หน้าปก';$('#prev').disabled=index===0;
@@ -151,6 +277,7 @@ function render(){
  $('#pageList').replaceChildren();for(let i=0;i<=chapter.pages.length;i++){const b=document.createElement('button');b.textContent=i?th(i):'ปก';if(state()[i]?.done)b.className='completed';b.onclick=()=>{flush();index=i;$('#menu').close();render()};$('#pageList').append(b)}
  if(!index){$('#content').innerHTML=`<section class="cover"><span class="cover-kicker">แบบฝึกทักษะภาษาไทย ป.๑</span><div class="cover-book"><img src="assets/volume-${chapter.volume}.webp" alt="ปกแบบฝึกทักษะภาษาไทย ป.๑ เล่ม ${th(chapter.volume)}"></div><h2>บทที่ ${th(unit)} · ${chapter.title}</h2><p class="cover-meta">เล่ม ${th(chapter.volume)} · ${th(chapter.pages.length)} กิจกรรม</p><div class="cover-steps"><span>✎ เขียน</span><span>◯ วงกลม</span><span>⌁ โยงเส้น</span><span>⌨ พิมพ์ตอบ</span></div><p class="cover-help">อ่านคำสั่งจากหน้าหนังสือ แล้วทำทีละกิจกรรม<br>ทำครบกดรับดาว ⭐ ก่อนเปิดหน้าถัดไป</p>${done===chapter.pages.length?'<p class="reward">🏅</p><p class="complete-copy">ทำแบบฝึกบทนี้ครบแล้ว เก่งมาก!</p>':''}</section><p class="note center-note">แบบฝึกทุกหน้ามาจากต้นฉบับ และบันทึกงานของเด็กไว้ในเครื่องนี้</p>`;return}
  if(isUnit1MatchPage()){renderUnit1Match();return}
+ if(isUnit1BuildWordPage()){renderUnit1BuildWord();return}
  const p=chapter.pages[index-1],r=row();
  $('#content').innerHTML=`<h2>ภารกิจที่ ${th(index)}</h2><p>อ่านคำสั่งบนหน้าแบบฝึก แล้วลงมือทำ</p><div class="tools"><button id="drawMode" aria-pressed="${draw}">${draw?'✎ กำลังเขียน':'↕ เลื่อนดูหน้า'}</button><label>สี <input id="color" type="color" value="${color}"></label><button id="undo">↶ ย้อนกลับ</button><button id="clear">ล้างเส้นหน้านี้</button></div><div class="sheet ${p.rotation===180?'rotated':''}"><img id="sourceImage" src="${p.image}" alt="แบบฝึกบท ${th(unit)} กิจกรรม ${th(index)}"><svg id="ink" aria-label="เขียนคำตอบบนแบบฝึก" class="${draw?'':'pan'}" data-swipe-ignore></svg></div><p class="note">แบบฝึกเล่ม ${th(chapter.volume)} · หน้า PDF ${th(p.pdfPage)} · แตะ “เลื่อนดูหน้า” เพื่อเลื่อนบนภาพ</p><label class="response">พิมพ์คำตอบหรือบันทึกกิจกรรมเพิ่มเติม<textarea id="answer" maxlength="6000" placeholder="ใช้แทนการเขียนบนภาพได้"></textarea></label><label class="confirm"><input type="checkbox" id="confirmed">ฉันทำตามคำสั่งครบหน้านี้แล้ว (กิจกรรมพูด อ่าน หรือทำในสมุด ให้ครูหรือผู้ปกครองช่วยยืนยัน)</label><button class="primary" id="submit">${r.done?'✓ ทำหน้านี้แล้ว':'ทำครบแล้ว · รับดาว ☆'}</button>`;
  $('#answer').value=r.text;$('#confirmed').checked=r.confirmed;
