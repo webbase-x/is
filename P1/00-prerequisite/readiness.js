@@ -42,7 +42,7 @@ function speak(items){
   const {text,el}=items[i],u=new SpeechSynthesisUtterance(text);
   u.lang='th-TH';u.rate=window.P1ReadingSpeed?.get()??.85;const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(voice)u.voice=voice;
   el?.classList.add('speaking');
-  u.onend=()=>{if(id!==readId)return;el?.classList.remove('speaking');timer=setTimeout(()=>next(i+1),220)};
+  u.onend=()=>{if(id!==readId)return;el?.classList.remove('speaking');timer=setTimeout(()=>next(i+1),window.P1ReadingSpeed?.gap(220)??220)};
   u.onerror=()=>{if(id!==readId)return;stop();$('#speechStatus').textContent='เสียงอ่านยังไม่พร้อม ลองแตะฟังอีกครั้ง'};
   speechSynthesis.speak(u);
  }

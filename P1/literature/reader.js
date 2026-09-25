@@ -12,7 +12,7 @@ function speak(items){
   if(id!==readId)return;if(n>=items.length){stop();return}
   const item=items[n],u=new SpeechSynthesisUtterance(item.text.replaceAll('สระ','สะระ'));
   u.lang='th-TH';u.rate=window.P1ReadingSpeed?.get()??Number($('#speed').value);const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(voice)u.voice=voice;
-  item.node?.classList.add('speaking');u.onend=()=>{if(id!==readId)return;item.node?.classList.remove('speaking');timer=setTimeout(()=>next(n+1),item.lineEnd?300:120)};
+  item.node?.classList.add('speaking');u.onend=()=>{if(id!==readId)return;item.node?.classList.remove('speaking');timer=setTimeout(()=>next(n+1),window.P1ReadingSpeed?.gap(item.lineEnd?300:120)??(item.lineEnd?300:120))};
   u.onerror=()=>{if(id!==readId)return;stop();$('#status').textContent='เสียงอ่านยังไม่พร้อม ลองแตะฟังอีกครั้ง'};speechSynthesis.speak(u);
  }next(0);
 }
