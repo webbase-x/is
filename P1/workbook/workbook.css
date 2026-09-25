@@ -971,7 +971,7 @@ main{
   text-align:center;
 }
 .kid-cover .cover-book{
-  width:min(100%,330px)!important;
+  width:min(100%,300px)!important;
   margin:0 auto 12px!important;
   padding:0!important;
   border:0!important;
@@ -1077,7 +1077,7 @@ main{
   .match-word-bank,.letter-bank,.tile-bank{gap:6px!important;padding:7px!important}
   .match-word,.letter-chip,.game-tile{min-height:42px!important;padding:5px 8px!important}
   .kid-cover{width:min(100%,360px)!important;padding:8px 8px 13px!important}
-  .kid-cover .cover-book{width:min(100%,290px)!important}
+  .kid-cover .cover-book{width:min(100%,270px)!important}
   .pager{min-height:66px;padding:7px 9px calc(7px + env(safe-area-inset-bottom))!important}
   .pager button{min-height:46px!important;padding:7px 8px!important;font-size:.9rem}
 }
