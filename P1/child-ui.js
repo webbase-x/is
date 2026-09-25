@@ -20,7 +20,7 @@
       open.innerHTML = '<span aria-hidden="true">▶</span><span>เปิดบทนี้</span>';
       content.appendChild(open);
 
-      if (index === 0 && !card.querySelector('.kid-prerequisite')) {
+      if (index === 0 && !document.querySelector('.readiness-card') && !card.querySelector('.kid-prerequisite')) {
         const pre = document.createElement('a');
         pre.className = 'kid-prerequisite';
         pre.href = '00-prerequisite/';
