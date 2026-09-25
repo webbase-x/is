@@ -5,7 +5,7 @@ const choices=[['0.5','ช้า'],['0.75','ช้าพอดี'],['1','ปก
 const legacy={'0.65':'0.5','0.85':'0.75','1.2':'1.5','1.45':'2'};
 let rate=.75;try{const stored=localStorage.getItem(key),saved=legacy[stored]||stored;if(choices.some(([v])=>v===saved))rate=Number(saved)}catch{}
 // Pace short Thai words as well as the synthesized voice itself.
-const pauses={'0.5':650,'0.75':350,'1':120,'1.5':45,'2':0};
+const pauses={'0.5':240,'0.75':100,'1':40,'1.5':15,'2':0};
 window.P1ReadingSpeed={get:()=>rate,gap:(base=120)=>Math.round(pauses[String(rate)]*base/120)};
 function media(){document.querySelectorAll('audio').forEach(a=>{a.defaultPlaybackRate=rate;a.playbackRate=rate;a.preservesPitch=true})}
 function init(){
