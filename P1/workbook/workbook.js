@@ -199,8 +199,8 @@ function renderUnit1BuildWord(){
        </svg>
 
        ${items.map(item=>`
-         <div class="build-callout build-${item.key}" data-key="${item.key}" data-word="${item.word}" aria-label="ประกอบคำ ${item.label}">
-           <div class="build-callout-label">${item.label}</div>
+         <div class="build-callout build-${item.key}" data-key="${item.key}" data-word="${item.word}" aria-label="กรอบสร้างคำที่ชี้ไปยังอวัยวะของช้าง">
+           <div class="build-callout-label">สร้างคำ</div>
            <div class="build-letter-slots">
              ${item.chars.map((ch,i)=>`<div class="letter-slot" data-slot="${item.key}-${i}" data-answer="${ch}" role="button" tabindex="0" aria-label="ช่องที่ ${i+1} ของคำ ${item.label}"><span>?</span></div>`).join('')}
            </div>
