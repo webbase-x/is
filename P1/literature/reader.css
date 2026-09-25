@@ -1,2 +1,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
 :root{font-family:Sarabun,Tahoma,sans-serif;color:#233d43;background:#f0f5f2;line-height:1.6}*{box-sizing:border-box}body{margin:0}button,select{font:inherit;color:inherit}button,a,select{touch-action:manipulation}button{cursor:pointer;border:1px solid #cfddd8;border-radius:14px;padding:8px 14px;background:#fff;min-height:44px}a{color:#19636b}button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid #b77200;outline-offset:3px}button:disabled{opacity:.4}header{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fffdf7;padding:10px max(12px,calc((100vw - 880px)/2));position:sticky;top:0;z-index:5;border-bottom:1px solid #d9e1d8}h1{font-size:clamp(.9rem,3vw,1.3rem);margin:0;text-align:center}main{max-width:880px;margin:auto;padding:10px 10px 100px}.reader-tools{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:.85rem}.reader-tools a{padding:10px}.reader-tools select{padding:8px;border:1px solid #cfddd8;border-radius:12px;background:white}#status{font-size:.85rem;min-height:1.4em;margin:6px;color:#7b4e13}.book-paper{position:relative;background:white;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px #244d4812;touch-action:pan-y}.source-page{display:block;width:100%;height:auto}.source-page text{font-kerning:none;font-variant-ligatures:none;pointer-events:none}.word{cursor:pointer;outline:none}.word rect{fill:transparent;stroke:transparent;stroke-width:1;rx:3}.word:hover rect,.word:focus-visible rect{fill:#fff1aeaa;stroke:#b87d0b}.word.speaking rect{fill:#ffe36bd9;stroke:#c58200}.word.speaking text{fill:#8a2c10!important;stroke:#8a2c10;stroke-width:.25;paint-order:stroke fill}.plain{padding:clamp(18px,4vw,40px);font-size:clamp(1.25rem,3vw,1.85rem);line-height:2.1}.plain p{margin:0 0 12px}.plain button{border:0;min-height:0;padding:1px 4px;margin:0 3px 2px 0;border-radius:6px;font-size:inherit;line-height:1.65}.plain .speaking{background:#ffe36b;color:#8a2c10;box-shadow:inset 0 0 0 2px #c58200}.plain-cover{width:100%;max-height:60vh;object-fit:contain}.pager{position:fixed;bottom:0;left:0;right:0;background:#fffdf7f5;border-top:1px solid #d9e1d8;display:flex;align-items:center;justify-content:center;gap:24px;padding:9px 12px max(9px,env(safe-area-inset-bottom));z-index:4}.pager button{font-size:1.8rem;min-width:62px;line-height:1.2}#source{text-align:center;font-size:.75rem;color:#637774}#counter{font-size:.85rem;text-align:center}dialog{border:0;border-radius:20px;width:min(92vw,520px);max-height:86dvh;padding:20px}dialog::backdrop{background:#1e37397d}.menu-head{display:flex;justify-content:space-between;align-items:center}.unit1-menu-list button,.unit1-menu-list a{display:block;width:100%;text-align:left;margin:6px 0;padding:10px}.unit1-menu-list button[aria-current=page]{background:#e5f2e9;border-color:#276b76}#pages{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}#pages button{font-size:.85rem}.reader-tools button[aria-pressed=true]{background:#276b76;color:white}
+
+
+/* 2026-09-25: child-first visual polish for every literature page */
+body{background:
+ radial-gradient(circle at 10% 0,#fff8d9 0 11rem,transparent 11.2rem),
+ linear-gradient(180deg,#eaf7f3 0,#f7fbf8 42%,#eef5f2 100%)}
+header{box-shadow:0 5px 20px #244d4810}
+header button{background:#f7fffb;border-color:#b9d8cc;font-weight:700}
+.reader-tools{margin:8px 0 10px;padding:10px 12px;background:#ffffffd9;border:1px solid #dceae4;border-radius:18px;box-shadow:0 8px 22px #244d480d}
+.reader-tools a{background:#e8f6f0;border-radius:12px;text-decoration:none;font-weight:700}
+.book-paper{border:1px solid #dce8e2;box-shadow:0 18px 50px #234a441a}
+.book-paper::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 1px #ffffff80;border-radius:18px}
+#read{background:#276b76;color:#fff;border-color:#276b76;min-width:52px}
+#viewMode[aria-pressed=true]{box-shadow:0 4px 14px #276b7630}
+#status{text-align:center;font-weight:600}
+.pager{box-shadow:0 -8px 24px #244d4810}
+.pager button{background:#f7fffb;border-color:#b7d5cb;font-weight:800}
+@media(max-width:560px){
+ main{padding:7px 6px 92px}
+ .reader-tools{gap:6px;padding:8px}
+ .reader-tools a,.reader-tools button,.reader-tools label{font-size:.78rem}
+ .book-paper{border-radius:12px}
+ .pager{gap:10px}
+ .pager button{min-width:54px}
+}

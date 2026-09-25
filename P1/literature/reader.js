@@ -2,6 +2,7 @@
 'use strict';
 const $=s=>document.querySelector(s),ns='http://www.w3.org/2000/svg',th=n=>String(n).replace(/\d/g,d=>'๐๑๒๓๔๕๖๗๘๙'[d]);
 let book,chapter,index=0,plain=false,readId=0,reading=false,timer,renderId=0,words=[];
+const LITERATURE_WORD_GAP_MS=0.1;
 const fonts=new Set();
 function el(tag,attrs={},text){const e=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;return e}
 function stop(){readId++;reading=false;clearTimeout(timer);window.speechSynthesis?.cancel();document.querySelectorAll('.speaking').forEach(e=>e.classList.remove('speaking'));$('#read').textContent='🔊';$('#read').setAttribute('aria-label','ฟังหน้านี้')}
@@ -12,7 +13,7 @@ function speak(items){
   if(id!==readId)return;if(n>=items.length){stop();return}
   const item=items[n],u=new SpeechSynthesisUtterance(item.text.replaceAll('สระ','สะระ'));
   u.lang='th-TH';u.rate=window.P1ReadingSpeed?.get()??Number($('#speed').value);const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(voice)u.voice=voice;
-  item.node?.classList.add('speaking');u.onend=()=>{if(id!==readId)return;item.node?.classList.remove('speaking');timer=setTimeout(()=>next(n+1),window.P1ReadingSpeed?.gap(item.lineEnd?300:120)??(item.lineEnd?300:120))};
+  item.node?.classList.add('speaking');u.onend=()=>{if(id!==readId)return;item.node?.classList.remove('speaking');timer=setTimeout(()=>next(n+1),LITERATURE_WORD_GAP_MS)};
   u.onerror=()=>{if(id!==readId)return;stop();$('#status').textContent='เสียงอ่านยังไม่พร้อม ลองแตะฟังอีกครั้ง'};speechSynthesis.speak(u);
  }next(0);
 }
