@@ -21,38 +21,32 @@ function renderUnit1Match(){
  const r=row(),placements=r.matchPlacements||{};
  $('#next').disabled=!r.done;
  $('#content').innerHTML=`
- <section class="match-activity" aria-labelledby="matchTitle">
+ <section class="match-activity elephant-body-match" aria-labelledby="matchTitle">
    <div class="match-heading">
-     <span class="match-kicker">กิจกรรมที่ ๑ · จับคู่คำกับภาพ</span>
-     <h2 id="matchTitle">ลากคำไปวางให้ตรงกับภาพ</h2>
-     <p>ดูภาพส่วนต่าง ๆ ของช้าง แล้วลากคำ <strong>ตา หู งวง ขา</strong> ไปวางในช่องให้ถูกต้อง</p>
-   </div>
-   <div class="match-elephant-hero">
-     <img src="../img/ใบบัว.png" alt="ช้างใบบัวจากบทเรียนภาษาพาที" loading="eager">
-     <div><strong>ใบบัว</strong><span>ภาพสีจากบทเรียนภาษาพาที</span></div>
+     <span class="match-kicker">กิจกรรมที่ ๑ · รู้จักอวัยวะของช้าง</span>
+     <h2 id="matchTitle">ลากคำไปวางตรงอวัยวะของช้าง</h2>
+     <p>ลากคำ <strong>ตา หู งวง ขา</strong> ไปวางบนตำแหน่งที่ถูกต้องของช้างใบบัว</p>
    </div>
    <div class="match-word-bank" id="matchWordBank" aria-label="คำสำหรับลาก">
      ${matchItems.map(x=>`<button type="button" class="match-word" data-word="${x.word}" aria-label="ลากคำ ${x.word}">${x.word}</button>`).join('')}
    </div>
-   <div class="match-grid" id="matchGrid">
-     ${matchItems.map(x=>`
-       <article class="match-card">
-         <div class="match-picture"><img src="${x.image}" alt="${x.alt}" loading="lazy"></div>
-         <div class="match-slot" data-answer="${x.word}" role="button" tabindex="0" aria-label="ช่องวางคำสำหรับ ${x.alt}">
-           <span class="match-placeholder">ลากคำมาวางตรงนี้</span>
-         </div>
-       </article>`).join('')}
+   <div class="elephant-body-board" aria-label="ภาพช้างสำหรับจับคู่อวัยวะ">
+     <img src="../img/ใบบัว.png" alt="ช้างใบบัวจากบทเรียนภาษาพาที" class="elephant-body-image" loading="eager">
+     <div class="match-slot body-slot slot-eye" data-answer="ตา" role="button" tabindex="0" aria-label="ตำแหน่งตาของช้าง"><span class="match-placeholder">วางคำ</span></div>
+     <div class="match-slot body-slot slot-ear" data-answer="หู" role="button" tabindex="0" aria-label="ตำแหน่งหูของช้าง"><span class="match-placeholder">วางคำ</span></div>
+     <div class="match-slot body-slot slot-trunk" data-answer="งวง" role="button" tabindex="0" aria-label="ตำแหน่งงวงของช้าง"><span class="match-placeholder">วางคำ</span></div>
+     <div class="match-slot body-slot slot-leg" data-answer="ขา" role="button" tabindex="0" aria-label="ตำแหน่งขาของช้าง"><span class="match-placeholder">วางคำ</span></div>
    </div>
    <div class="match-actions">
      <button type="button" id="resetMatch">↻ เริ่มใหม่</button>
      <button type="button" class="primary" id="checkMatch">✓ ตรวจคำตอบ</button>
    </div>
-   <p class="match-status" id="matchStatus" role="status" aria-live="polite">${r.done?'⭐ ทำถูกครบแล้ว เก่งมาก!':'ลากคำให้ครบทั้ง ๔ ช่อง แล้วกดตรวจคำตอบ'}</p>
+   <p class="match-status" id="matchStatus" role="status" aria-live="polite">${r.done?'⭐ ทำถูกครบแล้ว เก่งมาก!':'ลากคำไปวางบนตัวช้างให้ครบทั้ง ๔ จุด แล้วกดตรวจคำตอบ'}</p>
  </section>
- <p class="note center-note">กิจกรรมนี้ปรับจากแบบฝึกต้นฉบับให้เหมาะกับการใช้งานบนโทรศัพท์ โดยใช้ภาพสีจากภาษาพาที</p>`;
+ <p class="note center-note">ใช้ภาพช้างสีจากภาษาพาที และรองรับการลากด้วยนิ้วบน iPhone/iPad</p>`;
 
  const bank=$('#matchWordBank'),slots=[...document.querySelectorAll('.match-slot')],wordButtons=[...document.querySelectorAll('.match-word')];
- function placeholder(slot){if(!slot.querySelector('.match-word'))slot.innerHTML='<span class="match-placeholder">ลากคำมาวางตรงนี้</span>'}
+ function placeholder(slot){if(!slot.querySelector('.match-word'))slot.innerHTML='<span class="match-placeholder">วางคำ</span>'}
  function collect(){const out={};for(const slot of slots){const w=slot.querySelector('.match-word');if(w)out[slot.dataset.answer]=w.dataset.word}return out}
  function changed(){
   const rr=row();rr.matchPlacements=collect();rr.done=false;rr.confirmed=false;save(rr);$('#next').disabled=true;progress();
