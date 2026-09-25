@@ -31,7 +31,7 @@ lit=fitz.open(source/'วรรณคดีลำนำ.pdf')
 for c in json.loads((root/'literature/book.json').read_text())['chapters']:
  images=[]
  for pg in c['pages'][:2]:
-  pix=lit[pg['pdfPage']-1].get_pixmap(matrix=fitz.Matrix(.85,.85),clip=fitz.Rect(34,49 if c['id']==7 else 52,560,788 if c['id']==7 else 791),alpha=False)
+  pix=lit[pg['pdfPage']-1].get_pixmap(matrix=fitz.Matrix(1,1),clip=fitz.Rect(35,50 if c['id']==7 else 53,559,787 if c['id']==7 else 790),alpha=False)
   images.append(Image.frombytes('RGB',[pix.width,pix.height],pix.samples))
  spread=Image.new('RGB',(sum(i.width for i in images),max(i.height for i in images)), 'white');x=0
  for i in images:spread.paste(i,(x,0));x+=i.width

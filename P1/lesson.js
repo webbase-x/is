@@ -32,6 +32,7 @@ function setBookMainButton(icon,label,disabled=false){const btn=$("#readPageKara
 function stopSpeech(){stopSongKaraoke(false);clearNativeHighlights();karaokeRun++;speechSeq++;window.speechSynthesis?.cancel?.();if(finishSpeech)finishSpeech();clearSpeechVisual();stage.querySelectorAll(".line-reading").forEach(el=>el.classList.remove("line-reading"));const song=currentSongConfig();setBookMainButton(song?"▶":"🔊",song?"เล่นเพลง":"อ่านหน้านี้",false)}
 function keepReadingVisible(target){if(![1,3].includes(step)||!target?.getBoundingClientRect)return;const r=target.getBoundingClientRect();if(r.top<165||r.bottom>window.innerHeight-32)target.scrollIntoView({block:"center",behavior:"smooth"})}
 const NORMAL_SPEECH_RATE=0.90;
+document.addEventListener('p1-reading-speed-change',()=>{if(!songAudio||songAudio.paused)stopSpeech()});
 function ttsSafeText(text){
  let out=String(text??"");
  out=out.replace(/ใบบัว/g,"ใบ\u200Bบัว");
@@ -39,7 +40,7 @@ function ttsSafeText(text){
  if(out==="ดอ"||out==="ดอ,")return "ดอร์";
  return out
 }
-function speak(text,target=null){if(!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}const token=++speechSeq;if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();if(finishSpeech)finishSpeech();clearSpeechVisual();if(target){keepReadingVisible(target);speakingEl=target;target.classList.add("speaking-now")}return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(ttsSafeText(text));u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;let settled=false;const done=()=>{if(settled)return;settled=true;if(token===speechSeq)clearSpeechVisual();if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;u.onend=done;u.onerror=done;window.speechSynthesis.speak(u)})}
+function speak(text,target=null){if(!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}const token=++speechSeq;if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();if(finishSpeech)finishSpeech();clearSpeechVisual();if(target){keepReadingVisible(target);speakingEl=target;target.classList.add("speaking-now")}return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(ttsSafeText(text));u.lang="th-TH";u.rate=window.P1ReadingSpeed?.get()??NORMAL_SPEECH_RATE;u.pitch=1.04;let settled=false;const done=()=>{if(settled)return;settled=true;if(token===speechSeq)clearSpeechVisual();if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;u.onend=done;u.onerror=done;window.speechSynthesis.speak(u)})}
 function speakQueued(items){
  const list=(items||[]).filter(x=>x&&x.text);
  if(!list.length||!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}
@@ -57,7 +58,7 @@ function speakQueued(items){
    const item=list[index];
    activate(item);
    const u=new SpeechSynthesisUtterance(ttsSafeText(item.text));
-   u.lang="th-TH";u.rate=NORMAL_SPEECH_RATE;u.pitch=1.04;
+   u.lang="th-TH";u.rate=window.P1ReadingSpeed?.get()??NORMAL_SPEECH_RATE;u.pitch=1.04;
    u.onend=()=>play(index+1);
    u.onerror=()=>play(index+1);
    window.speechSynthesis.speak(u)
