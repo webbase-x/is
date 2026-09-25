@@ -18,6 +18,20 @@ function appendWordGlyphs(group,w,needed){
 }
 function el(tag,attrs={},text){const e=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;return e}
 function stop(){readId++;reading=false;clearTimeout(timer);window.speechSynthesis?.cancel();document.querySelectorAll('.speaking').forEach(e=>e.classList.remove('speaking'));$('#read').textContent='🔊';$('#read').setAttribute('aria-label','ฟังหน้านี้')}
+function keepNodeVisible(node){
+ if(!node?.getBoundingClientRect)return;
+ requestAnimationFrame(()=>{
+  if(!reading||!node.classList?.contains('speaking'))return;
+  const rect=node.getBoundingClientRect(),header=document.querySelector('header'),pager=document.querySelector('.pager');
+  const topSafe=(header?.getBoundingClientRect().bottom||0)+14;
+  const bottomSafe=window.innerHeight-(pager?.getBoundingClientRect().height||0)-16;
+  if(rect.top>=topSafe&&rect.bottom<=bottomSafe)return;
+  const visibleHeight=Math.max(1,bottomSafe-topSafe);
+  const desiredTop=topSafe+Math.min(visibleHeight*.28,150);
+  const targetTop=Math.max(0,window.scrollY+rect.top-desiredTop);
+  window.scrollTo({top:targetTop,behavior:'smooth'});
+ });
+}
 function speak(items){
  stop();$('#status').textContent='';if(!window.speechSynthesis||!window.SpeechSynthesisUtterance){$('#status').textContent='เครื่องนี้ยังไม่มีเสียงอ่านภาษาไทย';return}
  const id=readId;reading=true;$('#read').textContent='■';$('#read').setAttribute('aria-label','หยุดอ่าน');
@@ -25,7 +39,9 @@ function speak(items){
   if(id!==readId)return;if(n>=items.length){stop();return}
   const item=items[n],u=new SpeechSynthesisUtterance(item.text.replaceAll('สระ','สะระ'));
   u.lang='th-TH';u.rate=window.P1ReadingSpeed?.get()??Number($('#speed').value);const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(voice)u.voice=voice;
-  item.node?.classList.add('speaking');u.onend=()=>{if(id!==readId)return;item.node?.classList.remove('speaking');timer=setTimeout(()=>next(n+1),LITERATURE_WORD_GAP_MS)};
+  item.node?.classList.add('speaking');keepNodeVisible(item.node);
+  u.onstart=()=>{if(id!==readId)return;keepNodeVisible(item.node)};
+  u.onend=()=>{if(id!==readId)return;item.node?.classList.remove('speaking');timer=setTimeout(()=>next(n+1),LITERATURE_WORD_GAP_MS)};
   u.onerror=()=>{if(id!==readId)return;stop();$('#status').textContent='เสียงอ่านยังไม่พร้อม ลองแตะฟังอีกครั้ง'};speechSynthesis.speak(u);
  }next(0);
 }
