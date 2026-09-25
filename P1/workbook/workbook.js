@@ -402,6 +402,38 @@ function renderGamifiedPage(){
  $('#next').disabled=!row().done;
  if(mode==='listen')renderListenChoice(p);else if(mode==='quiz')renderQuizGame(p);else renderSequenceGame(p,mode)
 }
+function handwritingLines(){
+ if(HANDWRITING_TEXT[unit])return HANDWRITING_TEXT[unit];
+ const lines=(unitData().readingPages||[]).flatMap(x=>x.lines||[]).map(s=>String(s).trim()).filter(s=>s&&[...s].length<=34);
+ const pick=lines.slice(0,4);return pick.length?pick:[chapter.title,'อ่าน เขียน ภาษาไทย','ตั้งใจ ฝึก ทุกวัน']
+}
+function renderHandwritingPage(){
+ const r=row(),lines=handwritingLines();
+ if(r.handwritingVersion!==1){r.handwritingVersion=1;r.handwritingStrokes=Array.from({length:lines.length},()=>[]);r.handwritingScores=[];r.done=false;r.confirmed=false;save(r)}
+ if(!Array.isArray(r.handwritingStrokes)||r.handwritingStrokes.length!==lines.length)r.handwritingStrokes=Array.from({length:lines.length},(_,i)=>r.handwritingStrokes?.[i]||[]);
+ $('#next').disabled=!r.done;
+ $('#content').innerHTML=`<section class="handwriting-game">${gameHeader('✍️','คัดลายมือตัวบรรจงเต็มบรรทัด','ลากนิ้วหรือปากกาตามตัวอักษรจางให้ครบทุกบรรทัด')}<div class="trace-list">${lines.map((line,i)=>{const size=Math.max(28,Math.min(56,760/Math.max(8,[...line].length)));return `<div class="trace-card"><div class="trace-toolbar"><button class="trace-speak" data-i="${i}">🔊 ฟัง</button><span id="traceScore${i}">${r.handwritingScores?.[i]!=null?'คะแนน '+th(r.handwritingScores[i]):'คัดตามแบบ'}</span></div><svg class="trace-pad" data-i="${i}" viewBox="0 0 900 140" aria-label="คัดลายมือ ${esc(line)}"><text class="trace-guide" x="28" y="92" style="font-size:${size}px">${esc(line)}</text><g class="trace-ink"></g></svg></div>`}).join('')}</div><div class="game-actions"><button id="undoTrace">↶ ย้อนเส้น</button><button id="resetTrace">↻ เริ่มใหม่</button><button class="primary" id="checkTrace">✓ ตรวจลายมือ</button></div><p class="game-status" id="gameStatus">${r.done?'⭐ ผ่านแบบคัดลายมือแล้ว':'คัดให้ครบ แล้วกดตรวจลายมือ'}</p><details class="source-preview"><summary>ดูข้อความต้นฉบับที่ใช้คัด</summary><p class="source-text-copy">${lines.map(esc).join('<br>')}</p></details></section>`;
+ const pads=[...document.querySelectorAll('.trace-pad')];let active=null,lastLine=0;
+ function paintPad(i){const g=pads[i].querySelector('.trace-ink');g.replaceChildren();for(const stroke of r.handwritingStrokes[i]||[]){const path=document.createElementNS(ns,'path');path.setAttribute('d',stroke.map(([x,y],j)=>(j?'L':'M')+x+' '+y).join(' '));path.setAttribute('class','trace-stroke');g.append(path)}}
+ pads.forEach((svg,i)=>{
+  paintPad(i);
+  const point=e=>{const b=svg.getBoundingClientRect();return [Math.max(0,Math.min(900,(e.clientX-b.left)*900/b.width)),Math.max(0,Math.min(140,(e.clientY-b.top)*140/b.height))]};
+  svg.onpointerdown=e=>{if(e.isPrimary===false||e.button>0)return;e.preventDefault();lastLine=i;active={id:e.pointerId,i,pts:[point(e)]};try{svg.setPointerCapture(e.pointerId)}catch{}};
+  svg.onpointermove=e=>{if(!active||active.id!==e.pointerId||active.i!==i)return;if(active.pts.length<2500)active.pts.push(point(e));const temp=[...(r.handwritingStrokes[i]||[]),active.pts],g=svg.querySelector('.trace-ink');g.replaceChildren();for(const st of temp){const path=document.createElementNS(ns,'path');path.setAttribute('d',st.map(([x,y],j)=>(j?'L':'M')+x+' '+y).join(' '));path.setAttribute('class','trace-stroke');g.append(path)}};
+  const end=e=>{if(!active||active.id!==e.pointerId||active.i!==i)return;active.pts.push(point(e));r.handwritingStrokes[i]=r.handwritingStrokes[i]||[];r.handwritingStrokes[i].push(active.pts);active=null;r.done=false;r.confirmed=false;save(r);$('#next').disabled=true;paintPad(i)};
+  svg.onpointerup=end;svg.onpointercancel=()=>{active=null;paintPad(i)}
+ });
+ document.querySelectorAll('.trace-speak').forEach(b=>b.onclick=()=>speakThai(lines[Number(b.dataset.i)]));
+ function lineScore(i){
+  const strokes=r.handwritingStrokes[i]||[];let len=0,minX=900,maxX=0;
+  for(const st of strokes)for(let j=1;j<st.length;j++){const [x1,y1]=st[j-1],[x2,y2]=st[j];len+=Math.hypot(x2-x1,y2-y1);minX=Math.min(minX,x2);maxX=Math.max(maxX,x2)}
+  const chars=Math.max(1,[...lines[i].replace(/\s/g,'')].length),lengthPart=Math.min(1,len/(chars*42))*72,coveragePart=Math.min(1,Math.max(0,maxX-minX)/Math.min(820,chars*65))*28;
+  return Math.round(lengthPart+coveragePart)
+ }
+ $('#undoTrace').onclick=()=>{const arr=r.handwritingStrokes[lastLine]||[];arr.pop();r.done=false;save(r);$('#next').disabled=true;paintPad(lastLine);$('#gameStatus').textContent='ย้อนเส้นล่าสุดแล้ว'};
+ $('#resetTrace').onclick=()=>{r.handwritingStrokes=Array.from({length:lines.length},()=>[]);r.handwritingScores=[];r.done=false;r.confirmed=false;save(r);pads.forEach((_,i)=>paintPad(i));$('#next').disabled=true;$('#gameStatus').textContent='เริ่มใหม่แล้ว คัดตามตัวอักษรจางอีกครั้ง'};
+ $('#checkTrace').onclick=()=>{const scores=lines.map((_,i)=>lineScore(i)),avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);r.handwritingScores=scores;r.handwritingScore=avg;scores.forEach((s,i)=>$('#traceScore'+i).textContent='คะแนน '+th(s));if(scores.every(s=>s>=50)&&avg>=60){r.done=true;r.confirmed=true;save(r);progress();$('#next').disabled=false;$('#gameStatus').textContent='⭐ ผ่านการคัดลายมือ '+th(avg)+' คะแนน รับ ๑๐ XP';if(progress()===chapter.pages.length)P1Course.mark(unit,'workbook')}else{r.done=false;save(r);$('#next').disabled=true;$('#gameStatus').textContent='ได้ '+th(avg)+' คะแนน ลองคัดตามแนวตัวอักษรให้ครบและต่อเนื่องขึ้นอีกนิดนะ'}}
+}
 function render(){
  loaded=false;stroke=null;$('#status').textContent='';$('#title').textContent=`แบบฝึกบทที่ ${th(unit)} · ${chapter.title}`;document.title=$('#title').textContent;
  const done=progress();$('#counter').textContent=index?`${th(index)} / ${th(chapter.pages.length)}`:'หน้าปก';$('#prev').disabled=index===0;
