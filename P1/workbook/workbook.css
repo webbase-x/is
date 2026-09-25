@@ -684,3 +684,400 @@ header>a,header>button{display:grid;place-items:center;min-width:46px;background
 .game-status.result-correct{background:#e5f7ea;border:2px solid #49a86a;color:#17643a}
 .game-status.result-wrong{background:#fff0f0;border:2px solid #d86767;color:#8e2f2f}
 .choice-btn:disabled{cursor:default;opacity:1}
+
+
+/* Grade 1 simplified workbook UI — 2026-09-25 */
+:root{
+  --kid-ink:#183f3d;
+  --kid-green:#2f7f70;
+  --kid-green-soft:#eaf6f1;
+  --kid-line:#d8e7e1;
+  --kid-bg:#f5faf7;
+  --kid-yellow:#fff4bf;
+  --kid-red:#b94b4b;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--kid-bg)}
+body{
+  margin:0;
+  background:var(--kid-bg);
+  color:var(--kid-ink);
+  font-family:"Sarabun","Thonburi","Sukhumvit Set",Tahoma,sans-serif;
+  line-height:1.45;
+}
+header{
+  position:sticky;
+  top:0;
+  z-index:50;
+  min-height:64px;
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr) 52px;
+  align-items:center;
+  gap:8px;
+  padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));
+  background:#fffffff5;
+  border-bottom:1px solid var(--kid-line);
+  box-shadow:0 3px 14px #173f3710;
+  backdrop-filter:blur(12px);
+}
+header h1{
+  margin:0;
+  padding:0 4px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  text-align:center;
+  color:var(--kid-ink);
+  font-size:clamp(1.05rem,3.7vw,1.45rem);
+  font-weight:800;
+}
+header>a,header>button{
+  min-width:48px!important;
+  width:48px;
+  height:48px;
+  padding:0!important;
+  border:1px solid #b9d7cd!important;
+  border-radius:16px!important;
+  background:#f7fcfa!important;
+  color:var(--kid-green)!important;
+  box-shadow:none!important;
+  font-size:1.35rem;
+}
+main{
+  width:min(100%,980px);
+  margin:0 auto;
+  padding:10px 12px calc(92px + env(safe-area-inset-bottom));
+}
+#progress{
+  width:max-content;
+  min-width:76px;
+  margin:2px auto 10px;
+  padding:6px 12px;
+  border-radius:999px;
+  background:var(--kid-green-soft);
+  color:var(--kid-green);
+  font-size:.86rem;
+  font-weight:800;
+  text-align:center;
+}
+#owner,.center-note{display:none!important}
+#status{
+  max-width:760px;
+  margin:10px auto;
+  text-align:center;
+  font-weight:800;
+}
+#content{min-height:55vh}
+
+/* one calm card per activity */
+.game-card,.handwriting-game,.match-activity,.build-word-activity{
+  width:min(100%,880px);
+  margin:0 auto;
+  padding:clamp(14px,3vw,24px)!important;
+  border:1px solid var(--kid-line)!important;
+  border-radius:22px!important;
+  background:#fff!important;
+  box-shadow:0 8px 24px #173f370d!important;
+}
+.game-top{
+  margin:0 0 8px!important;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.game-level,.game-xp,.match-kicker{
+  padding:5px 9px!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:var(--kid-green-soft)!important;
+  color:var(--kid-green)!important;
+  font-size:.78rem!important;
+  font-weight:800!important;
+}
+.game-xp{background:var(--kid-yellow)!important;color:#725c11!important}
+.game-card>h2,.handwriting-game>h2,.match-heading h2{
+  margin:8px 0 4px!important;
+  padding:0!important;
+  background:none!important;
+  color:var(--kid-ink)!important;
+  font-size:clamp(1.25rem,4.6vw,1.8rem)!important;
+  line-height:1.3!important;
+  text-align:center!important;
+}
+.game-card>p,.handwriting-game>p,.match-heading p{
+  max-width:650px;
+  margin:4px auto 14px!important;
+  color:#58706b!important;
+  font-size:clamp(.92rem,3vw,1.02rem)!important;
+  text-align:center;
+}
+.source-preview{display:none!important}
+
+/* answer buttons: large and clean */
+.choice-grid{
+  width:min(100%,680px);
+  margin:12px auto!important;
+  gap:10px!important;
+}
+.choice-btn{
+  min-height:58px!important;
+  padding:10px 12px!important;
+  border:2px solid var(--kid-line)!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  color:var(--kid-ink)!important;
+  box-shadow:none!important;
+  font-size:clamp(1rem,3.8vw,1.18rem)!important;
+  font-weight:800!important;
+}
+.choice-btn:active{transform:scale(.98)}
+.choice-btn.correct{border-color:#55aa76!important;background:#e8f8ed!important}
+.choice-btn.wrong{border-color:#d87575!important;background:#fff0f0!important}
+.listen-button{
+  min-width:150px!important;
+  min-height:50px!important;
+  margin:12px auto!important;
+  padding:9px 16px!important;
+  border:0!important;
+  border-radius:16px!important;
+  background:var(--kid-green)!important;
+  color:#fff!important;
+  box-shadow:none!important;
+  font-size:1rem!important;
+}
+.game-status,.match-status{
+  width:min(100%,680px);
+  min-height:0!important;
+  margin:12px auto 0!important;
+  padding:8px 10px;
+  border-radius:13px;
+  background:#f7faf9;
+  color:var(--kid-green)!important;
+  text-align:center;
+  font-size:.93rem!important;
+  font-weight:800!important;
+}
+.game-status.result-correct{background:#e8f8ed!important;border:1px solid #8bc9a1!important;color:#247245!important}
+.game-status.result-wrong{background:#fff0f0!important;border:1px solid #e4a1a1!important;color:#983f3f!important}
+
+/* drag-and-drop areas */
+.match-word-bank,.letter-bank,.tile-bank{
+  position:static!important;
+  width:min(100%,760px);
+  margin:10px auto 14px!important;
+  padding:9px!important;
+  display:flex!important;
+  justify-content:center!important;
+  gap:8px!important;
+  border:0!important;
+  border-radius:16px!important;
+  background:var(--kid-green-soft)!important;
+  backdrop-filter:none!important;
+}
+.match-word,.letter-chip,.game-tile{
+  min-height:46px!important;
+  padding:6px 11px!important;
+  border:2px solid #8fc4b4!important;
+  border-radius:13px!important;
+  background:#fff!important;
+  color:var(--kid-ink)!important;
+  box-shadow:none!important;
+  font-weight:800!important;
+}
+.match-word.selected,.letter-chip.selected,.game-tile.selected{
+  outline:3px solid #f3ca52!important;
+  outline-offset:2px!important;
+}
+.sequence-slots{
+  margin:12px auto!important;
+  gap:7px!important;
+}
+.seq-slot,.letter-slot,.match-slot{
+  border-color:#91bfaf!important;
+  background:#fbfefd!important;
+  box-shadow:none!important;
+}
+.game-actions,.match-actions{
+  margin:14px 0 4px!important;
+  gap:8px!important;
+}
+.game-actions button,.match-actions button{
+  min-height:46px;
+  padding:8px 14px;
+  border-radius:14px;
+  box-shadow:none;
+  font-weight:800;
+}
+.game-actions .primary,.match-actions .primary{
+  background:var(--kid-green)!important;
+  color:#fff!important;
+  border-color:var(--kid-green)!important;
+}
+
+/* elephant activities: let the picture be the focus */
+.elephant-body-board,.build-elephant-board{
+  width:min(100%,650px)!important;
+  margin:8px auto!important;
+  padding:6px!important;
+  border:0!important;
+  border-radius:18px!important;
+  background:#fbfefd!important;
+  box-shadow:none!important;
+}
+.elephant-crop{border-radius:15px!important}
+.callout-line{stroke:#4d7d72!important}
+.callout-dot{fill:#2f7f70!important}
+.elephant-crop .callout-bubble,.build-callout{
+  box-shadow:0 3px 10px #173f3717!important;
+}
+
+/* handwriting: one clear trace area at a time */
+.trace-list{gap:10px!important;margin:12px auto!important}
+.trace-card{
+  padding:8px!important;
+  border:1px solid var(--kid-line)!important;
+  border-radius:16px!important;
+  box-shadow:none!important;
+}
+.trace-toolbar{
+  margin:0 2px 5px!important;
+  font-size:.78rem!important;
+}
+.trace-speak{
+  min-height:38px;
+  padding:5px 9px!important;
+  border-radius:11px!important;
+}
+.trace-pad{
+  min-height:108px!important;
+  border:1px solid #c7ddd5!important;
+  border-radius:12px!important;
+  background:#fff!important;
+}
+.trace-guide{fill:#f2f7f5!important;stroke:#8dbdae!important;stroke-width:1.15!important}
+.trace-stroke{stroke:#cf4560!important;stroke-width:5!important}
+
+/* clean cover */
+.kid-cover{
+  width:min(100%,430px)!important;
+  margin:2px auto 0!important;
+  padding:10px 10px 16px!important;
+  border:0!important;
+  border-radius:22px!important;
+  background:#fff!important;
+  box-shadow:0 10px 28px #173f3712!important;
+  text-align:center;
+}
+.kid-cover .cover-book{
+  width:min(100%,330px)!important;
+  margin:0 auto 12px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.kid-cover .cover-book img{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:none!important;
+  object-fit:contain;
+  border-radius:14px;
+  box-shadow:0 8px 20px #173f3720;
+}
+.kid-cover h2{
+  margin:8px 0 2px!important;
+  color:var(--kid-ink)!important;
+  font-size:clamp(1.15rem,4.4vw,1.5rem)!important;
+}
+.kid-cover .cover-meta{
+  margin:0!important;
+  color:#6a7d78!important;
+  font-size:.9rem!important;
+}
+.kid-cover .reward{margin:8px 0 0!important;font-size:2rem!important}
+.kid-cover .complete-copy{margin:2px 0!important;color:var(--kid-green)!important;font-weight:800}
+
+/* bottom navigation */
+.pager{
+  position:fixed!important;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:45;
+  min-height:70px;
+  padding:8px max(12px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+  background:#fffffff4!important;
+  border-top:1px solid var(--kid-line)!important;
+  box-shadow:0 -4px 18px #173f3710!important;
+  backdrop-filter:blur(12px);
+}
+.pager button{
+  min-height:48px!important;
+  padding:8px 12px!important;
+  border:1px solid #bad6cc!important;
+  border-radius:15px!important;
+  background:#fff!important;
+  color:var(--kid-ink)!important;
+  box-shadow:none!important;
+  font-weight:800!important;
+}
+.pager #next:not(:disabled){background:var(--kid-green)!important;color:#fff!important;border-color:var(--kid-green)!important}
+.pager button:disabled{opacity:.38!important}
+#counter{
+  min-width:62px;
+  color:var(--kid-ink);
+  font-size:.95rem;
+  font-weight:900;
+  text-align:center;
+}
+
+/* compact menu */
+#menu{
+  width:min(92vw,420px);
+  max-height:80vh;
+  padding:14px;
+  border:0;
+  border-radius:22px;
+  box-shadow:0 18px 50px #173f3740;
+}
+#menu::backdrop{background:#173f3740}
+#closeMenu{float:right;min-height:42px;border-radius:12px}
+.unit1-menu-list{clear:both;display:grid;gap:8px;padding-top:8px}
+.unit1-menu-list>a,.unit1-menu-list button{
+  min-height:46px;
+  border-radius:13px!important;
+}
+#pageList{display:grid!important;grid-template-columns:repeat(5,1fr);gap:6px!important}
+#pageList button{min-width:0!important;padding:6px!important}
+#pageList button.completed{background:#e8f8ed!important;border-color:#78b990!important}
+
+/* mobile */
+@media(max-width:640px){
+  header{
+    min-height:60px;
+    grid-template-columns:48px minmax(0,1fr) 48px;
+    padding:6px 9px;
+  }
+  header>a,header>button{width:46px;min-width:46px!important;height:46px;border-radius:15px!important}
+  header h1{font-size:1.05rem}
+  main{padding:8px 8px calc(88px + env(safe-area-inset-bottom))}
+  #progress{margin-bottom:8px;padding:5px 10px;font-size:.8rem}
+  .game-card,.handwriting-game,.match-activity,.build-word-activity{padding:12px 9px!important;border-radius:18px!important}
+  .choice-grid{gap:7px!important}
+  .choice-btn{min-height:52px!important;padding:7px 8px!important;border-radius:14px!important}
+  .game-top{margin-bottom:5px!important}
+  .game-card>h2,.handwriting-game>h2,.match-heading h2{margin-top:6px!important}
+  .match-word-bank,.letter-bank,.tile-bank{gap:6px!important;padding:7px!important}
+  .match-word,.letter-chip,.game-tile{min-height:42px!important;padding:5px 8px!important}
+  .kid-cover{width:min(100%,360px)!important;padding:8px 8px 13px!important}
+  .kid-cover .cover-book{width:min(100%,290px)!important}
+  .pager{min-height:66px;padding:7px 9px calc(7px + env(safe-area-inset-bottom))!important}
+  .pager button{min-height:46px!important;padding:7px 8px!important;font-size:.9rem}
+}
