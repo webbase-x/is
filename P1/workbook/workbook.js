@@ -149,55 +149,85 @@ function renderUnit1Match(){
 function renderUnit1BuildWord(){
  loaded=true;stroke=null;
  const r=row();
- if(r.buildWordVersion!==1){r.buildWordPlacements={};r.done=false;r.confirmed=false;r.buildWordVersion=1;save(r)}
+ if(r.buildWordVersion!==2){r.buildWordPlacements={};r.done=false;r.confirmed=false;r.buildWordVersion=2;save(r)}
  const placements=r.buildWordPlacements||{};
  $('#next').disabled=!r.done;
+
  const items=[
-  {key:'eye',word:'ตา',lead:'ต',tail:'า',image:'../img/ตา.png',alt:'ภาพตาของช้าง'},
-  {key:'ear',word:'หู',lead:'ห',tail:'ู',image:'../img/หู.png',alt:'ภาพหูของช้าง'},
-  {key:'trunk',word:'งวง',lead:'ง',tail:'วง',image:'../img/งวง.png',alt:'ภาพงวงของช้าง'},
-  {key:'leg',word:'ขา',lead:'ข',tail:'า',image:'../img/ขา.png',alt:'ภาพขาของช้าง'}
+  {key:'eye',word:'ตา',chars:['ต','า'],label:'ตา'},
+  {key:'ear',word:'หู',chars:['ห','ู'],label:'หู'},
+  {key:'trunk',word:'งวง',chars:['ง','ว','ง'],label:'งวง'},
+  {key:'leg',word:'ขา',chars:['ข','า'],label:'ขา'}
  ];
- const letters=['ง','ข','ต','ห'];
+ const tiles=[
+  {id:'t1',char:'ต'},{id:'aa1',char:'า'},{id:'h1',char:'ห'},{id:'uu1',char:'ู'},
+  {id:'ng1',char:'ง'},{id:'w1',char:'ว'},{id:'ng2',char:'ง'},{id:'kh1',char:'ข'},{id:'aa2',char:'า'},
+  {id:'d-k',char:'ก',distractor:true},{id:'d-n',char:'น',distractor:true},{id:'d-m',char:'ม',distractor:true},
+  {id:'d-i',char:'ิ',distractor:true},{id:'d-e',char:'เ',distractor:true},{id:'d-o',char:'โ',distractor:true}
+ ];
+ const showChar=ch=>ch==='ู'?'◌ู':ch==='ิ'?'◌ิ':ch;
+
  $('#content').innerHTML=`
- <section class="build-word-activity" aria-labelledby="buildWordTitle">
+ <section class="build-word-activity elephant-word-builder" aria-labelledby="buildWordTitle">
    <div class="match-heading">
-     <span class="match-kicker">กิจกรรมที่ ๒ · สร้างคำจากภาพ</span>
-     <h2 id="buildWordTitle">เลือกและลากพยัญชนะมาวางให้เป็นคำ</h2>
-     <p>ดูรูปจากข้อ ๑ แล้วลากพยัญชนะ <strong>ต ห ง ข</strong> ไปเติมหน้าคำให้ถูกต้อง</p>
+     <span class="match-kicker">กิจกรรมที่ ๒ · สร้างคำจากอวัยวะช้าง</span>
+     <h2 id="buildWordTitle">ลากพยัญชนะและสระมาวางให้เป็นคำ</h2>
+     <p>ใช้ช้างตัวเดิมจากข้อ ๑ แล้วลากตัวอักษรไปประกอบคำ <strong>ตา หู งวง ขา</strong> ให้ถูกต้อง ระวังตัวลวงนะ</p>
    </div>
-   <div class="letter-bank" id="letterBank" aria-label="พยัญชนะสำหรับลาก">
-     ${letters.map((ch,i)=>`<button type="button" class="letter-chip" data-char="${ch}" data-id="letter-${i}" aria-label="ลากพยัญชนะ ${ch}">${ch}</button>`).join('')}
+
+   <div class="letter-bank full-letter-bank" id="letterBank" aria-label="พยัญชนะ สระ และตัวลวงสำหรับลาก">
+     ${tiles.map(tile=>`<button type="button" class="letter-chip${tile.distractor?' distractor-tile':''}" data-char="${tile.char}" data-id="${tile.id}" aria-label="ลากตัวอักษร ${showChar(tile.char)}">${showChar(tile.char)}</button>`).join('')}
    </div>
-   <div class="build-word-grid">
-     ${items.map(item=>`
-       <article class="build-word-card" data-key="${item.key}" data-answer="${item.lead}" data-tail="${item.tail}">
-         <div class="build-word-picture"><img src="${item.image}" alt="${item.alt}" loading="lazy"></div>
-         <div class="build-word-form" aria-label="เติมพยัญชนะให้เป็นคำ ${item.word}">
-           <div class="letter-slot" data-key="${item.key}" role="button" tabindex="0" aria-label="ช่องวางพยัญชนะของคำ ${item.word}"><span>?</span></div>
-           <span class="word-tail">${item.tail==='ู'?'◌ู':item.tail}</span>
-         </div>
-         <div class="built-word-preview" aria-live="polite">＿${item.tail==='ู'?'◌ู':item.tail}</div>
-       </article>`).join('')}
+
+   <div class="elephant-body-board build-elephant-board" aria-label="ช้างใบบัวสำหรับสร้างคำ">
+     <div class="elephant-crop build-elephant-crop">
+       <img src="../img/ใบบัว.png" alt="ช้างใบบัวสีจากบทเรียนภาษาพาที" class="elephant-body-image" loading="eager">
+       <svg class="callout-lines build-callout-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+         <defs>
+           <marker id="buildCalloutArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="strokeWidth">
+             <path d="M0,0 L7,3.5 L0,7 Z"></path>
+           </marker>
+         </defs>
+         <line class="callout-line" x1="24" y1="17" x2="17" y2="36" marker-end="url(#buildCalloutArrow)"></line>
+         <line class="callout-line" x1="62" y1="17" x2="31" y2="41" marker-end="url(#buildCalloutArrow)"></line>
+         <line class="callout-line" x1="19" y1="76" x2="14" y2="61" marker-end="url(#buildCalloutArrow)"></line>
+         <line class="callout-line" x1="83" y1="84" x2="76" y2="62" marker-end="url(#buildCalloutArrow)"></line>
+         <circle class="callout-dot" cx="17" cy="36" r="1.2"></circle>
+         <circle class="callout-dot" cx="31" cy="41" r="1.2"></circle>
+         <circle class="callout-dot" cx="14" cy="61" r="1.2"></circle>
+         <circle class="callout-dot" cx="76" cy="62" r="1.2"></circle>
+       </svg>
+
+       ${items.map(item=>`
+         <div class="build-callout build-${item.key}" data-key="${item.key}" data-word="${item.word}" aria-label="กรอบสร้างคำที่ชี้ไปยังอวัยวะของช้าง">
+           <div class="build-callout-label">สร้างคำ</div>
+           <div class="build-letter-slots">
+             ${item.chars.map((ch,i)=>`<div class="letter-slot" data-slot="${item.key}-${i}" data-answer="${ch}" role="button" tabindex="0" aria-label="ช่องที่ ${i+1} ของคำ ${item.label}"><span>?</span></div>`).join('')}
+           </div>
+           <div class="build-answer-preview" aria-live="polite">${item.chars.map(()=> '＿').join('')}</div>
+         </div>`).join('')}
+     </div>
    </div>
+
    <div class="match-actions">
      <button type="button" id="resetBuildWord">↻ เริ่มใหม่</button>
      <button type="button" class="primary" id="checkBuildWord">✓ ตรวจคำตอบ</button>
    </div>
-   <p class="match-status" id="buildWordStatus" role="status" aria-live="polite">${r.done?'⭐ ถูกต้องครบทั้ง ๔ คำ เก่งมาก!':'ลากพยัญชนะไปเติมให้ครบทั้ง ๔ คำ แล้วกดตรวจคำตอบ'}</p>
+   <p class="match-status" id="buildWordStatus" role="status" aria-live="polite">${r.done?'⭐ ถูกต้องครบทั้ง ๔ คำ เก่งมาก!':'ลากตัวอักษรลงช่องให้ครบทั้ง ๔ คำ แล้วกดตรวจคำตอบ'}</p>
  </section>
- <p class="note center-note">ข้อ ๒ ใช้รูปและคำชุดเดียวกับข้อ ๑ เพื่อฝึกเชื่อมโยงภาพกับพยัญชนะต้น</p>`;
+ <p class="note center-note">มีตัวลวงปะปนอยู่ ให้สังเกตรูปและเลือกเฉพาะพยัญชนะกับสระที่ใช้สร้างคำนั้น</p>`;
 
- const bank=$('#letterBank'),chips=[...document.querySelectorAll('.letter-chip')],slots=[...document.querySelectorAll('.letter-slot')],cards=[...document.querySelectorAll('.build-word-card')];
+ const bank=$('#letterBank'),chips=[...document.querySelectorAll('.letter-chip')],slots=[...document.querySelectorAll('.letter-slot')],panels=[...document.querySelectorAll('.build-callout')];
  function slotPlaceholder(slot){if(!slot.querySelector('.letter-chip'))slot.innerHTML='<span>?</span>'}
- function collect(){const out={};for(const slot of slots){const chip=slot.querySelector('.letter-chip');if(chip)out[slot.dataset.key]=chip.dataset.char}return out}
- function updatePreview(card){
-  const chip=card.querySelector('.letter-slot .letter-chip'),preview=card.querySelector('.built-word-preview'),tail=card.dataset.tail;
-  preview.textContent=chip?chip.dataset.char+tail:'＿'+(tail==='ู'?'◌ู':tail);
+ function collect(){const out={};for(const slot of slots){const chip=slot.querySelector('.letter-chip');if(chip)out[slot.dataset.slot]=chip.dataset.id}return out}
+ function updatePreview(panel){
+  const chars=[...panel.querySelectorAll('.letter-slot')].map(slot=>slot.querySelector('.letter-chip')?.dataset.char||'＿');
+  panel.querySelector('.build-answer-preview').textContent=chars.join('');
  }
  function changed(){
   const rr=row();rr.buildWordPlacements=collect();rr.done=false;rr.confirmed=false;save(rr);$('#next').disabled=true;progress();
-  cards.forEach(card=>{card.classList.remove('correct','wrong');updatePreview(card)});$('#buildWordStatus').textContent='จัดพยัญชนะใหม่แล้ว กดตรวจคำตอบเมื่อพร้อม';
+  panels.forEach(panel=>{panel.classList.remove('correct','wrong');updatePreview(panel)});
+  $('#buildWordStatus').textContent='จัดตัวอักษรใหม่แล้ว กดตรวจคำตอบเมื่อพร้อม';
  }
  function place(chip,slot,markChanged=true){
   if(!chip||!slot)return;
@@ -208,16 +238,16 @@ function renderUnit1BuildWord(){
   if(markChanged)changed();
  }
  for(const slot of slots){
-  const saved=placements[slot.dataset.key],chip=chips.find(x=>x.dataset.char===saved);
+  const savedId=placements[slot.dataset.slot],chip=chips.find(x=>x.dataset.id===savedId);
   if(chip)place(chip,slot,false);
  }
- slots.forEach(slotPlaceholder);cards.forEach(updatePreview);
- if(r.done)cards.forEach(card=>card.classList.add('correct'));
+ slots.forEach(slotPlaceholder);panels.forEach(updatePreview);
+ if(r.done)panels.forEach(panel=>panel.classList.add('correct'));
 
  let selected=null,drag=null;
  function selectChip(chip){
   chips.forEach(x=>x.classList.remove('selected'));selected=chip||null;
-  if(selected){selected.classList.add('selected');$('#buildWordStatus').textContent='เลือก “'+selected.dataset.char+'” แล้ว แตะช่องที่ต้องการ หรือจะลากไปวางก็ได้'}
+  if(selected){selected.classList.add('selected');$('#buildWordStatus').textContent='เลือก “'+showChar(selected.dataset.char)+'” แล้ว แตะช่องที่ต้องการ หรือจะลากไปวางก็ได้'}
  }
  function finishDrag(e){
   if(!drag||e.pointerId!==drag.id)return;
@@ -254,27 +284,30 @@ function renderUnit1BuildWord(){
  }
  $('#resetBuildWord').onclick=()=>{
   chips.forEach(chip=>bank.append(chip));slots.forEach(slot=>{slot.classList.remove('over');slotPlaceholder(slot)});
-  cards.forEach(card=>{card.classList.remove('correct','wrong');updatePreview(card)});selectChip(null);
+  panels.forEach(panel=>{panel.classList.remove('correct','wrong');updatePreview(panel)});selectChip(null);
   const rr=row();rr.buildWordPlacements={};rr.done=false;rr.confirmed=false;save(rr);$('#next').disabled=true;progress();
-  $('#buildWordStatus').textContent='เริ่มใหม่แล้ว ลากพยัญชนะไปเติมคำอีกครั้งนะ';
+  $('#buildWordStatus').textContent='เริ่มใหม่แล้ว เลือกพยัญชนะและสระมาสร้างคำอีกครั้งนะ';
  };
  $('#checkBuildWord').onclick=()=>{
   let correct=0;
-  for(const card of cards){
-   const chip=card.querySelector('.letter-slot .letter-chip'),ok=chip?.dataset.char===card.dataset.answer;
-   card.classList.toggle('correct',ok);card.classList.toggle('wrong',!ok);if(ok)correct++;
+  for(const panel of panels){
+   const panelSlots=[...panel.querySelectorAll('.letter-slot')];
+   const ok=panelSlots.every(slot=>slot.querySelector('.letter-chip')?.dataset.char===slot.dataset.answer);
+   panel.classList.toggle('correct',ok);panel.classList.toggle('wrong',!ok);if(ok)correct++;
+   updatePreview(panel);
   }
   const rr=row();rr.buildWordPlacements=collect();
-  if(correct===cards.length){
+  if(correct===panels.length){
    rr.done=true;rr.confirmed=true;save(rr);progress();$('#next').disabled=false;
    $('#buildWordStatus').textContent='⭐ ถูกต้องครบทั้ง ๔ คำ เก่งมาก! ไปกิจกรรมถัดไปได้เลย';
    if(progress()===chapter.pages.length)P1Course.mark(unit,'workbook');
   }else{
    rr.done=false;rr.confirmed=false;save(rr);progress();$('#next').disabled=true;
-   $('#buildWordStatus').textContent='ถูก '+th(correct)+' จาก '+th(cards.length)+' คำ ลองดูกรอบสีแดงแล้วแก้ใหม่อีกครั้งนะ';
+   $('#buildWordStatus').textContent='ถูก '+th(correct)+' จาก '+th(panels.length)+' คำ ลองดูกรอบสีแดงและตัวลวง แล้วแก้ใหม่อีกครั้งนะ';
   }
  };
 }
+
 function render(){
  loaded=false;stroke=null;$('#status').textContent='';$('#title').textContent=`แบบฝึกบทที่ ${th(unit)} · ${chapter.title}`;document.title=$('#title').textContent;
  const done=progress();$('#counter').textContent=index?`${th(index)} / ${th(chapter.pages.length)}`:'หน้าปก';$('#prev').disabled=index===0;
