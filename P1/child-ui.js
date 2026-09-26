@@ -7,6 +7,15 @@
   function enhanceHome() {
     if (!onHome()) return;
     document.body.classList.add('kid-home');
+
+    // Keep the old “start from page one” behavior without loading lesson-only JS.
+    document.querySelectorAll('a[href*="lesson.html?unit="]').forEach(a => {
+      try {
+        const url = new URL(a.getAttribute('href'), location.href);
+        url.searchParams.set('start','1');
+        a.setAttribute('href', url.pathname.split('/').pop() + '?' + url.searchParams.toString());
+      } catch {}
+    });
     document.querySelectorAll('.unit-card').forEach((card, index) => {
       if (card.querySelector('.kid-open-button')) return;
       const cover = card.querySelector('.unit-cover[href]');
