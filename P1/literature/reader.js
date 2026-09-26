@@ -42,7 +42,7 @@ function speak(items){
   item.node?.classList.add('speaking');keepNodeVisible(item.node);
   u.onstart=()=>{if(id!==readId)return;keepNodeVisible(item.node)};
   u.onend=()=>{if(id!==readId)return;item.node?.classList.remove('speaking');timer=setTimeout(()=>next(n+1),LITERATURE_WORD_GAP_MS)};
-  u.onerror=()=>{if(id!==readId)return;stop();$('#status').textContent='เสียงอ่านยังไม่พร้อม ลองแตะฟังอีกครั้ง'};speechSynthesis.speak(u);
+  u.onerror=()=>{if(id!==readId)return;stop();$('#status').textContent='เสียงอ่านยังไม่พร้อม ลองแตะฟังอีกครั้ง'};(window.P1Speech?.speak(u)||speechSynthesis.speak(u));
  }next(0);
 }
 function readable(w){return /[ก-๛A-Za-z0-9]/.test(w.text)}
