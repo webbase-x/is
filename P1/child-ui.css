@@ -244,3 +244,10 @@ body.kid-home .kid-open-button:focus-visible{
   body.kid-home .units-section{margin-top:24px}
   body.kid-home .section-heading h2{font-size:32px}
 }
+
+
+/* First-load rendering optimization: keep below-the-fold cards cheap until scrolled near. */
+body.kid-home .unit-card{
+  content-visibility:auto;
+  contain-intrinsic-size:420px;
+}
