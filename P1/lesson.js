@@ -40,7 +40,7 @@ function ttsSafeText(text){
  if(out==="ดอ"||out==="ดอ,")return "ดอร์";
  return out
 }
-function speak(text,target=null){if(!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}clearTimeout(speechTimer);const token=++speechSeq;if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();if(finishSpeech)finishSpeech();clearSpeechVisual();if(target){keepReadingVisible(target);speakingEl=target;target.classList.add("speaking-now")}return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(ttsSafeText(text));u.lang="th-TH";u.rate=window.P1ReadingSpeed?.get()??NORMAL_SPEECH_RATE;u.pitch=1.04;let settled=false;const done=()=>{if(settled)return;settled=true;if(token===speechSeq)clearSpeechVisual();if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;u.onend=done;u.onerror=done;window.speechSynthesis.speak(u)})}
+function speak(text,target=null){if(!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}clearTimeout(speechTimer);const token=++speechSeq;if(window.speechSynthesis.speaking||window.speechSynthesis.pending)window.speechSynthesis.cancel();if(finishSpeech)finishSpeech();clearSpeechVisual();if(target){keepReadingVisible(target);speakingEl=target;target.classList.add("speaking-now")}return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(ttsSafeText(text));u.lang="th-TH";u.rate=window.P1ReadingSpeed?.get()??NORMAL_SPEECH_RATE;u.pitch=1.04;let settled=false;const done=()=>{if(settled)return;settled=true;if(token===speechSeq)clearSpeechVisual();if(finishSpeech===done)finishSpeech=null;resolve()};finishSpeech=done;u.onend=done;u.onerror=done;(window.P1Speech?.speak(u)||window.speechSynthesis.speak(u))})}
 function speakQueued(items){
  const list=(items||[]).filter(x=>x&&x.text);
  if(!list.length||!soundOn||!("speechSynthesis" in window)){clearSpeechVisual();return Promise.resolve()}
@@ -61,7 +61,7 @@ function speakQueued(items){
    u.lang="th-TH";u.rate=window.P1ReadingSpeed?.get()??NORMAL_SPEECH_RATE;u.pitch=1.04;
    u.onend=()=>{if(settled||token!==speechSeq)return;speechTimer=setTimeout(()=>play(index+1),window.P1ReadingSpeed?.gap()??120)};
    u.onerror=()=>play(index+1);
-   window.speechSynthesis.speak(u)
+   (window.P1Speech?.speak(u)||window.speechSynthesis.speak(u))
   };
   finishSpeech=done;
   play(0)
