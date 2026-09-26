@@ -9,8 +9,8 @@ async function loadClassroom(openAfter=false){
   const lazy=document.getElementById('p1ClassroomLazy');
   if(lazy){lazy.disabled=true;lazy.setAttribute('aria-busy','true')}
   try{
-    lazy?.remove();
     await import(MODULE);
+    lazy?.remove();
     if(openAfter)document.getElementById('p1ClassroomMenu')?.click();
   }catch(error){
     console.error('P1 classroom lazy load:',error);
@@ -33,7 +33,7 @@ function installLauncher(){
   b.textContent='🏫';
   b.setAttribute('aria-label','ห้องเรียน / เครื่องมือครู');
   b.title='ห้องเรียน / เครื่องมือครู';
-  b.addEventListener('click',()=>loadClassroom(true),{once:true});
+  b.addEventListener('click',()=>loadClassroom(true));
   const home=top.querySelector('.home-link-icon');
   if(home)top.insertBefore(b,home);else top.append(b);
 }
