@@ -7,6 +7,42 @@ let rate=.75;try{const stored=localStorage.getItem(key),saved=legacy[stored]||st
 // Pace short Thai words as well as the synthesized voice itself.
 const pauses={'0.5':240,'0.75':100,'1':40,'1.5':15,'2':0};
 window.P1ReadingSpeed={get:()=>rate,gap:(base=120)=>Math.round(pauses[String(rate)]*base/120)};
+
+let thaiVoice=null;
+function refreshThaiVoice(){
+ try{
+  const voices=window.speechSynthesis?.getVoices?.()||[];
+  thaiVoice=voices.find(v=>String(v.lang||'').toLowerCase().startsWith('th'))||voices.find(v=>/thai/i.test(v.name||''))||null;
+ }catch{thaiVoice=null}
+ return thaiVoice;
+}
+refreshThaiVoice();
+try{window.speechSynthesis?.addEventListener?.('voiceschanged',refreshThaiVoice)}catch{}
+document.addEventListener('pointerdown',()=>{try{window.speechSynthesis?.resume?.();refreshThaiVoice()}catch{}},{capture:true});
+
+window.P1Speech={
+ prepare(utterance){
+  if(!utterance)return utterance;
+  utterance.lang='th-TH';
+  const voice=refreshThaiVoice();
+  if(voice)utterance.voice=voice;
+  return utterance;
+ },
+ speak(utterance){
+  const synth=window.speechSynthesis;
+  if(!synth||!utterance)return false;
+  try{
+   synth.resume?.();
+   this.prepare(utterance);
+   synth.speak(utterance);
+   return true;
+  }catch(error){
+   console.warn('P1 speech unavailable',error);
+   return false;
+  }
+ },
+ voice:()=>refreshThaiVoice()
+};
 function media(){document.querySelectorAll('audio').forEach(a=>{a.defaultPlaybackRate=rate;a.playbackRate=rate;a.preservesPitch=true})}
 function init(){
  let select=document.querySelector('#speed');
