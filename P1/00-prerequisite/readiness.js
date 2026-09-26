@@ -44,7 +44,7 @@ function speak(items){
   el?.classList.add('speaking');
   u.onend=()=>{if(id!==readId)return;el?.classList.remove('speaking');timer=setTimeout(()=>next(i+1),window.P1ReadingSpeed?.gap(220)??220)};
   u.onerror=()=>{if(id!==readId)return;stop();$('#speechStatus').textContent='เสียงอ่านยังไม่พร้อม ลองแตะฟังอีกครั้ง'};
-  speechSynthesis.speak(u);
+  (window.P1Speech?.speak(u)||speechSynthesis.speak(u));
  }
  next(0);
 }
