@@ -217,8 +217,8 @@ body.kid-home .section-heading h2{
   margin-top:8px;
   font-size:clamp(32px,4vw,46px);
 }
-body.kid-home .unit-card .literature-pair,
 body.kid-home .unit-card .workbook-pair{display:none!important}
+body.kid-home .unit-card .literature-pair{display:block!important}
 body.kid-home .unit-card h3{margin-top:4px}
 body.kid-home .kid-open-button{
   min-height:62px;
@@ -262,4 +262,62 @@ body.kid-home .p1-classroom-lazy{
 body.kid-home .p1-classroom-lazy[aria-busy="true"]{opacity:.55;pointer-events:none}
 @media(max-width:720px){
   body.kid-home .p1-classroom-lazy{width:46px;height:46px;min-width:46px;min-height:46px;font-size:22px}
+}
+
+
+/* Show the paired วรรณคดีลำนำ cover in the home table of contents. */
+body.kid-home .unit-card>.literature-pair{
+  width:100%;
+  margin:12px 0 0;
+  padding:0;
+}
+body.kid-home .unit-card>.literature-pair::before{
+  content:"วรรณคดีลำนำคู่บท";
+  display:block;
+  margin:0 0 7px;
+  color:#6a4f92;
+  font-size:.82rem;
+  font-weight:800;
+  text-align:center;
+}
+body.kid-home .unit-card>.literature-pair a{
+  display:grid!important;
+  grid-template-columns:88px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  min-height:98px;
+  padding:9px 10px;
+  border:1px solid #ded6ee;
+  border-radius:16px;
+  background:#f8f5ff;
+  color:#4b3b72;
+  text-decoration:none;
+  font-size:.88rem;
+  font-weight:800;
+  line-height:1.35;
+  box-shadow:0 5px 14px rgba(69,51,108,.07);
+}
+body.kid-home .unit-card>.literature-pair img{
+  display:block;
+  width:88px;
+  height:76px;
+  object-fit:contain;
+  border-radius:10px;
+  background:#fff;
+}
+body.kid-home .unit-card>.literature-pair a:active{transform:scale(.99)}
+body.kid-home .unit-card>.literature-pair a:focus-visible{
+  outline:4px solid #624ed2;
+  outline-offset:3px;
+}
+@media(max-width:720px){
+  body.kid-home .unit-card>.literature-pair a{
+    grid-template-columns:100px minmax(0,1fr);
+    min-height:108px;
+    font-size:.95rem;
+  }
+  body.kid-home .unit-card>.literature-pair img{
+    width:100px;
+    height:86px;
+  }
 }
