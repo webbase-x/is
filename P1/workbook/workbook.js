@@ -393,7 +393,7 @@ function speakInstruction(box){
   u.onstart=()=>{if(id===instructionReadId)keepInstructionVisible(node)};
   u.onend=()=>{if(id!==instructionReadId)return;node.classList.remove('speaking');instructionTimer=setTimeout(()=>next(i+1),1)};
   u.onerror=()=>{if(id!==instructionReadId)return;stopInstructionReading();$('#status').textContent='เสียงอ่านยังไม่พร้อม ลองแตะอ่านคำสั่งอีกครั้ง'};
-  speechSynthesis.speak(u)
+  (window.P1Speech?.speak(u)||speechSynthesis.speak(u))
  }
  next(0)
 }
@@ -401,7 +401,7 @@ document.addEventListener('click',e=>{const button=e.target.closest?.('.instruct
 function speakThai(textValue){
  if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return;
  stopInstructionReading();const u=new SpeechSynthesisUtterance(String(textValue).replaceAll('สระ','สะระ'));u.lang='th-TH';u.rate=window.P1ReadingSpeed?.get()??.82;
- const v=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(v)u.voice=v;speechSynthesis.speak(u)
+ const v=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('th'));if(v)u.voice=v;(window.P1Speech?.speak(u)||speechSynthesis.speak(u))
 }
 function gameAttempt(ok,score=100,message=''){
  const r=row();r.gameAttempts=(r.gameAttempts||0)+1;r.gameScore=ok?Math.max(r.gameScore||0,score):(r.gameScore||0);
