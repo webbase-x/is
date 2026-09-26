@@ -244,3 +244,22 @@ body.kid-home .kid-open-button:focus-visible{
   body.kid-home .units-section{margin-top:24px}
   body.kid-home .section-heading h2{font-size:32px}
 }
+
+
+/* First-load rendering optimization: keep below-the-fold cards cheap until scrolled near. */
+body.kid-home .unit-card{
+  content-visibility:auto;
+  contain-intrinsic-size:420px;
+}
+
+
+body.kid-home .p1-classroom-lazy{
+  width:48px;height:48px;min-width:48px;min-height:48px;
+  padding:0;display:grid;place-items:center;
+  border-radius:16px;font-size:24px;line-height:1;
+  border:1px solid #dcebe5;background:#fff;color:#176b56;
+}
+body.kid-home .p1-classroom-lazy[aria-busy="true"]{opacity:.55;pointer-events:none}
+@media(max-width:720px){
+  body.kid-home .p1-classroom-lazy{width:46px;height:46px;min-width:46px;min-height:46px;font-size:22px}
+}
