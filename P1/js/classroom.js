@@ -8,19 +8,33 @@ const style=document.createElement('link');style.rel='stylesheet';style.href=new
 function status(text){let el=$('.p1c-status',panel);if(el)el.textContent=text}
 function open(title,html){panel.innerHTML=`<div class="p1c-head"><h2>${esc(title)}</h2><button data-close aria-label="ปิด">✕</button></div><div class="p1c-status" role="status"></div>${html}`;$('[data-close]',panel).onclick=()=>panel.close();if(!panel.open)panel.showModal()}
 function button(label,fn,where){const b=document.createElement('button');b.type='button';b.textContent=label;b.className='p1c-button';b.onclick=()=>Promise.resolve(fn()).catch(e=>{status(e.message);console.error('P1 classroom:',e.message)});where.append(b);return b}
+function iconButton(icon,label,fn,where){const b=button(icon,fn,where);b.classList.add('p1c-icon-button');b.setAttribute('aria-label',label);b.title=label;return b}
 async function rpc(action,args={}){const {data,error}=await db.rpc('p1_classroom',{action,args});if(error)throw error;if(data?.error)throw Error(data.error);return data}
 async function anonymous(){const {data,error}=await db.auth.getSession();if(error)throw error;if(data.session)return data.session;const r=await db.auth.signInAnonymously();if(r.error)throw r.error;return r.data.session}
 async function refresh(){const r=await db.auth.getSession();session=r.data.session;profile=session?await rpc('profile'):{role:'guest'};installMenu();if(profile.role!=='teacher'){drawMode='';svg?.remove();toolbar.hidden=true}document.dispatchEvent(new CustomEvent('p1-classroom-ready',{detail:{role:profile.role}}))}
 async function google(){if(session?.user?.is_anonymous){await rpc('leave');await db.auth.signOut()}const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:new URL('index.html',base).href}});if(error)throw error}
 async function signout(){drawMode='';svg?.remove();toolbar.hidden=true;await db.auth.signOut();profile={role:'guest'};room=null;pupils=[];chosen=null;sessionStorage.removeItem('p1-class-selection');panel.close();installMenu();document.dispatchEvent(new Event('p1-trace-context'))}
 function home(){open('ห้องเรียนของฉัน',`<p>${profile.role==='teacher'?'บัญชีครู':profile.role==='student'?`สวัสดี ${esc(profile.pupil.name)} · ${esc(profile.room.name)}`:'เข้าห้องด้วยลิงก์หรือ QR ที่ครูให้ หรือเลือกเข้าสู่ระบบสำหรับครู'}</p><div class="p1c-actions"></div>`);const a=$('.p1c-actions',panel);
- if(profile.role==='teacher'){button('ห้องเรียนและรายชื่อ',manage,a);button('เครื่องมือเขียน',()=>{panel.close();enableDrawing()},a);button('สุ่มชื่อ / เลขที่',randomPanel,a);button('ผลกิจกรรม',results,a);button('คะแนนฝึกเขียน',traceResults,a);button('เลือกห้องและผู้ตอบ',selectMode,a)}
+ if(profile.role==='teacher'){a.classList.add('p1c-icon-actions');iconButton('👥','ห้องเรียนและรายชื่อ',manage,a);iconButton('✏️','เครื่องมือเขียน',()=>{panel.close();enableDrawing()},a);iconButton('🎲','สุ่มชื่อ / เลขที่',randomPanel,a);iconButton('📊','ผลกิจกรรม',results,a);iconButton('📝','คะแนนฝึกเขียน',traceResults,a);iconButton('🎯','เลือกห้องและผู้ตอบ',selectMode,a)}
  else if(profile.role==='student'){button('เปลี่ยนผู้เรียน',async()=>{await rpc('leave');await signout();location.href=new URL('index.html',base)},a)}
  else if(session&&!session.user.is_anonymous){const p=document.createElement('p');p.textContent='บัญชีนี้ยังไม่มีสิทธิ์ครู กรุณาติดต่อผู้ดูแลเพื่ออนุมัติ';a.append(p)}
  else button('ครูเข้าสู่ระบบด้วย Google',google,a);
- if(session)button('ออกจากระบบ',signout,a);
+ if(session){if(profile.role==='teacher')iconButton('🚪','ออกจากระบบ',signout,a);else button('ออกจากระบบ',signout,a);}
 }
-function installMenu(){const menu=$('.unit1-menu-list');let b=$('#p1ClassroomMenu');if(!b){b=document.createElement('button');b.id='p1ClassroomMenu';b.type='button';b.className='p1c-button';b.onclick=()=>{ $('.unit1-menu-backdrop')?.classList.remove('open');home()};(menu||$('.welcome-topbar')||$('header')||document.body).append(b)}if(menu&&b.parentElement!==menu)menu.append(b);const label=profile.role==='teacher'?'🧰 เครื่องมือครู':profile.role==='student'?`👤 ${profile.pupil.name}`:'☰ ห้องเรียน / เข้าสู่ระบบ';if(b.dataset.label!==label){b.dataset.label=label;b.textContent=label;}}
+function installMenu(){
+ const menu=$('.unit1-menu-list');let b=$('#p1ClassroomMenu');
+ if(!b){b=document.createElement('button');b.id='p1ClassroomMenu';b.type='button';b.className='p1c-button';b.onclick=()=>{$('.unit1-menu-backdrop')?.classList.remove('open');home()};(menu||$('.welcome-topbar')||$('header')||document.body).append(b)}
+ if(menu&&b.parentElement!==menu)menu.append(b);
+ if(profile.role==='teacher'){
+  b.classList.add('p1c-icon-only');b.textContent='🧰';b.dataset.label='เครื่องมือครู';b.setAttribute('aria-label','เครื่องมือครู');b.title='เครื่องมือครู';
+ }else{
+  b.classList.remove('p1c-icon-only');
+  const label=profile.role==='student'?'👤 '+profile.pupil.name:'🏫 เข้าห้องเรียน';
+  if(b.dataset.label!==label){b.dataset.label=label;b.textContent=label}
+  b.setAttribute('aria-label',profile.role==='student'?'ผู้เรียน '+profile.pupil.name:'เข้าห้องเรียน / เข้าสู่ระบบ');
+  b.title=profile.role==='student'?profile.pupil.name:'เข้าห้องเรียน / เข้าสู่ระบบ';
+ }
+}
 async function loadRooms(){const r=await db.from('p1_rooms').select('*').order('created_at');if(r.error)throw r.error;rooms=r.data;room=rooms.find(r=>r.id===room?.id)||rooms[0]||null;await loadPupils()}
 async function loadPupils(){pupils=[];if(!room)return;const r=await db.from('p1_pupils').select('id,room_id,number,name,active').eq('room_id',room.id).order('number');if(r.error)throw r.error;pupils=r.data;deck=[];chosen=null}
 const roomSelect=()=>`<label>ชุดรายชื่อ / ห้องเรียน<select id="p1c-room">${rooms.map(r=>`<option value="${r.id}" ${room?.id===r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</select></label>`;
@@ -70,12 +84,21 @@ function remember(){undo.push(structuredClone(strokes));if(undo.length>40)undo.s
 function eraseAt(p){strokes=strokes.filter(s=>!s.points.some((q,i)=>{const a=s.points[Math.max(0,i-1)],dx=q[0]-a[0],dy=q[1]-a[1],len=dx*dx+dy*dy,t=len?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len)):0;return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)<18}));paint();saveLocal()}
 function paint(){if(!svg)return;svg.replaceChildren();for(const s of strokes){const p=document.createElementNS('http://www.w3.org/2000/svg','polyline');p.setAttribute('points',s.points.map(p=>p.join(',')).join(' '));p.setAttribute('fill','none');p.setAttribute('stroke',s.color);p.setAttribute('stroke-width',s.width);p.setAttribute('stroke-linecap','round');p.setAttribute('stroke-linejoin','round');p.setAttribute('opacity',s.alpha||1);svg.append(p)}svg.style.pointerEvents=drawMode?'auto':'none'}
 function attachDrawing(){if(profile.role!=='teacher'||toolbar.hidden)return;const target=$('.native-source-layout')||$('.book-paper')||$('main');if(!target)return;const next=pageKey();if(host===target&&svg?.isConnected&&key===next)return;if(key)saveLocal();key=next;host=target;svg?.remove();if(getComputedStyle(host).position==='static')host.style.position='relative';svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('p1c-ink');svg.setAttribute('data-swipe-ignore','');host.append(svg);const r=host.getBoundingClientRect();svg.setAttribute('viewBox',`0 0 1000 ${1000*r.height/r.width}`);strokes=JSON.parse(sessionStorage.getItem(localKey())||'[]');undo=[];redo=[];paint();let erasing=false;const point=e=>{const r=svg.getBoundingClientRect();return [(e.clientX-r.left)/r.width*1000,(e.clientY-r.top)/r.width*1000]};svg.onpointerdown=e=>{if(!drawMode)return;e.preventDefault();e.stopPropagation();svg.setPointerCapture(e.pointerId);const p=point(e);remember();if(drawMode==='eraser'){erasing=true;eraseAt(p);return}activeStroke={points:[p,[p[0]+.1,p[1]+.1]],color,width:drawMode==='highlight'?width*4:width,alpha:drawMode==='highlight'?.28:1};strokes.push(activeStroke);redo=[];paint()};svg.onpointermove=e=>{if(erasing){e.preventDefault();e.stopPropagation();eraseAt(point(e));return}if(!activeStroke)return;e.preventDefault();e.stopPropagation();activeStroke.points.push(point(e));paint()};svg.onpointerup=svg.onpointercancel=e=>{e.stopPropagation();erasing=false;activeStroke=null;saveLocal()};svg.addEventListener('click',e=>e.stopPropagation());}
-function enableDrawing(){toolbar.hidden=false;toolbar.innerHTML='<strong>เครื่องมือเขียน</strong>';for(const [name,value] of [['ใช้งานหน้าเว็บ',''],['ปากกา','pen'],['ไฮไลต์','highlight'],['ยางลบ','eraser']])button(name,()=>{drawMode=value;paint();toolbar.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===value)))},toolbar).dataset.mode=value;
- const c=document.createElement('input');c.type='color';c.value=color;c.setAttribute('aria-label','สีปากกา');c.oninput=()=>color=c.value;toolbar.append(c);const w=document.createElement('input');w.type='range';w.min=2;w.max=14;w.value=width;w.setAttribute('aria-label','ความหนาปากกา');w.oninput=()=>width=+w.value;toolbar.append(w);
- button('ย้อนกลับ',()=>{if(undo.length){redo.push(structuredClone(strokes));strokes=undo.pop()}paint();saveLocal()},toolbar);button('ทำซ้ำ',()=>{if(redo.length){undo.push(structuredClone(strokes));strokes=redo.pop()}paint();saveLocal()},toolbar);button('ล้างหน้านี้',()=>{if(!confirm('ลบลายเขียนทั้งหมดในหน้านี้?'))return;remember();strokes=[];paint();saveLocal()},toolbar);
- button('บันทึกลายเขียน',async()=>{const r=await db.from('p1_annotations').upsert({owner_id:session.user.id,page_key:key,strokes,updated_at:new Date().toISOString()});if(r.error)alert('บันทึกไม่สำเร็จ: '+r.error.message);else alert('บันทึกลายเขียนแล้ว')},toolbar);
- button('โหลดที่บันทึก',async()=>{const r=await db.from('p1_annotations').select('strokes').eq('owner_id',session.user.id).eq('page_key',key).maybeSingle();if(r.error){alert(r.error.message);return}if(!r.data){alert('ยังไม่มีลายเขียนที่บันทึกในหน้านี้');return}if(strokes.length&&!confirm('แทนลายเขียนปัจจุบันด้วยที่บันทึกไว้?'))return;remember();strokes=r.data.strokes;paint();saveLocal()},toolbar);
- button('ปิดเครื่องมือ',()=>{drawMode='';paint();toolbar.hidden=true},toolbar);attachDrawing();}
+function enableDrawing(){
+ toolbar.hidden=false;toolbar.innerHTML='<strong class="p1c-toolbar-title" aria-label="เครื่องมือเขียน" title="เครื่องมือเขียน">✏️</strong>';
+ for(const [icon,name,value] of [['☝️','ใช้งานหน้าเว็บ',''],['✏️','ปากกา','pen'],['🖍️','ไฮไลต์','highlight'],['🧽','ยางลบ','eraser']]){
+  iconButton(icon,name,()=>{drawMode=value;paint();toolbar.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===value)))},toolbar).dataset.mode=value;
+ }
+ const c=document.createElement('input');c.type='color';c.value=color;c.setAttribute('aria-label','สีปากกา');c.title='สีปากกา';c.oninput=()=>color=c.value;toolbar.append(c);
+ const w=document.createElement('input');w.type='range';w.min=2;w.max=14;w.value=width;w.setAttribute('aria-label','ความหนาปากกา');w.title='ความหนาปากกา';w.oninput=()=>width=+w.value;toolbar.append(w);
+ iconButton('↶','ย้อนกลับ',()=>{if(undo.length){redo.push(structuredClone(strokes));strokes=undo.pop()}paint();saveLocal()},toolbar);
+ iconButton('↷','ทำซ้ำ',()=>{if(redo.length){undo.push(structuredClone(strokes));strokes=redo.pop()}paint();saveLocal()},toolbar);
+ iconButton('🗑️','ล้างหน้านี้',()=>{if(!confirm('ลบลายเขียนทั้งหมดในหน้านี้?'))return;remember();strokes=[];paint();saveLocal()},toolbar);
+ iconButton('💾','บันทึกลายเขียน',async()=>{const r=await db.from('p1_annotations').upsert({owner_id:session.user.id,page_key:key,strokes,updated_at:new Date().toISOString()});if(r.error)alert('บันทึกไม่สำเร็จ: '+r.error.message);else alert('บันทึกลายเขียนแล้ว')},toolbar);
+ iconButton('📂','โหลดที่บันทึก',async()=>{const r=await db.from('p1_annotations').select('strokes').eq('owner_id',session.user.id).eq('page_key',key).maybeSingle();if(r.error){alert(r.error.message);return}if(!r.data){alert('ยังไม่มีลายเขียนที่บันทึกในหน้านี้');return}if(strokes.length&&!confirm('แทนลายเขียนปัจจุบันด้วยที่บันทึกไว้?'))return;remember();strokes=r.data.strokes;paint();saveLocal()},toolbar);
+ iconButton('✕','ปิดเครื่องมือ',()=>{drawMode='';paint();toolbar.hidden=true},toolbar);
+ attachDrawing();
+}
 let observer=new MutationObserver(()=>{installMenu();attachDrawing()});observer.observe(document.body,{childList:true,subtree:true});
 // Auth callback work runs after the auth lock has been released.
 db.auth.onAuthStateChange(()=>setTimeout(()=>refresh().catch(()=>{}),0));

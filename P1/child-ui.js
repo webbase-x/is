@@ -17,7 +17,8 @@
       open.className = 'kid-open-button';
       open.href = cover.getAttribute('href');
       open.setAttribute('aria-label', 'เปิดบท ' + title);
-      open.innerHTML = '<span aria-hidden="true">▶</span><span>เปิดบทนี้</span>';
+      open.innerHTML = '<span aria-hidden="true">▶</span><span>เริ่มเรียน</span>';
+      open.title = 'เริ่มเรียน ' + title;
       content.appendChild(open);
 
       if (index === 0 && !document.querySelector('.readiness-card') && !card.querySelector('.kid-prerequisite')) {
