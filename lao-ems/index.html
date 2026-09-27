@@ -38,9 +38,15 @@
         <form id="signin-form" class="auth-form" autocomplete="on">
           <div class="form-heading"><h2>ยินดีต้อนรับ</h2><p>เข้าสู่ระบบเพื่อใช้งานตามสิทธิ์ของคุณ</p></div>
           <label>อีเมล<input name="email" type="email" autocomplete="email" required placeholder="name@example.com"></label>
-          <label>รหัสผ่าน<input name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="อย่างน้อย 8 ตัวอักษร"></label>
+          <label>รหัสผ่าน
+            <span class="password-field">
+              <input name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="อย่างน้อย 8 ตัวอักษร" data-password-input>
+              <button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" title="แสดง/ซ่อนรหัสผ่าน">👁</button>
+            </span>
+          </label>
+          <label class="remember-row"><input name="remember_login" type="checkbox"><span>จำการเข้าสู่ระบบบนอุปกรณ์นี้</span></label>
           <button class="primary-btn wide" type="submit">เข้าสู่ระบบ</button>
-          <p class="form-hint">สิทธิ์ LAO-EMS แยกจากระบบอื่นด้วย Membership โดยเฉพาะ</p>
+          <p class="form-hint">ระบบจะไม่เก็บรหัสผ่านเป็นข้อความในเว็บไซต์ การจำรหัสผ่านจริงให้ใช้ Password AutoFill/ตัวจัดการรหัสผ่านของอุปกรณ์</p>
         </form>
         <form id="signup-form" class="auth-form hidden" autocomplete="on">
           <div class="form-heading"><h2>สร้างบัญชี LAO-EMS</h2><p>สมัครบัญชีก่อน แล้วจึงส่งคำขอเข้าร่วมสถานศึกษา</p></div>
@@ -52,8 +58,8 @@
           <label>เบอร์โทรศัพท์<input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label>
           <label>อีเมล<input name="email" type="email" autocomplete="email" required></label>
           <div class="form-row">
-            <label>รหัสผ่าน<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
-            <label>ยืนยันรหัสผ่าน<input name="confirm_password" type="password" autocomplete="new-password" minlength="8" required></label>
+            <label>รหัสผ่าน<span class="password-field"><input name="password" type="password" autocomplete="new-password" minlength="8" required data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน">👁</button></span></label>
+            <label>ยืนยันรหัสผ่าน<span class="password-field"><input name="confirm_password" type="password" autocomplete="new-password" minlength="8" required data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน">👁</button></span></label>
           </div>
           <label class="check-row"><input name="accept" type="checkbox" required><span>ยืนยันว่าข้อมูลที่สมัครเป็นข้อมูลของตนเอง และยอมรับการตรวจสอบสิทธิ์ก่อนเข้าใช้ข้อมูลของสถานศึกษา</span></label>
           <button class="primary-btn wide" type="submit">สร้างบัญชี</button>
@@ -80,7 +86,7 @@
     <div class="page">
       <header class="topbar">
         <div class="topbar-start"><button class="icon-btn mobile-menu" type="button" data-sidebar-open aria-label="เปิดเมนู">☰</button><div><p class="eyebrow">ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาของ อปท.</p><h1 data-page-title>ภาพรวมระบบ</h1></div></div>
-        <div class="topbar-actions"><button class="profile-btn" type="button"><span class="avatar" data-avatar>ผู้</span><span class="profile-copy"><strong data-profile-name>ผู้ใช้งาน</strong><small data-profile-role>กำลังตรวจสอบสิทธิ์</small></span></button><button class="icon-btn" type="button" data-signout aria-label="ออกจากระบบ" title="ออกจากระบบ">↪</button></div>
+        <div class="topbar-actions"><div class="view-switch hidden" data-view-switch><button type="button" data-view-mode="user">มุมมองผู้ใช้</button><button type="button" data-view-mode="admin">Admin</button></div><button class="profile-btn" type="button"><span class="avatar" data-avatar>ผู้</span><span class="profile-copy"><strong data-profile-name>ผู้ใช้งาน</strong><small data-profile-role>กำลังตรวจสอบสิทธิ์</small></span></button><button class="icon-btn" type="button" data-signout aria-label="ออกจากระบบ" title="ออกจากระบบ">↪</button></div>
       </header>
       <main id="main" class="content" tabindex="-1"></main>
     </div>
