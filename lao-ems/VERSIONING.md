@@ -1,6 +1,6 @@
 # LAO-EMS Versioning
 
-Current version: **v0.2.2**
+Current version: **v0.2.3**
 
 LAO-EMS follows Semantic Versioning: `MAJOR.MINOR.PATCH`.
 
