@@ -1,10 +1,12 @@
 import { supabase } from "./supabase.js";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],lecPreview:null,isPlatformAdmin:false,viewMode:"user"};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user"};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
-  membership:["สถานะการเข้าใช้งาน","สมัครเข้าร่วมสถานศึกษาและติดตามการอนุมัติ"],
+  membership:["สิทธิ์การเข้าใช้งาน","ดูสถานศึกษาและบทบาทที่ผู้ดูแลกำหนดให้"],
+  activate:["ตั้งค่าบัญชี","ยืนยันโปรไฟล์และกำหนดรหัสผ่านสำหรับบัญชีที่ผู้ดูแลเชิญ"],
+  profile:["โปรไฟล์ของฉัน","แก้ไขข้อมูลส่วนตัวและเปลี่ยนรหัสผ่าน"],
   notifications:["การแจ้งเตือน","คำขอ การอนุมัติ และการเปลี่ยนแปลงที่เกี่ยวข้องกับบัญชีของคุณ"],
   setup:["ตั้งค่าพื้นฐาน","ปีการศึกษา ภาคเรียน และสถานะการเชื่อมระบบ"],
   organization:["อปท. และสถานศึกษา","โครงสร้างองค์กรและโรงเรียนในแพลตฟอร์ม"],
@@ -89,14 +91,10 @@ function currentOrg(){
 }
 
 function bindStaticUI(){
-  qa("[data-auth-tab]").forEach(btn=>btn.addEventListener("click",()=>{
-    qa("[data-auth-tab]").forEach(x=>x.classList.toggle("active",x===btn));
-    q("#signin-form").classList.toggle("hidden",btn.dataset.authTab!=="signin");
-    q("#signup-form").classList.toggle("hidden",btn.dataset.authTab!=="signup");
-  }));
   q("#signin-form").addEventListener("submit",signIn);
-  q("#signup-form").addEventListener("submit",signUp);
-  qa("[data-password-toggle]").forEach(button=>button.addEventListener("click",()=>{
+  bindPasswordToggles();
+  /* password toggles are bound once by bindPasswordToggles */
+  qa("[data-password-toggle]").filter(button=>button.dataset.bound!=="1").forEach(button=>button.addEventListener("click",()=>{
     const field=button.closest(".input-with-action, .password-field");
     const input=field&&field.querySelector("[data-password-input]");
     if(!input)return;
@@ -125,6 +123,8 @@ function bindStaticUI(){
   scrim.addEventListener("click",close);
   window.addEventListener("hashchange",()=>{renderRoute();close();});
   q("[data-signout]").addEventListener("click",async()=>{await supabase.auth.signOut();});
+  const profileButton=q(".profile-btn");
+  if(profileButton)profileButton.addEventListener("click",()=>{location.hash="#/profile";});
   q("#tenant-select").addEventListener("change",e=>{
     const value=e.target.value;
     if(state.isPlatformAdmin&&state.viewMode==="admin"){
@@ -156,24 +156,6 @@ async function signIn(event){
   setBusy(btn,false);
   if(res.error){toast(authMessage(res.error.message),"error");return;}
   toast("เข้าสู่ระบบสำเร็จ","success");
-}
-async function signUp(event){
-  event.preventDefault();
-  const form=event.currentTarget,btn=form.querySelector("button[type=submit]"),fd=new FormData(form);
-  const pass=String(fd.get("password")),confirm=String(fd.get("confirm_password"));
-  if(pass!==confirm){toast("รหัสผ่านทั้งสองช่องไม่ตรงกัน","error");return;}
-  const prefix=String(fd.get("prefix")||"").trim(),first=String(fd.get("first_name")).trim(),last=String(fd.get("last_name")).trim(),phone=String(fd.get("phone")||"").trim();
-  setBusy(btn,true,"กำลังสร้างบัญชี...");
-  const res=await supabase.auth.signUp({
-    email:String(fd.get("email")).trim(),
-    password:pass,
-    options:{data:{prefix:prefix,first_name_th:first,last_name_th:last,display_name:[prefix,first,last].filter(Boolean).join(" "),phone:phone}}
-  });
-  setBusy(btn,false);
-  if(res.error){toast(authMessage(res.error.message),"error");return;}
-  form.reset();
-  if(res.data.session){toast("สร้างบัญชีสำเร็จ กรุณาส่งคำขอเข้าร่วมสถานศึกษา","success");}
-  else{toast("สร้างบัญชีแล้ว กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชีก่อนเข้าสู่ระบบ","success");}
 }
 function authMessage(m){
   if(/invalid login credentials/i.test(m))return "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
@@ -220,13 +202,19 @@ async function loadNotifications(){
   state.notifications=res.data||[];
 }
 async function loadContext(){
+  const adminRes=await supabase.rpc("lao_is_platform_admin");
+  if(adminRes.error)throw adminRes.error;
+  state.isPlatformAdmin=adminRes.data===true;
+  const accessRes=await supabase.rpc("lao_has_lao_access");
+  if(accessRes.error)throw accessRes.error;
+  if(accessRes.data!==true)throw new Error("LAO_ACCESS_REQUIRED");
   await ensureProfile();
   const profileRes=await supabase.from("lao_profiles").select("*").eq("user_id",state.user.id).maybeSingle();
   if(profileRes.error)throw profileRes.error;
   state.profile=profileRes.data;
-  const adminRes=await supabase.rpc("lao_is_platform_admin");
-  if(adminRes.error)throw adminRes.error;
-  state.isPlatformAdmin=adminRes.data===true;
+  const invitationRes=await supabase.rpc("lao_my_pending_invitation");
+  if(invitationRes.error)throw invitationRes.error;
+  state.pendingInvitation=invitationRes.data||null;
   const memRes=await supabase.from("lao_memberships").select("id,user_id,organization_id,school_id,requested_role_code,request_note,status,requested_at,reviewed_at,lao_organizations(id,name_th,name_en),lao_schools(id,name_th,name_en,slug),lao_membership_roles(lao_roles(code,name_th))").eq("user_id",state.user.id).order("requested_at",{ascending:false});
   if(memRes.error)throw memRes.error;
   state.memberships=memRes.data||[];
@@ -368,12 +356,47 @@ function membershipHtml(){
   const statusMap={pending:["รออนุมัติ","warning"],active:["ใช้งานได้","success"],rejected:["ไม่อนุมัติ","danger"],suspended:["ระงับ","danger"],ended:["สิ้นสุด","neutral"]};
   const rows=state.memberships.map(m=>{
     const s=statusMap[m.status]||[m.status,"neutral"];
-    return '<tr><td>'+esc(m.lao_organizations&&m.lao_organizations.name_th||"-")+'</td><td>'+esc(m.lao_schools&&m.lao_schools.name_th||"ระดับ อปท.")+'</td><td>'+esc(roleLabels[m.requested_role_code]||m.requested_role_code||"-")+'</td><td><span class="pill '+s[1]+'">'+s[0]+'</span></td><td>'+new Date(m.requested_at).toLocaleDateString("th-TH")+'</td></tr>';
+    return '<tr><td>'+esc(m.lao_organizations&&m.lao_organizations.name_th||"-")+'</td><td>'+esc(m.lao_schools&&m.lao_schools.name_th||"-")+'</td><td>'+esc(roleLabels[m.requested_role_code]||m.requested_role_code||"-")+'</td><td><span class="pill '+s[1]+'">'+s[0]+'</span></td><td>'+new Date(m.requested_at).toLocaleDateString("th-TH")+'</td></tr>';
   }).join("");
-  const orgOptions=state.organizations.map(o=>'<option value="'+o.id+'">'+esc(o.name_th)+'</option>').join("");
-  const form=state.organizations.length?'<form id="membership-form" class="form-grid" style="margin-top:18px"><label class="field">อปท.<select name="organization_id" id="membership-org" required><option value="">เลือก อปท.</option>'+orgOptions+'</select></label><label class="field">สถานศึกษา<select name="school_id" id="membership-school" required disabled><option value="">เลือกสถานศึกษา</option></select></label><label class="field">ขอใช้งานในฐานะ<select name="role_code" required><option value="">เลือกบทบาท</option><option value="school_admin">ผู้ดูแลสถานศึกษา</option><option value="school_executive">ผู้บริหารสถานศึกษา</option><option value="registrar">งานทะเบียน</option><option value="academic_officer">งานวิชาการ</option><option value="teacher">ครู</option><option value="staff">บุคลากร</option><option value="student">นักเรียน</option><option value="guardian">ผู้ปกครอง</option></select></label><label class="field">ข้อมูลประกอบคำขอ<input name="note" placeholder="เช่น ตำแหน่ง / ชั้นเรียน / ความสัมพันธ์"></label><div class="span-2 notice">การเลือกบทบาทเป็นเพียง <strong>คำขอ</strong> ผู้ดูแลต้องตรวจสอบก่อนให้สิทธิ์</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำขอ</button></div></form>':'<div class="empty-state" style="margin-top:18px"><div class="empty-icon">🏛</div><h3>ยังไม่มี อปท. หรือสถานศึกษาในระบบ</h3><p>ผู้ดูแลแพลตฟอร์มต้องเพิ่มข้อมูลองค์กรและสถานศึกษาก่อนจึงจะส่งคำขอได้</p></div>';
-  const history=rows?'<div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>บทบาทที่ขอ</th><th>สถานะ</th><th>วันที่ขอ</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty-state" style="margin-top:18px"><div class="empty-icon">🔐</div><h3>ยังไม่มีคำขอ</h3><p>เลือก อปท. และสถานศึกษาเพื่อเริ่มต้น</p></div>';
-  return '<section class="content-grid"><article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">Membership request</p><h2>ขอสิทธิ์เข้าร่วมสถานศึกษา</h2><p class="panel-sub">การสมัครบัญชีและการได้สิทธิ์โรงเรียนเป็นคนละขั้นตอน</p></div></div>'+form+'</article><article class="panel"><div class="panel-head"><div><p class="eyebrow">My access</p><h2>สถานะสิทธิ์ของฉัน</h2></div></div>'+history+'</article></section>';
+  const history=rows?'<div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>บทบาท</th><th>สถานะ</th><th>เริ่มต้น</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">🔐</div><h3>ยังไม่มีสิทธิ์สถานศึกษา</h3><p>บัญชี LAO-EMS สร้างและกำหนดสิทธิ์โดยผู้ดูแลเท่านั้น</p></div>';
+  return '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">My access</p><h2>สิทธิ์การเข้าใช้งานของฉัน</h2><p class="panel-sub">ผู้ใช้ไม่ต้องสมัครเข้าร่วมโรงเรียนเอง ผู้ดูแลสถานศึกษาจะเป็นผู้เชิญและกำหนดบทบาทให้</p></div></div>'+history+'</article></section>';
+}
+
+function profileNeedsSetup(){
+  const p=state.profile||{};
+  return !String(p.first_name_th||"").trim()||!String(p.last_name_th||"").trim();
+}
+function profileFieldsHtml(prefix){
+  const p=state.profile||{},pre=esc(p.prefix||""),first=esc(p.first_name_th||""),last=esc(p.last_name_th||""),phone=esc(p.phone||"");
+  return '<div class="form-row three"><label class="field">คำนำหน้า<select name="prefix"><option value="">ไม่ระบุ</option>'+["นาย","นาง","นางสาว","เด็กชาย","เด็กหญิง"].map(x=>'<option '+(pre===x?'selected':'')+'>'+x+'</option>').join("")+'</select></label><label class="field">ชื่อ<input name="first_name" value="'+first+'" required autocomplete="given-name"></label><label class="field">นามสกุล<input name="last_name" value="'+last+'" required autocomplete="family-name"></label></div><label class="field">เบอร์โทรศัพท์<input name="phone" type="tel" value="'+phone+'" autocomplete="tel" inputmode="tel"></label>';
+}
+function passwordFieldsHtml(required){
+  return '<div class="form-row"><div class="form-field"><label for="account-password">รหัสผ่านใหม่</label><div class="input-with-action"><input id="account-password" name="password" type="password" autocomplete="new-password" minlength="8" '+(required?'required':'')+' data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div><div class="form-field"><label for="account-password-confirm">ยืนยันรหัสผ่านใหม่</label><div class="input-with-action"><input id="account-password-confirm" name="confirm_password" type="password" autocomplete="new-password" minlength="8" '+(required?'required':'')+' data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div></div>';
+}
+function bindPasswordToggles(root=document){
+  qa("[data-password-toggle]",root).forEach(button=>{
+    if(button.dataset.bound==="1")return;
+    button.dataset.bound="1";
+    button.addEventListener("click",()=>{
+      const field=button.closest(".input-with-action, .password-field");
+      const input=field&&field.querySelector("[data-password-input]");
+      if(!input)return;
+      const show=input.type==="password";
+      input.type=show?"text":"password";
+      button.classList.toggle("is-visible",show);
+      button.setAttribute("aria-pressed",String(show));
+      button.setAttribute("aria-label",show?"ซ่อนรหัสผ่าน":"แสดงรหัสผ่าน");
+    });
+  });
+}
+function activationHtml(){
+  const inv=state.pendingInvitation;
+  if(!inv)return '<section class="panel"><div class="empty-state"><div class="empty-icon">✓</div><h3>บัญชีพร้อมใช้งานแล้ว</h3><p>ไม่มีคำเชิญที่รอดำเนินการ</p><a class="primary-btn" href="#/overview">ไปหน้าหลัก</a></div></section>';
+  const hasActive=state.memberships.some(m=>m.status==="active"),requirePassword=!hasActive;
+  return '<section class="onboarding-shell"><article class="panel onboarding-card"><div class="panel-head"><div><p class="eyebrow">Account activation</p><h2>ตั้งค่าบัญชี LAO-EMS</h2><p class="panel-sub">อีเมลของคุณได้รับคำเชิญจากผู้ดูแล กรุณากรอกโปรไฟล์และ'+(requirePassword?'กำหนดรหัสผ่านใหม่':'ตรวจสอบข้อมูลก่อนรับสิทธิ์ใหม่')+'</p></div></div><div class="invite-summary"><div><small>อีเมล</small><strong>'+esc(state.user.email||inv.email||"-")+'</strong></div><div><small>สถานศึกษา</small><strong>'+esc(inv.school_name||"-")+'</strong></div><div><small>บทบาท</small><strong>'+esc(roleLabels[inv.role_code]||inv.role_code)+'</strong></div></div><form id="activation-form" class="form-grid">'+profileFieldsHtml("activation")+passwordFieldsHtml(requirePassword)+'<div class="span-2 notice">'+(requirePassword?'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และจะใช้เข้าสู่ระบบครั้งถัดไป':'หากต้องการเปลี่ยนรหัสผ่านในครั้งนี้ สามารถกรอกช่องรหัสผ่านใหม่ได้')+'</div><div class="span-2"><button class="primary-btn" type="submit">บันทึกโปรไฟล์และเปิดใช้งานบัญชี</button></div></form></article></section>';
+}
+function profileHtml(){
+  return '<section class="content-grid"><article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">My profile</p><h2>โปรไฟล์ของฉัน</h2><p class="panel-sub">'+esc(state.user&&state.user.email||"")+'</p></div></div><form id="profile-form" class="form-grid" style="margin-top:18px">'+profileFieldsHtml("profile")+'<div class="span-2"><hr class="form-divider"></div><div class="span-2"><strong>เปลี่ยนรหัสผ่าน</strong><p class="panel-sub">เว้นว่างไว้หากไม่ต้องการเปลี่ยน</p></div>'+passwordFieldsHtml(false)+'<div class="span-2"><button class="primary-btn" type="submit">บันทึกการเปลี่ยนแปลง</button></div></form></article></section>';
 }
 
 function setupHtml(){
@@ -409,35 +432,35 @@ async function organizationHtml(){
 }
 
 async function usersHtml(){
-  if(!hasRole("platform_admin","organization_admin","school_admin"))return '<section class="panel"><div class="empty-state"><div class="empty-icon">🛡️</div><h3>เมนูนี้สำหรับผู้ดูแล</h3><p>บัญชีของคุณยังไม่มีสิทธิ์ตรวจสอบคำขอของผู้ใช้อื่น</p><a class="primary-btn" href="#/membership">ดูสิทธิ์ของฉัน</a></div></section>';
-  const res=await supabase.from("lao_memberships").select("id,user_id,requested_role_code,request_note,status,requested_at,lao_organizations(name_th),lao_schools(name_th)").eq("status","pending").order("requested_at");
-  if(res.error)throw res.error;
-  if(!res.data.length)return '<section class="panel"><div class="empty-state"><div class="empty-icon">✓</div><h3>ไม่มีคำขอค้าง</h3><p>Platform Admin อนุมัติเฉพาะผู้ดูแลคนแรกของแต่ละโรงเรียน ส่วนคำขออื่นเป็นหน้าที่ของผู้ดูแลโรงเรียน</p></div></section>';
+  if(!hasRole("platform_admin","school_admin"))return '<section class="panel"><div class="empty-state"><div class="empty-icon">🛡️</div><h3>เมนูนี้สำหรับผู้ดูแล</h3><p>ผู้ใช้ของ LAO-EMS สร้างโดยผู้ดูแลสถานศึกษาเท่านั้น</p></div></section>';
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>เลือกโรงเรียนจากตัวเลือกด้านบนเพื่อจัดการบัญชีผู้ใช้</p></div></section>';
 
-  const userIds=Array.from(new Set(res.data.map(m=>m.user_id)));
-  const profileRes=await supabase.from("lao_profiles").select("user_id,display_name,first_name_th,last_name_th").in("user_id",userIds);
-  if(profileRes.error)throw profileRes.error;
-  const profileMap=Object.fromEntries((profileRes.data||[]).map(p=>[p.user_id,p]));
+  const hasAdminRes=await supabase.rpc("lao_school_has_admin",{p_school_id:school.id});
+  if(hasAdminRes.error)throw hasAdminRes.error;
+  const schoolHasAdmin=hasAdminRes.data===true;
+  const isLocalAdmin=!state.isPlatformAdmin&&hasRole("school_admin");
+  const platformMayInvite=state.isPlatformAdmin&&!schoolHasAdmin;
 
-  const modes=await Promise.all(res.data.map(async m=>{
-    const r=await supabase.rpc("lao_membership_review_mode",{p_membership_id:m.id});
-    return [m.id,r.error?"view_only":r.data];
-  }));
-  const modeMap=Object.fromEntries(modes);
+  const invRes=await supabase.from("lao_user_invitations")
+    .select("id,email,role_code,invitation_mode,status,sent_at,accepted_at")
+    .eq("school_id",school.id).order("sent_at",{ascending:false}).limit(100);
+  if(invRes.error)throw invRes.error;
 
-  const ordered=[...res.data].sort((x,y)=>(modeMap[x.id]==="view_only")-(modeMap[y.id]==="view_only"));
-  const rows=ordered.map(m=>{
-    const p=profileMap[m.user_id]||{},name=p.display_name||[p.first_name_th,p.last_name_th].filter(Boolean).join(" ")||m.user_id;
-    const mode=modeMap[m.id]||"view_only";
-    const canReview=mode==="platform_first_admin"||mode==="school_admin";
-    const responsibility=mode==="platform_first_admin"?"Platform Admin · แอดมินคนแรก":mode==="school_admin"?"ผู้ดูแลโรงเรียน":"ผู้ดูแลโรงเรียนรับผิดชอบ";
-    const action=canReview
-      ? '<div class="action-row compact"><button class="primary-btn" data-approve="'+m.id+'" data-role="'+esc(m.requested_role_code)+'">อนุมัติ</button><button class="danger-btn" data-reject="'+m.id+'">ไม่อนุมัติ</button></div>'
-      : '<span class="pill neutral">ดูได้อย่างเดียว</span>';
-    return '<tr><td><strong>'+esc(name)+'</strong><br><small>'+new Date(m.requested_at).toLocaleString("th-TH")+'</small></td><td>'+esc(m.lao_schools&&m.lao_schools.name_th||m.lao_organizations&&m.lao_organizations.name_th||"-")+'</td><td>'+esc(roleLabels[m.requested_role_code]||m.requested_role_code||"-")+'</td><td><strong>'+esc(responsibility)+'</strong><br><small>'+esc(m.request_note||"-")+'</small></td><td>'+action+'</td></tr>';
+  const roleOptions=isLocalAdmin
+    ? [["school_admin","ผู้ดูแลสถานศึกษาร่วม"],["school_executive","ผู้บริหารสถานศึกษา"],["registrar","งานทะเบียน"],["academic_officer","งานวิชาการ"],["teacher","ครู"],["staff","บุคลากร"],["student","นักเรียน"],["guardian","ผู้ปกครอง"]]
+    : [["school_admin","ผู้ดูแลสถานศึกษาคนแรก"]];
+  const canInvite=isLocalAdmin||platformMayInvite;
+  const inviteForm=canInvite
+    ? '<article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">Admin-managed account</p><h2>เชิญผู้ใช้เข้า LAO-EMS</h2><p class="panel-sub">'+(state.isPlatformAdmin?'Platform Admin เชิญเฉพาะ School Admin คนแรก หลังจากนั้น School Admin โรงเรียนจะจัดการผู้ใช้เอง':'กรอกอีเมลและกำหนดบทบาท ระบบจะส่งลิงก์ยืนยันไปยังอีเมล')+'</p></div></div><form id="invite-user-form" class="form-grid" style="margin-top:18px"><label class="field">อีเมลผู้ใช้<input name="email" type="email" autocomplete="off" required placeholder="name@example.com"></label><label class="field">บทบาท<select name="role_code" required>'+roleOptions.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join("")+'</select></label><div class="span-2 notice">ระบบไม่ส่งรหัสผ่านชั่วคราวเป็นข้อความในอีเมล ผู้รับจะยืนยันอีเมลผ่านลิงก์ที่ปลอดภัย แล้วตั้งรหัสผ่านของตนเองก่อนใช้งาน</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำเชิญทางอีเมล</button></div></form></article>'
+    : '<article class="panel"><div class="notice"><strong>โรงเรียนมี School Admin แล้ว</strong><br>การสร้างผู้ใช้และผู้ดูแลร่วมเป็นหน้าที่ของ School Admin โรงเรียนนี้ Platform Admin ยังตรวจสอบข้อมูลได้ แต่ไม่สร้างผู้ใช้แทนโรงเรียน</div></article>';
+
+  const rows=(invRes.data||[]).map(x=>{
+    const status={pending:["รอยืนยัน","warning"],accepted:["เปิดใช้งานแล้ว","success"],revoked:["ยกเลิก","neutral"],failed:["ส่งไม่สำเร็จ","danger"]}[x.status]||[x.status,"neutral"];
+    return '<tr><td><strong>'+esc(x.email)+'</strong><br><small>'+new Date(x.sent_at).toLocaleString("th-TH")+'</small></td><td>'+esc(roleLabels[x.role_code]||x.role_code)+'</td><td><span class="pill '+status[1]+'">'+status[0]+'</span></td><td>'+esc(x.invitation_mode==="platform_first_admin"?"Platform Admin · คนแรก":"School Admin")+'</td></tr>';
   }).join("");
-
-  return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">Approval responsibility</p><h2>คำขอที่รอตรวจสอบ</h2><p class="panel-sub">Platform Admin อนุมัติเฉพาะ School Admin คนแรกของโรงเรียน หลังจากนั้นโรงเรียนบริหารสมาชิกและผู้ดูแลร่วมเอง</p></div><span class="counter">'+res.data.length+' คำขอ</span></div><div class="table-wrap"><table><thead><tr><th>ผู้ขอ</th><th>สถานศึกษา</th><th>บทบาท</th><th>ผู้รับผิดชอบ</th><th>ดำเนินการ</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
+  const history='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Invitation history</p><h2>บัญชีและคำเชิญ · '+esc(school.name_th)+'</h2><p class="panel-sub">ไม่มีการสมัครบัญชีด้วยตนเอง ผู้ดูแลเป็นผู้เริ่มต้นบัญชีและกำหนดบทบาท</p></div></div>'+(rows?'<div class="table-wrap"><table><thead><tr><th>อีเมล</th><th>บทบาท</th><th>สถานะ</th><th>ผู้รับผิดชอบ</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">✉️</div><h3>ยังไม่มีคำเชิญ</h3><p>เริ่มจากกรอกอีเมลผู้ใช้ด้านบน</p></div>')+'</article>';
+  return '<section class="content-grid">'+inviteForm+history+'</section>';
 }
 
 function notificationsHtml(){
@@ -860,6 +883,74 @@ function bindApprovals(){
     toast("บันทึกการไม่อนุมัติแล้ว");await loadNotifications();refreshHeader();renderRoute();
   }));
 }
+function readFunctionError(error){
+  if(error&&error.context&&typeof error.context.json==="function"){
+    return error.context.json().then(x=>x&&x.error?x.error:error.message).catch(()=>error.message);
+  }
+  return Promise.resolve(error&&error.message||"ไม่สามารถดำเนินการได้");
+}
+function bindInvites(){
+  const form=q("#invite-user-form"); if(!form)return;
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const school=currentSchool(),fd=new FormData(form),btn=form.querySelector("button[type=submit]");
+    if(!school)return;
+    setBusy(btn,true,"กำลังส่งอีเมล...");
+    const res=await supabase.functions.invoke("lao-invite-user",{body:{
+      email:String(fd.get("email")||"").trim(),
+      school_id:school.id,
+      role_code:String(fd.get("role_code")||"")
+    }});
+    setBusy(btn,false);
+    if(res.error){toast(await readFunctionError(res.error),"error");return;}
+    toast("ส่งคำเชิญไปที่ "+String(fd.get("email"))+" แล้ว","success");
+    form.reset();renderRoute();
+  });
+}
+function bindActivation(){
+  const form=q("#activation-form"); if(!form)return;
+  bindPasswordToggles(form);
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
+    const password=String(fd.get("password")||""),confirmPassword=String(fd.get("confirm_password")||"");
+    const mustSet=!state.memberships.some(m=>m.status==="active");
+    if(mustSet&&!password){toast("กรุณากำหนดรหัสผ่านใหม่","error");return;}
+    if(password&&password.length<8){toast("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร","error");return;}
+    if(password!==confirmPassword){toast("รหัสผ่านทั้งสองช่องไม่ตรงกัน","error");return;}
+    setBusy(btn,true,"กำลังเปิดใช้งานบัญชี...");
+    const prefix=String(fd.get("prefix")||"").trim(),first=String(fd.get("first_name")||"").trim(),last=String(fd.get("last_name")||"").trim(),phone=String(fd.get("phone")||"").trim();
+    if(password){
+      const authRes=await supabase.auth.updateUser({password,data:{prefix,first_name_th:first,last_name_th:last,display_name:[prefix,first,last].filter(Boolean).join(" "),phone}});
+      if(authRes.error){setBusy(btn,false);toast(authMessage(authRes.error.message),"error");return;}
+    }
+    const complete=await supabase.rpc("lao_complete_invitation",{p_prefix:prefix||null,p_first_name_th:first,p_last_name_th:last,p_phone:phone||null});
+    if(complete.error){setBusy(btn,false);toast(complete.error.message,"error");return;}
+    toast("เปิดใช้งานบัญชีเรียบร้อย","success");
+    await loadContext();location.hash="#/overview";renderRoute();
+  });
+}
+function bindProfile(){
+  const form=q("#profile-form"); if(!form)return;
+  bindPasswordToggles(form);
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
+    const password=String(fd.get("password")||""),confirmPassword=String(fd.get("confirm_password")||"");
+    if(password&&password.length<8){toast("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร","error");return;}
+    if(password!==confirmPassword){toast("รหัสผ่านทั้งสองช่องไม่ตรงกัน","error");return;}
+    const prefix=String(fd.get("prefix")||"").trim(),first=String(fd.get("first_name")||"").trim(),last=String(fd.get("last_name")||"").trim(),phone=String(fd.get("phone")||"").trim();
+    setBusy(btn,true,"กำลังบันทึก...");
+    const pr=await supabase.rpc("lao_ensure_profile",{p_prefix:prefix||null,p_first_name_th:first,p_last_name_th:last,p_display_name:[prefix,first,last].filter(Boolean).join(" "),p_phone:phone||null});
+    if(pr.error){setBusy(btn,false);toast(pr.error.message,"error");return;}
+    const update={data:{prefix,first_name_th:first,last_name_th:last,display_name:[prefix,first,last].filter(Boolean).join(" "),phone}};
+    if(password)update.password=password;
+    const au=await supabase.auth.updateUser(update);
+    setBusy(btn,false);
+    if(au.error){toast(authMessage(au.error.message),"error");return;}
+    await loadContext();toast("บันทึกโปรไฟล์แล้ว","success");renderRoute();
+  });
+}
 function bindNotifications(){
   qa("[data-notification-read]").forEach(btn=>btn.addEventListener("click",async()=>{
     setBusy(btn,true,"กำลังบันทึก...");
@@ -871,18 +962,23 @@ function bindNotifications(){
 
 async function renderRoute(){
   if(!state.user)return;
-  const route=routeName(),meta=routeMeta[route]||routeMeta.overview,main=q("#main");
+  let route=routeName();
+  const mustActivate=Boolean(state.pendingInvitation)&&(!state.memberships.some(m=>m.status==="active")||profileNeedsSetup());
+  if(mustActivate&&route!=="activate"){location.hash="#/activate";route="activate";}
+  const meta=routeMeta[route]||routeMeta.overview,main=q("#main");
   q("[data-page-title]").textContent=meta[0];
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
   main.innerHTML='<section class="panel"><div class="loading-inline"><span class="spinner"></span>กำลังโหลด...</div></section>';
   try{
     if(route==="overview")main.innerHTML=(state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():overviewHtml();
-    else if(route==="membership"){main.innerHTML=membershipHtml();bindMembership();}
+    else if(route==="membership"){main.innerHTML=membershipHtml();}
+    else if(route==="activate"){main.innerHTML=activationHtml();bindActivation();}
+    else if(route==="profile"){main.innerHTML=profileHtml();bindProfile();}
     else if(route==="notifications"){main.innerHTML=notificationsHtml();bindNotifications();}
     else if(route==="setup"){main.innerHTML=setupHtml();}
     else if(route==="organization"){main.innerHTML=await organizationHtml();bindOrganizationForms();}
     else if(route==="lec"){main.innerHTML=await lecHtml();bindLec();}
-    else if(route==="users"){main.innerHTML=await usersHtml();bindApprovals();}
+    else if(route==="users"){main.innerHTML=await usersHtml();bindInvites();}
     else main.innerHTML=placeholderHtml(route);
   }catch(e){
     console.error(e);
@@ -892,8 +988,17 @@ async function renderRoute(){
 async function showApp(session){
   state.session=session;state.user=session.user;
   q("#auth-screen").classList.add("hidden");q("#app-shell").classList.remove("hidden");
-  try{await loadContext();if(!location.hash)location.hash="#/overview";await renderRoute();}
-  catch(e){console.error(e);toast("โหลดข้อมูลผู้ใช้ไม่สำเร็จ: "+e.message,"error");}
+  try{await loadContext();if(!location.hash)location.hash=state.pendingInvitation?"#/activate":"#/overview";await renderRoute();}
+  catch(e){
+    console.error(e);
+    if(e&&e.message==="LAO_ACCESS_REQUIRED"){
+      await supabase.auth.signOut();
+      showAuth();
+      toast("บัญชีนี้ยังไม่ได้รับคำเชิญจากผู้ดูแล LAO-EMS","error");
+      return;
+    }
+    toast("โหลดข้อมูลผู้ใช้ไม่สำเร็จ: "+e.message,"error");
+  }
 }
 function showAuth(){q("#app-shell").classList.add("hidden");q("#auth-screen").classList.remove("hidden");}
 
