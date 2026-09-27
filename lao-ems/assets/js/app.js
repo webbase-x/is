@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.1.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.0";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -79,6 +79,90 @@ async function checkLatestVersion(){
       document.body.appendChild(notice);
     }
   }catch(_){}
+}
+
+function ensurePullRefreshIndicator(){
+  let indicator=q("#pull-refresh-indicator");
+  if(indicator)return indicator;
+  indicator=document.createElement("div");
+  indicator.id="pull-refresh-indicator";
+  indicator.className="pull-refresh-indicator";
+  indicator.setAttribute("aria-live","polite");
+  indicator.innerHTML='<span class="pull-refresh-icon" aria-hidden="true">↻</span><span class="pull-refresh-label">ดึงลงเพื่อรีเฟรช</span>';
+  document.body.appendChild(indicator);
+  return indicator;
+}
+function setPullRefreshState(stateName,distance){
+  const indicator=ensurePullRefreshIndicator();
+  const label=q(".pull-refresh-label",indicator);
+  indicator.dataset.state=stateName;
+  if(typeof distance==="number"){
+    indicator.style.setProperty("--pull-distance",Math.max(0,Math.min(distance,112))+"px");
+  }
+  if(stateName==="ready")label.textContent="ปล่อยเพื่อรีเฟรช";
+  else if(stateName==="refreshing")label.textContent="กำลังโหลดรุ่นล่าสุด...";
+  else label.textContent="ดึงลงเพื่อรีเฟรช";
+}
+async function clearLaoEmsRuntimeCache(){
+  if(!("caches" in window))return;
+  try{
+    const keys=await caches.keys();
+    const own=keys.filter(name=>/lao[-_ ]?ems/i.test(name));
+    await Promise.all(own.map(name=>caches.delete(name)));
+  }catch(_){}
+}
+async function forceRefreshCurrentPage(){
+  setPullRefreshState("refreshing",92);
+  await clearLaoEmsRuntimeCache();
+  try{
+    await fetch("./VERSION?refresh="+Date.now(),{cache:"no-store"});
+    await fetch(location.pathname+"?lao_preload="+Date.now(),{cache:"reload"});
+  }catch(_){}
+  const url=new URL(location.href);
+  url.searchParams.set("lao_refresh",String(Date.now()));
+  location.replace(url.toString());
+}
+function bindPullToRefresh(){
+  if(!("ontouchstart" in window)&&!(navigator.maxTouchPoints>0))return;
+  const indicator=ensurePullRefreshIndicator();
+  let startY=0,startX=0,pulling=false,armed=false;
+  const threshold=82;
+  const reset=()=>{
+    if(indicator.dataset.state==="refreshing")return;
+    pulling=false;armed=false;
+    indicator.classList.remove("is-visible");
+    setPullRefreshState("idle",0);
+  };
+  document.addEventListener("touchstart",event=>{
+    if(event.touches.length!==1)return;
+    if(window.scrollY>0||document.documentElement.scrollTop>0)return;
+    const target=event.target;
+    if(target&&target.closest&&target.closest("input,textarea,select,button,a,[contenteditable='true'],.table-wrap,.modal"))return;
+    startY=event.touches[0].clientY;
+    startX=event.touches[0].clientX;
+    pulling=true;armed=false;
+  },{passive:true});
+  document.addEventListener("touchmove",event=>{
+    if(!pulling||event.touches.length!==1)return;
+    const dy=event.touches[0].clientY-startY;
+    const dx=Math.abs(event.touches[0].clientX-startX);
+    if(dy<=0||dx>dy){reset();return;}
+    if(window.scrollY>0||document.documentElement.scrollTop>0){reset();return;}
+    if(dy<8)return;
+    event.preventDefault();
+    const resisted=Math.min(112,dy*.58);
+    armed=resisted>=threshold;
+    indicator.classList.add("is-visible");
+    setPullRefreshState(armed?"ready":"pulling",resisted);
+  },{passive:false});
+  document.addEventListener("touchend",()=>{
+    if(!pulling)return;
+    const shouldRefresh=armed;
+    pulling=false;armed=false;
+    if(shouldRefresh){void forceRefreshCurrentPage();}
+    else reset();
+  },{passive:true});
+  document.addEventListener("touchcancel",reset,{passive:true});
 }
 
 
@@ -1513,6 +1597,7 @@ async function init(){
   renderAppVersion();
   void checkLatestVersion();
   bindStaticUI();
+  bindPullToRefresh();
   const savedEmail=localStorage.getItem("lao_saved_email");
   const remember=localStorage.getItem("lao_remember_login")==="1";
   const signInForm=q("#signin-form");
@@ -1523,6 +1608,12 @@ async function init(){
   const res=await supabase.auth.getSession();
   q("#boot-screen").classList.add("hidden");
   const query=new URLSearchParams(location.search);
+  const refreshToken=query.get("lao_refresh");
+  if(refreshToken){
+    query.delete("lao_refresh");
+    const rest=query.toString();
+    history.replaceState(null,"",location.pathname+(rest?"?"+rest:"")+location.hash);
+  }
   const driveResult=query.get("drive");
   if(driveResult){
     history.replaceState(null,"",location.pathname+location.hash);
