@@ -253,8 +253,15 @@ function refreshHeader(){
     item.classList.toggle("hidden",!(adminMode||(!state.isPlatformAdmin&&hasRole("organization_admin","school_admin"))));
   });
   qa("[data-lec-menu]").forEach(item=>{
-    const onboarding=Boolean(state.pendingInvitation&&state.pendingInvitation.status==="onboarding");
-    item.classList.toggle("hidden",!(adminMode||onboarding||(!state.isPlatformAdmin&&hasRole("school_admin"))));
+    const approvedFirstSchoolAdmin=Boolean(
+      !state.isPlatformAdmin &&
+      state.pendingInvitation &&
+      state.pendingInvitation.status==="onboarding" &&
+      state.pendingInvitation.invitation_mode==="platform_first_admin" &&
+      state.pendingInvitation.role_code==="school_admin"
+    );
+    const activeSchoolAdmin=!state.isPlatformAdmin&&hasRole("school_admin");
+    item.classList.toggle("hidden",!(approvedFirstSchoolAdmin||activeSchoolAdmin));
   });
 
   const notif=q("[data-notification-count]");
@@ -426,13 +433,13 @@ async function organizationHtml(){
     const source=synced?'<span class="pill success">LEC</span>':'<span class="pill warning">รอ LEC</span>';
     const area=[s.lec_district_name_th,s.lec_province_name_th].filter(Boolean).join(" · ")||"-";
     const last=s.lec_synced_at?new Date(s.lec_synced_at).toLocaleString("th-TH"):"ยังไม่เคยนำเข้า";
-    return '<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||s.lec_organization_name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.code||"")+'</small></td><td>'+esc(area)+'</td><td>'+source+'<br><small>'+esc(last)+'</small></td><td><button class="secondary-btn" data-school-lec="'+s.id+'">ดูข้อมูล LEC</button></td></tr>';
+    return '<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||s.lec_organization_name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.code||"")+'</small></td><td>'+esc(area)+'</td><td>'+source+'<br><small>'+esc(last)+'</small></td><td><span class="pill success">อ่านจาก LEC</span></td></tr>';
   }).join("");
 
   const flow='<article class="panel source-only-panel"><div class="panel-head"><div><p class="eyebrow">LEC SOURCE ONLY</p><h2>ไม่กรอก อปท. หรือสถานศึกษาเอง</h2><p class="panel-sub">ข้อมูลทางราชการของ อปท. และสถานศึกษาจะถูกสร้างจากไฟล์ LEC เท่านั้น เพื่อให้ตรงกับระบบกลาง</p></div><span class="source-lock">🔒 LEC เท่านั้น</span></div><div class="onboarding-flow"><div><span>1</span><strong>เชิญ School Admin คนแรก</strong><small>Platform Admin ระบุเฉพาะอีเมลผู้ดูแลคนแรก</small></div><div><span>2</span><strong>ผู้รับยืนยันบัญชี</strong><small>ตั้งค่าโปรไฟล์และรหัสผ่านของตนเอง</small></div><div><span>3</span><strong>นำเข้าไฟล์ LEC</strong><small>ระบบสร้าง อปท. และสถานศึกษาอัตโนมัติจากข้อมูลในไฟล์</small></div></div>'+(state.isPlatformAdmin?'<div class="action-row"><a class="primary-btn" href="#/users">เชิญ School Admin คนแรก</a></div>':'')+'</article>';
 
   const list=schools.length
-    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC master data</p><h2>อปท. และสถานศึกษาในระบบ</h2><p class="panel-sub">หน้านี้เป็นแบบอ่านอย่างเดียว หากข้อมูลเปลี่ยนให้แก้ที่ LEC แล้วนำเข้าไฟล์รอบใหม่</p></div></div><div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>พื้นที่</th><th>ข้อมูลต้นทาง</th><th>ดำเนินการ</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>'
+    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC master data</p><h2>อปท. และสถานศึกษาในระบบ</h2><p class="panel-sub">หน้านี้เป็นแบบอ่านอย่างเดียว หากข้อมูลเปลี่ยนให้แก้ที่ LEC แล้วนำเข้าไฟล์รอบใหม่</p></div></div><div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>พื้นที่</th><th>ข้อมูลต้นทาง</th><th>สถานะ</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>'
     : '<article class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษาจาก LEC</h3><p>ไม่ต้องสร้าง อปท. หรือโรงเรียนด้วยมือ ให้เชิญ School Admin คนแรก แล้วผู้ดูแลโรงเรียนนำเข้าไฟล์ LEC เพื่อสร้างข้อมูลอัตโนมัติ</p>'+(state.isPlatformAdmin?'<a class="primary-btn" href="#/users">เชิญ School Admin คนแรก</a>':'')+'</div></article>';
   return '<section class="content-grid">'+flow+list+'</section>';
 }
@@ -834,8 +841,19 @@ function lecMaskId(v){
 }
 async function lecHtml(){
   const school=currentSchool();
-  const onboarding=Boolean(state.pendingInvitation&&state.pendingInvitation.status==="onboarding"&&state.pendingInvitation.invitation_mode==="platform_first_admin"&&!state.pendingInvitation.school_id);
-  if(!school&&!onboarding)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>'+(state.isPlatformAdmin?"เลือกโรงเรียนจากตัวเลือกด้านบนเพื่อดูประวัติ LEC":"ต้องได้รับคำเชิญ School Admin หรือมีสิทธิ์สถานศึกษาก่อน")+'</p></div></section>';
+  const onboarding=Boolean(
+    !state.isPlatformAdmin &&
+    state.pendingInvitation &&
+    state.pendingInvitation.status==="onboarding" &&
+    state.pendingInvitation.invitation_mode==="platform_first_admin" &&
+    state.pendingInvitation.role_code==="school_admin" &&
+    !state.pendingInvitation.school_id
+  );
+  const activeSchoolAdmin=Boolean(!state.isPlatformAdmin&&school&&hasRole("school_admin"));
+
+  if(!onboarding&&!activeSchoolAdmin){
+    return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>หน้านี้สำหรับ School Admin เท่านั้น</h3><p>ผู้ดูแลสถานศึกษาที่ได้รับการอนุมัติจาก Platform Admin จึงจะสามารถนำเข้าข้อมูล LEC ได้</p><a class="secondary-btn" href="#/overview">กลับหน้าหลัก</a></div></section>';
+  }
 
   let historyRows="";
   if(school){
@@ -846,15 +864,18 @@ async function lecHtml(){
     historyRows=(history.data||[]).map(b=>'<tr><td><strong>'+b.academic_year_be+' / '+b.term_no+'</strong><br><small>'+new Date(b.imported_at).toLocaleString("th-TH")+'</small></td><td>'+esc(b.source_file_name)+'<br><small>'+esc(b.source_sheet_name||"ชีตข้อมูล LEC")+'</small></td><td>'+b.imported_row_count+' / '+b.source_row_count+'</td><td>'+b.new_student_count+'</td><td>'+b.updated_student_count+'</td><td>'+b.missing_from_latest_count+'</td><td>'+(b.issue_count?'<span class="pill danger">'+b.issue_count+'</span>':'<span class="pill success">0</span>')+'</td></tr>').join("");
   }
 
-  const canImport=onboarding||(!state.isPlatformAdmin&&hasRole("school_admin"));
-  const title=onboarding?"นำเข้า LEC ครั้งแรกเพื่อสร้างสถานศึกษา":"นำเข้าข้อมูล LEC";
-  const sub=onboarding?"เลือกไฟล์จาก LEC ระบบจะสร้าง อปท. สถานศึกษา ปีการศึกษา และข้อมูลนักเรียนอัตโนมัติ":"เลือกไฟล์เพียงอย่างเดียว ระบบอ่านข้อมูลทั้งหมดจาก LEC และตรวจสอบก่อนบันทึก · ไม่ใช้ชีต ปพ.8";
-  const importBox=canImport
-    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC → LAO-EMS</p><h2>'+title+'</h2><p class="panel-sub">'+sub+'</p></div><span class="source-lock">🔒 LEC เท่านั้น</span></div><form id="lec-import-form" class="form-grid" style="margin-top:18px"><div class="span-2 auto-source-note"><div class="auto-source-icon">✓</div><div><strong>ไม่ต้องกรอกข้อมูล อปท. หรือสถานศึกษา</strong><p>ระบบอ่านสถานศึกษา จังหวัด อำเภอ อปท. ปีการศึกษา ภาคเรียน ชั้น ห้อง และข้อมูลนักเรียนจาก LEC โดยอัตโนมัติ</p></div></div><label class="lec-drop span-2"><input id="lec-file" name="file" type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><span class="lec-drop-icon">⇧</span><strong>เลือกไฟล์ XLS / XLSX จาก LEC</strong><small>ระบบจะเลือกชีตข้อมูลที่ครบและแสดงข้อมูลให้ตรวจสอบก่อนบันทึก</small></label><div id="lec-preview" class="span-2"></div><div class="span-2"><button class="primary-btn" type="submit" disabled data-lec-import>ยืนยันนำเข้าจาก LEC</button></div></form></article>'
-    : '<article class="panel"><div class="notice"><strong>มุมมองตรวจสอบ</strong><br>'+(state.isPlatformAdmin?"Platform Admin ดูข้อมูลได้ แต่การนำเข้าเป็นหน้าที่ของ School Admin":"ต้องมีบทบาท School Admin จึงจะนำเข้า LEC ได้")+'</div></article>';
+  const title=onboarding?"นำเข้า LEC ครั้งแรก":"นำเข้าข้อมูล LEC";
+  const sub=onboarding
+    ?"บัญชี School Admin ของคุณได้รับการอนุมัติแล้ว สามารถเลือกไฟล์ LEC และนำเข้าได้ทันที"
+    :"เลือกไฟล์จาก LEC ระบบจะตรวจสอบและอัปเดตข้อมูลตามแหล่งต้นทางโดยอัตโนมัติ";
+
+  const sourceInfo='<article class="panel lec-source-info"><div class="panel-head"><div><p class="eyebrow">แหล่งที่มาของข้อมูล</p><h2>ระบบสารสนเทศทางการศึกษาท้องถิ่น (LEC)</h2><p class="panel-sub">LAO-EMS ใช้ไฟล์ XLS/XLSX ที่ดาวน์โหลดจากระบบ LEC เป็นแหล่งข้อมูลต้นทางสำหรับข้อมูล อปท. สถานศึกษา ปีการศึกษา ภาคเรียน ชั้น ห้อง และข้อมูลนักเรียน เพื่อให้ข้อมูลในระบบสอดคล้องกับระบบกลางขององค์กรปกครองส่วนท้องถิ่น</p></div><span class="source-lock">🔒 LEC เท่านั้น</span></div><div class="lec-source-actions"><a class="primary-btn" href="https://lec.dla.go.th/index.jsp" target="_blank" rel="noopener noreferrer">เปิดระบบ LEC ↗</a><small>เว็บไซต์: lec.dla.go.th · ดาวน์โหลดไฟล์ข้อมูลจาก LEC แล้วกลับมานำเข้าที่หน้านี้</small></div></article>';
+
+  const importBox='<article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC → LAO-EMS</p><h2>'+title+'</h2><p class="panel-sub">'+sub+'</p></div><span class="pill success">School Admin</span></div><form id="lec-import-form" class="form-grid" style="margin-top:18px"><div class="span-2 auto-source-note"><div class="auto-source-icon">✓</div><div><strong>ไม่ต้องกรอกข้อมูลซ้ำ</strong><p>ระบบอ่านสถานศึกษา จังหวัด อำเภอ อปท. ปีการศึกษา ภาคเรียน ชั้น ห้อง และข้อมูลนักเรียนจากไฟล์ LEC โดยอัตโนมัติ</p></div></div><label class="lec-drop span-2"><input id="lec-file" name="file" type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><span class="lec-drop-icon">⇧</span><strong>เลือกไฟล์ XLS / XLSX จาก LEC</strong><small>ระบบจะเลือกชีตข้อมูลที่ครบและแสดงข้อมูลให้ตรวจสอบก่อนบันทึก</small></label><div id="lec-preview" class="span-2"></div><div class="span-2"><button class="primary-btn" type="submit" disabled data-lec-import>ยืนยันนำเข้าจาก LEC</button></div></form></article>';
 
   const hist=school?'<article class="panel"><div class="panel-head"><div><p class="eyebrow">Import history</p><h2>ประวัติการนำเข้า LEC · '+esc(school.name_th)+'</h2><p class="panel-sub">ข้อมูลเดิมไม่ถูกลบ เมื่อเด็กหายจากไฟล์รอบใหม่จะบันทึกว่า “ไม่พบใน LEC รอบล่าสุด” เท่านั้น</p></div></div>'+(historyRows?'<div class="table-wrap"><table><thead><tr><th>ปี / ภาค</th><th>ไฟล์</th><th>นำเข้า / ทั้งหมด</th><th>นักเรียนใหม่</th><th>อัปเดต</th><th>ไม่พบรอบล่าสุด</th><th>ปัญหา</th></tr></thead><tbody>'+historyRows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">⇧</div><h3>ยังไม่เคยนำเข้า LEC</h3></div>')+'</article>':'';
-  return '<section class="source-banner"><div><span class="badge">Single Source of Truth</span><h2>LEC คือข้อมูลต้นทาง</h2><p>LAO-EMS ไม่ให้กรอกข้อมูลทางราชการซ้ำ ข้อมูล อปท. สถานศึกษา และนักเรียนมาจาก LEC</p></div><div class="banner-status"><span class="status-pill success">XLS/XLSX</span><span class="status-pill success">ไม่ต้องกรอกเอง</span><span class="status-pill success">เลือกชีตอัตโนมัติ</span></div></section><section class="content-grid">'+importBox+hist+'</section>';
+
+  return '<section class="source-banner"><div><span class="badge">School Admin · Approved</span><h2>นำเข้าข้อมูลจาก LEC</h2><p>บัญชี School Admin ที่ได้รับการอนุมัติจาก Platform Admin สามารถนำเข้าไฟล์ LEC ได้โดยตรง</p></div><div class="banner-status"><span class="status-pill success">XLS/XLSX</span><span class="status-pill success">ไม่ต้องกรอกเอง</span><span class="status-pill success">เลือกชีตอัตโนมัติ</span></div></section><section class="content-grid">'+sourceInfo+importBox+hist+'</section>';
 }
 
 function lecSchoolFieldLabel(key){
@@ -966,16 +987,7 @@ function placeholderHtml(route){
   return '<section class="placeholder-page"><span class="placeholder-icon">◫</span><p class="eyebrow">'+phase+'</p><h2>'+esc(meta[0])+'</h2><p>'+esc(meta[1])+'<br>โมดูลนี้จะเริ่มหลังข้อมูลต้นทางที่จำเป็นก่อนหน้าพร้อม เพื่อไม่สร้างข้อมูลซ้ำหรือความสัมพันธ์ที่ต้องรื้อภายหลัง</p><a class="primary-btn" href="#/overview">กลับหน้าภาพรวม</a></section>';
 }
 
-function bindOrganizationForms(){
-  qa("[data-school-lec]").forEach(btn=>btn.addEventListener("click",()=>{
-    if(state.isPlatformAdmin){
-      state.adminSchool=state.adminSchools.find(s=>s.id===btn.dataset.schoolLec)||null;
-      if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
-      renderTenants();
-    }
-    location.hash="#/lec";
-  }));
-}
+function bindOrganizationForms(){}
 
 function readFunctionError(error){
   if(error&&error.context&&typeof error.context.json==="function"){
@@ -1061,6 +1073,21 @@ async function renderRoute(){
   const invitationStatus=state.pendingInvitation&&state.pendingInvitation.status;
   if(invitationStatus==="pending"&&route!=="activate"){location.hash="#/activate";route="activate";}
   if(invitationStatus==="onboarding"&&route!=="lec"){location.hash="#/lec";route="lec";}
+  if(route==="lec"){
+    const approvedFirstSchoolAdmin=Boolean(
+      !state.isPlatformAdmin &&
+      state.pendingInvitation &&
+      state.pendingInvitation.status==="onboarding" &&
+      state.pendingInvitation.invitation_mode==="platform_first_admin" &&
+      state.pendingInvitation.role_code==="school_admin"
+    );
+    const activeSchoolAdmin=!state.isPlatformAdmin&&hasRole("school_admin");
+    if(!approvedFirstSchoolAdmin&&!activeSchoolAdmin){
+      location.hash="#/overview";
+      route="overview";
+      toast("หน้านำเข้า LEC สำหรับ School Admin ที่ได้รับอนุมัติเท่านั้น","error");
+    }
+  }
   const meta=routeMeta[route]||routeMeta.overview,main=q("#main");
   q("[data-page-title]").textContent=meta[0];
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
