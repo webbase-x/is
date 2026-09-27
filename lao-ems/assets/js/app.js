@@ -1,4 +1,4 @@
-import { supabase } from "./supabase.js?v=20260927-1";
+import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user"};
 
@@ -122,7 +122,11 @@ function bindStaticUI(){
   q("[data-sidebar-close]").addEventListener("click",close);
   scrim.addEventListener("click",close);
   window.addEventListener("hashchange",()=>{renderRoute();close();});
-  q("[data-signout]").addEventListener("click",async()=>{await supabase.auth.signOut();});
+  q("[data-signout]").addEventListener("click",()=>{
+    localStorage.setItem("lao_legacy_session_rejected","1");
+    clearLaoAuthSession();
+    location.reload();
+  });
   const profileButton=q(".profile-btn");
   if(profileButton)profileButton.addEventListener("click",()=>{location.hash="#/profile";});
   q("#tenant-select").addEventListener("change",e=>{
@@ -943,9 +947,9 @@ async function showApp(session){
     console.error(e);
     if(e&&e.message==="LAO_ACCESS_REQUIRED"){
       localStorage.setItem("lao_legacy_session_rejected","1");
-      await supabase.auth.signOut();
-      showAuth();
-      toast("บัญชีนี้ยังไม่ได้รับคำเชิญจากผู้ดูแล LAO-EMS","error");
+      sessionStorage.setItem("lao_access_denied_notice","1");
+      clearLaoAuthSession();
+      location.reload();
       return;
     }
     toast("โหลดข้อมูลผู้ใช้ไม่สำเร็จ: "+e.message,"error");
@@ -964,7 +968,13 @@ async function init(){
   }
   const res=await supabase.auth.getSession();
   q("#boot-screen").classList.add("hidden");
-  if(res.data.session)await showApp(res.data.session);else showAuth();
+  if(res.data.session)await showApp(res.data.session);else{
+    showAuth();
+    if(sessionStorage.getItem("lao_access_denied_notice")==="1"){
+      sessionStorage.removeItem("lao_access_denied_notice");
+      toast("บัญชีนี้ยังไม่ได้รับคำเชิญจากผู้ดูแล LAO-EMS","error");
+    }
+  }
   supabase.auth.onAuthStateChange(async(event,session)=>{
     if(event==="SIGNED_OUT"||!session){state.session=state.user=state.profile=state.currentMembership=null;state.memberships=[];showAuth();return;}
     if(event==="SIGNED_IN")await showApp(session);
