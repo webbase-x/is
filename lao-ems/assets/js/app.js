@@ -208,6 +208,7 @@ async function loadContext(){
   const accessRes=await supabase.rpc("lao_has_lao_access");
   if(accessRes.error)throw accessRes.error;
   if(accessRes.data!==true)throw new Error("LAO_ACCESS_REQUIRED");
+  localStorage.removeItem("lao_legacy_session_rejected");
   await ensureProfile();
   const profileRes=await supabase.from("lao_profiles").select("*").eq("user_id",state.user.id).maybeSingle();
   if(profileRes.error)throw profileRes.error;
@@ -941,6 +942,7 @@ async function showApp(session){
   catch(e){
     console.error(e);
     if(e&&e.message==="LAO_ACCESS_REQUIRED"){
+      localStorage.setItem("lao_legacy_session_rejected","1");
       await supabase.auth.signOut();
       showAuth();
       toast("บัญชีนี้ยังไม่ได้รับคำเชิญจากผู้ดูแล LAO-EMS","error");
