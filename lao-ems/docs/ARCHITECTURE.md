@@ -121,3 +121,7 @@ Import layers:
 6. Family, address, measurement and benefit snapshot tables — time-stamped by LEC import batch.
 
 A missing student in a newer LEC file is not deleted and is not automatically classified as transferred out. Only a future registry/ปพ. workflow may change the official registry status.
+
+
+### School identity reconciliation
+LEC school metadata and student rows are treated as one source snapshot. `lao_lec_school_check()` compares the incoming school identity/details with the tenant before import. `lao_lec_school_snapshots` preserves each accepted school snapshot and its diff. A different already-bound school code is a hard stop. Non-identity changes require explicit School Admin confirmation to adopt the new LEC snapshot. Keeping old values means cancelling the import, not importing students against stale school metadata.
