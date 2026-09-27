@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.7.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.8.0";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -274,9 +274,103 @@ function hasDisplayValue(value){
   if(typeof value==="string")return value.trim()!=="";
   return true;
 }
+function isGoogleAuthUser(){
+  const u=state.user||{};
+  const providers=(u.app_metadata&&u.app_metadata.providers)||[];
+  if(Array.isArray(providers)&&providers.includes("google"))return true;
+  return Array.isArray(u.identities)&&u.identities.some(x=>x&&x.provider==="google");
+}
+function isStandalonePwa(){
+  return Boolean(
+    (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)
+    || window.navigator.standalone===true
+  );
+}
+async function detectPwaInstalled(){
+  if(isStandalonePwa()){
+    localStorage.setItem("lao_pwa_installed","1");
+    state.pwaInstalled=true;
+    return true;
+  }
+  try{
+    if(typeof navigator.getInstalledRelatedApps==="function"){
+      const apps=await navigator.getInstalledRelatedApps();
+      if(Array.isArray(apps)&&apps.length){
+        localStorage.setItem("lao_pwa_installed","1");
+        state.pwaInstalled=true;
+        return true;
+      }
+    }
+  }catch(_){}
+  state.pwaInstalled=localStorage.getItem("lao_pwa_installed")==="1";
+  return state.pwaInstalled;
+}
+function installCardHtml(){
+  if(state.pwaInstalled||isStandalonePwa())return "";
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent||"");
+  return '<section class="pwa-install-card" data-pwa-install-card><div class="pwa-install-icon">L</div><div class="pwa-install-copy"><p class="eyebrow">WEB APP</p><h2>ติดตั้ง LAO-EMS บนอุปกรณ์นี้</h2><p>'+(ios?'เพิ่มไว้บนหน้าจอโฮมเพื่อเปิดใช้งานเหมือนแอป และเข้าระบบได้สะดวกขึ้น':'ติดตั้งเป็น Web App เพื่อเปิดจากหน้าจอหลักหรือเดสก์ท็อปได้ทันที')+'</p></div><button class="primary-btn" type="button" data-pwa-install>'+(ios?'วิธีติดตั้ง':'ติดตั้งแอป')+'</button></section>';
+}
+function bindPwaInstallCard(){
+  const btn=q("[data-pwa-install]");if(!btn)return;
+  btn.addEventListener("click",async()=>{
+    if(state.installPrompt){
+      const promptEvent=state.installPrompt;
+      state.installPrompt=null;
+      await promptEvent.prompt();
+      const choice=await promptEvent.userChoice.catch(()=>null);
+      if(choice&&choice.outcome==="accepted"){
+        localStorage.setItem("lao_pwa_installed","1");
+        state.pwaInstalled=true;
+        toast("กำลังติดตั้ง LAO-EMS บนอุปกรณ์นี้","success");
+        renderRoute();
+      }
+      return;
+    }
+    const ios=/iphone|ipad|ipod/i.test(navigator.userAgent||"");
+    if(ios)toast("บน iPhone/iPad: แตะปุ่มแชร์ แล้วเลือก “เพิ่มไปยังหน้าจอโฮม”","success");
+    else toast("เปิดเมนูของเบราว์เซอร์ แล้วเลือก “ติดตั้งแอป” หรือ “Add to Home screen”","success");
+  });
+}
+function bindPwaRuntime(){
+  if("serviceWorker" in navigator){
+    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(err=>console.error("PWA service worker",err)),{once:true});
+  }
+  window.addEventListener("beforeinstallprompt",event=>{
+    event.preventDefault();
+    state.installPrompt=event;
+    if(state.user&&routeName()==="overview"&&!state.pwaInstalled)renderRoute();
+  });
+  window.addEventListener("appinstalled",()=>{
+    localStorage.setItem("lao_pwa_installed","1");
+    state.pwaInstalled=true;
+    state.installPrompt=null;
+    if(state.user&&routeName()==="overview")renderRoute();
+  });
+}
+async function signInWithGoogle(){
+  const btn=q("[data-google-signin]");if(!btn)return;
+  const remember=q('#signin-form input[name="remember_login"]');
+  if(remember&&remember.checked)localStorage.setItem("lao_remember_login","1");
+  else localStorage.removeItem("lao_remember_login");
+  setBusy(btn,true,"กำลังเปิด Google...");
+  const redirectPath=location.pathname.endsWith("/")?location.pathname:location.pathname.replace(/\/[^/]*$/,"/");
+  const res=await supabase.auth.signInWithOAuth({
+    provider:"google",
+    options:{
+      redirectTo:new URL(redirectPath,location.origin).href,
+      queryParams:{prompt:"select_account"}
+    }
+  });
+  if(res.error){
+    setBusy(btn,false);
+    toast("เข้าสู่ระบบด้วย Google ไม่สำเร็จ: "+res.error.message,"error");
+  }
+}
 
 function bindStaticUI(){
   q("#signin-form").addEventListener("submit",signIn);
+  const googleBtn=q("[data-google-signin]");
+  if(googleBtn)googleBtn.addEventListener("click",signInWithGoogle);
   bindPasswordToggles();
   /* password toggles are bound once by bindPasswordToggles */
   qa("[data-password-toggle]").filter(button=>button.dataset.bound!=="1").forEach(button=>button.addEventListener("click",()=>{
@@ -434,6 +528,9 @@ async function loadSchoolSetupStatus(){
   return state.schoolSetup;
 }
 async function loadContext(){
+  const emailGate=await supabase.rpc("lao_email_is_authorized");
+  if(emailGate.error)throw emailGate.error;
+  if(emailGate.data!==true)throw new Error("LAO_EMAIL_NOT_AUTHORIZED");
   const adminRes=await supabase.rpc("lao_is_platform_admin");
   if(adminRes.error)throw adminRes.error;
   state.isPlatformAdmin=adminRes.data===true;
@@ -672,7 +769,7 @@ function bindPasswordToggles(root=document){
 function activationHtml(){
   const inv=state.pendingInvitation;
   if(!inv)return '<section class="panel"><div class="empty-state"><div class="empty-icon">✓</div><h3>บัญชีพร้อมใช้งานแล้ว</h3><p>ไม่มีคำเชิญที่รอดำเนินการ</p><a class="primary-btn" href="#/overview">ไปหน้าหลัก</a></div></section>';
-  const hasActive=state.memberships.some(m=>m.status==="active"),requirePassword=!hasActive;
+  const hasActive=state.memberships.some(m=>m.status==="active"),requirePassword=!hasActive&&!isGoogleAuthUser();
   const unbound=inv.invitation_mode==="platform_first_admin"&&!inv.school_id;
   const schoolLabel=unbound?"จะสร้างจากไฟล์ LEC หลังยืนยันบัญชี":(inv.school_name||"-");
   return '<section class="onboarding-shell"><article class="panel onboarding-card"><div class="panel-head"><div><p class="eyebrow">Account activation</p><h2>ตั้งค่าบัญชี LAO-EMS</h2><p class="panel-sub">กรอกโปรไฟล์และ'+(requirePassword?'กำหนดรหัสผ่านใหม่':'ตรวจสอบข้อมูลก่อนรับสิทธิ์ใหม่')+'</p></div></div><div class="invite-summary"><div><small>อีเมล</small><strong>'+esc(state.user.email||inv.email||"-")+'</strong></div><div><small>สถานศึกษา</small><strong>'+esc(schoolLabel)+'</strong></div><div><small>บทบาท</small><strong>'+esc(roleLabels[inv.role_code]||inv.role_code)+'</strong></div></div>'+(unbound?'<div class="notice success">หลังบันทึกบัญชี ระบบจะพาไปหน้า “นำเข้า LEC” เพื่อสร้างข้อมูล อปท. และสถานศึกษาจากไฟล์ต้นทางโดยอัตโนมัติ</div>':'')+'<form id="activation-form" class="form-grid">'+profileFieldsHtml("activation")+passwordFieldsHtml(requirePassword)+'<div class="span-2 notice">'+(requirePassword?'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และจะใช้เข้าสู่ระบบครั้งถัดไป':'หากต้องการเปลี่ยนรหัสผ่านในครั้งนี้ สามารถกรอกช่องรหัสผ่านใหม่ได้')+'</div><div class="span-2"><button class="primary-btn" type="submit">'+(unbound?'บันทึกโปรไฟล์และไปนำเข้า LEC':'บันทึกโปรไฟล์และเปิดใช้งานบัญชี')+'</button></div></form></article></section>';
@@ -1897,7 +1994,7 @@ function bindActivation(){
     e.preventDefault();
     const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
     const password=String(fd.get("password")||""),confirmPassword=String(fd.get("confirm_password")||"");
-    const mustSet=!state.memberships.some(m=>m.status==="active");
+    const mustSet=!state.memberships.some(m=>m.status==="active")&&!isGoogleAuthUser();
     if(mustSet&&!password){toast("กรุณากำหนดรหัสผ่านใหม่","error");return;}
     if(password&&password.length<8){toast("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร","error");return;}
     if(password!==confirmPassword){toast("รหัสผ่านทั้งสองช่องไม่ตรงกัน","error");return;}
@@ -2041,7 +2138,7 @@ async function renderRoute(){
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
   main.innerHTML='<section class="panel"><div class="loading-inline"><span class="spinner"></span>กำลังโหลด...</div></section>';
   try{
-    if(route==="overview"){main.innerHTML=(state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():overviewHtml();bindOverview();}
+    if(route==="overview"){main.innerHTML=installCardHtml()+((state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():overviewHtml());bindOverview();bindPwaInstallCard();}
     else if(route==="membership"){main.innerHTML=membershipHtml();}
     else if(route==="activate"){main.innerHTML=activationHtml();bindActivation();}
     else if(route==="profile"){main.innerHTML=profileHtml();bindProfile();}
@@ -2061,6 +2158,7 @@ async function showApp(session){
   state.session=session;state.user=session.user;
   q("#auth-screen").classList.add("hidden");q("#app-shell").classList.remove("hidden");
   try{
+    await detectPwaInstalled();
     await loadContext();
     if(!location.hash)location.hash=state.pendingInvitation?"#/activate":"#/overview";
     await renderRoute();
@@ -2073,9 +2171,10 @@ async function showApp(session){
   }
   catch(e){
     console.error(e);
-    if(e&&e.message==="LAO_ACCESS_REQUIRED"){
+    if(e&&(e.message==="LAO_ACCESS_REQUIRED"||e.message==="LAO_EMAIL_NOT_AUTHORIZED")){
       localStorage.setItem("lao_legacy_session_rejected","1");
-      sessionStorage.setItem("lao_access_denied_notice","1");
+      sessionStorage.setItem(e.message==="LAO_EMAIL_NOT_AUTHORIZED"?"lao_email_denied_notice":"lao_access_denied_notice","1");
+      try{await supabase.auth.signOut({scope:"local"});}catch(_){}
       clearLaoAuthSession();
       location.reload();
       return;
@@ -2109,6 +2208,7 @@ async function init(){
   void checkLatestVersion();
   bindStaticUI();
   bindPullToRefresh();
+  bindPwaRuntime();
   const savedEmail=localStorage.getItem("lao_saved_email");
   const remember=localStorage.getItem("lao_remember_login")==="1";
   const signInForm=q("#signin-form");
@@ -2134,7 +2234,10 @@ async function init(){
   if(schoolAdminApplyToken())showAuth();
   else if(res.data.session)await showApp(res.data.session);else{
     showAuth();
-    if(sessionStorage.getItem("lao_access_denied_notice")==="1"){
+    if(sessionStorage.getItem("lao_email_denied_notice")==="1"){
+      sessionStorage.removeItem("lao_email_denied_notice");
+      toast("อีเมล Google นี้ยังไม่มีสิทธิ์ใน LAO-EMS กรุณาใช้อีเมลที่ผู้ดูแลบันทึกไว้ในระบบ","error");
+    }else if(sessionStorage.getItem("lao_access_denied_notice")==="1"){
       sessionStorage.removeItem("lao_access_denied_notice");
       toast("บัญชีนี้ยังไม่ได้รับคำเชิญจากผู้ดูแล LAO-EMS","error");
     }
