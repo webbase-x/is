@@ -529,3 +529,28 @@ table{max-width:none}
   .student-roster-row .gender-badge{grid-column:3}
   .student-roster-row .roster-open{grid-column:4}
 }
+
+
+/* PWA install + Google sign-in — v0.8.0 */
+.auth-divider{display:flex;align-items:center;gap:12px;color:#98a2b3;font-size:11px;margin:2px 0}
+.auth-divider::before,.auth-divider::after{content:"";height:1px;background:#eaecf0;flex:1}
+.google-signin-btn{border:1px solid #d0d5dd;background:#fff;color:#344054;border-radius:11px;padding:10px 14px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px}
+.google-signin-btn:hover{background:#f9fafb;border-color:#98a2b3}
+.google-signin-btn:disabled{opacity:.55;cursor:not-allowed}
+.google-mark{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-family:Arial,sans-serif;background:conic-gradient(from -45deg,#4285f4 0 25%,#34a853 0 50%,#fbbc05 0 75%,#ea4335 0);color:#fff;box-shadow:inset 0 0 0 5px #fff;font-size:0}
+.google-mark::after{content:"G";font-size:13px;color:#4285f4;background:#fff;width:16px;height:16px;border-radius:50%;display:grid;place-items:center}
+.google-login-note{margin:0;text-align:center;color:#667085;font-size:10px;line-height:1.5}
+.pwa-install-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;margin-bottom:18px;padding:15px 16px;border:1px solid #b2ddff;border-radius:17px;background:linear-gradient(135deg,#f8fbff,#eff8ff);box-shadow:0 6px 18px rgba(16,24,40,.05);min-width:0}
+.pwa-install-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,#2563eb,#0f766e);color:#fff;font-size:20px;font-weight:900;box-shadow:0 8px 18px rgba(15,91,211,.18)}
+.pwa-install-copy{min-width:0}
+.pwa-install-copy h2{margin:1px 0 3px;font-size:15px;color:#101828}
+.pwa-install-copy p:not(.eyebrow){margin:0;color:#667085;font-size:11px;line-height:1.5}
+.pwa-install-card>.primary-btn{white-space:nowrap}
+@media(max-width:700px){
+  .pwa-install-card{grid-template-columns:auto minmax(0,1fr);gap:11px;padding:13px}
+  .pwa-install-card>.primary-btn{grid-column:1/-1;width:100%}
+}
+@media(max-width:430px){
+  .pwa-install-icon{width:40px;height:40px;border-radius:12px;font-size:17px}
+  .pwa-install-copy h2{font-size:14px}
+}
