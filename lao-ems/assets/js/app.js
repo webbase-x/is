@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.5.1";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.6.0";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:50},isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -240,6 +240,39 @@ function thaiDate(value){
   if(!value)return "-";
   const d=new Date(value+"T00:00:00");
   return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"numeric"});
+}
+function thaiDateTime(value){
+  if(!value)return "-";
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?String(value):d.toLocaleString("th-TH",{dateStyle:"medium",timeStyle:"short"});
+}
+function money(value){
+  if(value==null||value==="")return "-";
+  const n=Number(value);
+  return Number.isFinite(n)?n.toLocaleString("th-TH",{maximumFractionDigits:2})+" บาท":String(value);
+}
+function relationLabel(value){
+  return ({father:"บิดา",mother:"มารดา",guardian:"ผู้ปกครอง"})[value]||value||"-";
+}
+function addressLabel(value){
+  return value==="registered"?"ที่อยู่ตามทะเบียนบ้าน":value==="current"?"ที่อยู่ปัจจุบัน":value||"ที่อยู่";
+}
+function formatAddress(a){
+  if(!a)return "-";
+  return [
+    a.house_no?"เลขที่ "+a.house_no:"",
+    a.moo?"หมู่ "+a.moo:"",
+    a.road?"ถนน "+a.road:"",
+    a.subdistrict?"ตำบล/แขวง "+a.subdistrict:"",
+    a.district?"อำเภอ/เขต "+a.district:"",
+    a.province?"จังหวัด "+a.province:"",
+    a.postal_code||""
+  ].filter(Boolean).join(" ")||"-";
+}
+function hasDisplayValue(value){
+  if(value==null)return false;
+  if(typeof value==="string")return value.trim()!=="";
+  return true;
 }
 
 function bindStaticUI(){
@@ -1688,23 +1721,58 @@ function bindStudents(){
   qa("[data-student-view]").forEach(btn=>btn.addEventListener("click",async()=>{
     const school=currentSchool();if(!school||!dialog)return;
     const body=q(".student-detail-body",dialog);
-    body.innerHTML='<div class="loading-inline"><span class="spinner"></span>กำลังโหลดข้อมูลนักเรียน...</div>';
+    body.innerHTML='<div class="loading-inline"><span class="spinner"></span>กำลังโหลดข้อมูลนักเรียนจาก LEC...</div>';
     if(!dialog.open)dialog.showModal();
     const res=await supabase.rpc("lao_student_detail",{p_school_id:school.id,p_student_id:btn.dataset.studentView});
     if(res.error){body.innerHTML='<div class="notice danger">'+esc(res.error.message)+'</div>';return;}
-    const x=res.data||{},history=(x.enrollments||[]).map(e=>'<tr><td>'+esc(e.year_be||"-")+'</td><td>'+esc(e.term_no||"-")+'</td><td>'+esc(shortGrade(e.grade_level))+'</td><td>'+esc(e.classroom||"-")+'</td><td>'+esc(studentPresenceLabel(e.presence_status))+'</td></tr>').join("");
-    body.innerHTML='<div class="student-detail-hero"><div class="student-detail-avatar">'+esc((x.first_name_th||"น")[0]||"น")+'</div><div><h3>'+esc(x.full_name||"-")+'</h3><p>เลขประจำตัวนักเรียน '+esc(x.student_no||"-")+'</p><span class="source-badge">ข้อมูลจาก LEC</span></div></div>'+
-      '<div class="student-detail-grid">'+
+    const x=res.data||{};
+    const latest=(x.enrollments||[])[0]||{};
+    const history=(x.enrollments||[]).map(e=>'<tr><td>'+esc(e.year_be||"-")+'</td><td>'+esc(e.term_no||"-")+'</td><td>'+esc(shortGrade(e.grade_level))+'</td><td>'+esc(e.classroom||"-")+'</td><td>'+esc(studentPresenceLabel(e.presence_status))+'</td><td>'+esc(e.source_row_no||"-")+'</td></tr>').join("");
+    const family=(x.family||[]).map(f=>'<article class="lec-person-card"><div class="lec-card-title"><span>'+esc(relationLabel(f.relation_type))+'</span><strong>'+esc(f.full_name||"-")+'</strong></div><dl><div><dt>ศาสนา</dt><dd>'+esc(f.religion||"-")+'</dd></div><div><dt>อาชีพ</dt><dd>'+esc(f.occupation||"-")+'</dd></div><div><dt>รายได้/เดือน</dt><dd>'+esc(money(f.monthly_income))+'</dd></div><div><dt>โทรศัพท์</dt><dd>'+esc(f.phone||"-")+'</dd></div>'+(f.relation_type==="guardian"?'<div><dt>ความเกี่ยวข้อง</dt><dd>'+esc(f.relationship_text||"-")+'</dd></div>':'')+'</dl></article>').join("");
+    const addresses=(x.addresses||[]).map(a=>'<article class="lec-address-card"><strong>'+esc(addressLabel(a.address_type))+'</strong><p>'+esc(formatAddress(a))+'</p><div class="lec-mini-grid"><span><small>เลขที่</small>'+esc(a.house_no||"-")+'</span><span><small>หมู่</small>'+esc(a.moo||"-")+'</span><span><small>ถนน/ซอย</small>'+esc(a.road||"-")+'</span><span><small>ตำบล/แขวง</small>'+esc(a.subdistrict||"-")+'</span><span><small>อำเภอ/เขต</small>'+esc(a.district||"-")+'</span><span><small>จังหวัด</small>'+esc(a.province||"-")+'</span><span><small>รหัสไปรษณีย์</small>'+esc(a.postal_code||"-")+'</span></div></article>').join("");
+    const measurement=x.measurement||{};
+    const benefits=x.benefits||{};
+    const source=x.source_import||{};
+    const raw=Object.entries(x.source_fields||{}).filter(([key,value])=>hasDisplayValue(value)).sort((a,b)=>a[0].localeCompare(b[0],"th"));
+    const rawFields=raw.map(([key,value])=>'<div class="lec-source-field"><dt>'+esc(key)+'</dt><dd>'+esc(typeof value==="object"?JSON.stringify(value):value)+'</dd></div>').join("");
+
+    body.innerHTML=
+      '<div class="student-detail-hero"><div class="student-detail-avatar">'+esc((x.first_name_th||"น")[0]||"น")+'</div><div><h3>'+esc(x.full_name||"-")+'</h3><p>เลขประจำตัวนักเรียน '+esc(x.student_no||"-")+(latest.grade_level?' · '+esc(shortGrade(latest.grade_level))+(latest.classroom?' / ห้อง '+esc(latest.classroom):''):'')+'</p><div class="student-detail-badges"><span class="source-badge">ข้อมูลจาก LEC</span><span class="pill '+(x.presence_status==="present"?"success":"warning")+'">'+esc(studentPresenceLabel(x.presence_status))+'</span></div></div></div>'+
+      '<section class="lec-detail-section"><div class="lec-section-head"><div><span>01</span><div><h3>ข้อมูลนักเรียน</h3><p>ข้อมูลประจำตัวและสถานะทะเบียน</p></div></div></div><div class="student-detail-grid">'+
         '<div><small>เลขประชาชน</small><strong>'+esc(x.citizen_id_masked||"-")+'</strong></div>'+
         '<div><small>วันเกิด</small><strong>'+esc(thaiDate(x.birth_date))+'</strong></div>'+
         '<div><small>เชื้อชาติ</small><strong>'+esc(x.race||"-")+'</strong></div>'+
         '<div><small>สัญชาติ</small><strong>'+esc(x.nationality||"-")+'</strong></div>'+
         '<div><small>ศาสนา</small><strong>'+esc(x.religion||"-")+'</strong></div>'+
         '<div><small>วันที่เข้าเรียน</small><strong>'+esc(thaiDate(x.admission_date))+'</strong></div>'+
+        '<div><small>สภาพนักเรียน</small><strong>'+esc(x.student_condition||"-")+'</strong></div>'+
         '<div><small>สถานะทะเบียน</small><strong>'+esc(registryLabel(x.registry_status))+'</strong></div>'+
-        '<div><small>สถานะ LEC</small><strong>'+esc(studentPresenceLabel(x.presence_status))+'</strong></div>'+
-      '</div>'+
-      '<div class="student-history"><h3>ประวัติชั้นเรียนที่นำเข้า</h3>'+(history?'<div class="table-wrap"><table><thead><tr><th>ปี</th><th>ภาคเรียน</th><th>ชั้น</th><th>ห้อง</th><th>สถานะ</th></tr></thead><tbody>'+history+'</tbody></table></div>':'<p class="muted">ยังไม่มีประวัติชั้นเรียน</p>')+'</div>';
+        '<div><small>ชั้นล่าสุด</small><strong>'+esc(shortGrade(latest.grade_level))+'</strong></div>'+
+        '<div><small>ห้องล่าสุด</small><strong>'+esc(latest.classroom||"-")+'</strong></div>'+
+        '<div><small>ปีการศึกษา</small><strong>'+esc(latest.year_be||"-")+'</strong></div>'+
+        '<div><small>ภาคเรียน</small><strong>'+esc(latest.term_no||"-")+'</strong></div>'+
+      '</div></section>'+
+      '<section class="lec-detail-section"><div class="lec-section-head"><div><span>02</span><div><h3>บิดา มารดา และผู้ปกครอง</h3><p>ข้อมูลบุคคล อาชีพ รายได้ และการติดต่อจาก LEC</p></div></div></div><div class="lec-person-grid">'+(family||'<p class="muted">ไม่มีข้อมูลครอบครัวใน LEC</p>')+'</div></section>'+
+      '<section class="lec-detail-section"><div class="lec-section-head"><div><span>03</span><div><h3>ที่อยู่</h3><p>ที่อยู่ตามทะเบียนบ้านและที่อยู่ปัจจุบัน</p></div></div></div><div class="lec-address-grid">'+(addresses||'<p class="muted">ไม่มีข้อมูลที่อยู่ใน LEC</p>')+'</div></section>'+
+      '<section class="lec-detail-section"><div class="lec-section-head"><div><span>04</span><div><h3>สุขภาพและสวัสดิการ</h3><p>ค่าร่างกาย สถานภาพครอบครัว และสิทธิการเบิก</p></div></div></div><div class="lec-health-grid">'+
+        '<article><small>ส่วนสูง</small><strong>'+esc(measurement.height_cm!=null?measurement.height_cm+" ซม.":"-")+'</strong></article>'+
+        '<article><small>น้ำหนัก</small><strong>'+esc(measurement.weight_kg!=null?measurement.weight_kg+" กก.":"-")+'</strong></article>'+
+        '<article><small>สถานภาพครอบครัว</small><strong>'+esc(benefits.family_status||"-")+'</strong></article>'+
+        '<article><small>สิทธิเบิกค่าเล่าเรียน</small><strong>'+esc(benefits.tuition_reimbursement||"-")+'</strong></article>'+
+        '<article><small>สิทธิเบิกค่ารักษาพยาบาล</small><strong>'+esc(benefits.medical_reimbursement||"-")+'</strong></article>'+
+      '</div></section>'+
+      '<section class="lec-detail-section"><div class="lec-section-head"><div><span>05</span><div><h3>ประวัติการเรียนที่นำเข้า</h3><p>ปีการศึกษา ภาคเรียน ชั้น ห้อง และแถวต้นฉบับ</p></div></div></div>'+(history?'<div class="table-wrap lec-history-table"><table><thead><tr><th>ปี</th><th>ภาคเรียน</th><th>ชั้น</th><th>ห้อง</th><th>สถานะ</th><th>แถว LEC</th></tr></thead><tbody>'+history+'</tbody></table></div>':'<p class="muted">ยังไม่มีประวัติชั้นเรียน</p>')+'</section>'+
+      '<section class="lec-detail-section"><div class="lec-section-head"><div><span>06</span><div><h3>แหล่งข้อมูล LEC</h3><p>ใช้สำหรับตรวจสอบย้อนกลับว่าแต่ละข้อมูลมาจากไฟล์ใด</p></div></div></div><div class="lec-import-grid">'+
+        '<div><small>รายงาน</small><strong>'+esc(source.source_report_code||"-")+'</strong></div>'+
+        '<div><small>ไฟล์ต้นฉบับ</small><strong>'+esc(source.source_file_name||"-")+'</strong></div>'+
+        '<div><small>ชีต</small><strong>'+esc(source.source_sheet_name||"-")+'</strong></div>'+
+        '<div><small>แถวในไฟล์</small><strong>'+esc(source.source_row_no||"-")+'</strong></div>'+
+        '<div><small>ปี/ภาคเรียน</small><strong>'+esc(source.academic_year_be||"-")+' / '+esc(source.term_no||"-")+'</strong></div>'+
+        '<div><small>นำเข้าเมื่อ</small><strong>'+esc(thaiDateTime(source.imported_at))+'</strong></div>'+
+        '<div><small>ผลนำเข้า</small><strong>'+esc(source.outcome||"-")+'</strong></div>'+
+        '<div><small>หมายเหตุ</small><strong>'+esc(source.issue_message||"-")+'</strong></div>'+
+      '</div></section>'+
+      '<details class="lec-raw-section"><summary><span><strong>ข้อมูลต้นฉบับจาก LEC</strong><small>'+raw.length+' ช่องที่มีข้อมูล · เลขประชาชนถูกปิดบัง</small></span><b>ดูทั้งหมด</b></summary><div class="lec-source-fields">'+(rawFields||'<p class="muted">ไม่มีข้อมูลต้นฉบับ</p>')+'</div></details>';
   }));
 }
 
