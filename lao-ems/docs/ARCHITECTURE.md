@@ -150,3 +150,12 @@ The reserved Drive root is `/LAO-EMS/`. Future module folders are created beneat
 
 ### Google Drive activation status
 The application-side readiness model, server-side invitation gate, Drive metadata schema, and reserved root-folder contract are implemented. The current `lao-drive-oauth` endpoint intentionally returns `configuration_required` until platform-level Google OAuth credentials are provisioned. No Google client secret or refresh token is stored in GitHub or browser code.
+
+
+### School Admin invitation links and document verification
+Platform-level School Admin application links are controlled by `lao_school_admin_invite_links` and can be independently opened or closed. Public submissions go through the `lao-school-admin-apply` Edge Function, which validates the active token and requires a PDF/JPG/PNG verification document before a pending application is created.
+
+Verification documents are temporarily stored in a private onboarding bucket because no school Drive exists yet. Only Platform Admin can obtain a short-lived signed URL for review. Approval is performed through the server-side invitation function, which verifies a pending application/document and sends the Auth invitation only after review.
+
+### Sensitive profile changes
+Changing an account email or password requires immediate re-authentication with the current email and current password before `auth.updateUser()`. Ordinary profile data can be changed without re-entering the password.
