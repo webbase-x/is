@@ -565,20 +565,29 @@ async function usersHtml(){
   const school=currentSchool();
 
   if(state.isPlatformAdmin&&!school){
-    const invRes=await supabase.from("lao_user_invitations")
-      .select("id,email,role_code,invitation_mode,status,sent_at,accepted_at")
-      .is("school_id",null).eq("invitation_mode","platform_first_admin")
-      .order("sent_at",{ascending:false}).limit(100);
-    if(invRes.error)throw invRes.error;
-
-    const rows=(invRes.data||[]).map(x=>{
-      const status={pending:["รอยืนยันอีเมล","warning"],onboarding:["รอนำเข้า LEC","warning"],accepted:["เปิดใช้งานแล้ว","success"],revoked:["ยกเลิก","neutral"],failed:["ส่งไม่สำเร็จ","danger"]}[x.status]||[x.status,"neutral"];
-      return '<tr><td><strong>'+esc(x.email)+'</strong><br><small>'+new Date(x.sent_at).toLocaleString("th-TH")+'</small></td><td>ผู้ดูแลสถานศึกษาคนแรก</td><td><span class="pill '+status[1]+'">'+status[0]+'</span></td><td>รอผูกสถานศึกษาจาก LEC</td></tr>';
+    const [linkRes,appRes]=await Promise.all([
+      supabase.from("lao_school_admin_invite_links").select("id,token,label,is_active,expires_at,created_at").order("created_at",{ascending:false}).limit(50),
+      supabase.from("lao_school_admin_applications").select("id,email,prefix,first_name_th,last_name_th,phone,claimed_organization_name,claimed_school_name,applicant_note,document_object_path,document_file_name,document_mime_type,document_size,status,created_at,reviewed_at,review_note").order("created_at",{ascending:false}).limit(100)
+    ]);
+    if(linkRes.error)throw linkRes.error;if(appRes.error)throw appRes.error;
+    const base=location.origin+location.pathname;
+    const links=(linkRes.data||[]).map(x=>{
+      const url=base+"#/apply-school-admin/"+x.token;
+      const open=x.is_active&&(!x.expires_at||new Date(x.expires_at)>new Date());
+      return '<tr><td><strong>'+esc(x.label)+'</strong><br><small>'+new Date(x.created_at).toLocaleString("th-TH")+'</small></td><td><span class="pill '+(open?"success":"neutral")+'">'+(open?"เปิดรับ":"ปิด")+'</span></td><td><code class="link-code">'+esc(url)+'</code></td><td><div class="row-actions"><button class="secondary-btn compact-btn" type="button" data-copy-admin-link="'+esc(url)+'">คัดลอกลิงก์</button><button class="'+(x.is_active?"danger-btn":"secondary-btn")+' compact-btn" type="button" data-toggle-admin-link="'+x.id+'" data-next-active="'+(!x.is_active)+'">'+(x.is_active?"ปิดรับ":"เปิดรับ")+'</button></div></td></tr>';
     }).join("");
-
-    return '<section class="content-grid"><article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">First School Admin</p><h2>เชิญ School Admin คนแรก</h2><p class="panel-sub">ไม่ต้องสร้าง อปท. หรือสถานศึกษาก่อน ระบุเฉพาะอีเมล ผู้รับจะยืนยันบัญชีแล้วนำเข้า LEC เพื่อสร้างสถานศึกษาจริง</p></div></div><form id="invite-user-form" class="form-grid" style="margin-top:18px"><label class="field span-2">อีเมลผู้ดูแลสถานศึกษาคนแรก<input name="email" type="email" autocomplete="off" required placeholder="name@example.com"></label><input type="hidden" name="role_code" value="school_admin"><div class="span-2 notice">ข้อมูลชื่อ อปท. ชื่อสถานศึกษา จังหวัด อำเภอ ปีการศึกษา และข้อมูลนักเรียนจะมาจาก LEC เท่านั้น ไม่มีการกรอกเองในขั้นตอนนี้</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำเชิญทางอีเมล</button></div></form></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">Pending school onboarding</p><h2>คำเชิญที่ยังไม่ผูก LEC</h2></div></div>'+(rows?'<div class="table-wrap"><table><thead><tr><th>อีเมล</th><th>บทบาท</th><th>สถานะ</th><th>สถานศึกษา</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">✉️</div><h3>ยังไม่มีคำเชิญ</h3><p>ส่งคำเชิญให้ผู้ดูแลคนแรกของแต่ละโรงเรียนได้จากแบบฟอร์มด้านบน</p></div>')+'</article></section>';
+    const apps=(appRes.data||[]).map(x=>{
+      const status={pending:["รอตรวจเอกสาร","warning"],approved:["อนุมัติแล้ว","success"],rejected:["ไม่อนุมัติ","danger"]}[x.status]||[x.status,"neutral"];
+      const name=[x.prefix,x.first_name_th,x.last_name_th].filter(Boolean).join(" ");
+      const actions=x.status==="pending"?'<div class="row-actions"><button class="secondary-btn compact-btn" type="button" data-view-verification="'+x.document_object_path+'">ดูเอกสาร</button><button class="primary-btn compact-btn" type="button" data-approve-admin-app="'+x.id+'">อนุมัติและส่งคำเชิญ</button><button class="danger-btn compact-btn" type="button" data-reject-admin-app="'+x.id+'">ไม่อนุมัติ</button></div>':'<button class="secondary-btn compact-btn" type="button" data-view-verification="'+x.document_object_path+'">ดูเอกสาร</button>';
+      return '<tr><td><strong>'+esc(name)+'</strong><br><small>'+esc(x.email)+' · '+esc(x.phone||"-")+'</small></td><td>'+esc(x.claimed_organization_name||"-")+'<br><small>'+esc(x.claimed_school_name||"-")+'</small></td><td>'+esc(x.document_file_name)+'<br><small>'+Math.ceil((x.document_size||0)/1024)+' KB</small></td><td><span class="pill '+status[1]+'">'+status[0]+'</span></td><td>'+actions+'</td></tr>';
+    }).join("");
+    return '<section class="content-grid">'+
+      (!state.currentMembership?'<article class="panel self-school-card"><div class="panel-head"><div><p class="eyebrow">My school</p><h2>ตั้งค่าสถานศึกษาของ Platform Admin</h2><p class="panel-sub">บัญชี Platform Admin สามารถเป็น School Admin ของโรงเรียนตนเองได้ โดยเริ่มจาก LEC เพื่อสร้าง school_id และสิทธิ์โรงเรียน</p></div></div><button class="primary-btn" type="button" data-platform-self-school>เริ่มจาก LEC ของโรงเรียนฉัน</button></article>':'')+
+      '<article class="panel"><div class="panel-head"><div><p class="eyebrow">School Admin invitation link</p><h2>ลิงก์รับคำขอ School Admin</h2><p class="panel-sub">คัดลอกลิงก์ส่งให้ผู้ที่จะเป็น School Admin ผู้สมัครต้องแนบเอกสารยืนยันทุกครั้ง และลิงก์สามารถเปิด/ปิดรับคำขอได้</p></div></div><form id="admin-link-form" class="responsive-form-grid admin-link-form"><label class="field">ชื่อ/หมายเหตุของลิงก์<input name="label" value="รับคำขอ School Admin" required></label><label class="field">อายุลิงก์<select name="expires_days"><option value="30">30 วัน</option><option value="7">7 วัน</option><option value="90">90 วัน</option><option value="">ไม่กำหนดวันหมดอายุ</option></select></label><div class="span-all"><button class="primary-btn" type="submit">สร้างลิงก์ใหม่</button></div></form>'+(links?'<div class="table-wrap"><table><thead><tr><th>ลิงก์</th><th>สถานะ</th><th>URL</th><th>จัดการ</th></tr></thead><tbody>'+links+'</tbody></table></div>':'<div class="empty-state compact-empty"><div class="empty-icon">🔗</div><h3>ยังไม่มีลิงก์รับคำขอ</h3></div>')+'</article>'+
+      '<article class="panel"><div class="panel-head"><div><p class="eyebrow">Verification queue</p><h2>คำขอ School Admin และเอกสารยืนยัน</h2><p class="panel-sub">ตรวจเอกสารก่อนอนุมัติ เมื่ออนุมัติแล้วระบบจึงส่งคำเชิญบัญชี LAO-EMS ไปยังอีเมลผู้สมัคร</p></div></div>'+(apps?'<div class="table-wrap"><table><thead><tr><th>ผู้สมัคร</th><th>อปท./สถานศึกษา</th><th>เอกสาร</th><th>สถานะ</th><th>ดำเนินการ</th></tr></thead><tbody>'+apps+'</tbody></table></div>':'<div class="empty-state compact-empty"><div class="empty-icon">📎</div><h3>ยังไม่มีคำขอรอตรวจสอบ</h3></div>')+'</article>'+
+    '</section>';
   }
-
   if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>สถานศึกษาจะถูกสร้างจาก LEC หลัง School Admin คนแรกยืนยันบัญชี</p></div></section>';
 
   const isLocalAdmin=isSchoolAdminContext();
@@ -1119,6 +1128,64 @@ function readFunctionError(error){
   }
   return Promise.resolve(error&&error.message||"ไม่สามารถดำเนินการได้");
 }
+function bindPlatformAdminApplications(){
+  const selfBtn=q("[data-platform-self-school]");
+  if(selfBtn)selfBtn.addEventListener("click",async()=>{
+    setBusy(selfBtn,true,"กำลังเตรียม...");
+    const res=await supabase.rpc("lao_platform_begin_school_onboarding");
+    setBusy(selfBtn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    localStorage.setItem("lao_view_mode","user");state.viewMode="user";
+    await loadContext();location.hash="#/lec";
+  });
+  const form=q("#admin-link-form");
+  if(form)form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(form),btn=form.querySelector("button[type=submit]"),days=Number(fd.get("expires_days")||0);
+    const expires=days?new Date(Date.now()+days*86400000).toISOString():null;
+    setBusy(btn,true,"กำลังสร้าง...");
+    const res=await supabase.rpc("lao_create_school_admin_invite_link",{p_label:String(fd.get("label")||"").trim(),p_expires_at:expires});
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    const url=location.origin+location.pathname+"#/apply-school-admin/"+res.data.token;
+    try{await navigator.clipboard.writeText(url);toast("สร้างและคัดลอกลิงก์แล้ว","success");}catch{toast("สร้างลิงก์แล้ว","success");}
+    renderRoute();
+  });
+  qa("[data-copy-admin-link]").forEach(btn=>btn.addEventListener("click",async()=>{
+    try{await navigator.clipboard.writeText(btn.dataset.copyAdminLink);toast("คัดลอกลิงก์แล้ว","success");}catch{toast("อุปกรณ์นี้ไม่อนุญาตให้คัดลอกอัตโนมัติ","error");}
+  }));
+  qa("[data-toggle-admin-link]").forEach(btn=>btn.addEventListener("click",async()=>{
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_set_school_admin_invite_link_active",{p_link_id:btn.dataset.toggleAdminLink,p_is_active:btn.dataset.nextActive==="true"});
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast(res.data.is_active?"เปิดรับคำขอแล้ว":"ปิดรับคำขอแล้ว","success");renderRoute();
+  }));
+  qa("[data-view-verification]").forEach(btn=>btn.addEventListener("click",async()=>{
+    setBusy(btn,true,"กำลังเปิด...");
+    const res=await supabase.storage.from("lao-ems-admin-verification").createSignedUrl(btn.dataset.viewVerification,300);
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    window.open(res.data.signedUrl,"_blank","noopener,noreferrer");
+  }));
+  qa("[data-approve-admin-app]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("ยืนยันว่าตรวจเอกสารแล้ว และส่งคำเชิญ School Admin ไปยังอีเมลผู้สมัคร?"))return;
+    setBusy(btn,true,"กำลังอนุมัติ...");
+    const res=await supabase.functions.invoke("lao-invite-user",{body:{application_id:btn.dataset.approveAdminApp}});
+    setBusy(btn,false);
+    if(res.error){toast(await readFunctionError(res.error),"error");return;}
+    toast("อนุมัติและส่งคำเชิญแล้ว","success");renderRoute();
+  }));
+  qa("[data-reject-admin-app]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const note=prompt("เหตุผล/หมายเหตุการไม่อนุมัติ (ไม่บังคับ)")||"";
+    if(!confirm("ยืนยันไม่อนุมัติคำขอนี้?"))return;
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_reject_school_admin_application",{p_application_id:btn.dataset.rejectAdminApp,p_note:note});
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกผลไม่อนุมัติแล้ว","success");renderRoute();
+  }));
+}
 function bindInvites(){
   const form=q("#invite-user-form"); if(!form)return;
   form.addEventListener("submit",async e=>{
@@ -1288,7 +1355,7 @@ async function renderRoute(){
     else if(route==="setup"){main.innerHTML=await setupHtml();bindSetup();}
     else if(route==="organization"){main.innerHTML=await organizationHtml();bindOrganizationForms();}
     else if(route==="lec"){main.innerHTML=await lecHtml();bindLec();}
-    else if(route==="users"){main.innerHTML=await usersHtml();bindInvites();}
+    else if(route==="users"){main.innerHTML=await usersHtml();bindInvites();bindPlatformAdminApplications();}
     else main.innerHTML=placeholderHtml(route);
   }catch(e){
     console.error(e);
