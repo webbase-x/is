@@ -832,57 +832,6 @@ function bindOrganizationForms(){
   }));
 }
 
-function bindMembership(){
-  const org=q("#membership-org"),school=q("#membership-school"),form=q("#membership-form");
-  if(!form)return;
-  org.addEventListener("change",async()=>{
-    school.disabled=true;school.innerHTML='<option value="">กำลังโหลด...</option>';
-    try{
-      const list=await loadSchools(org.value);
-      school.innerHTML='<option value="">เลือกสถานศึกษา</option>'+list.map(s=>'<option value="'+s.id+'">'+esc(s.name_th)+'</option>').join("");
-    }catch(e){school.innerHTML='<option value="">โหลดไม่สำเร็จ</option>';toast(e.message,"error");}
-    school.disabled=false;
-  });
-  form.addEventListener("submit",async e=>{
-    e.preventDefault();
-    const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
-    setBusy(btn,true,"กำลังส่งคำขอ...");
-    const res=await supabase.rpc("lao_request_membership",{p_organization_id:fd.get("organization_id"),p_school_id:fd.get("school_id"),p_requested_role_code:fd.get("role_code"),p_request_note:String(fd.get("note")||"").trim()||null});
-    setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    toast("ส่งคำขอแล้ว กรุณารอผู้ดูแลตรวจสอบ","success");
-    await loadContext();renderRoute();
-  });
-}
-function bindYear(){
-  const form=q("#year-form");if(!form)return;
-  form.addEventListener("submit",async e=>{
-    e.preventDefault();const fd=new FormData(form),btn=form.querySelector("button");
-    setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.from("lao_academic_years").insert({school_id:currentSchool().id,year_be:Number(fd.get("year_be")),is_current:fd.get("is_current")==="true"});
-    setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    toast("เพิ่มปีการศึกษาแล้ว","success");form.reset();
-  });
-}
-function bindApprovals(){
-  qa("[data-approve]").forEach(btn=>btn.addEventListener("click",async()=>{
-    const first=btn.dataset.role==="school_admin"&&state.isPlatformAdmin;
-    if(!confirm(first?"ยืนยันแต่งตั้งผู้ใช้นี้เป็นผู้ดูแลสถานศึกษาคนแรก? หลังจากนี้โรงเรียนจะรับผิดชอบอนุมัติสมาชิกเอง":"ยืนยันว่าได้ตรวจสอบบุคคลนี้แล้ว และต้องการอนุมัติสิทธิ์ตามบทบาทที่ขอ?"))return;
-    setBusy(btn,true,"กำลังอนุมัติ...");
-    const res=await supabase.rpc("lao_review_membership",{p_membership_id:btn.dataset.approve,p_decision:"active",p_role_codes:[btn.dataset.role]});
-    if(res.error){setBusy(btn,false);toast(res.error.message,"error");return;}
-    toast(first?"แต่งตั้งผู้ดูแลสถานศึกษาคนแรกแล้ว":"อนุมัติสิทธิ์แล้ว","success");
-    await loadNotifications();refreshHeader();renderRoute();
-  }));
-  qa("[data-reject]").forEach(btn=>btn.addEventListener("click",async()=>{
-    if(!confirm("ยืนยันไม่อนุมัติคำขอนี้?"))return;
-    setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_review_membership",{p_membership_id:btn.dataset.reject,p_decision:"rejected",p_role_codes:[]});
-    if(res.error){setBusy(btn,false);toast(res.error.message,"error");return;}
-    toast("บันทึกการไม่อนุมัติแล้ว");await loadNotifications();refreshHeader();renderRoute();
-  }));
-}
 function readFunctionError(error){
   if(error&&error.context&&typeof error.context.json==="function"){
     return error.context.json().then(x=>x&&x.error?x.error:error.message).catch(()=>error.message);
