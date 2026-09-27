@@ -1,0 +1,1 @@
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";\nimport { CONFIG } from "./config.js";\n\nexport const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabasePublishableKey, {\n  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }\n});\n
