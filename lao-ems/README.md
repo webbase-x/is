@@ -109,3 +109,11 @@ The folder root is fixed as `LAO-EMS`. Subfolders are intentionally provisioned 
 
 
 > Current implementation note: the school-readiness gate and `/LAO-EMS/` folder contract are active. The Google Drive connect button is wired to the server endpoint, but Google OAuth client credentials have not yet been configured in the Supabase Edge Function environment, so a real Drive connection cannot complete until that one-time platform configuration is supplied.
+
+
+### Platform Admin School Admin invitation links
+Platform Admin can create copyable School Admin application links and turn each link on or off. The link does not grant access. Applicants must provide identity/contact details and upload a PDF/JPG/PNG verification document (maximum 10 MB). Platform Admin reviews the private document before approval; only approval triggers the actual LAO-EMS Auth invitation.
+
+Verification files are temporarily stored in the private `lao-ems-admin-verification` bucket because the applicant's school Google Drive does not exist yet. Normal school files continue to use the per-school Google Drive architecture after school onboarding.
+
+A Platform Admin who also manages a school can start their own School Admin context directly from LEC through `lao_platform_begin_school_onboarding()`.
