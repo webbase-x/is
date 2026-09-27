@@ -667,10 +667,12 @@ function lecWorksheetMatrix(ws){
   return matrix;
 }
 function lecFindHeaderStart(matrix){
-  const limit=Math.min(matrix.length,50);
+  const limit=Math.min(matrix.length,60);
   for(let r=0;r<limit;r++){
     const n=matrix[r].map(lecHeaderNorm);
-    if(n.some(x=>x.includes("ลำดับที่"))&&n.some(x=>x.includes("เลขประจำตัวนักเรียน")))return r;
+    const hasStudentNo=n.some(x=>x.includes("เลขประจำตัวนักเรียน"));
+    const hasName=n.some(x=>x==="ชื่อ"||x.includes("คำนำหน้า")||x.includes("นามสกุล"));
+    if(hasStudentNo&&(n.some(x=>x.includes("ลำดับที่"))||hasName))return r;
   }
   return -1;
 }
@@ -849,6 +851,15 @@ function lecParseTerm(value){
   const m=text.match(/ภาคเรียน(?:ที่)?\s*([1-4])(?:\D|$)/i);
   return m?Number(m[1]):null;
 }
+function lecPeriodFromFileName(fileName){
+  const stem=String(fileName||"").replace(/\.(?:xls|xlsx)$/i,"").trim();
+  const m=stem.match(/(?:^|[\s_-])((?:25)?\d{2})[._-]([1-4])$/);
+  if(!m)return {academic_year_be:null,term_no:null,source:null};
+  let year=Number(m[1]),term=Number(m[2]);
+  if(year>=0&&year<=99)year+=2500;
+  if(year<2400||year>2800)return {academic_year_be:null,term_no:null,source:null};
+  return {academic_year_be:year,term_no:term,source:"filename"};
+}
 function lecPeriodFromSheet(matrix,headerStart,map,dataStart){
   const yearValues=lecUniqueMappedValues(matrix,dataStart,map,"academic_year_be");
   const termValues=lecUniqueMappedValues(matrix,dataStart,map,"term_no");
@@ -874,19 +885,27 @@ function lecDetectMetadata(matrix,headerStart,map,dataStart){
   const orgValues=lecUniqueMappedValues(matrix,dataStart,map,"organization_name_th");
   const provinceValues=lecUniqueMappedValues(matrix,dataStart,map,"school_province");
   const districtValues=lecUniqueMappedValues(matrix,dataStart,map,"school_district");
-  let schoolName=schoolValues[0]||lecMetaFind(matrix,headerStart,["ชื่อสถานศึกษา","ชื่อโรงเรียน"]);
+
+  const topSchool=lecMetaFind(matrix,headerStart,["ชื่อสถานศึกษา","ชื่อโรงเรียน","สถานศึกษา"]);
+  const topOrg=lecMetaFind(matrix,headerStart,["ชื่อ อปท.","ชื่ออปท.","อปท.","อปท","สังกัด"]);
+  const topProvince=lecMetaFind(matrix,headerStart,["จังหวัด"]);
+  const topDistrict=lecMetaFind(matrix,headerStart,["อำเภอ/เขต","อำเภอ","เขต"]);
+
+  let schoolName=schoolValues[0]||topSchool;
   if(!schoolName)schoolName=texts.find(x=>/^โรงเรียน/.test(x)&&!x.includes("รายงาน")&&!x.includes("ข้อมูลนักเรียน"))||null;
+
   const conflicts=[];
   if(schoolValues.length>1)conflicts.push("สถานศึกษา");
   if(orgValues.length>1)conflicts.push("อปท.");
   if(provinceValues.length>1)conflicts.push("จังหวัด");
   if(districtValues.length>1)conflicts.push("อำเภอ");
+
   return {
     school_code:lecMetaFind(matrix,headerStart,["รหัสสถานศึกษา","รหัสโรงเรียน","รหัสสถานศึกษา LEC"]),
     school_name_th:schoolName,
-    organization_name_th:orgValues[0]||null,
-    province_name_th:provinceValues[0]||null,
-    district_name_th:districtValues[0]||null,
+    organization_name_th:orgValues[0]||topOrg||null,
+    province_name_th:provinceValues[0]||topProvince||null,
+    district_name_th:districtValues[0]||topDistrict||null,
     academic_year_be:period.academic_year_be,
     term_no:period.term_no,
     school_phone:lecMetaFind(matrix,headerStart,["โทรศัพท์สถานศึกษา","โทรศัพท์โรงเรียน","โทรศัพท์","เบอร์โทรศัพท์"]),
@@ -895,46 +914,95 @@ function lecDetectMetadata(matrix,headerStart,map,dataStart){
     school_address_text:lecMetaFind(matrix,headerStart,["ที่อยู่สถานศึกษา","ที่อยู่โรงเรียน"]),
     report_heading:texts.find(x=>x.includes("รายงานรายละเอียดข้อมูลนักเรียน"))||null,
     school_metadata_conflicts:conflicts,
-    period_conflicts:period.period_conflicts
+    period_conflicts:period.period_conflicts,
+    metadata_sources:{
+      school:schoolValues[0]?"column":(topSchool?"report_header":null),
+      organization:orgValues[0]?"column":(topOrg?"report_header":null),
+      province:provinceValues[0]?"column":(topProvince?"report_header":null),
+      district:districtValues[0]?"column":(topDistrict?"report_header":null)
+    }
   };
 }
+
 function lecSheetProfile(wb,sheetName){
   const ws=wb.Sheets[sheetName];
   if(!ws)return null;
   const matrix=lecWorksheetMatrix(ws);
   const headerStart=lecFindHeaderStart(matrix);
-  if(headerStart<0)return {sheetName,valid:false,rowCount:0,missing:["หัวตาราง LEC"]};
+  if(headerStart<0)return {sheetName,valid:false,rowCount:0,missing:["หัวตาราง LEC"],score:0};
   let flat;
   try{flat=lecFlattenHeaders(matrix,headerStart);}catch(e){
-    return {sheetName,valid:false,rowCount:0,missing:["เลขประจำตัวนักเรียน"]};
+    return {sheetName,valid:false,rowCount:0,missing:["เลขประจำตัวนักเรียน"],score:0};
   }
+
   const headers=flat.headers,map=lecBuildMap(headers);
-  const required=["school_province","school_district","organization_name_th","school_name_th","student_no","first_name_th","last_name_th"];
-  const missing=required.filter(k=>map[k]==null);
-  const period=lecPeriodFromSheet(matrix,headerStart,map,flat.dataStart);
-  if(!period.academic_year_be)missing.push("ปีการศึกษา");
-  if(!period.term_no)missing.push("ภาคเรียน");
-  if(period.period_conflicts&&period.period_conflicts.length)missing.push(...period.period_conflicts.map(x=>x+"ไม่สอดคล้อง"));
+  const metadata=lecDetectMetadata(matrix,headerStart,map,flat.dataStart);
+  const missing=[];
+
+  if(!metadata.province_name_th)missing.push("จังหวัด");
+  if(!metadata.district_name_th)missing.push("อำเภอ");
+  if(!metadata.organization_name_th)missing.push("อปท.");
+  if(!metadata.school_name_th)missing.push("สถานศึกษา");
+  if(map.student_no==null)missing.push("เลขประจำตัวนักเรียน");
+  if(map.first_name_th==null)missing.push("ชื่อ");
+  if(map.last_name_th==null)missing.push("นามสกุล");
+  if(!metadata.academic_year_be)missing.push("ปีการศึกษา");
+  if(!metadata.term_no)missing.push("ภาคเรียน");
+  if(metadata.period_conflicts&&metadata.period_conflicts.length)missing.push(...metadata.period_conflicts.map(x=>x+"ไม่สอดคล้อง"));
+
   let rowCount=0;
   for(let r=flat.dataStart;r<matrix.length;r++)if(lecMappedValue(matrix[r],map,"student_no"))rowCount++;
-  const score=(required.length+2-missing.length)*100000+Math.min(rowCount,99999);
-  return {sheetName,valid:missing.length===0&&rowCount>0,rowCount,missing,score,matrix,headerStart,flat,headers,map};
+
+  const corePresent=9-missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
+  const score=corePresent*100000+Math.min(rowCount,99999);
+  return {sheetName,valid:missing.length===0&&rowCount>0,rowCount,missing,score,matrix,headerStart,flat,headers,map,metadata};
 }
+
 async function parseLecFile(file){
   if(!window.XLSX)throw new Error("ไม่สามารถโหลดตัวอ่านไฟล์ Excel ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่");
   const buffer=await file.arrayBuffer();
   const wb=XLSX.read(buffer,{type:"array",cellDates:true});
   if(!wb.SheetNames.length)throw new Error("ไฟล์ไม่มีแผ่นงาน");
 
-  const profiles=wb.SheetNames.map(name=>lecSheetProfile(wb,name)).filter(Boolean);
+  const filePeriod=lecPeriodFromFileName(file.name);
+  const profiles=wb.SheetNames.map(name=>{
+    const p=lecSheetProfile(wb,name);
+    if(!p)return null;
+    if(p.metadata){
+      if(!p.metadata.academic_year_be&&filePeriod.academic_year_be)p.metadata.academic_year_be=filePeriod.academic_year_be;
+      if(!p.metadata.term_no&&filePeriod.term_no)p.metadata.term_no=filePeriod.term_no;
+      if(filePeriod.source&&(filePeriod.academic_year_be||filePeriod.term_no))p.metadata.period_source=filePeriod.source;
+      p.missing=(p.missing||[]).filter(x=>!(x==="ปีการศึกษา"&&p.metadata.academic_year_be)&&!(x==="ภาคเรียน"&&p.metadata.term_no));
+      p.valid=p.missing.length===0&&p.rowCount>0;
+      const corePresent=9-p.missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
+      p.score=corePresent*100000+Math.min(p.rowCount,99999);
+    }
+    return p;
+  }).filter(Boolean);
+
   const candidates=profiles.filter(x=>x.valid).sort((a,b)=>b.score-a.score);
   if(!candidates.length){
-    const scanned=profiles.map(x=>x.sheetName).join(", ");
-    throw new Error("ไม่พบชีตข้อมูล LEC ที่มีข้อมูลสถานศึกษาครบ ต้องมีข้อมูล จังหวัด, อำเภอ, อปท., สถานศึกษา, ปีการศึกษา, ภาคเรียน, เลขประจำตัวนักเรียน, ชื่อ และนามสกุล"+(scanned?" (ตรวจแล้ว: "+scanned+")":""));
+    const details=profiles.map(x=>x.sheetName+": "+((x.missing&&x.missing.length)?("ขาด "+x.missing.join(", ")):"ไม่พบข้อมูลนักเรียน")).join(" | ");
+    throw new Error("ยังไม่พบชีต LEC ที่พร้อมนำเข้า"+(details?" — "+details:""));
   }
 
   const selected=candidates[0],matrix=selected.matrix,headers=selected.headers,map=selected.map,flat=selected.flat;
-  const missing=["school_province","school_district","organization_name_th","school_name_th","student_no","first_name_th","last_name_th"].filter(k=>map[k]==null);
+  const metadata={...(selected.metadata||lecDetectMetadata(matrix,selected.headerStart,map,flat.dataStart))};
+  if(!metadata.academic_year_be&&filePeriod.academic_year_be){metadata.academic_year_be=filePeriod.academic_year_be;metadata.period_source="filename";}
+  if(!metadata.term_no&&filePeriod.term_no){metadata.term_no=filePeriod.term_no;metadata.period_source="filename";}
+
+  const missing=[];
+  if(!metadata.province_name_th)missing.push("จังหวัด");
+  if(!metadata.district_name_th)missing.push("อำเภอ");
+  if(!metadata.organization_name_th)missing.push("อปท.");
+  if(!metadata.school_name_th)missing.push("สถานศึกษา");
+  if(map.student_no==null)missing.push("เลขประจำตัวนักเรียน");
+  if(map.first_name_th==null)missing.push("ชื่อ");
+  if(map.last_name_th==null)missing.push("นามสกุล");
+  if(!metadata.academic_year_be)missing.push("ปีการศึกษา");
+  if(!metadata.term_no)missing.push("ภาคเรียน");
+  if(missing.length)throw new Error("ชีต "+selected.sheetName+" ยังขาดข้อมูล: "+missing.join(", "));
+
   const rows=[];
   for(let r=flat.dataStart;r<matrix.length;r++){
     const canonical=lecBuildCanonical(matrix[r],map);
@@ -943,19 +1011,15 @@ async function parseLecFile(file){
   }
   if(!rows.length)throw new Error("ไม่พบข้อมูลนักเรียนในชีต "+selected.sheetName);
 
-  const metadata=lecDetectMetadata(matrix,selected.headerStart,map,flat.dataStart);
   if(metadata.school_metadata_conflicts&&metadata.school_metadata_conflicts.length){
     throw new Error("ชีต "+selected.sheetName+" มีข้อมูลมากกว่าหนึ่งค่าในช่อง "+metadata.school_metadata_conflicts.join(", ")+" จึงไม่สามารถผูกกับสถานศึกษาเดียวได้");
   }
   if(metadata.period_conflicts&&metadata.period_conflicts.length){
     throw new Error("ชีต "+selected.sheetName+" มี "+metadata.period_conflicts.join(" และ ")+" มากกว่าหนึ่งค่า กรุณาดาวน์โหลดข้อมูล LEC ของรอบที่ถูกต้องใหม่");
   }
-  if(!metadata.academic_year_be||!metadata.term_no){
-    throw new Error("ไม่พบปีการศึกษาและภาคเรียนครบในข้อมูล LEC ระบบจึงไม่ให้ระบุเองเพื่อป้องกันข้อมูลคลาดเคลื่อน");
-  }
 
   metadata.selected_sheet_name=selected.sheetName;
-  metadata.sheet_selection_rule="complete_school_identity_columns";
+  metadata.sheet_selection_rule="student_table_plus_school_metadata";
 
   return {
     fileName:file.name,fileSize:file.size,sha256:await lecSha256(buffer),
@@ -964,9 +1028,10 @@ async function parseLecFile(file){
     ignoredSheets:wb.SheetNames.filter(name=>name!==selected.sheetName),
     sheetScan:profiles.map(x=>({sheetName:x.sheetName,valid:x.valid,rowCount:x.rowCount,missing:x.missing})),
     headers,map,headerMap:lecHeaderMapForServer(headers,map),
-    missingRequired:missing,rows,metadata
+    missingRequired:[],rows,metadata
   };
 }
+
 function lecMaskId(v){
   const s=String(v||"").replace(/\s/g,"");
   if(s.length<8)return s||"-";
