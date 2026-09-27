@@ -963,7 +963,7 @@ function bindNotifications(){
 async function renderRoute(){
   if(!state.user)return;
   let route=routeName();
-  const mustActivate=Boolean(state.pendingInvitation)&&(!state.memberships.some(m=>m.status==="active")||profileNeedsSetup());
+  const mustActivate=Boolean(state.pendingInvitation);
   if(mustActivate&&route!=="activate"){location.hash="#/activate";route="activate";}
   const meta=routeMeta[route]||routeMeta.overview,main=q("#main");
   q("[data-page-title]").textContent=meta[0];
