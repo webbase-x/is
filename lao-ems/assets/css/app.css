@@ -130,3 +130,11 @@ input,select,textarea{max-width:100%;width:100%;box-sizing:border-box}
 @keyframes pull-refresh-spin{to{transform:rotate(360deg)}}
 @media(max-width:480px){.pull-refresh-indicator{font-size:11px;padding:7px 10px}}
 @media(prefers-reduced-motion:reduce){.pull-refresh-indicator{transition:none}.pull-refresh-indicator[data-state="refreshing"] .pull-refresh-icon{animation:none}}
+
+.lec-page-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;max-width:100%}
+.lec-page-stack>.panel{width:100%;max-width:none}
+.lec-page-stack #lec-preview{min-width:0;width:100%}
+.lec-page-stack .table-wrap{width:100%;max-width:100%}
+.lec-page-stack table{min-width:max-content}
+.lec-page-stack .school-verify{max-width:none}
+@media(max-width:760px){.lec-page-stack{gap:12px}}
