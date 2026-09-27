@@ -1,0 +1,59 @@
+name: LAO-EMS version check
+
+on:
+  pull_request:
+    paths:
+      - 'lao-ems/**'
+
+jobs:
+  version:
+    name: Verify semantic version bump
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check version bump and cache keys
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const { execFileSync } = require('child_process');
+
+          const fail = (message) => { console.error('::error::' + message); process.exit(1); };
+          const current = fs.readFileSync('lao-ems/VERSION', 'utf8').trim();
+          const semver = /^(\d+)\.(\d+)\.(\d+)$/;
+          const currentMatch = current.match(semver);
+          if (!currentMatch) fail('lao-ems/VERSION must use MAJOR.MINOR.PATCH, for example 0.1.1');
+
+          const versionJs = fs.readFileSync('lao-ems/assets/js/version.js', 'utf8');
+          if (!versionJs.includes(`APP_VERSION = "${current}"`)) fail('assets/js/version.js does not match lao-ems/VERSION');
+
+          const index = fs.readFileSync('lao-ems/index.html', 'utf8');
+          if (!index.includes(`app.css?v=${current}`)) fail('app.css cache key must match lao-ems/VERSION');
+          if (!index.includes(`app.js?v=${current}`)) fail('app.js cache key must match lao-ems/VERSION');
+
+          const app = fs.readFileSync('lao-ems/assets/js/app.js', 'utf8');
+          if (!app.includes(`version.js?v=${current}`)) fail('version.js import cache key must match lao-ems/VERSION');
+
+          let base = '';
+          try {
+            base = execFileSync('git', ['show', `${process.env.BASE_SHA}:lao-ems/VERSION`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+          } catch (_) {
+            console.log('No VERSION file on base branch; accepting initial version ' + current);
+          }
+
+          if (base) {
+            const baseMatch = base.match(semver);
+            if (!baseMatch) fail('Base VERSION is not valid semantic versioning');
+            const a = currentMatch.slice(1).map(Number);
+            const b = baseMatch.slice(1).map(Number);
+            const greater = a[0] > b[0] || (a[0] === b[0] && (a[1] > b[1] || (a[1] === b[1] && a[2] > b[2])));
+            if (!greater) fail(`LAO-EMS version must increase for every change. Base is ${base}, current is ${current}`);
+          }
+
+          console.log('LAO-EMS version OK: v' + current);
+          NODE

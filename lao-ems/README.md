@@ -121,3 +121,13 @@ A Platform Admin who also manages a school can start their own School Admin cont
 
 ### LEC workbook format
 The workbook currently used during development contains **older-year data**, but the LEC workbook format remains the same as the current system format: `Sheet1` uses row 1 for the report title, rows 2–3 for main/subheaders with merged groups, and student data starts on row 4. The importer therefore treats this structure as the normal LEC format while retaining content-based fallback detection for resilience.
+
+### Versioning
+LAO-EMS uses Semantic Versioning (`MAJOR.MINOR.PATCH`) with `lao-ems/VERSION` as the release version source.
+
+- `PATCH` (`0.1.0 → 0.1.1`): bug fixes, UI/text adjustments, small compatible changes.
+- `MINOR` (`0.1.x → 0.2.0`): new module, new workflow, new user-facing capability, or compatible schema expansion.
+- `MAJOR` (`1.x → 2.0.0`): incompatible production changes after the system reaches `1.0.0`.
+- During `0.x`, the project is still in active development. Every merged LAO-EMS change must still increase at least the patch number.
+
+The current version is shown on the sign-in screen, sidebar and top bar. The running app also fetches `VERSION` with `no-store`; if the browser is still running an older cached build, it displays a new-version reload notice.

@@ -1,4 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.1.0";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -45,6 +46,41 @@ const modules=[
 const q=(s,r=document)=>r.querySelector(s);
 const qa=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+function renderAppVersion(){
+  qa("[data-app-version]").forEach(el=>{
+    el.textContent=APP_VERSION_LABEL;
+    el.title="LAO-EMS รุ่น "+APP_VERSION;
+  });
+}
+async function checkLatestVersion(){
+  try{
+    const res=await fetch("./VERSION?t="+Date.now(),{cache:"no-store"});
+    if(!res.ok)return;
+    const latest=(await res.text()).trim();
+    if(!/^\d+\.\d+\.\d+$/.test(latest))return;
+    if(latest===APP_VERSION){
+      qa("[data-app-version]").forEach(el=>{
+        el.classList.remove("is-outdated");
+        el.title="รุ่นปัจจุบัน "+APP_VERSION_LABEL;
+      });
+      return;
+    }
+    qa("[data-app-version]").forEach(el=>{
+      el.classList.add("is-outdated");
+      el.title="กำลังใช้ "+APP_VERSION_LABEL+" · รุ่นล่าสุด v"+latest;
+    });
+    if(!q("#version-update-notice")){
+      const notice=document.createElement("button");
+      notice.id="version-update-notice";
+      notice.type="button";
+      notice.className="version-update-notice";
+      notice.innerHTML='<strong>มีรุ่นใหม่ v'+esc(latest)+'</strong><span>กำลังใช้ '+esc(APP_VERSION_LABEL)+' · แตะเพื่อโหลดรุ่นล่าสุด</span>';
+      notice.addEventListener("click",()=>location.reload());
+      document.body.appendChild(notice);
+    }
+  }catch(_){}
+}
+
 
 function toast(message,type){
   const box=document.createElement("div");
@@ -1474,6 +1510,8 @@ function showAuth(){
 }
 
 async function init(){
+  renderAppVersion();
+  void checkLatestVersion();
   bindStaticUI();
   const savedEmail=localStorage.getItem("lao_saved_email");
   const remember=localStorage.getItem("lao_remember_login")==="1";
