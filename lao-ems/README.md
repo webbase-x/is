@@ -77,3 +77,13 @@ The same LEC file is also used to sync official school details. On first import,
 - same school but official details changed → School Admin must explicitly accept the new LEC values before importing;
 - different LEC school code → import is blocked to prevent cross-school student data;
 - choosing to keep the existing school data cancels that import round rather than mixing old school metadata with new student data.
+
+
+## Admin-managed user accounts
+
+Public self-registration is not part of LAO-EMS. Accounts are initiated by administrators:
+- Platform Admin invites only the first School Admin of a school.
+- After that, the School Admin invites users and additional School Admins for that school.
+- The recipient receives an authentication email, opens the secure link, completes their profile, and sets their own password.
+- LAO-EMS does not email plaintext temporary passwords.
+- An Auth account from another app in the shared Supabase project does not grant LAO-EMS access unless it has a LAO invitation/membership or Platform Admin status.
