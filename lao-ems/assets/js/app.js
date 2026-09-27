@@ -59,6 +59,10 @@ function setBusy(button,busy,label){
   else{button.disabled=false;button.textContent=button.dataset.oldLabel||button.textContent;}
 }
 function routeName(){return (location.hash.replace(/^#\//,"").split("/")[0]||"overview").toLowerCase();}
+function schoolAdminApplyToken(){
+  const m=location.hash.match(/^#\/apply-school-admin\/([A-Za-z0-9_-]{20,})$/);
+  return m?m[1]:null;
+}
 function roleCodes(m){
   const x=m||state.currentMembership;
   return (x&&x.lao_membership_roles||[]).map(v=>v.lao_roles&&v.lao_roles.code).filter(Boolean);
@@ -126,7 +130,7 @@ function bindStaticUI(){
   const close=()=>{sidebar.classList.remove("open");scrim.classList.remove("show");};
   q("[data-sidebar-close]").addEventListener("click",close);
   scrim.addEventListener("click",close);
-  window.addEventListener("hashchange",()=>{renderRoute();close();});
+  window.addEventListener("hashchange",()=>{if(state.user)renderRoute();else showAuth();close();});
   q("[data-signout]").addEventListener("click",()=>{
     localStorage.setItem("lao_legacy_session_rejected","1");
     clearLaoAuthSession();
@@ -145,6 +149,41 @@ function bindStaticUI(){
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
     if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);refreshHeader();renderRoute();}
+  });
+}
+
+async function renderPublicSchoolAdminApplication(token){
+  const box=q("#school-admin-application"); if(!box)return;
+  box.classList.remove("hidden");
+  box.innerHTML='<div class="loading-inline"><span class="spinner"></span>กำลังตรวจสอบลิงก์...</div>';
+  const res=await supabase.rpc("lao_public_school_admin_link_status",{p_token:token});
+  if(res.error){box.innerHTML='<div class="form-heading"><h2>ไม่สามารถเปิดคำเชิญได้</h2><p>'+esc(res.error.message)+'</p></div>';return;}
+  const info=res.data||{};
+  if(!info.valid){
+    const msg=info.reason==="closed"?"ผู้ดูแลแพลตฟอร์มปิดรับคำขอผ่านลิงก์นี้แล้ว":info.reason==="expired"?"ลิงก์คำเชิญนี้หมดอายุแล้ว":"ไม่พบลิงก์คำเชิญ";
+    box.innerHTML='<div class="form-heading"><h2>ลิงก์ไม่พร้อมใช้งาน</h2><p>'+esc(msg)+'</p></div><a class="secondary-btn wide" href="#/overview">กลับหน้าเข้าสู่ระบบ</a>';return;
+  }
+  box.innerHTML='<div class="form-heading"><p class="eyebrow">School Admin application</p><h2>ยื่นคำขอเป็น School Admin</h2><p>กรอกข้อมูลตามจริงและแนบเอกสารยืนยัน Platform Admin จะตรวจเอกสารก่อนส่งคำเชิญบัญชี LAO-EMS</p></div><div class="notice warning"><strong>ต้องมีเอกสารยืนยัน</strong><br>รองรับ PDF, JPG, PNG ขนาดไม่เกิน 10 MB เช่น หนังสือมอบหมาย คำสั่ง หรือหลักฐานสิทธิ์ดูแลระบบสถานศึกษา</div><form id="school-admin-application-form" class="auth-form public-application-form"><input type="hidden" name="token" value="'+esc(token)+'"><div class="responsive-form-grid"><label class="form-field">อีเมล <span class="required-mark">*</span><input name="email" type="email" required autocomplete="email"></label><label class="form-field">เบอร์โทรศัพท์<input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label><label class="form-field compact-field">คำนำหน้า<select name="prefix"><option value="">ไม่ระบุ</option><option>นาย</option><option>นาง</option><option>นางสาว</option></select></label><label class="form-field">ชื่อ <span class="required-mark">*</span><input name="first_name_th" required autocomplete="given-name"></label><label class="form-field">นามสกุล <span class="required-mark">*</span><input name="last_name_th" required autocomplete="family-name"></label><label class="form-field">อปท. ตามเอกสาร <span class="required-mark">*</span><input name="claimed_organization_name" required></label><label class="form-field span-all">สถานศึกษาตามเอกสาร <span class="required-mark">*</span><input name="claimed_school_name" required></label><label class="form-field span-all">หมายเหตุ<textarea name="applicant_note" rows="3"></textarea></label><label class="form-field span-all verification-upload">เอกสารยืนยัน <span class="required-mark">*</span><input name="document" type="file" required accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"><small>ต้องแนบเอกสารก่อนส่งคำขอ</small></label></div><button class="primary-btn wide" type="submit">ส่งคำขอให้ Platform Admin ตรวจสอบ</button></form>';
+  const form=q("#school-admin-application-form");
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const btn=form.querySelector("button[type=submit]"),fd=new FormData(form);
+    setBusy(btn,true,"กำลังส่งคำขอ...");
+    const submit=await supabase.functions.invoke("lao-school-admin-apply",{body:fd});
+    setBusy(btn,false);
+    if(submit.error){toast(await readFunctionError(submit.error),"error");return;}
+    box.innerHTML='<div class="application-success"><div class="success-mark">✓</div><h2>ส่งคำขอแล้ว</h2><p>Platform Admin จะตรวจเอกสารก่อน หากอนุมัติ ระบบจะส่งคำเชิญ LAO-EMS ไปยังอีเมลที่ระบุ</p><a class="secondary-btn wide" href="#/overview">กลับหน้าเข้าสู่ระบบ</a></div>';
+  });
+}
+function bindOverview(){
+  const btn=q("[data-platform-self-school]"); if(!btn)return;
+  btn.addEventListener("click",async()=>{
+    setBusy(btn,true,"กำลังเตรียม...");
+    const res=await supabase.rpc("lao_platform_begin_school_onboarding");
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    localStorage.setItem("lao_view_mode","user");state.viewMode="user";
+    await loadContext();location.hash="#/lec";
   });
 }
 
@@ -269,7 +308,7 @@ function refreshHeader(){
   qa("[data-view-mode]").forEach(button=>{
     button.classList.toggle("active",button.dataset.viewMode===state.viewMode);
     if(button.dataset.viewMode==="user"){
-      button.textContent=roleCodes(state.currentMembership).includes("school_admin")?"School":"User";
+      button.textContent=(roleCodes(state.currentMembership).includes("school_admin")||(state.pendingInvitation&&state.pendingInvitation.role_code==="school_admin"))?"School":"User";
       button.setAttribute("aria-label",button.textContent);
     }else{
       button.textContent="Platform";
@@ -383,6 +422,9 @@ function overviewHtml(){
   if(isPlatformAdminMode()){
     nextAction='<a class="primary-btn" href="#/users">เชิญ School Admin คนแรก</a>';
     notice='<div class="notice">มุมมอง Platform Admin ใช้สำหรับกำกับระบบและแต่งตั้ง School Admin คนแรกของแต่ละโรงเรียน</div>';
+  }else if(state.isPlatformAdmin&&state.viewMode==="user"&&!state.currentMembership){
+    nextAction='<button class="primary-btn" type="button" data-platform-self-school>ตั้งค่าสถานศึกษาของฉันจาก LEC</button>';
+    notice='<div class="notice"><strong>บัญชีนี้เป็น Platform Admin แล้ว</strong><br>หากต้องการทำงานในฐานะ School Admin ของโรงเรียนตนเอง ให้เริ่มจาก LEC ระบบจะสร้าง school_id และผูกสิทธิ์ School Admin ให้อัตโนมัติ</div>';
   }else if(schoolAdmin&&!schoolSetupReady()){
     nextAction='<a class="primary-btn" href="#/setup">ตั้งค่าสถานศึกษาให้ครบ</a>';
     notice='<div class="notice warning"><strong>ยังเปิดการเชิญผู้ใช้ไม่ได้</strong><br>หลังนำเข้า LEC แล้ว ให้ตรวจการตั้งค่าและเชื่อม Google Drive ก่อน ระบบจึงจะเปิดเมนูผู้ใช้และสิทธิ์</div>';
@@ -1197,8 +1239,9 @@ async function renderRoute(){
   if(!state.user)return;
   let route=routeName();
   const invitationStatus=state.pendingInvitation&&state.pendingInvitation.status;
-  if(invitationStatus==="pending"&&route!=="activate"){location.hash="#/activate";route="activate";}
-  if(invitationStatus==="onboarding"&&route!=="lec"){location.hash="#/lec";route="lec";}
+  const invitationRouteApplies=!state.isPlatformAdmin||state.viewMode==="user";
+  if(invitationRouteApplies&&invitationStatus==="pending"&&route!=="activate"){location.hash="#/activate";route="activate";}
+  if(invitationRouteApplies&&invitationStatus==="onboarding"&&route!=="lec"){location.hash="#/lec";route="lec";}
   if(route==="lec"){
     const approvedFirstSchoolAdmin=Boolean(
       state.viewMode==="user" &&
@@ -1224,7 +1267,7 @@ async function renderRoute(){
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
   main.innerHTML='<section class="panel"><div class="loading-inline"><span class="spinner"></span>กำลังโหลด...</div></section>';
   try{
-    if(route==="overview")main.innerHTML=(state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():overviewHtml();
+    if(route==="overview"){main.innerHTML=(state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():overviewHtml();bindOverview();}
     else if(route==="membership"){main.innerHTML=membershipHtml();}
     else if(route==="activate"){main.innerHTML=activationHtml();bindActivation();}
     else if(route==="profile"){main.innerHTML=profileHtml();bindProfile();}
@@ -1265,7 +1308,12 @@ async function showApp(session){
     toast("โหลดข้อมูลผู้ใช้ไม่สำเร็จ: "+e.message,"error");
   }
 }
-function showAuth(){q("#app-shell").classList.add("hidden");q("#auth-screen").classList.remove("hidden");}
+function showAuth(){
+  q("#app-shell").classList.add("hidden");q("#auth-screen").classList.remove("hidden");
+  const token=schoolAdminApplyToken(),signin=q("#signin-form"),application=q("#school-admin-application");
+  if(token){if(signin)signin.classList.add("hidden");if(application){application.classList.remove("hidden");renderPublicSchoolAdminApplication(token);}}
+  else{if(signin)signin.classList.remove("hidden");if(application)application.classList.add("hidden");}
+}
 
 async function init(){
   bindStaticUI();
