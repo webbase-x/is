@@ -119,5 +119,5 @@ Verification files are temporarily stored in the private `lao-ems-admin-verifica
 A Platform Admin who also manages a school can start their own School Admin context directly from LEC through `lao_platform_begin_school_onboarding()`.
 
 
-### Legacy LEC sample compatibility
-The workbook currently used during development is an **older LEC sample**, not a guaranteed current production specification. Its `Sheet1` convention (report title on row 1, main headers on row 2, subheaders/merged groups on row 3, data from row 4) is kept as a compatibility reference only. The importer remains content-driven and must be revalidated against a newly downloaded LEC export when the source system becomes available again.
+### LEC workbook format
+The workbook currently used during development contains **older-year data**, but the LEC workbook format remains the same as the current system format: `Sheet1` uses row 1 for the report title, rows 2–3 for main/subheaders with merged groups, and student data starts on row 4. The importer therefore treats this structure as the normal LEC format while retaining content-based fallback detection for resilience.
