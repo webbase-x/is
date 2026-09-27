@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.1";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1077,16 +1077,96 @@ function lecSheetProfile(wb,sheetName){
   const score=corePresent*100000+Math.min(rowCount,99999);
   return {sheetName,valid:missing.length===0&&rowCount>0,rowCount,missing,score,matrix,headerStart,flat,headers,map,metadata};
 }
+function lecStandardSheet1PositionalMap(){
+  return {
+    school_province:1,school_district:2,organization_name_th:3,school_name_th:4,
+    student_no:5,prefix:7,first_name_th:8,last_name_th:9,birth_date:10,
+    nationality:11,race:12,religion:13,citizen_id:14,admission_date:15,
+    grade_level:16,classroom:17,height_cm:20,weight_kg:21,student_condition:22,
+    "father.prefix":37,"father.first_name":38,"father.last_name":39,"father.religion":40,
+    "father.occupation":41,"father.monthly_income":42,"father.phone":43,
+    "mother.prefix":44,"mother.first_name":45,"mother.last_name":46,"mother.religion":47,
+    "mother.occupation":48,"mother.monthly_income":49,"mother.phone":50,
+    family_status:51,
+    "guardian.prefix":52,"guardian.first_name":53,"guardian.last_name":54,"guardian.religion":55,
+    "guardian.occupation":56,"guardian.monthly_income":57,"guardian.relationship":58,"guardian.phone":59,
+    tuition_reimbursement:60,medical_reimbursement:61,
+    "registered_address.house_no":62,"registered_address.moo":63,"registered_address.road":64,
+    "registered_address.subdistrict":65,"registered_address.district":66,"registered_address.province":67,
+    "current_address.house_no":68,"current_address.moo":69,"current_address.road":70,
+    "current_address.subdistrict":71,"current_address.district":72,"current_address.province":73,
+    "current_address.postal_code":74
+  };
+}
+function lecStandardSheet1PositionalProfile(wb,sheetName){
+  if(String(sheetName||"").trim().toLowerCase()!=="sheet1")return null;
+  const ws=wb.Sheets[sheetName];
+  if(!ws)return null;
+  const matrix=lecWorksheetMatrix(ws);
+  if(matrix.length<4)return null;
+  const map=lecStandardSheet1PositionalMap(),dataStart=3,studentNoCol=5;
+  const minCols=75;
+  const width=Math.max(...matrix.slice(0,Math.min(matrix.length,8)).map(row=>row.length),0);
+  if(width<minCols)return null;
+
+  let rowCount=0;
+  for(let r=dataStart;r<matrix.length;r++){
+    const sid=lecMappedValue(matrix[r],map,"student_no");
+    const first=lecMappedValue(matrix[r],map,"first_name_th");
+    const last=lecMappedValue(matrix[r],map,"last_name_th");
+    if(sid&&(first||last))rowCount++;
+  }
+  if(!rowCount)return null;
+
+  const headers=Array.from({length:width},(_,i)=>"LEC คอลัมน์ "+(i+1));
+  const labels={
+    0:"ลำดับที่",1:"จังหวัด",2:"อำเภอ",3:"อปท.",4:"สถานศึกษา",5:"เลขประจำตัวนักเรียน",
+    7:"คำนำหน้า",8:"ชื่อ",9:"นามสกุล",10:"วัน/เดือน/ปี เกิด",11:"สัญชาติ",12:"เชื้อชาติ",
+    13:"ศาสนา",14:"เลขประจำตัวประชาชน",15:"วัน/เดือน/ปี ที่เข้าศึกษา",16:"ชั้นปี",17:"ห้องเรียน",
+    20:"ส่วนสูง",21:"น้ำหนัก",22:"สภาพนักเรียน",37:"บิดา / คำนำหน้า",38:"บิดา / ชื่อ",
+    39:"บิดา / นามสกุล",40:"บิดา / ศาสนา",41:"บิดา / อาชีพ",42:"บิดา / รายได้/เดือน",
+    43:"บิดา / เบอร์โทร",44:"มารดา / คำนำหน้า",45:"มารดา / ชื่อ",46:"มารดา / นามสกุล",
+    47:"มารดา / ศาสนา",48:"มารดา / อาชีพ",49:"มารดา / รายได้/เดือน",50:"มารดา / เบอร์โทร",
+    51:"สถานภาพ",52:"ผู้ปกครอง / คำนำหน้า",53:"ผู้ปกครอง / ชื่อ",54:"ผู้ปกครอง / นามสกุล",
+    55:"ผู้ปกครอง / ศาสนา",56:"ผู้ปกครอง / อาชีพ",57:"ผู้ปกครอง / รายได้/เดือน",
+    58:"ผู้ปกครอง / ความเกี่ยวข้อง",59:"ผู้ปกครอง / เบอร์โทร",60:"สิทธิการเบิกค่าเล่าเรียน",
+    61:"สิทธิการเบิกค่ารักษาพยาบาล",62:"ที่อยู่ตามทะเบียนบ้าน / เลขที่",63:"ที่อยู่ตามทะเบียนบ้าน / หมู่ที่",
+    64:"ที่อยู่ตามทะเบียนบ้าน / ถนน/ตรอก/ซอย",65:"ที่อยู่ตามทะเบียนบ้าน / ตำบล",
+    66:"ที่อยู่ตามทะเบียนบ้าน / อำเภอ/เขต",67:"ที่อยู่ตามทะเบียนบ้าน / จังหวัด",
+    68:"ที่อยู่ปัจจุบัน / เลขที่",69:"ที่อยู่ปัจจุบัน / หมู่ที่",70:"ที่อยู่ปัจจุบัน / ถนน/ตรอก/ซอย",
+    71:"ที่อยู่ปัจจุบัน / ตำบล",72:"ที่อยู่ปัจจุบัน / อำเภอ/เขต",73:"ที่อยู่ปัจจุบัน / จังหวัด",
+    74:"ที่อยู่ปัจจุบัน / รหัสไปรษณีย์"
+  };
+  Object.entries(labels).forEach(([col,label])=>{headers[Number(col)]=label;});
+
+  const metadata=lecDetectMetadata(matrix,1,map,dataStart);
+  const missing=[];
+  if(!metadata.province_name_th)missing.push("จังหวัด");
+  if(!metadata.district_name_th)missing.push("อำเภอ");
+  if(!metadata.organization_name_th)missing.push("อปท.");
+  if(!metadata.school_name_th)missing.push("สถานศึกษา");
+  if(!metadata.academic_year_be)missing.push("ปีการศึกษา");
+  if(!metadata.term_no)missing.push("ภาคเรียน");
+  if([metadata.province_name_th,metadata.district_name_th,metadata.organization_name_th,metadata.school_name_th].some(v=>String(v||"").includes("�"))){
+    missing.push("การเข้ารหัสภาษาไทย");
+  }
+  const corePresent=9-missing.length;
+  return {
+    sheetName,valid:missing.length===0&&rowCount>0,rowCount,missing,
+    score:corePresent*100000+Math.min(rowCount,99999)+40000,
+    matrix,headerStart:1,flat:{headers,dataStart,studentNoCol},headers,map,metadata,
+    positionalFallback:true
+  };
+}
+
 
 async function parseLecFile(file){
   if(!window.XLSX)throw new Error("ไม่สามารถโหลดตัวอ่านไฟล์ Excel ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่");
   const buffer=await file.arrayBuffer();
-  const wb=XLSX.read(buffer,{type:"array",cellDates:true});
-  if(!wb.SheetNames.length)throw new Error("ไฟล์ไม่มีแผ่นงาน");
-
   const filePeriod=lecPeriodFromFileName(file.name);
-  const allProfiles=wb.SheetNames.map(name=>{
-    const p=lecSheetProfile(wb,name);
+  const isLegacyXls=/\.xls$/i.test(file.name)&&!/\.xlsx$/i.test(file.name);
+
+  const applyPeriod=p=>{
     if(!p)return null;
     if(p.metadata){
       if(!p.metadata.academic_year_be&&filePeriod.academic_year_be)p.metadata.academic_year_be=filePeriod.academic_year_be;
@@ -1095,10 +1175,35 @@ async function parseLecFile(file){
       p.missing=(p.missing||[]).filter(x=>!(x==="ปีการศึกษา"&&p.metadata.academic_year_be)&&!(x==="ภาคเรียน"&&p.metadata.term_no));
       p.valid=p.missing.length===0&&p.rowCount>0;
       const corePresent=9-p.missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
-      p.score=corePresent*100000+Math.min(p.rowCount,99999);
+      p.score=(p.score&&p.positionalFallback?p.score:corePresent*100000+Math.min(p.rowCount,99999));
     }
     return p;
+  };
+
+  const scanWorkbook=book=>book.SheetNames.map(name=>{
+    let p=lecSheetProfile(book,name);
+    if((!p||!p.valid)&&String(name).trim().toLowerCase()==="sheet1"){
+      const fallback=lecStandardSheet1PositionalProfile(book,name);
+      if(fallback&&(fallback.rowCount>(p&&p.rowCount||0)))p=fallback;
+    }
+    return applyPeriod(p);
   }).filter(Boolean);
+
+  let wb=XLSX.read(buffer,{type:"array",cellDates:true});
+  if(!wb.SheetNames.length)throw new Error("ไฟล์ไม่มีแผ่นงาน");
+  let allProfiles=scanWorkbook(wb);
+
+  const hasCandidate=profiles=>profiles.some(x=>x.valid);
+  if(isLegacyXls&&!hasCandidate(allProfiles)){
+    try{
+      const thaiWb=XLSX.read(buffer,{type:"array",cellDates:true,codepage:874});
+      const thaiProfiles=scanWorkbook(thaiWb);
+      if(hasCandidate(thaiProfiles)||thaiProfiles.some(x=>x.positionalFallback&&x.rowCount>0)){
+        wb=thaiWb;
+        allProfiles=thaiProfiles;
+      }
+    }catch(_){}
+  }
 
   const candidates=allProfiles.filter(x=>x.valid).sort((a,b)=>{
     const aSheet1=String(a.sheetName).trim().toLowerCase()==="sheet1"?1:0;
@@ -1107,7 +1212,8 @@ async function parseLecFile(file){
   });
   if(!candidates.length){
     const details=allProfiles.map(x=>x.sheetName+": "+((x.missing&&x.missing.length)?("ขาด "+x.missing.join(", ")):"ไม่พบข้อมูลนักเรียน")).join(" | ");
-    throw new Error("ยังไม่พบชีต LEC ที่พร้อมนำเข้า"+(details?" — "+details:""));
+    const hint=isLegacyXls?" · ระบบลองอ่านรหัสภาษาไทย Windows-874 และโครงสร้าง Sheet1 แบบตำแหน่งแล้ว":"";
+    throw new Error("ยังไม่พบชีต LEC ที่พร้อมนำเข้า"+(details?" — "+details:"")+hint);
   }
   const selected=candidates[0];
   const standardSheet1=String(selected.sheetName).trim().toLowerCase()==="sheet1";
@@ -1149,15 +1255,16 @@ async function parseLecFile(file){
   metadata.header_main_row=selected.headerStart+1;
   metadata.header_sub_row=selected.headerStart+2;
   metadata.data_start_row=flat.dataStart+1;
-  metadata.sheet_selection_rule=standardSheet1?"lec_sheet1_two_row_merged_header":"content_detected_lec_sheet";
+  metadata.sheet_selection_rule=selected.positionalFallback?"lec_sheet1_positional_fallback":(standardSheet1?"lec_sheet1_two_row_merged_header":"content_detected_lec_sheet");
   metadata.template_status=standardSheet1?"lec_standard_format":"detected_from_content";
+  metadata.xls_codepage=isLegacyXls?"thai_874_retry_enabled":null;
 
   return {
     fileName:file.name,fileSize:file.size,sha256:await lecSha256(buffer),
     sheetName:selected.sheetName,
     ignoredSheetCount:Math.max(0,wb.SheetNames.length-1),
     ignoredSheets:wb.SheetNames.filter(name=>name!==selected.sheetName),
-    sheetScan:allProfiles.map(x=>({sheetName:x.sheetName,valid:x.valid,rowCount:x.rowCount,missing:x.missing})),
+    sheetScan:allProfiles.map(x=>({sheetName:x.sheetName,valid:x.valid,rowCount:x.rowCount,missing:x.missing,positionalFallback:Boolean(x.positionalFallback)})),
     headers,map,headerMap:lecHeaderMapForServer(headers,map),
     missingRequired:[],rows,metadata
   };
