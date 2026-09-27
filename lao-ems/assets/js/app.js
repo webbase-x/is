@@ -175,7 +175,10 @@ function refreshHeader(){
   const name=displayName();
   q("[data-profile-name]").textContent=name;
   q("[data-avatar]").textContent=initials(name).slice(0,2);
-  q("[data-profile-role]").textContent=state.currentMembership?roleNames():state.memberships.some(m=>m.status==="pending")?"รออนุมัติสิทธิ์":"ยังไม่ได้ขอสิทธิ์";
+  q("[data-profile-role]").textContent=state.isPlatformAdmin?"ผู้ดูแลแพลตฟอร์ม":state.currentMembership?roleNames():state.memberships.some(m=>m.status==="pending")?"รออนุมัติสิทธิ์":"ยังไม่ได้ขอสิทธิ์";
+  qa("[data-admin-menu]").forEach(item=>{
+    item.classList.toggle("hidden",!(state.isPlatformAdmin||hasRole("organization_admin","school_admin")));
+  });
 }
 function renderTenants(){
   const select=q("#tenant-select"),active=state.memberships.filter(m=>m.status==="active");
@@ -188,24 +191,32 @@ function renderTenants(){
 }
 
 function overviewHtml(){
-  const active=state.memberships.filter(m=>m.status==="active").length,pending=state.memberships.filter(m=>m.status==="pending").length;
-  const tenant=(currentSchool()&&currentSchool().name_th)||(currentOrg()&&currentOrg().name_th)||"ยังไม่เลือกสถานศึกษา";
-  const moduleHtml=modules.map(m=>'<article class="module-card"><div class="module-top"><span class="module-icon">'+m[0]+'</span><span class="module-stage">'+m[3]+'</span></div><h3>'+esc(m[1])+'</h3><p>'+esc(m[2])+'</p></article>').join("");
-  return '<section class="system-banner"><div><span class="badge">Phase 1 · Foundation</span><h2>ฐานระบบพร้อมสำหรับการขยายทีละโมดูล</h2><p>LAO-EMS ใช้ Supabase ISSQL โดยแยก object ด้วยคำนำหน้า <strong>lao_</strong> และออกแบบแบบหลายสถานศึกษาตั้งแต่ต้น</p></div><div class="banner-status"><span class="status-pill success">Supabase: เชื่อมแล้ว</span><span class="status-pill success">RLS: เปิดใช้งาน</span><span class="status-pill warning">Drive: รอ OAuth</span></div></section>'+
-  '<section class="stats-grid"><article class="stat-card"><span class="stat-icon">🏫</span><div><small>บริบทปัจจุบัน</small><strong>'+esc(tenant)+'</strong><p>เปลี่ยนได้จากแถบด้านซ้าย</p></div></article><article class="stat-card"><span class="stat-icon">🛡️</span><div><small>สิทธิ์ที่ใช้งาน</small><strong>'+active+' สิทธิ์</strong><p>'+esc(roleNames())+'</p></div></article><article class="stat-card"><span class="stat-icon">⏳</span><div><small>คำขอที่รออนุมัติ</small><strong>'+pending+'</strong><p>ติดตามได้จากเมนูสถานะการเข้าใช้งาน</p></div></article><article class="stat-card"><span class="stat-icon">🗂️</span><div><small>ไฟล์ของสถานศึกษา</small><strong>Google Drive</strong><p>แต่ละโรงเรียนเชื่อมบัญชีของตนเอง</p></div></article></section>'+
-  '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">Setup sequence</p><h2>ลำดับข้อมูลพื้นฐาน</h2></div><span class="counter">Foundation</span></div><ol class="setup-list">'+
-  '<li><span>1</span><div><strong>อปท. และสถานศึกษา</strong><small>โครงสร้าง tenant และ school scope</small></div><em>พร้อมโครงสร้าง</em></li>'+
-  '<li><span>2</span><div><strong>บัญชีและโปรไฟล์</strong><small>สมัครบัญชีโดยไม่สร้างข้อมูลโรงเรียนซ้ำ</small></div><em>พร้อมใช้งาน</em></li>'+
-  '<li><span>3</span><div><strong>Membership และ Role</strong><small>ขอสิทธิ์ → ตรวจสอบ → อนุมัติ</small></div><em>พร้อมใช้งาน</em></li>'+
-  '<li><span>4</span><div><strong>ปีการศึกษาและภาคเรียน</strong><small>ตั้งค่าต่อโรงเรียนตามสิทธิ์</small></div><em>พร้อมโครงสร้าง</em></li>'+
-  '<li><span>5</span><div><strong>Google Drive Connection</strong><small>หนึ่งโรงเรียนต่อหนึ่ง Drive connection</small></div><em>รอ OAuth</em></li>'+
-  '<li><span>6</span><div><strong>บุคลากร</strong><small>โมดูลข้อมูลต้นทางลำดับถัดไป</small></div><em>Phase 2</em></li></ol></article>'+
-  '<article class="panel"><div class="panel-head"><div><p class="eyebrow">Security</p><h2>หลักควบคุมข้อมูล</h2></div></div><ul class="status-list">'+
-  '<li><span>✓</span><div><strong>Prefix แยกระบบ</strong><small>ตาราง ฟังก์ชัน และ policy ของระบบใช้ lao_</small></div><span class="pill success">เปิดใช้</span></li>'+
-  '<li><span>✓</span><div><strong>Row Level Security</strong><small>ผู้ใช้เห็นข้อมูลตาม membership และ school scope</small></div><span class="pill success">เปิดใช้</span></li>'+
-  '<li><span>✓</span><div><strong>Audit foundation</strong><small>คำขอและการอนุมัติ membership เริ่มบันทึก audit</small></div><span class="pill success">เปิดใช้</span></li>'+
-  '<li><span>→</span><div><strong>Google OAuth</strong><small>ทำหลังสร้าง Google Cloud credential สำหรับระบบ</small></div><span class="pill warning">ถัดไป</span></li></ul></article></section>'+
-  '<section class="module-section"><div class="section-head"><div><p class="eyebrow">Roadmap</p><h2>โมดูลที่จะทยอยพัฒนา</h2></div></div><div class="module-grid">'+moduleHtml+'</div></section>';
+  const active=state.memberships.filter(m=>m.status==="active").length;
+  const pending=state.memberships.filter(m=>m.status==="pending").length;
+  const tenant=(currentSchool()&&currentSchool().name_th)||(currentOrg()&&currentOrg().name_th)||"ยังไม่ได้เลือกสถานศึกษา";
+  const name=displayName();
+  const accessText=state.isPlatformAdmin?"ผู้ดูแลแพลตฟอร์ม":state.currentMembership?roleNames():pending?"กำลังรออนุมัติ":"ยังไม่มีสิทธิ์ใช้งานสถานศึกษา";
+  const nextAction=state.isPlatformAdmin
+    ? '<a class="primary-btn" href="#/organization">จัดการ อปท. และสถานศึกษา</a>'
+    : active
+      ? '<a class="primary-btn" href="#/membership">ดูสิทธิ์ของฉัน</a>'
+      : '<a class="primary-btn" href="#/membership">'+(pending?"ตรวจสอบสถานะคำขอ":"ขอสิทธิ์เข้าร่วมสถานศึกษา")+'</a>';
+
+  return '<section class="system-banner"><div><span class="badge">LAO-EMS</span><h2>สวัสดี '+esc(name)+'</h2><p>ยินดีต้อนรับสู่ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น</p></div></section>'+
+  '<section class="stats-grid">'+
+    '<article class="stat-card"><span class="stat-icon">🏫</span><div><small>สถานศึกษา</small><strong>'+esc(tenant)+'</strong><p>'+(active||state.isPlatformAdmin?"ข้อมูลจะแสดงตามสิทธิ์ของคุณ":"กรุณาขอสิทธิ์เข้าร่วมสถานศึกษา")+'</p></div></article>'+
+    '<article class="stat-card"><span class="stat-icon">👤</span><div><small>สิทธิ์การใช้งาน</small><strong>'+esc(accessText)+'</strong><p>'+esc(state.currentMembership?roleNames():"")+'</p></div></article>'+
+    '<article class="stat-card"><span class="stat-icon">'+(pending?"⏳":"✓")+'</span><div><small>สถานะคำขอ</small><strong>'+(pending?pending+" คำขอรออนุมัติ":"ไม่มีคำขอค้าง")+'</strong><p>ตรวจสอบได้จากเมนูสิทธิ์การเข้าใช้งาน</p></div></article>'+
+  '</section>'+
+  '<section class="panel"><div class="panel-head"><div><p class="eyebrow">เริ่มใช้งาน</p><h2>สิ่งที่ต้องดำเนินการ</h2></div></div>'+
+  (state.isPlatformAdmin
+    ? '<div class="notice">คุณเป็นผู้ดูแลแพลตฟอร์ม สามารถเพิ่ม อปท. สถานศึกษา และตรวจสอบสิทธิ์ผู้ใช้งานได้</div>'
+    : active
+      ? '<div class="notice success">บัญชีของคุณพร้อมใช้งาน ระบบจะแสดงเมนูและข้อมูลตามหน้าที่ที่ได้รับอนุญาต</div>'
+      : pending
+        ? '<div class="notice warning">คำขอของคุณถูกส่งแล้ว กรุณารอผู้ดูแลสถานศึกษาตรวจสอบและอนุมัติ</div>'
+        : '<div class="notice">บัญชีของคุณสร้างเรียบร้อยแล้ว ขั้นตอนถัดไปคือขอสิทธิ์เข้าร่วมสถานศึกษา</div>')+
+  '<div class="action-row">'+nextAction+'</div></section>';
 }
 
 function membershipHtml(){
