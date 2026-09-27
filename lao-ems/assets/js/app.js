@@ -1668,7 +1668,7 @@ function bindStudents(){
       };
       renderRoute();
     });
-    qa("select",form).forEach(select=>select.addEventListener("change",()=>form.requestSubmit()));
+    qa("select",form).forEach(select=>select.addEventListener("change",()=>{if(select.name==="year_be"){form.elements.term_no.value="";form.elements.grade_level.value="";form.elements.classroom.value="";}else if(select.name==="term_no"){form.elements.grade_level.value="";form.elements.classroom.value="";}form.requestSubmit();}));
   }
   const reset=q("[data-student-reset]");
   if(reset)reset.addEventListener("click",()=>{
