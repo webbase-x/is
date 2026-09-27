@@ -753,9 +753,13 @@ function lecSheetProfile(wb,sheetName){
   const headers=flat.headers,map=lecBuildMap(headers);
   const required=["school_province","school_district","organization_name_th","school_name_th","student_no","first_name_th","last_name_th"];
   const missing=required.filter(k=>map[k]==null);
+  const period=lecPeriodFromSheet(matrix,headerStart,map,flat.dataStart);
+  if(!period.academic_year_be)missing.push("ปีการศึกษา");
+  if(!period.term_no)missing.push("ภาคเรียน");
+  if(period.period_conflicts&&period.period_conflicts.length)missing.push(...period.period_conflicts.map(x=>x+"ไม่สอดคล้อง"));
   let rowCount=0;
   for(let r=flat.dataStart;r<matrix.length;r++)if(lecMappedValue(matrix[r],map,"student_no"))rowCount++;
-  const score=(required.length-missing.length)*100000+Math.min(rowCount,99999);
+  const score=(required.length+2-missing.length)*100000+Math.min(rowCount,99999);
   return {sheetName,valid:missing.length===0&&rowCount>0,rowCount,missing,score,matrix,headerStart,flat,headers,map};
 }
 async function parseLecFile(file){
@@ -768,7 +772,7 @@ async function parseLecFile(file){
   const candidates=profiles.filter(x=>x.valid).sort((a,b)=>b.score-a.score);
   if(!candidates.length){
     const scanned=profiles.map(x=>x.sheetName).join(", ");
-    throw new Error("ไม่พบชีตข้อมูล LEC ที่มีข้อมูลสถานศึกษาครบ ต้องมีคอลัมน์ จังหวัด, อำเภอ, อปท., สถานศึกษา, เลขประจำตัวนักเรียน, ชื่อ และนามสกุล"+(scanned?" (ตรวจแล้ว: "+scanned+")":""));
+    throw new Error("ไม่พบชีตข้อมูล LEC ที่มีข้อมูลสถานศึกษาครบ ต้องมีข้อมูล จังหวัด, อำเภอ, อปท., สถานศึกษา, ปีการศึกษา, ภาคเรียน, เลขประจำตัวนักเรียน, ชื่อ และนามสกุล"+(scanned?" (ตรวจแล้ว: "+scanned+")":""));
   }
 
   const selected=candidates[0],matrix=selected.matrix,headers=selected.headers,map=selected.map,flat=selected.flat;
