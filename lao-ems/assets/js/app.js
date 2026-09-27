@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.3";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.4";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -768,24 +768,62 @@ function lecCellText(cell){
   return String(cell).trim();
 }
 function lecWorksheetMatrix(ws){
-  if(!ws||!ws["!ref"])return [];
-  const range=XLSX.utils.decode_range(ws["!ref"]);
-  const maxRows=Math.min(range.e.r+1,12000),maxCols=Math.min(range.e.c+1,180);
-  const matrix=Array.from({length:maxRows},()=>Array(maxCols).fill(""));
-  for(let r=0;r<maxRows;r++)for(let col=0;col<maxCols;col++){
-    const cell=ws[XLSX.utils.encode_cell({r,col})];
-    if(cell)matrix[r][col]=lecCellText(cell.w!=null?cell.w:cell.v);
+  if(!ws)return [];
+  const maxRows=12000,maxCols=180;
+  let matrix=[];
+
+  try{
+    const rows=XLSX.utils.sheet_to_json(ws,{
+      header:1,
+      raw:true,
+      defval:"",
+      blankrows:true
+    });
+    if(Array.isArray(rows)&&rows.length){
+      const rowLimit=Math.min(rows.length,maxRows);
+      let width=0;
+      for(let r=0;r<rowLimit;r++)width=Math.max(width,Array.isArray(rows[r])?rows[r].length:0);
+      width=Math.min(Math.max(width,1),maxCols);
+      matrix=Array.from({length:rowLimit},(_,r)=>{
+        const src=Array.isArray(rows[r])?rows[r]:[];
+        return Array.from({length:width},(_,c)=>lecCellText(src[c]));
+      });
+    }
+  }catch(_){}
+
+  if(!matrix.length&&ws["!ref"]){
+    const range=XLSX.utils.decode_range(ws["!ref"]);
+    const rowLimit=Math.min(range.e.r+1,maxRows),colLimit=Math.min(range.e.c+1,maxCols);
+    matrix=Array.from({length:rowLimit},()=>Array(colLimit).fill(""));
+    for(let r=0;r<rowLimit;r++)for(let col=0;col<colLimit;col++){
+      const cell=ws[XLSX.utils.encode_cell({r,col})];
+      if(cell){
+        const source=cell.v!=null?cell.v:cell.w;
+        matrix[r][col]=lecCellText(source);
+      }
+    }
   }
+
+  if(!matrix.length)return [];
+  const width=Math.min(Math.max(...matrix.map(row=>row.length),1),maxCols);
+  matrix=matrix.slice(0,maxRows).map(row=>{
+    const out=Array.from({length:width},(_,c)=>lecCellText(row[c]));
+    return out;
+  });
+
   (ws["!merges"]||[]).forEach(m=>{
-    if(m.s.r>=maxRows||m.s.c>=maxCols)return;
-    const value=matrix[m.s.r][m.s.c];
+    if(m.s.r>=matrix.length||m.s.c>=width)return;
+    const value=matrix[m.s.r]&&matrix[m.s.r][m.s.c]||"";
     if(!value)return;
-    for(let r=m.s.r;r<=Math.min(m.e.r,maxRows-1);r++){
-      for(let col=m.s.c;col<=Math.min(m.e.c,maxCols-1);col++)matrix[r][col]=value;
+    for(let r=m.s.r;r<=Math.min(m.e.r,matrix.length-1);r++){
+      for(let col=m.s.c;col<=Math.min(m.e.c,width-1);col++){
+        if(!matrix[r][col])matrix[r][col]=value;
+      }
     }
   });
   return matrix;
 }
+
 function lecFindHeaderStart(matrix){
   const limit=Math.min(matrix.length,60);
   for(let r=0;r<limit;r++){
@@ -1210,7 +1248,7 @@ async function parseLecFile(file){
     let p=null;
     if(isSheet1){
       p=lecStandardSheet1PositionalProfile(book,name);
-      if(!p||!p.rowCount)p=lecSheetProfile(book,name);
+      if(!p)p=lecSheetProfile(book,name);
     }else{
       p=lecSheetProfile(book,name);
     }
@@ -1246,7 +1284,7 @@ async function parseLecFile(file){
       }
       return base;
     }).join(" | ");
-    const hint=" · ตัวอ่าน v0.2.3 อ่าน Sheet1 จากตำแหน่ง B–F/I/J โดยไม่พึ่งข้อความหัวตาราง";
+    const hint=" · ตัวอ่าน v0.2.4 อ่านค่าดิบของ SheetJS ด้วย sheet_to_json ก่อน และอ่าน Sheet1 จาก B–F/I/J โดยตรง";
     throw new Error("ยังไม่พบชีต LEC ที่พร้อมนำเข้า"+(details?" — "+details:"")+hint);
   }
   const selected=candidates[0];
