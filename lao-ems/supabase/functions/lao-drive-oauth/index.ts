@@ -9,7 +9,7 @@ const corsHeaders = {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   return new Response(JSON.stringify({
-    error: "Google OAuth ยังไม่ได้ตั้งค่าระดับแพลตฟอร์ม กรุณากำหนด Google OAuth Client ก่อนเปิดการเชื่อม Drive",
+    error: "การเชื่อม Google Drive ยังไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแลแพลตฟอร์ม",
     configuration_required: true
   }), {
     status: 503,
