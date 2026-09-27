@@ -1,0 +1,37 @@
+{
+  "name": "LAO-EMS ระบบสารสนเทศเพื่อการบริหารจัดการศึกษา",
+  "short_name": "LAO-EMS",
+  "description": "ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น",
+  "lang": "th",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0f5bd3",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://webbase-x.github.io/is/lao-ems/manifest.webmanifest"
+    }
+  ],
+  "prefer_related_applications": false
+}
