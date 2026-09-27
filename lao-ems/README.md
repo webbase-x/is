@@ -144,3 +144,10 @@ LEC import now shows a blocking progress dialog with a clear warning not to leav
 ### Student directory from LEC
 
 After a successful LEC import, authorized school staff can open **นักเรียน** to search the school roster by name, student number, or citizen ID (server-side search only). The roster can be filtered by academic year, term, grade, classroom, and LEC presence status. Citizen IDs are never returned in the list and are masked in the detail view. The page reads the existing `lao_students`, `lao_student_school_records`, and `lao_student_term_enrollments` source-of-truth tables rather than copying student data into a second store.
+
+
+### PWA install and Google sign-in
+
+LAO-EMS is installable as a Progressive Web App from the signed-in overview page. The install card is hidden when the app is running in standalone mode or the browser reports the related web app as installed.
+
+Google sign-in uses the existing Supabase Google provider. After OAuth succeeds, LAO-EMS calls `lao_email_is_authorized()` before loading any application data. The signed-in email must match an existing LAO-EMS platform admin, membership, or pending invitation in ISSQL; otherwise the session is signed out and access is denied.
