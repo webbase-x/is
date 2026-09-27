@@ -1189,18 +1189,18 @@ async function parseLecFile(file){
     return applyPeriod(p);
   }).filter(Boolean);
 
-  let wb=XLSX.read(buffer,{type:"array",cellDates:true});
+  let wb=XLSX.read(buffer,{type:"array",cellDates:true,...(isLegacyXls?{codepage:874}:{})});
   if(!wb.SheetNames.length)throw new Error("ไฟล์ไม่มีแผ่นงาน");
   let allProfiles=scanWorkbook(wb);
 
   const hasCandidate=profiles=>profiles.some(x=>x.valid);
   if(isLegacyXls&&!hasCandidate(allProfiles)){
     try{
-      const thaiWb=XLSX.read(buffer,{type:"array",cellDates:true,codepage:874});
-      const thaiProfiles=scanWorkbook(thaiWb);
-      if(hasCandidate(thaiProfiles)||thaiProfiles.some(x=>x.positionalFallback&&x.rowCount>0)){
-        wb=thaiWb;
-        allProfiles=thaiProfiles;
+      const fallbackWb=XLSX.read(buffer,{type:"array",cellDates:true});
+      const fallbackProfiles=scanWorkbook(fallbackWb);
+      if(hasCandidate(fallbackProfiles)){
+        wb=fallbackWb;
+        allProfiles=fallbackProfiles;
       }
     }catch(_){}
   }
