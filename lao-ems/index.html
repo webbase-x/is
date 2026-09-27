@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f5bd3">
   <meta name="description" content="LAO-EMS ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น">
   <title>LAO-EMS | ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น</title>
-  <link rel="stylesheet" href="./assets/css/app.css">
+  <link rel="stylesheet" href="./assets/css/app.css?v=20260927-1">
 </head>
 <body>
   <a class="skip-link" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
@@ -37,16 +37,19 @@
         </div>
         <form id="signin-form" class="auth-form" autocomplete="on">
           <div class="form-heading"><h2>ยินดีต้อนรับ</h2><p>เข้าสู่ระบบเพื่อใช้งานตามสิทธิ์ของคุณ</p></div>
-          <label>อีเมล<input name="email" type="email" autocomplete="email" required placeholder="name@example.com"></label>
-          <label>รหัสผ่าน
-            <span class="password-field">
-              <input name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="อย่างน้อย 8 ตัวอักษร" data-password-input>
-              <button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" title="แสดง/ซ่อนรหัสผ่าน">👁</button>
-            </span>
-          </label>
+          <div class="form-field">
+            <label for="signin-email">อีเมล</label>
+            <input id="signin-email" name="email" type="email" autocomplete="email" required placeholder="name@example.com">
+          </div>
+          <div class="form-field">
+            <label for="signin-password">รหัสผ่าน</label>
+            <div class="input-with-action">
+              <input id="signin-password" name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="อย่างน้อย 8 ตัวอักษร" data-password-input>
+              <button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button>
+            </div>
+          </div>
           <label class="remember-row"><input name="remember_login" type="checkbox"><span>จำการเข้าสู่ระบบบนอุปกรณ์นี้</span></label>
           <button class="primary-btn wide" type="submit">เข้าสู่ระบบ</button>
-          <p class="form-hint">ระบบจะไม่เก็บรหัสผ่านเป็นข้อความในเว็บไซต์ การจำรหัสผ่านจริงให้ใช้ Password AutoFill/ตัวจัดการรหัสผ่านของอุปกรณ์</p>
         </form>
         <form id="signup-form" class="auth-form hidden" autocomplete="on">
           <div class="form-heading"><h2>สร้างบัญชี LAO-EMS</h2><p>สมัครบัญชีก่อน แล้วจึงส่งคำขอเข้าร่วมสถานศึกษา</p></div>
@@ -58,8 +61,8 @@
           <label>เบอร์โทรศัพท์<input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label>
           <label>อีเมล<input name="email" type="email" autocomplete="email" required></label>
           <div class="form-row">
-            <label>รหัสผ่าน<span class="password-field"><input name="password" type="password" autocomplete="new-password" minlength="8" required data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน">👁</button></span></label>
-            <label>ยืนยันรหัสผ่าน<span class="password-field"><input name="confirm_password" type="password" autocomplete="new-password" minlength="8" required data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน">👁</button></span></label>
+            <div class="form-field"><label for="signup-password">รหัสผ่าน</label><div class="input-with-action"><input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div>
+            <div class="form-field"><label for="signup-confirm-password">ยืนยันรหัสผ่าน</label><div class="input-with-action"><input id="signup-confirm-password" name="confirm_password" type="password" autocomplete="new-password" minlength="8" required data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div>
           </div>
           <label class="check-row"><input name="accept" type="checkbox" required><span>ยืนยันว่าข้อมูลที่สมัครเป็นข้อมูลของตนเอง และยอมรับการตรวจสอบสิทธิ์ก่อนเข้าใช้ข้อมูลของสถานศึกษา</span></label>
           <button class="primary-btn wide" type="submit">สร้างบัญชี</button>
@@ -94,6 +97,6 @@
   </div>
 
   <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <script type="module" src="./assets/js/app.js"></script>
+  <script type="module" src="./assets/js/app.js?v=20260927-1"></script>
 </body>
 </html>
