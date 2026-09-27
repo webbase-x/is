@@ -29,6 +29,17 @@ const authStorage = {
   }
 };
 
+export function clearLaoAuthSession(){
+  for(const storage of [localStorage,sessionStorage]){
+    const remove=[];
+    for(let i=0;i<storage.length;i++){
+      const key=storage.key(i);
+      if(key&&key.startsWith("lao-ems:"))remove.push(key);
+    }
+    remove.forEach(key=>storage.removeItem(key));
+  }
+}
+
 export const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabasePublishableKey, {
   auth: {
     persistSession: true,
