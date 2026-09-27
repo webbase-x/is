@@ -36,3 +36,6 @@
 
 .school-verify{margin:14px 0;padding:14px;border-radius:14px;border:1px solid var(--line);background:#f9fafb}.school-verify.success{background:#f6fef9;border-color:#abefc6}.school-verify.warning{background:#fffaeb;border-color:#fedf89}.school-verify.danger{background:#fff5f4;border-color:#fda29b}.school-verify>p,.school-verify-head p{margin:4px 0 0;color:#667085;line-height:1.55}.school-verify-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.choice-grid{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}.compact-table{margin-top:10px}.compact-table table{min-width:0}.compact-table th{width:180px}
 @media(max-width:700px){.school-verify-head{flex-direction:column}.choice-grid{display:grid}.choice-grid button{width:100%}}
+
+.auth-card>.auth-form{margin-top:0}.invite-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0 22px}.invite-summary>div{border:1px solid var(--line);border-radius:14px;padding:12px;background:#f9fafb}.invite-summary small{display:block;color:#667085;margin-bottom:4px}.invite-summary strong{display:block;overflow-wrap:anywhere}.onboarding-shell{max-width:900px;margin:0 auto}.onboarding-card{padding:24px}.form-divider{border:0;border-top:1px solid var(--line);margin:8px 0}
+@media(max-width:700px){.invite-summary{grid-template-columns:1fr}.onboarding-card{padding:18px}}
