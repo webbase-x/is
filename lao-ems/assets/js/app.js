@@ -232,11 +232,15 @@ async function organizationHtml(){
 
 async function usersHtml(){
   if(!hasRole("platform_admin","organization_admin","school_admin"))return '<section class="panel"><div class="empty-state"><div class="empty-icon">🛡️</div><h3>เมนูนี้สำหรับผู้ดูแล</h3><p>บัญชีของคุณยังไม่มีสิทธิ์ตรวจสอบคำขอของผู้ใช้อื่น</p><a class="primary-btn" href="#/membership">ดูสิทธิ์ของฉัน</a></div></section>';
-  const res=await supabase.from("lao_memberships").select("id,user_id,requested_role_code,request_note,status,requested_at,lao_organizations(name_th),lao_schools(name_th),lao_profiles:user_id(display_name,first_name_th,last_name_th)").eq("status","pending").order("requested_at");
+  const res=await supabase.from("lao_memberships").select("id,user_id,requested_role_code,request_note,status,requested_at,lao_organizations(name_th),lao_schools(name_th)").eq("status","pending").order("requested_at");
   if(res.error)throw res.error;
   if(!res.data.length)return '<section class="panel"><div class="empty-state"><div class="empty-icon">✓</div><h3>ไม่มีคำขอค้าง</h3><p>เมื่อมีผู้สมัคร คำขอที่คุณมีสิทธิ์ตรวจสอบจะแสดงที่นี่</p></div></section>';
+  const userIds=Array.from(new Set(res.data.map(m=>m.user_id)));
+  const profileRes=await supabase.from("lao_profiles").select("user_id,display_name,first_name_th,last_name_th").in("user_id",userIds);
+  if(profileRes.error)throw profileRes.error;
+  const profileMap=Object.fromEntries((profileRes.data||[]).map(p=>[p.user_id,p]));
   const rows=res.data.map(m=>{
-    const p=m.lao_profiles||{},name=p.display_name||[p.first_name_th,p.last_name_th].filter(Boolean).join(" ")||m.user_id;
+    const p=profileMap[m.user_id]||{},name=p.display_name||[p.first_name_th,p.last_name_th].filter(Boolean).join(" ")||m.user_id;
     return '<tr><td><strong>'+esc(name)+'</strong><br><small>'+new Date(m.requested_at).toLocaleString("th-TH")+'</small></td><td>'+esc(m.lao_schools&&m.lao_schools.name_th||m.lao_organizations&&m.lao_organizations.name_th||"-")+'</td><td>'+esc(roleLabels[m.requested_role_code]||m.requested_role_code||"-")+'</td><td>'+esc(m.request_note||"-")+'</td><td><div class="action-row" style="margin:0"><button class="primary-btn" data-approve="'+m.id+'" data-role="'+esc(m.requested_role_code)+'">อนุมัติ</button><button class="danger-btn" data-reject="'+m.id+'">ไม่อนุมัติ</button></div></td></tr>';
   }).join("");
   return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">Approval queue</p><h2>คำขอที่รอตรวจสอบ</h2></div><span class="counter">'+res.data.length+' คำขอ</span></div><div class="table-wrap"><table><thead><tr><th>ผู้ขอ</th><th>สถานศึกษา</th><th>บทบาท</th><th>ข้อมูลประกอบ</th><th>ดำเนินการ</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
