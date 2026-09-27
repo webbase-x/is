@@ -102,7 +102,11 @@ function bindStaticUI(){
     state.viewMode=button.dataset.viewMode==="admin"?"admin":"user";
     localStorage.setItem("lao_view_mode",state.viewMode);
     refreshHeader();
-    renderRoute();
+    if(state.viewMode==="user"&&!["overview","membership"].includes(routeName())){
+      location.hash="#/overview";
+    }else{
+      renderRoute();
+    }
   }));
   const sidebar=q("#sidebar"),scrim=q("[data-scrim]");
   q("[data-sidebar-open]").addEventListener("click",()=>{sidebar.classList.add("open");scrim.classList.add("show");});
