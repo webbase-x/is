@@ -1,6 +1,6 @@
 import { supabase } from "./supabase.js";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],isPlatformAdmin:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],isPlatformAdmin:false,viewMode:"user"};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -88,6 +88,22 @@ function bindStaticUI(){
   }));
   q("#signin-form").addEventListener("submit",signIn);
   q("#signup-form").addEventListener("submit",signUp);
+  qa("[data-password-toggle]").forEach(button=>button.addEventListener("click",()=>{
+    const field=button.closest(".password-field");
+    const input=field&&field.querySelector("[data-password-input]");
+    if(!input)return;
+    const show=input.type==="password";
+    input.type=show?"text":"password";
+    button.textContent=show?"🙈":"👁";
+    button.setAttribute("aria-label",show?"ซ่อนรหัสผ่าน":"แสดงรหัสผ่าน");
+  }));
+  qa("[data-view-mode]").forEach(button=>button.addEventListener("click",()=>{
+    if(!state.isPlatformAdmin)return;
+    state.viewMode=button.dataset.viewMode==="admin"?"admin":"user";
+    localStorage.setItem("lao_view_mode",state.viewMode);
+    refreshHeader();
+    renderRoute();
+  }));
   const sidebar=q("#sidebar"),scrim=q("[data-scrim]");
   q("[data-sidebar-open]").addEventListener("click",()=>{sidebar.classList.add("open");scrim.classList.add("show");});
   const close=()=>{sidebar.classList.remove("open");scrim.classList.remove("show");};
@@ -104,8 +120,17 @@ function bindStaticUI(){
 async function signIn(event){
   event.preventDefault();
   const form=event.currentTarget,btn=form.querySelector("button[type=submit]"),fd=new FormData(form);
+  const email=String(fd.get("email")).trim();
+  const remember=fd.get("remember_login")==="on";
+  if(remember){
+    localStorage.setItem("lao_remember_login","1");
+    localStorage.setItem("lao_saved_email",email);
+  }else{
+    localStorage.removeItem("lao_remember_login");
+    localStorage.removeItem("lao_saved_email");
+  }
   setBusy(btn,true,"กำลังเข้าสู่ระบบ...");
-  const res=await supabase.auth.signInWithPassword({email:String(fd.get("email")).trim(),password:String(fd.get("password"))});
+  const res=await supabase.auth.signInWithPassword({email:email,password:String(fd.get("password"))});
   setBusy(btn,false);
   if(res.error){toast(authMessage(res.error.message),"error");return;}
   toast("เข้าสู่ระบบสำเร็จ","success");
@@ -168,6 +193,13 @@ async function loadContext(){
   const active=state.memberships.filter(m=>m.status==="active"),saved=localStorage.getItem("lao_current_membership");
   state.currentMembership=active.find(m=>m.id===saved)||active[0]||null;
   await loadOrganizations();
+  if(state.isPlatformAdmin){
+    const savedView=localStorage.getItem("lao_view_mode");
+    state.viewMode=savedView==="user"?"user":"admin";
+    ensureAdminNavigation();
+  }else{
+    state.viewMode="user";
+  }
   refreshHeader();
   renderTenants();
 }
@@ -175,11 +207,38 @@ function refreshHeader(){
   const name=displayName();
   q("[data-profile-name]").textContent=name;
   q("[data-avatar]").textContent=initials(name).slice(0,2);
-  q("[data-profile-role]").textContent=state.isPlatformAdmin?"ผู้ดูแลแพลตฟอร์ม":state.currentMembership?roleNames():state.memberships.some(m=>m.status==="pending")?"รออนุมัติสิทธิ์":"ยังไม่ได้ขอสิทธิ์";
+  q("[data-profile-role]").textContent=state.isPlatformAdmin?(state.viewMode==="admin"?"ผู้ดูแลแพลตฟอร์ม · Admin":"ผู้ดูแลแพลตฟอร์ม · มุมมองผู้ใช้"):state.currentMembership?roleNames():state.memberships.some(m=>m.status==="pending")?"รออนุมัติสิทธิ์":"ยังไม่ได้ขอสิทธิ์";
+
+  const switcher=q("[data-view-switch]");
+  if(switcher)switcher.classList.toggle("hidden",!state.isPlatformAdmin);
+  qa("[data-view-mode]").forEach(button=>button.classList.toggle("active",button.dataset.viewMode===state.viewMode));
+
+  const adminMode=state.isPlatformAdmin&&state.viewMode==="admin";
   qa("[data-admin-menu]").forEach(item=>{
-    item.classList.toggle("hidden",!(state.isPlatformAdmin||hasRole("organization_admin","school_admin")));
+    item.classList.toggle("hidden",!(adminMode||(!state.isPlatformAdmin&&hasRole("organization_admin","school_admin"))));
+  });
+
+  const nav=q(".nav-list");
+  if(nav&&state.isPlatformAdmin){
+    nav.querySelectorAll("[data-full-admin]").forEach(item=>item.classList.toggle("hidden",!adminMode));
+  }
+}
+function ensureAdminNavigation(){
+  const nav=q(".nav-list");
+  if(!nav||nav.querySelector("[data-full-admin]"))return;
+  const items=[
+    ["personnel","🪪","บุคลากร"],["students","🎓","นักเรียน"],["academics","📚","วิชาการ"],
+    ["assessment","📝","ทะเบียนและวัดผล"],["documents","📄","เอกสารและไฟล์"],
+    ["website","🌐","เว็บไซต์สถานศึกษา"],["forms","☑","แบบฟอร์มและงาน"],["reports","📊","รายงานและ Dashboard"]
+  ];
+  items.forEach(item=>{
+    const link=document.createElement("a");
+    link.href="#/"+item[0];link.dataset.route=item[0];link.dataset.fullAdmin="";
+    link.innerHTML="<span>"+item[1]+"</span>"+item[2];
+    nav.appendChild(link);
   });
 }
+
 function renderTenants(){
   const select=q("#tenant-select"),active=state.memberships.filter(m=>m.status==="active");
   if(!active.length){select.innerHTML=state.isPlatformAdmin?'<option value="">ผู้ดูแลแพลตฟอร์ม · ยังไม่เลือกสถานศึกษา</option>':'<option value="">ยังไม่มีสิทธิ์สถานศึกษา</option>';return;}
@@ -188,6 +247,30 @@ function renderTenants(){
     return '<option value="'+esc(m.id)+'">'+esc(name)+'</option>';
   }).join("");
   if(state.currentMembership)select.value=state.currentMembership.id;
+}
+
+function adminOverviewHtml(){
+  const tenant=(currentSchool()&&currentSchool().name_th)||(currentOrg()&&currentOrg().name_th)||"ยังไม่เลือกสถานศึกษา";
+  const active=state.memberships.filter(m=>m.status==="active").length;
+  const pending=state.memberships.filter(m=>m.status==="pending").length;
+  const moduleHtml=modules.map(m=>'<article class="module-card"><div class="module-top"><span class="module-icon">'+m[0]+'</span><span class="module-stage">'+m[3]+'</span></div><h3>'+esc(m[1])+'</h3><p>'+esc(m[2])+'</p></article>').join("");
+  return '<section class="system-banner"><div><span class="badge">Admin Console</span><h2>ศูนย์ควบคุม LAO-EMS</h2><p>มุมมองนี้แสดงสถานะระบบ โครงสร้างข้อมูล และเครื่องมือสำหรับผู้ดูแลแพลตฟอร์มหลัก</p></div><div class="banner-status"><span class="status-pill success">ฐานข้อมูล: เชื่อมแล้ว</span><span class="status-pill success">สิทธิ์ข้อมูล: เปิดใช้งาน</span><span class="status-pill warning">Google Drive: รอเชื่อม</span></div></section>'+
+  '<section class="stats-grid">'+
+  '<article class="stat-card"><span class="stat-icon">🏫</span><div><small>บริบทปัจจุบัน</small><strong>'+esc(tenant)+'</strong><p>เลือกสถานศึกษาเพื่อบริหารข้อมูลเฉพาะแห่ง</p></div></article>'+
+  '<article class="stat-card"><span class="stat-icon">👥</span><div><small>Membership ที่ใช้งาน</small><strong>'+active+'</strong><p>สิทธิ์ที่อนุมัติแล้ว</p></div></article>'+
+  '<article class="stat-card"><span class="stat-icon">⏳</span><div><small>คำขอรออนุมัติ</small><strong>'+pending+'</strong><p>ตรวจสอบจากเมนูผู้ใช้และสิทธิ์</p></div></article>'+
+  '<article class="stat-card"><span class="stat-icon">🗂️</span><div><small>ไฟล์</small><strong>Google Drive</strong><p>แยก Drive ตามแต่ละสถานศึกษา</p></div></article></section>'+
+  '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">System setup</p><h2>งานของผู้ดูแลหลัก</h2></div></div><ol class="setup-list">'+
+  '<li><span>1</span><div><strong>อปท. และสถานศึกษา</strong><small>เพิ่ม/แก้ไขโครงสร้างองค์กรและโรงเรียน</small></div><em>จัดการได้</em></li>'+
+  '<li><span>2</span><div><strong>ผู้ใช้และสิทธิ์</strong><small>ตรวจคำขอ อนุมัติ และกำหนดบทบาท</small></div><em>จัดการได้</em></li>'+
+  '<li><span>3</span><div><strong>ปีการศึกษาและภาคเรียน</strong><small>ตั้งค่าพื้นฐานก่อนเริ่มข้อมูลวิชาการ</small></div><em>จัดการได้</em></li>'+
+  '<li><span>4</span><div><strong>Google Drive</strong><small>เชื่อมบัญชีแยกตามโรงเรียน</small></div><em>ขั้นถัดไป</em></li></ol></article>'+
+  '<article class="panel"><div class="panel-head"><div><p class="eyebrow">System status</p><h2>สถานะทางเทคนิค</h2></div></div><ul class="status-list">'+
+  '<li><span>✓</span><div><strong>Supabase ISSQL</strong><small>ใช้ namespace lao_ แยกจากระบบเดิม</small></div><span class="pill success">พร้อม</span></li>'+
+  '<li><span>✓</span><div><strong>RLS / Role + Scope</strong><small>แยกสิทธิ์ตาม อปท. และสถานศึกษา</small></div><span class="pill success">พร้อม</span></li>'+
+  '<li><span>✓</span><div><strong>Audit Log</strong><small>รองรับการตรวจสอบเหตุการณ์สำคัญ</small></div><span class="pill success">พร้อม</span></li>'+
+  '<li><span>→</span><div><strong>Google OAuth</strong><small>ใช้สำหรับเชื่อม Drive ของแต่ละโรงเรียน</small></div><span class="pill warning">รอดำเนินการ</span></li></ul></article></section>'+
+  '<section class="module-section"><div class="section-head"><div><p class="eyebrow">Roadmap</p><h2>โมดูลทั้งหมด</h2></div></div><div class="module-grid">'+moduleHtml+'</div></section>';
 }
 
 function overviewHtml(){
@@ -356,7 +439,7 @@ async function renderRoute(){
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
   main.innerHTML='<section class="panel"><div class="loading-inline"><span class="spinner"></span>กำลังโหลด...</div></section>';
   try{
-    if(route==="overview")main.innerHTML=overviewHtml();
+    if(route==="overview")main.innerHTML=(state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():overviewHtml();
     else if(route==="membership"){main.innerHTML=membershipHtml();bindMembership();}
     else if(route==="setup"){main.innerHTML=setupHtml();bindYear();}
     else if(route==="organization"){main.innerHTML=await organizationHtml();bindOrganizationForms();}
@@ -377,6 +460,13 @@ function showAuth(){q("#app-shell").classList.add("hidden");q("#auth-screen").cl
 
 async function init(){
   bindStaticUI();
+  const savedEmail=localStorage.getItem("lao_saved_email");
+  const remember=localStorage.getItem("lao_remember_login")==="1";
+  const signInForm=q("#signin-form");
+  if(signInForm){
+    signInForm.elements.email.value=savedEmail||"";
+    signInForm.elements.remember_login.checked=remember;
+  }
   const res=await supabase.auth.getSession();
   q("#boot-screen").classList.add("hidden");
   if(res.data.session)await showApp(res.data.session);else showAuth();
