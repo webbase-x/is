@@ -1,6 +1,6 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user"};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user"};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -8,7 +8,7 @@ const routeMeta={
   activate:["ตั้งค่าบัญชี","ยืนยันโปรไฟล์และกำหนดรหัสผ่านสำหรับบัญชีที่ผู้ดูแลเชิญ"],
   profile:["โปรไฟล์ของฉัน","แก้ไขข้อมูลส่วนตัวและเปลี่ยนรหัสผ่าน"],
   notifications:["การแจ้งเตือน","คำขอ การอนุมัติ และการเปลี่ยนแปลงที่เกี่ยวข้องกับบัญชีของคุณ"],
-  setup:["ตั้งค่าพื้นฐาน","ปีการศึกษา ภาคเรียน และสถานะการเชื่อมระบบ"],
+  setup:["ตั้งค่าสถานศึกษา","ตรวจความพร้อมหลังนำเข้า LEC เชื่อม Google Drive และตั้งค่าการใช้งาน"],
   organization:["อปท. และสถานศึกษา","โครงสร้างองค์กรและโรงเรียนในแพลตฟอร์ม"],
   users:["ผู้ใช้และสิทธิ์","คำขอเข้าใช้งาน บทบาท และขอบเขตสิทธิ์"],
   lec:["นำเข้าข้อมูล LEC","นำเข้า XLS/XLSX โดยระบบเลือกชีตที่มีข้อมูลสถานศึกษาครบและรักษาประวัติทุกปีการศึกษา"],
@@ -73,6 +73,11 @@ function hasRole(){
   if(state.isPlatformAdmin&&wanted.includes("platform_admin"))return true;
   return codes.some(c=>wanted.includes(c));
 }
+function isPlatformAdminMode(){return state.isPlatformAdmin&&state.viewMode==="admin";}
+function isSchoolAdminContext(){
+  return state.viewMode==="user"&&hasRole("school_admin")&&Boolean(state.currentMembership&&state.currentMembership.status==="active");
+}
+function schoolSetupReady(){return Boolean(state.schoolSetup&&state.schoolSetup.can_invite_users);}
 function displayName(){
   const p=state.profile||{};
   return p.display_name||[p.prefix,p.first_name_th,p.last_name_th].filter(Boolean).join(" ")||(state.user&&state.user.email)||"ผู้ใช้งาน";
@@ -205,6 +210,14 @@ async function loadNotifications(){
   if(res.error)throw res.error;
   state.notifications=res.data||[];
 }
+async function loadSchoolSetupStatus(){
+  const m=state.currentMembership;
+  if(!m||m.status!=="active"||!roleCodes(m).includes("school_admin")||!m.school_id){state.schoolSetup=null;return null;}
+  const res=await supabase.rpc("lao_school_setup_status",{p_school_id:m.school_id});
+  if(res.error)throw res.error;
+  state.schoolSetup=res.data||null;
+  return state.schoolSetup;
+}
 async function loadContext(){
   const adminRes=await supabase.rpc("lao_is_platform_admin");
   if(adminRes.error)throw adminRes.error;
@@ -235,6 +248,7 @@ async function loadContext(){
   }else{
     state.viewMode="user";
   }
+  await loadSchoolSetupStatus();
   refreshHeader();
   renderTenants();
 }
@@ -242,27 +256,48 @@ function refreshHeader(){
   const name=displayName();
   q("[data-profile-name]").textContent=name;
   q("[data-avatar]").textContent=initials(name).slice(0,2);
-  q("[data-profile-role]").textContent=state.isPlatformAdmin?(state.viewMode==="admin"?"ผู้ดูแลแพลตฟอร์ม · Admin":"ผู้ดูแลแพลตฟอร์ม · มุมมองผู้ใช้"):state.currentMembership?roleNames():state.pendingInvitation&&state.pendingInvitation.status==="onboarding"?"รอนำเข้า LEC":state.pendingInvitation?"รอยืนยันบัญชี":"ยังไม่มีสิทธิ์";
+  const schoolMode=isSchoolAdminContext();
+  const schoolRoleText=roleCodes(state.currentMembership).map(code=>roleLabels[code]||code).join(" · ");
+  q("[data-profile-role]").textContent=isPlatformAdminMode()
+    ?"ผู้ดูแลแพลตฟอร์ม"
+    :schoolMode
+      ?(schoolRoleText||"ผู้ดูแลสถานศึกษา")
+      :state.currentMembership?roleNames():state.pendingInvitation&&state.pendingInvitation.status==="onboarding"?"รอนำเข้า LEC":state.pendingInvitation?"รอยืนยันบัญชี":"ยังไม่มีสิทธิ์";
 
   const switcher=q("[data-view-switch]");
   if(switcher)switcher.classList.toggle("hidden",!state.isPlatformAdmin);
-  qa("[data-view-mode]").forEach(button=>button.classList.toggle("active",button.dataset.viewMode===state.viewMode));
-
-  const adminMode=state.isPlatformAdmin&&state.viewMode==="admin";
-  qa("[data-admin-menu]").forEach(item=>{
-    item.classList.toggle("hidden",!(adminMode||(!state.isPlatformAdmin&&hasRole("organization_admin","school_admin"))));
+  qa("[data-view-mode]").forEach(button=>{
+    button.classList.toggle("active",button.dataset.viewMode===state.viewMode);
+    if(button.dataset.viewMode==="user"){
+      button.textContent=roleCodes(state.currentMembership).includes("school_admin")?"School":"User";
+      button.setAttribute("aria-label",button.textContent);
+    }else{
+      button.textContent="Platform";
+      button.setAttribute("aria-label","Platform Admin");
+    }
   });
+
+  const adminMode=isPlatformAdminMode();
+  qa("[data-admin-menu]").forEach(item=>{
+    item.classList.toggle("hidden",!(adminMode||schoolMode));
+  });
+
   qa("[data-lec-menu]").forEach(item=>{
     const approvedFirstSchoolAdmin=Boolean(
-      !state.isPlatformAdmin &&
+      state.viewMode==="user" &&
       state.pendingInvitation &&
       state.pendingInvitation.status==="onboarding" &&
       state.pendingInvitation.invitation_mode==="platform_first_admin" &&
       state.pendingInvitation.role_code==="school_admin"
     );
-    const activeSchoolAdmin=!state.isPlatformAdmin&&hasRole("school_admin");
-    item.classList.toggle("hidden",!(approvedFirstSchoolAdmin||activeSchoolAdmin));
+    item.classList.toggle("hidden",!(approvedFirstSchoolAdmin||schoolMode));
   });
+
+  const usersLink=q('[data-route="users"]');
+  if(usersLink)usersLink.classList.toggle("hidden",!(adminMode||(schoolMode&&schoolSetupReady())));
+
+  const setupLink=q('[data-route="setup"]');
+  if(setupLink)setupLink.textContent=adminMode?"⚙ ตั้งค่าระบบ":"⚙ ตั้งค่าสถานศึกษา";
 
   const notif=q("[data-notification-count]");
   if(notif){
@@ -276,6 +311,7 @@ function refreshHeader(){
     nav.querySelectorAll("[data-full-admin]").forEach(item=>item.classList.toggle("hidden",!adminMode));
   }
 }
+
 function ensureAdminNavigation(){
   const nav=q(".nav-list");
   if(!nav||nav.querySelector("[data-full-admin]"))return;
@@ -338,31 +374,35 @@ function adminOverviewHtml(){
 
 function overviewHtml(){
   const active=state.memberships.filter(m=>m.status==="active").length;
-  const pending=state.memberships.filter(m=>m.status==="pending").length;
-  const tenant=(currentSchool()&&currentSchool().name_th)||(currentOrg()&&currentOrg().name_th)||"ยังไม่ได้เลือกสถานศึกษา";
+  const tenant=(currentSchool()&&currentSchool().name_th)||(currentOrg()&&currentOrg().name_th)||"ยังไม่ได้ผูกสถานศึกษา";
   const name=displayName();
-  const accessText=state.isPlatformAdmin?"ผู้ดูแลแพลตฟอร์ม":state.currentMembership?roleNames():pending?"กำลังรออนุมัติ":"ยังไม่มีสิทธิ์ใช้งานสถานศึกษา";
-  const nextAction=state.isPlatformAdmin
-    ? '<a class="primary-btn" href="#/users">เชิญ School Admin คนแรก</a>'
-    : active
-      ? '<a class="primary-btn" href="#/membership">ดูสิทธิ์ของฉัน</a>'
-      : '<a class="primary-btn" href="#/membership">'+(pending?"ตรวจสอบสถานะคำขอ":"ขอสิทธิ์เข้าร่วมสถานศึกษา")+'</a>';
+  const schoolAdmin=isSchoolAdminContext();
+  const accessText=isPlatformAdminMode()?"ผู้ดูแลแพลตฟอร์ม":schoolAdmin?"ผู้ดูแลสถานศึกษา":state.currentMembership?roleNames():"ยังไม่มีสิทธิ์ใช้งาน";
+  let nextAction="";
+  let notice="";
+  if(isPlatformAdminMode()){
+    nextAction='<a class="primary-btn" href="#/users">เชิญ School Admin คนแรก</a>';
+    notice='<div class="notice">มุมมอง Platform Admin ใช้สำหรับกำกับระบบและแต่งตั้ง School Admin คนแรกของแต่ละโรงเรียน</div>';
+  }else if(schoolAdmin&&!schoolSetupReady()){
+    nextAction='<a class="primary-btn" href="#/setup">ตั้งค่าสถานศึกษาให้ครบ</a>';
+    notice='<div class="notice warning"><strong>ยังเปิดการเชิญผู้ใช้ไม่ได้</strong><br>หลังนำเข้า LEC แล้ว ให้ตรวจการตั้งค่าและเชื่อม Google Drive ก่อน ระบบจึงจะเปิดเมนูผู้ใช้และสิทธิ์</div>';
+  }else if(schoolAdmin){
+    nextAction='<a class="primary-btn" href="#/users">เชิญและจัดการผู้ใช้</a>';
+    notice='<div class="notice success">สถานศึกษาพร้อมใช้งาน สามารถเชิญผู้ใช้และกำหนดสิทธิ์ภายในโรงเรียนได้แล้ว</div>';
+  }else if(active){
+    nextAction='<a class="primary-btn" href="#/membership">ดูสิทธิ์ของฉัน</a>';
+    notice='<div class="notice success">บัญชีของคุณพร้อมใช้งาน ระบบจะแสดงข้อมูลตามบทบาทที่ผู้ดูแลกำหนดให้</div>';
+  }else{
+    notice='<div class="notice">บัญชี LAO-EMS ใช้ระบบคำเชิญจากผู้ดูแล หากยังไม่มีสิทธิ์ กรุณาติดต่อผู้ดูแลสถานศึกษาของคุณ</div>';
+  }
 
-  return '<section class="system-banner"><div><span class="badge">LAO-EMS</span><h2>สวัสดี '+esc(name)+'</h2><p>ยินดีต้อนรับสู่ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น</p></div></section>'+
+  return '<section class="system-banner"><div><span class="badge">LAO-EMS</span><h2>สวัสดี '+esc(name)+'</h2><p>ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น</p></div></section>'+
   '<section class="stats-grid">'+
-    '<article class="stat-card"><span class="stat-icon">🏫</span><div><small>สถานศึกษา</small><strong>'+esc(tenant)+'</strong><p>'+(active||state.isPlatformAdmin?"ข้อมูลจะแสดงตามสิทธิ์ของคุณ":"กรุณาขอสิทธิ์เข้าร่วมสถานศึกษา")+'</p></div></article>'+
+    '<article class="stat-card"><span class="stat-icon">🏫</span><div><small>สถานศึกษา</small><strong>'+esc(tenant)+'</strong><p>ข้อมูลโรงเรียนและนักเรียนอ้างอิงจาก LEC</p></div></article>'+
     '<article class="stat-card"><span class="stat-icon">👤</span><div><small>สิทธิ์การใช้งาน</small><strong>'+esc(accessText)+'</strong><p>'+esc(state.currentMembership?roleNames():"")+'</p></div></article>'+
-    '<article class="stat-card"><span class="stat-icon">'+(pending?"⏳":"✓")+'</span><div><small>สถานะคำขอ</small><strong>'+(pending?pending+" คำขอรออนุมัติ":"ไม่มีคำขอค้าง")+'</strong><p>ตรวจสอบได้จากเมนูสิทธิ์การเข้าใช้งาน</p></div></article>'+
+    (schoolAdmin?'<article class="stat-card"><span class="stat-icon">'+(schoolSetupReady()?"✓":"⚙")+'</span><div><small>ความพร้อมของโรงเรียน</small><strong>'+(schoolSetupReady()?"พร้อมเชิญผู้ใช้":"กำลังตั้งค่า")+'</strong><p>'+(state.schoolSetup&&state.schoolSetup.drive_connected?"Google Drive เชื่อมแล้ว":"ต้องเชื่อม Google Drive")+'</p></div></article>':'')+
   '</section>'+
-  '<section class="panel"><div class="panel-head"><div><p class="eyebrow">เริ่มใช้งาน</p><h2>สิ่งที่ต้องดำเนินการ</h2></div></div>'+
-  (state.isPlatformAdmin
-    ? '<div class="notice">คุณเป็นผู้ดูแลแพลตฟอร์ม สามารถเพิ่ม อปท. สถานศึกษา และตรวจสอบสิทธิ์ผู้ใช้งานได้</div>'
-    : active
-      ? '<div class="notice success">บัญชีของคุณพร้อมใช้งาน ระบบจะแสดงเมนูและข้อมูลตามหน้าที่ที่ได้รับอนุญาต</div>'
-      : pending
-        ? '<div class="notice warning">คำขอของคุณถูกส่งแล้ว กรุณารอผู้ดูแลสถานศึกษาตรวจสอบและอนุมัติ</div>'
-        : '<div class="notice">บัญชีของคุณสร้างเรียบร้อยแล้ว ขั้นตอนถัดไปคือขอสิทธิ์เข้าร่วมสถานศึกษา</div>')+
-  '<div class="action-row">'+nextAction+'</div></section>';
+  '<section class="panel"><div class="panel-head"><div><p class="eyebrow">เริ่มใช้งาน</p><h2>สิ่งที่ต้องดำเนินการ</h2></div></div>'+notice+(nextAction?'<div class="action-row">'+nextAction+'</div>':'')+'</section>';
 }
 
 function membershipHtml(){
@@ -379,12 +419,18 @@ function profileNeedsSetup(){
   const p=state.profile||{};
   return !String(p.first_name_th||"").trim()||!String(p.last_name_th||"").trim();
 }
-function profileFieldsHtml(prefix){
+function profileFieldsHtml(context){
   const p=state.profile||{},pre=esc(p.prefix||""),first=esc(p.first_name_th||""),last=esc(p.last_name_th||""),phone=esc(p.phone||"");
-  return '<div class="form-row three"><label class="field">คำนำหน้า<select name="prefix"><option value="">ไม่ระบุ</option>'+["นาย","นาง","นางสาว","เด็กชาย","เด็กหญิง"].map(x=>'<option '+(pre===x?'selected':'')+'>'+x+'</option>').join("")+'</select></label><label class="field">ชื่อ<input name="first_name" value="'+first+'" required autocomplete="given-name"></label><label class="field">นามสกุล<input name="last_name" value="'+last+'" required autocomplete="family-name"></label></div><label class="field">เบอร์โทรศัพท์<input name="phone" type="tel" value="'+phone+'" autocomplete="tel" inputmode="tel"></label>';
+  const email=esc(state.user&&state.user.email||"");
+  return '<div class="profile-fields">'+
+    (context==="profile"?'<label class="field profile-email">อีเมลบัญชี<input value="'+email+'" readonly aria-readonly="true"><small>อีเมลใช้สำหรับเข้าสู่ระบบและเปลี่ยนได้ผ่านกระบวนการยืนยันบัญชีเท่านั้น</small></label>':'')+
+    '<div class="profile-name-grid"><label class="field profile-prefix">คำนำหน้า<select name="prefix"><option value="">ไม่ระบุ</option>'+["นาย","นาง","นางสาว","เด็กชาย","เด็กหญิง"].map(x=>'<option '+(pre===x?'selected':'')+'>'+x+'</option>').join("")+'</select></label><label class="field">ชื่อ <span class="required-mark">*</span><input name="first_name" value="'+first+'" required autocomplete="given-name" placeholder="ชื่อ"></label><label class="field">นามสกุล <span class="required-mark">*</span><input name="last_name" value="'+last+'" required autocomplete="family-name" placeholder="นามสกุล"></label></div>'+
+    '<label class="field profile-phone">เบอร์โทรศัพท์<input name="phone" type="tel" value="'+phone+'" autocomplete="tel" inputmode="tel" placeholder="เช่น 0812345678"><small>ใช้สำหรับข้อมูลติดต่อภายในระบบ ไม่แสดงต่อสาธารณะโดยอัตโนมัติ</small></label>'+
+  '</div>';
 }
+
 function passwordFieldsHtml(required){
-  return '<div class="form-row"><div class="form-field"><label for="account-password">รหัสผ่านใหม่</label><div class="input-with-action"><input id="account-password" name="password" type="password" autocomplete="new-password" minlength="8" '+(required?'required':'')+' data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div><div class="form-field"><label for="account-password-confirm">ยืนยันรหัสผ่านใหม่</label><div class="input-with-action"><input id="account-password-confirm" name="confirm_password" type="password" autocomplete="new-password" minlength="8" '+(required?'required':'')+' data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div></div>';
+  return '<div class="form-row span-2 password-grid"><div class="form-field"><label for="account-password">รหัสผ่านใหม่</label><div class="input-with-action"><input id="account-password" name="password" type="password" autocomplete="new-password" minlength="8" '+(required?'required':'')+' data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div><div class="form-field"><label for="account-password-confirm">ยืนยันรหัสผ่านใหม่</label><div class="input-with-action"><input id="account-password-confirm" name="confirm_password" type="password" autocomplete="new-password" minlength="8" '+(required?'required':'')+' data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div></div>';
 }
 function bindPasswordToggles(root=document){
   qa("[data-password-toggle]",root).forEach(button=>{
@@ -412,13 +458,40 @@ function activationHtml(){
 }
 
 function profileHtml(){
-  return '<section class="content-grid"><article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">My profile</p><h2>โปรไฟล์ของฉัน</h2><p class="panel-sub">'+esc(state.user&&state.user.email||"")+'</p></div></div><form id="profile-form" class="form-grid" style="margin-top:18px">'+profileFieldsHtml("profile")+'<div class="span-2"><hr class="form-divider"></div><div class="span-2"><strong>เปลี่ยนรหัสผ่าน</strong><p class="panel-sub">เว้นว่างไว้หากไม่ต้องการเปลี่ยน</p></div>'+passwordFieldsHtml(false)+'<div class="span-2"><button class="primary-btn" type="submit">บันทึกการเปลี่ยนแปลง</button></div></form></article></section>';
+  const name=displayName(),school=currentSchool();
+  return '<section class="profile-layout"><article class="panel profile-summary"><div class="profile-hero-avatar">'+esc(initials(name).slice(0,2))+'</div><div><p class="eyebrow">MY PROFILE</p><h2>'+esc(name)+'</h2><p>'+esc(state.user&&state.user.email||"")+'</p><div class="profile-tags"><span class="pill success">บัญชีใช้งานได้</span>'+(school?'<span class="pill">'+esc(school.name_th)+'</span>':'')+'</div></div></article><article class="panel form-card profile-form-card"><div class="panel-head"><div><p class="eyebrow">ข้อมูลส่วนตัว</p><h2>โปรไฟล์ของฉัน</h2><p class="panel-sub">กรอกเฉพาะข้อมูลส่วนตัวของบัญชี ข้อมูลทางราชการของโรงเรียนและนักเรียนมาจาก LEC</p></div></div><form id="profile-form" class="form-grid profile-form">'+profileFieldsHtml("profile")+'<div class="span-2 form-section"><strong>ความปลอดภัยของบัญชี</strong><p class="panel-sub">เว้นช่องรหัสผ่านว่างไว้หากไม่ต้องการเปลี่ยน</p></div>'+passwordFieldsHtml(false)+'<div class="span-2 profile-form-actions"><button class="primary-btn" type="submit">บันทึกโปรไฟล์</button></div></form></article></section>';
 }
 
-function setupHtml(){
+
+async function setupHtml(){
   const school=currentSchool();
-  return '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">Source of truth</p><h2>ข้อมูลโรงเรียนและนักเรียนมาจาก LEC เท่านั้น</h2></div></div><ul class="status-list"><li><span>✓</span><div><strong>LEC เป็นข้อมูลต้นทาง</strong><small>ไม่มีการแก้ไขข้อมูลนักเรียนหรือข้อมูลทางราชการของโรงเรียนด้วยมือใน LAO-EMS</small></div><span class="pill success">บังคับใช้</span></li><li><span>✓</span><div><strong>ปีการศึกษา / ภาคเรียน</strong><small>ระบบสร้างโครงสร้างปีและภาคเรียนจากรอบที่นำเข้า LEC โดยอัตโนมัติ</small></div><span class="pill success">อัตโนมัติ</span></li><li><span>✓</span><div><strong>ประวัติไม่ถูกลบ</strong><small>นักเรียนที่หายจาก LEC รอบใหม่จะเป็น “ไม่พบใน LEC รอบล่าสุด” ไม่ใช่ย้ายออก</small></div><span class="pill success">รักษาประวัติ</span></li><li><span>→</span><div><strong>Google Drive</strong><small>'+(school?"ไฟล์ต้นฉบับของ "+esc(school.name_th)+" จะเชื่อมเก็บใน Drive เมื่อโมดูล Drive เปิดใช้งาน":"เลือกสถานศึกษาเพื่อดูบริบท")+'</small></div><span class="pill warning">รอเชื่อม</span></li></ul></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC import</p><h2>การปรับข้อมูล</h2></div></div><div class="notice">หากข้อมูลใน LAO-EMS ไม่ตรงกับข้อมูลจริง ให้แก้ที่ <strong>LEC</strong> แล้วดาวน์โหลด XLS/XLSX รอบใหม่มานำเข้า ไม่แก้ค่าต้นทางใน LAO-EMS โดยตรง</div><div class="action-row"><a class="primary-btn" href="#/lec">ไปหน้านำเข้าข้อมูล LEC</a></div></article></section>';
+  if(isPlatformAdminMode()){
+    return '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">Platform settings</p><h2>การตั้งค่าระดับแพลตฟอร์ม</h2><p class="panel-sub">การตั้งค่า Google Drive ของแต่ละโรงเรียนดำเนินการโดย School Admin ในมุมมองโรงเรียน</p></div></div><div class="notice">หากบัญชีนี้เป็น School Admin ด้วย ให้สลับมุมมองด้านบนเป็น <strong>School Admin</strong> แล้วเลือกเมนู “ตั้งค่าสถานศึกษา”</div></article></section>';
+  }
+  if(!school||!isSchoolAdminContext()){
+    return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>สำหรับ School Admin เท่านั้น</h3><p>ต้องมีสิทธิ์ผู้ดูแลสถานศึกษาและนำเข้า LEC สำเร็จก่อนตั้งค่าโรงเรียน</p></div></section>';
+  }
+
+  const setupRes=await supabase.rpc("lao_ensure_school_settings",{p_school_id:school.id});
+  if(setupRes.error)throw setupRes.error;
+  state.schoolSetup=setupRes.data||{};
+  const s=state.schoolSetup;
+  const status=(ok)=>'<span class="pill '+(ok?"success":"warning")+'">'+(ok?"เสร็จแล้ว":"ต้องดำเนินการ")+'</span>';
+  const driveLabel=s.drive_connected?"เชื่อมแล้ว":"ยังไม่เชื่อม";
+  const root="/"+esc(s.drive_root_folder_name||"LAO-EMS")+"/";
+
+  return '<section class="setup-hero panel"><div><p class="eyebrow">School onboarding</p><h2>เตรียม '+esc(school.name_th)+' ให้พร้อมใช้งาน</h2><p>ดำเนินการตามลำดับให้ครบก่อนเชิญผู้ใช้ในโรงเรียน</p></div><span class="pill '+(s.can_invite_users?"success":"warning")+'">'+(s.can_invite_users?"พร้อมใช้งาน":"กำลังตั้งค่า")+'</span></section>'+
+  '<section class="setup-progress">'+
+    '<article class="setup-step '+(s.lec_ready?"done":"")+'"><span>1</span><div><strong>นำเข้า LEC</strong><small>สร้างและยืนยันข้อมูลสถานศึกษาจากแหล่งต้นทาง</small></div>'+status(s.lec_ready)+'</article>'+
+    '<article class="setup-step '+(s.settings_ready?"done":"")+'"><span>2</span><div><strong>ตั้งค่าการใช้งาน</strong><small>กำหนดภาษา เขตเวลา และค่าเริ่มต้นของไฟล์</small></div>'+status(s.settings_ready)+'</article>'+
+    '<article class="setup-step '+(s.drive_connected?"done":"")+'"><span>3</span><div><strong>Google Drive</strong><small>เชื่อมบัญชีและสร้างโฟลเดอร์หลัก '+root+'</small></div>'+status(s.drive_connected)+'</article>'+
+    '<article class="setup-step '+(s.can_invite_users?"done":"")+'"><span>4</span><div><strong>เชิญผู้ใช้</strong><small>ปลดล็อกเมื่อขั้นตอนก่อนหน้าครบ</small></div>'+status(s.can_invite_users)+'</article>'+
+  '</section>'+
+  '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">ค่าการใช้งาน</p><h2>ตั้งค่าพื้นฐานของโรงเรียน</h2><p class="panel-sub">ข้อมูลชื่อโรงเรียน ที่อยู่ และข้อมูลทางราชการไม่แก้ที่หน้านี้ เพราะมาจาก LEC</p></div></div><form id="school-settings-form" class="form-grid compact-settings"><label class="field">เขตเวลา<select name="timezone"><option value="Asia/Bangkok" selected>ประเทศไทย (Asia/Bangkok)</option></select></label><label class="field">ภาษาหลัก<select name="locale"><option value="th-TH" '+(s.locale!=="en-US"?"selected":"")+'>ไทย</option><option value="en-US" '+(s.locale==="en-US"?"selected":"")+'>English</option></select></label><label class="field span-2">การมองเห็นไฟล์เริ่มต้น<select name="default_file_visibility"><option value="internal" '+(s.default_file_visibility==="internal"?"selected":"")+'>ภายในโรงเรียน</option><option value="private" '+(s.default_file_visibility==="private"?"selected":"")+'>เฉพาะผู้เกี่ยวข้อง</option><option value="public" '+(s.default_file_visibility==="public"?"selected":"")+'>สาธารณะ (เฉพาะไฟล์ที่อนุญาต)</option></select><small>สามารถกำหนดเป็นรายไฟล์ได้ภายหลัง</small></label><div class="span-2"><button class="primary-btn" type="submit">บันทึกการตั้งค่า</button></div></form></article>'+
+  '<article class="panel drive-setup-card"><div class="panel-head"><div><p class="eyebrow">Google Drive</p><h2>พื้นที่จัดเก็บของสถานศึกษา</h2><p class="panel-sub">หนึ่งโรงเรียนเชื่อม Google Drive หนึ่งบัญชี/Shared Drive เพื่อเก็บไฟล์จริง ส่วน LAO-EMS เก็บ metadata และสิทธิ์การเข้าถึง</p></div>'+status(s.drive_connected)+'</div><div class="drive-root-preview"><span class="drive-icon">▣</span><div><small>โฟลเดอร์หลักของระบบ</small><strong>'+root+'</strong><p>เมื่อเชื่อมสำเร็จ ระบบจะใช้โฟลเดอร์นี้เป็นราก และจะสร้างโฟลเดอร์ย่อยตามโมดูลเมื่อเปิดใช้งานในระยะต่อไป</p></div></div>'+(s.drive_connected?'<div class="drive-connected"><strong>'+esc(s.drive_account_email||"Google Drive")+'</strong><small>เชื่อมเมื่อ '+(s.drive_connected_at?new Date(s.drive_connected_at).toLocaleString("th-TH"):"-")+'</small></div>':'<div class="notice warning"><strong>ยังไม่ได้เชื่อม Google Drive</strong><br>การเชื่อม Google Drive ยังไม่พร้อมใช้งานสำหรับสถานศึกษานี้ เมื่อผู้ดูแลแพลตฟอร์มเปิดใช้งานแล้ว ระบบจะเชื่อมบัญชีและสร้าง '+root+' อัตโนมัติได้</div>')+'<div class="action-row">'+(s.drive_connected?'<button class="secondary-btn" type="button" data-drive-refresh>ตรวจสอบสถานะอีกครั้ง</button>':'<button class="primary-btn" type="button" data-drive-connect>เชื่อม Google Drive</button>')+'</div></article></section>'+
+  (s.can_invite_users?'<section class="panel"><div class="notice success"><strong>ตั้งค่าครบแล้ว</strong><br>โรงเรียนพร้อมเชิญผู้ใช้และกำหนดสิทธิ์</div><div class="action-row"><a class="primary-btn" href="#/users">ไปที่ผู้ใช้และสิทธิ์</a></div></section>':'');
 }
+
 
 async function organizationHtml(){
   const res=await supabase.from("lao_schools")
@@ -448,7 +521,6 @@ async function usersHtml(){
   if(!hasRole("platform_admin","school_admin"))return '<section class="panel"><div class="empty-state"><div class="empty-icon">🛡️</div><h3>เมนูนี้สำหรับผู้ดูแล</h3><p>บัญชีผู้ใช้ LAO-EMS เริ่มต้นโดยผู้ดูแลเท่านั้น</p></div></section>';
 
   const school=currentSchool();
-  const isLocalAdmin=!state.isPlatformAdmin&&hasRole("school_admin");
 
   if(state.isPlatformAdmin&&!school){
     const invRes=await supabase.from("lao_user_invitations")
@@ -466,6 +538,16 @@ async function usersHtml(){
   }
 
   if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>สถานศึกษาจะถูกสร้างจาก LEC หลัง School Admin คนแรกยืนยันบัญชี</p></div></section>';
+
+  const isLocalAdmin=isSchoolAdminContext();
+  if(isLocalAdmin){
+    const setupRes=await supabase.rpc("lao_school_setup_status",{p_school_id:school.id});
+    if(setupRes.error)throw setupRes.error;
+    state.schoolSetup=setupRes.data||null;
+    if(!schoolSetupReady()){
+      return '<section class="content-grid"><article class="panel"><div class="empty-state"><div class="empty-icon">⚙</div><h3>ตั้งค่าสถานศึกษาให้ครบก่อน</h3><p>ต้องนำเข้า LEC บันทึกค่าพื้นฐาน และเชื่อม Google Drive ก่อนจึงจะเชิญผู้ใช้หรือแต่งตั้งผู้ดูแลร่วมได้</p><a class="primary-btn" href="#/setup">ไปตั้งค่าสถานศึกษา</a></div></article></section>';
+    }
+  }
 
   const hasAdminRes=await supabase.rpc("lao_school_has_admin",{p_school_id:school.id});
   if(hasAdminRes.error)throw hasAdminRes.error;
@@ -976,7 +1058,7 @@ function bindLec(){
     toast((onboarding?"สร้างสถานศึกษาและนำเข้า LEC สำเร็จ: ":"นำเข้า LEC สำเร็จ: ")+(x.imported_rows||0)+" รายการ","success");
     state.lecPreview=null;
     await loadContext();
-    if(onboarding)location.hash="#/overview";
+    if(onboarding)location.hash="#/setup";
     renderRoute();
   });
 }
@@ -1058,6 +1140,50 @@ function bindProfile(){
     await loadContext();toast("บันทึกโปรไฟล์แล้ว","success");renderRoute();
   });
 }
+function bindSetup(){
+  const form=q("#school-settings-form");
+  if(form)form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const school=currentSchool();if(!school)return;
+    const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_school_settings",{
+      p_school_id:school.id,
+      p_timezone:String(fd.get("timezone")||"Asia/Bangkok"),
+      p_locale:String(fd.get("locale")||"th-TH"),
+      p_default_file_visibility:String(fd.get("default_file_visibility")||"internal")
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    state.schoolSetup=res.data||null;
+    toast("บันทึกการตั้งค่าสถานศึกษาแล้ว","success");
+    refreshHeader();renderRoute();
+  });
+
+  const connect=q("[data-drive-connect]");
+  if(connect)connect.addEventListener("click",async()=>{
+    const school=currentSchool();if(!school)return;
+    setBusy(connect,true,"กำลังเริ่มการเชื่อม...");
+    const res=await supabase.functions.invoke("lao-drive-oauth",{body:{school_id:school.id}});
+    setBusy(connect,false);
+    if(res.error){
+      const msg=await readFunctionError(res.error);
+      toast(msg||"Google Drive OAuth ยังไม่ได้เปิดใช้งาน","error");
+      return;
+    }
+    const url=res.data&&res.data.authorization_url;
+    if(url)location.href=url;
+    else toast("ไม่พบลิงก์เชื่อม Google Drive","error");
+  });
+
+  const refresh=q("[data-drive-refresh]");
+  if(refresh)refresh.addEventListener("click",async()=>{
+    setBusy(refresh,true,"กำลังตรวจสอบ...");
+    try{await loadSchoolSetupStatus();toast("อัปเดตสถานะ Google Drive แล้ว","success");renderRoute();}
+    catch(e){toast(e.message||String(e),"error");}
+    finally{setBusy(refresh,false);}
+  });
+}
 function bindNotifications(){
   qa("[data-notification-read]").forEach(btn=>btn.addEventListener("click",async()=>{
     setBusy(btn,true,"กำลังบันทึก...");
@@ -1075,18 +1201,23 @@ async function renderRoute(){
   if(invitationStatus==="onboarding"&&route!=="lec"){location.hash="#/lec";route="lec";}
   if(route==="lec"){
     const approvedFirstSchoolAdmin=Boolean(
-      !state.isPlatformAdmin &&
+      state.viewMode==="user" &&
       state.pendingInvitation &&
       state.pendingInvitation.status==="onboarding" &&
       state.pendingInvitation.invitation_mode==="platform_first_admin" &&
       state.pendingInvitation.role_code==="school_admin"
     );
-    const activeSchoolAdmin=!state.isPlatformAdmin&&hasRole("school_admin");
+    const activeSchoolAdmin=isSchoolAdminContext();
     if(!approvedFirstSchoolAdmin&&!activeSchoolAdmin){
       location.hash="#/overview";
       route="overview";
       toast("หน้านำเข้า LEC สำหรับ School Admin ที่ได้รับอนุมัติเท่านั้น","error");
     }
+  }
+  if(route==="users"&&isSchoolAdminContext()&&!schoolSetupReady()){
+    location.hash="#/setup";
+    route="setup";
+    toast("กรุณาตั้งค่าสถานศึกษาและ Google Drive ให้ครบก่อนเชิญผู้ใช้","error");
   }
   const meta=routeMeta[route]||routeMeta.overview,main=q("#main");
   q("[data-page-title]").textContent=meta[0];
@@ -1098,7 +1229,7 @@ async function renderRoute(){
     else if(route==="activate"){main.innerHTML=activationHtml();bindActivation();}
     else if(route==="profile"){main.innerHTML=profileHtml();bindProfile();}
     else if(route==="notifications"){main.innerHTML=notificationsHtml();bindNotifications();}
-    else if(route==="setup"){main.innerHTML=setupHtml();}
+    else if(route==="setup"){main.innerHTML=await setupHtml();bindSetup();}
     else if(route==="organization"){main.innerHTML=await organizationHtml();bindOrganizationForms();}
     else if(route==="lec"){main.innerHTML=await lecHtml();bindLec();}
     else if(route==="users"){main.innerHTML=await usersHtml();bindInvites();}
@@ -1111,7 +1242,17 @@ async function renderRoute(){
 async function showApp(session){
   state.session=session;state.user=session.user;
   q("#auth-screen").classList.add("hidden");q("#app-shell").classList.remove("hidden");
-  try{await loadContext();if(!location.hash)location.hash=state.pendingInvitation?"#/activate":"#/overview";await renderRoute();}
+  try{
+    await loadContext();
+    if(!location.hash)location.hash=state.pendingInvitation?"#/activate":"#/overview";
+    await renderRoute();
+    const driveNotice=sessionStorage.getItem("lao_drive_notice");
+    if(driveNotice){
+      sessionStorage.removeItem("lao_drive_notice");
+      const msg=sessionStorage.getItem("lao_drive_message");sessionStorage.removeItem("lao_drive_message");
+      toast(driveNotice==="connected"?"เชื่อม Google Drive และเตรียม /LAO-EMS/ แล้ว":(msg||"เชื่อม Google Drive ไม่สำเร็จ"),driveNotice==="connected"?"success":"error");
+    }
+  }
   catch(e){
     console.error(e);
     if(e&&e.message==="LAO_ACCESS_REQUIRED"){
@@ -1137,6 +1278,13 @@ async function init(){
   }
   const res=await supabase.auth.getSession();
   q("#boot-screen").classList.add("hidden");
+  const query=new URLSearchParams(location.search);
+  const driveResult=query.get("drive");
+  if(driveResult){
+    history.replaceState(null,"",location.pathname+location.hash);
+    sessionStorage.setItem("lao_drive_notice",driveResult==="connected"?"connected":"error");
+    if(query.get("message"))sessionStorage.setItem("lao_drive_message",query.get("message"));
+  }
   if(res.data.session)await showApp(res.data.session);else{
     showAuth();
     if(sessionStorage.getItem("lao_access_denied_notice")==="1"){
