@@ -26,6 +26,9 @@ const bytesToBase64Url = (bytes: Uint8Array) =>
 const bytesToBase64 = (bytes: Uint8Array) =>
   btoa(String.fromCharCode(...bytes));
 
+const base64ToBytes = (value: string) =>
+  Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+
 const toHex = (bytes: Uint8Array) =>
   Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 
@@ -54,6 +57,89 @@ async function encryptTokenPayload(value: unknown, keyMaterial: string, schoolId
     ciphertext: bytesToBase64(new Uint8Array(ciphertext)),
     iv: bytesToBase64(iv),
   };
+}
+
+async function decryptTokenPayload(ciphertextBase64: string, ivBase64: string, keyMaterial: string, schoolId: string) {
+  const seed = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode("lao-ems-google-drive-v1:" + keyMaterial),
+  );
+  const key = await crypto.subtle.importKey("raw", seed, { name: "AES-GCM" }, false, ["decrypt"]);
+  const plaintext = await crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv: base64ToBytes(ivBase64),
+      additionalData: new TextEncoder().encode(schoolId),
+    },
+    key,
+    base64ToBytes(ciphertextBase64),
+  );
+  return JSON.parse(new TextDecoder().decode(plaintext));
+}
+
+async function refreshGoogleAccessToken(refreshToken: string, clientId: string, clientSecret: string) {
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      refresh_token: refreshToken,
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: "refresh_token",
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.access_token) {
+    throw new Error(data.error_description || data.error || "ขอ Google access token ใหม่ไม่สำเร็จ");
+  }
+  return data.access_token as string;
+}
+
+async function createDriveTestFile(accessToken: string, folderId: string) {
+  const boundary = "laoems_" + crypto.randomUUID().replace(/-/g, "");
+  const name = "LAO-EMS-connection-test-" + new Date().toISOString().replace(/[:.]/g, "-") + ".txt";
+  const metadata = JSON.stringify({
+    name,
+    mimeType: "text/plain",
+    parents: [folderId],
+  });
+  const content = [
+    "LAO-EMS Google Drive connection test",
+    "Created: " + new Date().toISOString(),
+    "This temporary file should be deleted automatically after verification.",
+  ].join("\n");
+  const body =
+    "--" + boundary + "\r\n" +
+    "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
+    metadata + "\r\n" +
+    "--" + boundary + "\r\n" +
+    "Content-Type: text/plain; charset=UTF-8\r\n\r\n" +
+    content + "\r\n" +
+    "--" + boundary + "--";
+
+  return await getGoogleJson(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,parents,size",
+    accessToken,
+    {
+      method: "POST",
+      headers: { "Content-Type": "multipart/related; boundary=" + boundary },
+      body,
+    },
+  );
+}
+
+async function deleteDriveFile(accessToken: string, fileId: string) {
+  const response = await fetch(
+    "https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId) + "?supportsAllDrives=true",
+    {
+      method: "DELETE",
+      headers: { Authorization: "Bearer " + accessToken },
+    },
+  );
+  if (!response.ok && response.status !== 404) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.error?.message || "ลบไฟล์ทดสอบออกจาก Google Drive ไม่สำเร็จ");
+  }
 }
 
 function redirectToApp(status: "connected" | "error", message?: string) {
@@ -170,6 +256,136 @@ Deno.serve(async (req: Request) => {
       if (setupError) return json({ error: setupError.message }, 403);
       if (!setup?.lec_ready || !setup?.settings_ready) {
         return json({ error: "กรุณานำเข้า LEC และบันทึกการตั้งค่าสถานศึกษาให้ครบก่อนเชื่อม Google Drive" }, 409);
+      }
+
+      const action = String(payload?.action || "connect");
+      if (action === "test") {
+        const testedAt = new Date().toISOString();
+        let createdFileId = "";
+        try {
+          const { data: connection, error: connectionError } = await admin
+            .from("lao_drive_connections")
+            .select("school_id,root_folder_id,root_folder_name,status,google_account_email")
+            .eq("school_id", schoolId)
+            .maybeSingle();
+          if (connectionError) throw connectionError;
+          if (!connection || connection.status !== "connected" || !connection.root_folder_id) {
+            return json({ error: "ยังไม่มี Google Drive connection ที่พร้อมทดสอบ" }, 409);
+          }
+
+          const { data: credential, error: credentialError } = await admin
+            .from("lao_drive_credentials")
+            .select("token_ciphertext,token_iv")
+            .eq("school_id", schoolId)
+            .maybeSingle();
+          if (credentialError) throw credentialError;
+          if (!credential?.token_ciphertext || !credential?.token_iv) {
+            return json({ error: "ไม่พบข้อมูลรับรอง Google Drive ที่เข้ารหัสไว้" }, 409);
+          }
+
+          const tokenPayload = await decryptTokenPayload(
+            credential.token_ciphertext,
+            credential.token_iv,
+            cfg.tokenKey,
+            schoolId,
+          );
+          if (!tokenPayload?.refresh_token) throw new Error("ไม่พบ Google refresh token");
+
+          const accessToken = await refreshGoogleAccessToken(
+            tokenPayload.refresh_token,
+            cfg.googleClientId,
+            cfg.googleClientSecret,
+          );
+
+          const folder = await getGoogleJson(
+            "https://www.googleapis.com/drive/v3/files/" +
+              encodeURIComponent(connection.root_folder_id) +
+              "?supportsAllDrives=true&fields=id,name,mimeType,trashed",
+            accessToken,
+          );
+          if (folder.trashed || folder.mimeType !== "application/vnd.google-apps.folder") {
+            throw new Error("โฟลเดอร์หลักของ LAO-EMS ไม่พร้อมใช้งาน");
+          }
+
+          const testFile = await createDriveTestFile(accessToken, connection.root_folder_id);
+          createdFileId = String(testFile.id || "");
+          if (!createdFileId) throw new Error("Google Drive ไม่ส่ง File ID ของไฟล์ทดสอบกลับมา");
+
+          await deleteDriveFile(accessToken, createdFileId);
+          createdFileId = "";
+
+          const { data: school, error: schoolError } = await admin
+            .from("lao_schools")
+            .select("id,organization_id")
+            .eq("id", schoolId)
+            .single();
+          if (schoolError) throw schoolError;
+
+          await admin.from("lao_drive_connections").update({
+            last_sync_at: testedAt,
+            last_error: null,
+          }).eq("school_id", schoolId);
+
+          await admin.from("lao_audit_logs").insert({
+            organization_id: school.organization_id,
+            school_id: schoolId,
+            actor_user_id: caller.id,
+            action: "google_drive_connection_tested",
+            entity_type: "drive_connection",
+            entity_id: schoolId,
+            after_data: {
+              status: "ok",
+              root_folder_id: connection.root_folder_id,
+              root_folder_name: folder.name || connection.root_folder_name || ROOT_FOLDER_NAME,
+              test_file_created_and_deleted: true,
+            },
+            context: { tested_at: testedAt },
+          });
+
+          return json({
+            ok: true,
+            status: "connected",
+            message: "Google Drive ใช้งานได้ สร้างและลบไฟล์ทดสอบสำเร็จ",
+            tested_at: testedAt,
+            root_folder_id: connection.root_folder_id,
+            root_folder_name: folder.name || connection.root_folder_name || ROOT_FOLDER_NAME,
+            test_file_created_and_deleted: true,
+          });
+        } catch (error) {
+          if (createdFileId) {
+            try {
+              const { data: credential } = await admin
+                .from("lao_drive_credentials")
+                .select("token_ciphertext,token_iv")
+                .eq("school_id", schoolId)
+                .maybeSingle();
+              if (credential?.token_ciphertext && credential?.token_iv) {
+                const tokenPayload = await decryptTokenPayload(
+                  credential.token_ciphertext,
+                  credential.token_iv,
+                  cfg.tokenKey,
+                  schoolId,
+                );
+                if (tokenPayload?.refresh_token) {
+                  const cleanupToken = await refreshGoogleAccessToken(
+                    tokenPayload.refresh_token,
+                    cfg.googleClientId,
+                    cfg.googleClientSecret,
+                  );
+                  await deleteDriveFile(cleanupToken, createdFileId);
+                }
+              }
+            } catch (cleanupError) {
+              console.error("Drive self-test cleanup error", cleanupError);
+            }
+          }
+          const message = error instanceof Error ? error.message : String(error);
+          await admin.from("lao_drive_connections").update({
+            last_error: message.slice(0, 1000),
+          }).eq("school_id", schoolId);
+          console.error("Drive self-test error", error);
+          return json({ error: message }, 502);
+        }
       }
 
       const rawState = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(32)));
