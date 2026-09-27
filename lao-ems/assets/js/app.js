@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.4";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.5";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1383,7 +1383,7 @@ async function lecHtml(){
 
   const hist=school?'<article class="panel"><div class="panel-head"><div><p class="eyebrow">Import history</p><h2>ประวัติการนำเข้า LEC · '+esc(school.name_th)+'</h2><p class="panel-sub">ข้อมูลเดิมไม่ถูกลบ เมื่อเด็กหายจากไฟล์รอบใหม่จะบันทึกว่า “ไม่พบใน LEC รอบล่าสุด” เท่านั้น</p></div></div>'+(historyRows?'<div class="table-wrap"><table><thead><tr><th>ปี / ภาค</th><th>ไฟล์</th><th>นำเข้า / ทั้งหมด</th><th>นักเรียนใหม่</th><th>อัปเดต</th><th>ไม่พบรอบล่าสุด</th><th>ปัญหา</th></tr></thead><tbody>'+historyRows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">⇧</div><h3>ยังไม่เคยนำเข้า LEC</h3></div>')+'</article>':'';
 
-  return '<section class="source-banner"><div><span class="badge">School Admin · Approved</span><h2>นำเข้าข้อมูลจาก LEC</h2><p>บัญชี School Admin ที่ได้รับการอนุมัติจาก Platform Admin สามารถนำเข้าไฟล์ LEC ได้โดยตรง</p></div><div class="banner-status"><span class="status-pill success">XLS/XLSX</span><span class="status-pill success">ไม่ต้องกรอกเอง</span><span class="status-pill success">เลือกชีตอัตโนมัติ</span></div></section><section class="content-grid">'+sourceInfo+importBox+hist+'</section>';
+  return '<section class="source-banner"><div><span class="badge">School Admin · Approved</span><h2>นำเข้าข้อมูลจาก LEC</h2><p>บัญชี School Admin ที่ได้รับการอนุมัติจาก Platform Admin สามารถนำเข้าไฟล์ LEC ได้โดยตรง</p></div><div class="banner-status"><span class="status-pill success">XLS/XLSX</span><span class="status-pill success">ไม่ต้องกรอกเอง</span><span class="status-pill success">เลือกชีตอัตโนมัติ</span></div></section><section class="lec-page-stack">'+sourceInfo+importBox+hist+'</section>';
 }
 
 function lecSchoolFieldLabel(key){
