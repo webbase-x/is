@@ -92,3 +92,7 @@ Public self-registration is not part of LAO-EMS. Accounts are initiated by admin
 
 ### Automatic LEC period import
 The LEC import page has no manual academic-year or term fields. The importer reads school identity, academic year, term, classroom and student data from the selected authoritative LEC worksheet. If academic year or term is missing or inconsistent, the import is blocked rather than asking the user to type a replacement value.
+
+
+### No manual LGO/school bootstrap
+Platform Admin no longer types official LGO or school master data. The first School Admin is invited by email without a school record. After the recipient confirms the account and profile, the first LEC import creates or reuses the LGO and creates/binds the school from LEC source values. Direct authenticated INSERT/UPDATE/DELETE on `lao_organizations` and `lao_schools` is revoked.
