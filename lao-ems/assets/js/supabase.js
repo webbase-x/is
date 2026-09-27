@@ -5,7 +5,16 @@ const scopedKey = key => "lao-ems:" + key;
 
 const authStorage = {
   getItem(key) {
-    return (localStorage.getItem("lao_remember_login")==="1" ? localStorage : sessionStorage).getItem(scopedKey(key));
+    const target = localStorage.getItem("lao_remember_login")==="1" ? localStorage : sessionStorage;
+    const scoped = target.getItem(scopedKey(key));
+    if(scoped)return scoped;
+    if(localStorage.getItem("lao_legacy_session_rejected")==="1")return null;
+    const legacy = sessionStorage.getItem(key) || localStorage.getItem(key);
+    if(legacy){
+      target.setItem(scopedKey(key),legacy);
+      return legacy;
+    }
+    return null;
   },
   setItem(key, value) {
     const remember = localStorage.getItem("lao_remember_login")==="1";
