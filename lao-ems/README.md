@@ -131,3 +131,7 @@ LAO-EMS uses Semantic Versioning (`MAJOR.MINOR.PATCH`) with `lao-ems/VERSION` as
 - During `0.x`, the project is still in active development. Every merged LAO-EMS change must still increase at least the patch number.
 
 The current version is shown on the sign-in screen, sidebar and top bar. The running app also fetches `VERSION` with `no-store`; if the browser is still running an older cached build, it displays a new-version reload notice.
+
+
+### Pull to refresh
+On touch devices, pulling down from the top of a LAO-EMS page reloads the current route. The refresh removes only LAO-EMS-named Cache Storage entries, requests the current document again with a cache-busting query, and preserves authentication/session data. It does not clear other apps on the same GitHub Pages origin.
