@@ -117,3 +117,7 @@ Platform Admin can create copyable School Admin application links and turn each 
 Verification files are temporarily stored in the private `lao-ems-admin-verification` bucket because the applicant's school Google Drive does not exist yet. Normal school files continue to use the per-school Google Drive architecture after school onboarding.
 
 A Platform Admin who also manages a school can start their own School Admin context directly from LEC through `lao_platform_begin_school_onboarding()`.
+
+
+### Legacy LEC sample compatibility
+The workbook currently used during development is an **older LEC sample**, not a guaranteed current production specification. Its `Sheet1` convention (report title on row 1, main headers on row 2, subheaders/merged groups on row 3, data from row 4) is kept as a compatibility reference only. The importer remains content-driven and must be revalidated against a newly downloaded LEC export when the source system becomes available again.
