@@ -42,13 +42,11 @@ One Platform
 ## Identity flow
 
 ```text
-สร้างบัญชี
-→ ยืนยันตัวตน
-→ lao_ensure_profile()
-→ เลือก อปท./โรงเรียน
-→ lao_request_membership()
-→ ผู้ดูแลตรวจสอบ
-→ lao_review_membership()
+ผู้ดูแลกรอกอีเมล + บทบาท
+→ lao-invite-user ส่งคำเชิญ
+→ ผู้รับยืนยันอีเมล
+→ ตั้งค่าโปรไฟล์ + รหัสผ่าน
+→ lao_complete_invitation()
 → ได้ Role + Scope
 → เข้าใช้งานโมดูลตามสิทธิ์
 ```
@@ -112,6 +110,8 @@ Foundation → Personnel → Students/Guardians → Academic → Assessment → 
 
 LEC is the authoritative source for official school/student master fields. LAO-EMS does not expose normal client UPDATE paths for LEC-owned school fields and does not provide manual CRUD for LEC student master data.
 
+The importer does **not** assume that worksheet 1 is authoritative. It scans the workbook and selects the worksheet whose header contains the complete school identity columns: province, district, LGO, school, student number, first name and last name. This prevents derived sheets such as `stuent`, partial sheets, or ปพ.8 from being treated as the source table.
+
 Import layers:
 1. `lao_lec_import_batches` — provenance for every uploaded LEC report.
 2. `lao_lec_import_rows` — immutable source-row evidence (raw + canonical mapping).
@@ -124,7 +124,7 @@ A missing student in a newer LEC file is not deleted and is not automatically cl
 
 
 ### School identity reconciliation
-LEC school metadata and student rows are treated as one source snapshot. `lao_lec_school_check()` compares the incoming school identity/details with the tenant before import. `lao_lec_school_snapshots` preserves each accepted school snapshot and its diff. A different already-bound school code is a hard stop. Non-identity changes require explicit School Admin confirmation to adopt the new LEC snapshot. Keeping old values means cancelling the import, not importing students against stale school metadata.
+LEC school metadata and student rows are treated as one source snapshot. The school identity is read from the same selected data rows (จังหวัด / อำเภอ / อปท. / สถานศึกษา), not only from report headings. `lao_lec_school_check()` compares the incoming school identity/details with the tenant before import. `lao_lec_school_snapshots` preserves each accepted school snapshot and its diff. A different already-bound school code is a hard stop. Non-identity changes require explicit School Admin confirmation to adopt the new LEC snapshot. Keeping old values means cancelling the import, not importing students against stale school metadata.
 
 
 ## Admin-managed authentication boundary
