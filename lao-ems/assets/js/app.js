@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.1";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.2";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1145,11 +1145,6 @@ function lecStandardSheet1PositionalProfile(wb,sheetName){
   if(!metadata.district_name_th)missing.push("อำเภอ");
   if(!metadata.organization_name_th)missing.push("อปท.");
   if(!metadata.school_name_th)missing.push("สถานศึกษา");
-  if(!metadata.academic_year_be)missing.push("ปีการศึกษา");
-  if(!metadata.term_no)missing.push("ภาคเรียน");
-  if([metadata.province_name_th,metadata.district_name_th,metadata.organization_name_th,metadata.school_name_th].some(v=>String(v||"").includes("�"))){
-    missing.push("การเข้ารหัสภาษาไทย");
-  }
   const corePresent=9-missing.length;
   return {
     sheetName,valid:missing.length===0&&rowCount>0,rowCount,missing,
@@ -1181,10 +1176,13 @@ async function parseLecFile(file){
   };
 
   const scanWorkbook=book=>book.SheetNames.map(name=>{
-    let p=lecSheetProfile(book,name);
-    if((!p||!p.valid)&&String(name).trim().toLowerCase()==="sheet1"){
-      const fallback=lecStandardSheet1PositionalProfile(book,name);
-      if(fallback&&(fallback.rowCount>(p&&p.rowCount||0)))p=fallback;
+    const isSheet1=String(name).trim().toLowerCase()==="sheet1";
+    let p=null;
+    if(isSheet1){
+      p=lecStandardSheet1PositionalProfile(book,name);
+      if(!p||!p.rowCount)p=lecSheetProfile(book,name);
+    }else{
+      p=lecSheetProfile(book,name);
     }
     return applyPeriod(p);
   }).filter(Boolean);
@@ -1211,8 +1209,8 @@ async function parseLecFile(file){
     return (b.score+(bSheet1*50000))-(a.score+(aSheet1*50000));
   });
   if(!candidates.length){
-    const details=allProfiles.map(x=>x.sheetName+": "+((x.missing&&x.missing.length)?("ขาด "+x.missing.join(", ")):"ไม่พบข้อมูลนักเรียน")).join(" | ");
-    const hint=isLegacyXls?" · ระบบลองอ่านรหัสภาษาไทย Windows-874 และโครงสร้าง Sheet1 แบบตำแหน่งแล้ว":"";
+    const details=allProfiles.map(x=>x.sheetName+": "+((x.missing&&x.missing.length)?("ขาด "+x.missing.join(", ")):"ไม่พบข้อมูลนักเรียน")+(x.positionalFallback?" [อ่านตามตำแหน่ง Sheet1]":"")).join(" | ");
+    const hint=isLegacyXls?" · ตัวอ่าน v0.2.2 ใช้โครงสร้าง Sheet1 แถว 2–3 และข้อมูลเริ่มแถว 4 โดยตรงแล้ว":" · ตัวอ่าน v0.2.2";
     throw new Error("ยังไม่พบชีต LEC ที่พร้อมนำเข้า"+(details?" — "+details:"")+hint);
   }
   const selected=candidates[0];
