@@ -376,3 +376,74 @@ table{max-width:none}
   .view-switch{display:none}
   .topbar h1{font-size:14px}
 }
+
+
+/* Complete LEC student detail — v0.6.0 */
+.student-detail-dialog{width:min(980px,calc(100dvw - 24px));max-width:calc(100dvw - 24px)}
+.student-detail-shell{padding:22px}
+.student-detail-body{display:flex;flex-direction:column;gap:14px;min-width:0}
+.student-detail-badges{display:flex;gap:7px;flex-wrap:wrap}
+.lec-detail-section{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;min-width:0}
+.lec-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px}
+.lec-section-head>div{display:flex;gap:10px;align-items:flex-start;min-width:0}
+.lec-section-head>div>span{width:28px;height:28px;border-radius:9px;background:#eff4ff;color:#175cd3;display:grid;place-items:center;flex:0 0 28px;font-size:10px;font-weight:900}
+.lec-section-head h3{margin:0;font-size:15px;color:#101828}
+.lec-section-head p{margin:2px 0 0;color:#667085;font-size:11px;line-height:1.45}
+.lec-person-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.lec-person-card{border:1px solid var(--line);border-radius:13px;padding:13px;background:#f9fafb;min-width:0}
+.lec-card-title span{display:block;color:#175cd3;font-size:10px;font-weight:900;margin-bottom:3px}
+.lec-card-title strong{display:block;font-size:14px;overflow-wrap:anywhere}
+.lec-person-card dl{display:grid;grid-template-columns:1fr;gap:7px;margin:11px 0 0}
+.lec-person-card dl>div{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #eaecf0;padding-top:7px;min-width:0}
+.lec-person-card dt{color:#667085;font-size:11px}
+.lec-person-card dd{margin:0;color:#101828;font-size:11px;font-weight:700;text-align:right;overflow-wrap:anywhere}
+.lec-address-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lec-address-card{border:1px solid var(--line);border-radius:13px;padding:13px;background:#f9fafb;min-width:0}
+.lec-address-card>strong{display:block;font-size:13px;margin-bottom:5px}
+.lec-address-card>p{margin:0 0 12px;color:#475467;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.lec-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.lec-mini-grid span{display:block;border-top:1px solid #eaecf0;padding-top:7px;font-size:11px;color:#101828;overflow-wrap:anywhere}
+.lec-mini-grid small{display:block;color:#667085;font-size:10px;margin-bottom:2px}
+.lec-health-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
+.lec-health-grid article,.lec-import-grid>div{border:1px solid var(--line);border-radius:12px;padding:11px;background:#f9fafb;min-width:0}
+.lec-health-grid small,.lec-import-grid small{display:block;color:#667085;font-size:10px;margin-bottom:4px}
+.lec-health-grid strong,.lec-import-grid strong{display:block;color:#101828;font-size:12px;overflow-wrap:anywhere}
+.lec-import-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.lec-history-table{max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch}
+.lec-history-table table{min-width:620px}
+.lec-raw-section{border:1px solid #b2ddff;border-radius:16px;background:#f8fbff;overflow:hidden}
+.lec-raw-section summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
+.lec-raw-section summary::-webkit-details-marker{display:none}
+.lec-raw-section summary span{display:block;min-width:0}
+.lec-raw-section summary strong,.lec-raw-section summary small{display:block}
+.lec-raw-section summary strong{font-size:13px;color:#1849a9}
+.lec-raw-section summary small{color:#667085;font-size:10px;margin-top:2px}
+.lec-raw-section summary b{font-size:11px;color:#175cd3;white-space:nowrap}
+.lec-raw-section[open] summary{border-bottom:1px solid #b2ddff}
+.lec-source-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:#fff}
+.lec-source-field{min-width:0;padding:10px 12px;border-right:1px solid #eaecf0;border-bottom:1px solid #eaecf0}
+.lec-source-field dt{font-size:10px;color:#667085;margin-bottom:3px;overflow-wrap:anywhere}
+.lec-source-field dd{margin:0;font-size:11px;font-weight:700;color:#101828;overflow-wrap:anywhere;white-space:pre-wrap}
+@media(max-width:980px){
+  .lec-person-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lec-health-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .lec-import-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lec-source-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .student-detail-dialog{width:calc(100dvw - 12px);max-width:calc(100dvw - 12px)}
+  .student-detail-shell{padding:14px}
+  .student-detail-shell .dialog-head{top:-14px;padding-top:14px}
+  .lec-detail-section{padding:13px;border-radius:14px}
+  .lec-person-grid,.lec-address-grid{grid-template-columns:1fr}
+  .lec-health-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lec-import-grid{grid-template-columns:1fr 1fr}
+  .lec-source-fields{grid-template-columns:1fr}
+}
+@media(max-width:430px){
+  .lec-section-head h3{font-size:14px}
+  .lec-section-head p{font-size:10px}
+  .lec-health-grid,.lec-import-grid{grid-template-columns:1fr}
+  .lec-mini-grid{grid-template-columns:1fr}
+  .lec-raw-section summary{align-items:flex-start;flex-direction:column}
+}
