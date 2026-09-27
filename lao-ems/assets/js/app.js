@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.2";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.3";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1103,22 +1103,10 @@ function lecStandardSheet1PositionalProfile(wb,sheetName){
   const ws=wb.Sheets[sheetName];
   if(!ws)return null;
   const matrix=lecWorksheetMatrix(ws);
-  if(matrix.length<4)return null;
   const map=lecStandardSheet1PositionalMap(),dataStart=3,studentNoCol=5;
-  const minCols=75;
   const width=Math.max(...matrix.slice(0,Math.min(matrix.length,8)).map(row=>row.length),0);
-  if(width<minCols)return null;
 
-  let rowCount=0;
-  for(let r=dataStart;r<matrix.length;r++){
-    const sid=lecMappedValue(matrix[r],map,"student_no");
-    const first=lecMappedValue(matrix[r],map,"first_name_th");
-    const last=lecMappedValue(matrix[r],map,"last_name_th");
-    if(sid&&(first||last))rowCount++;
-  }
-  if(!rowCount)return null;
-
-  const headers=Array.from({length:width},(_,i)=>"LEC คอลัมน์ "+(i+1));
+  const headers=Array.from({length:Math.max(width,75)},(_,i)=>"LEC คอลัมน์ "+(i+1));
   const labels={
     0:"ลำดับที่",1:"จังหวัด",2:"อำเภอ",3:"อปท.",4:"สถานศึกษา",5:"เลขประจำตัวนักเรียน",
     7:"คำนำหน้า",8:"ชื่อ",9:"นามสกุล",10:"วัน/เดือน/ปี เกิด",11:"สัญชาติ",12:"เชื้อชาติ",
@@ -1139,18 +1127,60 @@ function lecStandardSheet1PositionalProfile(wb,sheetName){
   };
   Object.entries(labels).forEach(([col,label])=>{headers[Number(col)]=label;});
 
-  const metadata=lecDetectMetadata(matrix,1,map,dataStart);
+  let rowCount=0,firstDataRow=null;
+  const schoolValues=new Set(),districtValues=new Set(),orgValues=new Set(),provinceValues=new Set();
+  for(let r=dataStart;r<matrix.length;r++){
+    const row=matrix[r]||[];
+    const sid=lecCellText(row[5]);
+    if(!sid)continue;
+    rowCount++;
+    if(!firstDataRow)firstDataRow=row;
+    const province=lecCellText(row[1]),district=lecCellText(row[2]),org=lecCellText(row[3]),school=lecCellText(row[4]);
+    if(province)provinceValues.add(province);
+    if(district)districtValues.add(district);
+    if(org)orgValues.add(org);
+    if(school)schoolValues.add(school);
+  }
+
+  const diagnostics={matrix_rows:matrix.length,width,rowCount,expected_data_start_row:4,student_no_column:"F"};
+  if(matrix.length<4){
+    return {sheetName,valid:false,rowCount:0,missing:["ข้อมูลใน Sheet1 ไม่ถึงแถว 4"],score:0,matrix,headerStart:1,flat:{headers,dataStart,studentNoCol},headers,map,metadata:{},positionalFallback:true,diagnostics};
+  }
+  if(!rowCount){
+    return {sheetName,valid:false,rowCount:0,missing:["ไม่พบเลขประจำตัวนักเรียนในคอลัมน์ F ตั้งแต่แถว 4"],score:0,matrix,headerStart:1,flat:{headers,dataStart,studentNoCol},headers,map,metadata:{},positionalFallback:true,diagnostics};
+  }
+
+  const detected=lecDetectMetadata(matrix,1,map,dataStart)||{};
+  const metadata={
+    ...detected,
+    province_name_th:[...provinceValues][0]||detected.province_name_th||null,
+    district_name_th:[...districtValues][0]||detected.district_name_th||null,
+    organization_name_th:[...orgValues][0]||detected.organization_name_th||null,
+    school_name_th:[...schoolValues][0]||detected.school_name_th||null,
+    school_metadata_conflicts:[
+      ...(provinceValues.size>1?["จังหวัด"]:[]),
+      ...(districtValues.size>1?["อำเภอ"]:[]),
+      ...(orgValues.size>1?["อปท."]:[]),
+      ...(schoolValues.size>1?["สถานศึกษา"]:[])
+    ],
+    positional_diagnostics:diagnostics
+  };
+
   const missing=[];
-  if(!metadata.province_name_th)missing.push("จังหวัด");
-  if(!metadata.district_name_th)missing.push("อำเภอ");
-  if(!metadata.organization_name_th)missing.push("อปท.");
-  if(!metadata.school_name_th)missing.push("สถานศึกษา");
+  if(!metadata.province_name_th)missing.push("จังหวัด (คอลัมน์ B)");
+  if(!metadata.district_name_th)missing.push("อำเภอ (คอลัมน์ C)");
+  if(!metadata.organization_name_th)missing.push("อปท. (คอลัมน์ D)");
+  if(!metadata.school_name_th)missing.push("สถานศึกษา (คอลัมน์ E)");
+  const corrupt=[metadata.province_name_th,metadata.district_name_th,metadata.organization_name_th,metadata.school_name_th]
+    .filter(Boolean).some(v=>String(v).includes("�"));
+  if(corrupt)missing.push("ข้อความภาษาไทยอ่านไม่สมบูรณ์");
+
   const corePresent=9-missing.length;
   return {
-    sheetName,valid:missing.length===0&&rowCount>0,rowCount,missing,
-    score:corePresent*100000+Math.min(rowCount,99999)+40000,
+    sheetName,valid:missing.length===0,rowCount,missing,
+    score:corePresent*100000+Math.min(rowCount,99999)+60000,
     matrix,headerStart:1,flat:{headers,dataStart,studentNoCol},headers,map,metadata,
-    positionalFallback:true
+    positionalFallback:true,diagnostics
   };
 }
 
@@ -1209,8 +1239,14 @@ async function parseLecFile(file){
     return (b.score+(bSheet1*50000))-(a.score+(aSheet1*50000));
   });
   if(!candidates.length){
-    const details=allProfiles.map(x=>x.sheetName+": "+((x.missing&&x.missing.length)?("ขาด "+x.missing.join(", ")):"ไม่พบข้อมูลนักเรียน")+(x.positionalFallback?" [อ่านตามตำแหน่ง Sheet1]":"")).join(" | ");
-    const hint=isLegacyXls?" · ตัวอ่าน v0.2.2 ใช้โครงสร้าง Sheet1 แถว 2–3 และข้อมูลเริ่มแถว 4 โดยตรงแล้ว":" · ตัวอ่าน v0.2.2";
+    const details=allProfiles.map(x=>{
+      const base=x.sheetName+": "+((x.missing&&x.missing.length)?("ขาด "+x.missing.join(", ")):"ไม่พบข้อมูลนักเรียน");
+      if(x.positionalFallback&&x.diagnostics){
+        return base+" [Sheet1 ตรงตำแหน่ง: แถว="+x.diagnostics.matrix_rows+", คอลัมน์="+x.diagnostics.width+", นักเรียน="+x.diagnostics.rowCount+"]";
+      }
+      return base;
+    }).join(" | ");
+    const hint=" · ตัวอ่าน v0.2.3 อ่าน Sheet1 จากตำแหน่ง B–F/I/J โดยไม่พึ่งข้อความหัวตาราง";
     throw new Error("ยังไม่พบชีต LEC ที่พร้อมนำเข้า"+(details?" — "+details:"")+hint);
   }
   const selected=candidates[0];
