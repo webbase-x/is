@@ -135,3 +135,7 @@ The current version is shown on the sign-in screen, sidebar and top bar. The run
 
 ### Pull to refresh
 On touch devices, pulling down from the top of a LAO-EMS page reloads the current route. The refresh removes only LAO-EMS-named Cache Storage entries, requests the current document again with a cache-busting query, and preserves authentication/session data. It does not clear other apps on the same GitHub Pages origin.
+
+
+### LEC import progress
+LEC import now shows a blocking progress dialog with a clear warning not to leave, close, refresh, sign out, or change routes while the RPC is running. Browser unload is guarded during the operation. Because the import currently executes as one database RPC rather than a server-side queued job, percentages from 20–88% are explicitly approximate; 96% is shown only after the database responds and 100% only after the result is loaded successfully.
