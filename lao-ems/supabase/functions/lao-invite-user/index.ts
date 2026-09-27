@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
     if (schoolId) {
       const { data: schoolData, error: schoolError } = await admin
         .from("lao_schools")
-        .select("id,organization_id,name_th,is_active")
+        .select("id,organization_id,name_th,is_active,source_system,lec_last_batch_id")
         .eq("id", schoolId)
         .maybeSingle();
       if (schoolError || !schoolData || !schoolData.is_active) {
@@ -120,6 +120,29 @@ Deno.serve(async (req: Request) => {
       }
 
       if (callerIsSchoolAdmin) {
+        const [{ data: settings, error: settingsError }, { data: drive, error: driveError }] = await Promise.all([
+          admin.from("lao_school_settings").select("setup_confirmed_at").eq("school_id", schoolId).maybeSingle(),
+          admin.from("lao_drive_connections").select("status,root_folder_id").eq("school_id", schoolId).maybeSingle(),
+        ]);
+        if (settingsError) throw settingsError;
+        if (driveError) throw driveError;
+
+        const lecReady = school.source_system === "LEC" && Boolean(school.lec_last_batch_id);
+        const settingsReady = Boolean(settings?.setup_confirmed_at);
+        const driveReady = drive?.status === "connected" && Boolean(drive?.root_folder_id);
+
+        if (!lecReady || !settingsReady || !driveReady) {
+          return json({
+            error: "กรุณาตั้งค่าสถานศึกษาให้ครบก่อนเชิญผู้ใช้",
+            setup_required: true,
+            missing_steps: [
+              ...(!lecReady ? ["lec"] : []),
+              ...(!settingsReady ? ["settings"] : []),
+              ...(!driveReady ? ["google_drive"] : []),
+            ],
+          }, 409);
+        }
+
         invitationMode = "school_admin";
       } else if (callerPlatform) {
         if (schoolHasAdmin) {
