@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.2.6";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.3.0";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -134,6 +134,7 @@ function bindPullToRefresh(){
     setPullRefreshState("idle",0);
   };
   document.addEventListener("touchstart",event=>{
+    if(state.lecImporting)return;
     if(event.touches.length!==1)return;
     if(window.scrollY>0||document.documentElement.scrollTop>0)return;
     const target=event.target;
@@ -1428,6 +1429,64 @@ function renderLecPreview(preview){
     btn.disabled=true;
   });
 }
+function ensureLecImportProgress(){
+  let overlay=q("#lec-import-progress");
+  if(overlay)return overlay;
+  overlay=document.createElement("div");
+  overlay.id="lec-import-progress";
+  overlay.className="lec-import-progress hidden";
+  overlay.setAttribute("role","dialog");
+  overlay.setAttribute("aria-modal","true");
+  overlay.setAttribute("aria-labelledby","lec-import-progress-title");
+  overlay.innerHTML='<div class="lec-import-progress-card"><div class="lec-import-progress-icon"><span class="spinner"></span></div><p class="eyebrow">LEC → LAO-EMS</p><h2 id="lec-import-progress-title">กำลังนำเข้าข้อมูล</h2><p class="lec-import-progress-warning"><strong>กรุณาอย่าออกจากหน้านี้</strong><br>อย่าปิดแท็บ รีเฟรช หรือเปลี่ยนหน้า จนกว่าระบบจะแจ้งว่านำเข้าเสร็จ</p><div class="lec-import-progress-row"><strong data-lec-progress-label>กำลังเตรียมข้อมูล...</strong><span data-lec-progress-percent>0%</span></div><div class="lec-import-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span data-lec-progress-bar></span></div><small data-lec-progress-detail>ระบบกำลังตรวจสอบไฟล์และเตรียมส่งข้อมูลไปยังฐานข้อมูล</small></div>';
+  document.body.appendChild(overlay);
+  return overlay;
+}
+function updateLecImportProgress(percent,label,detail){
+  const overlay=ensureLecImportProgress();
+  const value=Math.max(0,Math.min(100,Math.round(percent)));
+  const bar=q("[data-lec-progress-bar]",overlay),pct=q("[data-lec-progress-percent]",overlay),text=q("[data-lec-progress-label]",overlay),sub=q("[data-lec-progress-detail]",overlay),track=q(".lec-import-progress-track",overlay);
+  if(bar)bar.style.width=value+"%";
+  if(pct)pct.textContent=value+"%";
+  if(text&&label)text.textContent=label;
+  if(sub&&detail)sub.textContent=detail;
+  if(track)track.setAttribute("aria-valuenow",String(value));
+}
+function startLecImportProgress(){
+  const overlay=ensureLecImportProgress();
+  overlay.classList.remove("hidden");
+  document.body.classList.add("is-lec-importing");
+  state.lecImporting=true;
+  updateLecImportProgress(8,"กำลังเตรียมข้อมูล...","ตรวจสอบข้อมูลที่ยืนยันแล้วก่อนส่งนำเข้า");
+}
+function finishLecImportProgress(success,message){
+  const overlay=ensureLecImportProgress();
+  updateLecImportProgress(success?100:0,success?"นำเข้าสำเร็จ":"นำเข้าไม่สำเร็จ",message||"");
+  if(success){
+    overlay.classList.add("is-success");
+    setTimeout(()=>{
+      overlay.classList.add("hidden");
+      overlay.classList.remove("is-success");
+      document.body.classList.remove("is-lec-importing");
+      state.lecImporting=false;
+    },700);
+  }else{
+    overlay.classList.add("hidden");
+    document.body.classList.remove("is-lec-importing");
+    state.lecImporting=false;
+  }
+}
+function beginLecEstimatedProgress(){
+  let value=18;
+  updateLecImportProgress(value,"กำลังส่งข้อมูล...","ส่งข้อมูลนักเรียนและข้อมูลสถานศึกษาไปยังระบบ");
+  return setInterval(()=>{
+    if(!state.lecImporting)return;
+    if(value<62)value+=Math.max(1,Math.round((62-value)*0.12));
+    else if(value<88)value+=1;
+    value=Math.min(value,88);
+    updateLecImportProgress(value,value<62?"กำลังนำเข้าข้อมูล...":"กำลังบันทึกและตรวจสอบความสัมพันธ์...","ความคืบหน้าเป็นค่าประมาณระหว่างรอฐานข้อมูลตอบกลับ ระบบจะแสดง 100% เมื่อบันทึกสำเร็จ");
+  },900);
+}
 function bindLec(){
   const form=q("#lec-import-form"),input=q("#lec-file"); if(!form||!input)return;
   input.addEventListener("change",async()=>{
@@ -1465,6 +1524,8 @@ function bindLec(){
     if(!confirm("ยืนยันนำเข้า LEC ปีการศึกษา "+p.metadata.academic_year_be+" ภาคเรียนที่ "+p.metadata.term_no+" จำนวน "+p.rows.length+" คน? ระบบจะรักษาประวัติเดิมไว้"))return;
     const btn=q("[data-lec-import]");
     setBusy(btn,true,"กำลังนำเข้า LEC...");
+    startLecImportProgress();
+    const progressTimer=beginLecEstimatedProgress();
     const rpcName=onboarding?"lao_onboard_school_from_lec":"lao_import_lec_students_auto";
     const rpcArgs=onboarding?{
       p_invitation_id:state.pendingInvitation.id,
@@ -1477,13 +1538,30 @@ function bindLec(){
       p_sheet_name:p.sheetName,p_ignored_sheet_count:p.ignoredSheetCount,
       p_header_map:p.headerMap,p_metadata:{...p.metadata,...(p.schoolResolution?{school_resolution:p.schoolResolution}:{})},p_rows:p.rows
     };
-    const res=await supabase.rpc(rpcName,rpcArgs);
+    let res;
+    try{
+      updateLecImportProgress(20,"กำลังนำเข้าข้อมูล...","กรุณาอย่าออกจากหน้านี้ระหว่างที่ฐานข้อมูลกำลังประมวลผล");
+      res=await supabase.rpc(rpcName,rpcArgs);
+    }catch(error){
+      clearInterval(progressTimer);
+      setBusy(btn,false);
+      finishLecImportProgress(false,error.message||String(error));
+      toast(error.message||String(error),"error");
+      return;
+    }
+    clearInterval(progressTimer);
     setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
+    if(res.error){
+      finishLecImportProgress(false,res.error.message);
+      toast(res.error.message,"error");
+      return;
+    }
     const x=res.data||{};
-    toast((onboarding?"สร้างสถานศึกษาและนำเข้า LEC สำเร็จ: ":"นำเข้า LEC สำเร็จ: ")+(x.imported_rows||0)+" รายการ","success");
+    updateLecImportProgress(96,"กำลังตรวจสอบผลลัพธ์...","ฐานข้อมูลตอบกลับแล้ว กำลังอัปเดตหน้าจอและสิทธิ์การใช้งาน");
     state.lecPreview=null;
     await loadContext();
+    finishLecImportProgress(true,"นำเข้า "+(x.imported_rows||0)+" รายการเรียบร้อย");
+    toast((onboarding?"สร้างสถานศึกษาและนำเข้า LEC สำเร็จ: ":"นำเข้า LEC สำเร็จ: ")+(x.imported_rows||0)+" รายการ","success");
     if(onboarding)location.hash="#/setup";
     renderRoute();
   });
@@ -1771,6 +1849,20 @@ function showAuth(){
   if(token){if(signin)signin.classList.add("hidden");if(application){application.classList.remove("hidden");renderPublicSchoolAdminApplication(token);}}
   else{if(signin)signin.classList.remove("hidden");if(application)application.classList.add("hidden");}
 }
+
+window.addEventListener("beforeunload",event=>{
+  if(!state.lecImporting)return;
+  event.preventDefault();
+  event.returnValue="";
+});
+document.addEventListener("click",event=>{
+  if(!state.lecImporting)return;
+  const target=event.target&&event.target.closest?event.target.closest("a[href^='#/'],[data-view-mode],[data-signout]"):null;
+  if(!target)return;
+  event.preventDefault();
+  event.stopPropagation();
+  toast("กำลังนำเข้า LEC กรุณารอจนกว่าระบบจะแจ้งว่าเสร็จ","error");
+},true);
 
 async function init(){
   renderAppVersion();
