@@ -68,27 +68,19 @@
       <div class="brand"><div class="brand-mark">L</div><div class="brand-copy"><strong>LAO-EMS</strong><span>ระบบบริหารการศึกษาท้องถิ่น</span></div><button class="icon-btn sidebar-close" type="button" data-sidebar-close aria-label="ปิดเมนู">×</button></div>
       <div class="tenant-card"><span class="tenant-label">บริบทที่กำลังใช้งาน</span><select id="tenant-select" class="tenant-select" aria-label="เลือกสถานศึกษา"><option value="">ยังไม่มีสิทธิ์สถานศึกษา</option></select></div>
       <nav class="nav-list">
-        <a href="#/overview" data-route="overview" class="active"><span>▦</span>ภาพรวมระบบ</a>
-        <a href="#/membership" data-route="membership"><span>✓</span>สถานะการเข้าใช้งาน</a>
-        <a href="#/setup" data-route="setup"><span>⚙</span>ตั้งค่าพื้นฐาน</a>
-        <a href="#/organization" data-route="organization"><span>🏛</span>อปท. และสถานศึกษา</a>
-        <a href="#/users" data-route="users"><span>👥</span>ผู้ใช้และสิทธิ์</a>
-        <a href="#/personnel" data-route="personnel"><span>🪪</span>บุคลากร</a>
-        <a href="#/students" data-route="students"><span>🎓</span>นักเรียน</a>
-        <a href="#/academics" data-route="academics"><span>📚</span>วิชาการ</a>
-        <a href="#/assessment" data-route="assessment"><span>📝</span>ทะเบียนและวัดผล</a>
-        <a href="#/documents" data-route="documents"><span>📄</span>เอกสารและไฟล์</a>
-        <a href="#/website" data-route="website"><span>🌐</span>เว็บไซต์สถานศึกษา</a>
-        <a href="#/forms" data-route="forms"><span>☑</span>แบบฟอร์มและงาน</a>
-        <a href="#/reports" data-route="reports"><span>📊</span>รายงานและ Dashboard</a>
+        <a href="#/overview" data-route="overview" class="active"><span>▦</span>หน้าหลัก</a>
+        <a href="#/membership" data-route="membership"><span>✓</span>สิทธิ์การเข้าใช้งาน</a>
+        <a href="#/organization" data-route="organization" data-admin-menu><span>🏛</span>อปท. และสถานศึกษา</a>
+        <a href="#/users" data-route="users" data-admin-menu><span>👥</span>ผู้ใช้และสิทธิ์</a>
+        <a href="#/setup" data-route="setup" data-admin-menu><span>⚙</span>ตั้งค่าระบบ</a>
       </nav>
-      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>Foundation</strong><small>Phase 1 · ISSQL</small></div></div>
+      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>LAO-EMS</strong><small>ระบบบริหารการศึกษาท้องถิ่น</small></div></div>
     </aside>
 
     <div class="page">
       <header class="topbar">
         <div class="topbar-start"><button class="icon-btn mobile-menu" type="button" data-sidebar-open aria-label="เปิดเมนู">☰</button><div><p class="eyebrow">ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาของ อปท.</p><h1 data-page-title>ภาพรวมระบบ</h1></div></div>
-        <div class="topbar-actions"><div class="connection-badge"><span></span>ISSQL</div><button class="profile-btn" type="button"><span class="avatar" data-avatar>ผู้</span><span class="profile-copy"><strong data-profile-name>ผู้ใช้งาน</strong><small data-profile-role>กำลังตรวจสอบสิทธิ์</small></span></button><button class="icon-btn" type="button" data-signout aria-label="ออกจากระบบ" title="ออกจากระบบ">↪</button></div>
+        <div class="topbar-actions"><button class="profile-btn" type="button"><span class="avatar" data-avatar>ผู้</span><span class="profile-copy"><strong data-profile-name>ผู้ใช้งาน</strong><small data-profile-role>กำลังตรวจสอบสิทธิ์</small></span></button><button class="icon-btn" type="button" data-signout aria-label="ออกจากระบบ" title="ออกจากระบบ">↪</button></div>
       </header>
       <main id="main" class="content" tabindex="-1"></main>
     </div>
