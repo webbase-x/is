@@ -88,3 +88,7 @@ Public self-registration is not part of LAO-EMS. Accounts are initiated by admin
 - The recipient receives an authentication email, opens the secure link, completes their profile, and sets their own password.
 - LAO-EMS does not email plaintext temporary passwords.
 - An Auth account from another app in the shared Supabase project does not grant LAO-EMS access unless it has a LAO invitation/membership or Platform Admin status.
+
+
+### Automatic LEC period import
+The LEC import page has no manual academic-year or term fields. The importer reads school identity, academic year, term, classroom and student data from the selected authoritative LEC worksheet. If academic year or term is missing or inconsistent, the import is blocked rather than asking the user to type a replacement value.
