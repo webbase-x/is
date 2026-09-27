@@ -125,3 +125,10 @@ A missing student in a newer LEC file is not deleted and is not automatically cl
 
 ### School identity reconciliation
 LEC school metadata and student rows are treated as one source snapshot. `lao_lec_school_check()` compares the incoming school identity/details with the tenant before import. `lao_lec_school_snapshots` preserves each accepted school snapshot and its diff. A different already-bound school code is a hard stop. Non-identity changes require explicit School Admin confirmation to adopt the new LEC snapshot. Keeping old values means cancelling the import, not importing students against stale school metadata.
+
+
+## Admin-managed authentication boundary
+
+LAO-EMS has no public self-signup workflow. `lao_user_invitations` is the admission boundary. A shared Supabase Auth identity from P1/P2/other apps does not become a LAO-EMS user merely by existing in `auth.users`; `lao_has_lao_access()` requires Platform Admin status, a LAO membership, or a pending LAO invitation.
+
+The `lao-invite-user` Edge Function uses the service role only on the server. It verifies the calling JWT, enforces Platform Admin vs School Admin responsibility, sends an invite/magic-link email, and records the invitation. On first accepted invitation, the user completes profile data and sets their own password via the normal authenticated Auth API; `lao_complete_invitation()` then activates the approved membership.
