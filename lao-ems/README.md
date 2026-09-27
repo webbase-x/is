@@ -96,3 +96,13 @@ The LEC import page has no manual academic-year or term fields. The importer rea
 
 ### No manual LGO/school bootstrap
 Platform Admin no longer types official LGO or school master data. The first School Admin is invited by email without a school record. After the recipient confirms the account and profile, the first LEC import creates or reuses the LGO and creates/binds the school from LEC source values. Direct authenticated INSERT/UPDATE/DELETE on `lao_organizations` and `lao_schools` is revoked.
+
+
+### School setup gate after LEC
+After the first LEC import, School Admin must finish school readiness before inviting any users:
+1. LEC source is imported and the school has a stable `school_id`.
+2. School operational settings are confirmed.
+3. Google Drive is connected and a root folder named `/LAO-EMS/` is provisioned.
+4. Only then does the School Admin user-invitation workflow unlock.
+
+The folder root is fixed as `LAO-EMS`. Subfolders are intentionally provisioned later by each module as those modules are enabled, rather than creating an unused folder tree upfront.
