@@ -106,3 +106,18 @@ https://webbase-x.github.io/is/lao-ems/s/<school-slug>/
 ## Development order
 
 Foundation → Personnel → Students/Guardians → Academic → Assessment → ปพ. → School Website → Forms/Workflow → Student Care → QA/SAR → Dashboards → AI
+
+
+## LEC authoritative data boundary
+
+LEC is the authoritative source for official school/student master fields. LAO-EMS does not expose normal client UPDATE paths for LEC-owned school fields and does not provide manual CRUD for LEC student master data.
+
+Import layers:
+1. `lao_lec_import_batches` — provenance for every uploaded LEC report.
+2. `lao_lec_import_rows` — immutable source-row evidence (raw + canonical mapping).
+3. `lao_students` — durable person identity, reused across years/schools when citizen ID matches.
+4. `lao_student_school_records` — school-specific student number and current LEC presence.
+5. `lao_student_term_enrollments` — year/term/classroom history.
+6. Family, address, measurement and benefit snapshot tables — time-stamped by LEC import batch.
+
+A missing student in a newer LEC file is not deleted and is not automatically classified as transferred out. Only a future registry/ปพ. workflow may change the official registry status.
