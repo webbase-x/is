@@ -314,7 +314,7 @@ begin
           nullif(btrim(c->>'race'),''),nullif(btrim(c->>'nationality'),''),
           nullif(btrim(c->>'religion'),''),now(),now(),v_batch_id
         ) returning id into v_student_id;
-        v_is_new:=true; v_new_count:=v_new_count+1;
+        v_is_new:=false;
       else
         update public.lao_students s set
           citizen_id=case when c ? 'citizen_id' and v_citizen is not null then v_citizen else s.citizen_id end,
@@ -327,7 +327,6 @@ begin
           religion=case when c ? 'religion' then nullif(btrim(c->>'religion'),'') else s.religion end,
           lec_last_seen_at=now(),lec_last_batch_id=v_batch_id
         where s.id=v_student_id;
-        v_updated_count:=v_updated_count+1;
       end if;
 
       select id into v_school_record_id from public.lao_student_school_records
@@ -341,6 +340,8 @@ begin
           v_student_id,p_school_id,v_student_no,public.lao_parse_lec_date(c->>'admission_date'),
           nullif(btrim(c->>'student_condition'),''),'present',v_batch_id,v_batch_id,now(),now()
         ) returning id into v_school_record_id;
+        v_is_new:=true;
+        v_new_count:=v_new_count+1;
       else
         update public.lao_student_school_records set
           student_no=v_student_no,
@@ -348,6 +349,7 @@ begin
           lec_student_condition=case when c ? 'student_condition' then nullif(btrim(c->>'student_condition'),'') else lec_student_condition end,
           lec_presence_status='present',last_seen_batch_id=v_batch_id,last_seen_at=now()
         where id=v_school_record_id;
+        v_updated_count:=v_updated_count+1;
       end if;
 
       insert into public.lao_student_term_enrollments(
