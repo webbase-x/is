@@ -108,7 +108,7 @@ After the first LEC import, School Admin must finish school readiness before inv
 The folder root is fixed as `LAO-EMS`. Subfolders are intentionally provisioned later by each module as those modules are enabled, rather than creating an unused folder tree upfront.
 
 
-> Current implementation note: the school-readiness gate and `/LAO-EMS/` folder contract are active. The Google Drive connect button is wired to the server endpoint, but Google OAuth client credentials have not yet been configured in the Supabase Edge Function environment, so a real Drive connection cannot complete until that one-time platform configuration is supplied.
+> Google Drive OAuth is implemented through the `lao-drive-oauth` Edge Function. It requests the narrow `drive.file` scope, provisions `/LAO-EMS/` after consent, stores only encrypted refresh-token material server-side, and records connection metadata in ISSQL. The Edge Function requires `GOOGLE_DRIVE_CLIENT_ID` and `GOOGLE_DRIVE_CLIENT_SECRET`; its Google authorized redirect URI is `https://xnpzkhjodokvcgzovlxx.supabase.co/functions/v1/lao-drive-oauth`.
 
 
 ### Platform Admin School Admin invitation links
