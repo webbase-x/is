@@ -1,10 +1,11 @@
 import { supabase } from "./supabase.js";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],isPlatformAdmin:false,viewMode:"user"};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],isPlatformAdmin:false,viewMode:"user"};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
   membership:["สถานะการเข้าใช้งาน","สมัครเข้าร่วมสถานศึกษาและติดตามการอนุมัติ"],
+  notifications:["การแจ้งเตือน","คำขอ การอนุมัติ และการเปลี่ยนแปลงที่เกี่ยวข้องกับบัญชีของคุณ"],
   setup:["ตั้งค่าพื้นฐาน","ปีการศึกษา ภาคเรียน และสถานะการเชื่อมระบบ"],
   organization:["อปท. และสถานศึกษา","โครงสร้างองค์กรและโรงเรียนในแพลตฟอร์ม"],
   users:["ผู้ใช้และสิทธิ์","คำขอเข้าใช้งาน บทบาท และขอบเขตสิทธิ์"],
@@ -77,8 +78,14 @@ function initials(name){
   const parts=String(name||"ผู้").trim().split(/\s+/).filter(Boolean);
   return ((parts[0]&&parts[0][0])||"ผู้")+((parts[1]&&parts[1][0])||"");
 }
-function currentSchool(){return state.currentMembership&&state.currentMembership.lao_schools||null;}
-function currentOrg(){return state.currentMembership&&state.currentMembership.lao_organizations||null;}
+function currentSchool(){
+  if(state.isPlatformAdmin&&state.viewMode==="admin")return state.adminSchool||null;
+  return state.currentMembership&&state.currentMembership.lao_schools||null;
+}
+function currentOrg(){
+  if(state.isPlatformAdmin&&state.viewMode==="admin")return state.adminSchool&&state.adminSchool.lao_organizations||null;
+  return state.currentMembership&&state.currentMembership.lao_organizations||null;
+}
 
 function bindStaticUI(){
   qa("[data-auth-tab]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -103,7 +110,8 @@ function bindStaticUI(){
     state.viewMode=button.dataset.viewMode==="admin"?"admin":"user";
     localStorage.setItem("lao_view_mode",state.viewMode);
     refreshHeader();
-    if(state.viewMode==="user"&&!["overview","membership"].includes(routeName())){
+    renderTenants();
+    if(state.viewMode==="user"&&!["overview","membership","notifications"].includes(routeName())){
       location.hash="#/overview";
     }else{
       renderRoute();
@@ -117,7 +125,15 @@ function bindStaticUI(){
   window.addEventListener("hashchange",()=>{renderRoute();close();});
   q("[data-signout]").addEventListener("click",async()=>{await supabase.auth.signOut();});
   q("#tenant-select").addEventListener("change",e=>{
-    const m=state.memberships.find(x=>x.id===e.target.value&&x.status==="active");
+    const value=e.target.value;
+    if(state.isPlatformAdmin&&state.viewMode==="admin"){
+      const id=value.startsWith("admin:")?value.slice(6):"";
+      state.adminSchool=state.adminSchools.find(s=>s.id===id)||null;
+      if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
+      else localStorage.removeItem("lao_admin_school");
+      refreshHeader();renderRoute();return;
+    }
+    const m=state.memberships.find(x=>x.id===value&&x.status==="active");
     if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);refreshHeader();renderRoute();}
   });
 }
@@ -184,6 +200,24 @@ async function loadSchools(orgId){
   state.schools=res.data||[];
   return state.schools;
 }
+async function loadAdminSchools(){
+  if(!state.isPlatformAdmin){state.adminSchools=[];state.adminSchool=null;return;}
+  const res=await supabase.from("lao_schools")
+    .select("id,organization_id,code,name_th,name_en,short_name,slug,phone,email,website_url,address_text,is_active,lao_organizations(id,name_th,name_en)")
+    .order("name_th");
+  if(res.error)throw res.error;
+  state.adminSchools=res.data||[];
+  const saved=localStorage.getItem("lao_admin_school");
+  state.adminSchool=state.adminSchools.find(s=>s.id===saved)||null;
+}
+async function loadNotifications(){
+  if(!state.user){state.notifications=[];return;}
+  const res=await supabase.from("lao_notifications")
+    .select("id,organization_id,school_id,notification_type,title,body,entity_type,entity_id,created_at,read_at")
+    .eq("user_id",state.user.id).order("created_at",{ascending:false}).limit(100);
+  if(res.error)throw res.error;
+  state.notifications=res.data||[];
+}
 async function loadContext(){
   await ensureProfile();
   const profileRes=await supabase.from("lao_profiles").select("*").eq("user_id",state.user.id).maybeSingle();
@@ -198,6 +232,8 @@ async function loadContext(){
   const active=state.memberships.filter(m=>m.status==="active"),saved=localStorage.getItem("lao_current_membership");
   state.currentMembership=active.find(m=>m.id===saved)||active[0]||null;
   await loadOrganizations();
+  await loadAdminSchools();
+  await loadNotifications();
   if(state.isPlatformAdmin){
     const savedView=localStorage.getItem("lao_view_mode");
     state.viewMode=savedView==="user"?"user":"admin";
@@ -223,6 +259,13 @@ function refreshHeader(){
     item.classList.toggle("hidden",!(adminMode||(!state.isPlatformAdmin&&hasRole("organization_admin","school_admin"))));
   });
 
+  const notif=q("[data-notification-count]");
+  if(notif){
+    const unread=state.notifications.filter(n=>!n.read_at).length;
+    notif.textContent=String(unread);
+    notif.classList.toggle("hidden",unread===0);
+  }
+
   const nav=q(".nav-list");
   if(nav&&state.isPlatformAdmin){
     nav.querySelectorAll("[data-full-admin]").forEach(item=>item.classList.toggle("hidden",!adminMode));
@@ -245,8 +288,18 @@ function ensureAdminNavigation(){
 }
 
 function renderTenants(){
-  const select=q("#tenant-select"),active=state.memberships.filter(m=>m.status==="active");
-  if(!active.length){select.innerHTML=state.isPlatformAdmin?'<option value="">ผู้ดูแลแพลตฟอร์ม · ยังไม่เลือกสถานศึกษา</option>':'<option value="">ยังไม่มีสิทธิ์สถานศึกษา</option>';return;}
+  const select=q("#tenant-select");
+  if(state.isPlatformAdmin&&state.viewMode==="admin"){
+    if(!state.adminSchools.length){
+      select.innerHTML='<option value="">ยังไม่มีสถานศึกษาในระบบ</option>';return;
+    }
+    select.innerHTML='<option value="">ทุกสถานศึกษา · เลือกโรงเรียนเมื่อต้องการจัดการ</option>'+
+      state.adminSchools.map(s=>'<option value="admin:'+esc(s.id)+'">'+esc((s.lao_organizations&&s.lao_organizations.name_th? s.lao_organizations.name_th+" · ":"")+s.name_th)+'</option>').join("");
+    select.value=state.adminSchool?"admin:"+state.adminSchool.id:"";
+    return;
+  }
+  const active=state.memberships.filter(m=>m.status==="active");
+  if(!active.length){select.innerHTML='<option value="">ยังไม่มีสิทธิ์สถานศึกษา</option>';return;}
   select.innerHTML=active.map(m=>{
     const name=m.lao_schools&&m.lao_schools.name_th||m.lao_organizations&&m.lao_organizations.name_th||"สิทธิ์ระดับองค์กร";
     return '<option value="'+esc(m.id)+'">'+esc(name)+'</option>';
@@ -314,7 +367,7 @@ function membershipHtml(){
     return '<tr><td>'+esc(m.lao_organizations&&m.lao_organizations.name_th||"-")+'</td><td>'+esc(m.lao_schools&&m.lao_schools.name_th||"ระดับ อปท.")+'</td><td>'+esc(roleLabels[m.requested_role_code]||m.requested_role_code||"-")+'</td><td><span class="pill '+s[1]+'">'+s[0]+'</span></td><td>'+new Date(m.requested_at).toLocaleDateString("th-TH")+'</td></tr>';
   }).join("");
   const orgOptions=state.organizations.map(o=>'<option value="'+o.id+'">'+esc(o.name_th)+'</option>').join("");
-  const form=state.organizations.length?'<form id="membership-form" class="form-grid" style="margin-top:18px"><label class="field">อปท.<select name="organization_id" id="membership-org" required><option value="">เลือก อปท.</option>'+orgOptions+'</select></label><label class="field">สถานศึกษา<select name="school_id" id="membership-school" required disabled><option value="">เลือกสถานศึกษา</option></select></label><label class="field">ขอใช้งานในฐานะ<select name="role_code" required><option value="">เลือกบทบาท</option><option value="school_executive">ผู้บริหารสถานศึกษา</option><option value="registrar">งานทะเบียน</option><option value="academic_officer">งานวิชาการ</option><option value="teacher">ครู</option><option value="staff">บุคลากร</option><option value="student">นักเรียน</option><option value="guardian">ผู้ปกครอง</option></select></label><label class="field">ข้อมูลประกอบคำขอ<input name="note" placeholder="เช่น ตำแหน่ง / ชั้นเรียน / ความสัมพันธ์"></label><div class="span-2 notice">การเลือกบทบาทเป็นเพียง <strong>คำขอ</strong> ผู้ดูแลต้องตรวจสอบก่อนให้สิทธิ์</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำขอ</button></div></form>':'<div class="empty-state" style="margin-top:18px"><div class="empty-icon">🏛</div><h3>ยังไม่มี อปท. หรือสถานศึกษาในระบบ</h3><p>ผู้ดูแลแพลตฟอร์มต้องเพิ่มข้อมูลองค์กรและสถานศึกษาก่อนจึงจะส่งคำขอได้</p></div>';
+  const form=state.organizations.length?'<form id="membership-form" class="form-grid" style="margin-top:18px"><label class="field">อปท.<select name="organization_id" id="membership-org" required><option value="">เลือก อปท.</option>'+orgOptions+'</select></label><label class="field">สถานศึกษา<select name="school_id" id="membership-school" required disabled><option value="">เลือกสถานศึกษา</option></select></label><label class="field">ขอใช้งานในฐานะ<select name="role_code" required><option value="">เลือกบทบาท</option><option value="school_admin">ผู้ดูแลสถานศึกษา</option><option value="school_executive">ผู้บริหารสถานศึกษา</option><option value="registrar">งานทะเบียน</option><option value="academic_officer">งานวิชาการ</option><option value="teacher">ครู</option><option value="staff">บุคลากร</option><option value="student">นักเรียน</option><option value="guardian">ผู้ปกครอง</option></select></label><label class="field">ข้อมูลประกอบคำขอ<input name="note" placeholder="เช่น ตำแหน่ง / ชั้นเรียน / ความสัมพันธ์"></label><div class="span-2 notice">การเลือกบทบาทเป็นเพียง <strong>คำขอ</strong> ผู้ดูแลต้องตรวจสอบก่อนให้สิทธิ์</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำขอ</button></div></form>':'<div class="empty-state" style="margin-top:18px"><div class="empty-icon">🏛</div><h3>ยังไม่มี อปท. หรือสถานศึกษาในระบบ</h3><p>ผู้ดูแลแพลตฟอร์มต้องเพิ่มข้อมูลองค์กรและสถานศึกษาก่อนจึงจะส่งคำขอได้</p></div>';
   const history=rows?'<div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>บทบาทที่ขอ</th><th>สถานะ</th><th>วันที่ขอ</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty-state" style="margin-top:18px"><div class="empty-icon">🔐</div><h3>ยังไม่มีคำขอ</h3><p>เลือก อปท. และสถานศึกษาเพื่อเริ่มต้น</p></div>';
   return '<section class="content-grid"><article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">Membership request</p><h2>ขอสิทธิ์เข้าร่วมสถานศึกษา</h2><p class="panel-sub">การสมัครบัญชีและการได้สิทธิ์โรงเรียนเป็นคนละขั้นตอน</p></div></div>'+form+'</article><article class="panel"><div class="panel-head"><div><p class="eyebrow">My access</p><h2>สถานะสิทธิ์ของฉัน</h2></div></div>'+history+'</article></section>';
 }
@@ -327,35 +380,94 @@ function setupHtml(){
 }
 
 async function organizationHtml(){
-  const res=await supabase.from("lao_schools").select("id,name_th,name_en,slug,organization_id,lao_organizations(name_th)").order("name_th");
+  const res=await supabase.from("lao_schools")
+    .select("id,name_th,name_en,short_name,code,slug,organization_id,phone,email,website_url,address_text,is_active,lao_organizations(id,name_th)")
+    .order("name_th");
   if(res.error)throw res.error;
   const schools=res.data||[];
+  state.orgSchools=schools;
+
+  const cr=await supabase.from("lao_change_requests")
+    .select("id,school_id,before_data,proposed_data,reason,status,requested_at,reviewed_at,review_note,lao_schools(name_th)")
+    .order("created_at",{ascending:false}).limit(50);
+  if(cr.error)throw cr.error;
+  const changes=cr.data||[];
+
   let manage="";
   if(state.isPlatformAdmin){
-    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Platform setup</p><h2>เพิ่มองค์กรปกครองส่วนท้องถิ่น</h2><p class="panel-sub">กรอกข้อมูลทางราชการตามจริง ระบบจะไม่เดารหัสหรือชื่อหน่วยงานให้</p></div></div><form id="organization-form" class="form-grid" style="margin-top:18px"><label class="field">ชื่อ อปท. (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">รหัสหน่วยงาน<input name="code"></label><label class="field">ประเภท<select name="organization_type"><option value="municipality">เทศบาล</option><option value="pao">องค์การบริหารส่วนจังหวัด</option><option value="sao">องค์การบริหารส่วนตำบล</option><option value="special_local_government">องค์กรปกครองส่วนท้องถิ่นรูปแบบพิเศษ</option><option value="local_government">อื่น ๆ</option></select></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่ม อปท.</button></div></form></article>';
+    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Platform setup</p><h2>เพิ่มองค์กรปกครองส่วนท้องถิ่น</h2><p class="panel-sub">Platform Admin ดูแลโครงสร้างส่วนกลาง ส่วนการบริหารสมาชิกประจำวันเป็นหน้าที่ของแต่ละโรงเรียน</p></div></div><form id="organization-form" class="form-grid" style="margin-top:18px"><label class="field">ชื่อ อปท. (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">รหัสหน่วยงาน<input name="code"></label><label class="field">ประเภท<select name="organization_type"><option value="municipality">เทศบาล</option><option value="pao">องค์การบริหารส่วนจังหวัด</option><option value="sao">องค์การบริหารส่วนตำบล</option><option value="special_local_government">องค์กรปกครองส่วนท้องถิ่นรูปแบบพิเศษ</option><option value="local_government">อื่น ๆ</option></select></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่ม อปท.</button></div></form></article>';
   }
   if(state.isPlatformAdmin||hasRole("organization_admin")){
     const opts=state.organizations.map(o=>'<option value="'+o.id+'">'+esc(o.name_th)+'</option>').join("");
-    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">School setup</p><h2>เพิ่มสถานศึกษา</h2><p class="panel-sub">Slug ใช้เป็นรหัส URL เช่น t1-nakhonnok และต้องไม่ซ้ำกัน</p></div></div><form id="school-form" class="form-grid" style="margin-top:18px"><label class="field">อปท.<select name="organization_id" required><option value="">เลือก อปท.</option>'+opts+'</select></label><label class="field">รหัสสถานศึกษา<input name="code"></label><label class="field">ชื่อสถานศึกษา (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">ชื่อย่อ<input name="short_name"></label><label class="field">Slug<input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required placeholder="t1-nakhonnok"></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่มสถานศึกษา</button></div></form></article>';
+    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">School setup</p><h2>เพิ่มสถานศึกษา</h2><p class="panel-sub">เมื่อสร้างโรงเรียนแล้ว ผู้ใช้คนแรกที่ขอเป็นผู้ดูแลสถานศึกษาจะรอ Platform Admin อนุมัติ</p></div></div><form id="school-form" class="form-grid" style="margin-top:18px"><label class="field">อปท.<select name="organization_id" required><option value="">เลือก อปท.</option>'+opts+'</select></label><label class="field">รหัสสถานศึกษา<input name="code"></label><label class="field">ชื่อสถานศึกษา (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">ชื่อย่อ<input name="short_name"></label><label class="field">Slug<input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required placeholder="t1-nakhonnok"></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่มสถานศึกษา</button></div></form></article>';
   }
-  const list=schools.length?'<article class="panel"><div class="panel-head"><div><p class="eyebrow">Multi-school</p><h2>องค์กรและสถานศึกษาในระบบ</h2><p class="panel-sub">แพลตฟอร์มเดียว แต่ข้อมูลแยกด้วย school_id และ RLS</p></div></div><div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>Slug</th><th>URL ในอนาคต</th></tr></thead><tbody>'+schools.map(s=>'<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.name_en||"")+'</small></td><td><code>'+esc(s.slug)+'</code></td><td><code>/lao-ems/s/'+esc(s.slug)+'/</code></td></tr>').join("")+'</tbody></table></div></article>':'<article class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>ฐานข้อมูลพร้อมแล้ว แต่ยังไม่ได้เพิ่มข้อมูลจริง เพื่อหลีกเลี่ยงการเดาข้อมูลทางราชการ</p></div></article>';
-  return '<section class="content-grid">'+manage+list+'</section>';
+
+  const rows=schools.map(s=>{
+    const localCanEdit=!state.isPlatformAdmin&&currentSchool()&&currentSchool().id===s.id&&hasRole("school_admin");
+    let actions='-';
+    if(state.isPlatformAdmin){
+      actions='<div class="action-row compact"><button class="secondary-btn" data-school-edit="'+s.id+'" data-mode="proposal">เสนอแก้ไข</button><button class="danger-outline-btn" data-school-edit="'+s.id+'" data-mode="emergency">แก้ฉุกเฉิน</button></div>';
+    }else if(localCanEdit){
+      actions='<button class="secondary-btn" data-school-edit="'+s.id+'" data-mode="direct">แก้ไขข้อมูล</button>';
+    }
+    return '<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.name_en||"")+'</small></td><td><code>'+esc(s.slug)+'</code></td><td><span class="pill '+(s.is_active?"success":"neutral")+'">'+(s.is_active?"ใช้งาน":"ปิดใช้งาน")+'</span></td><td>'+actions+'</td></tr>';
+  }).join("");
+  const list=schools.length
+    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">Multi-school</p><h2>องค์กรและสถานศึกษาในระบบ</h2><p class="panel-sub">Platform Admin เข้าถึงได้ทุกโรงเรียน แต่การแก้ไขข้อมูลโรงเรียนใช้กระบวนการเสนอ → โรงเรียนอนุมัติเป็นค่าเริ่มต้น</p></div></div><div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>Slug</th><th>สถานะ</th><th>ดำเนินการ</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>'
+    : '<article class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>เพิ่ม อปท. และสถานศึกษาเพื่อเริ่มใช้งานระบบหลายโรงเรียน</p></div></article>';
+
+  const pending=changes.filter(x=>x.status==="pending");
+  const changeRows=changes.map(x=>{
+    const canReview=!state.isPlatformAdmin&&currentSchool()&&currentSchool().id===x.school_id&&hasRole("school_admin")&&x.status==="pending";
+    const statusLabel={pending:"รอตรวจสอบ",approved:"อนุมัติแล้ว",rejected:"ปฏิเสธ",cancelled:"ยกเลิก"}[x.status]||x.status;
+    const action=canReview?'<div class="action-row compact"><button class="primary-btn" data-change-approve="'+x.id+'">ยอมรับ</button><button class="danger-btn" data-change-reject="'+x.id+'">ปฏิเสธ</button></div>':'<span class="pill '+(x.status==="approved"?"success":x.status==="rejected"?"danger":x.status==="pending"?"warning":"neutral")+'">'+statusLabel+'</span>';
+    return '<tr><td><strong>'+esc(x.lao_schools&&x.lao_schools.name_th||"-")+'</strong><br><small>'+new Date(x.requested_at).toLocaleString("th-TH")+'</small></td><td>'+esc(x.reason)+'</td><td>'+action+'</td></tr>';
+  }).join("");
+  const changePanel=changes.length?'<article class="panel"><div class="panel-head"><div><p class="eyebrow">Change approval</p><h2>ข้อเสนอแก้ไขข้อมูลสถานศึกษา</h2><p class="panel-sub">'+(state.isPlatformAdmin?"ติดตามข้อเสนอที่ส่งให้โรงเรียนพิจารณา":"ตรวจสอบข้อเสนอจาก Platform Admin ก่อนนำไปใช้จริง")+'</p></div><span class="counter">'+pending.length+' รอตรวจสอบ</span></div><div class="table-wrap"><table><thead><tr><th>สถานศึกษา / เวลา</th><th>เหตุผล</th><th>สถานะ / ดำเนินการ</th></tr></thead><tbody>'+changeRows+'</tbody></table></div></article>':'';
+
+  const dialog='<dialog id="school-edit-dialog" class="edit-dialog"><form id="school-edit-form" method="dialog"><div class="dialog-head"><div><p class="eyebrow" data-school-edit-eyebrow>School data</p><h2 data-school-edit-title>แก้ไขข้อมูลสถานศึกษา</h2></div><button type="button" class="icon-btn" data-dialog-close aria-label="ปิด">×</button></div><input type="hidden" name="school_id"><input type="hidden" name="mode"><div class="form-grid"><label class="field">รหัสสถานศึกษา<input name="code"></label><label class="field">ชื่อสถานศึกษา (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">ชื่อย่อ<input name="short_name"></label><label class="field">โทรศัพท์<input name="phone"></label><label class="field">อีเมล<input name="email" type="email"></label><label class="field span-2">เว็บไซต์<input name="website_url" type="url"></label><label class="field span-2">ที่อยู่<textarea name="address_text" rows="3"></textarea></label><label class="field span-2" data-reason-field>เหตุผล<textarea name="reason" rows="3" placeholder="ระบุเหตุผลเพื่อใช้ใน Audit Log และการพิจารณา"></textarea></label></div><div class="dialog-actions"><button type="button" class="secondary-btn" data-dialog-close>ยกเลิก</button><button type="submit" class="primary-btn" data-school-save>บันทึก</button></div></form></dialog>';
+
+  return '<section class="content-grid">'+manage+list+changePanel+'</section>'+dialog;
 }
 
 async function usersHtml(){
   if(!hasRole("platform_admin","organization_admin","school_admin"))return '<section class="panel"><div class="empty-state"><div class="empty-icon">🛡️</div><h3>เมนูนี้สำหรับผู้ดูแล</h3><p>บัญชีของคุณยังไม่มีสิทธิ์ตรวจสอบคำขอของผู้ใช้อื่น</p><a class="primary-btn" href="#/membership">ดูสิทธิ์ของฉัน</a></div></section>';
   const res=await supabase.from("lao_memberships").select("id,user_id,requested_role_code,request_note,status,requested_at,lao_organizations(name_th),lao_schools(name_th)").eq("status","pending").order("requested_at");
   if(res.error)throw res.error;
-  if(!res.data.length)return '<section class="panel"><div class="empty-state"><div class="empty-icon">✓</div><h3>ไม่มีคำขอค้าง</h3><p>เมื่อมีผู้สมัคร คำขอที่คุณมีสิทธิ์ตรวจสอบจะแสดงที่นี่</p></div></section>';
+  if(!res.data.length)return '<section class="panel"><div class="empty-state"><div class="empty-icon">✓</div><h3>ไม่มีคำขอค้าง</h3><p>Platform Admin อนุมัติเฉพาะผู้ดูแลคนแรกของแต่ละโรงเรียน ส่วนคำขออื่นเป็นหน้าที่ของผู้ดูแลโรงเรียน</p></div></section>';
+
   const userIds=Array.from(new Set(res.data.map(m=>m.user_id)));
   const profileRes=await supabase.from("lao_profiles").select("user_id,display_name,first_name_th,last_name_th").in("user_id",userIds);
   if(profileRes.error)throw profileRes.error;
   const profileMap=Object.fromEntries((profileRes.data||[]).map(p=>[p.user_id,p]));
-  const rows=res.data.map(m=>{
+
+  const modes=await Promise.all(res.data.map(async m=>{
+    const r=await supabase.rpc("lao_membership_review_mode",{p_membership_id:m.id});
+    return [m.id,r.error?"view_only":r.data];
+  }));
+  const modeMap=Object.fromEntries(modes);
+
+  const ordered=[...res.data].sort((x,y)=>(modeMap[x.id]==="view_only")-(modeMap[y.id]==="view_only"));
+  const rows=ordered.map(m=>{
     const p=profileMap[m.user_id]||{},name=p.display_name||[p.first_name_th,p.last_name_th].filter(Boolean).join(" ")||m.user_id;
-    return '<tr><td><strong>'+esc(name)+'</strong><br><small>'+new Date(m.requested_at).toLocaleString("th-TH")+'</small></td><td>'+esc(m.lao_schools&&m.lao_schools.name_th||m.lao_organizations&&m.lao_organizations.name_th||"-")+'</td><td>'+esc(roleLabels[m.requested_role_code]||m.requested_role_code||"-")+'</td><td>'+esc(m.request_note||"-")+'</td><td><div class="action-row" style="margin:0"><button class="primary-btn" data-approve="'+m.id+'" data-role="'+esc(m.requested_role_code)+'">อนุมัติ</button><button class="danger-btn" data-reject="'+m.id+'">ไม่อนุมัติ</button></div></td></tr>';
+    const mode=modeMap[m.id]||"view_only";
+    const canReview=mode==="platform_first_admin"||mode==="school_admin";
+    const responsibility=mode==="platform_first_admin"?"Platform Admin · แอดมินคนแรก":mode==="school_admin"?"ผู้ดูแลโรงเรียน":"ผู้ดูแลโรงเรียนรับผิดชอบ";
+    const action=canReview
+      ? '<div class="action-row compact"><button class="primary-btn" data-approve="'+m.id+'" data-role="'+esc(m.requested_role_code)+'">อนุมัติ</button><button class="danger-btn" data-reject="'+m.id+'">ไม่อนุมัติ</button></div>'
+      : '<span class="pill neutral">ดูได้อย่างเดียว</span>';
+    return '<tr><td><strong>'+esc(name)+'</strong><br><small>'+new Date(m.requested_at).toLocaleString("th-TH")+'</small></td><td>'+esc(m.lao_schools&&m.lao_schools.name_th||m.lao_organizations&&m.lao_organizations.name_th||"-")+'</td><td>'+esc(roleLabels[m.requested_role_code]||m.requested_role_code||"-")+'</td><td><strong>'+esc(responsibility)+'</strong><br><small>'+esc(m.request_note||"-")+'</small></td><td>'+action+'</td></tr>';
   }).join("");
-  return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">Approval queue</p><h2>คำขอที่รอตรวจสอบ</h2></div><span class="counter">'+res.data.length+' คำขอ</span></div><div class="table-wrap"><table><thead><tr><th>ผู้ขอ</th><th>สถานศึกษา</th><th>บทบาท</th><th>ข้อมูลประกอบ</th><th>ดำเนินการ</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
+
+  return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">Approval responsibility</p><h2>คำขอที่รอตรวจสอบ</h2><p class="panel-sub">Platform Admin อนุมัติเฉพาะ School Admin คนแรกของโรงเรียน หลังจากนั้นโรงเรียนบริหารสมาชิกและผู้ดูแลร่วมเอง</p></div><span class="counter">'+res.data.length+' คำขอ</span></div><div class="table-wrap"><table><thead><tr><th>ผู้ขอ</th><th>สถานศึกษา</th><th>บทบาท</th><th>ผู้รับผิดชอบ</th><th>ดำเนินการ</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
+}
+
+function notificationsHtml(){
+  const rows=state.notifications.map(n=>{
+    const unread=!n.read_at;
+    return '<article class="notification-card '+(unread?"unread":"")+'"><div class="notification-icon">🔔</div><div class="notification-copy"><div class="notification-title"><strong>'+esc(n.title)+'</strong>'+(unread?'<span class="pill warning">ใหม่</span>':'')+'</div><p>'+esc(n.body||"")+'</p><small>'+new Date(n.created_at).toLocaleString("th-TH")+'</small></div>'+(unread?'<button class="secondary-btn" data-notification-read="'+n.id+'">ทำเครื่องหมายว่าอ่านแล้ว</button>':'')+'</article>';
+  }).join("");
+  return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">Notifications</p><h2>การแจ้งเตือน</h2><p class="panel-sub">แจ้งคำขอสมาชิก การแต่งตั้งผู้ดูแล และข้อเสนอแก้ไขข้อมูลสถานศึกษา</p></div></div>'+(rows?'<div class="notification-list">'+rows+'</div>':'<div class="empty-state"><div class="empty-icon">🔔</div><h3>ยังไม่มีการแจ้งเตือน</h3><p>เมื่อมีรายการที่ต้องดำเนินการ ระบบจะแสดงที่นี่</p></div>')+'</section>';
 }
 
 function placeholderHtml(route){
@@ -383,8 +495,63 @@ function bindOrganizationForms(){
     const payload={organization_id:fd.get("organization_id"),code:String(fd.get("code")||"").trim()||null,name_th:String(fd.get("name_th")).trim(),name_en:String(fd.get("name_en")||"").trim()||null,short_name:String(fd.get("short_name")||"").trim()||null,slug:slug};
     const res=await supabase.from("lao_schools").insert(payload);
     setBusy(btn,false);if(res.error){toast(res.error.message,"error");return;}
-    toast("เพิ่มสถานศึกษาแล้ว","success");renderRoute();
+    toast("เพิ่มสถานศึกษาแล้ว","success");await loadAdminSchools();renderTenants();renderRoute();
   });
+
+  const dialog=q("#school-edit-dialog"),editForm=q("#school-edit-form");
+  const closeDialog=()=>{if(dialog&&dialog.open)dialog.close();};
+  qa("[data-dialog-close]").forEach(b=>b.addEventListener("click",closeDialog));
+  qa("[data-school-edit]").forEach(btn=>btn.addEventListener("click",()=>{
+    const s=state.orgSchools.find(x=>x.id===btn.dataset.schoolEdit);
+    if(!s||!dialog||!editForm)return;
+    const mode=btn.dataset.mode;
+    editForm.elements.school_id.value=s.id;
+    editForm.elements.mode.value=mode;
+    ["code","name_th","name_en","short_name","phone","email","website_url","address_text"].forEach(k=>{editForm.elements[k].value=s[k]||"";});
+    editForm.elements.reason.value="";
+    q("[data-school-edit-title]").textContent=mode==="proposal"?"เสนอแก้ไขข้อมูล "+s.name_th:mode==="emergency"?"แก้ไขฉุกเฉิน "+s.name_th:"แก้ไขข้อมูล "+s.name_th;
+    q("[data-school-edit-eyebrow]").textContent=mode==="proposal"?"รอโรงเรียนอนุมัติก่อนมีผล":mode==="emergency"?"มีผลทันที + แจ้งเตือนโรงเรียน":"School Admin";
+    q("[data-reason-field]").classList.toggle("hidden",mode==="direct");
+    editForm.elements.reason.required=mode!=="direct";
+    q("[data-school-save]").textContent=mode==="proposal"?"ส่งข้อเสนอ":mode==="emergency"?"ยืนยันแก้ไขฉุกเฉิน":"บันทึกการแก้ไข";
+    dialog.showModal();
+  }));
+
+  if(editForm)editForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(editForm),btn=q("[data-school-save]");
+    const schoolId=String(fd.get("school_id")),mode=String(fd.get("mode"));
+    const patch={};
+    ["code","name_th","name_en","short_name","phone","email","website_url","address_text"].forEach(k=>patch[k]=String(fd.get(k)||"").trim()||null);
+    const reason=String(fd.get("reason")||"").trim()||null;
+    if(mode==="emergency"&&!confirm("การแก้ไขฉุกเฉินจะมีผลทันทีและแจ้งผู้ดูแลโรงเรียน ยืนยันดำเนินการ?"))return;
+    setBusy(btn,true,mode==="proposal"?"กำลังส่งข้อเสนอ...":"กำลังบันทึก...");
+    let res;
+    if(mode==="proposal")res=await supabase.rpc("lao_propose_school_change",{p_school_id:schoolId,p_patch:patch,p_reason:reason});
+    else if(mode==="emergency")res=await supabase.rpc("lao_emergency_update_school",{p_school_id:schoolId,p_patch:patch,p_reason:reason});
+    else res=await supabase.rpc("lao_school_admin_update_school",{p_school_id:schoolId,p_patch:patch,p_reason:reason});
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    closeDialog();
+    toast(mode==="proposal"?"ส่งข้อเสนอให้ผู้ดูแลโรงเรียนแล้ว":mode==="emergency"?"แก้ไขฉุกเฉินแล้วและแจ้งโรงเรียนแล้ว":"บันทึกข้อมูลแล้ว","success");
+    await Promise.all([loadAdminSchools(),loadNotifications()]);renderTenants();renderRoute();
+  });
+
+  qa("[data-change-approve]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("ยืนยันยอมรับข้อเสนอแก้ไขนี้? เมื่อยอมรับแล้วข้อมูลจริงจะถูกปรับทันที"))return;
+    setBusy(btn,true,"กำลังอนุมัติ...");
+    const res=await supabase.rpc("lao_review_school_change",{p_change_request_id:btn.dataset.changeApprove,p_decision:"approved",p_review_note:null});
+    setBusy(btn,false);if(res.error){toast(res.error.message,"error");return;}
+    toast("อนุมัติและปรับข้อมูลแล้ว","success");await loadNotifications();renderRoute();
+  }));
+  qa("[data-change-reject]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const note=prompt("เหตุผลที่ปฏิเสธ (ไม่บังคับ)")||null;
+    if(!confirm("ยืนยันปฏิเสธข้อเสนอแก้ไขนี้?"))return;
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_review_school_change",{p_change_request_id:btn.dataset.changeReject,p_decision:"rejected",p_review_note:note});
+    setBusy(btn,false);if(res.error){toast(res.error.message,"error");return;}
+    toast("ปฏิเสธข้อเสนอแล้ว","success");await loadNotifications();renderRoute();
+  }));
 }
 
 function bindMembership(){
@@ -422,18 +589,28 @@ function bindYear(){
 }
 function bindApprovals(){
   qa("[data-approve]").forEach(btn=>btn.addEventListener("click",async()=>{
-    if(!confirm("ยืนยันว่าได้ตรวจสอบบุคคลนี้แล้ว และต้องการอนุมัติสิทธิ์ตามบทบาทที่ขอ?"))return;
+    const first=btn.dataset.role==="school_admin"&&state.isPlatformAdmin;
+    if(!confirm(first?"ยืนยันแต่งตั้งผู้ใช้นี้เป็นผู้ดูแลสถานศึกษาคนแรก? หลังจากนี้โรงเรียนจะรับผิดชอบอนุมัติสมาชิกเอง":"ยืนยันว่าได้ตรวจสอบบุคคลนี้แล้ว และต้องการอนุมัติสิทธิ์ตามบทบาทที่ขอ?"))return;
     setBusy(btn,true,"กำลังอนุมัติ...");
     const res=await supabase.rpc("lao_review_membership",{p_membership_id:btn.dataset.approve,p_decision:"active",p_role_codes:[btn.dataset.role]});
     if(res.error){setBusy(btn,false);toast(res.error.message,"error");return;}
-    toast("อนุมัติสิทธิ์แล้ว","success");renderRoute();
+    toast(first?"แต่งตั้งผู้ดูแลสถานศึกษาคนแรกแล้ว":"อนุมัติสิทธิ์แล้ว","success");
+    await loadNotifications();refreshHeader();renderRoute();
   }));
   qa("[data-reject]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!confirm("ยืนยันไม่อนุมัติคำขอนี้?"))return;
     setBusy(btn,true,"กำลังบันทึก...");
     const res=await supabase.rpc("lao_review_membership",{p_membership_id:btn.dataset.reject,p_decision:"rejected",p_role_codes:[]});
     if(res.error){setBusy(btn,false);toast(res.error.message,"error");return;}
-    toast("บันทึกการไม่อนุมัติแล้ว");renderRoute();
+    toast("บันทึกการไม่อนุมัติแล้ว");await loadNotifications();refreshHeader();renderRoute();
+  }));
+}
+function bindNotifications(){
+  qa("[data-notification-read]").forEach(btn=>btn.addEventListener("click",async()=>{
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.from("lao_notifications").update({read_at:new Date().toISOString()}).eq("id",btn.dataset.notificationRead).eq("user_id",state.user.id);
+    if(res.error){setBusy(btn,false);toast(res.error.message,"error");return;}
+    await loadNotifications();refreshHeader();renderRoute();
   }));
 }
 
@@ -446,6 +623,7 @@ async function renderRoute(){
   try{
     if(route==="overview")main.innerHTML=(state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():overviewHtml();
     else if(route==="membership"){main.innerHTML=membershipHtml();bindMembership();}
+    else if(route==="notifications"){main.innerHTML=notificationsHtml();bindNotifications();}
     else if(route==="setup"){main.innerHTML=setupHtml();bindYear();}
     else if(route==="organization"){main.innerHTML=await organizationHtml();bindOrganizationForms();}
     else if(route==="users"){main.innerHTML=await usersHtml();bindApprovals();}
