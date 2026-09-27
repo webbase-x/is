@@ -1,6 +1,6 @@
 import { supabase } from "./supabase.js";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[]};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],isPlatformAdmin:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -61,10 +61,12 @@ function roleCodes(m){
 }
 function roleNames(m){
   const list=roleCodes(m).map(c=>roleLabels[c]||c);
+  if(state.isPlatformAdmin&&!list.includes(roleLabels.platform_admin))list.unshift(roleLabels.platform_admin);
   return list.length?list.join(" · "):"ยังไม่มีบทบาท";
 }
 function hasRole(){
   const wanted=Array.from(arguments),codes=roleCodes();
+  if(state.isPlatformAdmin&&wanted.includes("platform_admin"))return true;
   return codes.some(c=>wanted.includes(c));
 }
 function displayName(){
@@ -157,6 +159,9 @@ async function loadContext(){
   const profileRes=await supabase.from("lao_profiles").select("*").eq("user_id",state.user.id).maybeSingle();
   if(profileRes.error)throw profileRes.error;
   state.profile=profileRes.data;
+  const adminRes=await supabase.rpc("lao_is_platform_admin");
+  if(adminRes.error)throw adminRes.error;
+  state.isPlatformAdmin=adminRes.data===true;
   const memRes=await supabase.from("lao_memberships").select("id,user_id,organization_id,school_id,requested_role_code,request_note,status,requested_at,reviewed_at,lao_organizations(id,name_th,name_en),lao_schools(id,name_th,name_en,slug),lao_membership_roles(lao_roles(code,name_th))").eq("user_id",state.user.id).order("requested_at",{ascending:false});
   if(memRes.error)throw memRes.error;
   state.memberships=memRes.data||[];
@@ -174,7 +179,7 @@ function refreshHeader(){
 }
 function renderTenants(){
   const select=q("#tenant-select"),active=state.memberships.filter(m=>m.status==="active");
-  if(!active.length){select.innerHTML='<option value="">ยังไม่มีสิทธิ์สถานศึกษา</option>';return;}
+  if(!active.length){select.innerHTML=state.isPlatformAdmin?'<option value="">ผู้ดูแลแพลตฟอร์ม · ยังไม่เลือกสถานศึกษา</option>':'<option value="">ยังไม่มีสิทธิ์สถานศึกษา</option>';return;}
   select.innerHTML=active.map(m=>{
     const name=m.lao_schools&&m.lao_schools.name_th||m.lao_organizations&&m.lao_organizations.name_th||"สิทธิ์ระดับองค์กร";
     return '<option value="'+esc(m.id)+'">'+esc(name)+'</option>';
@@ -225,9 +230,17 @@ function setupHtml(){
 async function organizationHtml(){
   const res=await supabase.from("lao_schools").select("id,name_th,name_en,slug,organization_id,lao_organizations(name_th)").order("name_th");
   if(res.error)throw res.error;
-  if(!res.data.length)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>ฐานข้อมูลพร้อมแล้ว แต่ยังไม่ได้เพิ่มข้อมูลจริง เพื่อหลีกเลี่ยงการเดาข้อมูลทางราชการ</p></div></section>';
-  const rows=res.data.map(s=>'<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.name_en||"")+'</small></td><td><code>'+esc(s.slug)+'</code></td><td><code>/lao-ems/s/'+esc(s.slug)+'/</code></td></tr>').join("");
-  return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">Multi-school</p><h2>องค์กรและสถานศึกษาในระบบ</h2><p class="panel-sub">แพลตฟอร์มเดียว แต่ข้อมูลแยกด้วย school_id และ RLS</p></div></div><div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>Slug</th><th>URL ในอนาคต</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
+  const schools=res.data||[];
+  let manage="";
+  if(state.isPlatformAdmin){
+    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Platform setup</p><h2>เพิ่มองค์กรปกครองส่วนท้องถิ่น</h2><p class="panel-sub">กรอกข้อมูลทางราชการตามจริง ระบบจะไม่เดารหัสหรือชื่อหน่วยงานให้</p></div></div><form id="organization-form" class="form-grid" style="margin-top:18px"><label class="field">ชื่อ อปท. (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">รหัสหน่วยงาน<input name="code"></label><label class="field">ประเภท<select name="organization_type"><option value="municipality">เทศบาล</option><option value="pao">องค์การบริหารส่วนจังหวัด</option><option value="sao">องค์การบริหารส่วนตำบล</option><option value="special_local_government">องค์กรปกครองส่วนท้องถิ่นรูปแบบพิเศษ</option><option value="local_government">อื่น ๆ</option></select></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่ม อปท.</button></div></form></article>';
+  }
+  if(state.isPlatformAdmin||hasRole("organization_admin")){
+    const opts=state.organizations.map(o=>'<option value="'+o.id+'">'+esc(o.name_th)+'</option>').join("");
+    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">School setup</p><h2>เพิ่มสถานศึกษา</h2><p class="panel-sub">Slug ใช้เป็นรหัส URL เช่น t1-nakhonnok และต้องไม่ซ้ำกัน</p></div></div><form id="school-form" class="form-grid" style="margin-top:18px"><label class="field">อปท.<select name="organization_id" required><option value="">เลือก อปท.</option>'+opts+'</select></label><label class="field">รหัสสถานศึกษา<input name="code"></label><label class="field">ชื่อสถานศึกษา (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">ชื่อย่อ<input name="short_name"></label><label class="field">Slug<input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required placeholder="t1-nakhonnok"></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่มสถานศึกษา</button></div></form></article>';
+  }
+  const list=schools.length?'<article class="panel"><div class="panel-head"><div><p class="eyebrow">Multi-school</p><h2>องค์กรและสถานศึกษาในระบบ</h2><p class="panel-sub">แพลตฟอร์มเดียว แต่ข้อมูลแยกด้วย school_id และ RLS</p></div></div><div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>Slug</th><th>URL ในอนาคต</th></tr></thead><tbody>'+schools.map(s=>'<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.name_en||"")+'</small></td><td><code>'+esc(s.slug)+'</code></td><td><code>/lao-ems/s/'+esc(s.slug)+'/</code></td></tr>').join("")+'</tbody></table></div></article>':'<article class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>ฐานข้อมูลพร้อมแล้ว แต่ยังไม่ได้เพิ่มข้อมูลจริง เพื่อหลีกเลี่ยงการเดาข้อมูลทางราชการ</p></div></article>';
+  return '<section class="content-grid">'+manage+list+'</section>';
 }
 
 async function usersHtml(){
@@ -250,6 +263,29 @@ function placeholderHtml(route){
   const meta=routeMeta[route]||routeMeta.overview;
   const phase={personnel:"Phase 2",students:"Phase 2",academics:"Phase 3",assessment:"Phase 4",documents:"Phase 1–5",website:"Phase 5",forms:"Phase 5",reports:"Phase 7"}[route]||"Roadmap";
   return '<section class="placeholder-page"><span class="placeholder-icon">◫</span><p class="eyebrow">'+phase+'</p><h2>'+esc(meta[0])+'</h2><p>'+esc(meta[1])+'<br>โมดูลนี้จะเริ่มหลังข้อมูลต้นทางที่จำเป็นก่อนหน้าพร้อม เพื่อไม่สร้างข้อมูลซ้ำหรือความสัมพันธ์ที่ต้องรื้อภายหลัง</p><a class="primary-btn" href="#/overview">กลับหน้าภาพรวม</a></section>';
+}
+
+function bindOrganizationForms(){
+  const orgForm=q("#organization-form");
+  if(orgForm)orgForm.addEventListener("submit",async e=>{
+    e.preventDefault();const fd=new FormData(orgForm),btn=orgForm.querySelector("button[type=submit]");
+    setBusy(btn,true,"กำลังบันทึก...");
+    const payload={name_th:String(fd.get("name_th")).trim(),name_en:String(fd.get("name_en")||"").trim()||null,code:String(fd.get("code")||"").trim()||null,organization_type:String(fd.get("organization_type"))};
+    const res=await supabase.from("lao_organizations").insert(payload);
+    setBusy(btn,false);if(res.error){toast(res.error.message,"error");return;}
+    toast("เพิ่ม อปท. แล้ว","success");await loadOrganizations();renderRoute();
+  });
+  const schoolForm=q("#school-form");
+  if(schoolForm)schoolForm.addEventListener("submit",async e=>{
+    e.preventDefault();const fd=new FormData(schoolForm),btn=schoolForm.querySelector("button[type=submit]");
+    const slug=String(fd.get("slug")).trim().toLowerCase();
+    if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)){toast("Slug ใช้ได้เฉพาะ a-z, 0-9 และขีดกลาง","error");return;}
+    setBusy(btn,true,"กำลังบันทึก...");
+    const payload={organization_id:fd.get("organization_id"),code:String(fd.get("code")||"").trim()||null,name_th:String(fd.get("name_th")).trim(),name_en:String(fd.get("name_en")||"").trim()||null,short_name:String(fd.get("short_name")||"").trim()||null,slug:slug};
+    const res=await supabase.from("lao_schools").insert(payload);
+    setBusy(btn,false);if(res.error){toast(res.error.message,"error");return;}
+    toast("เพิ่มสถานศึกษาแล้ว","success");renderRoute();
+  });
 }
 
 function bindMembership(){
@@ -312,7 +348,7 @@ async function renderRoute(){
     if(route==="overview")main.innerHTML=overviewHtml();
     else if(route==="membership"){main.innerHTML=membershipHtml();bindMembership();}
     else if(route==="setup"){main.innerHTML=setupHtml();bindYear();}
-    else if(route==="organization")main.innerHTML=await organizationHtml();
+    else if(route==="organization"){main.innerHTML=await organizationHtml();bindOrganizationForms();}
     else if(route==="users"){main.innerHTML=await usersHtml();bindApprovals();}
     else main.innerHTML=placeholderHtml(route);
   }catch(e){
