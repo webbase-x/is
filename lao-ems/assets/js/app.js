@@ -686,8 +686,9 @@ function lecParseAcademicYear(value){
   return years.find(y=>y>=2400&&y<=2800)||null;
 }
 function lecParseTerm(value){
-  const text=lecArabicDigits(value);
-  const m=text.match(/(?:ภาคเรียน(?:ที่)?\s*)?([1-4])(?:\D|$)/i);
+  const text=lecArabicDigits(value).trim();
+  if(/^[1-4]$/.test(text))return Number(text);
+  const m=text.match(/ภาคเรียน(?:ที่)?\s*([1-4])(?:\D|$)/i);
   return m?Number(m[1]):null;
 }
 function lecPeriodFromSheet(matrix,headerStart,map,dataStart){
