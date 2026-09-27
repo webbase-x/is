@@ -146,3 +146,7 @@ A new school can enter LAO-EMS without pre-creating official master data. `lao_u
 `lao_school_settings` stores operational settings only; official school identity remains LEC-controlled. `lao_school_setup_status()` computes readiness from three independent facts: successful LEC binding, confirmed school settings, and a connected Google Drive record with a provisioned root folder ID. School Admin invitations are rejected server-side by `lao-invite-user` until all three are true.
 
 The reserved Drive root is `/LAO-EMS/`. Future module folders are created beneath this root only when required. Google OAuth tokens must remain server-side; client code never stores provider secrets or refresh tokens.
+
+
+### Google Drive activation status
+The application-side readiness model, server-side invitation gate, Drive metadata schema, and reserved root-folder contract are implemented. The current `lao-drive-oauth` endpoint intentionally returns `configuration_required` until platform-level Google OAuth credentials are provisioned. No Google client secret or refresh token is stored in GitHub or browser code.
