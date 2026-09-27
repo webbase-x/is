@@ -136,3 +136,7 @@ The `lao-invite-user` Edge Function uses the service role only on the server. It
 
 ### No manual period input
 Academic year and term are source-controlled by LEC. The browser parser extracts them from the selected authoritative worksheet, and the server-side `lao_import_lec_students_auto()` derives the import period from source metadata before delegating to the core importer. The legacy RPC with caller-supplied year/term is not exposed to authenticated clients.
+
+
+### First school bootstrap from LEC
+A new school can enter LAO-EMS without pre-creating official master data. `lao_user_invitations` allows an unbound `platform_first_admin` invitation. After account activation it moves to `onboarding`. The invited School Admin is forced to the LEC importer. `lao_onboard_school_from_lec()` validates the invitation, derives the LGO/school identity from the LEC metadata, creates or reuses the LGO, creates/binds the school, grants the first School Admin membership, and performs the initial LEC import in one transaction. If import fails, the transaction rolls back so no half-created school remains.

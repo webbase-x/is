@@ -242,7 +242,7 @@ function refreshHeader(){
   const name=displayName();
   q("[data-profile-name]").textContent=name;
   q("[data-avatar]").textContent=initials(name).slice(0,2);
-  q("[data-profile-role]").textContent=state.isPlatformAdmin?(state.viewMode==="admin"?"ผู้ดูแลแพลตฟอร์ม · Admin":"ผู้ดูแลแพลตฟอร์ม · มุมมองผู้ใช้"):state.currentMembership?roleNames():state.memberships.some(m=>m.status==="pending")?"รออนุมัติสิทธิ์":"ยังไม่ได้ขอสิทธิ์";
+  q("[data-profile-role]").textContent=state.isPlatformAdmin?(state.viewMode==="admin"?"ผู้ดูแลแพลตฟอร์ม · Admin":"ผู้ดูแลแพลตฟอร์ม · มุมมองผู้ใช้"):state.currentMembership?roleNames():state.pendingInvitation&&state.pendingInvitation.status==="onboarding"?"รอนำเข้า LEC":state.pendingInvitation?"รอยืนยันบัญชี":"ยังไม่มีสิทธิ์";
 
   const switcher=q("[data-view-switch]");
   if(switcher)switcher.classList.toggle("hidden",!state.isPlatformAdmin);
@@ -253,7 +253,8 @@ function refreshHeader(){
     item.classList.toggle("hidden",!(adminMode||(!state.isPlatformAdmin&&hasRole("organization_admin","school_admin"))));
   });
   qa("[data-lec-menu]").forEach(item=>{
-    item.classList.toggle("hidden",!(adminMode||(!state.isPlatformAdmin&&hasRole("school_admin"))));
+    const onboarding=Boolean(state.pendingInvitation&&state.pendingInvitation.status==="onboarding");
+    item.classList.toggle("hidden",!(adminMode||onboarding||(!state.isPlatformAdmin&&hasRole("school_admin"))));
   });
 
   const notif=q("[data-notification-count]");
@@ -296,7 +297,7 @@ function renderTenants(){
     return;
   }
   const active=state.memberships.filter(m=>m.status==="active");
-  if(!active.length){select.innerHTML='<option value="">ยังไม่มีสิทธิ์สถานศึกษา</option>';return;}
+  if(!active.length){select.innerHTML=state.pendingInvitation&&state.pendingInvitation.status==="onboarding"?'<option value="">รอนำเข้า LEC เพื่อสร้างสถานศึกษา</option>':'<option value="">ยังไม่มีสิทธิ์สถานศึกษา</option>';return;}
   select.innerHTML=active.map(m=>{
     const name=m.lao_schools&&m.lao_schools.name_th||m.lao_organizations&&m.lao_organizations.name_th||"สิทธิ์ระดับองค์กร";
     return '<option value="'+esc(m.id)+'">'+esc(name)+'</option>';
@@ -316,9 +317,9 @@ function adminOverviewHtml(){
   '<article class="stat-card"><span class="stat-icon">⏳</span><div><small>คำขอรออนุมัติ</small><strong>'+pending+'</strong><p>ตรวจสอบจากเมนูผู้ใช้และสิทธิ์</p></div></article>'+
   '<article class="stat-card"><span class="stat-icon">🗂️</span><div><small>ไฟล์</small><strong>Google Drive</strong><p>แยก Drive ตามแต่ละสถานศึกษา</p></div></article></section>'+
   '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">System setup</p><h2>งานของผู้ดูแลหลัก</h2></div></div><ol class="setup-list">'+
-  '<li><span>1</span><div><strong>อปท. และสถานศึกษา</strong><small>สร้างพื้นที่โรงเรียนและใช้ LEC เป็นข้อมูลทางราชการต้นทาง</small></div><em>จัดการได้</em></li>'+
-  '<li><span>2</span><div><strong>ผู้ใช้และสิทธิ์</strong><small>ตรวจคำขอ อนุมัติ และกำหนดบทบาท</small></div><em>จัดการได้</em></li>'+
-  '<li><span>3</span><div><strong>นำเข้าข้อมูล LEC</strong><small>School Admin นำเข้า XLS/XLSX และระบบสร้างประวัติปี/ภาคเรียนอัตโนมัติ</small></div><em>Source of Truth</em></li>'+
+  '<li><span>1</span><div><strong>School Admin คนแรก</strong><small>เชิญด้วยอีเมล โดยยังไม่กรอกข้อมูล อปท. หรือสถานศึกษา</small></div><em>เชิญผู้ดูแล</em></li>'+
+  '<li><span>2</span><div><strong>นำเข้า LEC ครั้งแรก</strong><small>School Admin ยืนยันบัญชีแล้วนำเข้า LEC เพื่อสร้าง อปท. และสถานศึกษา</small></div><em>อัตโนมัติ</em></li>'+
+  '<li><span>3</span><div><strong>ข้อมูลนักเรียน</strong><small>ทุกปี/ภาคเรียนอัปเดตจาก XLS/XLSX ของ LEC โดยรักษาประวัติเดิม</small></div><em>Source of Truth</em></li>'+
   '<li><span>4</span><div><strong>Google Drive</strong><small>เชื่อมบัญชีแยกตามโรงเรียน</small></div><em>ขั้นถัดไป</em></li></ol></article>'+
   '<article class="panel"><div class="panel-head"><div><p class="eyebrow">System status</p><h2>สถานะทางเทคนิค</h2></div></div><ul class="status-list">'+
   '<li><span>✓</span><div><strong>Supabase ISSQL</strong><small>ใช้ namespace lao_ แยกจากระบบเดิม</small></div><span class="pill success">พร้อม</span></li>'+
@@ -335,7 +336,7 @@ function overviewHtml(){
   const name=displayName();
   const accessText=state.isPlatformAdmin?"ผู้ดูแลแพลตฟอร์ม":state.currentMembership?roleNames():pending?"กำลังรออนุมัติ":"ยังไม่มีสิทธิ์ใช้งานสถานศึกษา";
   const nextAction=state.isPlatformAdmin
-    ? '<a class="primary-btn" href="#/organization">จัดการ อปท. และสถานศึกษา</a>'
+    ? '<a class="primary-btn" href="#/users">เชิญ School Admin คนแรก</a>'
     : active
       ? '<a class="primary-btn" href="#/membership">ดูสิทธิ์ของฉัน</a>'
       : '<a class="primary-btn" href="#/membership">'+(pending?"ตรวจสอบสถานะคำขอ":"ขอสิทธิ์เข้าร่วมสถานศึกษา")+'</a>';
@@ -398,8 +399,11 @@ function activationHtml(){
   const inv=state.pendingInvitation;
   if(!inv)return '<section class="panel"><div class="empty-state"><div class="empty-icon">✓</div><h3>บัญชีพร้อมใช้งานแล้ว</h3><p>ไม่มีคำเชิญที่รอดำเนินการ</p><a class="primary-btn" href="#/overview">ไปหน้าหลัก</a></div></section>';
   const hasActive=state.memberships.some(m=>m.status==="active"),requirePassword=!hasActive;
-  return '<section class="onboarding-shell"><article class="panel onboarding-card"><div class="panel-head"><div><p class="eyebrow">Account activation</p><h2>ตั้งค่าบัญชี LAO-EMS</h2><p class="panel-sub">อีเมลของคุณได้รับคำเชิญจากผู้ดูแล กรุณากรอกโปรไฟล์และ'+(requirePassword?'กำหนดรหัสผ่านใหม่':'ตรวจสอบข้อมูลก่อนรับสิทธิ์ใหม่')+'</p></div></div><div class="invite-summary"><div><small>อีเมล</small><strong>'+esc(state.user.email||inv.email||"-")+'</strong></div><div><small>สถานศึกษา</small><strong>'+esc(inv.school_name||"-")+'</strong></div><div><small>บทบาท</small><strong>'+esc(roleLabels[inv.role_code]||inv.role_code)+'</strong></div></div><form id="activation-form" class="form-grid">'+profileFieldsHtml("activation")+passwordFieldsHtml(requirePassword)+'<div class="span-2 notice">'+(requirePassword?'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และจะใช้เข้าสู่ระบบครั้งถัดไป':'หากต้องการเปลี่ยนรหัสผ่านในครั้งนี้ สามารถกรอกช่องรหัสผ่านใหม่ได้')+'</div><div class="span-2"><button class="primary-btn" type="submit">บันทึกโปรไฟล์และเปิดใช้งานบัญชี</button></div></form></article></section>';
+  const unbound=inv.invitation_mode==="platform_first_admin"&&!inv.school_id;
+  const schoolLabel=unbound?"จะสร้างจากไฟล์ LEC หลังยืนยันบัญชี":(inv.school_name||"-");
+  return '<section class="onboarding-shell"><article class="panel onboarding-card"><div class="panel-head"><div><p class="eyebrow">Account activation</p><h2>ตั้งค่าบัญชี LAO-EMS</h2><p class="panel-sub">กรอกโปรไฟล์และ'+(requirePassword?'กำหนดรหัสผ่านใหม่':'ตรวจสอบข้อมูลก่อนรับสิทธิ์ใหม่')+'</p></div></div><div class="invite-summary"><div><small>อีเมล</small><strong>'+esc(state.user.email||inv.email||"-")+'</strong></div><div><small>สถานศึกษา</small><strong>'+esc(schoolLabel)+'</strong></div><div><small>บทบาท</small><strong>'+esc(roleLabels[inv.role_code]||inv.role_code)+'</strong></div></div>'+(unbound?'<div class="notice success">หลังบันทึกบัญชี ระบบจะพาไปหน้า “นำเข้า LEC” เพื่อสร้างข้อมูล อปท. และสถานศึกษาจากไฟล์ต้นทางโดยอัตโนมัติ</div>':'')+'<form id="activation-form" class="form-grid">'+profileFieldsHtml("activation")+passwordFieldsHtml(requirePassword)+'<div class="span-2 notice">'+(requirePassword?'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และจะใช้เข้าสู่ระบบครั้งถัดไป':'หากต้องการเปลี่ยนรหัสผ่านในครั้งนี้ สามารถกรอกช่องรหัสผ่านใหม่ได้')+'</div><div class="span-2"><button class="primary-btn" type="submit">'+(unbound?'บันทึกโปรไฟล์และไปนำเข้า LEC':'บันทึกโปรไฟล์และเปิดใช้งานบัญชี')+'</button></div></form></article></section>';
 }
+
 function profileHtml(){
   return '<section class="content-grid"><article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">My profile</p><h2>โปรไฟล์ของฉัน</h2><p class="panel-sub">'+esc(state.user&&state.user.email||"")+'</p></div></div><form id="profile-form" class="form-grid" style="margin-top:18px">'+profileFieldsHtml("profile")+'<div class="span-2"><hr class="form-divider"></div><div class="span-2"><strong>เปลี่ยนรหัสผ่าน</strong><p class="panel-sub">เว้นว่างไว้หากไม่ต้องการเปลี่ยน</p></div>'+passwordFieldsHtml(false)+'<div class="span-2"><button class="primary-btn" type="submit">บันทึกการเปลี่ยนแปลง</button></div></form></article></section>';
 }
@@ -411,40 +415,54 @@ function setupHtml(){
 
 async function organizationHtml(){
   const res=await supabase.from("lao_schools")
-    .select("id,name_th,name_en,code,slug,organization_id,is_active,source_system,lec_synced_at,lec_source_file_name,lao_organizations(id,name_th)")
+    .select("id,name_th,code,organization_id,is_active,source_system,lec_synced_at,lec_source_file_name,lec_province_name_th,lec_district_name_th,lec_organization_name_th,lao_organizations(id,name_th)")
     .order("name_th");
   if(res.error)throw res.error;
   const schools=res.data||[];
   state.orgSchools=schools;
 
-  let manage="";
-  if(state.isPlatformAdmin){
-    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Platform setup</p><h2>องค์กรปกครองส่วนท้องถิ่น</h2><p class="panel-sub">โครงสร้าง อปท. เป็นการตั้งค่าระดับแพลตฟอร์ม ส่วนข้อมูลทางราชการของโรงเรียนและนักเรียนใช้ LEC เป็นแหล่งต้นทาง</p></div></div><form id="organization-form" class="form-grid" style="margin-top:18px"><label class="field">ชื่อ อปท. (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">รหัสหน่วยงาน<input name="code"></label><label class="field">ประเภท<select name="organization_type"><option value="municipality">เทศบาล</option><option value="pao">องค์การบริหารส่วนจังหวัด</option><option value="sao">องค์การบริหารส่วนตำบล</option><option value="special_local_government">องค์กรปกครองส่วนท้องถิ่นรูปแบบพิเศษ</option><option value="local_government">อื่น ๆ</option></select></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่ม อปท.</button></div></form></article>';
-    const opts=state.organizations.map(o=>'<option value="'+o.id+'">'+esc(o.name_th)+'</option>').join("");
-    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Tenant setup</p><h2>สร้างพื้นที่สถานศึกษา</h2><p class="panel-sub">ขั้นตอนนี้สร้างเพียงพื้นที่ (tenant) เพื่อแต่งตั้ง School Admin คนแรก ข้อมูลทางราชการจริงจะมาจากไฟล์ LEC หลัง School Admin ได้รับอนุมัติ</p></div></div><form id="school-form" class="form-grid" style="margin-top:18px"><label class="field">อปท.<select name="organization_id" required><option value="">เลือก อปท.</option>'+opts+'</select></label><label class="field">ชื่อที่ใช้ระบุพื้นที่โรงเรียน<input name="name_th" required placeholder="ใช้เพื่อระบุโรงเรียนก่อนเชื่อม LEC"></label><label class="field span-2">Slug<input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required placeholder="t1-nakhonnok"></label><div class="span-2 notice">หลังนำเข้า LEC แล้ว ข้อมูลที่ LEC เป็นเจ้าของจะถูกล็อก ไม่แก้ไขด้วยมือใน LAO-EMS</div><div class="span-2"><button class="primary-btn" type="submit">สร้างพื้นที่สถานศึกษา</button></div></form></article>';
-  }
-
   const rows=schools.map(s=>{
     const synced=s.source_system==="LEC"&&s.lec_synced_at;
-    const source=synced?'<span class="pill success">LEC</span>':'<span class="pill warning">รอนำเข้า LEC</span>';
+    const source=synced?'<span class="pill success">LEC</span>':'<span class="pill warning">รอ LEC</span>';
+    const area=[s.lec_district_name_th,s.lec_province_name_th].filter(Boolean).join(" · ")||"-";
     const last=s.lec_synced_at?new Date(s.lec_synced_at).toLocaleString("th-TH"):"ยังไม่เคยนำเข้า";
-    return '<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.code||"")+'</small></td><td><code>'+esc(s.slug)+'</code></td><td>'+source+'<br><small>'+esc(last)+'</small></td><td><button class="secondary-btn" data-school-lec="'+s.id+'">ดูข้อมูล LEC</button></td></tr>';
+    return '<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||s.lec_organization_name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.code||"")+'</small></td><td>'+esc(area)+'</td><td>'+source+'<br><small>'+esc(last)+'</small></td><td><button class="secondary-btn" data-school-lec="'+s.id+'">ดูข้อมูล LEC</button></td></tr>';
   }).join("");
+
+  const flow='<article class="panel source-only-panel"><div class="panel-head"><div><p class="eyebrow">LEC SOURCE ONLY</p><h2>ไม่กรอก อปท. หรือสถานศึกษาเอง</h2><p class="panel-sub">ข้อมูลทางราชการของ อปท. และสถานศึกษาจะถูกสร้างจากไฟล์ LEC เท่านั้น เพื่อให้ตรงกับระบบกลาง</p></div><span class="source-lock">🔒 LEC เท่านั้น</span></div><div class="onboarding-flow"><div><span>1</span><strong>เชิญ School Admin คนแรก</strong><small>Platform Admin ระบุเฉพาะอีเมลผู้ดูแลคนแรก</small></div><div><span>2</span><strong>ผู้รับยืนยันบัญชี</strong><small>ตั้งค่าโปรไฟล์และรหัสผ่านของตนเอง</small></div><div><span>3</span><strong>นำเข้าไฟล์ LEC</strong><small>ระบบสร้าง อปท. และสถานศึกษาอัตโนมัติจากข้อมูลในไฟล์</small></div></div>'+(state.isPlatformAdmin?'<div class="action-row"><a class="primary-btn" href="#/users">เชิญ School Admin คนแรก</a></div>':'')+'</article>';
+
   const list=schools.length
-    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">Source-controlled schools</p><h2>สถานศึกษาในระบบ</h2><p class="panel-sub">ไม่มีปุ่มแก้ไขข้อมูล LEC หากข้อมูลผิดให้แก้ในระบบ LEC แล้วนำเข้าไฟล์ใหม่</p></div></div><div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>Slug</th><th>ข้อมูลต้นทาง</th><th>ดำเนินการ</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>'
-    : '<article class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>Platform Admin สร้างพื้นที่สถานศึกษาก่อนเพื่อให้สามารถแต่งตั้ง School Admin คนแรกได้</p></div></article>';
-  return '<section class="content-grid">'+manage+list+'</section>';
+    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC master data</p><h2>อปท. และสถานศึกษาในระบบ</h2><p class="panel-sub">หน้านี้เป็นแบบอ่านอย่างเดียว หากข้อมูลเปลี่ยนให้แก้ที่ LEC แล้วนำเข้าไฟล์รอบใหม่</p></div></div><div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>พื้นที่</th><th>ข้อมูลต้นทาง</th><th>ดำเนินการ</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>'
+    : '<article class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษาจาก LEC</h3><p>ไม่ต้องสร้าง อปท. หรือโรงเรียนด้วยมือ ให้เชิญ School Admin คนแรก แล้วผู้ดูแลโรงเรียนนำเข้าไฟล์ LEC เพื่อสร้างข้อมูลอัตโนมัติ</p>'+(state.isPlatformAdmin?'<a class="primary-btn" href="#/users">เชิญ School Admin คนแรก</a>':'')+'</div></article>';
+  return '<section class="content-grid">'+flow+list+'</section>';
 }
 
 async function usersHtml(){
-  if(!hasRole("platform_admin","school_admin"))return '<section class="panel"><div class="empty-state"><div class="empty-icon">🛡️</div><h3>เมนูนี้สำหรับผู้ดูแล</h3><p>ผู้ใช้ของ LAO-EMS สร้างโดยผู้ดูแลสถานศึกษาเท่านั้น</p></div></section>';
+  if(!hasRole("platform_admin","school_admin"))return '<section class="panel"><div class="empty-state"><div class="empty-icon">🛡️</div><h3>เมนูนี้สำหรับผู้ดูแล</h3><p>บัญชีผู้ใช้ LAO-EMS เริ่มต้นโดยผู้ดูแลเท่านั้น</p></div></section>';
+
   const school=currentSchool();
-  if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>เลือกโรงเรียนจากตัวเลือกด้านบนเพื่อจัดการบัญชีผู้ใช้</p></div></section>';
+  const isLocalAdmin=!state.isPlatformAdmin&&hasRole("school_admin");
+
+  if(state.isPlatformAdmin&&!school){
+    const invRes=await supabase.from("lao_user_invitations")
+      .select("id,email,role_code,invitation_mode,status,sent_at,accepted_at")
+      .is("school_id",null).eq("invitation_mode","platform_first_admin")
+      .order("sent_at",{ascending:false}).limit(100);
+    if(invRes.error)throw invRes.error;
+
+    const rows=(invRes.data||[]).map(x=>{
+      const status={pending:["รอยืนยันอีเมล","warning"],onboarding:["รอนำเข้า LEC","warning"],accepted:["เปิดใช้งานแล้ว","success"],revoked:["ยกเลิก","neutral"],failed:["ส่งไม่สำเร็จ","danger"]}[x.status]||[x.status,"neutral"];
+      return '<tr><td><strong>'+esc(x.email)+'</strong><br><small>'+new Date(x.sent_at).toLocaleString("th-TH")+'</small></td><td>ผู้ดูแลสถานศึกษาคนแรก</td><td><span class="pill '+status[1]+'">'+status[0]+'</span></td><td>รอผูกสถานศึกษาจาก LEC</td></tr>';
+    }).join("");
+
+    return '<section class="content-grid"><article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">First School Admin</p><h2>เชิญ School Admin คนแรก</h2><p class="panel-sub">ไม่ต้องสร้าง อปท. หรือสถานศึกษาก่อน ระบุเฉพาะอีเมล ผู้รับจะยืนยันบัญชีแล้วนำเข้า LEC เพื่อสร้างสถานศึกษาจริง</p></div></div><form id="invite-user-form" class="form-grid" style="margin-top:18px"><label class="field span-2">อีเมลผู้ดูแลสถานศึกษาคนแรก<input name="email" type="email" autocomplete="off" required placeholder="name@example.com"></label><input type="hidden" name="role_code" value="school_admin"><div class="span-2 notice">ข้อมูลชื่อ อปท. ชื่อสถานศึกษา จังหวัด อำเภอ ปีการศึกษา และข้อมูลนักเรียนจะมาจาก LEC เท่านั้น ไม่มีการกรอกเองในขั้นตอนนี้</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำเชิญทางอีเมล</button></div></form></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">Pending school onboarding</p><h2>คำเชิญที่ยังไม่ผูก LEC</h2></div></div>'+(rows?'<div class="table-wrap"><table><thead><tr><th>อีเมล</th><th>บทบาท</th><th>สถานะ</th><th>สถานศึกษา</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">✉️</div><h3>ยังไม่มีคำเชิญ</h3><p>ส่งคำเชิญให้ผู้ดูแลคนแรกของแต่ละโรงเรียนได้จากแบบฟอร์มด้านบน</p></div>')+'</article></section>';
+  }
+
+  if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>สถานศึกษาจะถูกสร้างจาก LEC หลัง School Admin คนแรกยืนยันบัญชี</p></div></section>';
 
   const hasAdminRes=await supabase.rpc("lao_school_has_admin",{p_school_id:school.id});
   if(hasAdminRes.error)throw hasAdminRes.error;
   const schoolHasAdmin=hasAdminRes.data===true;
-  const isLocalAdmin=!state.isPlatformAdmin&&hasRole("school_admin");
   const platformMayInvite=state.isPlatformAdmin&&!schoolHasAdmin;
 
   const invRes=await supabase.from("lao_user_invitations")
@@ -457,14 +475,14 @@ async function usersHtml(){
     : [["school_admin","ผู้ดูแลสถานศึกษาคนแรก"]];
   const canInvite=isLocalAdmin||platformMayInvite;
   const inviteForm=canInvite
-    ? '<article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">Admin-managed account</p><h2>เชิญผู้ใช้เข้า LAO-EMS</h2><p class="panel-sub">'+(state.isPlatformAdmin?'Platform Admin เชิญเฉพาะ School Admin คนแรก หลังจากนั้น School Admin โรงเรียนจะจัดการผู้ใช้เอง':'กรอกอีเมลและกำหนดบทบาท ระบบจะส่งลิงก์ยืนยันไปยังอีเมล')+'</p></div></div><form id="invite-user-form" class="form-grid" style="margin-top:18px"><label class="field">อีเมลผู้ใช้<input name="email" type="email" autocomplete="off" required placeholder="name@example.com"></label><label class="field">บทบาท<select name="role_code" required>'+roleOptions.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join("")+'</select></label><div class="span-2 notice">ระบบไม่ส่งรหัสผ่านชั่วคราวเป็นข้อความในอีเมล ผู้รับจะยืนยันอีเมลผ่านลิงก์ที่ปลอดภัย แล้วตั้งรหัสผ่านของตนเองก่อนใช้งาน</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำเชิญทางอีเมล</button></div></form></article>'
-    : '<article class="panel"><div class="notice"><strong>โรงเรียนมี School Admin แล้ว</strong><br>การสร้างผู้ใช้และผู้ดูแลร่วมเป็นหน้าที่ของ School Admin โรงเรียนนี้ Platform Admin ยังตรวจสอบข้อมูลได้ แต่ไม่สร้างผู้ใช้แทนโรงเรียน</div></article>';
+    ? '<article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">Admin-managed account</p><h2>เชิญผู้ใช้เข้า LAO-EMS</h2><p class="panel-sub">'+(state.isPlatformAdmin?'Platform Admin เชิญเฉพาะ School Admin คนแรกของสถานศึกษาที่มีอยู่แล้ว':'กรอกอีเมลและกำหนดบทบาท ระบบจะส่งลิงก์ยืนยันไปยังอีเมล')+'</p></div></div><form id="invite-user-form" class="form-grid" style="margin-top:18px"><label class="field">อีเมลผู้ใช้<input name="email" type="email" autocomplete="off" required placeholder="name@example.com"></label><label class="field">บทบาท<select name="role_code" required>'+roleOptions.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join("")+'</select></label><div class="span-2 notice">ผู้รับยืนยันอีเมล ตั้งค่าโปรไฟล์ และกำหนดรหัสผ่านของตนเองก่อนใช้งาน</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำเชิญทางอีเมล</button></div></form></article>'
+    : '<article class="panel"><div class="notice"><strong>โรงเรียนมี School Admin แล้ว</strong><br>การสร้างผู้ใช้และผู้ดูแลร่วมเป็นหน้าที่ของ School Admin โรงเรียนนี้ Platform Admin ตรวจสอบได้แต่ไม่สร้างผู้ใช้แทน</div></article>';
 
   const rows=(invRes.data||[]).map(x=>{
-    const status={pending:["รอยืนยัน","warning"],accepted:["เปิดใช้งานแล้ว","success"],revoked:["ยกเลิก","neutral"],failed:["ส่งไม่สำเร็จ","danger"]}[x.status]||[x.status,"neutral"];
+    const status={pending:["รอยืนยัน","warning"],onboarding:["รอนำเข้า LEC","warning"],accepted:["เปิดใช้งานแล้ว","success"],revoked:["ยกเลิก","neutral"],failed:["ส่งไม่สำเร็จ","danger"]}[x.status]||[x.status,"neutral"];
     return '<tr><td><strong>'+esc(x.email)+'</strong><br><small>'+new Date(x.sent_at).toLocaleString("th-TH")+'</small></td><td>'+esc(roleLabels[x.role_code]||x.role_code)+'</td><td><span class="pill '+status[1]+'">'+status[0]+'</span></td><td>'+esc(x.invitation_mode==="platform_first_admin"?"Platform Admin · คนแรก":"School Admin")+'</td></tr>';
   }).join("");
-  const history='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Invitation history</p><h2>บัญชีและคำเชิญ · '+esc(school.name_th)+'</h2><p class="panel-sub">ไม่มีการสมัครบัญชีด้วยตนเอง ผู้ดูแลเป็นผู้เริ่มต้นบัญชีและกำหนดบทบาท</p></div></div>'+(rows?'<div class="table-wrap"><table><thead><tr><th>อีเมล</th><th>บทบาท</th><th>สถานะ</th><th>ผู้รับผิดชอบ</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">✉️</div><h3>ยังไม่มีคำเชิญ</h3><p>เริ่มจากกรอกอีเมลผู้ใช้ด้านบน</p></div>')+'</article>';
+  const history='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Invitation history</p><h2>บัญชีและคำเชิญ · '+esc(school.name_th)+'</h2></div></div>'+(rows?'<div class="table-wrap"><table><thead><tr><th>อีเมล</th><th>บทบาท</th><th>สถานะ</th><th>ผู้รับผิดชอบ</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">✉️</div><h3>ยังไม่มีคำเชิญ</h3></div>')+'</article>';
   return '<section class="content-grid">'+inviteForm+history+'</section>';
 }
 
@@ -816,19 +834,29 @@ function lecMaskId(v){
 }
 async function lecHtml(){
   const school=currentSchool();
-  if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>'+(state.isPlatformAdmin?"เลือกโรงเรียนจากตัวเลือกด้านบนเพื่อดูประวัติ LEC":"บัญชีต้องมีสิทธิ์สถานศึกษาก่อนจึงจะนำเข้า LEC ได้")+'</p></div></section>';
-  const history=await supabase.from("lao_lec_import_batches")
-    .select("id,academic_year_be,term_no,source_file_name,source_sheet_name,source_row_count,imported_row_count,new_student_count,updated_student_count,missing_from_latest_count,issue_count,status,imported_at")
-    .eq("school_id",school.id).order("imported_at",{ascending:false}).limit(30);
-  if(history.error)throw history.error;
-  const canImport=!state.isPlatformAdmin&&hasRole("school_admin");
-  const historyRows=(history.data||[]).map(b=>'<tr><td><strong>'+b.academic_year_be+' / '+b.term_no+'</strong><br><small>'+new Date(b.imported_at).toLocaleString("th-TH")+'</small></td><td>'+esc(b.source_file_name)+'<br><small>'+esc(b.source_sheet_name||"ชีตข้อมูล LEC")+'</small></td><td>'+b.imported_row_count+' / '+b.source_row_count+'</td><td>'+b.new_student_count+'</td><td>'+b.updated_student_count+'</td><td>'+b.missing_from_latest_count+'</td><td>'+(b.issue_count?'<span class="pill danger">'+b.issue_count+'</span>':'<span class="pill success">0</span>')+'</td></tr>').join("");
+  const onboarding=Boolean(state.pendingInvitation&&state.pendingInvitation.status==="onboarding"&&state.pendingInvitation.invitation_mode==="platform_first_admin"&&!state.pendingInvitation.school_id);
+  if(!school&&!onboarding)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>'+(state.isPlatformAdmin?"เลือกโรงเรียนจากตัวเลือกด้านบนเพื่อดูประวัติ LEC":"ต้องได้รับคำเชิญ School Admin หรือมีสิทธิ์สถานศึกษาก่อน")+'</p></div></section>';
+
+  let historyRows="";
+  if(school){
+    const history=await supabase.from("lao_lec_import_batches")
+      .select("id,academic_year_be,term_no,source_file_name,source_sheet_name,source_row_count,imported_row_count,new_student_count,updated_student_count,missing_from_latest_count,issue_count,status,imported_at")
+      .eq("school_id",school.id).order("imported_at",{ascending:false}).limit(30);
+    if(history.error)throw history.error;
+    historyRows=(history.data||[]).map(b=>'<tr><td><strong>'+b.academic_year_be+' / '+b.term_no+'</strong><br><small>'+new Date(b.imported_at).toLocaleString("th-TH")+'</small></td><td>'+esc(b.source_file_name)+'<br><small>'+esc(b.source_sheet_name||"ชีตข้อมูล LEC")+'</small></td><td>'+b.imported_row_count+' / '+b.source_row_count+'</td><td>'+b.new_student_count+'</td><td>'+b.updated_student_count+'</td><td>'+b.missing_from_latest_count+'</td><td>'+(b.issue_count?'<span class="pill danger">'+b.issue_count+'</span>':'<span class="pill success">0</span>')+'</td></tr>').join("");
+  }
+
+  const canImport=onboarding||(!state.isPlatformAdmin&&hasRole("school_admin"));
+  const title=onboarding?"นำเข้า LEC ครั้งแรกเพื่อสร้างสถานศึกษา":"นำเข้าข้อมูล LEC";
+  const sub=onboarding?"เลือกไฟล์จาก LEC ระบบจะสร้าง อปท. สถานศึกษา ปีการศึกษา และข้อมูลนักเรียนอัตโนมัติ":"เลือกไฟล์เพียงอย่างเดียว ระบบอ่านข้อมูลทั้งหมดจาก LEC และตรวจสอบก่อนบันทึก · ไม่ใช้ชีต ปพ.8";
   const importBox=canImport
-    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC → LAO-EMS</p><h2>นำเข้าข้อมูล LEC</h2><p class="panel-sub">เลือกไฟล์เพียงอย่างเดียว ระบบอ่านข้อมูลทั้งหมดจาก LEC และตรวจสอบก่อนบันทึก · ไม่ใช้ชีต ปพ.8</p></div><span class="source-lock">🔒 LEC เท่านั้น</span></div><form id="lec-import-form" class="form-grid" style="margin-top:18px"><div class="span-2 auto-source-note"><div class="auto-source-icon">✓</div><div><strong>ไม่ต้องกรอกข้อมูลซ้ำ</strong><p>ระบบอ่านสถานศึกษา ปีการศึกษา ภาคเรียน ชั้น ห้อง และข้อมูลนักเรียนจากไฟล์ LEC โดยอัตโนมัติ</p></div></div><label class="lec-drop span-2"><input id="lec-file" name="file" type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><span class="lec-drop-icon">⇧</span><strong>เลือกไฟล์ XLS / XLSX จาก LEC</strong><small>ระบบจะตรวจหาและแสดงข้อมูลสถานศึกษา ปีการศึกษา ภาคเรียน และจำนวนนักเรียนให้ตรวจสอบ</small></label><div id="lec-preview" class="span-2"></div><div class="span-2"><button class="primary-btn" type="submit" disabled data-lec-import>ยืนยันนำเข้าจาก LEC</button></div></form></article>'
-    : '<article class="panel"><div class="notice"><strong>มุมมองตรวจสอบ</strong><br>'+(state.isPlatformAdmin?"Platform Admin ดูข้อมูลทุกโรงเรียนได้ แต่การนำเข้า LEC เป็นหน้าที่ของ School Admin ของโรงเรียนนั้น":"ต้องมีบทบาท School Admin จึงจะนำเข้าไฟล์ LEC ได้")+'</div></article>';
-  const hist='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Import history</p><h2>ประวัติการนำเข้า LEC · '+esc(school.name_th)+'</h2><p class="panel-sub">ข้อมูลเดิมไม่ถูกลบ เมื่อเด็กหายจากไฟล์รอบใหม่จะบันทึกว่า “ไม่พบใน LEC รอบล่าสุด” เท่านั้น</p></div></div>'+(historyRows?'<div class="table-wrap"><table><thead><tr><th>ปี / ภาค</th><th>ไฟล์</th><th>นำเข้า / ทั้งหมด</th><th>นักเรียนใหม่</th><th>อัปเดต</th><th>ไม่พบรอบล่าสุด</th><th>ปัญหา</th></tr></thead><tbody>'+historyRows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">⇧</div><h3>ยังไม่เคยนำเข้า LEC</h3><p>เมื่อ School Admin นำเข้าไฟล์ครั้งแรก ประวัติจะปรากฏที่นี่</p></div>')+'</article>';
-  return '<section class="source-banner"><div><span class="badge">Single Source of Truth</span><h2>LEC คือข้อมูลต้นทาง</h2><p>LAO-EMS ใช้ข้อมูลจากไฟล์ LEC โดยตรง ไม่เพิ่ม แก้ หรือลบนักเรียนด้วยมือ และเก็บประวัติแยกตามปีการศึกษา/ภาคเรียน</p></div><div class="banner-status"><span class="status-pill success">XLS/XLSX</span><span class="status-pill success">ไม่ต้องกรอกเอง</span><span class="status-pill success">เลือกชีตอัตโนมัติ</span><span class="status-pill success">ไม่ใช้ ปพ.8</span></div></section><section class="content-grid">'+importBox+hist+'</section>';
+    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC → LAO-EMS</p><h2>'+title+'</h2><p class="panel-sub">'+sub+'</p></div><span class="source-lock">🔒 LEC เท่านั้น</span></div><form id="lec-import-form" class="form-grid" style="margin-top:18px"><div class="span-2 auto-source-note"><div class="auto-source-icon">✓</div><div><strong>ไม่ต้องกรอกข้อมูล อปท. หรือสถานศึกษา</strong><p>ระบบอ่านสถานศึกษา จังหวัด อำเภอ อปท. ปีการศึกษา ภาคเรียน ชั้น ห้อง และข้อมูลนักเรียนจาก LEC โดยอัตโนมัติ</p></div></div><label class="lec-drop span-2"><input id="lec-file" name="file" type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><span class="lec-drop-icon">⇧</span><strong>เลือกไฟล์ XLS / XLSX จาก LEC</strong><small>ระบบจะเลือกชีตข้อมูลที่ครบและแสดงข้อมูลให้ตรวจสอบก่อนบันทึก</small></label><div id="lec-preview" class="span-2"></div><div class="span-2"><button class="primary-btn" type="submit" disabled data-lec-import>ยืนยันนำเข้าจาก LEC</button></div></form></article>'
+    : '<article class="panel"><div class="notice"><strong>มุมมองตรวจสอบ</strong><br>'+(state.isPlatformAdmin?"Platform Admin ดูข้อมูลได้ แต่การนำเข้าเป็นหน้าที่ของ School Admin":"ต้องมีบทบาท School Admin จึงจะนำเข้า LEC ได้")+'</div></article>';
+
+  const hist=school?'<article class="panel"><div class="panel-head"><div><p class="eyebrow">Import history</p><h2>ประวัติการนำเข้า LEC · '+esc(school.name_th)+'</h2><p class="panel-sub">ข้อมูลเดิมไม่ถูกลบ เมื่อเด็กหายจากไฟล์รอบใหม่จะบันทึกว่า “ไม่พบใน LEC รอบล่าสุด” เท่านั้น</p></div></div>'+(historyRows?'<div class="table-wrap"><table><thead><tr><th>ปี / ภาค</th><th>ไฟล์</th><th>นำเข้า / ทั้งหมด</th><th>นักเรียนใหม่</th><th>อัปเดต</th><th>ไม่พบรอบล่าสุด</th><th>ปัญหา</th></tr></thead><tbody>'+historyRows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">⇧</div><h3>ยังไม่เคยนำเข้า LEC</h3></div>')+'</article>':'';
+  return '<section class="source-banner"><div><span class="badge">Single Source of Truth</span><h2>LEC คือข้อมูลต้นทาง</h2><p>LAO-EMS ไม่ให้กรอกข้อมูลทางราชการซ้ำ ข้อมูล อปท. สถานศึกษา และนักเรียนมาจาก LEC</p></div><div class="banner-status"><span class="status-pill success">XLS/XLSX</span><span class="status-pill success">ไม่ต้องกรอกเอง</span><span class="status-pill success">เลือกชีตอัตโนมัติ</span></div></section><section class="content-grid">'+importBox+hist+'</section>';
 }
+
 function lecSchoolFieldLabel(key){
   return {school_code:"รหัสสถานศึกษา",school_name_th:"ชื่อสถานศึกษา",organization_name_th:"อปท.",province_name_th:"จังหวัด",district_name_th:"อำเภอ",school_phone:"โทรศัพท์",school_email:"อีเมล",school_website_url:"เว็บไซต์",school_address_text:"ที่อยู่"}[key]||key;
 }
@@ -881,34 +909,54 @@ function bindLec(){
       if(!/\.xlsx?$/i.test(file.name)){throw new Error("รองรับเฉพาะไฟล์ .xls หรือ .xlsx จาก LEC");}
       state.lecPreview=await parseLecFile(file);
       const school=currentSchool();
-      if(!school)throw new Error("กรุณาเลือกสถานศึกษาก่อน");
-      const schoolCheck=await supabase.rpc("lao_lec_school_check",{p_school_id:school.id,p_metadata:state.lecPreview.metadata});
-      if(schoolCheck.error)throw schoolCheck.error;
-      state.lecPreview.schoolCheck=schoolCheck.data||{};
+      const onboarding=Boolean(state.pendingInvitation&&state.pendingInvitation.status==="onboarding"&&state.pendingInvitation.invitation_mode==="platform_first_admin"&&!state.pendingInvitation.school_id);
+      if(school){
+        const schoolCheck=await supabase.rpc("lao_lec_school_check",{p_school_id:school.id,p_metadata:state.lecPreview.metadata});
+        if(schoolCheck.error)throw schoolCheck.error;
+        state.lecPreview.schoolCheck=schoolCheck.data||{};
+      }else if(onboarding){
+        const incoming=state.lecPreview.metadata||{},diff={};
+        ["school_name_th","organization_name_th","province_name_th","district_name_th","school_code"].forEach(k=>{if(incoming[k])diff[k]={current:null,incoming:incoming[k]};});
+        state.lecPreview.schoolCheck={status:"first_import_confirmation",can_import:true,requires_confirmation:true,hard_block:false,is_first_import:true,incoming,diff};
+      }else{
+        throw new Error("ยังไม่มีสิทธิ์นำเข้า LEC");
+      }
       state.lecPreview.schoolResolution=null;
       renderLecPreview(state.lecPreview);
     }catch(e){if(box)box.innerHTML='<div class="notice danger"><strong>อ่านไฟล์ไม่สำเร็จ</strong><br>'+esc(e.message||e)+'</div>';toast(e.message||String(e),"error");}
   });
   form.addEventListener("submit",async e=>{
     e.preventDefault();
-    const p=state.lecPreview,school=currentSchool(); if(!p||!school)return;
+    const p=state.lecPreview,school=currentSchool();
+    const onboarding=Boolean(state.pendingInvitation&&state.pendingInvitation.status==="onboarding"&&state.pendingInvitation.invitation_mode==="platform_first_admin"&&!state.pendingInvitation.school_id);
+    if(!p||(!school&&!onboarding))return;
     if(p.missingRequired.length){toast("โครงสร้างไฟล์ LEC ไม่ครบ","error");return;}
     if(p.schoolCheck&&p.schoolCheck.can_import===false){toast("ข้อมูลสถานศึกษาในไฟล์ไม่ตรงกับโรงเรียนนี้","error");return;}
     if(p.schoolCheck&&p.schoolCheck.requires_confirmation&&p.schoolResolution!=="accept_new_lec"){toast("กรุณายืนยันว่าจะใช้ข้อมูลสถานศึกษาจาก LEC ใหม่ก่อน","error");return;}
     if(!confirm("ยืนยันนำเข้า LEC ปีการศึกษา "+p.metadata.academic_year_be+" ภาคเรียนที่ "+p.metadata.term_no+" จำนวน "+p.rows.length+" คน? ระบบจะรักษาประวัติเดิมไว้"))return;
     const btn=q("[data-lec-import]");
     setBusy(btn,true,"กำลังนำเข้า LEC...");
-    const res=await supabase.rpc("lao_import_lec_students_auto",{
+    const rpcName=onboarding?"lao_onboard_school_from_lec":"lao_import_lec_students_auto";
+    const rpcArgs=onboarding?{
+      p_invitation_id:state.pendingInvitation.id,
+      p_file_name:p.fileName,p_file_size:p.fileSize,p_file_sha256:p.sha256,
+      p_sheet_name:p.sheetName,p_ignored_sheet_count:p.ignoredSheetCount,
+      p_header_map:p.headerMap,p_metadata:{...p.metadata,...(p.schoolResolution?{school_resolution:p.schoolResolution}:{})},p_rows:p.rows
+    }:{
       p_school_id:school.id,
       p_file_name:p.fileName,p_file_size:p.fileSize,p_file_sha256:p.sha256,
       p_sheet_name:p.sheetName,p_ignored_sheet_count:p.ignoredSheetCount,
       p_header_map:p.headerMap,p_metadata:{...p.metadata,...(p.schoolResolution?{school_resolution:p.schoolResolution}:{})},p_rows:p.rows
-    });
+    };
+    const res=await supabase.rpc(rpcName,rpcArgs);
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
     const x=res.data||{};
-    toast("นำเข้า LEC สำเร็จ: "+(x.imported_rows||0)+" รายการ","success");
-    state.lecPreview=null;await loadAdminSchools();renderTenants();renderRoute();
+    toast((onboarding?"สร้างสถานศึกษาและนำเข้า LEC สำเร็จ: ":"นำเข้า LEC สำเร็จ: ")+(x.imported_rows||0)+" รายการ","success");
+    state.lecPreview=null;
+    await loadContext();
+    if(onboarding)location.hash="#/overview";
+    renderRoute();
   });
 }
 
@@ -919,27 +967,6 @@ function placeholderHtml(route){
 }
 
 function bindOrganizationForms(){
-  const orgForm=q("#organization-form");
-  if(orgForm)orgForm.addEventListener("submit",async e=>{
-    e.preventDefault();const fd=new FormData(orgForm),btn=orgForm.querySelector("button[type=submit]");
-    setBusy(btn,true,"กำลังบันทึก...");
-    const payload={name_th:String(fd.get("name_th")).trim(),name_en:String(fd.get("name_en")||"").trim()||null,code:String(fd.get("code")||"").trim()||null,organization_type:String(fd.get("organization_type"))};
-    const res=await supabase.from("lao_organizations").insert(payload);
-    setBusy(btn,false);if(res.error){toast(res.error.message,"error");return;}
-    toast("เพิ่ม อปท. แล้ว","success");await loadOrganizations();renderRoute();
-  });
-  const schoolForm=q("#school-form");
-  if(schoolForm)schoolForm.addEventListener("submit",async e=>{
-    e.preventDefault();const fd=new FormData(schoolForm),btn=schoolForm.querySelector("button[type=submit]");
-    const slug=String(fd.get("slug")).trim().toLowerCase();
-    if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)){toast("Slug ใช้ได้เฉพาะ a-z, 0-9 และขีดกลาง","error");return;}
-    setBusy(btn,true,"กำลังสร้างพื้นที่...");
-    const payload={organization_id:fd.get("organization_id"),name_th:String(fd.get("name_th")).trim(),slug:slug};
-    const res=await supabase.from("lao_schools").insert(payload);
-    setBusy(btn,false);if(res.error){toast(res.error.message,"error");return;}
-    toast("สร้างพื้นที่สถานศึกษาแล้ว ขั้นต่อไปคืออนุมัติ School Admin คนแรกและนำเข้า LEC","success");
-    await loadAdminSchools();renderTenants();renderRoute();
-  });
   qa("[data-school-lec]").forEach(btn=>btn.addEventListener("click",()=>{
     if(state.isPlatformAdmin){
       state.adminSchool=state.adminSchools.find(s=>s.id===btn.dataset.schoolLec)||null;
@@ -961,12 +988,12 @@ function bindInvites(){
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const school=currentSchool(),fd=new FormData(form),btn=form.querySelector("button[type=submit]");
-    if(!school)return;
+    if(!school&&!state.isPlatformAdmin)return;
     setBusy(btn,true,"กำลังส่งอีเมล...");
     const res=await supabase.functions.invoke("lao-invite-user",{body:{
       email:String(fd.get("email")||"").trim(),
-      school_id:school.id,
-      role_code:String(fd.get("role_code")||"")
+      school_id:school?school.id:null,
+      role_code:String(fd.get("role_code")||"school_admin")
     }});
     setBusy(btn,false);
     if(res.error){toast(await readFunctionError(res.error),"error");return;}
@@ -993,8 +1020,9 @@ function bindActivation(){
     }
     const complete=await supabase.rpc("lao_complete_invitation",{p_prefix:prefix||null,p_first_name_th:first,p_last_name_th:last,p_phone:phone||null});
     if(complete.error){setBusy(btn,false);toast(complete.error.message,"error");return;}
-    toast("เปิดใช้งานบัญชีเรียบร้อย","success");
-    await loadContext();location.hash="#/overview";renderRoute();
+    const needsLec=Boolean(complete.data&&complete.data.needs_lec);
+    toast(needsLec?"ยืนยันบัญชีแล้ว กรุณานำเข้าไฟล์ LEC":"เปิดใช้งานบัญชีเรียบร้อย","success");
+    await loadContext();location.hash=needsLec?"#/lec":"#/overview";renderRoute();
   });
 }
 function bindProfile(){
@@ -1030,8 +1058,9 @@ function bindNotifications(){
 async function renderRoute(){
   if(!state.user)return;
   let route=routeName();
-  const mustActivate=Boolean(state.pendingInvitation);
-  if(mustActivate&&route!=="activate"){location.hash="#/activate";route="activate";}
+  const invitationStatus=state.pendingInvitation&&state.pendingInvitation.status;
+  if(invitationStatus==="pending"&&route!=="activate"){location.hash="#/activate";route="activate";}
+  if(invitationStatus==="onboarding"&&route!=="lec"){location.hash="#/lec";route="lec";}
   const meta=routeMeta[route]||routeMeta.overview,main=q("#main");
   q("[data-page-title]").textContent=meta[0];
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));

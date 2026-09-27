@@ -35,7 +35,9 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    if (!supabaseUrl || !serviceKey || !anonKey) return json({ error: "Server configuration is incomplete" }, 500);
+    if (!supabaseUrl || !serviceKey || !anonKey) {
+      return json({ error: "Server configuration is incomplete" }, 500);
+    }
 
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
@@ -54,11 +56,10 @@ Deno.serve(async (req: Request) => {
 
     const payload = await req.json().catch(() => ({}));
     const email = normalizeEmail(payload.email);
-    const schoolId = String(payload.school_id ?? "").trim();
+    const schoolId = String(payload.school_id ?? "").trim() || null;
     const roleCode = String(payload.role_code ?? "").trim();
 
     if (!isEmail(email)) return json({ error: "กรุณาระบุอีเมลที่ถูกต้อง" }, 400);
-    if (!schoolId) return json({ error: "กรุณาเลือกสถานศึกษา" }, 400);
 
     const allowedRoles = [
       "school_admin", "school_executive", "registrar", "academic_officer",
@@ -66,79 +67,83 @@ Deno.serve(async (req: Request) => {
     ];
     if (!allowedRoles.includes(roleCode)) return json({ error: "บทบาทไม่ถูกต้อง" }, 400);
 
-    const { data: school, error: schoolError } = await admin
-      .from("lao_schools")
-      .select("id,organization_id,name_th,is_active")
-      .eq("id", schoolId)
-      .maybeSingle();
-    if (schoolError || !school || !school.is_active) return json({ error: "ไม่พบสถานศึกษาที่ใช้งานได้" }, 404);
-
-    const { data: role, error: roleError } = await admin
-      .from("lao_roles").select("id,code").eq("code", "school_admin").single();
-    if (roleError || !role) throw roleError || new Error("School Admin role missing");
-
-    const { data: callerPlatform } = await admin
+    const { data: callerPlatform, error: platformError } = await admin
       .from("lao_platform_admins").select("user_id").eq("user_id", caller.id).maybeSingle();
+    if (platformError) throw platformError;
 
-    const { data: callerMemberships, error: cmError } = await admin
-      .from("lao_memberships").select("id")
-      .eq("user_id", caller.id).eq("school_id", schoolId).eq("status", "active");
-    if (cmError) throw cmError;
+    const { data: schoolAdminRole, error: roleError } = await admin
+      .from("lao_roles").select("id").eq("code", "school_admin").single();
+    if (roleError || !schoolAdminRole) throw roleError || new Error("School Admin role missing");
 
+    let school: any = null;
     let callerIsSchoolAdmin = false;
-    if ((callerMemberships || []).length) {
-      const ids = callerMemberships!.map((m: any) => m.id);
-      const { data: grants, error: grantError } = await admin
-        .from("lao_membership_roles").select("membership_id")
-        .in("membership_id", ids).eq("role_id", role.id).limit(1);
-      if (grantError) throw grantError;
-      callerIsSchoolAdmin = Boolean(grants?.length);
-    }
-
-    const { data: activeSchoolMemberships, error: asmError } = await admin
-      .from("lao_memberships").select("id")
-      .eq("school_id", schoolId).eq("status", "active");
-    if (asmError) throw asmError;
-
     let schoolHasAdmin = false;
-    if ((activeSchoolMemberships || []).length) {
-      const ids = activeSchoolMemberships!.map((m: any) => m.id);
-      const { data: grants, error: grantError } = await admin
-        .from("lao_membership_roles").select("membership_id")
-        .in("membership_id", ids).eq("role_id", role.id).limit(1);
-      if (grantError) throw grantError;
-      schoolHasAdmin = Boolean(grants?.length);
-    }
-
     let invitationMode: "platform_first_admin" | "school_admin";
-    if (callerIsSchoolAdmin) {
-      invitationMode = "school_admin";
-    } else if (callerPlatform) {
-      if (schoolHasAdmin) {
-        return json({ error: "โรงเรียนนี้มี School Admin แล้ว การเพิ่มผู้ใช้เป็นหน้าที่ของ School Admin โรงเรียน" }, 403);
+
+    if (schoolId) {
+      const { data: schoolData, error: schoolError } = await admin
+        .from("lao_schools")
+        .select("id,organization_id,name_th,is_active")
+        .eq("id", schoolId)
+        .maybeSingle();
+      if (schoolError || !schoolData || !schoolData.is_active) {
+        return json({ error: "ไม่พบสถานศึกษาที่ใช้งานได้" }, 404);
+      }
+      school = schoolData;
+
+      const { data: callerMemberships, error: cmError } = await admin
+        .from("lao_memberships").select("id")
+        .eq("user_id", caller.id).eq("school_id", schoolId).eq("status", "active");
+      if (cmError) throw cmError;
+
+      if ((callerMemberships || []).length) {
+        const ids = callerMemberships!.map((m: any) => m.id);
+        const { data: grants, error: grantError } = await admin
+          .from("lao_membership_roles").select("membership_id")
+          .in("membership_id", ids).eq("role_id", schoolAdminRole.id).limit(1);
+        if (grantError) throw grantError;
+        callerIsSchoolAdmin = Boolean(grants?.length);
+      }
+
+      const { data: activeSchoolMemberships, error: asmError } = await admin
+        .from("lao_memberships").select("id")
+        .eq("school_id", schoolId).eq("status", "active");
+      if (asmError) throw asmError;
+
+      if ((activeSchoolMemberships || []).length) {
+        const ids = activeSchoolMemberships!.map((m: any) => m.id);
+        const { data: grants, error: grantError } = await admin
+          .from("lao_membership_roles").select("membership_id")
+          .in("membership_id", ids).eq("role_id", schoolAdminRole.id).limit(1);
+        if (grantError) throw grantError;
+        schoolHasAdmin = Boolean(grants?.length);
+      }
+
+      if (callerIsSchoolAdmin) {
+        invitationMode = "school_admin";
+      } else if (callerPlatform) {
+        if (schoolHasAdmin) {
+          return json({ error: "โรงเรียนนี้มี School Admin แล้ว การเพิ่มผู้ใช้เป็นหน้าที่ของ School Admin โรงเรียน" }, 403);
+        }
+        if (roleCode !== "school_admin") {
+          return json({ error: "Platform Admin เชิญได้เฉพาะ School Admin คนแรกของโรงเรียน" }, 403);
+        }
+        invitationMode = "platform_first_admin";
+      } else {
+        return json({ error: "ไม่มีสิทธิ์เชิญผู้ใช้ของสถานศึกษานี้" }, 403);
+      }
+    } else {
+      if (!callerPlatform) {
+        return json({ error: "เฉพาะ Platform Admin เท่านั้นที่เชิญ School Admin คนแรกก่อนผูก LEC ได้" }, 403);
       }
       if (roleCode !== "school_admin") {
-        return json({ error: "Platform Admin เชิญได้เฉพาะ School Admin คนแรกของโรงเรียน" }, 403);
+        return json({ error: "คำเชิญก่อนผูก LEC ใช้ได้เฉพาะ School Admin คนแรก" }, 403);
       }
       invitationMode = "platform_first_admin";
-    } else {
-      return json({ error: "ไม่มีสิทธิ์เชิญผู้ใช้ของสถานศึกษานี้" }, 403);
-    }
-
-    if (invitationMode === "platform_first_admin") {
-      const { data: pendingFirst, error: pfError } = await admin
-        .from("lao_user_invitations").select("id,email")
-        .eq("school_id", schoolId).eq("status", "pending")
-        .eq("invitation_mode", "platform_first_admin")
-        .limit(1);
-      if (pfError) throw pfError;
-      if (pendingFirst?.length && pendingFirst[0].email.toLowerCase() !== email) {
-        return json({ error: "มีคำเชิญ School Admin คนแรกค้างอยู่แล้ว กรุณาใช้หรือยกเลิกคำเชิญเดิมก่อน" }, 409);
-      }
     }
 
     const existingUser = await findUserByEmail(admin, email);
-    if (existingUser) {
+    if (existingUser && schoolId) {
       const { data: existingMembership } = await admin
         .from("lao_memberships").select("id,status")
         .eq("user_id", existingUser.id).eq("school_id", schoolId)
@@ -148,12 +153,18 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const { data: pendingInvite, error: pendingError } = await admin
-      .from("lao_user_invitations")
-      .select("id,role_code,auth_user_id")
-      .eq("school_id", schoolId).eq("status", "pending").eq("email", email)
-      .maybeSingle();
+    let pendingQuery = admin.from("lao_user_invitations")
+      .select("id,role_code,auth_user_id,status")
+      .eq("email", email)
+      .in("status", ["pending", "onboarding"]);
+
+    pendingQuery = schoolId ? pendingQuery.eq("school_id", schoolId) : pendingQuery.is("school_id", null);
+    const { data: pendingInvite, error: pendingError } = await pendingQuery.maybeSingle();
     if (pendingError) throw pendingError;
+
+    if (pendingInvite?.status === "onboarding") {
+      return json({ error: "ผู้ใช้ยืนยันบัญชีแล้วและกำลังรอนำเข้า LEC เพื่อสร้างสถานศึกษา" }, 409);
+    }
     if (pendingInvite && pendingInvite.role_code !== roleCode) {
       return json({ error: "อีเมลนี้มีคำเชิญค้างอยู่ด้วยบทบาทอื่น กรุณายกเลิกคำเชิญเดิมก่อน" }, 409);
     }
@@ -176,6 +187,7 @@ Deno.serve(async (req: Request) => {
           lao_ems_invited: true,
           lao_school_id: schoolId,
           lao_role_code: roleCode,
+          lao_first_school_admin_unbound: !schoolId,
         },
       });
       if (inviteError) throw inviteError;
@@ -202,7 +214,7 @@ Deno.serve(async (req: Request) => {
       const { data: inserted, error: insertError } = await admin
         .from("lao_user_invitations")
         .insert({
-          organization_id: school.organization_id,
+          organization_id: school?.organization_id ?? null,
           school_id: schoolId,
           email,
           role_code: roleCode,
@@ -217,13 +229,19 @@ Deno.serve(async (req: Request) => {
     }
 
     await admin.from("lao_audit_logs").insert({
-      organization_id: school.organization_id,
+      organization_id: school?.organization_id ?? null,
       school_id: schoolId,
       actor_user_id: caller.id,
       action: pendingInvite ? "user_invitation_resent" : "user_invited",
       entity_type: "user_invitation",
       entity_id: invitationId,
-      after_data: { email, role_code: roleCode, invitation_mode: invitationMode, delivery },
+      after_data: {
+        email,
+        role_code: roleCode,
+        invitation_mode: invitationMode,
+        delivery,
+        awaiting_lec_school_binding: !schoolId,
+      },
     });
 
     return json({
@@ -231,7 +249,8 @@ Deno.serve(async (req: Request) => {
       invitation_id: invitationId,
       delivery,
       email,
-      school_name: school.name_th,
+      school_name: school?.name_th ?? null,
+      awaiting_lec_school_binding: !schoolId,
     });
   } catch (error) {
     console.error(error);
