@@ -338,7 +338,9 @@ function bindPwaRuntime(){
   window.addEventListener("beforeinstallprompt",event=>{
     event.preventDefault();
     state.installPrompt=event;
-    if(state.user&&routeName()==="overview"&&!state.pwaInstalled)renderRoute();
+    state.pwaInstalled=false;
+    localStorage.removeItem("lao_pwa_installed");
+    if(state.user&&routeName()==="overview")renderRoute();
   });
   window.addEventListener("appinstalled",()=>{
     localStorage.setItem("lao_pwa_installed","1");
