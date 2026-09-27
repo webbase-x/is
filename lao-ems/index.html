@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f5bd3">
+  <meta name="description" content="LAO-EMS แพลตฟอร์มสารสนเทศเพื่อการบริหารสถานศึกษาแบบบูรณาการ">
+  <title>LAO-EMS | ระบบสารสนเทศสถานศึกษา อปท.</title>
+  <link rel="stylesheet" href="./assets/css/app.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
+
+  <div class="app-shell" data-app>
+    <aside class="sidebar" id="sidebar" aria-label="เมนูหลัก">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">L</div>
+        <div class="brand-copy">
+          <strong>LAO-EMS</strong>
+          <span>Education Management System</span>
+        </div>
+        <button class="icon-btn sidebar-close" type="button" data-sidebar-close aria-label="ปิดเมนู">×</button>
+      </div>
+
+      <div class="tenant-card">
+        <span class="tenant-label">บริบทที่กำลังใช้งาน</span>
+        <button class="tenant-switcher" type="button" aria-haspopup="listbox">
+          <span class="tenant-icon">🏫</span>
+          <span>
+            <strong>โหมดเตรียมระบบ</strong>
+            <small>ยังไม่เลือกสถานศึกษา</small>
+          </span>
+          <span aria-hidden="true">⌄</span>
+        </button>
+      </div>
+
+      <nav class="nav-list" data-nav>
+        <a href="#/overview" data-route="overview" class="active"><span>▦</span>ภาพรวมระบบ</a>
+        <a href="#/setup" data-route="setup"><span>⚙</span>ตั้งค่าพื้นฐาน</a>
+        <a href="#/organization" data-route="organization"><span>🏛</span>อปท. และสถานศึกษา</a>
+        <a href="#/users" data-route="users"><span>👥</span>ผู้ใช้และสิทธิ์</a>
+        <a href="#/personnel" data-route="personnel"><span>🪪</span>บุคลากร</a>
+        <a href="#/students" data-route="students"><span>🎓</span>นักเรียน</a>
+        <a href="#/academics" data-route="academics"><span>📚</span>วิชาการ</a>
+        <a href="#/assessment" data-route="assessment"><span>📝</span>ทะเบียนและวัดผล</a>
+        <a href="#/documents" data-route="documents"><span>📄</span>เอกสารและไฟล์</a>
+        <a href="#/website" data-route="website"><span>🌐</span>เว็บไซต์สถานศึกษา</a>
+        <a href="#/forms" data-route="forms"><span>☑</span>แบบฟอร์มและงาน</a>
+        <a href="#/reports" data-route="reports"><span>📊</span>รายงานและ Dashboard</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="status-dot"></span>
+        <div><strong>Foundation</strong><small>Phase 1</small></div>
+      </div>
+    </aside>
+
+    <div class="page">
+      <header class="topbar">
+        <div class="topbar-start">
+          <button class="icon-btn mobile-menu" type="button" data-sidebar-open aria-label="เปิดเมนู">☰</button>
+          <div>
+            <p class="eyebrow">ระบบสารสนเทศสถานศึกษา อปท.</p>
+            <h1 data-page-title>ภาพรวมระบบ</h1>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn" type="button" title="ค้นหา" aria-label="ค้นหา">⌕</button>
+          <button class="icon-btn" type="button" title="การแจ้งเตือน" aria-label="การแจ้งเตือน">🔔</button>
+          <button class="profile-btn" type="button" aria-label="บัญชีผู้ใช้">
+            <span class="avatar">ผด</span>
+            <span class="profile-copy"><strong>ผู้ดูแลระบบ</strong><small>โหมดออกแบบ</small></span>
+          </button>
+        </div>
+      </header>
+
+      <main id="main" class="content">
+        <section class="system-banner" role="status">
+          <div>
+            <span class="badge">Phase 1</span>
+            <h2>วางฐานระบบก่อนเริ่มเก็บข้อมูลจริง</h2>
+            <p>รอบนี้กำหนดโครงสร้างหลายสถานศึกษา สิทธิ์ผู้ใช้ ข้อมูลพื้นฐาน และการเชื่อมไฟล์ เพื่อให้ทุกโมดูลต่อยอดจากข้อมูลชุดเดียวกันโดยไม่ต้องกรอกซ้ำ</p>
+          </div>
+          <div class="banner-status">
+            <span class="status-pill warning">Supabase: รอเปิดใช้งาน</span>
+            <span class="status-pill success">GitHub: พร้อม</span>
+            <span class="status-pill neutral">Google Drive: เตรียมเชื่อม</span>
+          </div>
+        </section>
+
+        <section class="stats-grid" aria-label="สถานะการพัฒนา">
+          <article class="stat-card">
+            <span class="stat-icon">🏫</span>
+            <div><small>สถานศึกษา</small><strong>หลายแห่ง</strong><p>ออกแบบแบบ Multi-school ตั้งแต่ต้น</p></div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon">🔗</span>
+            <div><small>หลักข้อมูล</small><strong>กรอกครั้งเดียว</strong><p>เชื่อมทุกงานจากข้อมูลต้นทาง</p></div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon">🛡️</span>
+            <div><small>ความปลอดภัย</small><strong>Role + Scope</strong><p>สิทธิ์ตามบทบาทและขอบเขตข้อมูล</p></div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon">🗂️</span>
+            <div><small>ไฟล์</small><strong>Google Drive</strong><p>ระบบเก็บ File ID และ metadata</p></div>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">Setup sequence</p><h2>ลำดับข้อมูลพื้นฐาน</h2></div>
+              <span class="counter">0 / 8</span>
+            </div>
+            <ol class="setup-list">
+              <li><span>1</span><div><strong>ข้อมูลองค์กรปกครองส่วนท้องถิ่น</strong><small>ชื่อ หน่วยงาน รหัส และข้อมูลติดต่อ</small></div><em>รอดำเนินการ</em></li>
+              <li><span>2</span><div><strong>ข้อมูลสถานศึกษา</strong><small>โรงเรียนในสังกัดและการกำหนดขอบเขตข้อมูล</small></div><em>รอดำเนินการ</em></li>
+              <li><span>3</span><div><strong>ปีการศึกษาและภาคเรียน</strong><small>ใช้เป็นแกนเวลาเดียวกันทั้งระบบ</small></div><em>รอดำเนินการ</em></li>
+              <li><span>4</span><div><strong>บัญชีผู้ใช้และการอนุมัติ</strong><small>ลงทะเบียน ยืนยันตัวตน และผูกสถานศึกษา</small></div><em>รอดำเนินการ</em></li>
+              <li><span>5</span><div><strong>บทบาทและสิทธิ์</strong><small>ระดับ อปท. โรงเรียน ห้องเรียน และรายบุคคล</small></div><em>รอดำเนินการ</em></li>
+              <li><span>6</span><div><strong>บุคลากร</strong><small>สร้างข้อมูลครูก่อนผูกภาระงานและรายวิชา</small></div><em>ถัดไป</em></li>
+              <li><span>7</span><div><strong>นักเรียนและผู้ปกครอง</strong><small>Student master record เพียงหนึ่งชุด</small></div><em>ถัดไป</em></li>
+              <li><span>8</span><div><strong>หลักสูตร ชั้น ห้อง และรายวิชา</strong><small>ฐานสำหรับทะเบียน วัดผล ปพ. และรายงาน</small></div><em>ถัดไป</em></li>
+            </ol>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">Architecture</p><h2>ข้อมูลหนึ่งชุด ใช้หลายงาน</h2></div>
+            </div>
+            <div class="flow">
+              <div class="flow-node primary"><strong>ข้อมูลต้นทาง</strong><span>สถานศึกษา · บุคลากร · นักเรียน</span></div>
+              <span class="flow-arrow">↓</span>
+              <div class="flow-node"><strong>งานประจำ</strong><span>ห้องเรียน · วิชา · เวลาเรียน · คะแนน</span></div>
+              <span class="flow-arrow">↓</span>
+              <div class="flow-row">
+                <div class="flow-node"><strong>ปพ.</strong><span>ผลการเรียน</span></div>
+                <div class="flow-node"><strong>เว็บไซต์</strong><span>ข้อมูลสาธารณะ</span></div>
+                <div class="flow-node"><strong>SAR</strong><span>หลักฐานจริง</span></div>
+                <div class="flow-node"><strong>Dashboard</strong><span>ข้อมูลบริหาร</span></div>
+              </div>
+            </div>
+            <div class="principle">
+              <strong>กฎของแพลตฟอร์ม</strong>
+              <p>ก่อนเพิ่มช่องกรอกข้อมูลใหม่ ต้องตรวจว่าข้อมูลนั้นมีอยู่ในระบบแล้วหรือไม่ ถ้ามี ให้เชื่อมมาใช้แทนการกรอกซ้ำ</p>
+            </div>
+          </article>
+        </section>
+
+        <section class="module-section">
+          <div class="section-head">
+            <div><p class="eyebrow">Roadmap</p><h2>โมดูลที่จะทยอยเปิดใช้งาน</h2></div>
+            <button class="secondary-btn" type="button" data-show-roadmap>ดูแผนทั้งหมด</button>
+          </div>
+          <div class="module-grid" data-module-grid></div>
+        </section>
+      </main>
+    </div>
+
+    <div class="scrim" data-scrim></div>
+  </div>
+
+  <template id="route-template">
+    <section class="placeholder-page">
+      <span class="placeholder-icon">◫</span>
+      <p class="eyebrow">กำลังพัฒนาตามลำดับข้อมูล</p>
+      <h2 data-placeholder-title></h2>
+      <p data-placeholder-copy></p>
+      <a class="primary-btn" href="#/overview">กลับหน้าภาพรวม</a>
+    </section>
+  </template>
+
+  <script type="module" src="./assets/js/app.js"></script>
+</body>
+</html>
