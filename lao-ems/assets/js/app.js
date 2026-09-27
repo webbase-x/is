@@ -465,7 +465,7 @@ function profileFieldsHtml(context){
   const p=state.profile||{},pre=esc(p.prefix||""),first=esc(p.first_name_th||""),last=esc(p.last_name_th||""),phone=esc(p.phone||"");
   const email=esc(state.user&&state.user.email||"");
   return '<div class="profile-fields">'+
-    (context==="profile"?'<label class="field profile-email">อีเมลบัญชี<input value="'+email+'" readonly aria-readonly="true"><small>อีเมลใช้สำหรับเข้าสู่ระบบและเปลี่ยนได้ผ่านกระบวนการยืนยันบัญชีเท่านั้น</small></label>':'')+
+    (context==="profile"?'<label class="field profile-email">อีเมลบัญชี<input name="new_email" type="email" value="'+email+'" autocomplete="email" required><small>หากเปลี่ยนอีเมล ต้องกรอกรหัสผ่านปัจจุบัน และอาจต้องยืนยันอีเมลใหม่ตามการตั้งค่าความปลอดภัยของระบบ</small></label>':'')+
     '<div class="profile-name-grid"><label class="field profile-prefix">คำนำหน้า<select name="prefix"><option value="">ไม่ระบุ</option>'+["นาย","นาง","นางสาว","เด็กชาย","เด็กหญิง"].map(x=>'<option '+(pre===x?'selected':'')+'>'+x+'</option>').join("")+'</select></label><label class="field">ชื่อ <span class="required-mark">*</span><input name="first_name" value="'+first+'" required autocomplete="given-name" placeholder="ชื่อ"></label><label class="field">นามสกุล <span class="required-mark">*</span><input name="last_name" value="'+last+'" required autocomplete="family-name" placeholder="นามสกุล"></label></div>'+
     '<label class="field profile-phone">เบอร์โทรศัพท์<input name="phone" type="tel" value="'+phone+'" autocomplete="tel" inputmode="tel" placeholder="เช่น 0812345678"><small>ใช้สำหรับข้อมูลติดต่อภายในระบบ ไม่แสดงต่อสาธารณะโดยอัตโนมัติ</small></label>'+
   '</div>';
@@ -501,7 +501,7 @@ function activationHtml(){
 
 function profileHtml(){
   const name=displayName(),school=currentSchool();
-  return '<section class="profile-layout"><article class="panel profile-summary"><div class="profile-hero-avatar">'+esc(initials(name).slice(0,2))+'</div><div><p class="eyebrow">MY PROFILE</p><h2>'+esc(name)+'</h2><p>'+esc(state.user&&state.user.email||"")+'</p><div class="profile-tags"><span class="pill success">บัญชีใช้งานได้</span>'+(school?'<span class="pill">'+esc(school.name_th)+'</span>':'')+'</div></div></article><article class="panel form-card profile-form-card"><div class="panel-head"><div><p class="eyebrow">ข้อมูลส่วนตัว</p><h2>โปรไฟล์ของฉัน</h2><p class="panel-sub">กรอกเฉพาะข้อมูลส่วนตัวของบัญชี ข้อมูลทางราชการของโรงเรียนและนักเรียนมาจาก LEC</p></div></div><form id="profile-form" class="form-grid profile-form">'+profileFieldsHtml("profile")+'<div class="span-2 form-section"><strong>ความปลอดภัยของบัญชี</strong><p class="panel-sub">เว้นช่องรหัสผ่านว่างไว้หากไม่ต้องการเปลี่ยน</p></div>'+passwordFieldsHtml(false)+'<div class="span-2 profile-form-actions"><button class="primary-btn" type="submit">บันทึกโปรไฟล์</button></div></form></article></section>';
+  return '<section class="profile-layout"><article class="panel profile-summary"><div class="profile-hero-avatar">'+esc(initials(name).slice(0,2))+'</div><div><p class="eyebrow">MY PROFILE</p><h2>'+esc(name)+'</h2><p>'+esc(state.user&&state.user.email||"")+'</p><div class="profile-tags"><span class="pill success">บัญชีใช้งานได้</span>'+(school?'<span class="pill">'+esc(school.name_th)+'</span>':'')+'</div></div></article><article class="panel form-card profile-form-card"><div class="panel-head"><div><p class="eyebrow">ข้อมูลส่วนตัว</p><h2>โปรไฟล์ของฉัน</h2><p class="panel-sub">กรอกเฉพาะข้อมูลส่วนตัวของบัญชี ข้อมูลทางราชการของโรงเรียนและนักเรียนมาจาก LEC</p></div></div><form id="profile-form" class="form-grid profile-form">'+profileFieldsHtml("profile")+'<div class="span-2 form-section"><strong>ความปลอดภัยของบัญชี</strong><p class="panel-sub">การเปลี่ยนอีเมลหรือรหัสผ่านต้องยืนยันด้วยรหัสผ่านปัจจุบัน</p></div><div class="span-2"><div class="form-field"><label for="current-password">รหัสผ่านปัจจุบัน</label><div class="input-with-action"><input id="current-password" name="current_password" type="password" autocomplete="current-password" data-password-input placeholder="กรอกเมื่อเปลี่ยนอีเมลหรือรหัสผ่าน"><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div></div>'+passwordFieldsHtml(false)+'<div class="span-2 profile-form-actions"><button class="primary-btn" type="submit">บันทึกโปรไฟล์</button></div></form></article></section>';
 }
 
 
@@ -1167,21 +1167,34 @@ function bindProfile(){
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
+    const currentPassword=String(fd.get("current_password")||"");
     const password=String(fd.get("password")||""),confirmPassword=String(fd.get("confirm_password")||"");
-    if(password&&password.length<8){toast("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร","error");return;}
-    if(password!==confirmPassword){toast("รหัสผ่านทั้งสองช่องไม่ตรงกัน","error");return;}
+    const newEmail=String(fd.get("new_email")||state.user.email||"").trim().toLowerCase();
+    const oldEmail=String(state.user&&state.user.email||"").trim().toLowerCase();
+    const emailChanged=newEmail!==oldEmail,passwordChanged=Boolean(password);
+    if(passwordChanged&&password.length<8){toast("รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร","error");return;}
+    if(password!==confirmPassword){toast("รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน","error");return;}
+    if((emailChanged||passwordChanged)&&!currentPassword){toast("กรุณากรอกรหัสผ่านปัจจุบันก่อนเปลี่ยนอีเมลหรือรหัสผ่าน","error");return;}
     const prefix=String(fd.get("prefix")||"").trim(),first=String(fd.get("first_name")||"").trim(),last=String(fd.get("last_name")||"").trim(),phone=String(fd.get("phone")||"").trim();
     setBusy(btn,true,"กำลังบันทึก...");
+    if(emailChanged||passwordChanged){
+      const verify=await supabase.auth.signInWithPassword({email:oldEmail,password:currentPassword});
+      if(verify.error){setBusy(btn,false);toast("รหัสผ่านปัจจุบันไม่ถูกต้อง","error");return;}
+    }
     const pr=await supabase.rpc("lao_ensure_profile",{p_prefix:prefix||null,p_first_name_th:first,p_last_name_th:last,p_display_name:[prefix,first,last].filter(Boolean).join(" "),p_phone:phone||null});
     if(pr.error){setBusy(btn,false);toast(pr.error.message,"error");return;}
     const update={data:{prefix,first_name_th:first,last_name_th:last,display_name:[prefix,first,last].filter(Boolean).join(" "),phone}};
-    if(password)update.password=password;
+    if(emailChanged)update.email=newEmail;
+    if(passwordChanged)update.password=password;
     const au=await supabase.auth.updateUser(update);
     setBusy(btn,false);
     if(au.error){toast(authMessage(au.error.message),"error");return;}
-    await loadContext();toast("บันทึกโปรไฟล์แล้ว","success");renderRoute();
+    await loadContext();
+    toast(emailChanged?"บันทึกแล้ว กรุณาตรวจอีเมลเพื่อยืนยันอีเมลใหม่หากระบบร้องขอ":"บันทึกโปรไฟล์แล้ว","success");
+    renderRoute();
   });
 }
+
 function bindSetup(){
   const form=q("#school-settings-form");
   if(form)form.addEventListener("submit",async e=>{
