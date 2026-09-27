@@ -1,6 +1,6 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user"};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -1245,7 +1245,9 @@ function bindProfile(){
     const prefix=String(fd.get("prefix")||"").trim(),first=String(fd.get("first_name")||"").trim(),last=String(fd.get("last_name")||"").trim(),phone=String(fd.get("phone")||"").trim();
     setBusy(btn,true,"กำลังบันทึก...");
     if(emailChanged||passwordChanged){
+      state.reauthenticating=true;
       const verify=await supabase.auth.signInWithPassword({email:oldEmail,password:currentPassword});
+      state.reauthenticating=false;
       if(verify.error){setBusy(btn,false);toast("รหัสผ่านปัจจุบันไม่ถูกต้อง","error");return;}
     }
     const pr=await supabase.rpc("lao_ensure_profile",{p_prefix:prefix||null,p_first_name_th:first,p_last_name_th:last,p_display_name:[prefix,first,last].filter(Boolean).join(" "),p_phone:phone||null});
@@ -1423,6 +1425,7 @@ async function init(){
   }
   supabase.auth.onAuthStateChange(async(event,session)=>{
     if(event==="SIGNED_OUT"||!session){state.session=state.user=state.profile=state.currentMembership=null;state.memberships=[];showAuth();return;}
+    if(event==="SIGNED_IN"&&state.reauthenticating)return;
     if(event==="SIGNED_IN")await showApp(session);
   });
 }
