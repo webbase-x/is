@@ -598,10 +598,49 @@ async function lecSha256(buffer){
   const digest=await crypto.subtle.digest("SHA-256",buffer);
   return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
+function lecMetaFind(matrix,headerStart,labels){
+  const rows=matrix.slice(0,Math.max(headerStart,0)),normLabels=labels.map(lecHeaderNorm);
+  for(const row of rows){
+    for(let col=0;col<row.length;col++){
+      const raw=lecHeaderText(row[col]); if(!raw)continue;
+      const norm=lecHeaderNorm(raw);
+      for(let j=0;j<normLabels.length;j++){
+        const label=labels[j],nLabel=normLabels[j];
+        if(!norm.includes(nLabel))continue;
+        const parts=raw.split(/[:：]/);
+        if(parts.length>1){
+          const tail=parts.slice(1).join(":").trim();
+          if(tail)return tail;
+        }
+        const idx=raw.indexOf(label);
+        if(idx>=0){
+          const tail=raw.slice(idx+label.length).replace(/^\s*[-–—:]?\s*/,"").trim();
+          if(tail)return tail;
+        }
+        for(let k=col+1;k<Math.min(row.length,col+5);k++){
+          const next=lecHeaderText(row[k]); if(next)return next;
+        }
+      }
+    }
+  }
+  return null;
+}
 function lecDetectMetadata(matrix,headerStart){
-  const texts=matrix.slice(0,Math.max(headerStart,0)).flat().map(lecHeaderText).filter(Boolean);
-  const school=texts.find(x=>/^โรงเรียน/.test(x)&&!x.includes("รายงาน"))||null;
-  return {school_name_th:school,report_heading:texts.find(x=>x.includes("รายงานรายละเอียดข้อมูลนักเรียน"))||null};
+  const rows=matrix.slice(0,Math.max(headerStart,0));
+  const texts=rows.flat().map(lecHeaderText).filter(Boolean);
+  let schoolName=lecMetaFind(matrix,headerStart,["ชื่อสถานศึกษา","ชื่อโรงเรียน"]);
+  if(!schoolName){
+    schoolName=texts.find(x=>/^โรงเรียน/.test(x)&&!x.includes("รายงาน")&&!x.includes("ข้อมูลนักเรียน"))||null;
+  }
+  return {
+    school_code:lecMetaFind(matrix,headerStart,["รหัสสถานศึกษา","รหัสโรงเรียน","รหัสสถานศึกษา LEC"]),
+    school_name_th:schoolName,
+    school_phone:lecMetaFind(matrix,headerStart,["โทรศัพท์สถานศึกษา","โทรศัพท์โรงเรียน","โทรศัพท์","เบอร์โทรศัพท์"]),
+    school_email:lecMetaFind(matrix,headerStart,["อีเมลสถานศึกษา","อีเมลโรงเรียน","E-mail","Email"]),
+    school_website_url:lecMetaFind(matrix,headerStart,["เว็บไซต์สถานศึกษา","เว็บไซต์โรงเรียน","เว็บไซต์","Website"]),
+    school_address_text:lecMetaFind(matrix,headerStart,["ที่อยู่สถานศึกษา","ที่อยู่โรงเรียน"]),
+    report_heading:texts.find(x=>x.includes("รายงานรายละเอียดข้อมูลนักเรียน"))||null
+  };
 }
 async function parseLecFile(file){
   if(!window.XLSX)throw new Error("ไม่สามารถโหลดตัวอ่านไฟล์ Excel ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่");
@@ -647,13 +686,47 @@ async function lecHtml(){
   const hist='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Import history</p><h2>ประวัติการนำเข้า LEC · '+esc(school.name_th)+'</h2><p class="panel-sub">ข้อมูลเดิมไม่ถูกลบ เมื่อเด็กหายจากไฟล์รอบใหม่จะบันทึกว่า “ไม่พบใน LEC รอบล่าสุด” เท่านั้น</p></div></div>'+(historyRows?'<div class="table-wrap"><table><thead><tr><th>ปี / ภาค</th><th>ไฟล์</th><th>นำเข้า / ทั้งหมด</th><th>นักเรียนใหม่</th><th>อัปเดต</th><th>ไม่พบรอบล่าสุด</th><th>ปัญหา</th></tr></thead><tbody>'+historyRows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">⇧</div><h3>ยังไม่เคยนำเข้า LEC</h3><p>เมื่อ School Admin นำเข้าไฟล์ครั้งแรก ประวัติจะปรากฏที่นี่</p></div>')+'</article>';
   return '<section class="source-banner"><div><span class="badge">Single Source of Truth</span><h2>LEC คือข้อมูลต้นทาง</h2><p>LAO-EMS ใช้ข้อมูลจากไฟล์ LEC โดยตรง ไม่เพิ่ม แก้ หรือลบนักเรียนด้วยมือ และเก็บประวัติแยกตามปีการศึกษา/ภาคเรียน</p></div><div class="banner-status"><span class="status-pill success">XLS/XLSX</span><span class="status-pill success">แท็บแรกเท่านั้น</span><span class="status-pill success">ไม่ใช้ ปพ.8</span></div></section><section class="content-grid">'+importBox+hist+'</section>';
 }
+function lecSchoolFieldLabel(key){
+  return {school_code:"รหัสสถานศึกษา",school_name_th:"ชื่อสถานศึกษา",school_phone:"โทรศัพท์",school_email:"อีเมล",school_website_url:"เว็บไซต์",school_address_text:"ที่อยู่"}[key]||key;
+}
+function lecSchoolInfoHtml(preview){
+  const check=preview.schoolCheck||{},incoming=check.incoming||preview.metadata||{},diff=check.diff||{};
+  const fields=["school_code","school_name_th","school_phone","school_email","school_website_url","school_address_text"];
+  const incomingRows=fields.filter(k=>incoming[k]).map(k=>'<tr><th>'+esc(lecSchoolFieldLabel(k))+'</th><td>'+esc(incoming[k])+'</td></tr>').join("");
+  const diffRows=Object.entries(diff).map(([k,v])=>'<tr><th>'+esc(lecSchoolFieldLabel(k))+'</th><td>'+esc(v&&v.current||"-")+'</td><td>'+esc(v&&v.incoming||"-")+'</td></tr>').join("");
+  if(check.status==="missing_school_identity"){
+    return '<div class="school-verify danger"><strong>ไม่พบข้อมูลระบุสถานศึกษาในไฟล์</strong><p>ต้องพบอย่างน้อยชื่อหรือรหัสสถานศึกษาจากส่วนหัวของรายงาน LEC จึงจะนำเข้าได้</p></div>';
+  }
+  if(check.status==="school_code_mismatch"){
+    return '<div class="school-verify danger"><strong>ไฟล์นี้อาจเป็นของคนละโรงเรียน</strong><p>รหัสสถานศึกษาใน LEC ไม่ตรงกับโรงเรียนที่ผูกไว้ ระบบจึงหยุดนำเข้าเพื่อป้องกันข้อมูลนักเรียนข้ามโรงเรียน</p>'+(diffRows?'<div class="table-wrap"><table><thead><tr><th>ข้อมูล</th><th>ปัจจุบัน</th><th>จาก LEC</th></tr></thead><tbody>'+diffRows+'</tbody></table></div>':'')+'<small>กรุณาเลือกไฟล์ของโรงเรียนนี้ หรือให้ Platform Admin ตรวจสอบกรณีมีการเปลี่ยนรหัสสถานศึกษาอย่างเป็นทางการ</small></div>';
+  }
+  if(check.requires_confirmation){
+    const accepted=preview.schoolResolution==="accept_new_lec";
+    return '<div class="school-verify '+(accepted?"success":"warning")+'"><div class="school-verify-head"><div><strong>'+(check.is_first_import?"ยืนยันการผูกข้อมูลสถานศึกษาครั้งแรก":"พบข้อมูลสถานศึกษาเปลี่ยนจากรอบก่อน")+'</strong><p>'+(accepted?"ยืนยันแล้วว่าจะใช้ข้อมูลจาก LEC รอบใหม่นี้":"ระบบจะไม่ผสมข้อมูลสถานศึกษาเก่ากับข้อมูลนักเรียนจากไฟล์ใหม่")+'</p></div><span class="pill '+(accepted?"success":"warning")+'">'+(accepted?"ยืนยันแล้ว":"ต้องยืนยัน")+'</span></div>'+(diffRows?'<div class="table-wrap"><table><thead><tr><th>ข้อมูล</th><th>ข้อมูลเดิม</th><th>ข้อมูลจาก LEC</th></tr></thead><tbody>'+diffRows+'</tbody></table></div>':'')+(accepted?'<button type="button" class="secondary-btn" data-lec-change-choice>เปลี่ยนการตัดสินใจ</button>':'<div class="choice-grid"><button type="button" class="primary-btn" data-lec-use-new>ใช้ข้อมูลจาก LEC ใหม่และนำเข้าต่อ</button><button type="button" class="secondary-btn" data-lec-keep-old>คงข้อมูลเดิมและยกเลิกการนำเข้ารอบนี้</button></div>')+'</div>';
+  }
+  const title=check.is_first_import?"ข้อมูลสถานศึกษาที่จะนำเข้าจาก LEC":"ข้อมูลสถานศึกษาตรงกับรอบที่ผูกไว้";
+  return '<div class="school-verify success"><strong>'+title+'</strong>'+(incomingRows?'<div class="table-wrap compact-table"><table><tbody>'+incomingRows+'</tbody></table></div>':'')+'</div>';
+}
 function renderLecPreview(preview){
   const box=q("#lec-preview"),btn=q("[data-lec-import]"); if(!box||!btn)return;
-  const missing=preview.missingRequired||[];
+  const missing=preview.missingRequired||[],check=preview.schoolCheck||{};
   const sample=preview.rows.slice(0,5).map(r=>'<tr><td>'+esc(r.canonical.student_no||"-")+'</td><td>'+esc([r.canonical.prefix,r.canonical.first_name_th,r.canonical.last_name_th].filter(Boolean).join(" "))+'</td><td>'+esc(lecMaskId(r.canonical.citizen_id))+'</td><td>'+esc(r.canonical.grade_level||"-")+'</td><td>'+esc(r.canonical.classroom||"-")+'</td></tr>').join("");
   const ignored=preview.ignoredSheets.length?preview.ignoredSheets.map(esc).join(", "):"ไม่มี";
-  box.innerHTML='<div class="lec-preview-card"><div class="lec-preview-head"><div><strong>'+esc(preview.fileName)+'</strong><small>แท็บที่ใช้: '+esc(preview.sheetName)+' · '+preview.rows.length+' รายการ</small></div>'+(missing.length?'<span class="pill danger">โครงสร้างไม่ครบ</span>':'<span class="pill success">พร้อมนำเข้า</span>')+'</div><div class="lec-facts"><span>อ่านคอลัมน์ '+preview.headers.length+' ช่อง</span><span>ข้ามแท็บ: '+ignored+'</span><span>SHA-256: '+esc((preview.sha256||"").slice(0,12))+'…</span></div>'+(missing.length?'<div class="notice danger">ไม่พบคอลัมน์จำเป็น: '+missing.map(esc).join(", ")+' กรุณาดาวน์โหลดรายงาน LEC รูปแบบ RPT318 ที่ถูกต้องอีกครั้ง</div>':'<div class="notice success">ระบบจะนำเข้าตามไฟล์ต้นฉบับโดยตรง ไม่มีช่องให้แก้ข้อมูลนักเรียนในหน้านี้</div>')+'<div class="table-wrap"><table><thead><tr><th>รหัสนักเรียน</th><th>ชื่อ-สกุล</th><th>เลขประชาชน</th><th>ชั้น</th><th>ห้อง</th></tr></thead><tbody>'+sample+'</tbody></table></div></div>';
-  btn.disabled=missing.length>0;
+  const sourceOk=check.can_import!==false;
+  const confirmOk=!check.requires_confirmation||preview.schoolResolution==="accept_new_lec";
+  box.innerHTML='<div class="lec-preview-card"><div class="lec-preview-head"><div><strong>'+esc(preview.fileName)+'</strong><small>แท็บที่ใช้: '+esc(preview.sheetName)+' · '+preview.rows.length+' รายการ</small></div>'+(missing.length||!sourceOk?'<span class="pill danger">ยังนำเข้าไม่ได้</span>':confirmOk?'<span class="pill success">พร้อมนำเข้า</span>':'<span class="pill warning">รอยืนยัน</span>')+'</div><div class="lec-facts"><span>อ่านคอลัมน์ '+preview.headers.length+' ช่อง</span><span>ข้ามแท็บ: '+ignored+'</span><span>SHA-256: '+esc((preview.sha256||"").slice(0,12))+'…</span></div>'+lecSchoolInfoHtml(preview)+(missing.length?'<div class="notice danger">ไม่พบคอลัมน์จำเป็น: '+missing.map(esc).join(", ")+' กรุณาดาวน์โหลดรายงาน LEC รูปแบบ RPT318 ที่ถูกต้องอีกครั้ง</div>':'<div class="notice success">ข้อมูลนักเรียนจะนำเข้าตรงจากไฟล์ LEC ไม่มีช่องแก้ค่าก่อนนำเข้า</div>')+'<div class="table-wrap"><table><thead><tr><th>รหัสนักเรียน</th><th>ชื่อ-สกุล</th><th>เลขประชาชน</th><th>ชั้น</th><th>ห้อง</th></tr></thead><tbody>'+sample+'</tbody></table></div></div>';
+  btn.disabled=missing.length>0||!sourceOk||!confirmOk;
+  const useNew=q("[data-lec-use-new]",box);
+  if(useNew)useNew.addEventListener("click",()=>{preview.schoolResolution="accept_new_lec";renderLecPreview(preview);});
+  const changeChoice=q("[data-lec-change-choice]",box);
+  if(changeChoice)changeChoice.addEventListener("click",()=>{preview.schoolResolution=null;renderLecPreview(preview);});
+  const keepOld=q("[data-lec-keep-old]",box);
+  if(keepOld)keepOld.addEventListener("click",()=>{
+    state.lecPreview=null;
+    const input=q("#lec-file"); if(input)input.value="";
+    box.innerHTML='<div class="notice">คงข้อมูลสถานศึกษาเดิมไว้และยกเลิกไฟล์รอบนี้แล้ว หากต้องการนำเข้า ให้ดาวน์โหลดไฟล์ LEC ที่ถูกต้องหรือเลือกไฟล์ใหม่</div>';
+    btn.disabled=true;
+  });
 }
 function bindLec(){
   const form=q("#lec-import-form"),input=q("#lec-file"); if(!form||!input)return;
@@ -664,6 +737,12 @@ function bindLec(){
     try{
       if(!/\.xlsx?$/i.test(file.name)){throw new Error("รองรับเฉพาะไฟล์ .xls หรือ .xlsx จาก LEC");}
       state.lecPreview=await parseLecFile(file);
+      const school=currentSchool();
+      if(!school)throw new Error("กรุณาเลือกสถานศึกษาก่อน");
+      const schoolCheck=await supabase.rpc("lao_lec_school_check",{p_school_id:school.id,p_metadata:state.lecPreview.metadata});
+      if(schoolCheck.error)throw schoolCheck.error;
+      state.lecPreview.schoolCheck=schoolCheck.data||{};
+      state.lecPreview.schoolResolution=null;
       renderLecPreview(state.lecPreview);
     }catch(e){if(box)box.innerHTML='<div class="notice danger"><strong>อ่านไฟล์ไม่สำเร็จ</strong><br>'+esc(e.message||e)+'</div>';toast(e.message||String(e),"error");}
   });
@@ -671,7 +750,9 @@ function bindLec(){
     e.preventDefault();
     const p=state.lecPreview,school=currentSchool(); if(!p||!school)return;
     if(p.missingRequired.length){toast("โครงสร้างไฟล์ LEC ไม่ครบ","error");return;}
-    if(!confirm("ยืนยันนำเข้าข้อมูลจาก LEC "+p.rows.length+" รายการ? ข้อมูลที่มาจาก LEC จะอัปเดตตามไฟล์ และประวัติเดิมจะไม่ถูกลบ"))return;
+    if(p.schoolCheck&&p.schoolCheck.can_import===false){toast("ข้อมูลสถานศึกษาในไฟล์ไม่ตรงกับโรงเรียนนี้","error");return;}
+    if(p.schoolCheck&&p.schoolCheck.requires_confirmation&&p.schoolResolution!=="accept_new_lec"){toast("กรุณายืนยันว่าจะใช้ข้อมูลสถานศึกษาจาก LEC ใหม่ก่อน","error");return;}
+    if(!confirm("ยืนยันนำเข้าข้อมูลสถานศึกษาและนักเรียนจาก LEC "+p.rows.length+" รายการ? ระบบจะรักษาประวัติเดิมไว้"))return;
     const fd=new FormData(form),btn=q("[data-lec-import]");
     setBusy(btn,true,"กำลังนำเข้า LEC...");
     const res=await supabase.rpc("lao_import_lec_students",{
@@ -680,7 +761,7 @@ function bindLec(){
       p_term_no:Number(fd.get("term_no")),
       p_file_name:p.fileName,p_file_size:p.fileSize,p_file_sha256:p.sha256,
       p_sheet_name:p.sheetName,p_ignored_sheet_count:p.ignoredSheetCount,
-      p_header_map:p.headerMap,p_metadata:p.metadata,p_rows:p.rows
+      p_header_map:p.headerMap,p_metadata:{...p.metadata,...(p.schoolResolution?{school_resolution:p.schoolResolution}:{})},p_rows:p.rows
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
