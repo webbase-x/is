@@ -526,7 +526,7 @@ drop policy if exists "lao students admin read" on public.lao_students;
 create policy "lao students admin read" on public.lao_students
 for select to authenticated using(public.lao_is_platform_admin() or exists(
   select 1 from public.lao_student_school_records ss
-  where ss.student_id=id and public.lao_is_local_school_admin(ss.school_id)
+  where ss.student_id=public.lao_students.id and public.lao_is_local_school_admin(ss.school_id)
 ));
 
 drop policy if exists "lao student school records admin read" on public.lao_student_school_records;
