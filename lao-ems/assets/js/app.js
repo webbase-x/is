@@ -89,7 +89,7 @@ function bindStaticUI(){
   q("#signin-form").addEventListener("submit",signIn);
   q("#signup-form").addEventListener("submit",signUp);
   qa("[data-password-toggle]").forEach(button=>button.addEventListener("click",()=>{
-    const field=button.closest(".password-field");
+    const field=button.closest(".input-with-action, .password-field");
     const input=field&&field.querySelector("[data-password-input]");
     if(!input)return;
     const show=input.type==="password";
