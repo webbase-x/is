@@ -1,52 +1,59 @@
 # LAO-EMS
 
-แพลตฟอร์มสารสนเทศเพื่อการบริหารสถานศึกษาแบบบูรณาการสำหรับสถานศึกษาสังกัดองค์กรปกครองส่วนท้องถิ่น
+**ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น**
 
-## หลักการออกแบบ
+LAO-EMS เป็นแพลตฟอร์มเดียวสำหรับหลายสถานศึกษาในสังกัด อปท. ออกแบบตามแนวคิด **Single Data Entry + Single Source of Truth + Role & Scope Based Access**
 
-- **One Platform, Many Schools** — แพลตฟอร์มเดียว รองรับหลายสถานศึกษา
-- **Single Data Entry** — ข้อมูลเดียวกรอกครั้งเดียวและนำไปใช้ทุกระบบ
-- **Single Source of Truth** — ใช้ข้อมูลต้นทางร่วมกัน ลดข้อมูลซ้ำและข้อมูลไม่ตรงกัน
-- **Role & Scope Based Access** — สิทธิ์ตามบทบาทและขอบเขต อปท./โรงเรียน/ห้องเรียน/รายบุคคล
-- **Google Drive for Files** — ไฟล์จริงอยู่ Google Drive; Supabase เก็บ metadata และสิทธิ์
-- **Audit First** — การแก้ไขข้อมูลสำคัญต้องตรวจสอบย้อนหลังได้
-- **Mobile First** — ใช้งานได้ดีบนโทรศัพท์ แท็บเล็ต และคอมพิวเตอร์
+## โครงสร้างที่ใช้จริง
 
-## Phase 1 — Foundation
+- Frontend: `webbase-x/is/lao-ems/`
+- GitHub Pages: `https://webbase-x.github.io/is/lao-ems/`
+- Supabase: Project `ISSQL`
+- Database objects ของระบบนี้: ใช้คำนำหน้า `lao_` ทั้งหมด
+- Authentication: ใช้ Supabase Auth ของ ISSQL แต่สิทธิ์ LAO-EMS แยกด้วย `lao_memberships`
+- ไฟล์จริง: Google Drive ของแต่ละสถานศึกษา
+- Metadata ไฟล์และสิทธิ์: Supabase
+- ความปลอดภัย: RLS + Role/Scope + Audit log
 
-รอบแรกสร้างเฉพาะโครงสร้างที่ทุกโมดูลต้องใช้ร่วมกัน:
+## Phase 1 ที่ทำแล้ว
 
-1. Application shell และ responsive design
-2. โครงสร้าง อปท. และหลายสถานศึกษา
-3. ปีการศึกษา/ภาคเรียน
-4. ผู้ใช้ บทบาท และสิทธิ์
-5. ระบบลงทะเบียนและการอนุมัติสมาชิก
-6. Audit log
-7. โครงสร้างทะเบียนไฟล์ Google Drive
-8. แบบจำลองข้อมูลพื้นฐานสำหรับการขยายโมดูล
+1. Application shell แบบ responsive
+2. หน้าเข้าสู่ระบบและสมัครบัญชี
+3. โปรไฟล์ LAO-EMS แยกจากระบบเดิม
+4. Membership request: สมัคร → ขอเข้าร่วมโรงเรียน → รออนุมัติ
+5. Role และขอบเขต อปท./โรงเรียน
+6. Platform admin bootstrap model
+7. โครงสร้าง อปท. / สถานศึกษา
+8. ปีการศึกษา / ภาคเรียน
+9. Google Drive connection metadata
+10. File metadata และ Public/Internal/Private visibility
+11. Audit log foundation
+12. RLS สำหรับตาราง LAO-EMS
 
-ยังไม่เปิดใช้งานจริง: คะแนน, ปพ., แบบสอบถาม, SAR, Dashboard ขั้นสูง และ AI
+## ตารางหลัก
 
-## ลำดับโมดูลที่จะพัฒนา
+`lao_organizations`, `lao_schools`, `lao_academic_years`, `lao_terms`, `lao_profiles`, `lao_memberships`, `lao_roles`, `lao_membership_roles`, `lao_platform_admins`, `lao_drive_connections`, `lao_files`, `lao_audit_logs`
 
-1. Core / Auth / Permissions
-2. ข้อมูลองค์กรและสถานศึกษา
-3. บุคลากร
-4. นักเรียนและผู้ปกครอง
-5. หลักสูตร / ระดับชั้น / ห้องเรียน / รายวิชา
-6. ทะเบียนและวัดผล
+## Google Drive
+
+หลักการคือ **หนึ่งโรงเรียน = หนึ่ง Google Drive connection** ไฟล์จริงไม่เก็บใน GitHub และไม่เก็บซ้ำใน Supabase โดย Supabase เก็บเพียง File ID, metadata, relation และ visibility
+
+OAuth/Upload/Preview ของ Google Drive จะทำในขั้นถัดไปผ่าน backend/Edge Function เพื่อไม่เปิดเผย token หรือ secret ใน browser
+
+## ลำดับพัฒนาต่อ
+
+1. ตั้งค่า อปท. และสถานศึกษาแรก
+2. สร้าง Platform Admin คนแรก
+3. Personnel
+4. Students / Guardians
+5. Academic structure
+6. Attendance / Assessment
 7. ปพ. และรายงานผล
-8. เว็บไซต์สถานศึกษา
+8. School Website
 9. Forms / Assignments / Surveys / Tests
-10. ระบบดูแลช่วยเหลือนักเรียน
-11. ประกันคุณภาพ / SAR
-12. Dashboard ระดับโรงเรียนและ อปท.
+10. Student Care
+11. QA / SAR
+12. Dashboards
 13. Smart Search / AI
 
-## สถานะการเชื่อมต่อ
-
-Supabase เป้าหมาย: **LAO-EMS Project**
-
-ขณะเริ่ม Phase 1 โปรเจกต์ดังกล่าวอยู่ในสถานะ Inactive และไม่สามารถ Restore ได้ เนื่องจากบัญชีมี Active Free Projects ครบ 2 โปรเจกต์แล้ว จึงเก็บ migration ไว้ใน repository ก่อน และจะ apply เมื่อฐานข้อมูลพร้อม
-
-> ห้าม commit secret, service-role key, Google OAuth secret หรือ credential ใด ๆ ลง repository
+> ห้าม commit service-role key, Google OAuth client secret, refresh token หรือ credential ลับลง GitHub
