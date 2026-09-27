@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.4.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.4.1";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1755,9 +1755,15 @@ function bindSetup(){
 
   const refresh=q("[data-drive-refresh]");
   if(refresh)refresh.addEventListener("click",async()=>{
-    setBusy(refresh,true,"กำลังตรวจสอบ...");
-    try{await loadSchoolSetupStatus();toast("อัปเดตสถานะ Google Drive แล้ว","success");renderRoute();}
-    catch(e){toast(e.message||String(e),"error");}
+    const school=currentSchool();if(!school)return;
+    setBusy(refresh,true,"กำลังทดสอบ Google Drive...");
+    try{
+      const res=await supabase.functions.invoke("lao-drive-oauth",{body:{school_id:school.id,action:"test"}});
+      if(res.error)throw new Error(await readFunctionError(res.error));
+      await loadSchoolSetupStatus();
+      toast((res.data&&res.data.message)||"Google Drive ใช้งานได้","success");
+      renderRoute();
+    }catch(e){toast(e.message||String(e),"error");}
     finally{setBusy(refresh,false);}
   });
 }
