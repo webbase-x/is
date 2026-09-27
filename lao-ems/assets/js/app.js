@@ -975,14 +975,14 @@ function lecMaskId(v){
 async function lecHtml(){
   const school=currentSchool();
   const onboarding=Boolean(
-    !state.isPlatformAdmin &&
+    state.viewMode==="user" &&
     state.pendingInvitation &&
     state.pendingInvitation.status==="onboarding" &&
     state.pendingInvitation.invitation_mode==="platform_first_admin" &&
     state.pendingInvitation.role_code==="school_admin" &&
     !state.pendingInvitation.school_id
   );
-  const activeSchoolAdmin=Boolean(!state.isPlatformAdmin&&school&&hasRole("school_admin"));
+  const activeSchoolAdmin=Boolean(school&&isSchoolAdminContext());
 
   if(!onboarding&&!activeSchoolAdmin){
     return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>หน้านี้สำหรับ School Admin เท่านั้น</h3><p>ผู้ดูแลสถานศึกษาที่ได้รับการอนุมัติจาก Platform Admin จึงจะสามารถนำเข้าข้อมูล LEC ได้</p><a class="secondary-btn" href="#/overview">กลับหน้าหลัก</a></div></section>';
