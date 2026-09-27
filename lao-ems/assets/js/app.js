@@ -308,7 +308,7 @@ function refreshHeader(){
   qa("[data-view-mode]").forEach(button=>{
     button.classList.toggle("active",button.dataset.viewMode===state.viewMode);
     if(button.dataset.viewMode==="user"){
-      button.textContent=(roleCodes(state.currentMembership).includes("school_admin")||(state.pendingInvitation&&state.pendingInvitation.role_code==="school_admin"))?"School":"User";
+      button.textContent=state.isPlatformAdmin?"School":((roleCodes(state.currentMembership).includes("school_admin")||(state.pendingInvitation&&state.pendingInvitation.role_code==="school_admin"))?"School":"User");
       button.setAttribute("aria-label",button.textContent);
     }else{
       button.textContent="Platform";
@@ -603,7 +603,7 @@ async function usersHtml(){
   const hasAdminRes=await supabase.rpc("lao_school_has_admin",{p_school_id:school.id});
   if(hasAdminRes.error)throw hasAdminRes.error;
   const schoolHasAdmin=hasAdminRes.data===true;
-  const platformMayInvite=state.isPlatformAdmin&&!schoolHasAdmin;
+  const platformMayInvite=false;
 
   const invRes=await supabase.from("lao_user_invitations")
     .select("id,email,role_code,invitation_mode,status,sent_at,accepted_at")
@@ -616,7 +616,7 @@ async function usersHtml(){
   const canInvite=isLocalAdmin||platformMayInvite;
   const inviteForm=canInvite
     ? '<article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">Admin-managed account</p><h2>เชิญผู้ใช้เข้า LAO-EMS</h2><p class="panel-sub">'+(state.isPlatformAdmin?'Platform Admin เชิญเฉพาะ School Admin คนแรกของสถานศึกษาที่มีอยู่แล้ว':'กรอกอีเมลและกำหนดบทบาท ระบบจะส่งลิงก์ยืนยันไปยังอีเมล')+'</p></div></div><form id="invite-user-form" class="form-grid" style="margin-top:18px"><label class="field">อีเมลผู้ใช้<input name="email" type="email" autocomplete="off" required placeholder="name@example.com"></label><label class="field">บทบาท<select name="role_code" required>'+roleOptions.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join("")+'</select></label><div class="span-2 notice">ผู้รับยืนยันอีเมล ตั้งค่าโปรไฟล์ และกำหนดรหัสผ่านของตนเองก่อนใช้งาน</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำเชิญทางอีเมล</button></div></form></article>'
-    : '<article class="panel"><div class="notice"><strong>โรงเรียนมี School Admin แล้ว</strong><br>การสร้างผู้ใช้และผู้ดูแลร่วมเป็นหน้าที่ของ School Admin โรงเรียนนี้ Platform Admin ตรวจสอบได้แต่ไม่สร้างผู้ใช้แทน</div></article>';
+    : '<article class="panel"><div class="notice"><strong>'+((state.isPlatformAdmin&&!schoolHasAdmin)?"การแต่งตั้ง School Admin ต้องผ่านลิงก์และเอกสารยืนยัน":"โรงเรียนมี School Admin แล้ว")+'</strong><br>'+((state.isPlatformAdmin&&!schoolHasAdmin)?"กลับไปมุมมองทุกสถานศึกษา แล้วใช้ “ลิงก์รับคำขอ School Admin” เพื่อให้ผู้สมัครแนบเอกสารก่อนอนุมัติ":"การสร้างผู้ใช้และผู้ดูแลร่วมเป็นหน้าที่ของ School Admin โรงเรียนนี้ Platform Admin ตรวจสอบได้แต่ไม่สร้างผู้ใช้แทน")+'</div></article>';
 
   const rows=(invRes.data||[]).map(x=>{
     const status={pending:["รอยืนยัน","warning"],onboarding:["รอนำเข้า LEC","warning"],accepted:["เปิดใช้งานแล้ว","success"],revoked:["ยกเลิก","neutral"],failed:["ส่งไม่สำเร็จ","danger"]}[x.status]||[x.status,"neutral"];
@@ -1413,7 +1413,8 @@ async function init(){
     sessionStorage.setItem("lao_drive_notice",driveResult==="connected"?"connected":"error");
     if(query.get("message"))sessionStorage.setItem("lao_drive_message",query.get("message"));
   }
-  if(res.data.session)await showApp(res.data.session);else{
+  if(schoolAdminApplyToken())showAuth();
+  else if(res.data.session)await showApp(res.data.session);else{
     showAuth();
     if(sessionStorage.getItem("lao_access_denied_notice")==="1"){
       sessionStorage.removeItem("lao_access_denied_notice");
