@@ -981,16 +981,16 @@ async function parseLecFile(file){
   }).filter(Boolean);
 
   const candidates=allProfiles.filter(x=>x.valid).sort((a,b)=>{
-    const aLegacy=String(a.sheetName).trim().toLowerCase()==="sheet1"?1:0;
-    const bLegacy=String(b.sheetName).trim().toLowerCase()==="sheet1"?1:0;
-    return (b.score+(bLegacy*50000))-(a.score+(aLegacy*50000));
+    const aSheet1=String(a.sheetName).trim().toLowerCase()==="sheet1"?1:0;
+    const bSheet1=String(b.sheetName).trim().toLowerCase()==="sheet1"?1:0;
+    return (b.score+(bSheet1*50000))-(a.score+(aSheet1*50000));
   });
   if(!candidates.length){
     const details=allProfiles.map(x=>x.sheetName+": "+((x.missing&&x.missing.length)?("ขาด "+x.missing.join(", ")):"ไม่พบข้อมูลนักเรียน")).join(" | ");
     throw new Error("ยังไม่พบชีต LEC ที่พร้อมนำเข้า"+(details?" — "+details:""));
   }
   const selected=candidates[0];
-  const legacySampleSheet1=String(selected.sheetName).trim().toLowerCase()==="sheet1";
+  const standardSheet1=String(selected.sheetName).trim().toLowerCase()==="sheet1";
 
   const matrix=selected.matrix,headers=selected.headers,map=selected.map,flat=selected.flat;
   const metadata={...(selected.metadata||lecDetectMetadata(matrix,selected.headerStart,map,flat.dataStart))};
@@ -1029,8 +1029,8 @@ async function parseLecFile(file){
   metadata.header_main_row=selected.headerStart+1;
   metadata.header_sub_row=selected.headerStart+2;
   metadata.data_start_row=flat.dataStart+1;
-  metadata.sheet_selection_rule=legacySampleSheet1?"legacy_sample_sheet1_two_row_merged_header":"content_detected_lec_sheet";
-  metadata.template_status=legacySampleSheet1?"legacy_sample_reference":"detected_from_content";
+  metadata.sheet_selection_rule=standardSheet1?"lec_sheet1_two_row_merged_header":"content_detected_lec_sheet";
+  metadata.template_status=standardSheet1?"lec_standard_format":"detected_from_content";
 
   return {
     fileName:file.name,fileSize:file.size,sha256:await lecSha256(buffer),
@@ -1115,7 +1115,7 @@ function renderLecPreview(preview){
   const ignored=preview.ignoredSheets.length?preview.ignoredSheets.map(esc).join(", "):"ไม่มี";
   const sourceOk=check.can_import!==false;
   const confirmOk=!check.requires_confirmation||preview.schoolResolution==="accept_new_lec";
-  box.innerHTML='<div class="lec-preview-card"><div class="lec-preview-head"><div><strong>'+esc(preview.fileName)+'</strong><small>แท็บที่ใช้: '+esc(preview.sheetName)+' · '+preview.rows.length+' รายการ</small></div>'+(missing.length||!sourceOk?'<span class="pill danger">ยังนำเข้าไม่ได้</span>':confirmOk?'<span class="pill success">พร้อมนำเข้า</span>':'<span class="pill warning">รอยืนยัน</span>')+'</div><div class="lec-period-summary"><div><small>ปีการศึกษา</small><strong>'+esc(preview.metadata.academic_year_be||"-")+'</strong></div><div><small>ภาคเรียน</small><strong>'+(preview.metadata.term_no?("ภาคเรียนที่ "+esc(preview.metadata.term_no)):"-")+'</strong></div><div><small>นักเรียน</small><strong>'+preview.rows.length+' คน</strong></div></div><div class="lec-facts"><span>ชีตข้อมูล: '+esc(preview.sheetName)+'</span><span>'+(preview.metadata.template_status==="legacy_sample_reference"?"รูปแบบตัวอย่าง LEC เดิม · ":"")+'หัวตาราง: แถว '+esc(preview.metadata.header_main_row||"-")+'–'+esc(preview.metadata.header_sub_row||"-")+' · ข้อมูลเริ่มแถว '+esc(preview.metadata.data_start_row||"-")+'</span><span>อ่านคอลัมน์ '+preview.headers.length+' ช่อง</span><span>ข้ามชีต: '+ignored+'</span><span>SHA-256: '+esc((preview.sha256||"").slice(0,12))+'…</span></div>'+lecSchoolInfoHtml(preview)+(missing.length?'<div class="notice danger">ไม่พบคอลัมน์จำเป็น: '+missing.map(esc).join(", ")+' กรุณาดาวน์โหลดรายงาน LEC รูปแบบ RPT318 ที่ถูกต้องอีกครั้ง</div>':'<div class="notice success">สถานศึกษา ปีการศึกษา ภาคเรียน และข้อมูลนักเรียนจะนำเข้าตรงจาก LEC ไม่มีช่องให้กรอกหรือแก้ค่าต้นทางก่อนนำเข้า</div>')+'<div class="table-wrap"><table><thead><tr><th>รหัสนักเรียน</th><th>ชื่อ-สกุล</th><th>เลขประชาชน</th><th>ชั้น</th><th>ห้อง</th></tr></thead><tbody>'+sample+'</tbody></table></div></div>';
+  box.innerHTML='<div class="lec-preview-card"><div class="lec-preview-head"><div><strong>'+esc(preview.fileName)+'</strong><small>แท็บที่ใช้: '+esc(preview.sheetName)+' · '+preview.rows.length+' รายการ</small></div>'+(missing.length||!sourceOk?'<span class="pill danger">ยังนำเข้าไม่ได้</span>':confirmOk?'<span class="pill success">พร้อมนำเข้า</span>':'<span class="pill warning">รอยืนยัน</span>')+'</div><div class="lec-period-summary"><div><small>ปีการศึกษา</small><strong>'+esc(preview.metadata.academic_year_be||"-")+'</strong></div><div><small>ภาคเรียน</small><strong>'+(preview.metadata.term_no?("ภาคเรียนที่ "+esc(preview.metadata.term_no)):"-")+'</strong></div><div><small>นักเรียน</small><strong>'+preview.rows.length+' คน</strong></div></div><div class="lec-facts"><span>ชีตข้อมูล: '+esc(preview.sheetName)+'</span><span>'+(preview.metadata.template_status==="lec_standard_format"?"รูปแบบ LEC มาตรฐาน · ":"")+'หัวตาราง: แถว '+esc(preview.metadata.header_main_row||"-")+'–'+esc(preview.metadata.header_sub_row||"-")+' · ข้อมูลเริ่มแถว '+esc(preview.metadata.data_start_row||"-")+'</span><span>อ่านคอลัมน์ '+preview.headers.length+' ช่อง</span><span>ข้ามชีต: '+ignored+'</span><span>SHA-256: '+esc((preview.sha256||"").slice(0,12))+'…</span></div>'+lecSchoolInfoHtml(preview)+(missing.length?'<div class="notice danger">ไม่พบคอลัมน์จำเป็น: '+missing.map(esc).join(", ")+' กรุณาดาวน์โหลดรายงาน LEC รูปแบบ RPT318 ที่ถูกต้องอีกครั้ง</div>':'<div class="notice success">สถานศึกษา ปีการศึกษา ภาคเรียน และข้อมูลนักเรียนจะนำเข้าตรงจาก LEC ไม่มีช่องให้กรอกหรือแก้ค่าต้นทางก่อนนำเข้า</div>')+'<div class="table-wrap"><table><thead><tr><th>รหัสนักเรียน</th><th>ชื่อ-สกุล</th><th>เลขประชาชน</th><th>ชั้น</th><th>ห้อง</th></tr></thead><tbody>'+sample+'</tbody></table></div></div>';
   btn.disabled=missing.length>0||!sourceOk||!confirmOk;
   const useNew=q("[data-lec-use-new]",box);
   if(useNew)useNew.addEventListener("click",()=>{preview.schoolResolution="accept_new_lec";renderLecPreview(preview);});

@@ -161,5 +161,5 @@ Verification documents are temporarily stored in a private onboarding bucket bec
 Changing an account email or password requires immediate re-authentication with the current email and current password before `auth.updateUser()`. Ordinary profile data can be changed without re-entering the password.
 
 
-### LEC template versioning
-Do not treat the development workbook `Sheet1` layout as a permanent LEC contract. It is a legacy sample. The parser gives that layout a compatibility preference but still selects a valid worksheet by detected content. Source metadata records whether a batch matched the legacy sample or was detected from content. When a current LEC export becomes available, validate its structure before changing canonical mappings or database ownership rules.
+### LEC workbook structure
+The development workbook contains historical-year data, but its file structure matches the current LEC export format. `Sheet1` with a report-title row, two header rows (including merged group headers), and data beginning on row 4 is treated as the standard LEC workbook structure. Content-based worksheet detection remains as a defensive fallback, not as a signal that the provided workbook is obsolete in format.
