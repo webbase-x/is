@@ -55,9 +55,31 @@ Deno.serve(async (req: Request) => {
     const caller = userData.user;
 
     const payload = await req.json().catch(() => ({}));
-    const email = normalizeEmail(payload.email);
-    const schoolId = String(payload.school_id ?? "").trim() || null;
-    const roleCode = String(payload.role_code ?? "").trim();
+    const applicationId = String(payload.application_id ?? "").trim() || null;
+    let email = normalizeEmail(payload.email);
+    let schoolId = String(payload.school_id ?? "").trim() || null;
+    let roleCode = String(payload.role_code ?? "").trim();
+    let reviewedApplication: any = null;
+
+    const { data: callerPlatform, error: platformError } = await admin
+      .from("lao_platform_admins").select("user_id").eq("user_id", caller.id).maybeSingle();
+    if (platformError) throw platformError;
+
+    if (applicationId) {
+      if (!callerPlatform) return json({ error: "เฉพาะ Platform Admin เท่านั้นที่อนุมัติคำขอ School Admin ได้" }, 403);
+      const { data: application, error: applicationError } = await admin
+        .from("lao_school_admin_applications")
+        .select("id,email,status,document_object_path,document_file_name,first_name_th,last_name_th")
+        .eq("id", applicationId)
+        .maybeSingle();
+      if (applicationError) throw applicationError;
+      if (!application || application.status !== "pending") return json({ error: "ไม่พบคำขอที่รอตรวจสอบ" }, 404);
+      if (!application.document_object_path) return json({ error: "คำขอนี้ไม่มีเอกสารยืนยัน" }, 409);
+      reviewedApplication = application;
+      email = normalizeEmail(application.email);
+      schoolId = null;
+      roleCode = "school_admin";
+    }
 
     if (!isEmail(email)) return json({ error: "กรุณาระบุอีเมลที่ถูกต้อง" }, 400);
 
@@ -66,10 +88,6 @@ Deno.serve(async (req: Request) => {
       "teacher", "staff", "student", "guardian"
     ];
     if (!allowedRoles.includes(roleCode)) return json({ error: "บทบาทไม่ถูกต้อง" }, 400);
-
-    const { data: callerPlatform, error: platformError } = await admin
-      .from("lao_platform_admins").select("user_id").eq("user_id", caller.id).maybeSingle();
-    if (platformError) throw platformError;
 
     const { data: schoolAdminRole, error: roleError } = await admin
       .from("lao_roles").select("id").eq("code", "school_admin").single();
@@ -255,17 +273,32 @@ Deno.serve(async (req: Request) => {
       organization_id: school?.organization_id ?? null,
       school_id: schoolId,
       actor_user_id: caller.id,
-      action: pendingInvite ? "user_invitation_resent" : "user_invited",
-      entity_type: "user_invitation",
-      entity_id: invitationId,
+      action: reviewedApplication ? "school_admin_application_approved" : (pendingInvite ? "user_invitation_resent" : "user_invited"),
+      entity_type: reviewedApplication ? "school_admin_application" : "user_invitation",
+      entity_id: reviewedApplication ? reviewedApplication.id : invitationId,
       after_data: {
         email,
         role_code: roleCode,
         invitation_mode: invitationMode,
         delivery,
+        invitation_id: invitationId,
         awaiting_lec_school_binding: !schoolId,
+        verification_document: reviewedApplication?.document_file_name ?? null,
       },
     });
+
+    if (reviewedApplication) {
+      const { error: reviewError } = await admin.from("lao_school_admin_applications")
+        .update({
+          status: "approved",
+          reviewed_by: caller.id,
+          reviewed_at: new Date().toISOString(),
+          review_note: "ตรวจเอกสารแล้วและส่งคำเชิญ School Admin",
+        })
+        .eq("id", reviewedApplication.id)
+        .eq("status", "pending");
+      if (reviewError) throw reviewError;
+    }
 
     return json({
       ok: true,
