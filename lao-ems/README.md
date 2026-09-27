@@ -63,19 +63,20 @@ OAuth/Upload/Preview ของ Google Drive จะทำในขั้นถั
 
 ข้อมูลทางราชการของสถานศึกษาและนักเรียนใช้ไฟล์ที่ดาวน์โหลดจากระบบ LEC เป็นแหล่งต้นทาง:
 - School Admin เป็นผู้ทำรายการนำเข้า XLS/XLSX หลังได้รับอนุมัติ
-- อ่านเฉพาะ worksheet แรก; worksheet อื่น เช่น ปพ.8 ไม่ถูกนำเข้า
+- ไม่ยึด worksheet แรกหรือชื่อ worksheet: ระบบตรวจทุกชีตและเลือกชีตที่มีคอลัมน์ **จังหวัด / อำเภอ / อปท. / สถานศึกษา / เลขประจำตัวนักเรียน / ชื่อ / นามสกุล** ครบ
 - ไม่มีหน้าจอแก้ไขข้อมูลนักเรียนจาก LEC ด้วยมือ
 - ไฟล์รอบใหม่ทำหน้าที่ sync ข้อมูลปัจจุบัน แต่ไม่ลบประวัติเดิม
 - นักเรียนที่ไม่พบในไฟล์รอบล่าสุดถูกทำเครื่องหมาย `not_in_latest_lec` และไม่ถือว่า “ย้ายออก”
 - การย้ายออก/จบ/จำหน่ายจะเป็น workflow งานทะเบียนและเอกสาร ปพ. แยกต่างหาก
-- เก็บ import batch, raw row, canonical row, SHA-256 และ audit trail เพื่อย้อนตรวจสอบแหล่งที่มา
+- ชีตอื่นที่ไม่ตรงโครงสร้าง เช่น `stuent`, ชีตย่อย หรือ ปพ.8 จะถูกข้ามโดยอัตโนมัติ
+- เก็บชื่อชีตที่เลือก, import batch, raw row, canonical row, SHA-256 และ audit trail เพื่อย้อนตรวจสอบแหล่งที่มา
 
 
 ### School data confirmation on recurring LEC imports
 The same LEC file is also used to sync official school details. On first import, the tenant is bound to the school identity found in LEC. On later imports:
 - exact school match → import can continue;
 - same school but official details changed → School Admin must explicitly accept the new LEC values before importing;
-- different LEC school code → import is blocked to prevent cross-school student data;
+- school identity from the selected LEC sheet (province, district, LGO, school, and school code when available) is compared before import;
 - choosing to keep the existing school data cancels that import round rather than mixing old school metadata with new student data.
 
 
