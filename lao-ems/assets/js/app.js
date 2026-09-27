@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.4.1";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.5.0";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:50},isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -14,7 +14,7 @@ const routeMeta={
   users:["ผู้ใช้และสิทธิ์","คำขอเข้าใช้งาน บทบาท และขอบเขตสิทธิ์"],
   lec:["นำเข้าข้อมูล LEC","นำเข้า XLS/XLSX โดยระบบเลือกชีตที่มีข้อมูลสถานศึกษาครบและรักษาประวัติทุกปีการศึกษา"],
   personnel:["บุคลากร","ข้อมูลบุคลากรต้นทางสำหรับทุกระบบ"],
-  students:["นักเรียน","Student master record และความสัมพันธ์ผู้ปกครอง"],
+  students:["นักเรียน","ค้นหาและดูข้อมูลนักเรียนจาก LEC ตามปีการศึกษา ชั้น และห้อง"],
   academics:["วิชาการ","หลักสูตร ชั้นเรียน รายวิชา และครูผู้สอน"],
   assessment:["ทะเบียนและวัดผล","คะแนน ผลการเรียน GPA/GPAX และเอกสารการศึกษา"],
   documents:["เอกสารและไฟล์","Google Drive แยกตามสถานศึกษา พร้อม metadata กลาง"],
@@ -218,6 +218,28 @@ function currentSchool(){
 function currentOrg(){
   if(state.isPlatformAdmin&&state.viewMode==="admin")return state.adminSchool&&state.adminSchool.lao_organizations||null;
   return state.currentMembership&&state.currentMembership.lao_organizations||null;
+}
+function canViewStudentDirectory(){
+  if(state.isPlatformAdmin&&state.viewMode==="admin")return Boolean(currentSchool());
+  const allowed=["organization_admin","organization_viewer","school_admin","school_executive","registrar","academic_officer","teacher","staff"];
+  return Boolean(currentSchool())&&roleCodes().some(code=>allowed.includes(code));
+}
+function shortGrade(value){
+  const v=String(value||"");
+  const m=v.match(/ประถมศึกษาปีที่\s*(\d+)/);if(m)return "ป."+m[1];
+  const k=v.match(/อนุบาล\s*(\d+)/);if(k)return "อ."+k[1];
+  return v||"-";
+}
+function studentPresenceLabel(value){
+  return value==="present"?"กำลังเรียน":value==="not_in_latest_lec"?"ไม่พบใน LEC ล่าสุด":value||"-";
+}
+function registryLabel(value){
+  return ({enrolled:"กำลังศึกษา",transferred_out:"ย้ายออก",graduated:"จบการศึกษา",withdrawn:"ลาออก",deceased:"เสียชีวิต",other:"อื่น ๆ"})[value]||value||"-";
+}
+function thaiDate(value){
+  if(!value)return "-";
+  const d=new Date(value+"T00:00:00");
+  return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"numeric"});
 }
 
 function bindStaticUI(){
@@ -456,6 +478,9 @@ function refreshHeader(){
   const usersLink=q('[data-route="users"]');
   if(usersLink)usersLink.classList.toggle("hidden",!(adminMode||(schoolMode&&schoolSetupReady())));
 
+  const studentLink=q('[data-route="students"][data-student-menu]');
+  if(studentLink)studentLink.classList.toggle("hidden",!canViewStudentDirectory());
+
   const setupLink=q('[data-route="setup"]');
   if(setupLink)setupLink.textContent=adminMode?"⚙ ตั้งค่าระบบ":"⚙ ตั้งค่าสถานศึกษา";
 
@@ -476,7 +501,7 @@ function ensureAdminNavigation(){
   const nav=q(".nav-list");
   if(!nav||nav.querySelector("[data-full-admin]"))return;
   const items=[
-    ["personnel","🪪","บุคลากร"],["students","🎓","นักเรียน"],["academics","📚","วิชาการ"],
+    ["personnel","🪪","บุคลากร"],["academics","📚","วิชาการ"],
     ["assessment","📝","ทะเบียนและวัดผล"],["documents","📄","เอกสารและไฟล์"],
     ["website","🌐","เว็บไซต์สถานศึกษา"],["forms","☑","แบบฟอร์มและงาน"],["reports","📊","รายงานและ Dashboard"]
   ];
@@ -1567,6 +1592,122 @@ function bindLec(){
   });
 }
 
+async function studentsHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>เลือกโรงเรียนจากช่องบริบทด้านซ้ายเพื่อดูข้อมูลนักเรียนจาก LEC</p></div></section>';
+  if(!canViewStudentDirectory())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ดูทะเบียนนักเรียน</h3><p>เมนูนี้เปิดให้ผู้ดูแล ผู้บริหาร งานทะเบียน วิชาการ ครู และบุคลากรที่ได้รับสิทธิ์เท่านั้น</p></div></section>';
+
+  const f=state.studentFilters||{};
+  const res=await supabase.rpc("lao_student_directory",{
+    p_school_id:school.id,
+    p_search:f.search||null,
+    p_year_be:f.year_be?Number(f.year_be):null,
+    p_term_no:f.term_no?Number(f.term_no):null,
+    p_grade_level:f.grade_level||null,
+    p_classroom:f.classroom||null,
+    p_presence:f.presence||null,
+    p_limit:Number(f.limit||50),
+    p_offset:Number(f.offset||0)
+  });
+  if(res.error)throw res.error;
+  const d=res.data||{},items=d.items||[],stats=d.stats||{},filters=d.filters||{};
+  state.studentDirectory=d;
+  if(!f.year_be&&d.selected_year)f.year_be=d.selected_year;
+  if(!f.term_no&&d.selected_term)f.term_no=d.selected_term;
+
+  const option=(value,label,current)=>'<option value="'+esc(value)+'" '+(String(current??"")===String(value)?"selected":"")+'>'+esc(label)+'</option>';
+  const yearOptions=(filters.years||[]).map(y=>option(y,"ปีการศึกษา "+y,d.selected_year)).join("");
+  const termOptions=(filters.terms||[]).map(t=>option(t,"ภาคเรียนที่ "+t,d.selected_term)).join("");
+  const gradeOptions=(filters.grades||[]).map(g=>option(g,shortGrade(g)+" · "+g,f.grade_level)).join("");
+  const roomOptions=(filters.classrooms||[]).map(c=>option(c,"ห้อง "+c,f.classroom)).join("");
+  const rows=items.map((x,i)=>'<tr><td>'+(Number(d.offset||0)+i+1)+'</td><td><strong>'+esc(x.student_no||"-")+'</strong></td><td><strong>'+esc(x.full_name||[x.prefix,x.first_name_th,x.last_name_th].filter(Boolean).join(" "))+'</strong><br><small>'+esc(shortGrade(x.grade_level))+(x.classroom?" / "+esc(x.classroom):"")+'</small></td><td>'+esc(shortGrade(x.grade_level))+'</td><td>'+esc(x.classroom||"-")+'</td><td><span class="pill '+(x.lec_presence_status==="present"?"success":"warning")+'">'+esc(studentPresenceLabel(x.lec_presence_status))+'</span></td><td><button class="secondary-btn compact-btn" type="button" data-student-view="'+esc(x.student_id)+'">ดูข้อมูล</button></td></tr>').join("");
+  const cards=items.map(x=>'<article class="student-mobile-card"><div class="student-card-head"><div><strong>'+esc(x.full_name||[x.prefix,x.first_name_th,x.last_name_th].filter(Boolean).join(" "))+'</strong><small>'+esc(shortGrade(x.grade_level))+(x.classroom?" / ห้อง "+esc(x.classroom):"")+'</small></div><span class="pill '+(x.lec_presence_status==="present"?"success":"warning")+'">'+esc(studentPresenceLabel(x.lec_presence_status))+'</span></div><div class="student-card-meta"><span>เลขประจำตัว <b>'+esc(x.student_no||"-")+'</b></span><span>ข้อมูลจาก LEC</span></div><button class="secondary-btn wide" type="button" data-student-view="'+esc(x.student_id)+'">ดูข้อมูล</button></article>').join("");
+  const total=Number(d.total||0),offset=Number(d.offset||0),limit=Number(d.limit||50),start=total?offset+1:0,end=Math.min(offset+limit,total);
+  const pager='<div class="student-pager"><span>แสดง '+start+'–'+end+' จาก '+total+' คน</span><div><button class="secondary-btn compact-btn" type="button" data-student-page="prev" '+(offset<=0?"disabled":"")+'>ก่อนหน้า</button><button class="secondary-btn compact-btn" type="button" data-student-page="next" '+(offset+limit>=total?"disabled":"")+'>ถัดไป</button></div></div>';
+
+  return '<section class="student-directory">'+
+    '<section class="student-summary-grid">'+
+      '<article><small>นักเรียนในทะเบียน</small><strong>'+Number(stats.school_total||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
+      '<article><small>ปี/ภาคเรียนนี้</small><strong>'+Number(stats.period_total||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
+      '<article><small>กำลังเรียน</small><strong>'+Number(stats.present||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
+      '<article><small>ไม่พบใน LEC ล่าสุด</small><strong>'+Number(stats.not_in_latest||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
+    '</section>'+
+    '<section class="panel student-filter-panel"><div class="panel-head"><div><p class="eyebrow">LEC STUDENT REGISTRY</p><h2>ค้นหานักเรียน</h2><p class="panel-sub">ค้นหาด้วยชื่อ นามสกุล เลขประจำตัวนักเรียน หรือเลขประชาชน โดยระบบไม่แสดงเลขประชาชนเต็มในหน้ารวม</p></div><span class="source-badge">ข้อมูลจาก LEC</span></div>'+
+      '<form id="student-filter-form" class="student-filter-grid">'+
+        '<label class="student-search-field"><span>ค้นหา</span><input name="search" value="'+esc(f.search||"")+'" placeholder="ชื่อ นามสกุล เลขประจำตัว หรือเลขประชาชน" autocomplete="off"></label>'+
+        '<label><span>ปีการศึกษา</span><select name="year_be"><option value="">ล่าสุด</option>'+yearOptions+'</select></label>'+
+        '<label><span>ภาคเรียน</span><select name="term_no"><option value="">ล่าสุด</option>'+termOptions+'</select></label>'+
+        '<label><span>ระดับชั้น</span><select name="grade_level"><option value="">ทุกชั้น</option>'+gradeOptions+'</select></label>'+
+        '<label><span>ห้อง</span><select name="classroom"><option value="">ทุกห้อง</option>'+roomOptions+'</select></label>'+
+        '<label><span>สถานะ</span><select name="presence"><option value="">ทุกสถานะ</option>'+option("present","กำลังเรียน",f.presence)+option("not_in_latest_lec","ไม่พบใน LEC ล่าสุด",f.presence)+'</select></label>'+
+        '<div class="student-filter-actions"><button class="primary-btn" type="submit">ค้นหา</button><button class="secondary-btn" type="button" data-student-reset>ล้างตัวกรอง</button></div>'+
+      '</form>'+
+    '</section>'+
+    '<section class="panel student-list-panel"><div class="student-list-head"><div><h2>รายชื่อนักเรียน</h2><p>'+esc(school.name_th||"")+' · ปีการศึกษา '+esc(d.selected_year||"-")+' · ภาคเรียนที่ '+esc(d.selected_term||"-")+'</p></div><strong>'+total.toLocaleString("th-TH")+' คน</strong></div>'+
+      (items.length?'<div class="student-table-wrap"><table class="student-table"><thead><tr><th>#</th><th>เลขประจำตัว</th><th>ชื่อ–สกุล</th><th>ชั้น</th><th>ห้อง</th><th>สถานะ</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="student-card-list">'+cards+'</div>'+pager:'<div class="empty-state compact-empty"><div class="empty-icon">🔎</div><h3>ไม่พบนักเรียนตามเงื่อนไข</h3><p>ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p></div>')+
+    '</section>'+
+    '<dialog id="student-detail-dialog" class="student-detail-dialog"><div class="student-detail-shell"><div class="dialog-head"><div><p class="eyebrow">ข้อมูลจาก LEC</p><h2>ข้อมูลนักเรียน</h2></div><button class="icon-btn" type="button" data-student-close aria-label="ปิด">×</button></div><div class="student-detail-body"><div class="loading-inline"><span class="spinner"></span>กำลังโหลด...</div></div></div></dialog>'+
+  '</section>';
+}
+
+function bindStudents(){
+  const form=q("#student-filter-form");
+  if(form){
+    form.addEventListener("submit",e=>{
+      e.preventDefault();
+      const fd=new FormData(form);
+      state.studentFilters={
+        ...state.studentFilters,
+        search:String(fd.get("search")||"").trim(),
+        year_be:String(fd.get("year_be")||"")||null,
+        term_no:String(fd.get("term_no")||"")||null,
+        grade_level:String(fd.get("grade_level")||""),
+        classroom:String(fd.get("classroom")||""),
+        presence:String(fd.get("presence")||""),
+        offset:0
+      };
+      renderRoute();
+    });
+    qa("select",form).forEach(select=>select.addEventListener("change",()=>form.requestSubmit()));
+  }
+  const reset=q("[data-student-reset]");
+  if(reset)reset.addEventListener("click",()=>{
+    state.studentFilters={search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:50};
+    renderRoute();
+  });
+  qa("[data-student-page]").forEach(btn=>btn.addEventListener("click",()=>{
+    const d=state.studentDirectory||{},limit=Number(d.limit||50),offset=Number(d.offset||0);
+    state.studentFilters.offset=btn.dataset.studentPage==="next"?offset+limit:Math.max(0,offset-limit);
+    renderRoute();
+  }));
+  const dialog=q("#student-detail-dialog");
+  const close=()=>{if(dialog&&dialog.open)dialog.close();};
+  const closeBtn=q("[data-student-close]");
+  if(closeBtn)closeBtn.addEventListener("click",close);
+  if(dialog)dialog.addEventListener("click",e=>{if(e.target===dialog)close();});
+  qa("[data-student-view]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const school=currentSchool();if(!school||!dialog)return;
+    const body=q(".student-detail-body",dialog);
+    body.innerHTML='<div class="loading-inline"><span class="spinner"></span>กำลังโหลดข้อมูลนักเรียน...</div>';
+    if(!dialog.open)dialog.showModal();
+    const res=await supabase.rpc("lao_student_detail",{p_school_id:school.id,p_student_id:btn.dataset.studentView});
+    if(res.error){body.innerHTML='<div class="notice danger">'+esc(res.error.message)+'</div>';return;}
+    const x=res.data||{},history=(x.enrollments||[]).map(e=>'<tr><td>'+esc(e.year_be||"-")+'</td><td>'+esc(e.term_no||"-")+'</td><td>'+esc(shortGrade(e.grade_level))+'</td><td>'+esc(e.classroom||"-")+'</td><td>'+esc(studentPresenceLabel(e.presence_status))+'</td></tr>').join("");
+    body.innerHTML='<div class="student-detail-hero"><div class="student-detail-avatar">'+esc((x.first_name_th||"น")[0]||"น")+'</div><div><h3>'+esc(x.full_name||"-")+'</h3><p>เลขประจำตัวนักเรียน '+esc(x.student_no||"-")+'</p><span class="source-badge">ข้อมูลจาก LEC</span></div></div>'+
+      '<div class="student-detail-grid">'+
+        '<div><small>เลขประชาชน</small><strong>'+esc(x.citizen_id_masked||"-")+'</strong></div>'+
+        '<div><small>วันเกิด</small><strong>'+esc(thaiDate(x.birth_date))+'</strong></div>'+
+        '<div><small>เชื้อชาติ</small><strong>'+esc(x.race||"-")+'</strong></div>'+
+        '<div><small>สัญชาติ</small><strong>'+esc(x.nationality||"-")+'</strong></div>'+
+        '<div><small>ศาสนา</small><strong>'+esc(x.religion||"-")+'</strong></div>'+
+        '<div><small>วันที่เข้าเรียน</small><strong>'+esc(thaiDate(x.admission_date))+'</strong></div>'+
+        '<div><small>สถานะทะเบียน</small><strong>'+esc(registryLabel(x.registry_status))+'</strong></div>'+
+        '<div><small>สถานะ LEC</small><strong>'+esc(studentPresenceLabel(x.presence_status))+'</strong></div>'+
+      '</div>'+
+      '<div class="student-history"><h3>ประวัติชั้นเรียนที่นำเข้า</h3>'+(history?'<div class="table-wrap"><table><thead><tr><th>ปี</th><th>ภาคเรียน</th><th>ชั้น</th><th>ห้อง</th><th>สถานะ</th></tr></thead><tbody>'+history+'</tbody></table></div>':'<p class="muted">ยังไม่มีประวัติชั้นเรียน</p>')+'</div>';
+  }));
+}
+
 function placeholderHtml(route){
   const meta=routeMeta[route]||routeMeta.overview;
   const phase={personnel:"Phase 2",students:"Phase 2",academics:"Phase 3",assessment:"Phase 4",documents:"Phase 1–5",website:"Phase 5",forms:"Phase 5",reports:"Phase 7"}[route]||"Roadmap";
@@ -1817,6 +1958,7 @@ async function renderRoute(){
     else if(route==="organization"){main.innerHTML=await organizationHtml();bindOrganizationForms();}
     else if(route==="lec"){main.innerHTML=await lecHtml();bindLec();}
     else if(route==="users"){main.innerHTML=await usersHtml();bindInvites();bindPlatformAdminApplications();}
+    else if(route==="students"){main.innerHTML=await studentsHtml();bindStudents();}
     else main.innerHTML=placeholderHtml(route);
   }catch(e){
     console.error(e);
