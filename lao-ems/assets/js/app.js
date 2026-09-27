@@ -94,7 +94,8 @@ function bindStaticUI(){
     if(!input)return;
     const show=input.type==="password";
     input.type=show?"text":"password";
-    button.textContent=show?"🙈":"👁";
+    button.classList.toggle("is-visible",show);
+    button.setAttribute("aria-pressed",String(show));
     button.setAttribute("aria-label",show?"ซ่อนรหัสผ่าน":"แสดงรหัสผ่าน");
   }));
   qa("[data-view-mode]").forEach(button=>button.addEventListener("click",()=>{
