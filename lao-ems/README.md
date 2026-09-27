@@ -57,3 +57,15 @@ OAuth/Upload/Preview ของ Google Drive จะทำในขั้นถั
 13. Smart Search / AI
 
 > ห้าม commit service-role key, Google OAuth client secret, refresh token หรือ credential ลับลง GitHub
+
+
+## LEC Source of Truth
+
+ข้อมูลทางราชการของสถานศึกษาและนักเรียนใช้ไฟล์ที่ดาวน์โหลดจากระบบ LEC เป็นแหล่งต้นทาง:
+- School Admin เป็นผู้ทำรายการนำเข้า XLS/XLSX หลังได้รับอนุมัติ
+- อ่านเฉพาะ worksheet แรก; worksheet อื่น เช่น ปพ.8 ไม่ถูกนำเข้า
+- ไม่มีหน้าจอแก้ไขข้อมูลนักเรียนจาก LEC ด้วยมือ
+- ไฟล์รอบใหม่ทำหน้าที่ sync ข้อมูลปัจจุบัน แต่ไม่ลบประวัติเดิม
+- นักเรียนที่ไม่พบในไฟล์รอบล่าสุดถูกทำเครื่องหมาย `not_in_latest_lec` และไม่ถือว่า “ย้ายออก”
+- การย้ายออก/จบ/จำหน่ายจะเป็น workflow งานทะเบียนและเอกสาร ปพ. แยกต่างหาก
+- เก็บ import batch, raw row, canonical row, SHA-256 และ audit trail เพื่อย้อนตรวจสอบแหล่งที่มา

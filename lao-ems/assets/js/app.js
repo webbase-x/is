@@ -1,6 +1,6 @@
 import { supabase } from "./supabase.js";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],isPlatformAdmin:false,viewMode:"user"};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],lecPreview:null,isPlatformAdmin:false,viewMode:"user"};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -9,6 +9,7 @@ const routeMeta={
   setup:["ตั้งค่าพื้นฐาน","ปีการศึกษา ภาคเรียน และสถานะการเชื่อมระบบ"],
   organization:["อปท. และสถานศึกษา","โครงสร้างองค์กรและโรงเรียนในแพลตฟอร์ม"],
   users:["ผู้ใช้และสิทธิ์","คำขอเข้าใช้งาน บทบาท และขอบเขตสิทธิ์"],
+  lec:["นำเข้าข้อมูล LEC","นำเข้า XLS/XLSX จากระบบ LEC โดยใช้เฉพาะแท็บแรกและรักษาประวัติทุกปีการศึกษา"],
   personnel:["บุคลากร","ข้อมูลบุคลากรต้นทางสำหรับทุกระบบ"],
   students:["นักเรียน","Student master record และความสัมพันธ์ผู้ปกครอง"],
   academics:["วิชาการ","หลักสูตร ชั้นเรียน รายวิชา และครูผู้สอน"],
@@ -203,7 +204,7 @@ async function loadSchools(orgId){
 async function loadAdminSchools(){
   if(!state.isPlatformAdmin){state.adminSchools=[];state.adminSchool=null;return;}
   const res=await supabase.from("lao_schools")
-    .select("id,organization_id,code,name_th,name_en,short_name,slug,phone,email,website_url,address_text,is_active,lao_organizations(id,name_th,name_en)")
+    .select("id,organization_id,code,name_th,name_en,short_name,slug,phone,email,website_url,address_text,is_active,source_system,lec_synced_at,lec_source_file_name,lao_organizations(id,name_th,name_en)")
     .order("name_th");
   if(res.error)throw res.error;
   state.adminSchools=res.data||[];
@@ -257,6 +258,9 @@ function refreshHeader(){
   const adminMode=state.isPlatformAdmin&&state.viewMode==="admin";
   qa("[data-admin-menu]").forEach(item=>{
     item.classList.toggle("hidden",!(adminMode||(!state.isPlatformAdmin&&hasRole("organization_admin","school_admin"))));
+  });
+  qa("[data-lec-menu]").forEach(item=>{
+    item.classList.toggle("hidden",!(adminMode||(!state.isPlatformAdmin&&hasRole("school_admin"))));
   });
 
   const notif=q("[data-notification-count]");
@@ -319,9 +323,9 @@ function adminOverviewHtml(){
   '<article class="stat-card"><span class="stat-icon">⏳</span><div><small>คำขอรออนุมัติ</small><strong>'+pending+'</strong><p>ตรวจสอบจากเมนูผู้ใช้และสิทธิ์</p></div></article>'+
   '<article class="stat-card"><span class="stat-icon">🗂️</span><div><small>ไฟล์</small><strong>Google Drive</strong><p>แยก Drive ตามแต่ละสถานศึกษา</p></div></article></section>'+
   '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">System setup</p><h2>งานของผู้ดูแลหลัก</h2></div></div><ol class="setup-list">'+
-  '<li><span>1</span><div><strong>อปท. และสถานศึกษา</strong><small>เพิ่ม/แก้ไขโครงสร้างองค์กรและโรงเรียน</small></div><em>จัดการได้</em></li>'+
+  '<li><span>1</span><div><strong>อปท. และสถานศึกษา</strong><small>สร้างพื้นที่โรงเรียนและใช้ LEC เป็นข้อมูลทางราชการต้นทาง</small></div><em>จัดการได้</em></li>'+
   '<li><span>2</span><div><strong>ผู้ใช้และสิทธิ์</strong><small>ตรวจคำขอ อนุมัติ และกำหนดบทบาท</small></div><em>จัดการได้</em></li>'+
-  '<li><span>3</span><div><strong>ปีการศึกษาและภาคเรียน</strong><small>ตั้งค่าพื้นฐานก่อนเริ่มข้อมูลวิชาการ</small></div><em>จัดการได้</em></li>'+
+  '<li><span>3</span><div><strong>นำเข้าข้อมูล LEC</strong><small>School Admin นำเข้า XLS/XLSX และระบบสร้างประวัติปี/ภาคเรียนอัตโนมัติ</small></div><em>Source of Truth</em></li>'+
   '<li><span>4</span><div><strong>Google Drive</strong><small>เชื่อมบัญชีแยกตามโรงเรียน</small></div><em>ขั้นถัดไป</em></li></ol></article>'+
   '<article class="panel"><div class="panel-head"><div><p class="eyebrow">System status</p><h2>สถานะทางเทคนิค</h2></div></div><ul class="status-list">'+
   '<li><span>✓</span><div><strong>Supabase ISSQL</strong><small>ใช้ namespace lao_ แยกจากระบบเดิม</small></div><span class="pill success">พร้อม</span></li>'+
@@ -374,60 +378,34 @@ function membershipHtml(){
 
 function setupHtml(){
   const school=currentSchool();
-  const canAdmin=school&&hasRole("platform_admin","organization_admin","school_admin");
-  const form=canAdmin?'<form id="year-form" class="form-grid" style="margin-top:18px"><label class="field">ปีการศึกษา พ.ศ.<input name="year_be" type="number" min="2400" max="2800" required placeholder="2570"></label><label class="field">สถานะ<select name="is_current"><option value="false">ปีทั่วไป</option><option value="true">ปีการศึกษาปัจจุบัน</option></select></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่มปีการศึกษา</button></div></form>':'<div class="empty-state" style="margin-top:18px"><div class="empty-icon">🗓</div><h3>ยังไม่เปิดการตั้งค่า</h3><p>ต้องมีสิทธิ์ผู้ดูแลสถานศึกษาและเลือกสถานศึกษาก่อน</p></div>';
-  return '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">Foundation</p><h2>สถานะระบบพื้นฐาน</h2></div></div><ul class="status-list"><li><span>✓</span><div><strong>Supabase ISSQL</strong><small>ใช้ฐานเดิมโดยแยกด้วย lao_</small></div><span class="pill success">พร้อม</span></li><li><span>✓</span><div><strong>Authentication</strong><small>บัญชีกลาง + Membership ของ LAO-EMS</small></div><span class="pill success">พร้อม</span></li><li><span>✓</span><div><strong>RLS</strong><small>ตรวจสิทธิ์ตาม อปท. และสถานศึกษา</small></div><span class="pill success">พร้อม</span></li><li><span>→</span><div><strong>Google Drive</strong><small>'+(school?"จะเชื่อม Drive ของ "+esc(school.name_th):"เลือกสถานศึกษาก่อนเชื่อม Drive")+'</small></div><span class="pill warning">รอเชื่อม</span></li></ul></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">Academic calendar</p><h2>ปีการศึกษาและภาคเรียน</h2></div></div>'+form+'</article></section>';
+  return '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">Source of truth</p><h2>ข้อมูลโรงเรียนและนักเรียนมาจาก LEC เท่านั้น</h2></div></div><ul class="status-list"><li><span>✓</span><div><strong>LEC เป็นข้อมูลต้นทาง</strong><small>ไม่มีการแก้ไขข้อมูลนักเรียนหรือข้อมูลทางราชการของโรงเรียนด้วยมือใน LAO-EMS</small></div><span class="pill success">บังคับใช้</span></li><li><span>✓</span><div><strong>ปีการศึกษา / ภาคเรียน</strong><small>ระบบสร้างโครงสร้างปีและภาคเรียนจากรอบที่นำเข้า LEC โดยอัตโนมัติ</small></div><span class="pill success">อัตโนมัติ</span></li><li><span>✓</span><div><strong>ประวัติไม่ถูกลบ</strong><small>นักเรียนที่หายจาก LEC รอบใหม่จะเป็น “ไม่พบใน LEC รอบล่าสุด” ไม่ใช่ย้ายออก</small></div><span class="pill success">รักษาประวัติ</span></li><li><span>→</span><div><strong>Google Drive</strong><small>'+(school?"ไฟล์ต้นฉบับของ "+esc(school.name_th)+" จะเชื่อมเก็บใน Drive เมื่อโมดูล Drive เปิดใช้งาน":"เลือกสถานศึกษาเพื่อดูบริบท")+'</small></div><span class="pill warning">รอเชื่อม</span></li></ul></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC import</p><h2>การปรับข้อมูล</h2></div></div><div class="notice">หากข้อมูลใน LAO-EMS ไม่ตรงกับข้อมูลจริง ให้แก้ที่ <strong>LEC</strong> แล้วดาวน์โหลด XLS/XLSX รอบใหม่มานำเข้า ไม่แก้ค่าต้นทางใน LAO-EMS โดยตรง</div><div class="action-row"><a class="primary-btn" href="#/lec">ไปหน้านำเข้าข้อมูล LEC</a></div></article></section>';
 }
 
 async function organizationHtml(){
   const res=await supabase.from("lao_schools")
-    .select("id,name_th,name_en,short_name,code,slug,organization_id,phone,email,website_url,address_text,is_active,lao_organizations(id,name_th)")
+    .select("id,name_th,name_en,code,slug,organization_id,is_active,source_system,lec_synced_at,lec_source_file_name,lao_organizations(id,name_th)")
     .order("name_th");
   if(res.error)throw res.error;
   const schools=res.data||[];
   state.orgSchools=schools;
 
-  const cr=await supabase.from("lao_change_requests")
-    .select("id,school_id,before_data,proposed_data,reason,status,requested_at,reviewed_at,review_note,lao_schools(name_th)")
-    .order("created_at",{ascending:false}).limit(50);
-  if(cr.error)throw cr.error;
-  const changes=cr.data||[];
-
   let manage="";
   if(state.isPlatformAdmin){
-    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Platform setup</p><h2>เพิ่มองค์กรปกครองส่วนท้องถิ่น</h2><p class="panel-sub">Platform Admin ดูแลโครงสร้างส่วนกลาง ส่วนการบริหารสมาชิกประจำวันเป็นหน้าที่ของแต่ละโรงเรียน</p></div></div><form id="organization-form" class="form-grid" style="margin-top:18px"><label class="field">ชื่อ อปท. (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">รหัสหน่วยงาน<input name="code"></label><label class="field">ประเภท<select name="organization_type"><option value="municipality">เทศบาล</option><option value="pao">องค์การบริหารส่วนจังหวัด</option><option value="sao">องค์การบริหารส่วนตำบล</option><option value="special_local_government">องค์กรปกครองส่วนท้องถิ่นรูปแบบพิเศษ</option><option value="local_government">อื่น ๆ</option></select></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่ม อปท.</button></div></form></article>';
-  }
-  if(state.isPlatformAdmin||hasRole("organization_admin")){
+    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Platform setup</p><h2>องค์กรปกครองส่วนท้องถิ่น</h2><p class="panel-sub">โครงสร้าง อปท. เป็นการตั้งค่าระดับแพลตฟอร์ม ส่วนข้อมูลทางราชการของโรงเรียนและนักเรียนใช้ LEC เป็นแหล่งต้นทาง</p></div></div><form id="organization-form" class="form-grid" style="margin-top:18px"><label class="field">ชื่อ อปท. (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">รหัสหน่วยงาน<input name="code"></label><label class="field">ประเภท<select name="organization_type"><option value="municipality">เทศบาล</option><option value="pao">องค์การบริหารส่วนจังหวัด</option><option value="sao">องค์การบริหารส่วนตำบล</option><option value="special_local_government">องค์กรปกครองส่วนท้องถิ่นรูปแบบพิเศษ</option><option value="local_government">อื่น ๆ</option></select></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่ม อปท.</button></div></form></article>';
     const opts=state.organizations.map(o=>'<option value="'+o.id+'">'+esc(o.name_th)+'</option>').join("");
-    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">School setup</p><h2>เพิ่มสถานศึกษา</h2><p class="panel-sub">เมื่อสร้างโรงเรียนแล้ว ผู้ใช้คนแรกที่ขอเป็นผู้ดูแลสถานศึกษาจะรอ Platform Admin อนุมัติ</p></div></div><form id="school-form" class="form-grid" style="margin-top:18px"><label class="field">อปท.<select name="organization_id" required><option value="">เลือก อปท.</option>'+opts+'</select></label><label class="field">รหัสสถานศึกษา<input name="code"></label><label class="field">ชื่อสถานศึกษา (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">ชื่อย่อ<input name="short_name"></label><label class="field">Slug<input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required placeholder="t1-nakhonnok"></label><div class="span-2"><button class="primary-btn" type="submit">เพิ่มสถานศึกษา</button></div></form></article>';
+    manage+='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Tenant setup</p><h2>สร้างพื้นที่สถานศึกษา</h2><p class="panel-sub">ขั้นตอนนี้สร้างเพียงพื้นที่ (tenant) เพื่อแต่งตั้ง School Admin คนแรก ข้อมูลทางราชการจริงจะมาจากไฟล์ LEC หลัง School Admin ได้รับอนุมัติ</p></div></div><form id="school-form" class="form-grid" style="margin-top:18px"><label class="field">อปท.<select name="organization_id" required><option value="">เลือก อปท.</option>'+opts+'</select></label><label class="field">ชื่อที่ใช้ระบุพื้นที่โรงเรียน<input name="name_th" required placeholder="ใช้เพื่อระบุโรงเรียนก่อนเชื่อม LEC"></label><label class="field span-2">Slug<input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required placeholder="t1-nakhonnok"></label><div class="span-2 notice">หลังนำเข้า LEC แล้ว ข้อมูลที่ LEC เป็นเจ้าของจะถูกล็อก ไม่แก้ไขด้วยมือใน LAO-EMS</div><div class="span-2"><button class="primary-btn" type="submit">สร้างพื้นที่สถานศึกษา</button></div></form></article>';
   }
 
   const rows=schools.map(s=>{
-    const localCanEdit=!state.isPlatformAdmin&&currentSchool()&&currentSchool().id===s.id&&hasRole("school_admin");
-    let actions='-';
-    if(state.isPlatformAdmin){
-      actions='<div class="action-row compact"><button class="secondary-btn" data-school-edit="'+s.id+'" data-mode="proposal">เสนอแก้ไข</button><button class="danger-outline-btn" data-school-edit="'+s.id+'" data-mode="emergency">แก้ฉุกเฉิน</button></div>';
-    }else if(localCanEdit){
-      actions='<button class="secondary-btn" data-school-edit="'+s.id+'" data-mode="direct">แก้ไขข้อมูล</button>';
-    }
-    return '<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.name_en||"")+'</small></td><td><code>'+esc(s.slug)+'</code></td><td><span class="pill '+(s.is_active?"success":"neutral")+'">'+(s.is_active?"ใช้งาน":"ปิดใช้งาน")+'</span></td><td>'+actions+'</td></tr>';
+    const synced=s.source_system==="LEC"&&s.lec_synced_at;
+    const source=synced?'<span class="pill success">LEC</span>':'<span class="pill warning">รอนำเข้า LEC</span>';
+    const last=s.lec_synced_at?new Date(s.lec_synced_at).toLocaleString("th-TH"):"ยังไม่เคยนำเข้า";
+    return '<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.code||"")+'</small></td><td><code>'+esc(s.slug)+'</code></td><td>'+source+'<br><small>'+esc(last)+'</small></td><td><button class="secondary-btn" data-school-lec="'+s.id+'">ดูข้อมูล LEC</button></td></tr>';
   }).join("");
   const list=schools.length
-    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">Multi-school</p><h2>องค์กรและสถานศึกษาในระบบ</h2><p class="panel-sub">Platform Admin เข้าถึงได้ทุกโรงเรียน แต่การแก้ไขข้อมูลโรงเรียนใช้กระบวนการเสนอ → โรงเรียนอนุมัติเป็นค่าเริ่มต้น</p></div></div><div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>Slug</th><th>สถานะ</th><th>ดำเนินการ</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>'
-    : '<article class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>เพิ่ม อปท. และสถานศึกษาเพื่อเริ่มใช้งานระบบหลายโรงเรียน</p></div></article>';
-
-  const pending=changes.filter(x=>x.status==="pending");
-  const changeRows=changes.map(x=>{
-    const canReview=!state.isPlatformAdmin&&currentSchool()&&currentSchool().id===x.school_id&&hasRole("school_admin")&&x.status==="pending";
-    const statusLabel={pending:"รอตรวจสอบ",approved:"อนุมัติแล้ว",rejected:"ปฏิเสธ",cancelled:"ยกเลิก"}[x.status]||x.status;
-    const action=canReview?'<div class="action-row compact"><button class="primary-btn" data-change-approve="'+x.id+'">ยอมรับ</button><button class="danger-btn" data-change-reject="'+x.id+'">ปฏิเสธ</button></div>':'<span class="pill '+(x.status==="approved"?"success":x.status==="rejected"?"danger":x.status==="pending"?"warning":"neutral")+'">'+statusLabel+'</span>';
-    return '<tr><td><strong>'+esc(x.lao_schools&&x.lao_schools.name_th||"-")+'</strong><br><small>'+new Date(x.requested_at).toLocaleString("th-TH")+'</small></td><td>'+esc(x.reason)+'</td><td>'+action+'</td></tr>';
-  }).join("");
-  const changePanel=changes.length?'<article class="panel"><div class="panel-head"><div><p class="eyebrow">Change approval</p><h2>ข้อเสนอแก้ไขข้อมูลสถานศึกษา</h2><p class="panel-sub">'+(state.isPlatformAdmin?"ติดตามข้อเสนอที่ส่งให้โรงเรียนพิจารณา":"ตรวจสอบข้อเสนอจาก Platform Admin ก่อนนำไปใช้จริง")+'</p></div><span class="counter">'+pending.length+' รอตรวจสอบ</span></div><div class="table-wrap"><table><thead><tr><th>สถานศึกษา / เวลา</th><th>เหตุผล</th><th>สถานะ / ดำเนินการ</th></tr></thead><tbody>'+changeRows+'</tbody></table></div></article>':'';
-
-  const dialog='<dialog id="school-edit-dialog" class="edit-dialog"><form id="school-edit-form" method="dialog"><div class="dialog-head"><div><p class="eyebrow" data-school-edit-eyebrow>School data</p><h2 data-school-edit-title>แก้ไขข้อมูลสถานศึกษา</h2></div><button type="button" class="icon-btn" data-dialog-close aria-label="ปิด">×</button></div><input type="hidden" name="school_id"><input type="hidden" name="mode"><div class="form-grid"><label class="field">รหัสสถานศึกษา<input name="code"></label><label class="field">ชื่อสถานศึกษา (ไทย)<input name="name_th" required></label><label class="field">ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="field">ชื่อย่อ<input name="short_name"></label><label class="field">โทรศัพท์<input name="phone"></label><label class="field">อีเมล<input name="email" type="email"></label><label class="field span-2">เว็บไซต์<input name="website_url" type="url"></label><label class="field span-2">ที่อยู่<textarea name="address_text" rows="3"></textarea></label><label class="field span-2" data-reason-field>เหตุผล<textarea name="reason" rows="3" placeholder="ระบุเหตุผลเพื่อใช้ใน Audit Log และการพิจารณา"></textarea></label></div><div class="dialog-actions"><button type="button" class="secondary-btn" data-dialog-close>ยกเลิก</button><button type="submit" class="primary-btn" data-school-save>บันทึก</button></div></form></dialog>';
-
-  return '<section class="content-grid">'+manage+list+changePanel+'</section>'+dialog;
+    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">Source-controlled schools</p><h2>สถานศึกษาในระบบ</h2><p class="panel-sub">ไม่มีปุ่มแก้ไขข้อมูล LEC หากข้อมูลผิดให้แก้ในระบบ LEC แล้วนำเข้าไฟล์ใหม่</p></div></div><div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>Slug</th><th>ข้อมูลต้นทาง</th><th>ดำเนินการ</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>'
+    : '<article class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>ยังไม่มีสถานศึกษา</h3><p>Platform Admin สร้างพื้นที่สถานศึกษาก่อนเพื่อให้สามารถแต่งตั้ง School Admin คนแรกได้</p></div></article>';
+  return '<section class="content-grid">'+manage+list+'</section>';
 }
 
 async function usersHtml(){
@@ -467,7 +445,249 @@ function notificationsHtml(){
     const unread=!n.read_at;
     return '<article class="notification-card '+(unread?"unread":"")+'"><div class="notification-icon">🔔</div><div class="notification-copy"><div class="notification-title"><strong>'+esc(n.title)+'</strong>'+(unread?'<span class="pill warning">ใหม่</span>':'')+'</div><p>'+esc(n.body||"")+'</p><small>'+new Date(n.created_at).toLocaleString("th-TH")+'</small></div>'+(unread?'<button class="secondary-btn" data-notification-read="'+n.id+'">ทำเครื่องหมายว่าอ่านแล้ว</button>':'')+'</article>';
   }).join("");
-  return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">Notifications</p><h2>การแจ้งเตือน</h2><p class="panel-sub">แจ้งคำขอสมาชิก การแต่งตั้งผู้ดูแล และข้อเสนอแก้ไขข้อมูลสถานศึกษา</p></div></div>'+(rows?'<div class="notification-list">'+rows+'</div>':'<div class="empty-state"><div class="empty-icon">🔔</div><h3>ยังไม่มีการแจ้งเตือน</h3><p>เมื่อมีรายการที่ต้องดำเนินการ ระบบจะแสดงที่นี่</p></div>')+'</section>';
+  return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">Notifications</p><h2>การแจ้งเตือน</h2><p class="panel-sub">แจ้งคำขอสมาชิก การแต่งตั้งผู้ดูแล และเหตุการณ์สำคัญของระบบ</p></div></div>'+(rows?'<div class="notification-list">'+rows+'</div>':'<div class="empty-state"><div class="empty-icon">🔔</div><h3>ยังไม่มีการแจ้งเตือน</h3><p>เมื่อมีรายการที่ต้องดำเนินการ ระบบจะแสดงที่นี่</p></div>')+'</section>';
+}
+
+function lecHeaderText(v){return String(v==null?"":v).replace(/\u00a0/g," ").replace(/\s+/g," ").trim();}
+function lecHeaderNorm(v){return lecHeaderText(v).replace(/[\s\/\\:;,.()\[\]{}\-_–—]/g,"").toLowerCase();}
+function lecCellText(cell){
+  if(cell==null)return "";
+  if(typeof cell==="string")return cell.trim();
+  if(typeof cell==="number")return String(cell);
+  if(cell instanceof Date){
+    const d=String(cell.getDate()).padStart(2,"0"),m=String(cell.getMonth()+1).padStart(2,"0");
+    const y=cell.getFullYear()+543;
+    return d+"/"+m+"/"+y;
+  }
+  return String(cell).trim();
+}
+function lecWorksheetMatrix(ws){
+  if(!ws||!ws["!ref"])return [];
+  const range=XLSX.utils.decode_range(ws["!ref"]);
+  const maxRows=Math.min(range.e.r+1,12000),maxCols=Math.min(range.e.c+1,180);
+  const matrix=Array.from({length:maxRows},()=>Array(maxCols).fill(""));
+  for(let r=0;r<maxRows;r++)for(let col=0;col<maxCols;col++){
+    const cell=ws[XLSX.utils.encode_cell({r,col})];
+    if(cell)matrix[r][col]=lecCellText(cell.w!=null?cell.w:cell.v);
+  }
+  (ws["!merges"]||[]).forEach(m=>{
+    if(m.s.r>=maxRows||m.s.c>=maxCols)return;
+    const value=matrix[m.s.r][m.s.c];
+    if(!value)return;
+    for(let r=m.s.r;r<=Math.min(m.e.r,maxRows-1);r++){
+      for(let col=m.s.c;col<=Math.min(m.e.c,maxCols-1);col++)matrix[r][col]=value;
+    }
+  });
+  return matrix;
+}
+function lecFindHeaderStart(matrix){
+  const limit=Math.min(matrix.length,50);
+  for(let r=0;r<limit;r++){
+    const n=matrix[r].map(lecHeaderNorm);
+    if(n.some(x=>x.includes("ลำดับที่"))&&n.some(x=>x.includes("เลขประจำตัวนักเรียน")))return r;
+  }
+  return -1;
+}
+function lecFlattenHeaders(matrix,start){
+  let studentNoCol=-1;
+  for(let r=start;r<Math.min(matrix.length,start+5);r++){
+    const c=matrix[r].findIndex(v=>lecHeaderNorm(v).includes("เลขประจำตัวนักเรียน"));
+    if(c>=0){studentNoCol=c;break;}
+  }
+  if(studentNoCol<0)throw new Error("ไม่พบคอลัมน์เลขประจำตัวนักเรียน");
+  let dataStart=-1;
+  for(let r=start+1;r<Math.min(matrix.length,start+12);r++){
+    const sid=lecHeaderText(matrix[r][studentNoCol]);
+    const first=lecHeaderText(matrix[r][0]);
+    if(sid&&(!lecHeaderNorm(sid).includes("เลขประจำตัวนักเรียน"))&&(/^\d+$/.test(first)||/^\d+$/.test(sid))){
+      dataStart=r;break;
+    }
+  }
+  if(dataStart<0)dataStart=start+2;
+  const colCount=Math.max(...matrix.slice(start,Math.min(dataStart+1,matrix.length)).map(row=>row.length),0);
+  const headers=[];
+  for(let col=0;col<colCount;col++){
+    const parts=[];
+    for(let r=start;r<dataStart;r++){
+      const v=lecHeaderText(matrix[r][col]);
+      if(v&&!parts.includes(v))parts.push(v);
+    }
+    headers.push(parts.join(" / ")||("คอลัมน์ "+(col+1)));
+  }
+  return {headers,dataStart,studentNoCol};
+}
+function lecFindCol(headers,{include=[],exclude=[]}){
+  const inc=include.map(lecHeaderNorm),exc=exclude.map(lecHeaderNorm);
+  return headers.findIndex(h=>{
+    const n=lecHeaderNorm(h);
+    return inc.every(x=>n.includes(x))&&!exc.some(x=>n.includes(x));
+  });
+}
+function lecBuildMap(headers){
+  const map={};
+  const topExclude=["บิดา","มารดา","ผู้ปกครอง","ที่อยู่ตามทะเบียนบ้าน","ที่อยู่ปัจจุบัน"];
+  const put=(key,include,exclude=[])=>{const x=lecFindCol(headers,{include,exclude});if(x>=0)map[key]=x;};
+  put("student_no",["เลขประจำตัวนักเรียน"]);
+  put("prefix",["คำนำหน้า"],topExclude);
+  put("first_name_th",["ชื่อ"],["บิดา","มารดา","ผู้ปกครอง","ชื่อเรื่อง"]);
+  put("last_name_th",["นามสกุล"],topExclude);
+  put("birth_date",["วันเดือนปี","เกิด"]);
+  put("race",["เชื้อชาติ"]);
+  put("nationality",["สัญชาติ"]);
+  put("religion",["ศาสนา"],["บิดา","มารดา","ผู้ปกครอง"]);
+  put("citizen_id",["เลขประจำตัวประช"]);
+  put("admission_date",["วันเดือนปี","เข้าศึกษา"]);
+  put("height_cm",["ส่วนสูง"]);
+  put("weight_kg",["น้ำหนัก"]);
+  put("student_condition",["สภาพนักเรียน"]);
+  put("family_status",["สถานภาพ"]);
+  put("tuition_reimbursement",["สิทธิการเบิกค่าเล่าเรียน"]);
+  put("medical_reimbursement",["สิทธิการเบิกค่ารักษาพยาบาล"]);
+  let x=lecFindCol(headers,{include:["ระดับชั้น"]}); if(x<0)x=lecFindCol(headers,{include:["ชั้น"],exclude:["คำนำหน้า"]}); if(x>=0)map.grade_level=x;
+  x=lecFindCol(headers,{include:["ห้องเรียน"]}); if(x<0)x=lecFindCol(headers,{include:["ห้อง"]}); if(x>=0)map.classroom=x;
+
+  for(const [group,key] of [["บิดา","father"],["มารดา","mother"],["ผู้ปกครอง","guardian"]]){
+    for(const [field,labels] of [["prefix",["คำนำหน้า"]],["first_name",["ชื่อ"]],["last_name",["นามสกุล"]],["religion",["ศาสนา"]],["occupation",["อาชีพ"]],["monthly_income",["รายได้"]],["phone",["เบอร์โทร"]],["relationship",["ความเกี่ยวข้อง"]]]){
+      const col=lecFindCol(headers,{include:[group,...labels]}); if(col>=0)map[key+"."+field]=col;
+    }
+  }
+  for(const [group,key] of [["ที่อยู่ตามทะเบียนบ้าน","registered_address"],["ที่อยู่ปัจจุบัน","current_address"]]){
+    for(const [field,labels] of [["house_no",["เลขที่"]],["moo",["หมู่ที่"]],["road",["ถนน"]],["subdistrict",["ตำบล"]],["district",["อำเภอ"]],["province",["จังหวัด"]],["postal_code",["รหัสไปรษณีย์"]]]){
+      const col=lecFindCol(headers,{include:[group,...labels]}); if(col>=0)map[key+"."+field]=col;
+    }
+  }
+  return map;
+}
+function lecRowObject(headers,row){
+  const out={},used={};
+  headers.forEach((h,idx)=>{
+    let k=h||("คอลัมน์ "+(idx+1)); used[k]=(used[k]||0)+1;
+    if(used[k]>1)k=k+" ["+used[k]+"]";
+    out[k]=lecCellText(row[idx]);
+  });
+  return out;
+}
+function lecMappedValue(row,map,key){
+  const col=map[key]; return col==null?undefined:lecCellText(row[col]);
+}
+function lecBuildCanonical(row,map){
+  const c={};
+  const set=(key)=>{const v=lecMappedValue(row,map,key);if(v!==undefined)c[key]=v;};
+  ["student_no","prefix","first_name_th","last_name_th","birth_date","race","nationality","religion","citizen_id","admission_date","height_cm","weight_kg","student_condition","family_status","tuition_reimbursement","medical_reimbursement","grade_level","classroom"].forEach(set);
+  for(const group of ["father","mother","guardian"]){
+    const o={};
+    for(const field of ["prefix","first_name","last_name","religion","occupation","monthly_income","phone","relationship"]){
+      const v=lecMappedValue(row,map,group+"."+field); if(v!==undefined)o[field]=v;
+    }
+    if(Object.values(o).some(v=>v))c[group]=o;
+  }
+  for(const group of ["registered_address","current_address"]){
+    const o={};
+    for(const field of ["house_no","moo","road","subdistrict","district","province","postal_code"]){
+      const v=lecMappedValue(row,map,group+"."+field); if(v!==undefined)o[field]=v;
+    }
+    if(Object.values(o).some(v=>v))c[group]=o;
+  }
+  return c;
+}
+function lecHeaderMapForServer(headers,map){
+  return Object.fromEntries(Object.entries(map).map(([key,col])=>[key,headers[col]||("คอลัมน์ "+(col+1))]));
+}
+async function lecSha256(buffer){
+  if(!crypto||!crypto.subtle)return null;
+  const digest=await crypto.subtle.digest("SHA-256",buffer);
+  return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function lecDetectMetadata(matrix,headerStart){
+  const texts=matrix.slice(0,Math.max(headerStart,0)).flat().map(lecHeaderText).filter(Boolean);
+  const school=texts.find(x=>/^โรงเรียน/.test(x)&&!x.includes("รายงาน"))||null;
+  return {school_name_th:school,report_heading:texts.find(x=>x.includes("รายงานรายละเอียดข้อมูลนักเรียน"))||null};
+}
+async function parseLecFile(file){
+  if(!window.XLSX)throw new Error("ไม่สามารถโหลดตัวอ่านไฟล์ Excel ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่");
+  const buffer=await file.arrayBuffer();
+  const wb=XLSX.read(buffer,{type:"array",cellDates:true});
+  if(!wb.SheetNames.length)throw new Error("ไฟล์ไม่มีแผ่นงาน");
+  const firstName=wb.SheetNames[0],ws=wb.Sheets[firstName],matrix=lecWorksheetMatrix(ws);
+  const headerStart=lecFindHeaderStart(matrix);
+  if(headerStart<0)throw new Error("ไม่พบหัวตาราง LEC ที่มี “ลำดับที่” และ “เลขประจำตัวนักเรียน”");
+  const flat=lecFlattenHeaders(matrix,headerStart),headers=flat.headers,map=lecBuildMap(headers);
+  const missing=["student_no","first_name_th","last_name_th"].filter(k=>map[k]==null);
+  const rows=[];
+  for(let r=flat.dataStart;r<matrix.length;r++){
+    const canonical=lecBuildCanonical(matrix[r],map);
+    if(!canonical.student_no)continue;
+    rows.push({source_row_no:r+1,raw:lecRowObject(headers,matrix[r]),canonical});
+  }
+  if(!rows.length)throw new Error("ไม่พบข้อมูลนักเรียนในแท็บแรก");
+  return {
+    fileName:file.name,fileSize:file.size,sha256:await lecSha256(buffer),
+    sheetName:firstName,ignoredSheetCount:Math.max(0,wb.SheetNames.length-1),
+    ignoredSheets:wb.SheetNames.slice(1),headers,map,headerMap:lecHeaderMapForServer(headers,map),
+    missingRequired:missing,rows,metadata:lecDetectMetadata(matrix,headerStart)
+  };
+}
+function lecMaskId(v){
+  const s=String(v||"").replace(/\s/g,"");
+  if(s.length<8)return s||"-";
+  return s.slice(0,4)+"•••••"+s.slice(-4);
+}
+async function lecHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>'+(state.isPlatformAdmin?"เลือกโรงเรียนจากตัวเลือกด้านบนเพื่อดูประวัติ LEC":"บัญชีต้องมีสิทธิ์สถานศึกษาก่อนจึงจะนำเข้า LEC ได้")+'</p></div></section>';
+  const history=await supabase.from("lao_lec_import_batches")
+    .select("id,academic_year_be,term_no,source_file_name,source_sheet_name,source_row_count,imported_row_count,new_student_count,updated_student_count,missing_from_latest_count,issue_count,status,imported_at")
+    .eq("school_id",school.id).order("imported_at",{ascending:false}).limit(30);
+  if(history.error)throw history.error;
+  const canImport=!state.isPlatformAdmin&&hasRole("school_admin");
+  const historyRows=(history.data||[]).map(b=>'<tr><td><strong>'+b.academic_year_be+' / '+b.term_no+'</strong><br><small>'+new Date(b.imported_at).toLocaleString("th-TH")+'</small></td><td>'+esc(b.source_file_name)+'<br><small>'+esc(b.source_sheet_name||"แท็บแรก")+'</small></td><td>'+b.imported_row_count+' / '+b.source_row_count+'</td><td>'+b.new_student_count+'</td><td>'+b.updated_student_count+'</td><td>'+b.missing_from_latest_count+'</td><td>'+(b.issue_count?'<span class="pill danger">'+b.issue_count+'</span>':'<span class="pill success">0</span>')+'</td></tr>').join("");
+  const importBox=canImport
+    ? '<article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC → LAO-EMS</p><h2>นำเข้าข้อมูลจากไฟล์ LEC</h2><p class="panel-sub">รองรับ .xls และ .xlsx · อ่านเฉพาะแท็บแรก · แท็บอื่นรวมถึง ปพ.8 จะไม่ถูกนำเข้า</p></div><span class="source-lock">🔒 LEC เท่านั้น</span></div><form id="lec-import-form" class="form-grid" style="margin-top:18px"><label class="field">ปีการศึกษา พ.ศ.<input name="academic_year_be" type="number" min="2400" max="2800" required placeholder="ระบุตามรอบข้อมูลใน LEC"></label><label class="field">ภาคเรียน<select name="term_no" required><option value="">เลือกภาคเรียน</option><option value="1">ภาคเรียนที่ 1</option><option value="2">ภาคเรียนที่ 2</option><option value="3">ภาคเรียนที่ 3</option><option value="4">ภาคเรียนที่ 4</option></select></label><label class="lec-drop span-2"><input id="lec-file" name="file" type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><span class="lec-drop-icon">⇧</span><strong>เลือกไฟล์ที่ดาวน์โหลดจาก LEC</strong><small>ระบบไม่อนุญาตให้แก้ข้อมูลนักเรียนก่อนนำเข้า</small></label><div id="lec-preview" class="span-2"></div><div class="span-2"><button class="primary-btn" type="submit" disabled data-lec-import>ยืนยันนำเข้าจาก LEC</button></div></form></article>'
+    : '<article class="panel"><div class="notice"><strong>มุมมองตรวจสอบ</strong><br>'+(state.isPlatformAdmin?"Platform Admin ดูข้อมูลทุกโรงเรียนได้ แต่การนำเข้า LEC เป็นหน้าที่ของ School Admin ของโรงเรียนนั้น":"ต้องมีบทบาท School Admin จึงจะนำเข้าไฟล์ LEC ได้")+'</div></article>';
+  const hist='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Import history</p><h2>ประวัติการนำเข้า LEC · '+esc(school.name_th)+'</h2><p class="panel-sub">ข้อมูลเดิมไม่ถูกลบ เมื่อเด็กหายจากไฟล์รอบใหม่จะบันทึกว่า “ไม่พบใน LEC รอบล่าสุด” เท่านั้น</p></div></div>'+(historyRows?'<div class="table-wrap"><table><thead><tr><th>ปี / ภาค</th><th>ไฟล์</th><th>นำเข้า / ทั้งหมด</th><th>นักเรียนใหม่</th><th>อัปเดต</th><th>ไม่พบรอบล่าสุด</th><th>ปัญหา</th></tr></thead><tbody>'+historyRows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">⇧</div><h3>ยังไม่เคยนำเข้า LEC</h3><p>เมื่อ School Admin นำเข้าไฟล์ครั้งแรก ประวัติจะปรากฏที่นี่</p></div>')+'</article>';
+  return '<section class="source-banner"><div><span class="badge">Single Source of Truth</span><h2>LEC คือข้อมูลต้นทาง</h2><p>LAO-EMS ใช้ข้อมูลจากไฟล์ LEC โดยตรง ไม่เพิ่ม แก้ หรือลบนักเรียนด้วยมือ และเก็บประวัติแยกตามปีการศึกษา/ภาคเรียน</p></div><div class="banner-status"><span class="status-pill success">XLS/XLSX</span><span class="status-pill success">แท็บแรกเท่านั้น</span><span class="status-pill success">ไม่ใช้ ปพ.8</span></div></section><section class="content-grid">'+importBox+hist+'</section>';
+}
+function renderLecPreview(preview){
+  const box=q("#lec-preview"),btn=q("[data-lec-import]"); if(!box||!btn)return;
+  const missing=preview.missingRequired||[];
+  const sample=preview.rows.slice(0,5).map(r=>'<tr><td>'+esc(r.canonical.student_no||"-")+'</td><td>'+esc([r.canonical.prefix,r.canonical.first_name_th,r.canonical.last_name_th].filter(Boolean).join(" "))+'</td><td>'+esc(lecMaskId(r.canonical.citizen_id))+'</td><td>'+esc(r.canonical.grade_level||"-")+'</td><td>'+esc(r.canonical.classroom||"-")+'</td></tr>').join("");
+  const ignored=preview.ignoredSheets.length?preview.ignoredSheets.map(esc).join(", "):"ไม่มี";
+  box.innerHTML='<div class="lec-preview-card"><div class="lec-preview-head"><div><strong>'+esc(preview.fileName)+'</strong><small>แท็บที่ใช้: '+esc(preview.sheetName)+' · '+preview.rows.length+' รายการ</small></div>'+(missing.length?'<span class="pill danger">โครงสร้างไม่ครบ</span>':'<span class="pill success">พร้อมนำเข้า</span>')+'</div><div class="lec-facts"><span>อ่านคอลัมน์ '+preview.headers.length+' ช่อง</span><span>ข้ามแท็บ: '+ignored+'</span><span>SHA-256: '+esc((preview.sha256||"").slice(0,12))+'…</span></div>'+(missing.length?'<div class="notice danger">ไม่พบคอลัมน์จำเป็น: '+missing.map(esc).join(", ")+' กรุณาดาวน์โหลดรายงาน LEC รูปแบบ RPT318 ที่ถูกต้องอีกครั้ง</div>':'<div class="notice success">ระบบจะนำเข้าตามไฟล์ต้นฉบับโดยตรง ไม่มีช่องให้แก้ข้อมูลนักเรียนในหน้านี้</div>')+'<div class="table-wrap"><table><thead><tr><th>รหัสนักเรียน</th><th>ชื่อ-สกุล</th><th>เลขประชาชน</th><th>ชั้น</th><th>ห้อง</th></tr></thead><tbody>'+sample+'</tbody></table></div></div>';
+  btn.disabled=missing.length>0;
+}
+function bindLec(){
+  const form=q("#lec-import-form"),input=q("#lec-file"); if(!form||!input)return;
+  input.addEventListener("change",async()=>{
+    state.lecPreview=null; const btn=q("[data-lec-import]"); if(btn)btn.disabled=true;
+    const box=q("#lec-preview"); if(box)box.innerHTML='<div class="loading-inline"><span class="spinner"></span>กำลังตรวจโครงสร้างไฟล์ LEC...</div>';
+    const file=input.files&&input.files[0]; if(!file){if(box)box.innerHTML="";return;}
+    try{
+      if(!/\.xlsx?$/i.test(file.name)){throw new Error("รองรับเฉพาะไฟล์ .xls หรือ .xlsx จาก LEC");}
+      state.lecPreview=await parseLecFile(file);
+      renderLecPreview(state.lecPreview);
+    }catch(e){if(box)box.innerHTML='<div class="notice danger"><strong>อ่านไฟล์ไม่สำเร็จ</strong><br>'+esc(e.message||e)+'</div>';toast(e.message||String(e),"error");}
+  });
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const p=state.lecPreview,school=currentSchool(); if(!p||!school)return;
+    if(p.missingRequired.length){toast("โครงสร้างไฟล์ LEC ไม่ครบ","error");return;}
+    if(!confirm("ยืนยันนำเข้าข้อมูลจาก LEC "+p.rows.length+" รายการ? ข้อมูลที่มาจาก LEC จะอัปเดตตามไฟล์ และประวัติเดิมจะไม่ถูกลบ"))return;
+    const fd=new FormData(form),btn=q("[data-lec-import]");
+    setBusy(btn,true,"กำลังนำเข้า LEC...");
+    const res=await supabase.rpc("lao_import_lec_students",{
+      p_school_id:school.id,
+      p_academic_year_be:Number(fd.get("academic_year_be")),
+      p_term_no:Number(fd.get("term_no")),
+      p_file_name:p.fileName,p_file_size:p.fileSize,p_file_sha256:p.sha256,
+      p_sheet_name:p.sheetName,p_ignored_sheet_count:p.ignoredSheetCount,
+      p_header_map:p.headerMap,p_metadata:p.metadata,p_rows:p.rows
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    const x=res.data||{};
+    toast("นำเข้า LEC สำเร็จ: "+(x.imported_rows||0)+" รายการ","success");
+    state.lecPreview=null;await loadAdminSchools();renderTenants();renderRoute();
+  });
 }
 
 function placeholderHtml(route){
@@ -491,66 +711,20 @@ function bindOrganizationForms(){
     e.preventDefault();const fd=new FormData(schoolForm),btn=schoolForm.querySelector("button[type=submit]");
     const slug=String(fd.get("slug")).trim().toLowerCase();
     if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)){toast("Slug ใช้ได้เฉพาะ a-z, 0-9 และขีดกลาง","error");return;}
-    setBusy(btn,true,"กำลังบันทึก...");
-    const payload={organization_id:fd.get("organization_id"),code:String(fd.get("code")||"").trim()||null,name_th:String(fd.get("name_th")).trim(),name_en:String(fd.get("name_en")||"").trim()||null,short_name:String(fd.get("short_name")||"").trim()||null,slug:slug};
+    setBusy(btn,true,"กำลังสร้างพื้นที่...");
+    const payload={organization_id:fd.get("organization_id"),name_th:String(fd.get("name_th")).trim(),slug:slug};
     const res=await supabase.from("lao_schools").insert(payload);
     setBusy(btn,false);if(res.error){toast(res.error.message,"error");return;}
-    toast("เพิ่มสถานศึกษาแล้ว","success");await loadAdminSchools();renderTenants();renderRoute();
+    toast("สร้างพื้นที่สถานศึกษาแล้ว ขั้นต่อไปคืออนุมัติ School Admin คนแรกและนำเข้า LEC","success");
+    await loadAdminSchools();renderTenants();renderRoute();
   });
-
-  const dialog=q("#school-edit-dialog"),editForm=q("#school-edit-form");
-  const closeDialog=()=>{if(dialog&&dialog.open)dialog.close();};
-  qa("[data-dialog-close]").forEach(b=>b.addEventListener("click",closeDialog));
-  qa("[data-school-edit]").forEach(btn=>btn.addEventListener("click",()=>{
-    const s=state.orgSchools.find(x=>x.id===btn.dataset.schoolEdit);
-    if(!s||!dialog||!editForm)return;
-    const mode=btn.dataset.mode;
-    editForm.elements.school_id.value=s.id;
-    editForm.elements.mode.value=mode;
-    ["code","name_th","name_en","short_name","phone","email","website_url","address_text"].forEach(k=>{editForm.elements[k].value=s[k]||"";});
-    editForm.elements.reason.value="";
-    q("[data-school-edit-title]").textContent=mode==="proposal"?"เสนอแก้ไขข้อมูล "+s.name_th:mode==="emergency"?"แก้ไขฉุกเฉิน "+s.name_th:"แก้ไขข้อมูล "+s.name_th;
-    q("[data-school-edit-eyebrow]").textContent=mode==="proposal"?"รอโรงเรียนอนุมัติก่อนมีผล":mode==="emergency"?"มีผลทันที + แจ้งเตือนโรงเรียน":"School Admin";
-    q("[data-reason-field]").classList.toggle("hidden",mode==="direct");
-    editForm.elements.reason.required=mode!=="direct";
-    q("[data-school-save]").textContent=mode==="proposal"?"ส่งข้อเสนอ":mode==="emergency"?"ยืนยันแก้ไขฉุกเฉิน":"บันทึกการแก้ไข";
-    dialog.showModal();
-  }));
-
-  if(editForm)editForm.addEventListener("submit",async e=>{
-    e.preventDefault();
-    const fd=new FormData(editForm),btn=q("[data-school-save]");
-    const schoolId=String(fd.get("school_id")),mode=String(fd.get("mode"));
-    const patch={};
-    ["code","name_th","name_en","short_name","phone","email","website_url","address_text"].forEach(k=>patch[k]=String(fd.get(k)||"").trim()||null);
-    const reason=String(fd.get("reason")||"").trim()||null;
-    if(mode==="emergency"&&!confirm("การแก้ไขฉุกเฉินจะมีผลทันทีและแจ้งผู้ดูแลโรงเรียน ยืนยันดำเนินการ?"))return;
-    setBusy(btn,true,mode==="proposal"?"กำลังส่งข้อเสนอ...":"กำลังบันทึก...");
-    let res;
-    if(mode==="proposal")res=await supabase.rpc("lao_propose_school_change",{p_school_id:schoolId,p_patch:patch,p_reason:reason});
-    else if(mode==="emergency")res=await supabase.rpc("lao_emergency_update_school",{p_school_id:schoolId,p_patch:patch,p_reason:reason});
-    else res=await supabase.rpc("lao_school_admin_update_school",{p_school_id:schoolId,p_patch:patch,p_reason:reason});
-    setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    closeDialog();
-    toast(mode==="proposal"?"ส่งข้อเสนอให้ผู้ดูแลโรงเรียนแล้ว":mode==="emergency"?"แก้ไขฉุกเฉินแล้วและแจ้งโรงเรียนแล้ว":"บันทึกข้อมูลแล้ว","success");
-    await Promise.all([loadAdminSchools(),loadNotifications()]);renderTenants();renderRoute();
-  });
-
-  qa("[data-change-approve]").forEach(btn=>btn.addEventListener("click",async()=>{
-    if(!confirm("ยืนยันยอมรับข้อเสนอแก้ไขนี้? เมื่อยอมรับแล้วข้อมูลจริงจะถูกปรับทันที"))return;
-    setBusy(btn,true,"กำลังอนุมัติ...");
-    const res=await supabase.rpc("lao_review_school_change",{p_change_request_id:btn.dataset.changeApprove,p_decision:"approved",p_review_note:null});
-    setBusy(btn,false);if(res.error){toast(res.error.message,"error");return;}
-    toast("อนุมัติและปรับข้อมูลแล้ว","success");await loadNotifications();renderRoute();
-  }));
-  qa("[data-change-reject]").forEach(btn=>btn.addEventListener("click",async()=>{
-    const note=prompt("เหตุผลที่ปฏิเสธ (ไม่บังคับ)")||null;
-    if(!confirm("ยืนยันปฏิเสธข้อเสนอแก้ไขนี้?"))return;
-    setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_review_school_change",{p_change_request_id:btn.dataset.changeReject,p_decision:"rejected",p_review_note:note});
-    setBusy(btn,false);if(res.error){toast(res.error.message,"error");return;}
-    toast("ปฏิเสธข้อเสนอแล้ว","success");await loadNotifications();renderRoute();
+  qa("[data-school-lec]").forEach(btn=>btn.addEventListener("click",()=>{
+    if(state.isPlatformAdmin){
+      state.adminSchool=state.adminSchools.find(s=>s.id===btn.dataset.schoolLec)||null;
+      if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
+      renderTenants();
+    }
+    location.hash="#/lec";
   }));
 }
 
@@ -624,8 +798,9 @@ async function renderRoute(){
     if(route==="overview")main.innerHTML=(state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():overviewHtml();
     else if(route==="membership"){main.innerHTML=membershipHtml();bindMembership();}
     else if(route==="notifications"){main.innerHTML=notificationsHtml();bindNotifications();}
-    else if(route==="setup"){main.innerHTML=setupHtml();bindYear();}
+    else if(route==="setup"){main.innerHTML=setupHtml();}
     else if(route==="organization"){main.innerHTML=await organizationHtml();bindOrganizationForms();}
+    else if(route==="lec"){main.innerHTML=await lecHtml();bindLec();}
     else if(route==="users"){main.innerHTML=await usersHtml();bindApprovals();}
     else main.innerHTML=placeholderHtml(route);
   }catch(e){
