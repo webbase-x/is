@@ -887,7 +887,7 @@ function lecDetectMetadata(matrix,headerStart,map,dataStart){
   const districtValues=lecUniqueMappedValues(matrix,dataStart,map,"school_district");
 
   const topSchool=lecMetaFind(matrix,headerStart,["ชื่อสถานศึกษา","ชื่อโรงเรียน","สถานศึกษา"]);
-  const topOrg=lecMetaFind(matrix,headerStart,["ชื่อ อปท.","ชื่ออปท.","อปท.","อปท","สังกัด"]);
+  const topOrg=lecMetaFind(matrix,headerStart,["ชื่อ อปท.","ชื่ออปท.","อปท.","อปท"]);
   const topProvince=lecMetaFind(matrix,headerStart,["จังหวัด"]);
   const topDistrict=lecMetaFind(matrix,headerStart,["อำเภอ/เขต","อำเภอ","เขต"]);
 
