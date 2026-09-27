@@ -555,6 +555,13 @@ function lecBuildMap(headers){
   const map={};
   const topExclude=["บิดา","มารดา","ผู้ปกครอง","ที่อยู่ตามทะเบียนบ้าน","ที่อยู่ปัจจุบัน"];
   const put=(key,include,exclude=[])=>{const x=lecFindCol(headers,{include,exclude});if(x>=0)map[key]=x;};
+
+  // Official school identity columns from the LEC report.
+  put("school_province",["จังหวัด"],topExclude);
+  put("school_district",["อำเภอ"],topExclude);
+  put("organization_name_th",["อปท"]);
+  put("school_name_th",["สถานศึกษา"]);
+
   put("student_no",["เลขประจำตัวนักเรียน"]);
   put("prefix",["คำนำหน้า"],topExclude);
   put("first_name_th",["ชื่อ"],["บิดา","มารดา","ผู้ปกครอง","ชื่อเรื่อง"]);
@@ -601,7 +608,7 @@ function lecMappedValue(row,map,key){
 function lecBuildCanonical(row,map){
   const c={};
   const set=(key)=>{const v=lecMappedValue(row,map,key);if(v!==undefined)c[key]=v;};
-  ["student_no","prefix","first_name_th","last_name_th","birth_date","race","nationality","religion","citizen_id","admission_date","height_cm","weight_kg","student_condition","family_status","tuition_reimbursement","medical_reimbursement","grade_level","classroom"].forEach(set);
+  ["school_province","school_district","organization_name_th","school_name_th","student_no","prefix","first_name_th","last_name_th","birth_date","race","nationality","religion","citizen_id","admission_date","height_cm","weight_kg","student_condition","family_status","tuition_reimbursement","medical_reimbursement","grade_level","classroom"].forEach(set);
   for(const group of ["father","mother","guardian"]){
     const o={};
     for(const field of ["prefix","first_name","last_name","religion","occupation","monthly_income","phone","relationship"]){
@@ -653,45 +660,105 @@ function lecMetaFind(matrix,headerStart,labels){
   }
   return null;
 }
-function lecDetectMetadata(matrix,headerStart){
-  const rows=matrix.slice(0,Math.max(headerStart,0));
-  const texts=rows.flat().map(lecHeaderText).filter(Boolean);
-  let schoolName=lecMetaFind(matrix,headerStart,["ชื่อสถานศึกษา","ชื่อโรงเรียน"]);
-  if(!schoolName){
-    schoolName=texts.find(x=>/^โรงเรียน/.test(x)&&!x.includes("รายงาน")&&!x.includes("ข้อมูลนักเรียน"))||null;
+function lecUniqueMappedValues(matrix,dataStart,map,key){
+  const values=[],seen=new Set();
+  for(let r=dataStart;r<matrix.length;r++){
+    const studentNo=lecMappedValue(matrix[r],map,"student_no");
+    if(!studentNo)continue;
+    const value=lecMappedValue(matrix[r],map,key);
+    if(!value)continue;
+    const norm=lecHeaderNorm(value);
+    if(seen.has(norm))continue;
+    seen.add(norm);values.push(value);
+    if(values.length>=10)break;
   }
+  return values;
+}
+function lecDetectMetadata(matrix,headerStart,map,dataStart){
+  const topRows=matrix.slice(0,Math.max(headerStart,0));
+  const texts=topRows.flat().map(lecHeaderText).filter(Boolean);
+  const schoolValues=lecUniqueMappedValues(matrix,dataStart,map,"school_name_th");
+  const orgValues=lecUniqueMappedValues(matrix,dataStart,map,"organization_name_th");
+  const provinceValues=lecUniqueMappedValues(matrix,dataStart,map,"school_province");
+  const districtValues=lecUniqueMappedValues(matrix,dataStart,map,"school_district");
+  let schoolName=schoolValues[0]||lecMetaFind(matrix,headerStart,["ชื่อสถานศึกษา","ชื่อโรงเรียน"]);
+  if(!schoolName)schoolName=texts.find(x=>/^โรงเรียน/.test(x)&&!x.includes("รายงาน")&&!x.includes("ข้อมูลนักเรียน"))||null;
+  const conflicts=[];
+  if(schoolValues.length>1)conflicts.push("สถานศึกษา");
+  if(orgValues.length>1)conflicts.push("อปท.");
+  if(provinceValues.length>1)conflicts.push("จังหวัด");
+  if(districtValues.length>1)conflicts.push("อำเภอ");
   return {
     school_code:lecMetaFind(matrix,headerStart,["รหัสสถานศึกษา","รหัสโรงเรียน","รหัสสถานศึกษา LEC"]),
     school_name_th:schoolName,
+    organization_name_th:orgValues[0]||null,
+    province_name_th:provinceValues[0]||null,
+    district_name_th:districtValues[0]||null,
     school_phone:lecMetaFind(matrix,headerStart,["โทรศัพท์สถานศึกษา","โทรศัพท์โรงเรียน","โทรศัพท์","เบอร์โทรศัพท์"]),
     school_email:lecMetaFind(matrix,headerStart,["อีเมลสถานศึกษา","อีเมลโรงเรียน","E-mail","Email"]),
     school_website_url:lecMetaFind(matrix,headerStart,["เว็บไซต์สถานศึกษา","เว็บไซต์โรงเรียน","เว็บไซต์","Website"]),
     school_address_text:lecMetaFind(matrix,headerStart,["ที่อยู่สถานศึกษา","ที่อยู่โรงเรียน"]),
-    report_heading:texts.find(x=>x.includes("รายงานรายละเอียดข้อมูลนักเรียน"))||null
+    report_heading:texts.find(x=>x.includes("รายงานรายละเอียดข้อมูลนักเรียน"))||null,
+    school_metadata_conflicts:conflicts
   };
+}
+function lecSheetProfile(wb,sheetName){
+  const ws=wb.Sheets[sheetName];
+  if(!ws)return null;
+  const matrix=lecWorksheetMatrix(ws);
+  const headerStart=lecFindHeaderStart(matrix);
+  if(headerStart<0)return {sheetName,valid:false,rowCount:0,missing:["หัวตาราง LEC"]};
+  let flat;
+  try{flat=lecFlattenHeaders(matrix,headerStart);}catch(e){
+    return {sheetName,valid:false,rowCount:0,missing:["เลขประจำตัวนักเรียน"]};
+  }
+  const headers=flat.headers,map=lecBuildMap(headers);
+  const required=["school_province","school_district","organization_name_th","school_name_th","student_no","first_name_th","last_name_th"];
+  const missing=required.filter(k=>map[k]==null);
+  let rowCount=0;
+  for(let r=flat.dataStart;r<matrix.length;r++)if(lecMappedValue(matrix[r],map,"student_no"))rowCount++;
+  const score=(required.length-missing.length)*100000+Math.min(rowCount,99999);
+  return {sheetName,valid:missing.length===0&&rowCount>0,rowCount,missing,score,matrix,headerStart,flat,headers,map};
 }
 async function parseLecFile(file){
   if(!window.XLSX)throw new Error("ไม่สามารถโหลดตัวอ่านไฟล์ Excel ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่");
   const buffer=await file.arrayBuffer();
   const wb=XLSX.read(buffer,{type:"array",cellDates:true});
   if(!wb.SheetNames.length)throw new Error("ไฟล์ไม่มีแผ่นงาน");
-  const firstName=wb.SheetNames[0],ws=wb.Sheets[firstName],matrix=lecWorksheetMatrix(ws);
-  const headerStart=lecFindHeaderStart(matrix);
-  if(headerStart<0)throw new Error("ไม่พบหัวตาราง LEC ที่มี “ลำดับที่” และ “เลขประจำตัวนักเรียน”");
-  const flat=lecFlattenHeaders(matrix,headerStart),headers=flat.headers,map=lecBuildMap(headers);
-  const missing=["student_no","first_name_th","last_name_th"].filter(k=>map[k]==null);
+
+  const profiles=wb.SheetNames.map(name=>lecSheetProfile(wb,name)).filter(Boolean);
+  const candidates=profiles.filter(x=>x.valid).sort((a,b)=>b.score-a.score);
+  if(!candidates.length){
+    const scanned=profiles.map(x=>x.sheetName).join(", ");
+    throw new Error("ไม่พบชีตข้อมูล LEC ที่มีข้อมูลสถานศึกษาครบ ต้องมีคอลัมน์ จังหวัด, อำเภอ, อปท., สถานศึกษา, เลขประจำตัวนักเรียน, ชื่อ และนามสกุล"+(scanned?" (ตรวจแล้ว: "+scanned+")":""));
+  }
+
+  const selected=candidates[0],matrix=selected.matrix,headers=selected.headers,map=selected.map,flat=selected.flat;
+  const missing=["school_province","school_district","organization_name_th","school_name_th","student_no","first_name_th","last_name_th"].filter(k=>map[k]==null);
   const rows=[];
   for(let r=flat.dataStart;r<matrix.length;r++){
     const canonical=lecBuildCanonical(matrix[r],map);
     if(!canonical.student_no)continue;
     rows.push({source_row_no:r+1,raw:lecRowObject(headers,matrix[r]),canonical});
   }
-  if(!rows.length)throw new Error("ไม่พบข้อมูลนักเรียนในแท็บแรก");
+  if(!rows.length)throw new Error("ไม่พบข้อมูลนักเรียนในชีต "+selected.sheetName);
+
+  const metadata=lecDetectMetadata(matrix,selected.headerStart,map,flat.dataStart);
+  if(metadata.school_metadata_conflicts&&metadata.school_metadata_conflicts.length){
+    throw new Error("ชีต "+selected.sheetName+" มีข้อมูลมากกว่าหนึ่งค่าในช่อง "+metadata.school_metadata_conflicts.join(", ")+" จึงไม่สามารถผูกกับสถานศึกษาเดียวได้");
+  }
+
+  metadata.selected_sheet_name=selected.sheetName;
+  metadata.sheet_selection_rule="complete_school_identity_columns";
+
   return {
     fileName:file.name,fileSize:file.size,sha256:await lecSha256(buffer),
-    sheetName:firstName,ignoredSheetCount:Math.max(0,wb.SheetNames.length-1),
-    ignoredSheets:wb.SheetNames.slice(1),headers,map,headerMap:lecHeaderMapForServer(headers,map),
-    missingRequired:missing,rows,metadata:lecDetectMetadata(matrix,headerStart)
+    sheetName:selected.sheetName,
+    ignoredSheetCount:Math.max(0,wb.SheetNames.length-1),
+    ignoredSheets:wb.SheetNames.filter(name=>name!==selected.sheetName),
+    sheetScan:profiles.map(x=>({sheetName:x.sheetName,valid:x.valid,rowCount:x.rowCount,missing:x.missing})),
+    headers,map,headerMap:lecHeaderMapForServer(headers,map),
+    missingRequired:missing,rows,metadata
   };
 }
 function lecMaskId(v){
