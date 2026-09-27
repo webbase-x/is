@@ -259,6 +259,9 @@ function refreshHeader(){
   qa("[data-admin-menu]").forEach(item=>{
     item.classList.toggle("hidden",!(adminMode||(!state.isPlatformAdmin&&hasRole("organization_admin","school_admin"))));
   });
+  qa("[data-lec-menu]").forEach(item=>{
+    item.classList.toggle("hidden",!(adminMode||(!state.isPlatformAdmin&&hasRole("school_admin"))));
+  });
 
   const notif=q("[data-notification-count]");
   if(notif){
