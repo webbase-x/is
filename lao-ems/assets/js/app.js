@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.10.0";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,pending_join_requests:0},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -305,6 +305,7 @@ function personnelRouteState(){
   if(/^#\/personnel\/registry\/?$/i.test(hash))return {mode:"registry",id:null};
   if(/^#\/personnel\/requests\/?$/i.test(hash))return {mode:"requests",id:null};
   if(/^#\/personnel\/intake\/?$/i.test(hash))return {mode:"intake",id:null};
+  if(/^#\/personnel\/authorities\/?$/i.test(hash))return {mode:"authorities",id:null};
   if(/^#\/personnel\/new\/?$/i.test(hash))return {mode:"new",id:null};
   const edit=hash.match(/^#\/personnel\/([0-9a-f-]{36})\/edit\/?$/i);
   if(edit)return {mode:"edit",id:edit[1]};
@@ -813,15 +814,15 @@ async function loadNotifications(){
 async function loadPersonnelWorkCounts(){
   const school=currentSchool();
   if(!school){
-    state.personnelWork={can_review:false,can_manage_intake:false,pending_join_requests:0};
+    state.personnelWork={can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0};
     return state.personnelWork;
   }
   const res=await supabase.rpc("lao_personnel_work_counts",{p_school_id:school.id});
   if(res.error){
-    state.personnelWork={can_review:false,can_manage_intake:false,pending_join_requests:0};
+    state.personnelWork={can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0};
     return state.personnelWork;
   }
-  state.personnelWork=res.data||{can_review:false,can_manage_intake:false,pending_join_requests:0};
+  state.personnelWork=res.data||{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0};
   return state.personnelWork;
 }
 async function loadSchoolSetupStatus(){
@@ -2360,6 +2361,7 @@ function personnelNavHtml(active){
     '<a href="#/personnel/registry" class="'+(active==="registry"?"active":"")+'">ทะเบียนบุคลากร</a>'+
     (work.can_review?'<a href="#/personnel/requests" class="'+(active==="requests"?"active":"")+'">คำขอเข้าร่วม'+(pending>0?'<span class="subnav-badge">'+pending+'</span>':'')+'</a>':'')+
     (work.can_manage_intake?'<a href="#/personnel/intake" class="'+(active==="intake"?"active":"")+'">รับบุคลากรเข้าระบบ</a>':'')+
+    (work.can_assign_authority?'<a href="#/personnel/authorities" class="'+(active==="authorities"?"active":"")+'">ผู้รับผิดชอบงานบุคลากร</a>':'')+
   '</nav>';
 }
 async function personnelDashboardHtml(){
@@ -2386,6 +2388,7 @@ async function personnelDashboardHtml(){
       '<a class="personnel-action-card" href="#/personnel/registry"><span>🪪</span><div><strong>ทะเบียนบุคลากร</strong><small>ค้นหา ดู และจัดการข้อมูลหลักของบุคลากร</small></div><em>เปิด</em></a>'+
       (work.can_review?'<a class="personnel-action-card '+(pending>0?"priority":"")+'" href="#/personnel/requests"><span>✅</span><div><strong>คำขอเข้าร่วม'+(pending>0?' · '+pending+' รายการ':'')+'</strong><small>ตรวจข้อมูลที่ผู้สมัครระบุ แก้ไขก่อนอนุมัติ และป้องกันรายการซ้ำ</small></div><em>'+(pending>0?"ตรวจสอบ":"เปิด")+'</em></a>':'')+
       (work.can_manage_intake?'<a class="personnel-action-card" href="#/personnel/intake"><span>🔗</span><div><strong>รับบุคลากรเข้าระบบ</strong><small>เปิด/ปิดลิงก์รับสมัครและคัดลอกลิงก์ส่งในกลุ่มโรงเรียน</small></div><em>ตั้งค่า</em></a>':'')+
+      (work.can_assign_authority?'<a class="personnel-action-card" href="#/personnel/authorities"><span>👥</span><div><strong>ผู้รับผิดชอบงานบุคลากร</strong><small>แต่งตั้งหัวหน้างานและเจ้าหน้าที่ พร้อมกำหนดสิทธิ์ที่จำเป็น</small></div><em>จัดการ</em></a>':'')+
     '</section>'+
     (work.can_review&&pending>0?'<section class="notice warning personnel-attention"><strong>มีงานที่ต้องดำเนินการ '+pending+' รายการ</strong><br>มีผู้ยืนยันอีเมลและส่งคำขอเข้าร่วมโรงเรียนแล้ว กรุณาตรวจสอบก่อนอนุมัติ</section>':'')+
   '</section>';
@@ -2439,6 +2442,31 @@ async function personnelRequestsHtml(){
   return '<section class="personnel-page">'+personnelNavHtml("requests")+
     '<section class="panel"><div class="panel-head"><div><p class="eyebrow">JOIN REQUESTS</p><h2>คำขอเข้าร่วมโรงเรียน</h2><p class="panel-sub">แสดงเฉพาะผู้ที่มีสิทธิ์ตรวจ/อนุมัติ ผู้ใช้อื่นในโรงเรียนไม่เห็นรายการนี้</p></div><span class="pill '+(Number(d.pending_count||0)>0?"warning":"success")+'">'+Number(d.pending_count||0)+' รอตรวจ</span></div>'+
       (items.length?'<div class="personnel-request-stack">'+cards+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีคำขอที่รอตรวจสอบ</h3><p>เมื่อมีผู้ยืนยันอีเมลและส่งคำขอ ระบบจะแจ้งเตือนผู้เกี่ยวข้องอัตโนมัติ</p></div>')+
+    '</section>'+
+  '</section>';
+}
+
+
+async function personnelAuthoritiesHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  const res=await supabase.rpc("lao_personnel_authority_settings",{p_school_id:school.id});
+  if(res.error)return '<section class="personnel-page">'+personnelNavHtml("authorities")+'<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>เฉพาะ School Admin</h3><p>การแต่งตั้งผู้รับผิดชอบงานบุคลากรต้องดำเนินการโดยผู้ดูแลสถานศึกษา</p></div></section></section>';
+  const items=res.data&&res.data.items||[];
+  const rows=items.map(p=>{
+    const code=p.is_active?p.authority_code||"none":"none";
+    return '<form class="personnel-authority-row" data-authority-personnel="'+esc(p.personnel_id)+'">'+
+      '<div class="personnel-authority-person"><div class="personnel-avatar">'+personnelAvatarHtml(p,"personnel-avatar-media")+'</div><div><strong>'+esc(p.full_name||"-")+'</strong><small>'+esc(p.position_title||"-")+(p.academic_standing?' · '+esc(p.academic_standing):'')+' · '+esc(p.email||"-")+'</small></div></div>'+
+      '<label><span>หน้าที่ในงานบุคลากร</span><select name="authority_code" data-authority-code><option value="none" '+(code==="none"?"selected":"")+'>ไม่ได้รับมอบหมาย</option><option value="personnel_head" '+(code==="personnel_head"?"selected":"")+'>หัวหน้างานบุคลากร</option><option value="personnel_officer" '+(code==="personnel_officer"?"selected":"")+'>เจ้าหน้าที่งานบุคลากร</option></select></label>'+
+      '<label class="authority-check"><input type="checkbox" name="can_edit_personnel" '+(p.can_edit_personnel?"checked":"")+' data-authority-edit><span>แก้ทะเบียน</span></label>'+
+      '<label class="authority-check"><input type="checkbox" name="can_review_join" '+(p.can_review_join?"checked":"")+' data-authority-review><span>ตรวจ/อนุมัติคำขอ</span></label>'+
+      '<button class="secondary-btn compact-btn" type="submit">บันทึก</button>'+
+    '</form>';
+  }).join("");
+  return '<section class="personnel-page">'+personnelNavHtml("authorities")+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">PERSONNEL RESPONSIBILITY</p><h2>ผู้รับผิดชอบงานบุคลากร</h2><p class="panel-sub">หน้าที่นี้แยกจากตำแหน่งราชการ บุคลากรหนึ่งคนสามารถรับผิดชอบหลายฝ่ายได้ในอนาคต</p></div></div>'+
+      '<div class="notice"><strong>หลักการสิทธิ์</strong><br>School Admin กำหนดหัวหน้างานหรือเจ้าหน้าที่จากบุคลากรที่เชื่อมบัญชีแล้ว หัวหน้างานบุคลากรจะมีสิทธิ์จัดการทะเบียน เปิด/ปิดรับสมัคร และตรวจคำขอ ส่วนเจ้าหน้าที่กำหนดสิทธิ์ย่อยได้</div>'+
+      (items.length?'<div class="personnel-authority-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">👥</div><h3>ยังไม่มีบุคลากรที่เชื่อมบัญชี</h3><p>ต้องเชื่อมบัญชี LAO-EMS กับทะเบียนบุคลากรก่อนจึงมอบหมายหน้าที่ได้</p></div>')+
     '</section>'+
   '</section>';
 }
@@ -2570,6 +2598,7 @@ async function personnelHtml(){
   if(stateRoute.mode==="registry")return await personnelListHtml();
   if(stateRoute.mode==="requests")return await personnelRequestsHtml();
   if(stateRoute.mode==="intake")return await personnelIntakeHtml();
+  if(stateRoute.mode==="authorities")return await personnelAuthoritiesHtml();
   return await personnelDashboardHtml();
 }
 function bindPersonnel(){
