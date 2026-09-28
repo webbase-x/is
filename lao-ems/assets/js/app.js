@@ -2884,6 +2884,7 @@ function academicGradeOrder(label){
   const base=m[1]==="K"?0:m[1]==="P"?30:90;
   return base+Number(m[2])*10;
 }
+const academicPresetGradeCodes=["P1","P2","P3","P4","P5","P6","M1","M2","M3","M4","M5","M6"];
 function academicSubjectTypeLabel(value){
   return ({basic:"รายวิชาพื้นฐาน",additional:"รายวิชาเพิ่มเติม",activity:"กิจกรรมพัฒนาผู้เรียน",other:"อื่น ๆ"})[value]||value||"-";
 }
@@ -3071,16 +3072,19 @@ function academicCurriculumHtml(data){
   const presetItems=(preset&&preset.items||[]).filter(x=>activePresetGrade&&x.grade_code===activePresetGrade.grade_code);
   const selectedProgram=(data.programs||[]).find(p=>p.id===f.program_id)||null;
   const selectedProgramLabel=selectedProgram?selectedProgram.name_th:"ไม่ระบุโปรแกรม";
-  const templateRows=presetItems.map(x=>
-    '<div class="curriculum-preset-row '+(x.present?"is-present":"is-missing")+'">'+
+  const templateRows=presetItems.map(x=>{
+    const weeklyText=x.weekly_periods==null?"กำหนดเอง":Number(x.weekly_periods).toLocaleString("th-TH")+" ชม./สป.";
+    const annualText=x.annual_hours==null?"กำหนดเอง":Number(x.annual_hours).toLocaleString("th-TH")+" ชม./ปี";
+    const sourceText=x.is_national_core?"พื้นฐานกลางประเทศ":"ชุดตัวอย่างโรงเรียน";
+    return '<div class="curriculum-preset-row '+(x.present?"is-present":"is-missing")+'">'+
       '<span class="preset-order">'+esc(x.sort_order)+'</span>'+
-      '<span class="preset-code">'+esc(x.subject_code||"—")+'</span>'+
-      '<div class="preset-subject"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(academicSubjectTypeLabel(x.subject_type))+'</small></div>'+
-      '<span class="preset-weekly">'+Number(x.weekly_periods).toLocaleString("th-TH")+' ชม./สป.</span>'+
-      '<span class="preset-annual">'+Number(x.annual_hours).toLocaleString("th-TH")+' ชม./ปี</span>'+
+      '<span class="preset-code">'+esc(x.subject_code||"กำหนดรหัสเอง")+'</span>'+
+      '<div class="preset-subject"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(x.learning_area||academicSubjectTypeLabel(x.subject_type))+' · '+esc(sourceText)+'</small></div>'+
+      '<span class="preset-weekly">'+esc(weeklyText)+'</span>'+
+      '<span class="preset-annual">'+esc(annualText)+'</span>'+
       '<span class="pill '+(x.present?"success":"warning")+'">'+(x.present?"มีแล้ว":"ยังขาด")+'</span>'+
-    '</div>'
-  ).join("");
+    '</div>';
+  }).join("");
 
   const rows=filtered.map((c,index)=>{
     const termText=(c.term_plans||[]).map(t=>'ภาค '+t.term_no+': '+(t.weekly_periods!=null?Number(t.weekly_periods).toLocaleString("th-TH")+' คาบ/สัปดาห์':(t.term_hours!=null?Number(t.term_hours).toLocaleString("th-TH")+' ชม.':'—'))).join(' · ');
@@ -3094,16 +3098,17 @@ function academicCurriculumHtml(data){
   }).join("");
 
   const termInputs=terms.map(t=>'<div class="academic-term-plan-box"><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><label>คาบ/สัปดาห์<input name="weekly_'+esc(t.id)+'" type="number" min="0" step="0.25" placeholder="เช่น 5"></label><label>ชั่วโมง/ภาค<input name="hours_'+esc(t.id)+'" type="number" min="0" step="0.5" placeholder="เว้นว่างได้"></label></div>').join("");
-  const presetGradeButtons=presetGrades.map(g=>
-    '<button type="button" class="curriculum-grade-choice '+(activePresetGrade&&activePresetGrade.grade_code===g.grade_code?"active":"")+'" data-preset-grade="'+esc(g.grade_code)+'"><strong>'+esc(shortGrade(g.grade_label))+'</strong><small>'+Number(g.subject_count||0)+' วิชา · '+Number(g.weekly_total||0).toLocaleString("th-TH")+' ชม./สป.</small><em>'+Number(g.present_count||0)+'/'+Number(g.subject_count||0)+'</em></button>'
-  ).join("");
+  const presetGradeButtons=presetGrades.map(g=>{
+    const weeklyLabel=g.weekly_total==null?"เวลาเรียนยืดหยุ่น":Number(g.weekly_total||0).toLocaleString("th-TH")+" ชม./สป.";
+    return '<button type="button" class="curriculum-grade-choice '+(activePresetGrade&&activePresetGrade.grade_code===g.grade_code?"active":"")+'" data-preset-grade="'+esc(g.grade_code)+'"><strong>'+esc(shortGrade(g.grade_label))+'</strong><small>'+Number(g.subject_count||0)+' วิชา · '+esc(weeklyLabel)+'</small><em>'+Number(g.present_count||0)+'/'+Number(g.subject_count||0)+'</em></button>';
+  }).join("");
 
   return '<section class="academic-page">'+academicNavHtml("curriculum",data)+
-    (canManage&&year&&preset?'<section class="panel curriculum-preset-panel"><div class="panel-head"><div><p class="eyebrow">DEFAULT CHOICES</p><h2>ชุดวิชาหลักตามตัวอย่าง</h2><p class="panel-sub">ใช้ข้อมูลตัวอย่าง “แผนปกติ” เป็นตัวเลือกหลักสำหรับ ป.1–ป.4 ระบบจะเพิ่มเฉพาะวิชาที่ยังขาด และไม่ทับรายการที่โรงเรียนแก้ไว้แล้ว</p></div><span class="pill neutral">'+esc(selectedProgramLabel)+'</span></div>'+
+    (canManage&&year&&preset?'<section class="panel curriculum-preset-panel"><div class="panel-head"><div><p class="eyebrow">DEFAULT CHOICES</p><h2>'+esc(preset.preset_name||"ชุดวิชาหลัก")+'</h2><p class="panel-sub">ใช้ชุดตัวอย่างแผนปกติเดิมเป็นตัวเลือกหลัก และเติมรายวิชาพื้นฐานกลางให้ครบ ป.1–ม.6 ระบบเพิ่มเฉพาะวิชาที่ยังขาด ไม่ทับรายการที่โรงเรียนแก้ไว้แล้ว</p></div><span class="pill neutral">'+esc(selectedProgramLabel)+'</span></div>'+
       '<div class="curriculum-grade-choices">'+presetGradeButtons+'</div>'+
       (activePresetGrade?'<div class="curriculum-preset-summary"><div><small>ระดับชั้น</small><strong>'+esc(activePresetGrade.grade_label)+'</strong></div><div><small>จำนวนรายวิชา</small><strong>'+Number(activePresetGrade.subject_count||0).toLocaleString("th-TH")+'</strong></div><div><small>รวมต่อสัปดาห์</small><strong>'+Number(activePresetGrade.weekly_total||0).toLocaleString("th-TH")+' ชม.</strong></div><div><small>รวมต่อปี</small><strong>'+Number(activePresetGrade.annual_total||0).toLocaleString("th-TH")+' ชม.</strong></div><div><small>มีในระบบแล้ว</small><strong>'+Number(activePresetGrade.present_count||0).toLocaleString("th-TH")+'/'+Number(activePresetGrade.subject_count||0).toLocaleString("th-TH")+'</strong></div></div>':'')+
       '<div class="curriculum-preset-list">'+templateRows+'</div>'+
-      '<div class="curriculum-preset-actions"><div class="notice"><strong>ข้อมูลตัวอย่างที่ได้รับมีถึง ป.4</strong><br>ป.5–ป.6 หรือรายวิชาอื่นสามารถเพิ่มเองด้านล่าง โดยระบบจะเก็บเป็นโครงสร้างของโรงเรียน</div><button type="button" class="primary-btn" data-apply-curriculum-preset '+(activePresetGrade&&Number(activePresetGrade.present_count||0)>=Number(activePresetGrade.subject_count||0)?"disabled":"")+'>＋ เพิ่มเฉพาะวิชาที่ยังขาด</button></div>'+
+      '<div class="curriculum-preset-actions"><div class="notice"><strong>ปรับแก้ได้ตามหลักสูตรสถานศึกษา</strong><br>รายวิชาพื้นฐานกลางมีเป็นค่าเริ่มต้นถึง ม.6 ส่วนรหัสวิชา เวลาเรียน และวิชาเพิ่มเติมสามารถแก้/เพิ่มเองได้ โดย ม.4–ม.6 ระบบตั้งเวลาเรียนเป็นแบบยืดหยุ่นให้โรงเรียนกำหนด</div><button type="button" class="primary-btn" data-apply-curriculum-preset '+(activePresetGrade&&Number(activePresetGrade.present_count||0)>=Number(activePresetGrade.subject_count||0)?"disabled":"")+'>＋ เพิ่มเฉพาะวิชาที่ยังขาด</button></div>'+
     '</section>':'')+
     '<section class="panel"><div class="panel-head"><div><p class="eyebrow">CURRICULUM STRUCTURE</p><h2>โครงสร้างเวลาเรียน</h2><p class="panel-sub">'+(year?'ปีการศึกษา '+esc(year.year_be):'ยังไม่ได้เลือกปี')+' · เลือกระดับชั้นเพื่อดูและเรียงวิชา หรือเพิ่มวิชาที่ขาดได้เอง</p></div><span class="pill">'+items.length+' รายการ</span></div>'+
       '<form id="academic-course-filter" class="academic-course-filter"><label>ระดับชั้น<select name="grade_label"><option value="">ทุกระดับชั้น</option>'+gradeOptions.map(g=>'<option value="'+esc(g)+'" '+(f.grade_label===g?"selected":"")+'>'+esc(g)+'</option>').join("")+'</select></label><label>โปรแกรม<select name="program_id">'+academicProgramOptions(data,f.program_id||"",true)+'</select></label><button class="secondary-btn" type="button" data-reset-course-filter>ล้างตัวกรอง</button></form>'+
@@ -3613,7 +3618,7 @@ function bindAcademics(){
       const gradeLabel=String(fd.get("grade_label")||"");
       state.academicFilters={grade_label:gradeLabel,program_id:String(fd.get("program_id")||"")};
       const gradeCode=academicGradeCode(gradeLabel);
-      if(["P1","P2","P3","P4"].includes(gradeCode))state.academicPresetGrade=gradeCode;
+      if(academicPresetGradeCodes.includes(gradeCode))state.academicPresetGrade=gradeCode;
       state.academicPreset=null;
       renderRoute();
     }));
@@ -3685,7 +3690,7 @@ function bindAcademics(){
     if(res.error){toast(res.error.message,"error");return;}
     state.academicFilters={grade_label:grade,program_id:String(fd.get("program_id")||"")};
     const gradeCode=academicGradeCode(grade);
-    if(["P1","P2","P3","P4"].includes(gradeCode))state.academicPresetGrade=gradeCode;
+    if(academicPresetGradeCodes.includes(gradeCode))state.academicPresetGrade=gradeCode;
     state.academicPreset=null;
     toast((res.data&&res.data.subject_created?"สร้างทะเบียนรายวิชาและเพิ่มในโครงสร้างแล้ว":"เพิ่มรายวิชาในโครงสร้างแล้ว"),"success");
     renderRoute();
@@ -3754,7 +3759,7 @@ function bindAcademics(){
     if(res.error){toast(res.error.message,"error");return;}
     state.academicFilters={grade_label:grade,program_id:String(fd.get("program_id")||"")};
     const gradeCode=academicGradeCode(grade);
-    if(["P1","P2","P3","P4"].includes(gradeCode))state.academicPresetGrade=gradeCode;
+    if(academicPresetGradeCodes.includes(gradeCode))state.academicPresetGrade=gradeCode;
     state.academicPreset=null;
     toast("บันทึกโครงสร้างเวลาเรียนแล้ว","success");renderRoute();
   });
