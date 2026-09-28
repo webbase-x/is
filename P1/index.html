@@ -4,13 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <meta name="theme-color" content="#176b56">
+  <meta name="application-name" content="เพลินภาษา ป.๑">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="เพลินภาษา">
+  <link rel="manifest" href="/is/P1/manifest.webmanifest?v=20260928-1">
+  <link rel="icon" href="/is/P1/assets/p1-app-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/is/P1/assets/p1-app-icon.svg">
   <meta name="description" content="บทเรียนออนไลน์วิชาภาษาไทย ชั้นประถมศึกษาปีที่ ๑ ครบ ๑๒ หน่วย พร้อมภาษาพาที วรรณคดีลำนำ และแบบฝึกทักษะภาษา">
   <title>บทเรียนออนไลน์วิชาภาษาไทย ป.๑ | เพลินภาษา</title>
   <link rel="stylesheet" href="welcome.css?v=20260926-fast-first-load-1">
   <link rel="stylesheet" href="cover-seam.css?v=20260922-14">
   <link rel="stylesheet" href="../responsive.css?v=20260817-2">
   <script src="/is/P1/thai-numerals.js?v=20260924-1" defer></script>
-  <link rel="stylesheet" href="/is/P1/child-ui.css?v=20260926-literature-pairs-1">
+  <link rel="stylesheet" href="/is/P1/child-ui.css?v=20260928-webapp-1">
   <script src="/is/P1/child-ui.js?v=20260926-fast-first-load-1" defer></script>
 </head>
 <body class="kid-home">
@@ -37,6 +44,7 @@
         <div class="site-cover-actions">
           <a class="hero-action" href="00-prerequisite/" aria-label="เริ่มเรียนจากเตรียมความพร้อม"><span aria-hidden="true">▶</span> เริ่มเรียน</a>
           <a class="hero-secondary" href="#lessons"><span aria-hidden="true">📚</span> เลือกบท</a>
+          <button id="installWebApp" class="hero-install" type="button" aria-label="ติดตั้งเป็น Web App"><span aria-hidden="true">📲</span> ติดตั้ง Web App</button>
         </div>
         <div class="hero-stats" aria-label="ข้อมูลบทเรียน">
           <span><strong>๑๒</strong> หน่วยการเรียนรู้</span>
@@ -66,8 +74,17 @@
     </section>
   </main>
   <footer class="welcome-footer"><strong>เพลินภาษา ป.1</strong><span>พื้นที่เรียนรู้ที่เติบโตไปพร้อมกับทุกหน่วย</span></footer>
+  <dialog id="webAppInstallDialog" class="webapp-install-dialog" aria-labelledby="webAppInstallTitle">
+    <div class="webapp-install-card">
+      <div class="webapp-install-icon" aria-hidden="true">📲</div>
+      <h2 id="webAppInstallTitle">ติดตั้งเพลินภาษาเป็น Web App</h2>
+      <p id="webAppInstallNote">เพิ่มไว้บนหน้าจอหลัก เพื่อเปิดบทเรียนได้เหมือนแอป</p>
+      <button id="closeWebAppInstall" type="button">เข้าใจแล้ว</button>
+    </div>
+  </dialog>
   <script src="welcome.js?v=20260926-fast-first-load-1"></script>
   <script src="../emoji-fallback.js" defer></script>
 <script type="module" src="/is/P1/js/classroom-lazy.js?v=20260926-fast-first-load-1"></script>
+<script src="/is/P1/pwa-install.js?v=20260928-1" defer></script>
 </body>
 </html>
