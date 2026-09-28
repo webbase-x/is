@@ -512,17 +512,17 @@ function bindStaticUI(){
   });
   const profileButton=q(".profile-btn");
   if(profileButton)profileButton.addEventListener("click",()=>{location.hash="#/profile";});
-  q("#tenant-select").addEventListener("change",e=>{
+  q("#tenant-select").addEventListener("change",async e=>{
     const value=e.target.value;
     if(state.isPlatformAdmin&&state.viewMode==="admin"){
       const id=value.startsWith("admin:")?value.slice(6):"";
       state.adminSchool=state.adminSchools.find(s=>s.id===id)||null;
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
-      refreshHeader();renderRoute();return;
+      await loadPersonnelWorkCounts();refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);await loadPersonnelWorkCounts();refreshHeader();renderRoute();}
   });
 }
 
@@ -2595,6 +2595,82 @@ function bindPersonnel(){
     state.personnelFilters={search:"",personnel_type:"",status:"active"};
     renderRoute();
   });
+
+  const intakeToggle=q("[data-personnel-intake-toggle]");
+  if(intakeToggle)intakeToggle.addEventListener("click",async()=>{
+    const next=intakeToggle.dataset.next==="true";
+    if(!next&&!confirm("ปิดรับสมัครชั่วคราว? ลิงก์เดิมจะยังอยู่และคำขอที่รอตรวจสอบจะไม่ถูกลบ"))return;
+    setBusy(intakeToggle,true,next?"กำลังเปิด...":"กำลังปิด...");
+    const res=await supabase.rpc("lao_set_personnel_join_open",{p_school_id:currentSchool().id,p_is_active:next});
+    setBusy(intakeToggle,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    await loadPersonnelWorkCounts();
+    refreshHeader();
+    toast(next?"เปิดรับสมัครแล้ว สามารถคัดลอกลิงก์ส่งให้บุคลากรได้":"ปิดรับสมัครแล้ว คำขอเดิมยังคงอยู่","success");
+    renderRoute();
+  });
+
+  const copyJoin=q("[data-copy-personnel-link]");
+  if(copyJoin)copyJoin.addEventListener("click",async()=>{
+    const input=q("[data-personnel-join-link]");
+    if(!input)return;
+    try{
+      await navigator.clipboard.writeText(input.value);
+      toast("คัดลอกลิงก์รับสมัครแล้ว","success");
+    }catch(_){
+      input.select();
+      toast("เลือกข้อความลิงก์แล้ว กรุณาคัดลอกด้วยตนเอง","success");
+    }
+  });
+
+  qa("[data-request-review]").forEach(reviewForm=>reviewForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(reviewForm),btn=reviewForm.querySelector("button[type=submit]");
+    if(!confirm("ยืนยันอนุมัติบุคลากรรายนี้ และเชื่อมบัญชีกับทะเบียนบุคลากร?"))return;
+    setBusy(btn,true,"กำลังอนุมัติ...");
+    const res=await supabase.rpc("lao_review_personnel_join_request",{
+      p_request_id:reviewForm.dataset.requestReview,
+      p_decision:"approved",
+      p_existing_personnel_id:String(fd.get("existing_personnel_id")||"")||null,
+      p_prefix:String(fd.get("prefix")||"").trim()||null,
+      p_first_name_th:String(fd.get("first_name_th")||"").trim(),
+      p_last_name_th:String(fd.get("last_name_th")||"").trim(),
+      p_phone:String(fd.get("phone")||"").trim()||null,
+      p_personnel_type:String(fd.get("personnel_type")||"other"),
+      p_position_title:String(fd.get("position_title")||"").trim()||null,
+      p_academic_standing:String(fd.get("academic_standing")||"").trim()||null,
+      p_employee_no:String(fd.get("employee_no")||"").trim()||null,
+      p_rejection_reason:null
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    await Promise.all([loadPersonnelWorkCounts(),loadNotifications()]);
+    refreshHeader();
+    toast("อนุมัติและเชื่อมบัญชีเรียบร้อย","success");
+    renderRoute();
+  }));
+
+  qa("[data-reject-personnel-request]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const card=btn.closest("[data-request-card]");
+    const reason=String(q("[data-reject-reason]",card)&&q("[data-reject-reason]",card).value||"").trim();
+    if(!reason){toast("กรุณาระบุเหตุผลก่อนกดไม่อนุมัติ","error");return;}
+    if(!confirm("ยืนยันไม่อนุมัติคำขอนี้?"))return;
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_review_personnel_join_request",{
+      p_request_id:btn.dataset.rejectPersonnelRequest,
+      p_decision:"rejected",
+      p_existing_personnel_id:null,
+      p_prefix:null,p_first_name_th:null,p_last_name_th:null,p_phone:null,
+      p_personnel_type:"other",p_position_title:null,p_academic_standing:null,p_employee_no:null,
+      p_rejection_reason:reason
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    await Promise.all([loadPersonnelWorkCounts(),loadNotifications()]);
+    refreshHeader();
+    toast("บันทึกผลไม่อนุมัติแล้ว","success");
+    renderRoute();
+  }));
 
   const form=q("#personnel-form");
   if(form){
