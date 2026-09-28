@@ -336,6 +336,7 @@ function shortGrade(value){
   const v=String(value||"");
   const m=v.match(/ประถมศึกษาปีที่\s*(\d+)/);if(m)return "ป."+m[1];
   const k=v.match(/อนุบาล\s*(\d+)/);if(k)return "อ."+k[1];
+  const s=v.match(/มัธยมศึกษาปีที่\s*(\d+)/);if(s)return "ม."+s[1];
   return v||"-";
 }
 function studentPresenceLabel(value){
