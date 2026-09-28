@@ -784,3 +784,49 @@ table{max-width:none}
     gap:7px;
   }
 }
+
+
+/* Login account avatar — v0.8.3 */
+.avatar[data-avatar],
+.profile-hero-avatar{
+  overflow:hidden;
+  position:relative;
+}
+.login-avatar-img,
+.avatar-fallback{
+  display:block;
+  width:100%;
+  height:100%;
+}
+.login-avatar-img{
+  object-fit:cover;
+  object-position:center;
+  border-radius:inherit;
+  background:#eef4ff;
+}
+.avatar-fallback{
+  display:grid;
+  place-items:center;
+  border-radius:inherit;
+  font-weight:900;
+}
+.avatar-fallback.hidden,
+.login-avatar-img.hidden{
+  display:none!important;
+}
+.topbar-avatar-media{
+  width:100%;
+  height:100%;
+}
+.profile-avatar-media{
+  width:100%;
+  height:100%;
+}
+.profile-hero-avatar .avatar-fallback{
+  background:var(--primary-soft);
+  color:var(--primary);
+}
+.avatar[data-avatar] .avatar-fallback{
+  background:var(--primary-soft);
+  color:var(--primary);
+}
