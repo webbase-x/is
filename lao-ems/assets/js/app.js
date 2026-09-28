@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.8.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.8.1";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -779,9 +779,39 @@ function activationHtml(){
 
 function profileHtml(){
   const name=displayName(),school=currentSchool();
-  return '<section class="profile-layout"><article class="panel profile-summary"><div class="profile-hero-avatar">'+esc(initials(name).slice(0,2))+'</div><div><p class="eyebrow">MY PROFILE</p><h2>'+esc(name)+'</h2><p>'+esc(state.user&&state.user.email||"")+'</p><div class="profile-tags"><span class="pill success">บัญชีใช้งานได้</span>'+(school?'<span class="pill">'+esc(school.name_th)+'</span>':'')+'</div></div></article><article class="panel form-card profile-form-card"><div class="panel-head"><div><p class="eyebrow">ข้อมูลส่วนตัว</p><h2>โปรไฟล์ของฉัน</h2><p class="panel-sub">กรอกเฉพาะข้อมูลส่วนตัวของบัญชี ข้อมูลทางราชการของโรงเรียนและนักเรียนมาจาก LEC</p></div></div><form id="profile-form" class="form-grid profile-form">'+profileFieldsHtml("profile")+'<div class="span-2 form-section"><strong>ความปลอดภัยของบัญชี</strong><p class="panel-sub">การเปลี่ยนอีเมลหรือรหัสผ่านต้องยืนยันด้วยรหัสผ่านปัจจุบัน</p></div><div class="span-2"><div class="form-field"><label for="current-password">รหัสผ่านปัจจุบัน</label><div class="input-with-action"><input id="current-password" name="current_password" type="password" autocomplete="current-password" data-password-input placeholder="กรอกเมื่อเปลี่ยนอีเมลหรือรหัสผ่าน"><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div></div>'+passwordFieldsHtml(false)+'<div class="span-2 profile-form-actions"><button class="primary-btn" type="submit">บันทึกโปรไฟล์</button></div></form></article></section>';
-}
+  const email=state.user&&state.user.email||"-";
+  const roles=state.currentMembership?roleNames():(state.isPlatformAdmin?"ผู้ดูแลแพลตฟอร์ม":"ยังไม่มีสิทธิ์");
+  const authMethod=isGoogleAuthUser()?"Google":"อีเมลและรหัสผ่าน";
 
+  return '<section class="profile-page">'+
+    '<div class="profile-page-head"><div><p class="eyebrow">MY PROFILE</p><h2>โปรไฟล์ของฉัน</h2><p>จัดการข้อมูลส่วนตัว ข้อมูลติดต่อ และความปลอดภัยของบัญชี LAO-EMS</p></div></div>'+
+    '<div class="profile-layout">'+
+      '<aside class="profile-summary-card">'+
+        '<div class="profile-summary-top"><div class="profile-hero-avatar">'+esc(initials(name).slice(0,2))+'</div><div class="profile-summary-copy"><span class="profile-kicker">บัญชี LAO-EMS</span><h3>'+esc(name)+'</h3><p class="profile-email-text">'+esc(email)+'</p></div></div>'+
+        '<div class="profile-tags"><span class="pill success">บัญชีใช้งานได้</span>'+(school?'<span class="pill">'+esc(school.name_th)+'</span>':'')+'</div>'+
+        '<div class="profile-summary-list">'+
+          '<div><span>สถานศึกษา</span><strong>'+esc(school&&school.name_th||"ยังไม่เลือกสถานศึกษา")+'</strong></div>'+
+          '<div><span>สิทธิ์</span><strong>'+esc(roles)+'</strong></div>'+
+          '<div><span>วิธีเข้าสู่ระบบ</span><strong>'+esc(authMethod)+'</strong></div>'+
+        '</div>'+
+      '</aside>'+
+      '<form id="profile-form" class="profile-form-shell">'+
+        '<section class="profile-section-card">'+
+          '<div class="profile-section-head"><div class="profile-section-icon">👤</div><div><p class="eyebrow">ข้อมูลส่วนตัว</p><h3>ข้อมูลบัญชีและการติดต่อ</h3><p>แก้ไขเฉพาะข้อมูลส่วนตัวของบัญชี ข้อมูลทางราชการของโรงเรียนและนักเรียนอ้างอิงจาก LEC</p></div></div>'+
+          profileFieldsHtml("profile")+
+        '</section>'+
+        '<section class="profile-section-card">'+
+          '<div class="profile-section-head"><div class="profile-section-icon">🔐</div><div><p class="eyebrow">ความปลอดภัย</p><h3>อีเมลและรหัสผ่าน</h3><p>หากต้องการเปลี่ยนอีเมลหรือรหัสผ่าน ให้ยืนยันด้วยรหัสผ่านปัจจุบันก่อน</p></div></div>'+
+          '<div class="profile-security-grid">'+
+            '<div class="form-field current-password-field"><label for="current-password">รหัสผ่านปัจจุบัน</label><div class="input-with-action"><input id="current-password" name="current_password" type="password" autocomplete="current-password" data-password-input placeholder="กรอกเมื่อเปลี่ยนอีเมลหรือรหัสผ่าน"><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div><small>เว้นว่างไว้หากไม่ได้เปลี่ยนอีเมลหรือรหัสผ่าน</small></div>'+
+            passwordFieldsHtml(false)+
+          '</div>'+
+        '</section>'+
+        '<div class="profile-save-bar"><div><strong>ตรวจสอบข้อมูลก่อนบันทึก</strong><span>การเปลี่ยนอีเมลอาจต้องยืนยันอีเมลใหม่ตามการตั้งค่าความปลอดภัย</span></div><button class="primary-btn profile-save-btn" type="submit">บันทึกโปรไฟล์</button></div>'+
+      '</form>'+
+    '</div>'+
+  '</section>';
+}
 
 async function setupHtml(){
   const school=currentSchool();
