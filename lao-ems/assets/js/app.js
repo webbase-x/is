@@ -638,6 +638,9 @@ async function renderPublicPersonnelJoin(token,session=null,forceForm=false){
 
   const email=session.user.email||"";
   const meta=session.user.user_metadata||{};
+  const providers=(session.user.app_metadata&&session.user.app_metadata.providers)||[];
+  const hasGoogle=Array.isArray(providers)&&providers.includes("google");
+  const needsPassword=!hasGoogle&&meta.lao_personnel_join_password_set!==true;
   box.innerHTML='<div class="form-heading"><p class="eyebrow">PERSONNEL JOIN</p><h2>ข้อมูลผู้สมัคร</h2><p>อีเมลได้รับการยืนยันแล้ว กรุณากรอกข้อมูลตามจริง ฝ่ายบุคลากรหรือ School Admin จะตรวจสอบและสามารถแก้ไขก่อนอนุมัติ</p></div>'+
     '<div class="join-flow-steps"><span class="done">✓ ยืนยันอีเมล</span><span class="current">2 กรอกข้อมูล</span><span>3 รออนุมัติ</span></div>'+
     '<div class="join-verified-email"><div><small>อีเมลที่ยืนยันแล้ว</small><strong>'+esc(email)+'</strong></div><button type="button" class="text-btn" data-join-use-other>ใช้อีเมลอื่น</button></div>'+
@@ -652,6 +655,7 @@ async function renderPublicPersonnelJoin(token,session=null,forceForm=false){
         '<label class="form-field">วิทยฐานะ<select name="academic_standing" data-join-standing>'+joinAcademicStandingOptions("")+'</select></label>'+
         '<label class="form-field hidden" data-join-standing-custom-wrap>ระบุวิทยฐานะเอง <span class="required-mark">*</span><input name="academic_standing_custom" data-join-standing-custom></label>'+
         '<label class="form-field span-all">หมายเหตุเพิ่มเติม<textarea name="note" rows="3" placeholder="เว้นว่างได้"></textarea></label>'+
+        (needsPassword?'<div class="span-all join-password-section"><strong>ตั้งรหัสผ่านสำหรับเข้าใช้ครั้งถัดไป</strong><p>อย่างน้อย 8 ตัวอักษร หลังได้รับอนุมัติสามารถใช้ร่วมกับอีเมลนี้เพื่อเข้าสู่ระบบได้</p><div class="responsive-form-grid"><label class="form-field">รหัสผ่าน <span class="required-mark">*</span><div class="input-with-action"><input name="join_password" type="password" minlength="8" required autocomplete="new-password" data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></label><label class="form-field">ยืนยันรหัสผ่าน <span class="required-mark">*</span><div class="input-with-action"><input name="join_password_confirm" type="password" minlength="8" required autocomplete="new-password" data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></label></div></div>':'')+
       '</div>'+
       '<div class="notice"><strong>ก่อนส่งคำขอ</strong><br>ข้อมูลตำแหน่งและวิทยฐานะที่คุณเลือกเป็นข้อมูลที่ผู้สมัครระบุ ผู้อนุมัติจะตรวจสอบและอาจแก้ไขให้ตรงกับข้อมูลของโรงเรียนก่อนอนุมัติ</div>'+
       '<button class="primary-btn wide" type="submit">ส่งคำขอเข้าร่วมโรงเรียน</button>'+
@@ -666,6 +670,7 @@ async function renderPublicPersonnelJoin(token,session=null,forceForm=false){
   });
 
   const form=q("#personnel-join-profile-form",box);
+  bindPasswordToggles(form);
   const pos=q("[data-join-position]",form),posWrap=q("[data-join-position-custom-wrap]",form),posCustom=q("[data-join-position-custom]",form);
   const standing=q("[data-join-standing]",form),standingWrap=q("[data-join-standing-custom-wrap]",form),standingCustom=q("[data-join-standing-custom]",form);
   const syncCustom=()=>{
@@ -682,7 +687,15 @@ async function renderPublicPersonnelJoin(token,session=null,forceForm=false){
     const posData=joinPositionData(String(fd.get("position_choice")||""),String(fd.get("position_custom")||""));
     const academic=String(fd.get("academic_standing")||"")==="__custom__"?String(fd.get("academic_standing_custom")||"").trim():String(fd.get("academic_standing")||"").trim();
     if(!posData.position_title){toast("กรุณาระบุตำแหน่ง","error");return;}
+    const joinPassword=String(fd.get("join_password")||"");
+    const joinPasswordConfirm=String(fd.get("join_password_confirm")||"");
+    if(needsPassword&&joinPassword.length<8){toast("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร","error");return;}
+    if(needsPassword&&joinPassword!==joinPasswordConfirm){toast("รหัสผ่านทั้งสองช่องไม่ตรงกัน","error");return;}
     setBusy(btn,true,"กำลังส่งคำขอ...");
+    if(needsPassword){
+      const passRes=await supabase.auth.updateUser({password:joinPassword,data:{lao_personnel_join_password_set:true}});
+      if(passRes.error){setBusy(btn,false);toast(authMessage(passRes.error.message),"error");return;}
+    }
     const res=await supabase.rpc("lao_submit_personnel_join_request",{
       p_token:token,
       p_prefix:String(fd.get("prefix")||"").trim()||null,
