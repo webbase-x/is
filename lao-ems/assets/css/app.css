@@ -1238,3 +1238,35 @@ table{max-width:none}
   .join-flow-steps{grid-template-columns:1fr}
   .join-verified-email{align-items:flex-start;flex-direction:column}
 }
+
+
+/* Personnel authority assignment */
+.personnel-authority-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.personnel-authority-row{
+  display:grid;
+  grid-template-columns:minmax(230px,1.4fr) minmax(190px,.8fr) auto auto auto;
+  gap:10px;
+  align-items:center;
+  padding:11px;
+  border:1px solid #eaecf0;
+  border-radius:13px;
+  background:#fff;
+}
+.personnel-authority-person{display:flex;align-items:center;gap:10px;min-width:0}
+.personnel-authority-person>div:last-child{min-width:0}
+.personnel-authority-person strong,.personnel-authority-person small{display:block;overflow-wrap:anywhere}
+.personnel-authority-person strong{font-size:12px;color:#101828}
+.personnel-authority-person small{margin-top:2px;font-size:9px;line-height:1.4;color:#667085}
+.personnel-authority-row>label>span{display:block;margin-bottom:4px;font-size:9px;font-weight:800;color:#475467}
+.authority-check{display:flex!important;align-items:center;gap:6px;white-space:nowrap;margin:0}
+.authority-check input{width:16px;height:16px;min-height:auto;margin:0}
+.authority-check span{margin:0!important;font-size:9px!important}
+@media(max-width:1000px){
+  .personnel-authority-row{grid-template-columns:minmax(220px,1fr) minmax(180px,1fr);align-items:end}
+  .personnel-authority-row>.authority-check{align-self:center}
+  .personnel-authority-row>button{justify-self:end}
+}
+@media(max-width:650px){
+  .personnel-authority-row{grid-template-columns:1fr}
+  .personnel-authority-row>button{justify-self:stretch;width:100%}
+}
