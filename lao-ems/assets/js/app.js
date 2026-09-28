@@ -526,6 +526,193 @@ function bindStaticUI(){
   });
 }
 
+
+function joinPositionOptions(selected){
+  const rows=[
+    ["director","ผู้อำนวยการสถานศึกษา"],
+    ["deputy","รองผู้อำนวยการสถานศึกษา"],
+    ["teacher","ครู"],
+    ["educational_staff","บุคลากรทางการศึกษา"],
+    ["support_staff","เจ้าหน้าที่ / บุคลากรสนับสนุน"],
+    ["employee","พนักงานจ้าง"],
+    ["__custom__","ระบุเอง"]
+  ];
+  return rows.map(([v,l])=>'<option value="'+v+'" '+(selected===v?"selected":"")+'>'+l+'</option>').join("");
+}
+function joinAcademicStandingOptions(selected){
+  const rows=[
+    ["","ไม่มี / ไม่ระบุ"],
+    ["ครูผู้ช่วย","ครูผู้ช่วย"],
+    ["ครู","ครู"],
+    ["ครูชำนาญการ","ครูชำนาญการ"],
+    ["ครูชำนาญการพิเศษ","ครูชำนาญการพิเศษ"],
+    ["ครูเชี่ยวชาญ","ครูเชี่ยวชาญ"],
+    ["ครูเชี่ยวชาญพิเศษ","ครูเชี่ยวชาญพิเศษ"],
+    ["__custom__","ระบุเอง"]
+  ];
+  return rows.map(([v,l])=>'<option value="'+v+'" '+(selected===v?"selected":"")+'>'+l+'</option>').join("");
+}
+function joinPositionData(choice,custom){
+  const map={
+    director:{personnel_type:"executive",position_title:"ผู้อำนวยการสถานศึกษา"},
+    deputy:{personnel_type:"executive",position_title:"รองผู้อำนวยการสถานศึกษา"},
+    teacher:{personnel_type:"teacher",position_title:"ครู"},
+    educational_staff:{personnel_type:"educational_staff",position_title:"บุคลากรทางการศึกษา"},
+    support_staff:{personnel_type:"support_staff",position_title:"เจ้าหน้าที่ / บุคลากรสนับสนุน"},
+    employee:{personnel_type:"contract_employee",position_title:"พนักงานจ้าง"}
+  };
+  if(choice==="__custom__")return {personnel_type:"other",position_title:String(custom||"").trim()};
+  return map[choice]||{personnel_type:"other",position_title:String(custom||"").trim()};
+}
+function publicJoinStatusHtml(request,schoolName){
+  if(!request)return "";
+  if(request.status==="pending_review"){
+    return '<div class="join-status-card waiting"><div class="join-status-icon">⏳</div><h2>ส่งคำขอแล้ว</h2><p>ยืนยันอีเมลเรียบร้อย และส่งคำขอเข้าร่วม <strong>'+esc(schoolName||"สถานศึกษา")+'</strong> แล้ว</p><div class="join-step-list"><span class="done">✓ ยืนยันอีเมลแล้ว</span><span class="done">✓ ส่งข้อมูลแล้ว</span><span class="current">3 รอฝ่ายบุคลากร / School Admin ตรวจสอบ</span></div><div class="notice">ไม่ต้องสมัครซ้ำ เมื่อผู้เกี่ยวข้องอนุมัติแล้วจึงสามารถเข้าใช้ LAO-EMS ของโรงเรียนได้</div></div>';
+  }
+  if(request.status==="approved"){
+    return '<div class="join-status-card approved"><div class="join-status-icon">✓</div><h2>อนุมัติแล้ว</h2><p>บัญชีของคุณได้รับอนุมัติและเชื่อมกับทะเบียนบุคลากรของ <strong>'+esc(schoolName||"สถานศึกษา")+'</strong> แล้ว</p><button class="primary-btn wide" type="button" data-join-enter-app>เข้าสู่ระบบ LAO-EMS</button></div>';
+  }
+  if(request.status==="rejected"){
+    return '<div class="join-status-card rejected"><div class="join-status-icon">!</div><h2>คำขอยังไม่ได้รับอนุมัติ</h2><p>'+esc(request.rejection_reason||"กรุณาติดต่อฝ่ายบุคลากรของโรงเรียนเพื่อตรวจสอบข้อมูล")+'</p><button class="secondary-btn wide" type="button" data-join-reapply>ตรวจข้อมูลและยื่นใหม่</button></div>';
+  }
+  return '<div class="join-status-card"><h2>สถานะคำขอ</h2><p>'+esc(request.status||"-")+'</p></div>';
+}
+async function renderPublicPersonnelJoin(token,session=null,forceForm=false){
+  const box=q("#personnel-join-screen"); if(!box)return;
+  box.classList.remove("hidden");
+  box.innerHTML='<div class="loading-inline"><span class="spinner"></span>กำลังตรวจสอบลิงก์...</div>';
+
+  const infoRes=await supabase.rpc("lao_public_personnel_join_link",{p_token:token});
+  if(infoRes.error){
+    box.innerHTML='<div class="form-heading"><h2>เปิดลิงก์ไม่สำเร็จ</h2><p>'+esc(infoRes.error.message)+'</p></div>';
+    return;
+  }
+  const info=infoRes.data||{};
+
+  if(session&&session.user){
+    const myRes=await supabase.rpc("lao_my_personnel_join_request",{p_token:token});
+    if(!myRes.error&&myRes.data&&!forceForm){
+      const statusHtml=publicJoinStatusHtml(myRes.data,info.school_name);
+      box.innerHTML=statusHtml;
+      const enter=q("[data-join-enter-app]",box);
+      if(enter)enter.addEventListener("click",async()=>{
+        clearPersonnelJoinQuery();
+        await showApp(session);
+      });
+      const reapply=q("[data-join-reapply]",box);
+      if(reapply)reapply.addEventListener("click",()=>renderPublicPersonnelJoin(token,session,true));
+      return;
+    }
+  }
+
+  if(!info.valid){
+    const msg=info.reason==="closed"?"ขณะนี้โรงเรียนปิดรับคำขอเข้าร่วมผ่านลิงก์นี้ กรุณาติดต่อฝ่ายบุคลากร":info.reason==="school_inactive"?"สถานศึกษานี้ยังไม่พร้อมใช้งาน":"ไม่พบลิงก์รับสมัครนี้";
+    box.innerHTML='<div class="join-status-card rejected"><div class="join-status-icon">!</div><h2>ยังไม่เปิดรับสมัคร</h2><p>'+esc(msg)+'</p></div>';
+    return;
+  }
+
+  if(!session||!session.user){
+    box.innerHTML='<div class="form-heading"><p class="eyebrow">PERSONNEL JOIN</p><h2>เข้าร่วม '+esc(info.school_name||"สถานศึกษา")+'</h2><p>กรอกอีเมลของคุณ ระบบจะส่งลิงก์ยืนยันไปยังอีเมลก่อนให้กรอกข้อมูลบุคลากร</p></div>'+
+      '<div class="join-flow-steps"><span class="current">1 ยืนยันอีเมล</span><span>2 กรอกข้อมูล</span><span>3 รออนุมัติ</span></div>'+
+      '<form id="personnel-join-email-form" class="auth-form"><label class="form-field"><span>อีเมล <span class="required-mark">*</span></span><input name="email" type="email" autocomplete="email" required placeholder="name@example.com"></label><button class="primary-btn wide" type="submit">ส่งลิงก์ยืนยันอีเมล</button></form>'+
+      '<p class="google-login-note">ใช้ลิงก์ที่ได้รับทางอีเมลเพื่อยืนยันว่าอีเมลนี้เป็นของคุณจริง จากนั้นระบบจะพากลับมากรอกข้อมูลต่อ</p>';
+    const form=q("#personnel-join-email-form",box);
+    form.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
+      const email=String(fd.get("email")||"").trim().toLowerCase();
+      const redirect=new URL(location.pathname,location.origin);
+      redirect.searchParams.set("personnel_join",token);
+      setBusy(btn,true,"กำลังส่ง...");
+      const res=await supabase.auth.signInWithOtp({
+        email,
+        options:{emailRedirectTo:redirect.href,shouldCreateUser:true}
+      });
+      setBusy(btn,false);
+      if(res.error){toast(authMessage(res.error.message),"error");return;}
+      box.innerHTML='<div class="join-status-card waiting"><div class="join-status-icon">✉</div><h2>ส่งลิงก์ยืนยันแล้ว</h2><p>กรุณาเปิดอีเมล <strong>'+esc(email)+'</strong> แล้วกดลิงก์ยืนยัน จากนั้นจะกลับมาที่ LAO-EMS เพื่อกรอกข้อมูลต่อ</p><div class="notice">หากไม่พบอีเมล ให้ตรวจโฟลเดอร์ Spam/Junk และรอสักครู่ก่อนส่งซ้ำ</div></div>';
+    });
+    return;
+  }
+
+  const email=session.user.email||"";
+  const meta=session.user.user_metadata||{};
+  box.innerHTML='<div class="form-heading"><p class="eyebrow">PERSONNEL JOIN</p><h2>ข้อมูลผู้สมัคร</h2><p>อีเมลได้รับการยืนยันแล้ว กรุณากรอกข้อมูลตามจริง ฝ่ายบุคลากรหรือ School Admin จะตรวจสอบและสามารถแก้ไขก่อนอนุมัติ</p></div>'+
+    '<div class="join-flow-steps"><span class="done">✓ ยืนยันอีเมล</span><span class="current">2 กรอกข้อมูล</span><span>3 รออนุมัติ</span></div>'+
+    '<div class="join-verified-email"><div><small>อีเมลที่ยืนยันแล้ว</small><strong>'+esc(email)+'</strong></div><button type="button" class="text-btn" data-join-use-other>ใช้อีเมลอื่น</button></div>'+
+    '<form id="personnel-join-profile-form" class="auth-form public-application-form">'+
+      '<div class="responsive-form-grid">'+
+        '<label class="form-field compact-field">คำนำหน้า<select name="prefix"><option value="">ไม่ระบุ</option><option '+(meta.prefix==="นาย"?"selected":"")+'>นาย</option><option '+(meta.prefix==="นาง"?"selected":"")+'>นาง</option><option '+(meta.prefix==="นางสาว"?"selected":"")+'>นางสาว</option></select></label>'+
+        '<label class="form-field">ชื่อ <span class="required-mark">*</span><input name="first_name_th" required autocomplete="given-name" value="'+esc(meta.first_name_th||meta.given_name||"")+'"></label>'+
+        '<label class="form-field">นามสกุล <span class="required-mark">*</span><input name="last_name_th" required autocomplete="family-name" value="'+esc(meta.last_name_th||meta.family_name||"")+'"></label>'+
+        '<label class="form-field">เบอร์โทรศัพท์<input name="phone" type="tel" autocomplete="tel" inputmode="tel" value="'+esc(meta.phone||"")+'"></label>'+
+        '<label class="form-field">ตำแหน่ง <span class="required-mark">*</span><select name="position_choice" data-join-position>'+joinPositionOptions("teacher")+'</select></label>'+
+        '<label class="form-field hidden" data-join-position-custom-wrap>ระบุตำแหน่งเอง <span class="required-mark">*</span><input name="position_custom" data-join-position-custom></label>'+
+        '<label class="form-field">วิทยฐานะ<select name="academic_standing" data-join-standing>'+joinAcademicStandingOptions("")+'</select></label>'+
+        '<label class="form-field hidden" data-join-standing-custom-wrap>ระบุวิทยฐานะเอง <span class="required-mark">*</span><input name="academic_standing_custom" data-join-standing-custom></label>'+
+        '<label class="form-field span-all">หมายเหตุเพิ่มเติม<textarea name="note" rows="3" placeholder="เว้นว่างได้"></textarea></label>'+
+      '</div>'+
+      '<div class="notice"><strong>ก่อนส่งคำขอ</strong><br>ข้อมูลตำแหน่งและวิทยฐานะที่คุณเลือกเป็นข้อมูลที่ผู้สมัครระบุ ผู้อนุมัติจะตรวจสอบและอาจแก้ไขให้ตรงกับข้อมูลของโรงเรียนก่อนอนุมัติ</div>'+
+      '<button class="primary-btn wide" type="submit">ส่งคำขอเข้าร่วมโรงเรียน</button>'+
+    '</form>';
+
+  const useOther=q("[data-join-use-other]",box);
+  if(useOther)useOther.addEventListener("click",async()=>{
+    try{await supabase.auth.signOut({scope:"local"});}catch(_){}
+    clearLaoAuthSession();
+    state.session=state.user=null;
+    await renderPublicPersonnelJoin(token,null);
+  });
+
+  const form=q("#personnel-join-profile-form",box);
+  const pos=q("[data-join-position]",form),posWrap=q("[data-join-position-custom-wrap]",form),posCustom=q("[data-join-position-custom]",form);
+  const standing=q("[data-join-standing]",form),standingWrap=q("[data-join-standing-custom-wrap]",form),standingCustom=q("[data-join-standing-custom]",form);
+  const syncCustom=()=>{
+    const customPos=pos.value==="__custom__";
+    posWrap.classList.toggle("hidden",!customPos);posCustom.required=customPos;if(!customPos)posCustom.value="";
+    const customStanding=standing.value==="__custom__";
+    standingWrap.classList.toggle("hidden",!customStanding);standingCustom.required=customStanding;if(!customStanding)standingCustom.value="";
+  };
+  pos.addEventListener("change",syncCustom);standing.addEventListener("change",syncCustom);syncCustom();
+
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
+    const posData=joinPositionData(String(fd.get("position_choice")||""),String(fd.get("position_custom")||""));
+    const academic=String(fd.get("academic_standing")||"")==="__custom__"?String(fd.get("academic_standing_custom")||"").trim():String(fd.get("academic_standing")||"").trim();
+    if(!posData.position_title){toast("กรุณาระบุตำแหน่ง","error");return;}
+    setBusy(btn,true,"กำลังส่งคำขอ...");
+    const res=await supabase.rpc("lao_submit_personnel_join_request",{
+      p_token:token,
+      p_prefix:String(fd.get("prefix")||"").trim()||null,
+      p_first_name_th:String(fd.get("first_name_th")||"").trim(),
+      p_last_name_th:String(fd.get("last_name_th")||"").trim(),
+      p_phone:String(fd.get("phone")||"").trim()||null,
+      p_personnel_type:posData.personnel_type,
+      p_position_title:posData.position_title,
+      p_academic_standing:academic||null,
+      p_note:String(fd.get("note")||"").trim()||null
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("ส่งคำขอแล้ว รอฝ่ายบุคลากรตรวจสอบ","success");
+    await renderPublicPersonnelJoin(token,session);
+  });
+}
+async function showPersonnelJoin(session){
+  const token=personnelJoinToken();
+  if(!token)return;
+  state.session=session||null;
+  state.user=session&&session.user||null;
+  q("#app-shell").classList.add("hidden");
+  q("#auth-screen").classList.remove("hidden");
+  const signin=q("#signin-form"),adminApp=q("#school-admin-application"),joinBox=q("#personnel-join-screen");
+  if(signin)signin.classList.add("hidden");
+  if(adminApp)adminApp.classList.add("hidden");
+  if(joinBox)joinBox.classList.remove("hidden");
+  await renderPublicPersonnelJoin(token,session||null);
+}
+
 async function renderPublicSchoolAdminApplication(token){
   const box=q("#school-admin-application"); if(!box)return;
   box.classList.remove("hidden");
@@ -2659,9 +2846,20 @@ async function showApp(session){
 }
 function showAuth(){
   q("#app-shell").classList.add("hidden");q("#auth-screen").classList.remove("hidden");
-  const token=schoolAdminApplyToken(),signin=q("#signin-form"),application=q("#school-admin-application");
-  if(token){if(signin)signin.classList.add("hidden");if(application){application.classList.remove("hidden");renderPublicSchoolAdminApplication(token);}}
-  else{if(signin)signin.classList.remove("hidden");if(application)application.classList.add("hidden");}
+  const joinToken=personnelJoinToken(),token=schoolAdminApplyToken(),signin=q("#signin-form"),application=q("#school-admin-application"),joinBox=q("#personnel-join-screen");
+  if(joinToken){
+    if(signin)signin.classList.add("hidden");
+    if(application)application.classList.add("hidden");
+    if(joinBox){joinBox.classList.remove("hidden");renderPublicPersonnelJoin(joinToken,null);}
+  }else if(token){
+    if(signin)signin.classList.add("hidden");
+    if(joinBox)joinBox.classList.add("hidden");
+    if(application){application.classList.remove("hidden");renderPublicSchoolAdminApplication(token);}
+  }else{
+    if(signin)signin.classList.remove("hidden");
+    if(application)application.classList.add("hidden");
+    if(joinBox)joinBox.classList.add("hidden");
+  }
 }
 
 window.addEventListener("beforeunload",event=>{
@@ -2706,7 +2904,8 @@ async function init(){
     sessionStorage.setItem("lao_drive_notice",driveResult==="connected"?"connected":"error");
     if(query.get("message"))sessionStorage.setItem("lao_drive_message",query.get("message"));
   }
-  if(schoolAdminApplyToken())showAuth();
+  if(personnelJoinToken())await showPersonnelJoin(res.data.session||null);
+  else if(schoolAdminApplyToken())showAuth();
   else if(res.data.session)await showApp(res.data.session);else{
     showAuth();
     if(sessionStorage.getItem("lao_email_denied_notice")==="1"){
@@ -2720,6 +2919,7 @@ async function init(){
   supabase.auth.onAuthStateChange(async(event,session)=>{
     if(event==="SIGNED_OUT"||!session){state.session=state.user=state.profile=state.currentMembership=null;state.memberships=[];showAuth();return;}
     if(event==="SIGNED_IN"&&state.reauthenticating)return;
+    if(personnelJoinToken()){await showPersonnelJoin(session);return;}
     if(event==="SIGNED_IN")await showApp(session);
   });
 }
