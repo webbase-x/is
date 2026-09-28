@@ -1,0 +1,23 @@
+{
+  "id": "/is/P1/",
+  "name": "เพลินภาษา ป.๑",
+  "short_name": "เพลินภาษา",
+  "description": "บทเรียนออนไลน์วิชาภาษาไทย ชั้นประถมศึกษาปีที่ ๑",
+  "lang": "th",
+  "start_url": "/is/P1/index.html",
+  "scope": "/is/P1/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#fbfaf6",
+  "theme_color": "#176b56",
+  "categories": ["education"],
+  "icons": [
+    {
+      "src": "/is/P1/assets/p1-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
