@@ -3284,7 +3284,7 @@ function bindTeachingWorkloadControls(){
 
   qa("[data-edit-workload-personnel]").forEach(btn=>btn.addEventListener("click",()=>{
     state.teachingWorkloadPersonnelId=btn.dataset.editWorkloadPersonnel||null;
-    renderRoute().then?.(()=>{});
+    renderRoute();
     setTimeout(()=>{const editor=q("#teaching-workload-editor");if(editor)editor.scrollIntoView({behavior:"smooth",block:"start"});},120);
   }));
 
