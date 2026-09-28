@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.10.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.10.1";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1064,7 +1064,7 @@ function overviewHtml(){
     notice='<div class="notice">บัญชี LAO-EMS ใช้ระบบคำเชิญจากผู้ดูแล หากยังไม่มีสิทธิ์ กรุณาติดต่อผู้ดูแลสถานศึกษาของคุณ</div>';
   }
 
-  return '<section class="system-banner"><div><span class="badge">LAO-EMS</span><h2>สวัสดี '+esc(name)+'</h2><p>ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น</p></div></section>'+
+  return '<section class="system-banner"><div><span class="badge">LAO-EMS</span><h2>สวัสดี '+esc(name)+'</h2><p>ระบบสารสนเทศเพื่อการบริหารสถานศึกษา</p></div></section>'+
   '<section class="stats-grid">'+
     '<article class="stat-card"><span class="stat-icon">🏫</span><div><small>สถานศึกษา</small><strong>'+esc(tenant)+'</strong><p>ข้อมูลโรงเรียนและนักเรียนอ้างอิงจาก LEC</p></div></article>'+
     '<article class="stat-card"><span class="stat-icon">👤</span><div><small>สิทธิ์การใช้งาน</small><strong>'+esc(accessText)+'</strong><p>'+esc(state.currentMembership?roleNames():"")+'</p></div></article>'+
