@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.13.2";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.13.3";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -2548,14 +2548,14 @@ async function personnelListHtml(){
   state.personnelDirectory=d;
   const canManage=Boolean(d.can_manage);
 
-  const rows=items.map((p,i)=>'<div class="personnel-row">'+
+  const rows=items.map((p,i)=>'<div class="personnel-row personnel-row-clickable" role="link" tabindex="0" data-personnel-row-href="#/personnel/'+esc(p.id)+'" aria-label="เปิดข้อมูล '+esc(p.full_name||"บุคลากร")+'">'+
     '<span class="personnel-row-index">'+(i+1)+'</span>'+
     '<div class="personnel-row-person"><div class="personnel-avatar">'+personnelAvatarHtml(p,"personnel-avatar-media")+'</div><div><strong>'+esc(p.full_name||"-")+'</strong><small>'+esc(p.position_title||personnelTypeLabel(p.personnel_type))+(p.academic_standing?' · '+esc(p.academic_standing):'')+'</small></div></div>'+
     '<span class="personnel-type-pill">'+esc(personnelTypeLabel(p.personnel_type))+'</span>'+
     '<div class="personnel-contact"><span>'+esc(p.email||"-")+'</span><small>'+esc(p.phone||"-")+'</small></div>'+
     '<span class="personnel-account '+(p.account_linked?"linked":"")+'">'+(p.account_linked?"✓ เชื่อมบัญชี":"ยังไม่เชื่อม")+'</span>'+
     '<span class="personnel-status '+(p.employment_status==="active"?"active":"")+'">'+esc(employmentStatusLabel(p.employment_status))+'</span>'+
-    '<a class="secondary-btn compact-btn" href="#/personnel/'+esc(p.id)+'">ดูข้อมูล</a>'+
+    '<span class="personnel-row-chevron" aria-hidden="true">›</span>'+
   '</div>').join("");
 
   return '<section class="personnel-page">'+personnelNavHtml("registry")+
@@ -2573,8 +2573,8 @@ async function personnelListHtml(){
         '<div class="personnel-filter-actions"><button class="primary-btn" type="submit">ค้นหา</button><button class="secondary-btn" type="button" data-personnel-reset>ล้างตัวกรอง</button></div>'+
       '</form>'+
     '</section>'+
-    '<section class="panel personnel-list-panel"><div class="student-list-head"><div><h2>รายชื่อบุคลากร</h2><p>เรียงตามลำดับที่กำหนด ประเภทบุคลากร และชื่อ–สกุล</p></div><strong>'+Number(d.total||0).toLocaleString("th-TH")+' คน</strong></div>'+
-      (items.length?'<div class="personnel-list-scroll" role="region" aria-label="รายชื่อบุคลากร" tabindex="0"><div class="personnel-list"><div class="personnel-list-head"><span>ลำดับ</span><span>ชื่อ–สกุล / ตำแหน่ง</span><span>ประเภท</span><span>ติดต่อ</span><span>บัญชี</span><span>สถานะ</span><span></span></div>'+rows+'</div></div>':'<div class="empty-state compact-empty"><div class="empty-icon">🪪</div><h3>ยังไม่พบบุคลากร</h3><p>'+(canManage?'กด “เพิ่มบุคลากร” เพื่อเริ่มทะเบียน':'ยังไม่มีข้อมูลบุคลากรในสถานศึกษานี้')+'</p></div>')+
+    '<section class="panel personnel-list-panel"><div class="student-list-head"><div><h2>รายชื่อบุคลากร</h2><p>เรียงเป็นแถวแนวนอน · กดที่แถวเพื่อเปิดดูข้อมูล</p></div><strong>'+Number(d.total||0).toLocaleString("th-TH")+' คน</strong></div>'+
+      (items.length?'<div class="personnel-list-hint">แตะหรือคลิกแถวที่ต้องการเพื่อดูข้อมูลบุคลากร</div><div class="personnel-list-scroll" role="region" aria-label="รายชื่อบุคลากร" tabindex="0"><div class="personnel-list"><div class="personnel-list-head"><span>ลำดับ</span><span>ชื่อ–สกุล / ตำแหน่ง</span><span>ประเภท</span><span>ติดต่อ</span><span>บัญชี</span><span>สถานะ</span><span aria-hidden="true"></span></div>'+rows+'</div></div>':'<div class="empty-state compact-empty"><div class="empty-icon">🪪</div><h3>ยังไม่พบบุคลากร</h3><p>'+(canManage?'กด “เพิ่มบุคลากร” เพื่อเริ่มทะเบียน':'ยังไม่มีข้อมูลบุคลากรในสถานศึกษานี้')+'</p></div>')+
     '</section>'+
   '</section>';
 }
@@ -2683,6 +2683,23 @@ function bindPersonnel(){
   if(reset)reset.addEventListener("click",()=>{
     state.personnelFilters={search:"",personnel_type:"",status:"active"};
     renderRoute();
+  });
+
+  qa("[data-personnel-row-href]").forEach(row=>{
+    const openRow=()=>{
+      const href=row.dataset.personnelRowHref;
+      if(href)location.hash=href;
+    };
+    row.addEventListener("click",e=>{
+      if(e.target.closest("a,button,input,select,textarea"))return;
+      openRow();
+    });
+    row.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){
+        e.preventDefault();
+        openRow();
+      }
+    });
   });
 
   const intakeToggle=q("[data-personnel-intake-toggle]");
