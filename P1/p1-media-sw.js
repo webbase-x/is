@@ -69,9 +69,30 @@ self.addEventListener('fetch',event=>{
         if(response.ok)await shell.put(request,response.clone());
         return response;
       }catch{
-        return (await shell.match(request))||
+        return (await shell.match(request,{ignoreSearch:true}))||
           (await shell.match('/is/P1/index.html'))||
           Response.error();
+      }
+    })());
+    return;
+  }
+
+  if(SHELL_PATHS.has(url.pathname)){
+    event.respondWith((async()=>{
+      const shell=await caches.open(SHELL_CACHE);
+      const cached=await shell.match(request,{ignoreSearch:true});
+      if(cached){
+        event.waitUntil(fetch(request).then(response=>{
+          if(response.ok)return shell.put(request,response.clone());
+        }).catch(()=>{}));
+        return cached;
+      }
+      try{
+        const response=await fetch(request);
+        if(response.ok)await shell.put(request,response.clone());
+        return response;
+      }catch{
+        return Response.error();
       }
     })());
     return;
