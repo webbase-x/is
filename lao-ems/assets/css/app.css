@@ -2803,3 +2803,152 @@ table{max-width:none}
     font-size:9px;
   }
 }
+
+
+/* Personnel horizontal registry rows + academic program guidance — v0.12.2 */
+.personnel-list-hint{
+  margin:10px 0 7px;
+  padding:8px 10px;
+  border-radius:10px;
+  background:#f8fafc;
+  color:#667085;
+  font-size:10px;
+  line-height:1.45;
+}
+.personnel-row-clickable{
+  cursor:pointer;
+  transition:background .14s ease,box-shadow .14s ease;
+}
+.personnel-row-clickable:hover{
+  background:#f5f9ff;
+}
+.personnel-row-clickable:focus-visible{
+  outline:2px solid #84adff;
+  outline-offset:-2px;
+  background:#f5f9ff;
+}
+.personnel-row-chevron{
+  display:grid;
+  place-items:center;
+  color:#98a2b3;
+  font-size:22px;
+  font-weight:700;
+  line-height:1;
+}
+.personnel-list-head,.personnel-row{
+  grid-template-columns:48px minmax(220px,1.35fr) 135px minmax(150px,.9fr) 110px 105px 28px;
+}
+.personnel-list-scroll{
+  width:100%;
+  max-width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+}
+.personnel-list{
+  width:100%;
+  min-width:790px;
+}
+
+/* Keep personnel registry as horizontal rows on tablet/mobile instead of cards. */
+@media(max-width:1150px){
+  .personnel-list-head,.personnel-row{
+    grid-template-columns:42px minmax(205px,1.25fr) 120px minmax(145px,.9fr) 105px 92px 28px;
+    gap:8px;
+  }
+}
+@media(max-width:900px){
+  .personnel-list-head{
+    display:grid;
+  }
+  .personnel-list{
+    display:block;
+    min-width:760px;
+  }
+  .personnel-row{
+    display:grid;
+    grid-template-columns:42px minmax(205px,1.25fr) 120px minmax(145px,.9fr) 105px 92px 28px;
+    grid-template-areas:none;
+    gap:8px;
+    padding:10px;
+    border:0;
+    border-bottom:1px solid #f0f2f5;
+    border-radius:0;
+  }
+  .personnel-row-index{
+    display:block;
+  }
+  .personnel-row-person,
+  .personnel-type-pill,
+  .personnel-contact,
+  .personnel-account,
+  .personnel-status,
+  .personnel-row-chevron{
+    grid-area:auto;
+    justify-self:stretch;
+  }
+  .personnel-type-pill{
+    justify-self:start;
+  }
+  .personnel-status{
+    justify-self:start;
+  }
+}
+@media(max-width:700px){
+  .personnel-list{
+    display:block;
+    min-width:730px;
+  }
+  .personnel-row{
+    padding:9px 8px;
+  }
+  .personnel-list-hint{
+    font-size:9px;
+  }
+}
+@media(max-width:480px){
+  .personnel-row{
+    padding:8px;
+  }
+  .personnel-avatar{
+    width:36px;
+    height:36px;
+    flex-basis:36px;
+  }
+}
+
+/* Academic program guidance */
+.academic-program-guidance{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  margin-top:12px;
+  padding:12px 13px;
+  border:1px solid #b2ccff;
+  border-radius:12px;
+  background:#f5f8ff;
+}
+.academic-program-guidance>span{
+  flex:0 0 auto;
+  font-size:18px;
+  line-height:1;
+}
+.academic-program-guidance>div{
+  min-width:0;
+}
+.academic-program-guidance strong{
+  display:block;
+  margin-bottom:3px;
+  color:#1849a9;
+  font-size:11px;
+}
+.academic-program-guidance p{
+  margin:0;
+  color:#475467;
+  font-size:10px;
+  line-height:1.55;
+  overflow-wrap:anywhere;
+}
+.academic-program-guidance b{
+  color:#101828;
+}
