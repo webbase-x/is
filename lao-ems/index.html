@@ -13,7 +13,7 @@
   <title>LAO-EMS | ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./assets/css/app.css?v=0.9.0">
+  <link rel="stylesheet" href="./assets/css/app.css?v=0.10.0">
 </head>
 <body>
   <a class="skip-link" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
@@ -58,9 +58,10 @@
           <p class="google-login-note">ใช้ได้เฉพาะอีเมลที่ผู้ดูแลบันทึกหรือเชิญไว้ใน LAO-EMS เท่านั้น</p>
         </form>
         <div id="school-admin-application" class="auth-form hidden"></div>
+        <div id="personnel-join-screen" class="auth-form hidden"></div>
 
       </div>
-      <p class="auth-footer">LAO-EMS · ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น · <span class="version-text" data-app-version>v0.9.0</span></p>
+      <p class="auth-footer">LAO-EMS · ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาขององค์กรปกครองส่วนท้องถิ่น · <span class="version-text" data-app-version>v0.10.0</span></p>
     </div>
   </section>
 
@@ -75,17 +76,17 @@
         <a href="#/organization" data-route="organization" data-admin-menu><span>🏛</span>อปท. และสถานศึกษา</a>
         <a href="#/users" data-route="users" data-admin-menu><span>👥</span>ผู้ใช้และสิทธิ์</a>
         <a href="#/lec" data-route="lec" data-lec-menu class="hidden"><span>⇧</span>นำเข้าข้อมูล LEC</a>
-        <a href="#/personnel" data-route="personnel" data-personnel-menu class="hidden"><span>🪪</span>บุคลากร</a>
+        <a href="#/personnel" data-route="personnel" data-personnel-menu class="hidden"><span>🪪</span>งานบุคลากร <span class="nav-badge hidden" data-personnel-badge>0</span></a>
         <a href="#/students" data-route="students" data-student-menu class="hidden"><span>🎓</span>นักเรียน</a>
         <a href="#/setup" data-route="setup" data-admin-menu><span>⚙</span>ตั้งค่าระบบ</a>
       </nav>
-      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>LAO-EMS</strong><small>ระบบบริหารการศึกษาท้องถิ่น · <span class="version-text" data-app-version>v0.9.0</span></small></div></div>
+      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>LAO-EMS</strong><small>ระบบบริหารการศึกษาท้องถิ่น · <span class="version-text" data-app-version>v0.10.0</span></small></div></div>
     </aside>
 
     <div class="page">
       <header class="topbar">
         <div class="topbar-start"><button class="icon-btn mobile-menu" type="button" data-sidebar-open aria-label="เปิดเมนู">☰</button><div><p class="eyebrow">ระบบสารสนเทศเพื่อการบริหารจัดการศึกษาของ อปท.</p><h1 data-page-title>ภาพรวมระบบ</h1></div></div>
-        <div class="topbar-actions"><span class="topbar-version" data-app-version aria-label="รุ่นระบบ">v0.9.0</span><div class="view-switch hidden" data-view-switch><button type="button" data-view-mode="user">มุมมองผู้ใช้</button><button type="button" data-view-mode="admin">Admin</button></div><button class="profile-btn" type="button"><span class="avatar" data-avatar>ผู้</span><span class="profile-copy"><strong data-profile-name>ผู้ใช้งาน</strong><small data-profile-role>กำลังตรวจสอบสิทธิ์</small></span></button><button class="icon-btn" type="button" data-signout aria-label="ออกจากระบบ" title="ออกจากระบบ">↪</button></div>
+        <div class="topbar-actions"><span class="topbar-version" data-app-version aria-label="รุ่นระบบ">v0.10.0</span><div class="view-switch hidden" data-view-switch><button type="button" data-view-mode="user">มุมมองผู้ใช้</button><button type="button" data-view-mode="admin">Admin</button></div><button class="profile-btn" type="button"><span class="avatar" data-avatar>ผู้</span><span class="profile-copy"><strong data-profile-name>ผู้ใช้งาน</strong><small data-profile-role>กำลังตรวจสอบสิทธิ์</small></span></button><button class="icon-btn" type="button" data-signout aria-label="ออกจากระบบ" title="ออกจากระบบ">↪</button></div>
       </header>
       <main id="main" class="content" tabindex="-1"></main>
     </div>
@@ -94,6 +95,6 @@
 
   <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script type="module" src="./assets/js/app.js?v=0.9.0"></script>
+  <script type="module" src="./assets/js/app.js?v=0.10.0"></script>
 </body>
 </html>

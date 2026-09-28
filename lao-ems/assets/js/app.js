@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.9.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.10.0";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -184,6 +184,15 @@ function schoolAdminApplyToken(){
   const m=location.hash.match(/^#\/apply-school-admin\/([A-Za-z0-9_-]{20,})$/);
   return m?m[1]:null;
 }
+function personnelJoinToken(){
+  const token=new URLSearchParams(location.search).get("personnel_join");
+  return token&&/^[A-Za-z0-9_-]{30,}$/.test(token)?token:null;
+}
+function clearPersonnelJoinQuery(){
+  const url=new URL(location.href);
+  url.searchParams.delete("personnel_join");
+  history.replaceState(null,"",url.pathname+(url.searchParams.toString()?"?"+url.searchParams.toString():"")+url.hash);
+}
 function roleCodes(m){
   const x=m||state.currentMembership;
   return (x&&x.lao_membership_roles||[]).map(v=>v.lao_roles&&v.lao_roles.code).filter(Boolean);
@@ -293,12 +302,16 @@ function personnelSourceLabel(value){
 }
 function personnelRouteState(){
   const hash=location.hash||"#/personnel";
+  if(/^#\/personnel\/registry\/?$/i.test(hash))return {mode:"registry",id:null};
+  if(/^#\/personnel\/requests\/?$/i.test(hash))return {mode:"requests",id:null};
+  if(/^#\/personnel\/intake\/?$/i.test(hash))return {mode:"intake",id:null};
+  if(/^#\/personnel\/authorities\/?$/i.test(hash))return {mode:"authorities",id:null};
   if(/^#\/personnel\/new\/?$/i.test(hash))return {mode:"new",id:null};
   const edit=hash.match(/^#\/personnel\/([0-9a-f-]{36})\/edit\/?$/i);
   if(edit)return {mode:"edit",id:edit[1]};
   const detail=hash.match(/^#\/personnel\/([0-9a-f-]{36})\/?$/i);
   if(detail)return {mode:"detail",id:detail[1]};
-  return {mode:"list",id:null};
+  return {mode:"dashboard",id:null};
 }
 function personnelAvatarHtml(item,extraClass=""){
   const name=item&&item.full_name||[item&&item.prefix,item&&item.first_name_th,item&&item.last_name_th].filter(Boolean).join(" ")||"บุคลากร";
@@ -500,18 +513,218 @@ function bindStaticUI(){
   });
   const profileButton=q(".profile-btn");
   if(profileButton)profileButton.addEventListener("click",()=>{location.hash="#/profile";});
-  q("#tenant-select").addEventListener("change",e=>{
+  q("#tenant-select").addEventListener("change",async e=>{
     const value=e.target.value;
     if(state.isPlatformAdmin&&state.viewMode==="admin"){
       const id=value.startsWith("admin:")?value.slice(6):"";
       state.adminSchool=state.adminSchools.find(s=>s.id===id)||null;
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
-      refreshHeader();renderRoute();return;
+      await loadPersonnelWorkCounts();refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);await loadPersonnelWorkCounts();refreshHeader();renderRoute();}
   });
+}
+
+
+function joinPositionOptions(selected){
+  const rows=[
+    ["director","ผู้อำนวยการสถานศึกษา"],
+    ["deputy","รองผู้อำนวยการสถานศึกษา"],
+    ["teacher","ครู"],
+    ["educational_staff","บุคลากรทางการศึกษา"],
+    ["support_staff","เจ้าหน้าที่ / บุคลากรสนับสนุน"],
+    ["employee","พนักงานจ้าง"],
+    ["__custom__","ระบุเอง"]
+  ];
+  return rows.map(([v,l])=>'<option value="'+v+'" '+(selected===v?"selected":"")+'>'+l+'</option>').join("");
+}
+function joinAcademicStandingOptions(selected){
+  const rows=[
+    ["","ไม่มี / ไม่ระบุ"],
+    ["ครูผู้ช่วย","ครูผู้ช่วย"],
+    ["ครู","ครู"],
+    ["ครูชำนาญการ","ครูชำนาญการ"],
+    ["ครูชำนาญการพิเศษ","ครูชำนาญการพิเศษ"],
+    ["ครูเชี่ยวชาญ","ครูเชี่ยวชาญ"],
+    ["ครูเชี่ยวชาญพิเศษ","ครูเชี่ยวชาญพิเศษ"],
+    ["__custom__","ระบุเอง"]
+  ];
+  return rows.map(([v,l])=>'<option value="'+v+'" '+(selected===v?"selected":"")+'>'+l+'</option>').join("");
+}
+function joinPositionData(choice,custom){
+  const map={
+    director:{personnel_type:"executive",position_title:"ผู้อำนวยการสถานศึกษา"},
+    deputy:{personnel_type:"executive",position_title:"รองผู้อำนวยการสถานศึกษา"},
+    teacher:{personnel_type:"teacher",position_title:"ครู"},
+    educational_staff:{personnel_type:"educational_staff",position_title:"บุคลากรทางการศึกษา"},
+    support_staff:{personnel_type:"support_staff",position_title:"เจ้าหน้าที่ / บุคลากรสนับสนุน"},
+    employee:{personnel_type:"contract_employee",position_title:"พนักงานจ้าง"}
+  };
+  if(choice==="__custom__")return {personnel_type:"other",position_title:String(custom||"").trim()};
+  return map[choice]||{personnel_type:"other",position_title:String(custom||"").trim()};
+}
+function publicJoinStatusHtml(request,schoolName){
+  if(!request)return "";
+  if(request.status==="pending_review"){
+    return '<div class="join-status-card waiting"><div class="join-status-icon">⏳</div><h2>ส่งคำขอแล้ว</h2><p>ยืนยันอีเมลเรียบร้อย และส่งคำขอเข้าร่วม <strong>'+esc(schoolName||"สถานศึกษา")+'</strong> แล้ว</p><div class="join-step-list"><span class="done">✓ ยืนยันอีเมลแล้ว</span><span class="done">✓ ส่งข้อมูลแล้ว</span><span class="current">3 รอฝ่ายบุคลากร / School Admin ตรวจสอบ</span></div><div class="notice">ไม่ต้องสมัครซ้ำ เมื่อผู้เกี่ยวข้องอนุมัติแล้วจึงสามารถเข้าใช้ LAO-EMS ของโรงเรียนได้</div></div>';
+  }
+  if(request.status==="approved"){
+    return '<div class="join-status-card approved"><div class="join-status-icon">✓</div><h2>อนุมัติแล้ว</h2><p>บัญชีของคุณได้รับอนุมัติและเชื่อมกับทะเบียนบุคลากรของ <strong>'+esc(schoolName||"สถานศึกษา")+'</strong> แล้ว</p><button class="primary-btn wide" type="button" data-join-enter-app>เข้าสู่ระบบ LAO-EMS</button></div>';
+  }
+  if(request.status==="rejected"){
+    return '<div class="join-status-card rejected"><div class="join-status-icon">!</div><h2>คำขอยังไม่ได้รับอนุมัติ</h2><p>'+esc(request.rejection_reason||"กรุณาติดต่อฝ่ายบุคลากรของโรงเรียนเพื่อตรวจสอบข้อมูล")+'</p><button class="secondary-btn wide" type="button" data-join-reapply>ตรวจข้อมูลและยื่นใหม่</button></div>';
+  }
+  return '<div class="join-status-card"><h2>สถานะคำขอ</h2><p>'+esc(request.status||"-")+'</p></div>';
+}
+async function renderPublicPersonnelJoin(token,session=null,forceForm=false){
+  const box=q("#personnel-join-screen"); if(!box)return;
+  box.classList.remove("hidden");
+  box.innerHTML='<div class="loading-inline"><span class="spinner"></span>กำลังตรวจสอบลิงก์...</div>';
+
+  const infoRes=await supabase.rpc("lao_public_personnel_join_link",{p_token:token});
+  if(infoRes.error){
+    box.innerHTML='<div class="form-heading"><h2>เปิดลิงก์ไม่สำเร็จ</h2><p>'+esc(infoRes.error.message)+'</p></div>';
+    return;
+  }
+  const info=infoRes.data||{};
+
+  if(session&&session.user){
+    const myRes=await supabase.rpc("lao_my_personnel_join_request",{p_token:token});
+    if(!myRes.error&&myRes.data&&!forceForm){
+      const statusHtml=publicJoinStatusHtml(myRes.data,info.school_name);
+      box.innerHTML=statusHtml;
+      const enter=q("[data-join-enter-app]",box);
+      if(enter)enter.addEventListener("click",async()=>{
+        clearPersonnelJoinQuery();
+        await showApp(session);
+      });
+      const reapply=q("[data-join-reapply]",box);
+      if(reapply)reapply.addEventListener("click",()=>renderPublicPersonnelJoin(token,session,true));
+      return;
+    }
+  }
+
+  if(!info.valid){
+    const msg=info.reason==="closed"?"ขณะนี้โรงเรียนปิดรับคำขอเข้าร่วมผ่านลิงก์นี้ กรุณาติดต่อฝ่ายบุคลากร":info.reason==="school_inactive"?"สถานศึกษานี้ยังไม่พร้อมใช้งาน":"ไม่พบลิงก์รับสมัครนี้";
+    box.innerHTML='<div class="join-status-card rejected"><div class="join-status-icon">!</div><h2>ยังไม่เปิดรับสมัคร</h2><p>'+esc(msg)+'</p></div>';
+    return;
+  }
+
+  if(!session||!session.user){
+    box.innerHTML='<div class="form-heading"><p class="eyebrow">PERSONNEL JOIN</p><h2>เข้าร่วม '+esc(info.school_name||"สถานศึกษา")+'</h2><p>กรอกอีเมลของคุณ ระบบจะส่งลิงก์ยืนยันไปยังอีเมลก่อนให้กรอกข้อมูลบุคลากร</p></div>'+
+      '<div class="join-flow-steps"><span class="current">1 ยืนยันอีเมล</span><span>2 กรอกข้อมูล</span><span>3 รออนุมัติ</span></div>'+
+      '<form id="personnel-join-email-form" class="auth-form"><label class="form-field"><span>อีเมล <span class="required-mark">*</span></span><input name="email" type="email" autocomplete="email" required placeholder="name@example.com"></label><button class="primary-btn wide" type="submit">ส่งลิงก์ยืนยันอีเมล</button></form>'+
+      '<p class="google-login-note">ใช้ลิงก์ที่ได้รับทางอีเมลเพื่อยืนยันว่าอีเมลนี้เป็นของคุณจริง จากนั้นระบบจะพากลับมากรอกข้อมูลต่อ</p>';
+    const form=q("#personnel-join-email-form",box);
+    form.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
+      const email=String(fd.get("email")||"").trim().toLowerCase();
+      const redirect=new URL(location.pathname,location.origin);
+      redirect.searchParams.set("personnel_join",token);
+      setBusy(btn,true,"กำลังส่ง...");
+      const res=await supabase.auth.signInWithOtp({
+        email,
+        options:{emailRedirectTo:redirect.href,shouldCreateUser:true}
+      });
+      setBusy(btn,false);
+      if(res.error){toast(authMessage(res.error.message),"error");return;}
+      box.innerHTML='<div class="join-status-card waiting"><div class="join-status-icon">✉</div><h2>ส่งลิงก์ยืนยันแล้ว</h2><p>กรุณาเปิดอีเมล <strong>'+esc(email)+'</strong> แล้วกดลิงก์ยืนยัน จากนั้นจะกลับมาที่ LAO-EMS เพื่อกรอกข้อมูลต่อ</p><div class="notice">หากไม่พบอีเมล ให้ตรวจโฟลเดอร์ Spam/Junk และรอสักครู่ก่อนส่งซ้ำ</div></div>';
+    });
+    return;
+  }
+
+  const email=session.user.email||"";
+  const meta=session.user.user_metadata||{};
+  const providers=(session.user.app_metadata&&session.user.app_metadata.providers)||[];
+  const hasGoogle=Array.isArray(providers)&&providers.includes("google");
+  const needsPassword=!hasGoogle&&meta.lao_personnel_join_password_set!==true;
+  box.innerHTML='<div class="form-heading"><p class="eyebrow">PERSONNEL JOIN</p><h2>ข้อมูลผู้สมัคร</h2><p>อีเมลได้รับการยืนยันแล้ว กรุณากรอกข้อมูลตามจริง ฝ่ายบุคลากรหรือ School Admin จะตรวจสอบและสามารถแก้ไขก่อนอนุมัติ</p></div>'+
+    '<div class="join-flow-steps"><span class="done">✓ ยืนยันอีเมล</span><span class="current">2 กรอกข้อมูล</span><span>3 รออนุมัติ</span></div>'+
+    '<div class="join-verified-email"><div><small>อีเมลที่ยืนยันแล้ว</small><strong>'+esc(email)+'</strong></div><button type="button" class="text-btn" data-join-use-other>ใช้อีเมลอื่น</button></div>'+
+    '<form id="personnel-join-profile-form" class="auth-form public-application-form">'+
+      '<div class="responsive-form-grid">'+
+        '<label class="form-field compact-field">คำนำหน้า<select name="prefix"><option value="">ไม่ระบุ</option><option '+(meta.prefix==="นาย"?"selected":"")+'>นาย</option><option '+(meta.prefix==="นาง"?"selected":"")+'>นาง</option><option '+(meta.prefix==="นางสาว"?"selected":"")+'>นางสาว</option></select></label>'+
+        '<label class="form-field">ชื่อ <span class="required-mark">*</span><input name="first_name_th" required autocomplete="given-name" value="'+esc(meta.first_name_th||meta.given_name||"")+'"></label>'+
+        '<label class="form-field">นามสกุล <span class="required-mark">*</span><input name="last_name_th" required autocomplete="family-name" value="'+esc(meta.last_name_th||meta.family_name||"")+'"></label>'+
+        '<label class="form-field">เบอร์โทรศัพท์<input name="phone" type="tel" autocomplete="tel" inputmode="tel" value="'+esc(meta.phone||"")+'"></label>'+
+        '<label class="form-field">ตำแหน่ง <span class="required-mark">*</span><select name="position_choice" data-join-position>'+joinPositionOptions("teacher")+'</select></label>'+
+        '<label class="form-field hidden" data-join-position-custom-wrap>ระบุตำแหน่งเอง <span class="required-mark">*</span><input name="position_custom" data-join-position-custom></label>'+
+        '<label class="form-field">วิทยฐานะ<select name="academic_standing" data-join-standing>'+joinAcademicStandingOptions("")+'</select></label>'+
+        '<label class="form-field hidden" data-join-standing-custom-wrap>ระบุวิทยฐานะเอง <span class="required-mark">*</span><input name="academic_standing_custom" data-join-standing-custom></label>'+
+        '<label class="form-field span-all">หมายเหตุเพิ่มเติม<textarea name="note" rows="3" placeholder="เว้นว่างได้"></textarea></label>'+
+        (needsPassword?'<div class="span-all join-password-section"><strong>ตั้งรหัสผ่านสำหรับเข้าใช้ครั้งถัดไป</strong><p>อย่างน้อย 8 ตัวอักษร หลังได้รับอนุมัติสามารถใช้ร่วมกับอีเมลนี้เพื่อเข้าสู่ระบบได้</p><div class="responsive-form-grid"><label class="form-field">รหัสผ่าน <span class="required-mark">*</span><div class="input-with-action"><input name="join_password" type="password" minlength="8" required autocomplete="new-password" data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></label><label class="form-field">ยืนยันรหัสผ่าน <span class="required-mark">*</span><div class="input-with-action"><input name="join_password_confirm" type="password" minlength="8" required autocomplete="new-password" data-password-input><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></label></div></div>':'')+
+      '</div>'+
+      '<div class="notice"><strong>ก่อนส่งคำขอ</strong><br>ข้อมูลตำแหน่งและวิทยฐานะที่คุณเลือกเป็นข้อมูลที่ผู้สมัครระบุ ผู้อนุมัติจะตรวจสอบและอาจแก้ไขให้ตรงกับข้อมูลของโรงเรียนก่อนอนุมัติ</div>'+
+      '<button class="primary-btn wide" type="submit">ส่งคำขอเข้าร่วมโรงเรียน</button>'+
+    '</form>';
+
+  const useOther=q("[data-join-use-other]",box);
+  if(useOther)useOther.addEventListener("click",async()=>{
+    try{await supabase.auth.signOut({scope:"local"});}catch(_){}
+    clearLaoAuthSession();
+    state.session=state.user=null;
+    await renderPublicPersonnelJoin(token,null);
+  });
+
+  const form=q("#personnel-join-profile-form",box);
+  bindPasswordToggles(form);
+  const pos=q("[data-join-position]",form),posWrap=q("[data-join-position-custom-wrap]",form),posCustom=q("[data-join-position-custom]",form);
+  const standing=q("[data-join-standing]",form),standingWrap=q("[data-join-standing-custom-wrap]",form),standingCustom=q("[data-join-standing-custom]",form);
+  const syncCustom=()=>{
+    const customPos=pos.value==="__custom__";
+    posWrap.classList.toggle("hidden",!customPos);posCustom.required=customPos;if(!customPos)posCustom.value="";
+    const customStanding=standing.value==="__custom__";
+    standingWrap.classList.toggle("hidden",!customStanding);standingCustom.required=customStanding;if(!customStanding)standingCustom.value="";
+  };
+  pos.addEventListener("change",syncCustom);standing.addEventListener("change",syncCustom);syncCustom();
+
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
+    const posData=joinPositionData(String(fd.get("position_choice")||""),String(fd.get("position_custom")||""));
+    const academic=String(fd.get("academic_standing")||"")==="__custom__"?String(fd.get("academic_standing_custom")||"").trim():String(fd.get("academic_standing")||"").trim();
+    if(!posData.position_title){toast("กรุณาระบุตำแหน่ง","error");return;}
+    const joinPassword=String(fd.get("join_password")||"");
+    const joinPasswordConfirm=String(fd.get("join_password_confirm")||"");
+    if(needsPassword&&joinPassword.length<8){toast("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร","error");return;}
+    if(needsPassword&&joinPassword!==joinPasswordConfirm){toast("รหัสผ่านทั้งสองช่องไม่ตรงกัน","error");return;}
+    setBusy(btn,true,"กำลังส่งคำขอ...");
+    if(needsPassword){
+      const passRes=await supabase.auth.updateUser({password:joinPassword,data:{lao_personnel_join_password_set:true}});
+      if(passRes.error){setBusy(btn,false);toast(authMessage(passRes.error.message),"error");return;}
+    }
+    const res=await supabase.rpc("lao_submit_personnel_join_request",{
+      p_token:token,
+      p_prefix:String(fd.get("prefix")||"").trim()||null,
+      p_first_name_th:String(fd.get("first_name_th")||"").trim(),
+      p_last_name_th:String(fd.get("last_name_th")||"").trim(),
+      p_phone:String(fd.get("phone")||"").trim()||null,
+      p_personnel_type:posData.personnel_type,
+      p_position_title:posData.position_title,
+      p_academic_standing:academic||null,
+      p_note:String(fd.get("note")||"").trim()||null
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("ส่งคำขอแล้ว รอฝ่ายบุคลากรตรวจสอบ","success");
+    await renderPublicPersonnelJoin(token,session);
+  });
+}
+async function showPersonnelJoin(session){
+  const token=personnelJoinToken();
+  if(!token)return;
+  state.session=session||null;
+  state.user=session&&session.user||null;
+  q("#app-shell").classList.add("hidden");
+  q("#auth-screen").classList.remove("hidden");
+  const signin=q("#signin-form"),adminApp=q("#school-admin-application"),joinBox=q("#personnel-join-screen");
+  if(signin)signin.classList.add("hidden");
+  if(adminApp)adminApp.classList.add("hidden");
+  if(joinBox)joinBox.classList.remove("hidden");
+  await renderPublicPersonnelJoin(token,session||null);
 }
 
 async function renderPublicSchoolAdminApplication(token){
@@ -611,6 +824,35 @@ async function loadNotifications(){
   if(res.error)throw res.error;
   state.notifications=res.data||[];
 }
+async function loadPersonnelWorkCounts(){
+  const school=currentSchool();
+  if(!school){
+    state.personnelWork={can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0};
+    return state.personnelWork;
+  }
+  const res=await supabase.rpc("lao_personnel_work_counts",{p_school_id:school.id});
+  if(res.error){
+    state.personnelWork={can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0};
+    return state.personnelWork;
+  }
+  state.personnelWork=res.data||{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0};
+  return state.personnelWork;
+}
+async function refreshAttentionState(){
+  if(!state.user||personnelJoinToken())return;
+  try{
+    await Promise.all([loadNotifications(),loadPersonnelWorkCounts()]);
+    refreshHeader();
+  }catch(_){}
+}
+function bindAttentionRefresh(){
+  window.addEventListener("focus",()=>{void refreshAttentionState();});
+  document.addEventListener("visibilitychange",()=>{
+    if(!document.hidden)void refreshAttentionState();
+  });
+  window.setInterval(()=>{void refreshAttentionState();},60000);
+}
+
 async function loadSchoolSetupStatus(){
   const m=state.currentMembership;
   if(!m||m.status!=="active"||!roleCodes(m).includes("school_admin")||!m.school_id){state.schoolSetup=null;return null;}
@@ -653,6 +895,7 @@ async function loadContext(){
     state.viewMode="user";
   }
   await loadSchoolSetupStatus();
+  await loadPersonnelWorkCounts();
   refreshHeader();
   renderTenants();
 }
@@ -705,7 +948,15 @@ function refreshHeader(){
   if(usersLink)usersLink.classList.toggle("hidden",!(adminMode||(schoolMode&&schoolSetupReady())));
 
   const personnelLink=q('[data-route="personnel"][data-personnel-menu]');
-  if(personnelLink)personnelLink.classList.toggle("hidden",!canViewPersonnel());
+  if(personnelLink){
+    personnelLink.classList.toggle("hidden",!canViewPersonnel());
+    const personnelBadge=q("[data-personnel-badge]",personnelLink);
+    const pending=Number(state.personnelWork&&state.personnelWork.pending_join_requests||0);
+    if(personnelBadge){
+      personnelBadge.textContent=String(pending);
+      personnelBadge.classList.toggle("hidden",!(state.personnelWork&&state.personnelWork.can_review&&pending>0));
+    }
+  }
 
   const studentLink=q('[data-route="students"][data-student-menu]');
   if(studentLink)studentLink.classList.toggle("hidden",!canViewStudentDirectory());
@@ -2129,6 +2380,125 @@ function personnelPrefixControls(prefix){
   return '<select name="prefix_mode" data-personnel-prefix-select>'+options+'</select>'+
     '<input class="personnel-prefix-custom '+(custom?"":"hidden")+'" name="prefix_custom" data-personnel-prefix-custom value="'+esc(custom?raw:"")+'" placeholder="ระบุคำนำหน้า" maxlength="40" '+(custom?"required":"")+'>';
 }
+
+function personnelNavHtml(active){
+  const work=state.personnelWork||{};
+  const pending=Number(work.pending_join_requests||0);
+  return '<nav class="personnel-subnav" aria-label="งานบุคลากร">'+
+    '<a href="#/personnel" class="'+(active==="dashboard"?"active":"")+'">ภาพรวม</a>'+
+    '<a href="#/personnel/registry" class="'+(active==="registry"?"active":"")+'">ทะเบียนบุคลากร</a>'+
+    (work.can_review?'<a href="#/personnel/requests" class="'+(active==="requests"?"active":"")+'">คำขอเข้าร่วม'+(pending>0?'<span class="subnav-badge">'+pending+'</span>':'')+'</a>':'')+
+    (work.can_manage_intake?'<a href="#/personnel/intake" class="'+(active==="intake"?"active":"")+'">รับบุคลากรเข้าระบบ</a>':'')+
+    (work.can_assign_authority?'<a href="#/personnel/authorities" class="'+(active==="authorities"?"active":"")+'">ผู้รับผิดชอบงานบุคลากร</a>':'')+
+  '</nav>';
+}
+async function personnelDashboardHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  if(!canViewPersonnel())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ดูงานบุคลากร</h3></div></section>';
+
+  await loadPersonnelWorkCounts();
+  const dir=await supabase.rpc("lao_personnel_directory",{p_school_id:school.id,p_search:null,p_personnel_type:null,p_status:null});
+  if(dir.error)throw dir.error;
+  const stats=dir.data&&dir.data.stats||{};
+  const work=state.personnelWork||{};
+  const pending=Number(work.pending_join_requests||0);
+
+  return '<section class="personnel-page">'+personnelNavHtml("dashboard")+
+    '<section class="personnel-work-hero"><div><p class="eyebrow">PERSONNEL WORK</p><h2>งานบุคลากร</h2><p>'+esc(school.name_th||"")+' · จัดการทะเบียน การรับบุคลากรเข้าระบบ และงานที่รอดำเนินการตามสิทธิ์ของคุณ</p></div><a class="primary-btn" href="#/personnel/registry">เปิดทะเบียนบุคลากร</a></section>'+
+    '<section class="personnel-summary-grid">'+
+      '<article><small>บุคลากรทั้งหมด</small><strong>'+Number(stats.total||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
+      '<article><small>ปฏิบัติงาน</small><strong>'+Number(stats.active||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
+      '<article><small>เชื่อมบัญชี</small><strong>'+Number(stats.linked_accounts||0).toLocaleString("th-TH")+'</strong><span>บัญชี</span></article>'+
+      '<article class="'+(pending>0&&work.can_review?"needs-action":"")+'"><small>คำขอรอดำเนินการ</small><strong>'+pending.toLocaleString("th-TH")+'</strong><span>รายการ</span></article>'+
+    '</section>'+
+    '<section class="personnel-action-grid">'+
+      '<a class="personnel-action-card" href="#/personnel/registry"><span>🪪</span><div><strong>ทะเบียนบุคลากร</strong><small>ค้นหา ดู และจัดการข้อมูลหลักของบุคลากร</small></div><em>เปิด</em></a>'+
+      (work.can_review?'<a class="personnel-action-card '+(pending>0?"priority":"")+'" href="#/personnel/requests"><span>✅</span><div><strong>คำขอเข้าร่วม'+(pending>0?' · '+pending+' รายการ':'')+'</strong><small>ตรวจข้อมูลที่ผู้สมัครระบุ แก้ไขก่อนอนุมัติ และป้องกันรายการซ้ำ</small></div><em>'+(pending>0?"ตรวจสอบ":"เปิด")+'</em></a>':'')+
+      (work.can_manage_intake?'<a class="personnel-action-card" href="#/personnel/intake"><span>🔗</span><div><strong>รับบุคลากรเข้าระบบ</strong><small>เปิด/ปิดลิงก์รับสมัครและคัดลอกลิงก์ส่งในกลุ่มโรงเรียน</small></div><em>ตั้งค่า</em></a>':'')+
+      (work.can_assign_authority?'<a class="personnel-action-card" href="#/personnel/authorities"><span>👥</span><div><strong>ผู้รับผิดชอบงานบุคลากร</strong><small>แต่งตั้งหัวหน้างานและเจ้าหน้าที่ พร้อมกำหนดสิทธิ์ที่จำเป็น</small></div><em>จัดการ</em></a>':'')+
+    '</section>'+
+    (work.can_review&&pending>0?'<section class="notice warning personnel-attention"><strong>มีงานที่ต้องดำเนินการ '+pending+' รายการ</strong><br>มีผู้ยืนยันอีเมลและส่งคำขอเข้าร่วมโรงเรียนแล้ว กรุณาตรวจสอบก่อนอนุมัติ</section>':'')+
+  '</section>';
+}
+async function personnelIntakeHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  const res=await supabase.rpc("lao_personnel_join_settings",{p_school_id:school.id});
+  if(res.error)return '<section class="personnel-page">'+personnelNavHtml("intake")+'<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์จัดการลิงก์รับสมัคร</h3></div></section></section>';
+  const d=res.data||{};
+  const link=d.token?(location.origin+location.pathname+"?personnel_join="+encodeURIComponent(d.token)):"";
+  return '<section class="personnel-page">'+personnelNavHtml("intake")+
+    '<section class="panel personnel-intake-card"><div class="panel-head"><div><p class="eyebrow">PERSONNEL INTAKE</p><h2>รับบุคลากรเข้าระบบ</h2><p class="panel-sub">ใช้ลิงก์กลางของโรงเรียน 1 ลิงก์ เปิด–ปิดได้ โดยผู้สมัครยืนยันอีเมลก่อนส่งคำขอ</p></div><span class="pill '+(d.is_active?"success":"warning")+'">'+(d.is_active?"เปิดรับสมัคร":"ปิดรับสมัคร")+'</span></div>'+
+      '<div class="intake-switch-card"><div><strong>'+ (d.is_active?"ระบบกำลังเปิดรับคำขอ":"ระบบยังไม่รับคำขอใหม่") +'</strong><p>'+(d.is_active?"ส่งลิงก์ให้บุคลากรผ่าน LINE หรือช่องทางภายในโรงเรียนได้ทันที":"เปิดระบบเมื่อต้องการรับบุคลากรใหม่ คำขอเดิมที่รอตรวจจะไม่ถูกลบ")+'</p></div><button type="button" class="'+(d.is_active?"danger-outline-btn":"primary-btn")+'" data-personnel-intake-toggle data-next="'+(!d.is_active)+'">'+(d.is_active?"ปิดรับสมัคร":"เปิดรับสมัคร")+'</button></div>'+
+      (d.token?'<div class="intake-link-box"><label>ลิงก์รับบุคลากรเข้าระบบ</label><div><input type="text" readonly value="'+esc(link)+'" data-personnel-join-link><button class="secondary-btn" type="button" data-copy-personnel-link>คัดลอกลิงก์</button></div><small>'+(d.is_active?"ลิงก์นี้พร้อมใช้งาน":"ลิงก์เดิมยังเก็บไว้ แต่ผู้เปิดลิงก์จะสมัครไม่ได้จนกว่าจะเปิดระบบอีกครั้ง")+'</small></div>':'<div class="notice">ยังไม่มีลิงก์ ระบบจะสร้างลิงก์ของโรงเรียนให้อัตโนมัติเมื่อกด “เปิดรับสมัคร” ครั้งแรก</div>')+
+      '<div class="intake-pending-row"><span>คำขอที่ยังรอตรวจสอบ</span><strong>'+Number(d.pending_count||0).toLocaleString("th-TH")+' รายการ</strong>'+(Number(d.pending_count||0)>0?'<a href="#/personnel/requests">ไปตรวจคำขอ →</a>':'')+'</div>'+
+    '</section>'+
+    '<section class="panel"><div class="personnel-section-head"><span>?</span><div><h3>ขั้นตอนสำหรับผู้สมัคร</h3><p>ออกแบบให้ทำตามทีละขั้น เพื่อลดความสับสนของผู้ใช้</p></div></div><div class="intake-howto"><div><b>1</b><strong>เปิดลิงก์และกรอกอีเมล</strong><small>ระบบส่งลิงก์ยืนยันไปที่อีเมล</small></div><div><b>2</b><strong>ยืนยันอีเมล</strong><small>กลับมากรอกชื่อ ตำแหน่ง และวิทยฐานะ</small></div><div><b>3</b><strong>ส่งคำขอ</strong><small>ระบบแจ้งชัดเจนว่าไม่ต้องสมัครซ้ำ</small></div><div><b>4</b><strong>ผู้เกี่ยวข้องตรวจสอบ</strong><small>ฝ่ายบุคลากร / School Admin แก้ข้อมูลก่อนอนุมัติได้</small></div></div></section>'+
+  '</section>';
+}
+async function personnelRequestsHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  const res=await supabase.rpc("lao_personnel_join_requests",{p_school_id:school.id,p_status:"pending_review"});
+  if(res.error)return '<section class="personnel-page">'+personnelNavHtml("requests")+'<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ตรวจคำขอ</h3></div></section></section>';
+  const d=res.data||{},items=d.items||[];
+  const cards=items.map(r=>{
+    const matches=Array.isArray(r.possible_matches)?r.possible_matches:[];
+    const exact=matches.find(m=>String(m.email||"").toLowerCase()===String(r.email||"").toLowerCase());
+    const matchOptions='<option value="">สร้างทะเบียนบุคลากรใหม่</option>'+matches.map(m=>'<option value="'+esc(m.id)+'" '+(exact&&exact.id===m.id?"selected":"")+'>'+esc(m.full_name||"-")+(m.position_title?' · '+esc(m.position_title):'')+(String(m.email||"").toLowerCase()===String(r.email||"").toLowerCase()?' · อีเมลตรงกัน':'')+'</option>').join("");
+    return '<article class="personnel-request-card" data-request-card="'+esc(r.id)+'">'+
+      '<div class="personnel-request-head"><div><span class="request-waiting-dot"></span><div><strong>'+esc(r.full_name||"-")+'</strong><small>'+esc(r.email||"-")+' · ส่งเมื่อ '+esc(thaiDateTime(r.submitted_at))+'</small></div></div><span class="pill warning">รอตรวจสอบ</span></div>'+
+      '<div class="request-compare-grid"><section><h4>ข้อมูลที่ผู้สมัครระบุ</h4><dl><div><dt>ประเภท</dt><dd>'+esc(personnelTypeLabel(r.personnel_type))+'</dd></div><div><dt>ตำแหน่ง</dt><dd>'+esc(r.position_title||"-")+'</dd></div><div><dt>วิทยฐานะ</dt><dd>'+esc(r.academic_standing||"-")+'</dd></div><div><dt>โทรศัพท์</dt><dd>'+esc(r.phone||"-")+'</dd></div>'+(r.applicant_note?'<div class="wide"><dt>หมายเหตุ</dt><dd>'+esc(r.applicant_note)+'</dd></div>':'')+'</dl></section>'+
+      '<form class="request-review-form" data-request-review="'+esc(r.id)+'"><h4>ข้อมูลที่จะบันทึกจริง</h4>'+
+        (matches.length?'<label class="field request-existing-match"><span>ตรวจพบข้อมูลเดิมที่อาจตรงกัน</span><select name="existing_personnel_id">'+matchOptions+'</select><small>เลือกบุคลากรเดิมเพื่อเชื่อมบัญชี ป้องกันชื่อซ้ำ หรือเลือกสร้างรายการใหม่</small></label>':'')+
+        '<div class="request-edit-grid">'+
+          '<label class="field"><span>คำนำหน้า</span><input name="prefix" value="'+esc(r.prefix||"")+'"></label>'+
+          '<label class="field"><span>ชื่อ *</span><input name="first_name_th" value="'+esc(r.first_name_th||"")+'" required></label>'+
+          '<label class="field"><span>นามสกุล *</span><input name="last_name_th" value="'+esc(r.last_name_th||"")+'" required></label>'+
+          '<label class="field"><span>ประเภท</span><select name="personnel_type">'+personnelTypeOptions(r.personnel_type||"other")+'</select></label>'+
+          '<label class="field"><span>ตำแหน่ง</span><input name="position_title" value="'+esc(r.position_title||"")+'"></label>'+
+          '<label class="field"><span>วิทยฐานะ</span><input name="academic_standing" value="'+esc(r.academic_standing||"")+'"></label>'+
+          '<label class="field"><span>เลขประจำตัวบุคลากร</span><input name="employee_no" placeholder="เว้นว่างได้"></label>'+
+          '<label class="field"><span>โทรศัพท์</span><input name="phone" value="'+esc(r.phone||"")+'"></label>'+
+        '</div>'+
+        '<div class="request-approve-row"><button class="primary-btn" type="submit">อนุมัติและเชื่อมบัญชี</button></div>'+
+      '</form></div>'+
+      '<div class="request-reject-box"><label><span>หากไม่อนุมัติ กรุณาระบุเหตุผล</span><textarea rows="2" data-reject-reason placeholder="เช่น ข้อมูลไม่ตรงกับทะเบียนบุคลากร กรุณาติดต่อฝ่ายบุคลากร"></textarea></label><button class="danger-outline-btn" type="button" data-reject-personnel-request="'+esc(r.id)+'">ไม่อนุมัติ</button></div>'+
+    '</article>';
+  }).join("");
+  return '<section class="personnel-page">'+personnelNavHtml("requests")+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">JOIN REQUESTS</p><h2>คำขอเข้าร่วมโรงเรียน</h2><p class="panel-sub">แสดงเฉพาะผู้ที่มีสิทธิ์ตรวจ/อนุมัติ ผู้ใช้อื่นในโรงเรียนไม่เห็นรายการนี้</p></div><span class="pill '+(Number(d.pending_count||0)>0?"warning":"success")+'">'+Number(d.pending_count||0)+' รอตรวจ</span></div>'+
+      (items.length?'<div class="personnel-request-stack">'+cards+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีคำขอที่รอตรวจสอบ</h3><p>เมื่อมีผู้ยืนยันอีเมลและส่งคำขอ ระบบจะแจ้งเตือนผู้เกี่ยวข้องอัตโนมัติ</p></div>')+
+    '</section>'+
+  '</section>';
+}
+
+
+async function personnelAuthoritiesHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  const res=await supabase.rpc("lao_personnel_authority_settings",{p_school_id:school.id});
+  if(res.error)return '<section class="personnel-page">'+personnelNavHtml("authorities")+'<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>เฉพาะ School Admin</h3><p>การแต่งตั้งผู้รับผิดชอบงานบุคลากรต้องดำเนินการโดยผู้ดูแลสถานศึกษา</p></div></section></section>';
+  const items=res.data&&res.data.items||[];
+  const rows=items.map(p=>{
+    const code=p.is_active?p.authority_code||"none":"none";
+    return '<form class="personnel-authority-row" data-authority-personnel="'+esc(p.personnel_id)+'">'+
+      '<div class="personnel-authority-person"><div class="personnel-avatar">'+personnelAvatarHtml(p,"personnel-avatar-media")+'</div><div><strong>'+esc(p.full_name||"-")+'</strong><small>'+esc(p.position_title||"-")+(p.academic_standing?' · '+esc(p.academic_standing):'')+' · '+esc(p.email||"-")+'</small></div></div>'+
+      '<label><span>หน้าที่ในงานบุคลากร</span><select name="authority_code" data-authority-code><option value="none" '+(code==="none"?"selected":"")+'>ไม่ได้รับมอบหมาย</option><option value="personnel_head" '+(code==="personnel_head"?"selected":"")+'>หัวหน้างานบุคลากร</option><option value="personnel_officer" '+(code==="personnel_officer"?"selected":"")+'>เจ้าหน้าที่งานบุคลากร</option></select></label>'+
+      '<label class="authority-check"><input type="checkbox" name="can_edit_personnel" '+(p.can_edit_personnel?"checked":"")+' data-authority-edit><span>แก้ทะเบียน</span></label>'+
+      '<label class="authority-check"><input type="checkbox" name="can_review_join" '+(p.can_review_join?"checked":"")+' data-authority-review><span>ตรวจ/อนุมัติคำขอ</span></label>'+
+      '<button class="secondary-btn compact-btn" type="submit">บันทึก</button>'+
+    '</form>';
+  }).join("");
+  return '<section class="personnel-page">'+personnelNavHtml("authorities")+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">PERSONNEL RESPONSIBILITY</p><h2>ผู้รับผิดชอบงานบุคลากร</h2><p class="panel-sub">หน้าที่นี้แยกจากตำแหน่งราชการ บุคลากรหนึ่งคนสามารถรับผิดชอบหลายฝ่ายได้ในอนาคต</p></div></div>'+
+      '<div class="notice"><strong>หลักการสิทธิ์</strong><br>School Admin กำหนดหัวหน้างานหรือเจ้าหน้าที่จากบุคลากรที่เชื่อมบัญชีแล้ว หัวหน้างานบุคลากรจะมีสิทธิ์จัดการทะเบียน เปิด/ปิดรับสมัคร และตรวจคำขอ ส่วนเจ้าหน้าที่กำหนดสิทธิ์ย่อยได้</div>'+
+      (items.length?'<div class="personnel-authority-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">👥</div><h3>ยังไม่มีบุคลากรที่เชื่อมบัญชี</h3><p>ต้องเชื่อมบัญชี LAO-EMS กับทะเบียนบุคลากรก่อนจึงมอบหมายหน้าที่ได้</p></div>')+
+    '</section>'+
+  '</section>';
+}
+
 async function personnelListHtml(){
   const school=currentSchool();
   if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>เลือกโรงเรียนจากบริบทด้านซ้ายเพื่อเปิดทะเบียนบุคลากร</p></div></section>';
@@ -2156,7 +2526,7 @@ async function personnelListHtml(){
     '<a class="secondary-btn compact-btn" href="#/personnel/'+esc(p.id)+'">ดูข้อมูล</a>'+
   '</div>').join("");
 
-  return '<section class="personnel-page">'+
+  return '<section class="personnel-page">'+personnelNavHtml("registry")+
     '<section class="personnel-summary-grid">'+
       '<article><small>บุคลากรทั้งหมด</small><strong>'+Number(stats.total||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
       '<article><small>ปฏิบัติงาน</small><strong>'+Number(stats.active||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
@@ -2183,7 +2553,7 @@ async function personnelDetailHtml(id){
   if(res.error)throw res.error;
   const p=res.data||{};
   return '<section class="personnel-detail-page">'+
-    '<div class="personnel-detail-toolbar"><a class="secondary-btn" href="#/personnel">← กลับทะเบียนบุคลากร</a>'+(p.can_manage?'<a class="primary-btn" href="#/personnel/'+esc(p.id)+'/edit">แก้ไขข้อมูล</a>':'')+'</div>'+
+    '<div class="personnel-detail-toolbar"><a class="secondary-btn" href="#/personnel/registry">← กลับทะเบียนบุคลากร</a>'+(p.can_manage?'<a class="primary-btn" href="#/personnel/'+esc(p.id)+'/edit">แก้ไขข้อมูล</a>':'')+'</div>'+
     '<section class="personnel-detail-hero"><div class="personnel-detail-avatar">'+personnelAvatarHtml(p,"personnel-detail-avatar-media")+'</div><div><p class="eyebrow">PERSONNEL RECORD</p><h2>'+esc(p.full_name||"-")+'</h2><p>'+esc(p.position_title||personnelTypeLabel(p.personnel_type))+(p.academic_standing?' · '+esc(p.academic_standing):'')+'</p><div class="personnel-detail-badges"><span class="pill '+(p.employment_status==="active"?"success":"warning")+'">'+esc(employmentStatusLabel(p.employment_status))+'</span><span class="pill">'+esc(personnelTypeLabel(p.personnel_type))+'</span>'+(p.account_linked?'<span class="pill success">เชื่อมบัญชี LAO-EMS</span>':'')+'</div></div></section>'+
     '<section class="personnel-detail-section"><div class="personnel-section-head"><span>01</span><div><h3>ข้อมูลบุคลากร</h3><p>ข้อมูลประจำตัวและประเภทบุคลากร</p></div></div><div class="personnel-detail-grid">'+
       '<div><small>คำนำหน้า</small><strong>'+esc(p.prefix||"-")+'</strong></div>'+
@@ -2226,7 +2596,7 @@ async function personnelFormHtml(id){
   }
   const title=id?"แก้ไขข้อมูลบุคลากร":"เพิ่มบุคลากร";
   return '<section class="personnel-form-page">'+
-    '<div class="personnel-detail-toolbar"><a class="secondary-btn" href="'+(id?'#/personnel/'+esc(id):'#/personnel')+'">← ย้อนกลับ</a></div>'+
+    '<div class="personnel-detail-toolbar"><a class="secondary-btn" href="'+(id?'#/personnel/'+esc(id):'#/personnel/registry')+'">← ย้อนกลับ</a></div>'+
     '<section class="panel personnel-form-card"><div class="panel-head"><div><p class="eyebrow">PERSONNEL MASTER DATA</p><h2>'+title+'</h2><p class="panel-sub">บันทึกเฉพาะข้อมูลหลักของบุคลากร ส่วนรายวิชา ห้องเรียน และภาระงานจะจัดการในโมดูลวิชาการภายหลัง</p></div></div>'+
       '<form id="personnel-form" class="personnel-form-grid" data-personnel-id="'+esc(id||"")+'">'+
         '<label class="field personnel-prefix-field"><span class="field-label-line">คำนำหน้า</span>'+personnelPrefixControls(p.prefix)+'</label>'+
@@ -2243,7 +2613,7 @@ async function personnelFormHtml(id){
         '<label class="field"><span class="field-label-line">วันที่สิ้นสุด</span><input name="employment_end_date" type="date" value="'+esc(p.employment_end_date||"")+'"></label>'+
         '<label class="field"><span class="field-label-line">ลำดับแสดงผล</span><input name="sort_order" type="number" step="1" value="'+esc(p.sort_order??"")+'" placeholder="เว้นว่างได้"></label>'+
         '<label class="field personnel-form-notes"><span class="field-label-line">หมายเหตุ</span><textarea name="notes" rows="4" placeholder="ข้อมูลเพิ่มเติมภายในทะเบียน">'+esc(p.notes||"")+'</textarea></label>'+
-        '<div class="personnel-form-actions"><a class="secondary-btn" href="'+(id?'#/personnel/'+esc(id):'#/personnel')+'">ยกเลิก</a><button class="primary-btn" type="submit">บันทึกข้อมูลบุคลากร</button></div>'+
+        '<div class="personnel-form-actions"><a class="secondary-btn" href="'+(id?'#/personnel/'+esc(id):'#/personnel/registry')+'">ยกเลิก</a><button class="primary-btn" type="submit">บันทึกข้อมูลบุคลากร</button></div>'+
       '</form>'+
     '</section>'+
   '</section>';
@@ -2253,7 +2623,11 @@ async function personnelHtml(){
   if(stateRoute.mode==="new")return await personnelFormHtml(null);
   if(stateRoute.mode==="edit")return await personnelFormHtml(stateRoute.id);
   if(stateRoute.mode==="detail")return await personnelDetailHtml(stateRoute.id);
-  return await personnelListHtml();
+  if(stateRoute.mode==="registry")return await personnelListHtml();
+  if(stateRoute.mode==="requests")return await personnelRequestsHtml();
+  if(stateRoute.mode==="intake")return await personnelIntakeHtml();
+  if(stateRoute.mode==="authorities")return await personnelAuthoritiesHtml();
+  return await personnelDashboardHtml();
 }
 function bindPersonnel(){
   const root=q("#main");
@@ -2277,6 +2651,127 @@ function bindPersonnel(){
   if(reset)reset.addEventListener("click",()=>{
     state.personnelFilters={search:"",personnel_type:"",status:"active"};
     renderRoute();
+  });
+
+  const intakeToggle=q("[data-personnel-intake-toggle]");
+  if(intakeToggle)intakeToggle.addEventListener("click",async()=>{
+    const next=intakeToggle.dataset.next==="true";
+    if(!next&&!confirm("ปิดรับสมัครชั่วคราว? ลิงก์เดิมจะยังอยู่และคำขอที่รอตรวจสอบจะไม่ถูกลบ"))return;
+    setBusy(intakeToggle,true,next?"กำลังเปิด...":"กำลังปิด...");
+    const res=await supabase.rpc("lao_set_personnel_join_open",{p_school_id:currentSchool().id,p_is_active:next});
+    setBusy(intakeToggle,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    await loadPersonnelWorkCounts();
+    refreshHeader();
+    toast(next?"เปิดรับสมัครแล้ว สามารถคัดลอกลิงก์ส่งให้บุคลากรได้":"ปิดรับสมัครแล้ว คำขอเดิมยังคงอยู่","success");
+    renderRoute();
+  });
+
+  const copyJoin=q("[data-copy-personnel-link]");
+  if(copyJoin)copyJoin.addEventListener("click",async()=>{
+    const input=q("[data-personnel-join-link]");
+    if(!input)return;
+    try{
+      await navigator.clipboard.writeText(input.value);
+      toast("คัดลอกลิงก์รับสมัครแล้ว","success");
+    }catch(_){
+      input.select();
+      toast("เลือกข้อความลิงก์แล้ว กรุณาคัดลอกด้วยตนเอง","success");
+    }
+  });
+
+  qa("[data-request-review]").forEach(reviewForm=>reviewForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(reviewForm),btn=reviewForm.querySelector("button[type=submit]");
+    if(!confirm("ยืนยันอนุมัติบุคลากรรายนี้ และเชื่อมบัญชีกับทะเบียนบุคลากร?"))return;
+    setBusy(btn,true,"กำลังอนุมัติ...");
+    const res=await supabase.rpc("lao_review_personnel_join_request",{
+      p_request_id:reviewForm.dataset.requestReview,
+      p_decision:"approved",
+      p_existing_personnel_id:String(fd.get("existing_personnel_id")||"")||null,
+      p_prefix:String(fd.get("prefix")||"").trim()||null,
+      p_first_name_th:String(fd.get("first_name_th")||"").trim(),
+      p_last_name_th:String(fd.get("last_name_th")||"").trim(),
+      p_phone:String(fd.get("phone")||"").trim()||null,
+      p_personnel_type:String(fd.get("personnel_type")||"other"),
+      p_position_title:String(fd.get("position_title")||"").trim()||null,
+      p_academic_standing:String(fd.get("academic_standing")||"").trim()||null,
+      p_employee_no:String(fd.get("employee_no")||"").trim()||null,
+      p_rejection_reason:null
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    await Promise.all([loadPersonnelWorkCounts(),loadNotifications()]);
+    refreshHeader();
+    toast("อนุมัติและเชื่อมบัญชีเรียบร้อย","success");
+    renderRoute();
+  }));
+
+  qa("[data-reject-personnel-request]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const card=btn.closest("[data-request-card]");
+    const reason=String(q("[data-reject-reason]",card)&&q("[data-reject-reason]",card).value||"").trim();
+    if(!reason){toast("กรุณาระบุเหตุผลก่อนกดไม่อนุมัติ","error");return;}
+    if(!confirm("ยืนยันไม่อนุมัติคำขอนี้?"))return;
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_review_personnel_join_request",{
+      p_request_id:btn.dataset.rejectPersonnelRequest,
+      p_decision:"rejected",
+      p_existing_personnel_id:null,
+      p_prefix:null,p_first_name_th:null,p_last_name_th:null,p_phone:null,
+      p_personnel_type:"other",p_position_title:null,p_academic_standing:null,p_employee_no:null,
+      p_rejection_reason:reason
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    await Promise.all([loadPersonnelWorkCounts(),loadNotifications()]);
+    refreshHeader();
+    toast("บันทึกผลไม่อนุมัติแล้ว","success");
+    renderRoute();
+  }));
+
+  qa("[data-authority-personnel]").forEach(authorityForm=>{
+    const codeSelect=q("[data-authority-code]",authorityForm);
+    const edit=q("[data-authority-edit]",authorityForm);
+    const review=q("[data-authority-review]",authorityForm);
+    const syncAuthority=()=>{
+      const code=codeSelect.value;
+      if(code==="none"){
+        edit.checked=false;review.checked=false;edit.disabled=true;review.disabled=true;
+      }else if(code==="personnel_head"){
+        edit.checked=true;review.checked=true;edit.disabled=true;review.disabled=true;
+      }else{
+        edit.disabled=false;review.disabled=false;
+        if(authorityForm.dataset.officerInitialized!=="1"){
+          if(!edit.checked&&!review.checked)edit.checked=true;
+          authorityForm.dataset.officerInitialized="1";
+        }
+      }
+    };
+    codeSelect.addEventListener("change",()=>{
+      authorityForm.dataset.officerInitialized="0";
+      syncAuthority();
+    });
+    syncAuthority();
+    authorityForm.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const btn=authorityForm.querySelector("button[type=submit]");
+      const code=codeSelect.value;
+      if(code==="personnel_head"&&!confirm("ยืนยันมอบหมายเป็นหัวหน้างานบุคลากร? ผู้ใช้นี้จะจัดการทะเบียน เปิด/ปิดรับสมัคร และตรวจคำขอได้"))return;
+      setBusy(btn,true,"กำลังบันทึก...");
+      const res=await supabase.rpc("lao_save_personnel_authority",{
+        p_school_id:currentSchool().id,
+        p_personnel_id:authorityForm.dataset.authorityPersonnel,
+        p_authority_code:code==="none"?null:code,
+        p_can_edit_personnel:code==="personnel_head"?true:edit.checked,
+        p_can_review_join:code==="personnel_head"?true:review.checked
+      });
+      setBusy(btn,false);
+      if(res.error){toast(res.error.message,"error");return;}
+      await Promise.all([loadPersonnelWorkCounts(),loadNotifications()]);
+      refreshHeader();
+      toast(code==="none"?"ยกเลิกหน้าที่งานบุคลากรแล้ว":"บันทึกผู้รับผิดชอบงานบุคลากรแล้ว","success");
+      renderRoute();
+    });
   });
 
   const form=q("#personnel-form");
@@ -2624,9 +3119,20 @@ async function showApp(session){
 }
 function showAuth(){
   q("#app-shell").classList.add("hidden");q("#auth-screen").classList.remove("hidden");
-  const token=schoolAdminApplyToken(),signin=q("#signin-form"),application=q("#school-admin-application");
-  if(token){if(signin)signin.classList.add("hidden");if(application){application.classList.remove("hidden");renderPublicSchoolAdminApplication(token);}}
-  else{if(signin)signin.classList.remove("hidden");if(application)application.classList.add("hidden");}
+  const joinToken=personnelJoinToken(),token=schoolAdminApplyToken(),signin=q("#signin-form"),application=q("#school-admin-application"),joinBox=q("#personnel-join-screen");
+  if(joinToken){
+    if(signin)signin.classList.add("hidden");
+    if(application)application.classList.add("hidden");
+    if(joinBox){joinBox.classList.remove("hidden");renderPublicPersonnelJoin(joinToken,null);}
+  }else if(token){
+    if(signin)signin.classList.add("hidden");
+    if(joinBox)joinBox.classList.add("hidden");
+    if(application){application.classList.remove("hidden");renderPublicSchoolAdminApplication(token);}
+  }else{
+    if(signin)signin.classList.remove("hidden");
+    if(application)application.classList.add("hidden");
+    if(joinBox)joinBox.classList.add("hidden");
+  }
 }
 
 window.addEventListener("beforeunload",event=>{
@@ -2649,6 +3155,7 @@ async function init(){
   bindStaticUI();
   bindPullToRefresh();
   bindPwaRuntime();
+  bindAttentionRefresh();
   const savedEmail=localStorage.getItem("lao_saved_email");
   const remember=localStorage.getItem("lao_remember_login")==="1";
   const signInForm=q("#signin-form");
@@ -2671,7 +3178,8 @@ async function init(){
     sessionStorage.setItem("lao_drive_notice",driveResult==="connected"?"connected":"error");
     if(query.get("message"))sessionStorage.setItem("lao_drive_message",query.get("message"));
   }
-  if(schoolAdminApplyToken())showAuth();
+  if(personnelJoinToken())await showPersonnelJoin(res.data.session||null);
+  else if(schoolAdminApplyToken())showAuth();
   else if(res.data.session)await showApp(res.data.session);else{
     showAuth();
     if(sessionStorage.getItem("lao_email_denied_notice")==="1"){
@@ -2685,6 +3193,7 @@ async function init(){
   supabase.auth.onAuthStateChange(async(event,session)=>{
     if(event==="SIGNED_OUT"||!session){state.session=state.user=state.profile=state.currentMembership=null;state.memberships=[];showAuth();return;}
     if(event==="SIGNED_IN"&&state.reauthenticating)return;
+    if(personnelJoinToken()){await showPersonnelJoin(session);return;}
     if(event==="SIGNED_IN")await showApp(session);
   });
 }
