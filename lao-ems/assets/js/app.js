@@ -2701,6 +2701,51 @@ function bindPersonnel(){
     renderRoute();
   }));
 
+  qa("[data-authority-personnel]").forEach(authorityForm=>{
+    const codeSelect=q("[data-authority-code]",authorityForm);
+    const edit=q("[data-authority-edit]",authorityForm);
+    const review=q("[data-authority-review]",authorityForm);
+    const syncAuthority=()=>{
+      const code=codeSelect.value;
+      if(code==="none"){
+        edit.checked=false;review.checked=false;edit.disabled=true;review.disabled=true;
+      }else if(code==="personnel_head"){
+        edit.checked=true;review.checked=true;edit.disabled=true;review.disabled=true;
+      }else{
+        edit.disabled=false;review.disabled=false;
+        if(authorityForm.dataset.officerInitialized!=="1"){
+          if(!edit.checked&&!review.checked)edit.checked=true;
+          authorityForm.dataset.officerInitialized="1";
+        }
+      }
+    };
+    codeSelect.addEventListener("change",()=>{
+      authorityForm.dataset.officerInitialized="0";
+      syncAuthority();
+    });
+    syncAuthority();
+    authorityForm.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const btn=authorityForm.querySelector("button[type=submit]");
+      const code=codeSelect.value;
+      if(code==="personnel_head"&&!confirm("ยืนยันมอบหมายเป็นหัวหน้างานบุคลากร? ผู้ใช้นี้จะจัดการทะเบียน เปิด/ปิดรับสมัคร และตรวจคำขอได้"))return;
+      setBusy(btn,true,"กำลังบันทึก...");
+      const res=await supabase.rpc("lao_save_personnel_authority",{
+        p_school_id:currentSchool().id,
+        p_personnel_id:authorityForm.dataset.authorityPersonnel,
+        p_authority_code:code==="none"?null:code,
+        p_can_edit_personnel:code==="personnel_head"?true:edit.checked,
+        p_can_review_join:code==="personnel_head"?true:review.checked
+      });
+      setBusy(btn,false);
+      if(res.error){toast(res.error.message,"error");return;}
+      await Promise.all([loadPersonnelWorkCounts(),loadNotifications()]);
+      refreshHeader();
+      toast(code==="none"?"ยกเลิกหน้าที่งานบุคลากรแล้ว":"บันทึกผู้รับผิดชอบงานบุคลากรแล้ว","success");
+      renderRoute();
+    });
+  });
+
   const form=q("#personnel-form");
   if(form){
     const prefixSelect=q("[data-personnel-prefix-select]",form);
