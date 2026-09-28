@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.9.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.10.0";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,pending_join_requests:0},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -184,6 +184,15 @@ function schoolAdminApplyToken(){
   const m=location.hash.match(/^#\/apply-school-admin\/([A-Za-z0-9_-]{20,})$/);
   return m?m[1]:null;
 }
+function personnelJoinToken(){
+  const token=new URLSearchParams(location.search).get("personnel_join");
+  return token&&/^[A-Za-z0-9_-]{30,}$/.test(token)?token:null;
+}
+function clearPersonnelJoinQuery(){
+  const url=new URL(location.href);
+  url.searchParams.delete("personnel_join");
+  history.replaceState(null,"",url.pathname+(url.searchParams.toString()?"?"+url.searchParams.toString():"")+url.hash);
+}
 function roleCodes(m){
   const x=m||state.currentMembership;
   return (x&&x.lao_membership_roles||[]).map(v=>v.lao_roles&&v.lao_roles.code).filter(Boolean);
@@ -293,12 +302,15 @@ function personnelSourceLabel(value){
 }
 function personnelRouteState(){
   const hash=location.hash||"#/personnel";
+  if(/^#\/personnel\/registry\/?$/i.test(hash))return {mode:"registry",id:null};
+  if(/^#\/personnel\/requests\/?$/i.test(hash))return {mode:"requests",id:null};
+  if(/^#\/personnel\/intake\/?$/i.test(hash))return {mode:"intake",id:null};
   if(/^#\/personnel\/new\/?$/i.test(hash))return {mode:"new",id:null};
   const edit=hash.match(/^#\/personnel\/([0-9a-f-]{36})\/edit\/?$/i);
   if(edit)return {mode:"edit",id:edit[1]};
   const detail=hash.match(/^#\/personnel\/([0-9a-f-]{36})\/?$/i);
   if(detail)return {mode:"detail",id:detail[1]};
-  return {mode:"list",id:null};
+  return {mode:"dashboard",id:null};
 }
 function personnelAvatarHtml(item,extraClass=""){
   const name=item&&item.full_name||[item&&item.prefix,item&&item.first_name_th,item&&item.last_name_th].filter(Boolean).join(" ")||"บุคลากร";
@@ -611,6 +623,20 @@ async function loadNotifications(){
   if(res.error)throw res.error;
   state.notifications=res.data||[];
 }
+async function loadPersonnelWorkCounts(){
+  const school=currentSchool();
+  if(!school){
+    state.personnelWork={can_review:false,can_manage_intake:false,pending_join_requests:0};
+    return state.personnelWork;
+  }
+  const res=await supabase.rpc("lao_personnel_work_counts",{p_school_id:school.id});
+  if(res.error){
+    state.personnelWork={can_review:false,can_manage_intake:false,pending_join_requests:0};
+    return state.personnelWork;
+  }
+  state.personnelWork=res.data||{can_review:false,can_manage_intake:false,pending_join_requests:0};
+  return state.personnelWork;
+}
 async function loadSchoolSetupStatus(){
   const m=state.currentMembership;
   if(!m||m.status!=="active"||!roleCodes(m).includes("school_admin")||!m.school_id){state.schoolSetup=null;return null;}
@@ -653,6 +679,7 @@ async function loadContext(){
     state.viewMode="user";
   }
   await loadSchoolSetupStatus();
+  await loadPersonnelWorkCounts();
   refreshHeader();
   renderTenants();
 }
@@ -705,7 +732,15 @@ function refreshHeader(){
   if(usersLink)usersLink.classList.toggle("hidden",!(adminMode||(schoolMode&&schoolSetupReady())));
 
   const personnelLink=q('[data-route="personnel"][data-personnel-menu]');
-  if(personnelLink)personnelLink.classList.toggle("hidden",!canViewPersonnel());
+  if(personnelLink){
+    personnelLink.classList.toggle("hidden",!canViewPersonnel());
+    const personnelBadge=q("[data-personnel-badge]",personnelLink);
+    const pending=Number(state.personnelWork&&state.personnelWork.pending_join_requests||0);
+    if(personnelBadge){
+      personnelBadge.textContent=String(pending);
+      personnelBadge.classList.toggle("hidden",!(state.personnelWork&&state.personnelWork.can_review&&pending>0));
+    }
+  }
 
   const studentLink=q('[data-route="students"][data-student-menu]');
   if(studentLink)studentLink.classList.toggle("hidden",!canViewStudentDirectory());
