@@ -2236,3 +2236,278 @@ table{max-width:none}
     font-size:10px;
   }
 }
+
+
+/* Default curriculum choices — v0.12.2 */
+.curriculum-preset-panel{
+  border-color:#b2ccff;
+  background:linear-gradient(180deg,#fbfdff 0%,#fff 100%);
+}
+.curriculum-grade-choices{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-top:13px;
+}
+.curriculum-grade-choice{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:2px;
+  min-width:0;
+  min-height:72px;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#fff;
+  color:var(--text);
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.curriculum-grade-choice:hover{
+  border-color:#84adff;
+  background:#f7faff;
+}
+.curriculum-grade-choice.active{
+  border-color:#528bff;
+  background:#eff4ff;
+  box-shadow:0 0 0 2px rgba(47,128,237,.08);
+}
+.curriculum-grade-choice strong{
+  font-size:13px;
+}
+.curriculum-grade-choice small{
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.4;
+}
+.curriculum-grade-choice em{
+  position:absolute;
+  top:9px;
+  right:9px;
+  padding:3px 6px;
+  border-radius:999px;
+  background:#f2f4f7;
+  color:#475467;
+  font-size:8px;
+  font-style:normal;
+  font-weight:800;
+}
+.curriculum-grade-choice.active em{
+  background:#dbe8ff;
+  color:#175cd3;
+}
+.curriculum-preset-summary{
+  display:grid;
+  grid-template-columns:1.3fr repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-top:10px;
+  padding:10px;
+  border:1px solid #d9e6fb;
+  border-radius:13px;
+  background:#f8fbff;
+}
+.curriculum-preset-summary>div{
+  min-width:0;
+  padding:5px 8px;
+}
+.curriculum-preset-summary small,
+.curriculum-preset-summary strong{
+  display:block;
+}
+.curriculum-preset-summary small{
+  color:var(--muted);
+  font-size:8px;
+  font-weight:800;
+}
+.curriculum-preset-summary strong{
+  margin-top:2px;
+  font-size:11px;
+  overflow-wrap:anywhere;
+}
+.curriculum-preset-list{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  margin-top:10px;
+}
+.curriculum-preset-row{
+  display:grid;
+  grid-template-columns:30px minmax(72px,100px) minmax(180px,1fr) minmax(82px,100px) minmax(82px,100px) auto;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  padding:9px 10px;
+  border:1px solid #eaecf0;
+  border-radius:11px;
+  background:#fff;
+}
+.curriculum-preset-row.is-present{
+  background:#fbfffc;
+}
+.curriculum-preset-row.is-missing{
+  border-color:#fedf89;
+  background:#fffcf5;
+}
+.preset-order{
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px;
+  border-radius:8px;
+  background:#f2f4f7;
+  color:#475467;
+  font-size:8px;
+  font-weight:900;
+}
+.preset-code{
+  color:#175cd3;
+  font-size:9px;
+  font-weight:900;
+  overflow-wrap:anywhere;
+}
+.preset-subject{
+  min-width:0;
+}
+.preset-subject strong,
+.preset-subject small{
+  display:block;
+  overflow-wrap:anywhere;
+}
+.preset-subject strong{
+  font-size:10px;
+}
+.preset-subject small{
+  margin-top:1px;
+  color:var(--muted);
+  font-size:8px;
+}
+.preset-weekly,
+.preset-annual{
+  color:#475467;
+  font-size:9px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.curriculum-preset-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:11px;
+}
+.curriculum-preset-actions .notice{
+  flex:1;
+  margin:0;
+}
+.curriculum-preset-actions .primary-btn{
+  flex:0 0 auto;
+  min-width:205px;
+}
+
+.curriculum-quick-add-panel{
+  border-color:#d0d5dd;
+}
+.curriculum-quick-add-panel .panel-head>a{
+  flex:0 0 auto;
+}
+.curriculum-existing-subject-panel{
+  background:#fcfcfd;
+}
+.academic-course-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:5px;
+  min-width:0;
+}
+.compact-order-btn{
+  width:34px;
+  min-width:34px;
+  height:34px;
+  min-height:34px;
+  padding:0;
+  font-size:14px;
+  font-weight:900;
+}
+.academic-course-row>.academic-course-actions{
+  grid-area:action;
+}
+
+@media(max-width:1000px){
+  .curriculum-grade-choices{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .curriculum-preset-summary{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .curriculum-preset-summary>div:first-child{
+    grid-column:1/-1;
+  }
+  .curriculum-preset-row{
+    grid-template-columns:30px minmax(70px,90px) minmax(0,1fr) auto auto;
+  }
+  .preset-annual{
+    display:none;
+  }
+}
+@media(max-width:720px){
+  .curriculum-preset-row{
+    grid-template-columns:30px minmax(0,1fr) auto;
+    grid-template-areas:
+      "order subject status"
+      "code code code"
+      "weekly annual annual";
+    align-items:start;
+  }
+  .preset-order{grid-area:order}
+  .preset-subject{grid-area:subject}
+  .curriculum-preset-row>.pill{grid-area:status;justify-self:end}
+  .preset-code{grid-area:code}
+  .preset-weekly{grid-area:weekly}
+  .preset-annual{
+    grid-area:annual;
+    display:block;
+    justify-self:end;
+  }
+  .curriculum-preset-actions{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .curriculum-preset-actions .primary-btn{
+    width:100%;
+    min-width:0;
+  }
+  .academic-course-actions{
+    width:100%;
+    justify-content:stretch;
+  }
+  .academic-course-actions .secondary-btn{
+    flex:1;
+  }
+}
+@media(max-width:520px){
+  .curriculum-grade-choices{
+    grid-template-columns:1fr 1fr;
+  }
+  .curriculum-preset-summary{
+    grid-template-columns:1fr 1fr;
+  }
+  .curriculum-preset-summary>div:first-child{
+    grid-column:1/-1;
+  }
+  .curriculum-quick-add-panel .panel-head>a{
+    width:100%;
+  }
+}
+@media(max-width:360px){
+  .curriculum-grade-choices,
+  .curriculum-preset-summary{
+    grid-template-columns:1fr;
+  }
+  .curriculum-preset-summary>div:first-child{
+    grid-column:auto;
+  }
+}
