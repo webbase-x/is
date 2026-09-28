@@ -1,13 +1,13 @@
-const CACHE_NAME="lao-ems-shell-v0.13.3";
+const CACHE_NAME="lao-ems-shell-v0.12.2";
 const SHELL=[
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./VERSION",
   "./assets/icon.svg",
-  "./assets/css/app.css?v=0.13.3",
-  "./assets/js/app.js?v=0.13.3",
-  "./assets/js/version.js?v=0.13.3",
+  "./assets/css/app.css?v=0.12.2",
+  "./assets/js/app.js?v=0.12.2",
+  "./assets/js/version.js?v=0.12.2",
   "./assets/js/supabase.js?v=20260927-2",
   "./assets/js/config.js"
 ];
