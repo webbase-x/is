@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.11.0";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -526,11 +526,11 @@ function bindStaticUI(){
       state.adminSchool=state.adminSchools.find(s=>s.id===id)||null;
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
-      state.academicYearId=null;state.academicData=null;
-      await loadPersonnelWorkCounts();refreshHeader();renderRoute();return;
+      state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;
+      await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicData=null;await loadPersonnelWorkCounts();refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);refreshHeader();renderRoute();}
   });
 }
 
@@ -845,10 +845,25 @@ async function loadPersonnelWorkCounts(){
   state.personnelWork=res.data||{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0};
   return state.personnelWork;
 }
+async function loadAcademicWorkCounts(){
+  const school=currentSchool();
+  const empty={can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0};
+  if(!school||!canViewAcademic()){
+    state.academicWork=empty;
+    return state.academicWork;
+  }
+  const res=await supabase.rpc("lao_academic_work_counts",{p_school_id:school.id});
+  if(res.error){
+    state.academicWork=empty;
+    return state.academicWork;
+  }
+  state.academicWork=res.data||empty;
+  return state.academicWork;
+}
 async function refreshAttentionState(){
   if(!state.user||personnelJoinToken())return;
   try{
-    await Promise.all([loadNotifications(),loadPersonnelWorkCounts()]);
+    await Promise.all([loadNotifications(),loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);
     refreshHeader();
   }catch(_){}
 }
@@ -902,7 +917,7 @@ async function loadContext(){
     state.viewMode="user";
   }
   await loadSchoolSetupStatus();
-  await loadPersonnelWorkCounts();
+  await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);
   refreshHeader();
   renderTenants();
 }
@@ -969,7 +984,15 @@ function refreshHeader(){
   if(studentLink)studentLink.classList.toggle("hidden",!canViewStudentDirectory());
 
   const academicLink=q('[data-route="academics"][data-academic-menu]');
-  if(academicLink)academicLink.classList.toggle("hidden",!canViewAcademic());
+  if(academicLink){
+    academicLink.classList.toggle("hidden",!canViewAcademic());
+    const badge=q("[data-academic-badge]",academicLink);
+    const attention=Number(state.academicWork&&state.academicWork.attention_count||0);
+    if(badge){
+      badge.textContent=String(attention);
+      badge.classList.toggle("hidden",attention<=0);
+    }
+  }
 
   const setupLink=q('[data-route="setup"]');
   if(setupLink)setupLink.textContent=adminMode?"⚙ ตั้งค่าระบบ":"⚙ ตั้งค่าสถานศึกษา";
@@ -2844,6 +2867,7 @@ function academicRouteState(){
   if(/^#\/academics\/classes\/?$/i.test(hash))return {mode:"classes"};
   if(/^#\/academics\/subjects\/?$/i.test(hash))return {mode:"subjects"};
   if(/^#\/academics\/curriculum\/?$/i.test(hash))return {mode:"curriculum"};
+  if(/^#\/academics\/workload\/?$/i.test(hash))return {mode:"workload"};
   return {mode:"dashboard"};
 }
 function academicGradeCode(label){
@@ -2907,6 +2931,7 @@ function academicNavHtml(active,data){
       '<a href="#/academics/classes" class="'+(active==="classes"?"active":"")+'">ชั้น/ห้อง</a>'+
       '<a href="#/academics/subjects" class="'+(active==="subjects"?"active":"")+'">รายวิชา</a>'+
       '<a href="#/academics/curriculum" class="'+(active==="curriculum"?"active":"")+'">โครงสร้างเวลาเรียน</a>'+
+      '<a href="#/academics/workload" class="'+(active==="workload"?"active":"")+'">ภาระงานสอน'+(Number(state.academicWork&&state.academicWork.attention_count||0)>0?'<span class="subnav-badge">'+Number(state.academicWork.attention_count)+'</span>':'')+'</a>'+
     '</nav>'+
     academicYearSelectorHtml(data)+
   '</div>';
@@ -2921,7 +2946,9 @@ async function loadAcademicStructure(){
   });
   if(res.error)throw res.error;
   state.academicData=res.data||{};
-  state.academicYearId=state.academicData.selected_year_id||null;
+  const nextYear=state.academicData.selected_year_id||null;
+  if(state.academicYearId!==nextYear)state.academicTermId=null;
+  state.academicYearId=nextYear;
   return state.academicData;
 }
 function academicDashboardHtml(data){
@@ -3031,6 +3058,7 @@ async function academicsHtml(){
   if(mode==="classes")return academicClassesHtml(data);
   if(mode==="subjects")return academicSubjectsHtml(data);
   if(mode==="curriculum")return academicCurriculumHtml(data);
+  if(mode==="workload")return await academicWorkloadHtml(data);
   return academicDashboardHtml(data);
 }
 function academicSetFormValue(form,name,value){
@@ -3056,6 +3084,9 @@ function bindAcademics(){
   const yearSelect=q("[data-academic-year-select]");
   if(yearSelect)yearSelect.addEventListener("change",()=>{
     state.academicYearId=yearSelect.value||null;
+    state.academicTermId=null;
+    state.teachingWorkloadData=null;
+    state.teachingWorkloadPersonnelId=null;
     state.academicFilters={grade_label:"",program_id:""};
     renderRoute();
   });
