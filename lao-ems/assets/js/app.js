@@ -2351,6 +2351,98 @@ function personnelPrefixControls(prefix){
   return '<select name="prefix_mode" data-personnel-prefix-select>'+options+'</select>'+
     '<input class="personnel-prefix-custom '+(custom?"":"hidden")+'" name="prefix_custom" data-personnel-prefix-custom value="'+esc(custom?raw:"")+'" placeholder="ระบุคำนำหน้า" maxlength="40" '+(custom?"required":"")+'>';
 }
+
+function personnelNavHtml(active){
+  const work=state.personnelWork||{};
+  const pending=Number(work.pending_join_requests||0);
+  return '<nav class="personnel-subnav" aria-label="งานบุคลากร">'+
+    '<a href="#/personnel" class="'+(active==="dashboard"?"active":"")+'">ภาพรวม</a>'+
+    '<a href="#/personnel/registry" class="'+(active==="registry"?"active":"")+'">ทะเบียนบุคลากร</a>'+
+    (work.can_review?'<a href="#/personnel/requests" class="'+(active==="requests"?"active":"")+'">คำขอเข้าร่วม'+(pending>0?'<span class="subnav-badge">'+pending+'</span>':'')+'</a>':'')+
+    (work.can_manage_intake?'<a href="#/personnel/intake" class="'+(active==="intake"?"active":"")+'">รับบุคลากรเข้าระบบ</a>':'')+
+  '</nav>';
+}
+async function personnelDashboardHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  if(!canViewPersonnel())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ดูงานบุคลากร</h3></div></section>';
+
+  await loadPersonnelWorkCounts();
+  const dir=await supabase.rpc("lao_personnel_directory",{p_school_id:school.id,p_search:null,p_personnel_type:null,p_status:null});
+  if(dir.error)throw dir.error;
+  const stats=dir.data&&dir.data.stats||{};
+  const work=state.personnelWork||{};
+  const pending=Number(work.pending_join_requests||0);
+
+  return '<section class="personnel-page">'+personnelNavHtml("dashboard")+
+    '<section class="personnel-work-hero"><div><p class="eyebrow">PERSONNEL WORK</p><h2>งานบุคลากร</h2><p>'+esc(school.name_th||"")+' · จัดการทะเบียน การรับบุคลากรเข้าระบบ และงานที่รอดำเนินการตามสิทธิ์ของคุณ</p></div><a class="primary-btn" href="#/personnel/registry">เปิดทะเบียนบุคลากร</a></section>'+
+    '<section class="personnel-summary-grid">'+
+      '<article><small>บุคลากรทั้งหมด</small><strong>'+Number(stats.total||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
+      '<article><small>ปฏิบัติงาน</small><strong>'+Number(stats.active||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
+      '<article><small>เชื่อมบัญชี</small><strong>'+Number(stats.linked_accounts||0).toLocaleString("th-TH")+'</strong><span>บัญชี</span></article>'+
+      '<article class="'+(pending>0&&work.can_review?"needs-action":"")+'"><small>คำขอรอดำเนินการ</small><strong>'+pending.toLocaleString("th-TH")+'</strong><span>รายการ</span></article>'+
+    '</section>'+
+    '<section class="personnel-action-grid">'+
+      '<a class="personnel-action-card" href="#/personnel/registry"><span>🪪</span><div><strong>ทะเบียนบุคลากร</strong><small>ค้นหา ดู และจัดการข้อมูลหลักของบุคลากร</small></div><em>เปิด</em></a>'+
+      (work.can_review?'<a class="personnel-action-card '+(pending>0?"priority":"")+'" href="#/personnel/requests"><span>✅</span><div><strong>คำขอเข้าร่วม'+(pending>0?' · '+pending+' รายการ':'')+'</strong><small>ตรวจข้อมูลที่ผู้สมัครระบุ แก้ไขก่อนอนุมัติ และป้องกันรายการซ้ำ</small></div><em>'+(pending>0?"ตรวจสอบ":"เปิด")+'</em></a>':'')+
+      (work.can_manage_intake?'<a class="personnel-action-card" href="#/personnel/intake"><span>🔗</span><div><strong>รับบุคลากรเข้าระบบ</strong><small>เปิด/ปิดลิงก์รับสมัครและคัดลอกลิงก์ส่งในกลุ่มโรงเรียน</small></div><em>ตั้งค่า</em></a>':'')+
+    '</section>'+
+    (work.can_review&&pending>0?'<section class="notice warning personnel-attention"><strong>มีงานที่ต้องดำเนินการ '+pending+' รายการ</strong><br>มีผู้ยืนยันอีเมลและส่งคำขอเข้าร่วมโรงเรียนแล้ว กรุณาตรวจสอบก่อนอนุมัติ</section>':'')+
+  '</section>';
+}
+async function personnelIntakeHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  const res=await supabase.rpc("lao_personnel_join_settings",{p_school_id:school.id});
+  if(res.error)return '<section class="personnel-page">'+personnelNavHtml("intake")+'<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์จัดการลิงก์รับสมัคร</h3></div></section></section>';
+  const d=res.data||{};
+  const link=d.token?(location.origin+location.pathname+"?personnel_join="+encodeURIComponent(d.token)):"";
+  return '<section class="personnel-page">'+personnelNavHtml("intake")+
+    '<section class="panel personnel-intake-card"><div class="panel-head"><div><p class="eyebrow">PERSONNEL INTAKE</p><h2>รับบุคลากรเข้าระบบ</h2><p class="panel-sub">ใช้ลิงก์กลางของโรงเรียน 1 ลิงก์ เปิด–ปิดได้ โดยผู้สมัครยืนยันอีเมลก่อนส่งคำขอ</p></div><span class="pill '+(d.is_active?"success":"warning")+'">'+(d.is_active?"เปิดรับสมัคร":"ปิดรับสมัคร")+'</span></div>'+
+      '<div class="intake-switch-card"><div><strong>'+ (d.is_active?"ระบบกำลังเปิดรับคำขอ":"ระบบยังไม่รับคำขอใหม่") +'</strong><p>'+(d.is_active?"ส่งลิงก์ให้บุคลากรผ่าน LINE หรือช่องทางภายในโรงเรียนได้ทันที":"เปิดระบบเมื่อต้องการรับบุคลากรใหม่ คำขอเดิมที่รอตรวจจะไม่ถูกลบ")+'</p></div><button type="button" class="'+(d.is_active?"danger-outline-btn":"primary-btn")+'" data-personnel-intake-toggle data-next="'+(!d.is_active)+'">'+(d.is_active?"ปิดรับสมัคร":"เปิดรับสมัคร")+'</button></div>'+
+      (d.token?'<div class="intake-link-box"><label>ลิงก์รับบุคลากรเข้าระบบ</label><div><input type="text" readonly value="'+esc(link)+'" data-personnel-join-link><button class="secondary-btn" type="button" data-copy-personnel-link>คัดลอกลิงก์</button></div><small>'+(d.is_active?"ลิงก์นี้พร้อมใช้งาน":"ลิงก์เดิมยังเก็บไว้ แต่ผู้เปิดลิงก์จะสมัครไม่ได้จนกว่าจะเปิดระบบอีกครั้ง")+'</small></div>':'<div class="notice">ยังไม่มีลิงก์ ระบบจะสร้างลิงก์ของโรงเรียนให้อัตโนมัติเมื่อกด “เปิดรับสมัคร” ครั้งแรก</div>')+
+      '<div class="intake-pending-row"><span>คำขอที่ยังรอตรวจสอบ</span><strong>'+Number(d.pending_count||0).toLocaleString("th-TH")+' รายการ</strong>'+(Number(d.pending_count||0)>0?'<a href="#/personnel/requests">ไปตรวจคำขอ →</a>':'')+'</div>'+
+    '</section>'+
+    '<section class="panel"><div class="personnel-section-head"><span>?</span><div><h3>ขั้นตอนสำหรับผู้สมัคร</h3><p>ออกแบบให้ทำตามทีละขั้น เพื่อลดความสับสนของผู้ใช้</p></div></div><div class="intake-howto"><div><b>1</b><strong>เปิดลิงก์และกรอกอีเมล</strong><small>ระบบส่งลิงก์ยืนยันไปที่อีเมล</small></div><div><b>2</b><strong>ยืนยันอีเมล</strong><small>กลับมากรอกชื่อ ตำแหน่ง และวิทยฐานะ</small></div><div><b>3</b><strong>ส่งคำขอ</strong><small>ระบบแจ้งชัดเจนว่าไม่ต้องสมัครซ้ำ</small></div><div><b>4</b><strong>ผู้เกี่ยวข้องตรวจสอบ</strong><small>ฝ่ายบุคลากร / School Admin แก้ข้อมูลก่อนอนุมัติได้</small></div></div></section>'+
+  '</section>';
+}
+async function personnelRequestsHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  const res=await supabase.rpc("lao_personnel_join_requests",{p_school_id:school.id,p_status:"pending_review"});
+  if(res.error)return '<section class="personnel-page">'+personnelNavHtml("requests")+'<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ตรวจคำขอ</h3></div></section></section>';
+  const d=res.data||{},items=d.items||[];
+  const cards=items.map(r=>{
+    const matches=Array.isArray(r.possible_matches)?r.possible_matches:[];
+    const exact=matches.find(m=>String(m.email||"").toLowerCase()===String(r.email||"").toLowerCase());
+    const matchOptions='<option value="">สร้างทะเบียนบุคลากรใหม่</option>'+matches.map(m=>'<option value="'+esc(m.id)+'" '+(exact&&exact.id===m.id?"selected":"")+'>'+esc(m.full_name||"-")+(m.position_title?' · '+esc(m.position_title):'')+(String(m.email||"").toLowerCase()===String(r.email||"").toLowerCase()?' · อีเมลตรงกัน':'')+'</option>').join("");
+    return '<article class="personnel-request-card" data-request-card="'+esc(r.id)+'">'+
+      '<div class="personnel-request-head"><div><span class="request-waiting-dot"></span><div><strong>'+esc(r.full_name||"-")+'</strong><small>'+esc(r.email||"-")+' · ส่งเมื่อ '+esc(thaiDateTime(r.submitted_at))+'</small></div></div><span class="pill warning">รอตรวจสอบ</span></div>'+
+      '<div class="request-compare-grid"><section><h4>ข้อมูลที่ผู้สมัครระบุ</h4><dl><div><dt>ประเภท</dt><dd>'+esc(personnelTypeLabel(r.personnel_type))+'</dd></div><div><dt>ตำแหน่ง</dt><dd>'+esc(r.position_title||"-")+'</dd></div><div><dt>วิทยฐานะ</dt><dd>'+esc(r.academic_standing||"-")+'</dd></div><div><dt>โทรศัพท์</dt><dd>'+esc(r.phone||"-")+'</dd></div>'+(r.applicant_note?'<div class="wide"><dt>หมายเหตุ</dt><dd>'+esc(r.applicant_note)+'</dd></div>':'')+'</dl></section>'+
+      '<form class="request-review-form" data-request-review="'+esc(r.id)+'"><h4>ข้อมูลที่จะบันทึกจริง</h4>'+
+        (matches.length?'<label class="field request-existing-match"><span>ตรวจพบข้อมูลเดิมที่อาจตรงกัน</span><select name="existing_personnel_id">'+matchOptions+'</select><small>เลือกบุคลากรเดิมเพื่อเชื่อมบัญชี ป้องกันชื่อซ้ำ หรือเลือกสร้างรายการใหม่</small></label>':'')+
+        '<div class="request-edit-grid">'+
+          '<label class="field"><span>คำนำหน้า</span><input name="prefix" value="'+esc(r.prefix||"")+'"></label>'+
+          '<label class="field"><span>ชื่อ *</span><input name="first_name_th" value="'+esc(r.first_name_th||"")+'" required></label>'+
+          '<label class="field"><span>นามสกุล *</span><input name="last_name_th" value="'+esc(r.last_name_th||"")+'" required></label>'+
+          '<label class="field"><span>ประเภท</span><select name="personnel_type">'+personnelTypeOptions(r.personnel_type||"other")+'</select></label>'+
+          '<label class="field"><span>ตำแหน่ง</span><input name="position_title" value="'+esc(r.position_title||"")+'"></label>'+
+          '<label class="field"><span>วิทยฐานะ</span><input name="academic_standing" value="'+esc(r.academic_standing||"")+'"></label>'+
+          '<label class="field"><span>เลขประจำตัวบุคลากร</span><input name="employee_no" placeholder="เว้นว่างได้"></label>'+
+          '<label class="field"><span>โทรศัพท์</span><input name="phone" value="'+esc(r.phone||"")+'"></label>'+
+        '</div>'+
+        '<div class="request-approve-row"><button class="primary-btn" type="submit">อนุมัติและเชื่อมบัญชี</button></div>'+
+      '</form></div>'+
+      '<div class="request-reject-box"><label><span>หากไม่อนุมัติ กรุณาระบุเหตุผล</span><textarea rows="2" data-reject-reason placeholder="เช่น ข้อมูลไม่ตรงกับทะเบียนบุคลากร กรุณาติดต่อฝ่ายบุคลากร"></textarea></label><button class="danger-outline-btn" type="button" data-reject-personnel-request="'+esc(r.id)+'">ไม่อนุมัติ</button></div>'+
+    '</article>';
+  }).join("");
+  return '<section class="personnel-page">'+personnelNavHtml("requests")+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">JOIN REQUESTS</p><h2>คำขอเข้าร่วมโรงเรียน</h2><p class="panel-sub">แสดงเฉพาะผู้ที่มีสิทธิ์ตรวจ/อนุมัติ ผู้ใช้อื่นในโรงเรียนไม่เห็นรายการนี้</p></div><span class="pill '+(Number(d.pending_count||0)>0?"warning":"success")+'">'+Number(d.pending_count||0)+' รอตรวจ</span></div>'+
+      (items.length?'<div class="personnel-request-stack">'+cards+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีคำขอที่รอตรวจสอบ</h3><p>เมื่อมีผู้ยืนยันอีเมลและส่งคำขอ ระบบจะแจ้งเตือนผู้เกี่ยวข้องอัตโนมัติ</p></div>')+
+    '</section>'+
+  '</section>';
+}
+
 async function personnelListHtml(){
   const school=currentSchool();
   if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>เลือกโรงเรียนจากบริบทด้านซ้ายเพื่อเปิดทะเบียนบุคลากร</p></div></section>';
@@ -2378,7 +2470,7 @@ async function personnelListHtml(){
     '<a class="secondary-btn compact-btn" href="#/personnel/'+esc(p.id)+'">ดูข้อมูล</a>'+
   '</div>').join("");
 
-  return '<section class="personnel-page">'+
+  return '<section class="personnel-page">'+personnelNavHtml("registry")+
     '<section class="personnel-summary-grid">'+
       '<article><small>บุคลากรทั้งหมด</small><strong>'+Number(stats.total||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
       '<article><small>ปฏิบัติงาน</small><strong>'+Number(stats.active||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
@@ -2405,7 +2497,7 @@ async function personnelDetailHtml(id){
   if(res.error)throw res.error;
   const p=res.data||{};
   return '<section class="personnel-detail-page">'+
-    '<div class="personnel-detail-toolbar"><a class="secondary-btn" href="#/personnel">← กลับทะเบียนบุคลากร</a>'+(p.can_manage?'<a class="primary-btn" href="#/personnel/'+esc(p.id)+'/edit">แก้ไขข้อมูล</a>':'')+'</div>'+
+    '<div class="personnel-detail-toolbar"><a class="secondary-btn" href="#/personnel/registry">← กลับทะเบียนบุคลากร</a>'+(p.can_manage?'<a class="primary-btn" href="#/personnel/'+esc(p.id)+'/edit">แก้ไขข้อมูล</a>':'')+'</div>'+
     '<section class="personnel-detail-hero"><div class="personnel-detail-avatar">'+personnelAvatarHtml(p,"personnel-detail-avatar-media")+'</div><div><p class="eyebrow">PERSONNEL RECORD</p><h2>'+esc(p.full_name||"-")+'</h2><p>'+esc(p.position_title||personnelTypeLabel(p.personnel_type))+(p.academic_standing?' · '+esc(p.academic_standing):'')+'</p><div class="personnel-detail-badges"><span class="pill '+(p.employment_status==="active"?"success":"warning")+'">'+esc(employmentStatusLabel(p.employment_status))+'</span><span class="pill">'+esc(personnelTypeLabel(p.personnel_type))+'</span>'+(p.account_linked?'<span class="pill success">เชื่อมบัญชี LAO-EMS</span>':'')+'</div></div></section>'+
     '<section class="personnel-detail-section"><div class="personnel-section-head"><span>01</span><div><h3>ข้อมูลบุคลากร</h3><p>ข้อมูลประจำตัวและประเภทบุคลากร</p></div></div><div class="personnel-detail-grid">'+
       '<div><small>คำนำหน้า</small><strong>'+esc(p.prefix||"-")+'</strong></div>'+
@@ -2448,7 +2540,7 @@ async function personnelFormHtml(id){
   }
   const title=id?"แก้ไขข้อมูลบุคลากร":"เพิ่มบุคลากร";
   return '<section class="personnel-form-page">'+
-    '<div class="personnel-detail-toolbar"><a class="secondary-btn" href="'+(id?'#/personnel/'+esc(id):'#/personnel')+'">← ย้อนกลับ</a></div>'+
+    '<div class="personnel-detail-toolbar"><a class="secondary-btn" href="'+(id?'#/personnel/'+esc(id):'#/personnel/registry')+'">← ย้อนกลับ</a></div>'+
     '<section class="panel personnel-form-card"><div class="panel-head"><div><p class="eyebrow">PERSONNEL MASTER DATA</p><h2>'+title+'</h2><p class="panel-sub">บันทึกเฉพาะข้อมูลหลักของบุคลากร ส่วนรายวิชา ห้องเรียน และภาระงานจะจัดการในโมดูลวิชาการภายหลัง</p></div></div>'+
       '<form id="personnel-form" class="personnel-form-grid" data-personnel-id="'+esc(id||"")+'">'+
         '<label class="field personnel-prefix-field"><span class="field-label-line">คำนำหน้า</span>'+personnelPrefixControls(p.prefix)+'</label>'+
@@ -2465,7 +2557,7 @@ async function personnelFormHtml(id){
         '<label class="field"><span class="field-label-line">วันที่สิ้นสุด</span><input name="employment_end_date" type="date" value="'+esc(p.employment_end_date||"")+'"></label>'+
         '<label class="field"><span class="field-label-line">ลำดับแสดงผล</span><input name="sort_order" type="number" step="1" value="'+esc(p.sort_order??"")+'" placeholder="เว้นว่างได้"></label>'+
         '<label class="field personnel-form-notes"><span class="field-label-line">หมายเหตุ</span><textarea name="notes" rows="4" placeholder="ข้อมูลเพิ่มเติมภายในทะเบียน">'+esc(p.notes||"")+'</textarea></label>'+
-        '<div class="personnel-form-actions"><a class="secondary-btn" href="'+(id?'#/personnel/'+esc(id):'#/personnel')+'">ยกเลิก</a><button class="primary-btn" type="submit">บันทึกข้อมูลบุคลากร</button></div>'+
+        '<div class="personnel-form-actions"><a class="secondary-btn" href="'+(id?'#/personnel/'+esc(id):'#/personnel/registry')+'">ยกเลิก</a><button class="primary-btn" type="submit">บันทึกข้อมูลบุคลากร</button></div>'+
       '</form>'+
     '</section>'+
   '</section>';
@@ -2475,7 +2567,10 @@ async function personnelHtml(){
   if(stateRoute.mode==="new")return await personnelFormHtml(null);
   if(stateRoute.mode==="edit")return await personnelFormHtml(stateRoute.id);
   if(stateRoute.mode==="detail")return await personnelDetailHtml(stateRoute.id);
-  return await personnelListHtml();
+  if(stateRoute.mode==="registry")return await personnelListHtml();
+  if(stateRoute.mode==="requests")return await personnelRequestsHtml();
+  if(stateRoute.mode==="intake")return await personnelIntakeHtml();
+  return await personnelDashboardHtml();
 }
 function bindPersonnel(){
   const root=q("#main");
