@@ -565,8 +565,6 @@ begin
       join public.lao_roles r on r.id=mr.role_id
       where m.school_id=p_school_id and m.status='active'
         and r.code in ('school_admin','academic_officer')
-      union
-      select pa.user_id from public.lao_platform_admins pa
     ) x;
   elsif p_action='approve' and v_target_user is not null and v_target_user<>v_uid then
     insert into public.lao_notifications(
