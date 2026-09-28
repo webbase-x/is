@@ -1593,3 +1593,6 @@ table{max-width:none}
   .teaching-card-actions{align-items:stretch;flex-direction:column}
   .teaching-card-actions button{width:100%}
 }
+
+/* Balance six academic workflow cards on wide screens. */
+@media(min-width:1101px){.academic-flow-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
