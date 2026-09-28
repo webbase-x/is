@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.10.2";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -15,7 +15,7 @@ const routeMeta={
   lec:["นำเข้าข้อมูล LEC","นำเข้า XLS/XLSX โดยระบบเลือกชีตที่มีข้อมูลสถานศึกษาครบและรักษาประวัติทุกปีการศึกษา"],
   personnel:["บุคลากร","ข้อมูลบุคลากรต้นทางสำหรับทุกระบบ"],
   students:["นักเรียน","ค้นหาและดูข้อมูลนักเรียนจาก LEC ตามปีการศึกษา ชั้น และห้อง"],
-  academics:["วิชาการ","หลักสูตร ชั้นเรียน รายวิชา และครูผู้สอน"],
+  academics:["งานวิชาการ","ปีการศึกษา ชั้นเรียน รายวิชา และโครงสร้างหลักสูตร"],
   assessment:["ทะเบียนและวัดผล","คะแนน ผลการเรียน GPA/GPAX และเอกสารการศึกษา"],
   documents:["เอกสารและไฟล์","Google Drive แยกตามสถานศึกษา พร้อม metadata กลาง"],
   website:["เว็บไซต์สถานศึกษา","เว็บไซต์แต่ละโรงเรียนจากข้อมูลชุดเดียวกัน"],
@@ -275,6 +275,11 @@ function canViewPersonnel(){
   const allowed=["organization_admin","organization_viewer","school_admin","school_executive","registrar","academic_officer","teacher","staff"];
   return Boolean(currentSchool())&&roleCodes().some(code=>allowed.includes(code));
 }
+function canViewAcademic(){
+  if(state.isPlatformAdmin&&state.viewMode==="admin")return Boolean(currentSchool());
+  const allowed=["organization_admin","organization_viewer","school_admin","school_executive","registrar","academic_officer","teacher","staff"];
+  return Boolean(currentSchool())&&roleCodes().some(code=>allowed.includes(code));
+}
 function personnelTypeLabel(value){
   return ({
     executive:"ผู้บริหาร",
@@ -520,10 +525,11 @@ function bindStaticUI(){
       state.adminSchool=state.adminSchools.find(s=>s.id===id)||null;
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
+      state.academicYearId=null;state.academicData=null;
       await loadPersonnelWorkCounts();refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);await loadPersonnelWorkCounts();refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicData=null;await loadPersonnelWorkCounts();refreshHeader();renderRoute();}
   });
 }
 
@@ -961,6 +967,9 @@ function refreshHeader(){
   const studentLink=q('[data-route="students"][data-student-menu]');
   if(studentLink)studentLink.classList.toggle("hidden",!canViewStudentDirectory());
 
+  const academicLink=q('[data-route="academics"][data-academic-menu]');
+  if(academicLink)academicLink.classList.toggle("hidden",!canViewAcademic());
+
   const setupLink=q('[data-route="setup"]');
   if(setupLink)setupLink.textContent=adminMode?"⚙ ตั้งค่าระบบ":"⚙ ตั้งค่าสถานศึกษา";
 
@@ -981,7 +990,6 @@ function ensureAdminNavigation(){
   const nav=q(".nav-list");
   if(!nav||nav.querySelector("[data-full-admin]"))return;
   const items=[
-    ["academics","📚","วิชาการ"],
     ["assessment","📝","ทะเบียนและวัดผล"],["documents","📄","เอกสารและไฟล์"],
     ["website","🌐","เว็บไซต์สถานศึกษา"],["forms","☑","แบบฟอร์มและงาน"],["reports","📊","รายงานและ Dashboard"]
   ];
@@ -3083,6 +3091,7 @@ async function renderRoute(){
     else if(route==="users"){main.innerHTML=await usersHtml();bindInvites();bindPlatformAdminApplications();}
     else if(route==="personnel"){main.innerHTML=await personnelHtml();bindPersonnel();}
     else if(route==="students"){main.innerHTML=await studentsHtml();bindStudents();}
+    else if(route==="academics"){main.innerHTML=await academicsHtml();bindAcademics();}
     else main.innerHTML=placeholderHtml(route);
   }catch(e){
     console.error(e);
