@@ -1596,3 +1596,643 @@ table{max-width:none}
 
 /* Balance six academic workflow cards on wide screens. */
 @media(min-width:1101px){.academic-flow-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+
+/* Academic responsive balance — v0.12.1
+   Keep every academic surface inside the content width, improve hierarchy,
+   and turn dense rows into balanced cards before they can overflow. */
+.academic-page{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+.academic-page,
+.academic-page *,
+.academic-page *::before,
+.academic-page *::after{
+  box-sizing:border-box;
+}
+.academic-page>*,
+.academic-page .panel,
+.academic-page .panel-head,
+.academic-page .panel-head>*,
+.academic-page form,
+.academic-page label,
+.academic-page article,
+.academic-page section,
+.academic-page div{
+  min-width:0;
+}
+.academic-page input,
+.academic-page select,
+.academic-page textarea{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+.academic-page select{
+  text-overflow:ellipsis;
+}
+.academic-page .panel{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+.academic-page .panel-head{
+  flex-wrap:wrap;
+}
+.academic-page .panel-head>div:first-child{
+  flex:1 1 300px;
+}
+.academic-page .panel-sub,
+.academic-page small,
+.academic-page p{
+  overflow-wrap:anywhere;
+}
+
+/* Top navigation and year selector */
+.academic-toolbar{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(170px,auto);
+  align-items:stretch;
+  gap:10px;
+  width:100%;
+  max-width:100%;
+}
+.academic-subnav{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(108px,1fr));
+  gap:5px;
+  width:100%;
+  max-width:100%;
+  overflow:visible;
+}
+.academic-subnav a{
+  justify-content:center;
+  min-width:0;
+  text-align:center;
+  white-space:normal;
+  line-height:1.25;
+}
+.academic-year-switch{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:7px;
+  width:100%;
+  min-width:0;
+}
+.academic-year-switch select{
+  width:auto;
+  min-width:150px;
+  max-width:210px;
+}
+
+/* Overview */
+.academic-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+}
+.academic-hero>div{
+  min-width:0;
+}
+.academic-hero .primary-btn{
+  min-width:150px;
+  max-width:220px;
+}
+.academic-stats-grid{
+  grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+}
+.academic-flow-grid{
+  grid-template-columns:repeat(auto-fit,minmax(205px,1fr));
+}
+.academic-flow-grid a{
+  min-height:92px;
+}
+.academic-flow-grid a>div{
+  min-width:0;
+}
+.academic-flow-grid strong{
+  font-size:11px;
+  line-height:1.4;
+}
+.academic-flow-grid small{
+  font-size:10px;
+  line-height:1.5;
+}
+.academic-next-note{
+  align-items:flex-start;
+}
+.academic-next-note>div{
+  min-width:0;
+  flex:1;
+}
+
+/* Academic year / term cards */
+.academic-year-list{
+  grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));
+}
+.academic-edit-grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(330px,100%),1fr));
+}
+.academic-year-head,
+.academic-term-row{
+  flex-wrap:wrap;
+}
+.academic-year-head>div:first-child,
+.academic-term-row>div:first-child{
+  flex:1 1 180px;
+}
+.academic-year-tags{
+  margin-left:auto;
+}
+.academic-term-row>.pill{
+  flex:0 0 auto;
+}
+.academic-term-row>.text-btn{
+  flex:0 0 auto;
+}
+
+/* Forms: keep columns fluid instead of fixed-width */
+.academic-form,
+.academic-form-3,
+.academic-course-form{
+  grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));
+}
+.academic-form>label,
+.academic-form>div{
+  min-width:0;
+}
+.academic-form>label{
+  font-size:10px;
+  line-height:1.4;
+}
+.academic-form input,
+.academic-form select,
+.academic-form textarea{
+  font-size:12px;
+}
+.academic-form .check-row{
+  min-height:44px;
+  align-self:end;
+  padding-top:0;
+}
+.academic-form-actions{
+  flex-wrap:wrap;
+}
+.academic-term-plan-grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));
+}
+.academic-term-plan-box{
+  grid-template-columns:minmax(90px,auto) repeat(2,minmax(0,1fr));
+  min-width:0;
+}
+.academic-term-plan-box label{
+  min-width:0;
+}
+
+/* Programs and classes */
+.academic-simple-row{
+  grid-template-columns:minmax(0,1fr) auto auto;
+}
+.academic-class-grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));
+}
+.academic-class-chip{
+  align-items:flex-start;
+}
+.academic-class-chip>div{
+  flex:1;
+}
+.academic-class-chip .text-btn{
+  flex:0 0 auto;
+}
+
+/* Subject catalogue */
+.academic-subject-row{
+  grid-template-columns:minmax(78px,110px) minmax(160px,1fr) auto auto auto;
+}
+.academic-subject-row>.pill,
+.academic-subject-row>button{
+  min-width:0;
+}
+.academic-subject-row .pill{
+  white-space:normal;
+  text-align:center;
+}
+
+/* Curriculum structure: use named grid areas so it can collapse cleanly */
+.academic-course-row{
+  grid-template-columns:minmax(82px,105px) minmax(190px,1.25fr) minmax(70px,82px) minmax(165px,1fr) auto;
+  grid-template-areas:"grade subject hours term action";
+  width:100%;
+  max-width:100%;
+}
+.academic-course-grade{grid-area:grade}
+.academic-course-subject{grid-area:subject}
+.academic-course-hours{grid-area:hours}
+.academic-course-term{grid-area:term;min-width:0;overflow-wrap:anywhere}
+.academic-course-row>button{grid-area:action}
+.academic-course-filter{
+  grid-template-columns:repeat(2,minmax(160px,1fr)) auto;
+  width:100%;
+}
+.academic-course-filter>*{
+  min-width:0;
+}
+
+/* Teaching workload: named areas prevent select fields from pushing cards off-screen */
+.teaching-workload-overview,
+.teaching-editor-panel,
+.teaching-workload-card,
+.teaching-workload-stack{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+.teaching-workload-overview>.panel-head{
+  align-items:center;
+}
+.teaching-term-switch{
+  max-width:100%;
+}
+.teaching-term-switch select{
+  width:auto;
+  max-width:220px;
+}
+.teaching-personnel-picker{
+  flex-wrap:wrap;
+}
+.teaching-personnel-picker>div{
+  flex:1 1 260px;
+}
+.teaching-personnel-picker label{
+  flex:1 1 320px;
+  justify-content:flex-end;
+  max-width:520px;
+}
+.teaching-personnel-picker select{
+  width:min(100%,420px);
+  min-width:0;
+}
+.teaching-editor-row{
+  grid-template-columns:28px minmax(210px,1.6fr) minmax(88px,105px) minmax(120px,145px) minmax(130px,.8fr) 34px;
+  grid-template-areas:"no offering periods role note remove";
+  width:100%;
+  max-width:100%;
+}
+.teaching-row-no{grid-area:no}
+.teaching-offering-field{grid-area:offering}
+.teaching-editor-row>label:nth-of-type(2){grid-area:periods}
+.teaching-editor-row>label:nth-of-type(3){grid-area:role}
+.teaching-note-field{grid-area:note}
+.teaching-remove-btn{grid-area:remove}
+.teaching-editor-row select,
+.teaching-editor-row input{
+  min-width:0;
+}
+.teaching-item>div{
+  flex:1 1 auto;
+}
+.teaching-item>span{
+  flex:0 0 auto;
+}
+.teaching-card-footer{
+  flex-wrap:wrap;
+}
+.teaching-card-actions{
+  max-width:100%;
+}
+
+/* Medium screens: turn dense catalogue rows into two-line cards. */
+@media(max-width:1180px){
+  .academic-toolbar{
+    grid-template-columns:1fr;
+  }
+  .academic-year-switch{
+    justify-content:flex-start;
+    padding:0 2px;
+  }
+  .academic-year-switch select{
+    width:min(100%,260px);
+    max-width:260px;
+  }
+  .academic-course-row{
+    grid-template-columns:minmax(82px,100px) minmax(0,1fr) minmax(70px,85px) auto;
+    grid-template-areas:
+      "grade subject hours action"
+      "term term term term";
+  }
+  .academic-course-term{
+    padding-top:5px;
+    border-top:1px dashed #e4e7ec;
+  }
+  .teaching-editor-row{
+    grid-template-columns:28px minmax(200px,1fr) minmax(88px,105px) minmax(120px,145px) 34px;
+    grid-template-areas:
+      "no offering periods role remove"
+      ". note note note .";
+  }
+}
+@media(max-width:900px){
+  .academic-subnav{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .academic-hero{
+    grid-template-columns:1fr;
+    align-items:start;
+  }
+  .academic-hero .primary-btn{
+    width:100%;
+    max-width:none;
+  }
+  .academic-stats-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .academic-flow-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .academic-subject-row{
+    grid-template-columns:minmax(72px,95px) minmax(0,1fr) auto;
+  }
+  .academic-subject-row>.pill:nth-of-type(2){
+    display:none;
+  }
+  .academic-subject-row>button{
+    grid-column:3;
+  }
+  .academic-course-filter{
+    grid-template-columns:1fr 1fr;
+  }
+  .academic-course-filter button{
+    grid-column:1/-1;
+    width:100%;
+  }
+}
+@media(max-width:720px){
+  .academic-page{
+    gap:10px;
+  }
+  .academic-subnav{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    padding:4px;
+  }
+  .academic-subnav a{
+    min-height:42px;
+    padding:8px 7px;
+    font-size:10px;
+  }
+  .academic-year-switch{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr);
+  }
+  .academic-year-switch select{
+    width:100%;
+    max-width:none;
+  }
+  .academic-hero{
+    padding:16px;
+  }
+  .academic-stats-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .academic-flow-grid{
+    grid-template-columns:1fr;
+  }
+  .academic-flow-grid a{
+    min-height:auto;
+  }
+  .academic-next-note{
+    flex-direction:column;
+  }
+  .academic-year-tags{
+    width:100%;
+    margin-left:0;
+    justify-content:flex-start;
+  }
+  .academic-term-row{
+    align-items:flex-start;
+  }
+  .academic-term-row>.pill{
+    order:2;
+  }
+  .academic-term-row>.text-btn{
+    order:3;
+    margin-left:auto;
+  }
+  .academic-form,
+  .academic-form-3,
+  .academic-course-form{
+    grid-template-columns:1fr;
+  }
+  .academic-form .span-all{
+    grid-column:auto;
+  }
+  .academic-form-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    width:100%;
+  }
+  .academic-form-actions>*{
+    width:100%;
+  }
+  .academic-term-plan-box{
+    grid-template-columns:1fr 1fr;
+  }
+  .academic-term-plan-box>strong{
+    grid-column:1/-1;
+  }
+  .academic-simple-row{
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+  .academic-simple-row>button{
+    grid-column:1/-1;
+    width:100%;
+  }
+  .academic-subject-row{
+    grid-template-columns:minmax(70px,92px) minmax(0,1fr);
+  }
+  .academic-subject-row>.pill{
+    display:none;
+  }
+  .academic-subject-row>button{
+    grid-column:1/-1;
+    width:100%;
+  }
+  .academic-course-row{
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:
+      "grade hours"
+      "subject subject"
+      "term term"
+      "action action";
+    gap:7px 10px;
+  }
+  .academic-course-grade,
+  .academic-course-hours{
+    padding:2px 0;
+  }
+  .academic-course-hours{
+    text-align:right;
+  }
+  .academic-course-row>button{
+    width:100%;
+  }
+  .academic-course-filter{
+    grid-template-columns:1fr;
+  }
+  .academic-course-filter button{
+    grid-column:auto;
+  }
+  .teaching-workload-overview>.panel-head{
+    align-items:stretch;
+  }
+  .teaching-term-switch{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr);
+    width:100%;
+  }
+  .teaching-term-switch select{
+    width:100%;
+    max-width:none;
+  }
+  .teaching-personnel-picker{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .teaching-personnel-picker label{
+    align-items:stretch;
+    flex-direction:column;
+    max-width:none;
+  }
+  .teaching-personnel-picker select{
+    width:100%;
+    max-width:none;
+  }
+  .teaching-editor-row{
+    grid-template-columns:28px minmax(0,1fr) 34px;
+    grid-template-areas:
+      "no offering remove"
+      ". periods ."
+      ". role ."
+      ". note .";
+    align-items:end;
+  }
+  .teaching-editor-row>label{
+    width:100%;
+  }
+  .teaching-card-footer{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .teaching-card-actions{
+    width:100%;
+    justify-content:flex-start;
+  }
+}
+@media(max-width:520px){
+  .academic-subnav{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .academic-stats-grid{
+    grid-template-columns:1fr 1fr;
+  }
+  .academic-stats-grid article{
+    padding:11px;
+  }
+  .academic-stats-grid strong{
+    font-size:18px;
+  }
+  .academic-year-switch{
+    grid-template-columns:1fr;
+    gap:4px;
+  }
+  .academic-form-actions{
+    grid-template-columns:1fr;
+  }
+  .academic-term-plan-box{
+    grid-template-columns:1fr;
+  }
+  .academic-term-plan-box>strong{
+    grid-column:auto;
+  }
+  .academic-course-row{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "grade"
+      "subject"
+      "hours"
+      "term"
+      "action";
+  }
+  .academic-course-hours{
+    display:flex;
+    align-items:baseline;
+    gap:5px;
+    text-align:left;
+  }
+  .academic-course-hours small{
+    margin:0;
+  }
+  .teaching-workload-stats{
+    grid-template-columns:1fr;
+  }
+  .teaching-term-switch{
+    grid-template-columns:1fr;
+    gap:4px;
+  }
+  .teaching-editor-row{
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:
+      "no remove"
+      "offering offering"
+      "periods periods"
+      "role role"
+      "note note";
+    align-items:end;
+  }
+  .teaching-row-no{
+    justify-self:start;
+  }
+  .teaching-remove-btn{
+    justify-self:end;
+  }
+  .teaching-editor-actions{
+    display:grid;
+    grid-template-columns:1fr;
+    width:100%;
+  }
+  .teaching-editor-actions button{
+    width:100%;
+  }
+  .teaching-item{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .teaching-item>span{
+    white-space:normal;
+  }
+  .teaching-workload-card-head{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .teaching-card-actions{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .teaching-card-actions button{
+    width:100%;
+  }
+}
+@media(max-width:360px){
+  .academic-subnav,
+  .academic-stats-grid{
+    grid-template-columns:1fr;
+  }
+  .academic-year-switch,
+  .teaching-term-switch{
+    font-size:10px;
+  }
+}
