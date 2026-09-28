@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.10.2";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.11.0";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -15,7 +15,7 @@ const routeMeta={
   lec:["นำเข้าข้อมูล LEC","นำเข้า XLS/XLSX โดยระบบเลือกชีตที่มีข้อมูลสถานศึกษาครบและรักษาประวัติทุกปีการศึกษา"],
   personnel:["บุคลากร","ข้อมูลบุคลากรต้นทางสำหรับทุกระบบ"],
   students:["นักเรียน","ค้นหาและดูข้อมูลนักเรียนจาก LEC ตามปีการศึกษา ชั้น และห้อง"],
-  academics:["วิชาการ","หลักสูตร ชั้นเรียน รายวิชา และครูผู้สอน"],
+  academics:["งานวิชาการ","ปีการศึกษา ชั้นเรียน รายวิชา และโครงสร้างหลักสูตร"],
   assessment:["ทะเบียนและวัดผล","คะแนน ผลการเรียน GPA/GPAX และเอกสารการศึกษา"],
   documents:["เอกสารและไฟล์","Google Drive แยกตามสถานศึกษา พร้อม metadata กลาง"],
   website:["เว็บไซต์สถานศึกษา","เว็บไซต์แต่ละโรงเรียนจากข้อมูลชุดเดียวกัน"],
@@ -275,6 +275,11 @@ function canViewPersonnel(){
   const allowed=["organization_admin","organization_viewer","school_admin","school_executive","registrar","academic_officer","teacher","staff"];
   return Boolean(currentSchool())&&roleCodes().some(code=>allowed.includes(code));
 }
+function canViewAcademic(){
+  if(state.isPlatformAdmin&&state.viewMode==="admin")return Boolean(currentSchool());
+  const allowed=["organization_admin","organization_viewer","school_admin","school_executive","registrar","academic_officer","teacher","staff"];
+  return Boolean(currentSchool())&&roleCodes().some(code=>allowed.includes(code));
+}
 function personnelTypeLabel(value){
   return ({
     executive:"ผู้บริหาร",
@@ -331,6 +336,7 @@ function shortGrade(value){
   const v=String(value||"");
   const m=v.match(/ประถมศึกษาปีที่\s*(\d+)/);if(m)return "ป."+m[1];
   const k=v.match(/อนุบาล\s*(\d+)/);if(k)return "อ."+k[1];
+  const s=v.match(/มัธยมศึกษาปีที่\s*(\d+)/);if(s)return "ม."+s[1];
   return v||"-";
 }
 function studentPresenceLabel(value){
@@ -520,10 +526,11 @@ function bindStaticUI(){
       state.adminSchool=state.adminSchools.find(s=>s.id===id)||null;
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
+      state.academicYearId=null;state.academicData=null;
       await loadPersonnelWorkCounts();refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);await loadPersonnelWorkCounts();refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicData=null;await loadPersonnelWorkCounts();refreshHeader();renderRoute();}
   });
 }
 
@@ -961,6 +968,9 @@ function refreshHeader(){
   const studentLink=q('[data-route="students"][data-student-menu]');
   if(studentLink)studentLink.classList.toggle("hidden",!canViewStudentDirectory());
 
+  const academicLink=q('[data-route="academics"][data-academic-menu]');
+  if(academicLink)academicLink.classList.toggle("hidden",!canViewAcademic());
+
   const setupLink=q('[data-route="setup"]');
   if(setupLink)setupLink.textContent=adminMode?"⚙ ตั้งค่าระบบ":"⚙ ตั้งค่าสถานศึกษา";
 
@@ -981,7 +991,6 @@ function ensureAdminNavigation(){
   const nav=q(".nav-list");
   if(!nav||nav.querySelector("[data-full-admin]"))return;
   const items=[
-    ["academics","📚","วิชาการ"],
     ["assessment","📝","ทะเบียนและวัดผล"],["documents","📄","เอกสารและไฟล์"],
     ["website","🌐","เว็บไซต์สถานศึกษา"],["forms","☑","แบบฟอร์มและงาน"],["reports","📊","รายงานและ Dashboard"]
   ];
@@ -2827,6 +2836,463 @@ function bindPersonnel(){
   }
 }
 
+
+function academicRouteState(){
+  const hash=location.hash||"#/academics";
+  if(/^#\/academics\/periods\/?$/i.test(hash))return {mode:"periods"};
+  if(/^#\/academics\/programs\/?$/i.test(hash))return {mode:"programs"};
+  if(/^#\/academics\/classes\/?$/i.test(hash))return {mode:"classes"};
+  if(/^#\/academics\/subjects\/?$/i.test(hash))return {mode:"subjects"};
+  if(/^#\/academics\/curriculum\/?$/i.test(hash))return {mode:"curriculum"};
+  return {mode:"dashboard"};
+}
+function academicGradeCode(label){
+  const v=String(label||"").trim();
+  let m=v.match(/^อนุบาล\s*(\d+)$/);if(m)return "K"+m[1];
+  m=v.match(/^ประถมศึกษาปีที่\s*(\d+)$/);if(m)return "P"+m[1];
+  m=v.match(/^มัธยมศึกษาปีที่\s*(\d+)$/);if(m)return "M"+m[1];
+  return "";
+}
+function academicGradeOrder(label){
+  const code=academicGradeCode(label);
+  const m=code.match(/^([KPM])(\d+)$/);
+  if(!m)return 900;
+  const base=m[1]==="K"?0:m[1]==="P"?30:90;
+  return base+Number(m[2])*10;
+}
+function academicSubjectTypeLabel(value){
+  return ({basic:"รายวิชาพื้นฐาน",additional:"รายวิชาเพิ่มเติม",activity:"กิจกรรมพัฒนาผู้เรียน",other:"อื่น ๆ"})[value]||value||"-";
+}
+function academicSubjectTypeOptions(selected){
+  return [["basic","รายวิชาพื้นฐาน"],["additional","รายวิชาเพิ่มเติม"],["activity","กิจกรรมพัฒนาผู้เรียน"],["other","อื่น ๆ"]]
+    .map(([v,l])=>'<option value="'+v+'" '+(selected===v?"selected":"")+'>'+l+'</option>').join("");
+}
+function academicProgramOptions(data,selected,includeAll=false){
+  const rows=(data&&data.programs||[]).filter(p=>p.is_active||p.id===selected);
+  return (includeAll?'<option value="">ทุกโปรแกรม</option>':'<option value="">ทั่วไป / ไม่ระบุโปรแกรม</option>')+
+    rows.map(p=>'<option value="'+esc(p.id)+'" '+(selected===p.id?"selected":"")+'>'+esc(p.name_th)+(p.code?' · '+esc(p.code):'')+'</option>').join("");
+}
+function academicGradeValues(data){
+  const common=[
+    "อนุบาล 1","อนุบาล 2","อนุบาล 3",
+    "ประถมศึกษาปีที่ 1","ประถมศึกษาปีที่ 2","ประถมศึกษาปีที่ 3",
+    "ประถมศึกษาปีที่ 4","ประถมศึกษาปีที่ 5","ประถมศึกษาปีที่ 6",
+    "มัธยมศึกษาปีที่ 1","มัธยมศึกษาปีที่ 2","มัธยมศึกษาปีที่ 3",
+    "มัธยมศึกษาปีที่ 4","มัธยมศึกษาปีที่ 5","มัธยมศึกษาปีที่ 6"
+  ];
+  const values=new Set(common);
+  (data&&data.classes||[]).forEach(x=>x.grade_label&&values.add(x.grade_label));
+  (data&&data.courses||[]).forEach(x=>x.grade_label&&values.add(x.grade_label));
+  return Array.from(values).sort((a,b)=>academicGradeOrder(a)-academicGradeOrder(b)||a.localeCompare(b,"th"));
+}
+function academicGradeDatalistHtml(id,data){
+  return '<datalist id="'+id+'">'+academicGradeValues(data).map(v=>'<option value="'+esc(v)+'"></option>').join("")+'</datalist>';
+}
+function academicSelectedYear(data){
+  return (data&&data.years||[]).find(y=>y.id===data.selected_year_id)||null;
+}
+function academicYearSelectorHtml(data){
+  const years=data&&data.years||[];
+  if(!years.length)return '<span class="academic-year-empty">ยังไม่มีปีการศึกษา</span>';
+  return '<label class="academic-year-switch"><span>ปีการศึกษา</span><select data-academic-year-select>'+
+    years.map(y=>'<option value="'+esc(y.id)+'" '+(data.selected_year_id===y.id?"selected":"")+'>'+esc(y.year_be)+(y.is_current?' · ปัจจุบัน':'')+'</option>').join("")+
+    '</select></label>';
+}
+function academicNavHtml(active,data){
+  return '<div class="academic-toolbar">'+
+    '<nav class="academic-subnav" aria-label="งานวิชาการ">'+
+      '<a href="#/academics" class="'+(active==="dashboard"?"active":"")+'">ภาพรวม</a>'+
+      '<a href="#/academics/periods" class="'+(active==="periods"?"active":"")+'">ปี/ภาคเรียน</a>'+
+      '<a href="#/academics/programs" class="'+(active==="programs"?"active":"")+'">หลักสูตร/โปรแกรม</a>'+
+      '<a href="#/academics/classes" class="'+(active==="classes"?"active":"")+'">ชั้น/ห้อง</a>'+
+      '<a href="#/academics/subjects" class="'+(active==="subjects"?"active":"")+'">รายวิชา</a>'+
+      '<a href="#/academics/curriculum" class="'+(active==="curriculum"?"active":"")+'">โครงสร้างเวลาเรียน</a>'+
+    '</nav>'+
+    academicYearSelectorHtml(data)+
+  '</div>';
+}
+async function loadAcademicStructure(){
+  const school=currentSchool();
+  if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
+  if(!canViewAcademic())throw new Error("ไม่มีสิทธิ์ดูข้อมูลงานวิชาการ");
+  const res=await supabase.rpc("lao_academic_structure",{
+    p_school_id:school.id,
+    p_academic_year_id:state.academicYearId||null
+  });
+  if(res.error)throw res.error;
+  state.academicData=res.data||{};
+  state.academicYearId=state.academicData.selected_year_id||null;
+  return state.academicData;
+}
+function academicDashboardHtml(data){
+  const school=currentSchool(),stats=data.stats||{},year=academicSelectedYear(data),canManage=Boolean(data.can_manage);
+  const noYear=!(data.years&&data.years.length);
+  return '<section class="academic-page">'+academicNavHtml("dashboard",data)+
+    '<section class="academic-hero"><div><p class="eyebrow">ACADEMIC STRUCTURE</p><h2>งานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · วางข้อมูลต้นทางรายปีเพื่อให้ภาระงานสอน ตารางเรียน และงานวัดผลใช้ข้อมูลชุดเดียวกัน</p></div>'+(canManage?'<a class="primary-btn" href="#/academics/periods">'+(noYear?"เริ่มตั้งค่าปีการศึกษา":"จัดการโครงสร้าง")+'</a>':'')+'</section>'+
+    '<section class="academic-stats-grid">'+
+      '<article><small>ปีการศึกษา</small><strong>'+(year?esc(year.year_be):"-")+'</strong><span>'+(year&&year.is_current?"ปีปัจจุบัน":"ปีที่เลือก")+'</span></article>'+
+      '<article><small>ภาคเรียน</small><strong>'+Number(year&&year.terms&&year.terms.length||0).toLocaleString("th-TH")+'</strong><span>ภาคเรียน</span></article>'+
+      '<article><small>ชั้น/ห้อง</small><strong>'+Number(stats.classes||0).toLocaleString("th-TH")+'</strong><span>ห้อง</span></article>'+
+      '<article><small>รายวิชา</small><strong>'+Number(stats.subjects||0).toLocaleString("th-TH")+'</strong><span>รายวิชา</span></article>'+
+      '<article><small>โครงสร้างรายวิชา</small><strong>'+Number(stats.courses||0).toLocaleString("th-TH")+'</strong><span>รายการ</span></article>'+
+    '</section>'+
+    (noYear?'<section class="notice warning"><strong>ยังไม่มีโครงสร้างปีการศึกษาที่พร้อมใช้งาน</strong><br>เริ่มจากเพิ่มปีการศึกษา ระบบจะสร้างภาคเรียนที่ 1 และ 2 ให้เป็นค่าเริ่มต้น จากนั้นจึงกำหนดชั้น/ห้องและรายวิชา</section>':'')+
+    '<section class="academic-flow-grid">'+
+      '<a href="#/academics/periods"><b>01</b><div><strong>ปีการศึกษาและภาคเรียน</strong><small>กำหนดช่วงเวลาและปีปัจจุบัน</small></div></a>'+
+      '<a href="#/academics/programs"><b>02</b><div><strong>หลักสูตร / โปรแกรม</strong><small>เช่น ห้องปกติ MEP หรือ MLP — ไม่บังคับ</small></div></a>'+
+      '<a href="#/academics/classes"><b>03</b><div><strong>ระดับชั้นและห้อง</strong><small>ห้องจาก LEC ถูกนำมาเป็นฐานโดยไม่ต้องกรอกซ้ำ</small></div></a>'+
+      '<a href="#/academics/subjects"><b>04</b><div><strong>ทะเบียนรายวิชา</strong><small>รหัสวิชา ชื่อวิชา กลุ่มสาระ และประเภท</small></div></a>'+
+      '<a href="#/academics/curriculum"><b>05</b><div><strong>โครงสร้างเวลาเรียน</strong><small>รายวิชาต่อระดับชั้น ชั่วโมง/ปี และคาบต่อสัปดาห์</small></div></a>'+
+    '</section>'+
+    '<section class="academic-next-note"><span>ขั้นถัดไป</span><div><strong>ภาระงานสอน</strong><p>ครูจะเลือก/เสนอภาระงานจากรายวิชาและชั้นเรียนที่ฝ่ายวิชาการกำหนดไว้เท่านั้น จึงไม่ต้องสร้างรายวิชาใหม่ซ้ำในทะเบียนบุคลากร</p></div></section>'+
+  '</section>';
+}
+function academicPeriodsHtml(data){
+  const years=data.years||[],canManage=Boolean(data.can_manage);
+  const yearCards=years.map(y=>{
+    const terms=(y.terms||[]).map(t=>'<div class="academic-term-row"><div><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><small>'+(t.starts_on||t.ends_on?esc(thaiDate(t.starts_on))+' – '+esc(thaiDate(t.ends_on)):'ยังไม่กำหนดช่วงวันที่')+'</small></div>'+(t.is_current?'<span class="pill success">ภาคเรียนปัจจุบัน</span>':'')+(canManage?'<button type="button" class="text-btn" data-edit-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">แก้ไข</button>':'')+'</div>').join("");
+    return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
+  }).join("");
+  return '<section class="academic-page">'+academicNavHtml("periods",data)+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">ข้อมูลจาก LEC ที่มีอยู่จะคงไว้ และสามารถเพิ่มปีการศึกษาใหม่เพื่อใช้กับงานวิชาการของปีปัจจุบันได้</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-reset-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
+      '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
+    '</section>'+
+    (canManage?'<section class="academic-edit-grid">'+
+      '<article class="panel"><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">เมื่อเพิ่มปีใหม่ ระบบจะสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2569"></label><label>วันเริ่มปีการศึกษา<input name="starts_on" type="date"></label><label>วันสิ้นสุดปีการศึกษา<input name="ends_on" type="date"></label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
+      '<article class="panel"><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม<input name="starts_on" type="date"></label><label>วันสิ้นสุด<input name="ends_on" type="date"></label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
+    '</section>':'')+
+  '</section>';
+}
+function academicProgramsHtml(data){
+  const items=data.programs||[],canManage=Boolean(data.can_manage);
+  const rows=items.map(p=>'<div class="academic-simple-row '+(!p.is_active?"muted-row":"")+'"><div><strong>'+esc(p.name_th)+'</strong><small>'+esc(p.code||"ไม่มีรหัส")+(p.name_en?' · '+esc(p.name_en):'')+'</small></div><span class="pill '+(p.is_active?"success":"warning")+'">'+(p.is_active?"ใช้งาน":"ปิดใช้งาน")+'</span>'+(canManage?'<button class="secondary-btn compact-btn" type="button" data-edit-program="'+esc(p.id)+'">แก้ไข</button>':'')+'</div>').join("");
+  return '<section class="academic-page">'+academicNavHtml("programs",data)+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">PROGRAMS</p><h2>หลักสูตร / โปรแกรม</h2><p class="panel-sub">ใช้เมื่อโรงเรียนมีโครงสร้างต่างกัน เช่น ห้องปกติ MEP หรือ MLP หากไม่ใช้ สามารถเว้นส่วนนี้ได้</p></div></div>'+
+      (rows?'<div class="academic-simple-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">◫</div><h3>ยังไม่ได้กำหนดโปรแกรม</h3><p>ห้องเรียนและโครงสร้างหลักสูตรสามารถใช้ “ทั่วไป / ไม่ระบุโปรแกรม” ได้</p></div>')+
+    '</section>'+
+    (canManage?'<section class="panel academic-form-panel"><div class="panel-head"><div><h2 data-program-form-title>เพิ่มหลักสูตร / โปรแกรม</h2></div></div><form id="academic-program-form" class="academic-form academic-form-3" data-id=""><label>รหัส<input name="code" placeholder="เช่น MEP"></label><label>ชื่อภาษาไทย <span class="required-mark">*</span><input name="name_th" required placeholder="เช่น Mini English Program"></label><label>ชื่อภาษาอังกฤษ<input name="name_en"></label><label class="span-all">รายละเอียด<textarea name="description" rows="2"></textarea></label><label>ลำดับ<input name="sort_order" type="number" value="0"></label><label class="check-row"><input name="is_active" type="checkbox" checked><span>ใช้งาน</span></label><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-program-form>ล้าง</button><button type="submit" class="primary-btn">บันทึก</button></div></form></section>':'')+
+  '</section>';
+}
+function academicClassesHtml(data){
+  const items=data.classes||[],canManage=Boolean(data.can_manage),year=academicSelectedYear(data);
+  const grouped={};
+  items.forEach(x=>{(grouped[x.grade_label]||(grouped[x.grade_label]=[])).push(x);});
+  const groups=Object.keys(grouped).sort((a,b)=>academicGradeOrder(a)-academicGradeOrder(b)||a.localeCompare(b,"th")).map(grade=>{
+    const rooms=grouped[grade].map(c=>'<div class="academic-class-chip '+(!c.is_active?"inactive":"")+'"><div><strong>'+esc(shortGrade(c.grade_label))+'/'+esc(c.section_label)+'</strong><small>'+esc(c.program_name||"ทั่วไป")+(c.source_type==="lec"?' · LEC':'')+(c.room_name?' · '+esc(c.room_name):'')+'</small></div>'+(canManage?'<button type="button" class="text-btn" data-edit-class="'+esc(c.id)+'">แก้ไข</button>':'')+'</div>').join("");
+    return '<section class="academic-grade-group"><div class="academic-grade-title"><strong>'+esc(grade)+'</strong><span>'+grouped[grade].length+' ห้อง</span></div><div class="academic-class-grid">'+rooms+'</div></section>';
+  }).join("");
+  return '<section class="academic-page">'+academicNavHtml("classes",data)+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">CLASS SECTIONS</p><h2>ระดับชั้นและห้องเรียน</h2><p class="panel-sub">'+(year?'ปีการศึกษา '+esc(year.year_be):'ยังไม่ได้เลือกปีการศึกษา')+' · ห้องที่มีใน LEC ถูกสร้างเป็นฐานให้อัตโนมัติ</p></div><span class="pill">'+items.length+' ห้อง</span></div>'+
+      (groups||'<div class="empty-state compact-empty"><div class="empty-icon">🏫</div><h3>ยังไม่มีชั้น/ห้องในปีนี้</h3><p>เพิ่มด้วยตนเอง หรือเมื่อนำเข้า LEC ของปีนี้ระบบจะนำชั้น/ห้องมาเป็นฐาน</p></div>')+
+    '</section>'+
+    (canManage&&year?'<section class="panel academic-form-panel"><div class="panel-head"><div><h2 data-class-form-title>เพิ่มชั้น / ห้อง</h2><p class="panel-sub">โปรแกรมเป็นตัวเลือก ไม่จำเป็นต้องกำหนดทุกห้อง</p></div></div><form id="academic-class-form" class="academic-form academic-form-3" data-id=""><input type="hidden" name="academic_year_id" value="'+esc(year.id)+'"><label>โปรแกรม<select name="program_id">'+academicProgramOptions(data,"",false)+'</select></label><label>ระดับชั้น <span class="required-mark">*</span><input name="grade_label" list="academic-class-grade-list" required placeholder="เช่น ประถมศึกษาปีที่ 1">'+academicGradeDatalistHtml("academic-class-grade-list",data)+'</label><label>ห้อง <span class="required-mark">*</span><input name="section_label" required placeholder="เช่น 1 หรือ MEP"></label><label>ชื่อห้อง/สถานที่<input name="room_name" placeholder="เว้นว่างได้"></label><label>ลำดับ<input name="sort_order" type="number" value="0"></label><label class="check-row"><input name="is_active" type="checkbox" checked><span>ใช้งาน</span></label><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-class-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกชั้น/ห้อง</button></div></form></section>':'')+
+  '</section>';
+}
+function academicSubjectsHtml(data){
+  const items=data.subjects||[],canManage=Boolean(data.can_manage);
+  const rows=items.map(s=>'<div class="academic-subject-row '+(!s.is_active?"muted-row":"")+'"><div class="academic-subject-code">'+esc(s.subject_code||"—")+'</div><div><strong>'+esc(s.name_th)+'</strong><small>'+esc(s.learning_area||academicSubjectTypeLabel(s.subject_type))+(s.name_en?' · '+esc(s.name_en):'')+'</small></div><span class="pill">'+esc(academicSubjectTypeLabel(s.subject_type))+'</span><span class="pill '+(s.is_active?"success":"warning")+'">'+(s.is_active?"ใช้งาน":"ปิด")+'</span>'+(canManage?'<button class="secondary-btn compact-btn" type="button" data-edit-subject="'+esc(s.id)+'">แก้ไข</button>':'')+'</div>').join("");
+  const areas=["ภาษาไทย","คณิตศาสตร์","วิทยาศาสตร์และเทคโนโลยี","สังคมศึกษา ศาสนา และวัฒนธรรม","สุขศึกษาและพลศึกษา","ศิลปะ","การงานอาชีพ","ภาษาต่างประเทศ","กิจกรรมพัฒนาผู้เรียน"];
+  return '<section class="academic-page">'+academicNavHtml("subjects",data)+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">SUBJECT CATALOGUE</p><h2>ทะเบียนรายวิชา</h2><p class="panel-sub">เป็นรายวิชาต้นทางของโรงเรียน ใช้ซ้ำข้ามปีได้ ส่วนชั่วโมงเรียนจะกำหนดในโครงสร้างเวลาเรียนรายปี</p></div><span class="pill">'+items.length+' รายวิชา</span></div>'+
+      (rows?'<div class="academic-subject-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายวิชา</h3><p>เพิ่มรายวิชาก่อนจัดโครงสร้างเวลาเรียน</p></div>')+
+    '</section>'+
+    (canManage?'<section class="panel academic-form-panel"><div class="panel-head"><div><h2 data-subject-form-title>เพิ่มรายวิชา</h2></div></div><form id="academic-subject-form" class="academic-form academic-form-3" data-id=""><label>รหัสวิชา<input name="subject_code" placeholder="เช่น ท11101"></label><label>ชื่อรายวิชา <span class="required-mark">*</span><input name="name_th" required placeholder="ภาษาไทย"></label><label>ชื่อภาษาอังกฤษ<input name="name_en"></label><label>กลุ่มสาระ / หมวด<input name="learning_area" list="academic-area-list" placeholder="เลือกหรือพิมพ์เอง"><datalist id="academic-area-list">'+areas.map(x=>'<option value="'+esc(x)+'"></option>').join("")+'</datalist></label><label>ประเภท<select name="subject_type">'+academicSubjectTypeOptions("basic")+'</select></label><label>ลำดับ<input name="sort_order" type="number" value="0"></label><label class="check-row"><input name="is_active" type="checkbox" checked><span>ใช้งาน</span></label><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-subject-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกรายวิชา</button></div></form></section>':'')+
+  '</section>';
+}
+function academicCurriculumHtml(data){
+  const items=data.courses||[],subjects=(data.subjects||[]).filter(s=>s.is_active),year=academicSelectedYear(data),canManage=Boolean(data.can_manage);
+  const f=state.academicFilters||{};
+  const filtered=items.filter(x=>(!f.grade_label||x.grade_label===f.grade_label)&&(!f.program_id||x.program_id===f.program_id));
+  const gradeOptions=Array.from(new Set(items.map(x=>x.grade_label).filter(Boolean))).sort((a,b)=>academicGradeOrder(a)-academicGradeOrder(b)||a.localeCompare(b,"th"));
+  const terms=year&&year.terms||[];
+  const rows=filtered.map(c=>{
+    const termText=(c.term_plans||[]).map(t=>'ภาค '+t.term_no+': '+(t.weekly_periods!=null?Number(t.weekly_periods).toLocaleString("th-TH")+' คาบ/สัปดาห์':(t.term_hours!=null?Number(t.term_hours).toLocaleString("th-TH")+' ชม.':'—'))).join(' · ');
+    return '<div class="academic-course-row '+(!c.is_active?"muted-row":"")+'"><div class="academic-course-grade"><strong>'+esc(shortGrade(c.grade_label))+'</strong><small>'+esc(c.program_name||"ทั่วไป")+'</small></div><div class="academic-course-subject"><strong>'+esc(c.subject_code?c.subject_code+" "+c.subject_name:c.subject_name)+'</strong><small>'+esc(c.learning_area||academicSubjectTypeLabel(c.subject_type))+'</small></div><div class="academic-course-hours"><strong>'+(c.annual_hours!=null?Number(c.annual_hours).toLocaleString("th-TH"):"—")+'</strong><small>ชม./ปี</small></div><div class="academic-course-term"><span>'+esc(termText||"ยังไม่กำหนดคาบรายภาค")+'</span></div>'+(canManage?'<button type="button" class="secondary-btn compact-btn" data-edit-course="'+esc(c.id)+'">แก้ไข</button>':'')+'</div>';
+  }).join("");
+  const termInputs=terms.map(t=>'<div class="academic-term-plan-box"><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><label>คาบ/สัปดาห์<input name="weekly_'+esc(t.id)+'" type="number" min="0" step="0.5" placeholder="เช่น 5"></label><label>ชั่วโมง/ภาค<input name="hours_'+esc(t.id)+'" type="number" min="0" step="0.5" placeholder="เว้นว่างได้"></label></div>').join("");
+  return '<section class="academic-page">'+academicNavHtml("curriculum",data)+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">CURRICULUM STRUCTURE</p><h2>โครงสร้างเวลาเรียน</h2><p class="panel-sub">'+(year?'ปีการศึกษา '+esc(year.year_be):'ยังไม่ได้เลือกปี')+' · กำหนดรายวิชาตามระดับชั้น/โปรแกรม แล้วระบุชั่วโมงและคาบของแต่ละภาคเรียน</p></div><span class="pill">'+items.length+' รายการ</span></div>'+
+      (items.length?'<form id="academic-course-filter" class="academic-course-filter"><label>ระดับชั้น<select name="grade_label"><option value="">ทุกระดับชั้น</option>'+gradeOptions.map(g=>'<option value="'+esc(g)+'" '+(f.grade_label===g?"selected":"")+'>'+esc(g)+'</option>').join("")+'</select></label><label>โปรแกรม<select name="program_id">'+academicProgramOptions(data,f.program_id||"",true)+'</select></label><button class="secondary-btn" type="button" data-reset-course-filter>ล้างตัวกรอง</button></form>':'')+
+      (rows?'<div class="academic-course-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📚</div><h3>'+(items.length?'ไม่พบรายการตามตัวกรอง':'ยังไม่มีโครงสร้างเวลาเรียน')+'</h3><p>'+(subjects.length?'เพิ่มรายวิชาให้ระดับชั้นด้านล่าง':'กรุณาสร้างทะเบียนรายวิชาก่อน')+'</p></div>')+
+    '</section>'+
+    (canManage&&year?'<section class="panel academic-form-panel"><div class="panel-head"><div><h2 data-course-form-title>เพิ่มรายวิชาในโครงสร้าง</h2><p class="panel-sub">รายวิชาต้องมาจากทะเบียนรายวิชา ไม่ให้พิมพ์ชื่อวิชาใหม่ซ้ำในหน้านี้</p></div></div>'+
+      (subjects.length?'<form id="academic-course-form" class="academic-form academic-course-form" data-id=""><input type="hidden" name="academic_year_id" value="'+esc(year.id)+'"><label>โปรแกรม<select name="program_id">'+academicProgramOptions(data,"",false)+'</select></label><label>ระดับชั้น <span class="required-mark">*</span><input name="grade_label" list="academic-course-grade-list" required placeholder="เช่น ประถมศึกษาปีที่ 1">'+academicGradeDatalistHtml("academic-course-grade-list",data)+'</label><label>รายวิชา <span class="required-mark">*</span><select name="subject_id" required><option value="">เลือกรายวิชา</option>'+subjects.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.subject_code?s.subject_code+" · "+s.name_th:s.name_th)+'</option>').join("")+'</select></label><label>ชั่วโมง/ปี<input name="annual_hours" type="number" min="0" step="0.5" placeholder="เช่น 200"></label><label>หน่วยกิต<input name="credits" type="number" min="0" step="0.5" placeholder="ใช้เมื่อหลักสูตรกำหนด"></label><label>ลำดับ<input name="sort_order" type="number" value="0"></label><label class="check-row"><input name="is_active" type="checkbox" checked><span>ใช้งาน</span></label><label class="span-all">หมายเหตุ<textarea name="notes" rows="2"></textarea></label><div class="span-all"><div class="academic-term-plan-title">คาบ/ชั่วโมงแยกตามภาคเรียน</div><div class="academic-term-plan-grid">'+(termInputs||'<div class="notice warning">ปีการศึกษานี้ยังไม่มีภาคเรียน กรุณาเพิ่มภาคเรียนก่อน</div>')+'</div></div><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-course-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกโครงสร้างรายวิชา</button></div></form>':'<div class="notice warning"><strong>ยังไม่มีทะเบียนรายวิชา</strong><br>ไปที่เมนู “รายวิชา” เพื่อสร้างรายวิชาต้นทางก่อน แล้วจึงกลับมากำหนดโครงสร้างเวลาเรียน</div>')+
+    '</section>':'')+
+  '</section>';
+}
+async function academicsHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>เลือกโรงเรียนเพื่อเปิดงานวิชาการ</p></div></section>';
+  if(!canViewAcademic())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ดูงานวิชาการ</h3></div></section>';
+  const data=await loadAcademicStructure();
+  const mode=academicRouteState().mode;
+  if(mode==="periods")return academicPeriodsHtml(data);
+  if(mode==="programs")return academicProgramsHtml(data);
+  if(mode==="classes")return academicClassesHtml(data);
+  if(mode==="subjects")return academicSubjectsHtml(data);
+  if(mode==="curriculum")return academicCurriculumHtml(data);
+  return academicDashboardHtml(data);
+}
+function academicSetFormValue(form,name,value){
+  const el=form&&form.elements&&form.elements[name];
+  if(!el)return;
+  if(el.type==="checkbox")el.checked=Boolean(value);
+  else el.value=value==null?"":String(value);
+}
+function academicResetForm(form,titleSelector,title){
+  if(!form)return;
+  form.reset();
+  form.dataset.id="";
+  const h=q(titleSelector);
+  if(h)h.textContent=title;
+}
+function academicScrollToForm(form){
+  if(!form)return;
+  form.scrollIntoView({behavior:"smooth",block:"center"});
+}
+function bindAcademics(){
+  const data=state.academicData||{};
+  const school=currentSchool();
+  const yearSelect=q("[data-academic-year-select]");
+  if(yearSelect)yearSelect.addEventListener("change",()=>{
+    state.academicYearId=yearSelect.value||null;
+    state.academicFilters={grade_label:"",program_id:""};
+    renderRoute();
+  });
+
+  const yearForm=q("#academic-year-form");
+  qa("[data-reset-year-form]").forEach(btn=>btn.addEventListener("click",()=>{
+    academicResetForm(yearForm,"[data-year-form-title]","เพิ่มปีการศึกษา");
+    if(yearForm){
+      academicSetFormValue(yearForm,"is_current",false);
+      academicScrollToForm(yearForm);
+    }
+  }));
+  qa("[data-edit-year]").forEach(btn=>btn.addEventListener("click",()=>{
+    const y=(data.years||[]).find(x=>x.id===btn.dataset.editYear);if(!y||!yearForm)return;
+    yearForm.dataset.id=y.id;
+    academicSetFormValue(yearForm,"year_be",y.year_be);
+    academicSetFormValue(yearForm,"starts_on",y.starts_on);
+    academicSetFormValue(yearForm,"ends_on",y.ends_on);
+    academicSetFormValue(yearForm,"is_current",y.is_current);
+    const h=q("[data-year-form-title]");if(h)h.textContent="แก้ไขปีการศึกษา "+y.year_be;
+    academicScrollToForm(yearForm);
+  }));
+  if(yearForm)yearForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(yearForm),btn=yearForm.querySelector('button[type="submit"]');
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_academic_year",{
+      p_school_id:school.id,
+      p_academic_year_id:yearForm.dataset.id||null,
+      p_year_be:Number(fd.get("year_be")),
+      p_starts_on:String(fd.get("starts_on")||"")||null,
+      p_ends_on:String(fd.get("ends_on")||"")||null,
+      p_is_current:fd.get("is_current")==="on"
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    if(!yearForm.dataset.id)state.academicYearId=res.data&&res.data.id||state.academicYearId;
+    toast("บันทึกปีการศึกษาแล้ว","success");renderRoute();
+  });
+
+  const termForm=q("#academic-term-form");
+  const resetTerm=()=>{
+    academicResetForm(termForm,"[data-term-form-title]","เพิ่ม/แก้ไขภาคเรียน");
+    if(termForm&&data.selected_year_id)academicSetFormValue(termForm,"academic_year_id",data.selected_year_id);
+  };
+  qa("[data-reset-term-form]").forEach(btn=>btn.addEventListener("click",()=>{resetTerm();academicScrollToForm(termForm);}));
+  qa("[data-edit-term]").forEach(btn=>btn.addEventListener("click",()=>{
+    const y=(data.years||[]).find(x=>x.id===btn.dataset.yearId);
+    const t=y&&(y.terms||[]).find(x=>x.id===btn.dataset.editTerm);if(!t||!termForm)return;
+    termForm.dataset.id=t.id;
+    academicSetFormValue(termForm,"academic_year_id",y.id);
+    academicSetFormValue(termForm,"term_no",t.term_no);
+    academicSetFormValue(termForm,"name",t.name);
+    academicSetFormValue(termForm,"starts_on",t.starts_on);
+    academicSetFormValue(termForm,"ends_on",t.ends_on);
+    academicSetFormValue(termForm,"is_current",t.is_current);
+    const h=q("[data-term-form-title]");if(h)h.textContent="แก้ไข "+(t.name||("ภาคเรียนที่ "+t.term_no));
+    academicScrollToForm(termForm);
+  }));
+  if(termForm)termForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(termForm),btn=termForm.querySelector('button[type="submit"]');
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_term",{
+      p_school_id:school.id,p_term_id:termForm.dataset.id||null,
+      p_academic_year_id:String(fd.get("academic_year_id")||"")||null,
+      p_term_no:Number(fd.get("term_no")),
+      p_name:String(fd.get("name")||"").trim()||null,
+      p_starts_on:String(fd.get("starts_on")||"")||null,
+      p_ends_on:String(fd.get("ends_on")||"")||null,
+      p_is_current:fd.get("is_current")==="on"
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกภาคเรียนแล้ว","success");renderRoute();
+  });
+
+  const programForm=q("#academic-program-form");
+  const resetProgram=()=>academicResetForm(programForm,"[data-program-form-title]","เพิ่มหลักสูตร / โปรแกรม");
+  qa("[data-reset-program-form]").forEach(btn=>btn.addEventListener("click",()=>{resetProgram();academicScrollToForm(programForm);}));
+  qa("[data-edit-program]").forEach(btn=>btn.addEventListener("click",()=>{
+    const p=(data.programs||[]).find(x=>x.id===btn.dataset.editProgram);if(!p||!programForm)return;
+    programForm.dataset.id=p.id;
+    ["code","name_th","name_en","description","sort_order"].forEach(k=>academicSetFormValue(programForm,k,p[k]));
+    academicSetFormValue(programForm,"is_active",p.is_active);
+    const h=q("[data-program-form-title]");if(h)h.textContent="แก้ไข "+p.name_th;
+    academicScrollToForm(programForm);
+  }));
+  if(programForm)programForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(programForm),btn=programForm.querySelector('button[type="submit"]');
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_academic_program",{
+      p_school_id:school.id,p_program_id:programForm.dataset.id||null,
+      p_code:String(fd.get("code")||"").trim()||null,
+      p_name_th:String(fd.get("name_th")||"").trim(),
+      p_name_en:String(fd.get("name_en")||"").trim()||null,
+      p_description:String(fd.get("description")||"").trim()||null,
+      p_is_active:fd.get("is_active")==="on",
+      p_sort_order:Number(fd.get("sort_order")||0)
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกหลักสูตร/โปรแกรมแล้ว","success");renderRoute();
+  });
+
+  const classForm=q("#academic-class-form");
+  const resetClass=()=>{
+    academicResetForm(classForm,"[data-class-form-title]","เพิ่มชั้น / ห้อง");
+    if(classForm){
+      academicSetFormValue(classForm,"academic_year_id",data.selected_year_id);
+      academicSetFormValue(classForm,"sort_order",0);
+      academicSetFormValue(classForm,"is_active",true);
+    }
+  };
+  qa("[data-reset-class-form]").forEach(btn=>btn.addEventListener("click",()=>{resetClass();academicScrollToForm(classForm);}));
+  qa("[data-edit-class]").forEach(btn=>btn.addEventListener("click",()=>{
+    const c=(data.classes||[]).find(x=>x.id===btn.dataset.editClass);if(!c||!classForm)return;
+    classForm.dataset.id=c.id;
+    ["academic_year_id","program_id","grade_label","section_label","room_name","sort_order"].forEach(k=>academicSetFormValue(classForm,k,c[k]));
+    academicSetFormValue(classForm,"is_active",c.is_active);
+    const h=q("[data-class-form-title]");if(h)h.textContent="แก้ไข "+shortGrade(c.grade_label)+"/"+c.section_label;
+    academicScrollToForm(classForm);
+  }));
+  if(classForm)classForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(classForm),btn=classForm.querySelector('button[type="submit"]'),grade=String(fd.get("grade_label")||"").trim();
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_class_section",{
+      p_school_id:school.id,p_class_section_id:classForm.dataset.id||null,
+      p_academic_year_id:String(fd.get("academic_year_id")||"")||null,
+      p_program_id:String(fd.get("program_id")||"")||null,
+      p_grade_code:academicGradeCode(grade)||null,p_grade_label:grade,
+      p_section_label:String(fd.get("section_label")||"").trim(),
+      p_room_name:String(fd.get("room_name")||"").trim()||null,
+      p_is_active:fd.get("is_active")==="on",p_sort_order:Number(fd.get("sort_order")||0)
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกชั้น/ห้องแล้ว","success");renderRoute();
+  });
+
+  const subjectForm=q("#academic-subject-form");
+  const resetSubject=()=>{
+    academicResetForm(subjectForm,"[data-subject-form-title]","เพิ่มรายวิชา");
+    if(subjectForm){academicSetFormValue(subjectForm,"subject_type","basic");academicSetFormValue(subjectForm,"sort_order",0);academicSetFormValue(subjectForm,"is_active",true);}
+  };
+  qa("[data-reset-subject-form]").forEach(btn=>btn.addEventListener("click",()=>{resetSubject();academicScrollToForm(subjectForm);}));
+  qa("[data-edit-subject]").forEach(btn=>btn.addEventListener("click",()=>{
+    const x=(data.subjects||[]).find(v=>v.id===btn.dataset.editSubject);if(!x||!subjectForm)return;
+    subjectForm.dataset.id=x.id;
+    ["subject_code","name_th","name_en","learning_area","subject_type","sort_order"].forEach(k=>academicSetFormValue(subjectForm,k,x[k]));
+    academicSetFormValue(subjectForm,"is_active",x.is_active);
+    const h=q("[data-subject-form-title]");if(h)h.textContent="แก้ไข "+x.name_th;
+    academicScrollToForm(subjectForm);
+  }));
+  if(subjectForm)subjectForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(subjectForm),btn=subjectForm.querySelector('button[type="submit"]');
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_subject",{
+      p_school_id:school.id,p_subject_id:subjectForm.dataset.id||null,
+      p_subject_code:String(fd.get("subject_code")||"").trim()||null,
+      p_name_th:String(fd.get("name_th")||"").trim(),
+      p_name_en:String(fd.get("name_en")||"").trim()||null,
+      p_learning_area:String(fd.get("learning_area")||"").trim()||null,
+      p_subject_type:String(fd.get("subject_type")||"basic"),
+      p_is_active:fd.get("is_active")==="on",p_sort_order:Number(fd.get("sort_order")||0)
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกรายวิชาแล้ว","success");renderRoute();
+  });
+
+  const courseFilter=q("#academic-course-filter");
+  if(courseFilter){
+    qa("select",courseFilter).forEach(el=>el.addEventListener("change",()=>{
+      const fd=new FormData(courseFilter);
+      state.academicFilters={grade_label:String(fd.get("grade_label")||""),program_id:String(fd.get("program_id")||"")};
+      renderRoute();
+    }));
+  }
+  const resetCourseFilter=q("[data-reset-course-filter]");
+  if(resetCourseFilter)resetCourseFilter.addEventListener("click",()=>{state.academicFilters={grade_label:"",program_id:""};renderRoute();});
+
+  const courseForm=q("#academic-course-form");
+  const selectedYear=academicSelectedYear(data);
+  const resetCourse=()=>{
+    academicResetForm(courseForm,"[data-course-form-title]","เพิ่มรายวิชาในโครงสร้าง");
+    if(courseForm){
+      academicSetFormValue(courseForm,"academic_year_id",data.selected_year_id);
+      academicSetFormValue(courseForm,"sort_order",0);
+      academicSetFormValue(courseForm,"is_active",true);
+    }
+  };
+  qa("[data-reset-course-form]").forEach(btn=>btn.addEventListener("click",()=>{resetCourse();academicScrollToForm(courseForm);}));
+  qa("[data-edit-course]").forEach(btn=>btn.addEventListener("click",()=>{
+    const c=(data.courses||[]).find(x=>x.id===btn.dataset.editCourse);if(!c||!courseForm)return;
+    courseForm.dataset.id=c.id;
+    ["academic_year_id","program_id","grade_label","subject_id","annual_hours","credits","notes","sort_order"].forEach(k=>academicSetFormValue(courseForm,k,c[k]));
+    academicSetFormValue(courseForm,"is_active",c.is_active);
+    (selectedYear&&selectedYear.terms||[]).forEach(t=>{
+      const plan=(c.term_plans||[]).find(p=>p.term_id===t.id)||{};
+      academicSetFormValue(courseForm,"weekly_"+t.id,plan.weekly_periods);
+      academicSetFormValue(courseForm,"hours_"+t.id,plan.term_hours);
+    });
+    const h=q("[data-course-form-title]");if(h)h.textContent="แก้ไข "+(c.subject_code?c.subject_code+" ":"")+c.subject_name+" · "+shortGrade(c.grade_label);
+    academicScrollToForm(courseForm);
+  }));
+  if(courseForm)courseForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(courseForm),btn=courseForm.querySelector('button[type="submit"]'),grade=String(fd.get("grade_label")||"").trim();
+    const termPlans=(selectedYear&&selectedYear.terms||[]).map(t=>({
+      term_id:t.id,
+      weekly_periods:String(fd.get("weekly_"+t.id)||"").trim(),
+      term_hours:String(fd.get("hours_"+t.id)||"").trim()
+    }));
+    const numOrNull=v=>String(v||"").trim()===""?null:Number(v);
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_curriculum_course",{
+      p_school_id:school.id,p_course_id:courseForm.dataset.id||null,
+      p_academic_year_id:String(fd.get("academic_year_id")||"")||null,
+      p_program_id:String(fd.get("program_id")||"")||null,
+      p_grade_code:academicGradeCode(grade)||null,p_grade_label:grade,
+      p_subject_id:String(fd.get("subject_id")||"")||null,
+      p_annual_hours:numOrNull(fd.get("annual_hours")),
+      p_credits:numOrNull(fd.get("credits")),
+      p_notes:String(fd.get("notes")||"").trim()||null,
+      p_is_active:fd.get("is_active")==="on",p_sort_order:Number(fd.get("sort_order")||0),
+      p_term_plans:termPlans
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกโครงสร้างเวลาเรียนแล้ว","success");renderRoute();
+  });
+}
+
 function placeholderHtml(route){
   const meta=routeMeta[route]||routeMeta.overview;
   const phase={personnel:"Phase 2",students:"Phase 2",academics:"Phase 3",assessment:"Phase 4",documents:"Phase 1–5",website:"Phase 5",forms:"Phase 5",reports:"Phase 7"}[route]||"Roadmap";
@@ -3083,6 +3549,7 @@ async function renderRoute(){
     else if(route==="users"){main.innerHTML=await usersHtml();bindInvites();bindPlatformAdminApplications();}
     else if(route==="personnel"){main.innerHTML=await personnelHtml();bindPersonnel();}
     else if(route==="students"){main.innerHTML=await studentsHtml();bindStudents();}
+    else if(route==="academics"){main.innerHTML=await academicsHtml();bindAcademics();}
     else main.innerHTML=placeholderHtml(route);
   }catch(e){
     console.error(e);
