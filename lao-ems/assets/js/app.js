@@ -825,6 +825,21 @@ async function loadPersonnelWorkCounts(){
   state.personnelWork=res.data||{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0};
   return state.personnelWork;
 }
+async function refreshAttentionState(){
+  if(!state.user||personnelJoinToken())return;
+  try{
+    await Promise.all([loadNotifications(),loadPersonnelWorkCounts()]);
+    refreshHeader();
+  }catch(_){}
+}
+function bindAttentionRefresh(){
+  window.addEventListener("focus",()=>{void refreshAttentionState();});
+  document.addEventListener("visibilitychange",()=>{
+    if(!document.hidden)void refreshAttentionState();
+  });
+  window.setInterval(()=>{void refreshAttentionState();},60000);
+}
+
 async function loadSchoolSetupStatus(){
   const m=state.currentMembership;
   if(!m||m.status!=="active"||!roleCodes(m).includes("school_admin")||!m.school_id){state.schoolSetup=null;return null;}
@@ -3127,6 +3142,7 @@ async function init(){
   bindStaticUI();
   bindPullToRefresh();
   bindPwaRuntime();
+  bindAttentionRefresh();
   const savedEmail=localStorage.getItem("lao_saved_email");
   const remember=localStorage.getItem("lao_remember_login")==="1";
   const signInForm=q("#signin-form");
