@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.8.1";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.8.2";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -740,13 +740,78 @@ function profileNeedsSetup(){
   return !String(p.first_name_th||"").trim()||!String(p.last_name_th||"").trim();
 }
 function profileFieldsHtml(context){
-  const p=state.profile||{},pre=esc(p.prefix||""),first=esc(p.first_name_th||""),last=esc(p.last_name_th||""),phone=esc(p.phone||"");
+  const p=state.profile||{};
+  const rawPrefix=String(p.prefix||"").trim();
+  const standardPrefixes=["","นาย","นาง","นางสาว"];
+  const customPrefix=Boolean(rawPrefix&&!standardPrefixes.includes(rawPrefix));
+  const first=esc(p.first_name_th||""),last=esc(p.last_name_th||""),phone=esc(p.phone||"");
   const email=esc(state.user&&state.user.email||"");
+  const prefixOptions=[
+    ["","ไม่ระบุ"],
+    ["นาย","นาย"],
+    ["นาง","นาง"],
+    ["นางสาว","นางสาว"],
+    ["__custom__","ระบุเอง"]
+  ].map(([value,label])=>'<option value="'+value+'" '+((customPrefix&&value==="__custom__")||(!customPrefix&&rawPrefix===value)?"selected":"")+'>'+label+'</option>').join("");
+
   return '<div class="profile-fields">'+
-    (context==="profile"?'<label class="field profile-email">อีเมลบัญชี<input name="new_email" type="email" value="'+email+'" autocomplete="email" required><small>หากเปลี่ยนอีเมล ต้องกรอกรหัสผ่านปัจจุบัน และอาจต้องยืนยันอีเมลใหม่ตามการตั้งค่าความปลอดภัยของระบบ</small></label>':'')+
-    '<div class="profile-name-grid"><label class="field profile-prefix">คำนำหน้า<select name="prefix"><option value="">ไม่ระบุ</option>'+["นาย","นาง","นางสาว","เด็กชาย","เด็กหญิง"].map(x=>'<option '+(pre===x?'selected':'')+'>'+x+'</option>').join("")+'</select></label><label class="field">ชื่อ <span class="required-mark">*</span><input name="first_name" value="'+first+'" required autocomplete="given-name" placeholder="ชื่อ"></label><label class="field">นามสกุล <span class="required-mark">*</span><input name="last_name" value="'+last+'" required autocomplete="family-name" placeholder="นามสกุล"></label></div>'+
-    '<label class="field profile-phone">เบอร์โทรศัพท์<input name="phone" type="tel" value="'+phone+'" autocomplete="tel" inputmode="tel" placeholder="เช่น 0812345678"><small>ใช้สำหรับข้อมูลติดต่อภายในระบบ ไม่แสดงต่อสาธารณะโดยอัตโนมัติ</small></label>'+
+    (context==="profile"?
+      '<div class="field profile-email">'+
+        '<div class="profile-field-label-row"><span class="field-label-line">อีเมลบัญชี</span><label class="profile-edit-toggle"><input type="checkbox" data-email-edit-toggle><span class="profile-toggle-track"><span></span></span><em>เปิดแก้ไข</em></label></div>'+
+        '<input name="new_email" type="email" value="'+email+'" data-original-email="'+email+'" data-email-input autocomplete="email" required readonly aria-readonly="true">'+
+        '<small data-email-help>ล็อกไว้เพื่อป้องกันการแก้ไขโดยไม่ตั้งใจ หากต้องการเปลี่ยนอีเมลให้เปิดสวิตช์ “เปิดแก้ไข” ก่อน</small>'+
+      '</div>'
+    :'')+
+    '<div class="profile-name-grid">'+
+      '<label class="field profile-prefix"><span class="field-label-line">คำนำหน้า</span><select name="prefix_mode" data-prefix-select>'+prefixOptions+'</select><input class="profile-prefix-custom '+(customPrefix?"":"hidden")+'" name="prefix_custom" value="'+esc(customPrefix?rawPrefix:"")+'" data-prefix-custom placeholder="ระบุคำนำหน้า" maxlength="40" '+(customPrefix?"required":"")+'></label>'+
+      '<label class="field"><span class="field-label-line">ชื่อ <span class="required-mark">*</span></span><input name="first_name" value="'+first+'" required autocomplete="given-name" placeholder="ชื่อ"></label>'+
+      '<label class="field"><span class="field-label-line">นามสกุล <span class="required-mark">*</span></span><input name="last_name" value="'+last+'" required autocomplete="family-name" placeholder="นามสกุล"></label>'+
+    '</div>'+
+    '<label class="field profile-phone"><span class="field-label-line">เบอร์โทรศัพท์</span><input name="phone" type="tel" value="'+phone+'" autocomplete="tel" inputmode="tel" placeholder="เช่น 0812345678"><small>ใช้สำหรับข้อมูลติดต่อภายในระบบ ไม่แสดงต่อสาธารณะโดยอัตโนมัติ</small></label>'+
   '</div>';
+}
+
+function bindProfileFields(root=document){
+  const prefixSelect=q("[data-prefix-select]",root);
+  const prefixCustom=q("[data-prefix-custom]",root);
+  if(prefixSelect&&prefixCustom){
+    const syncPrefix=()=>{
+      const custom=prefixSelect.value==="__custom__";
+      prefixCustom.classList.toggle("hidden",!custom);
+      prefixCustom.required=custom;
+      if(!custom)prefixCustom.value="";
+    };
+    prefixSelect.addEventListener("change",()=>{
+      syncPrefix();
+      if(prefixSelect.value==="__custom__")prefixCustom.focus();
+    });
+    syncPrefix();
+  }
+
+  const emailToggle=q("[data-email-edit-toggle]",root);
+  const emailInput=q("[data-email-input]",root);
+  if(emailToggle&&emailInput){
+    emailToggle.addEventListener("change",()=>{
+      const editing=emailToggle.checked;
+      emailInput.readOnly=!editing;
+      emailInput.setAttribute("aria-readonly",String(!editing));
+      emailInput.classList.toggle("is-editing",editing);
+      if(editing){
+        emailInput.focus();
+        emailInput.select();
+      }else{
+        emailInput.value=emailInput.dataset.originalEmail||"";
+      }
+    });
+  }
+}
+
+function profilePrefixValue(form){
+  const select=q("[data-prefix-select]",form);
+  const custom=q("[data-prefix-custom]",form);
+  if(!select)return "";
+  if(select.value!=="__custom__")return String(select.value||"").trim();
+  return String(custom&&custom.value||"").trim();
 }
 
 function passwordFieldsHtml(required){
@@ -2022,6 +2087,7 @@ function bindInvites(){
 function bindActivation(){
   const form=q("#activation-form"); if(!form)return;
   bindPasswordToggles(form);
+  bindProfileFields(form);
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
@@ -2031,7 +2097,7 @@ function bindActivation(){
     if(password&&password.length<8){toast("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร","error");return;}
     if(password!==confirmPassword){toast("รหัสผ่านทั้งสองช่องไม่ตรงกัน","error");return;}
     setBusy(btn,true,"กำลังเปิดใช้งานบัญชี...");
-    const prefix=String(fd.get("prefix")||"").trim(),first=String(fd.get("first_name")||"").trim(),last=String(fd.get("last_name")||"").trim(),phone=String(fd.get("phone")||"").trim();
+    const prefix=profilePrefixValue(form),first=String(fd.get("first_name")||"").trim(),last=String(fd.get("last_name")||"").trim(),phone=String(fd.get("phone")||"").trim();
     if(password){
       const authRes=await supabase.auth.updateUser({password,data:{prefix,first_name_th:first,last_name_th:last,display_name:[prefix,first,last].filter(Boolean).join(" "),phone}});
       if(authRes.error){setBusy(btn,false);toast(authMessage(authRes.error.message),"error");return;}
@@ -2046,6 +2112,7 @@ function bindActivation(){
 function bindProfile(){
   const form=q("#profile-form"); if(!form)return;
   bindPasswordToggles(form);
+  bindProfileFields(form);
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
@@ -2057,7 +2124,7 @@ function bindProfile(){
     if(passwordChanged&&password.length<8){toast("รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร","error");return;}
     if(password!==confirmPassword){toast("รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน","error");return;}
     if((emailChanged||passwordChanged)&&!currentPassword){toast("กรุณากรอกรหัสผ่านปัจจุบันก่อนเปลี่ยนอีเมลหรือรหัสผ่าน","error");return;}
-    const prefix=String(fd.get("prefix")||"").trim(),first=String(fd.get("first_name")||"").trim(),last=String(fd.get("last_name")||"").trim(),phone=String(fd.get("phone")||"").trim();
+    const prefix=profilePrefixValue(form),first=String(fd.get("first_name")||"").trim(),last=String(fd.get("last_name")||"").trim(),phone=String(fd.get("phone")||"").trim();
     setBusy(btn,true,"กำลังบันทึก...");
     if(emailChanged||passwordChanged){
       state.reauthenticating=true;
