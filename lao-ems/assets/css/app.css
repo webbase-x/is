@@ -1320,3 +1320,16 @@ table{max-width:none}
     line-height:1.12;
   }
 }
+
+
+/* Keep the full title on one line only when the hero has enough width. */
+.auth-hero h1{font-size:clamp(32px,3vw,44px)}
+@media(max-width:1180px){
+  .auth-hero h1 .system-name-responsive{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:0;
+    white-space:normal;
+    line-height:1.12;
+  }
+}
