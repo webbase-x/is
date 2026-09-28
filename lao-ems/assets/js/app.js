@@ -2970,8 +2970,9 @@ function academicDashboardHtml(data){
       '<a href="#/academics/classes"><b>03</b><div><strong>ระดับชั้นและห้อง</strong><small>ห้องจาก LEC ถูกนำมาเป็นฐานโดยไม่ต้องกรอกซ้ำ</small></div></a>'+
       '<a href="#/academics/subjects"><b>04</b><div><strong>ทะเบียนรายวิชา</strong><small>รหัสวิชา ชื่อวิชา กลุ่มสาระ และประเภท</small></div></a>'+
       '<a href="#/academics/curriculum"><b>05</b><div><strong>โครงสร้างเวลาเรียน</strong><small>รายวิชาต่อระดับชั้น ชั่วโมง/ปี และคาบต่อสัปดาห์</small></div></a>'+
+      '<a href="#/academics/workload"><b>06</b><div><strong>ภาระงานสอน</strong><small>ครูเสนอภาระงาน หรือฝ่ายวิชาการจัดให้และอนุมัติ</small></div></a>'+
     '</section>'+
-    '<section class="academic-next-note"><span>ขั้นถัดไป</span><div><strong>ภาระงานสอน</strong><p>ครูจะเลือก/เสนอภาระงานจากรายวิชาและชั้นเรียนที่ฝ่ายวิชาการกำหนดไว้เท่านั้น จึงไม่ต้องสร้างรายวิชาใหม่ซ้ำในทะเบียนบุคลากร</p></div></section>'+
+    '<section class="academic-next-note"><span>ขั้นถัดไป</span><div><strong>ตารางเรียน / ตารางสอน</strong><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นฐานในการจัดตาราง เพื่อลดการกรอกชื่อครู รายวิชา และห้องเรียนซ้ำ</p></div></section>'+
   '</section>';
 }
 function academicPeriodsHtml(data){
@@ -3047,6 +3048,269 @@ function academicCurriculumHtml(data){
     '</section>':'')+
   '</section>';
 }
+
+function teachingWorkloadStatusLabel(value){
+  return ({draft:"ฉบับร่าง",submitted:"รอตรวจสอบ",approved:"อนุมัติแล้ว",returned:"ส่งกลับแก้ไข",cancelled:"ยกเลิก"})[value]||value||"-";
+}
+function teachingWorkloadStatusClass(value){
+  return value==="approved"?"success":value==="submitted"?"warning":value==="returned"?"danger":"";
+}
+function teachingRoleLabel(value){
+  return ({main:"ครูผู้สอนหลัก",co_teacher:"ครูผู้สอนร่วม",support:"ผู้ช่วย/สนับสนุนการสอน"})[value]||value||"-";
+}
+function teachingRoleOptions(selected){
+  return [["main","ครูผู้สอนหลัก"],["co_teacher","ครูผู้สอนร่วม"],["support","ผู้ช่วย/สนับสนุนการสอน"]]
+    .map(([v,l])=>'<option value="'+v+'" '+(selected===v?"selected":"")+'>'+l+'</option>').join("");
+}
+function workloadSelectedYear(page){
+  return (page.years||[]).find(y=>y.id===page.selected_year_id)||null;
+}
+function workloadSelectedTerm(page){
+  const y=workloadSelectedYear(page);
+  return y&&(y.terms||[]).find(t=>t.id===page.selected_term_id)||null;
+}
+async function loadTeachingWorkloadPage(){
+  const school=currentSchool();
+  if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
+  const res=await supabase.rpc("lao_teaching_workload_page",{
+    p_school_id:school.id,
+    p_academic_year_id:state.academicYearId||null,
+    p_term_id:state.academicTermId||null,
+    p_status:null,
+    p_personnel_id:null
+  });
+  if(res.error)throw res.error;
+  state.teachingWorkloadData=res.data||{};
+  state.academicTermId=state.teachingWorkloadData.selected_term_id||null;
+  return state.teachingWorkloadData;
+}
+function teachingOfferingOptions(page,selectedKey){
+  const rows=page.offerings||[];
+  return '<option value="">เลือกรายวิชาและห้อง</option>'+rows.map(o=>{
+    const subject=(o.subject_code?o.subject_code+" · ":"")+o.subject_name;
+    const tail=(o.program_name?" · "+o.program_name:"")+(o.suggested_weekly_periods!=null?" · โครงสร้าง "+Number(o.suggested_weekly_periods).toLocaleString("th-TH")+" คาบ/สัปดาห์":"");
+    return '<option value="'+esc(o.key)+'" data-periods="'+esc(o.suggested_weekly_periods==null?"":o.suggested_weekly_periods)+'" '+(o.key===selectedKey?"selected":"")+'>'+esc(subject+" · "+o.class_short+tail)+'</option>';
+  }).join("");
+}
+function teachingWorkloadRowHtml(page,item,index){
+  const key=item?(item.course_id+"|"+item.class_section_id):"";
+  return '<div class="teaching-editor-row" data-teaching-row>'+
+    '<span class="teaching-row-no" data-teaching-row-no>'+(index+1)+'</span>'+
+    '<label class="teaching-offering-field"><span>รายวิชา / ชั้นเรียน</span><select data-teaching-offering required>'+teachingOfferingOptions(page,key)+'</select></label>'+
+    '<label><span>คาบ/สัปดาห์</span><input data-teaching-periods type="number" min="0.5" step="0.5" required value="'+esc(item&&item.weekly_periods!=null?item.weekly_periods:"")+'" placeholder="เช่น 5"></label>'+
+    '<label><span>หน้าที่</span><select data-teaching-role>'+teachingRoleOptions(item&&item.teaching_role||"main")+'</select></label>'+
+    '<label class="teaching-note-field"><span>หมายเหตุ</span><input data-teaching-note value="'+esc(item&&item.notes||"")+'" placeholder="เว้นว่างได้"></label>'+
+    '<button type="button" class="icon-btn teaching-remove-btn" data-remove-teaching-row aria-label="ลบรายการ" title="ลบรายการ">×</button>'+
+  '</div>';
+}
+function workloadItemListHtml(items){
+  if(!items||!items.length)return '<div class="academic-empty-line">ยังไม่มีรายการสอน</div>';
+  return '<div class="teaching-item-list">'+items.map(i=>
+    '<div class="teaching-item"><div><strong>'+esc((i.subject_code?i.subject_code+" · ":"")+i.subject_name)+'</strong><small>'+esc(i.class_short)+(i.program_name?' · '+esc(i.program_name):'')+' · '+esc(teachingRoleLabel(i.teaching_role))+'</small></div><span>'+Number(i.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span></div>'
+  ).join("")+'</div>';
+}
+function workloadEditorHtml(page,workload,personnel){
+  const canManage=Boolean(page.can_manage);
+  if(!personnel)return canManage
+    ?'<section class="panel teaching-editor-panel"><div class="empty-state compact-empty"><div class="empty-icon">👤</div><h3>เลือกบุคลากรเพื่อจัดภาระงานสอน</h3><p>เลือกจากรายชื่อด้านบน ระบบจะแสดงรายการเดิมของภาคเรียนนี้ถ้ามี</p></div></section>'
+    :'<section class="panel teaching-editor-panel"><div class="empty-state compact-empty"><div class="empty-icon">🔗</div><h3>ยังไม่เชื่อมบัญชีกับทะเบียนบุคลากร</h3><p>กรุณาติดต่อฝ่ายบุคลากรเพื่อเชื่อมบัญชีก่อนเสนอภาระงานสอน</p></div></section>';
+
+  const status=workload&&workload.status||"draft";
+  const locked=!canManage&&["submitted","approved"].includes(status);
+  if(locked){
+    return '<section class="panel teaching-editor-panel"><div class="panel-head"><div><p class="eyebrow">MY TEACHING LOAD</p><h2>'+esc(personnel.full_name||workload.personnel_name||"ภาระงานสอน")+'</h2><p class="panel-sub">สถานะ: '+esc(teachingWorkloadStatusLabel(status))+'</p></div><span class="pill '+teachingWorkloadStatusClass(status)+'">'+esc(teachingWorkloadStatusLabel(status))+'</span></div>'+
+      workloadItemListHtml(workload.items||[])+
+      '<div class="teaching-total-bar"><span>รวมภาระงานสอน</span><strong>'+Number(workload.total_weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</strong></div>'+
+      (status==="submitted"?'<div class="notice warning">ส่งให้ฝ่ายวิชาการตรวจสอบแล้ว ระหว่างนี้ไม่สามารถแก้ไขได้</div>':'<div class="notice success">รายการนี้ได้รับการอนุมัติแล้ว หากต้องแก้ไขให้ติดต่อฝ่ายวิชาการ</div>')+
+    '</section>';
+  }
+
+  const offerings=page.offerings||[];
+  const items=workload&&workload.items&&workload.items.length?workload.items:[null];
+  return '<section class="panel teaching-editor-panel" id="teaching-workload-editor"><div class="panel-head"><div><p class="eyebrow">'+(canManage?"ACADEMIC ASSIGNMENT":"MY TEACHING LOAD")+'</p><h2>'+(canManage?"จัดภาระงานสอนให้ "+esc(personnel.full_name):"ภาระงานสอนของฉัน")+'</h2><p class="panel-sub">'+(canManage?"บันทึกโดยฝ่ายวิชาการจะอนุมัติทันที":"บันทึกฉบับร่างได้ก่อน แล้วจึงส่งให้ฝ่ายวิชาการตรวจสอบ")+'</p></div>'+(workload?'<span class="pill '+teachingWorkloadStatusClass(status)+'">'+esc(teachingWorkloadStatusLabel(status))+'</span>':'')+'</div>'+
+    (status==="returned"&&workload&&workload.review_note?'<div class="notice danger"><strong>ฝ่ายวิชาการส่งกลับให้แก้ไข</strong><br>'+esc(workload.review_note)+'</div>':'')+
+    (!offerings.length?'<div class="notice warning"><strong>ยังไม่มีรายวิชาที่พร้อมจัดภาระงาน</strong><br>ฝ่ายวิชาการต้องกำหนด “โครงสร้างเวลาเรียน” ของปีการศึกษานี้ก่อน จึงจะเลือกรายวิชาและห้องได้</div>':
+    '<form id="teaching-workload-form" data-workload-id="'+esc(workload&&workload.id||"")+'" data-personnel-id="'+esc(personnel.id)+'">'+
+      '<div class="teaching-editor-head"><div><strong>รายการสอน</strong><small>เลือกได้เฉพาะรายวิชาและห้องที่อยู่ในโครงสร้างวิชาการ</small></div><button type="button" class="secondary-btn compact-btn" data-add-teaching-row>＋ เพิ่มรายการ</button></div>'+
+      '<div class="teaching-editor-rows" data-teaching-rows>'+items.map((it,i)=>teachingWorkloadRowHtml(page,it,i)).join("")+'</div>'+
+      '<label class="form-field teaching-workload-note"><span>หมายเหตุภาพรวม</span><textarea name="note" rows="2" placeholder="เว้นว่างได้">'+esc(workload&&workload.note||"")+'</textarea></label>'+
+      '<div class="teaching-editor-actions">'+
+        (canManage
+          ?'<button type="submit" class="primary-btn" data-workload-action="approve">บันทึกและอนุมัติ</button>'
+          :'<button type="submit" class="secondary-btn" data-workload-action="draft">บันทึกฉบับร่าง</button><button type="submit" class="primary-btn" data-workload-action="submit">ส่งให้ฝ่ายวิชาการตรวจสอบ</button>')+
+      '</div>'+
+    '</form>')+
+  '</section>';
+}
+function teachingWorkloadCardsHtml(page){
+  const workloads=page.workloads||[],canViewAll=Boolean(page.can_view_all),filter=state.teachingWorkloadStatus||"";
+  const visible=workloads.filter(w=>!filter||w.status===filter);
+  if(!canViewAll)return "";
+  const cards=visible.map(w=>
+    '<article class="teaching-workload-card '+(w.status==="submitted"?"needs-review":"")+'" data-workload-card="'+esc(w.id)+'">'+
+      '<div class="teaching-workload-card-head"><div><strong>'+esc(w.personnel_name||"-")+'</strong><small>'+esc(w.position_title||"")+(w.academic_standing?' · '+esc(w.academic_standing):'')+'</small></div><span class="pill '+teachingWorkloadStatusClass(w.status)+'">'+esc(teachingWorkloadStatusLabel(w.status))+'</span></div>'+
+      workloadItemListHtml(w.items||[])+
+      '<div class="teaching-card-footer"><div><small>รวม</small><strong>'+Number(w.total_weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</strong></div><div class="teaching-card-actions">'+
+        (page.can_manage&&w.status==="submitted"?'<button type="button" class="secondary-btn compact-btn" data-edit-workload-personnel="'+esc(w.personnel_id)+'">ตรวจ/แก้ไข</button><button type="button" class="danger-outline-btn compact-btn" data-return-workload="'+esc(w.id)+'">ส่งกลับแก้ไข</button><button type="button" class="primary-btn compact-btn" data-approve-workload="'+esc(w.id)+'">อนุมัติ</button>':'')+
+        (page.can_manage&&w.status!=="submitted"?'<button type="button" class="secondary-btn compact-btn" data-edit-workload-personnel="'+esc(w.personnel_id)+'">เปิดรายการ</button>':'')+
+      '</div></div>'+
+      (w.review_note?'<div class="teaching-review-note"><strong>หมายเหตุการตรวจ:</strong> '+esc(w.review_note)+'</div>':'')+
+    '</article>'
+  ).join("");
+  return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">TEACHING WORKLOADS</p><h2>ภาระงานสอนของบุคลากร</h2><p class="panel-sub">รายการรอตรวจจะแจ้งเตือนเฉพาะ School Admin และงานวิชาการ</p></div><label class="teaching-status-filter">สถานะ<select data-workload-status-filter><option value="">ทั้งหมด</option>'+["submitted","approved","returned","draft"].map(v=>'<option value="'+v+'" '+(filter===v?"selected":"")+'>'+teachingWorkloadStatusLabel(v)+'</option>').join("")+'</select></label></div>'+
+    (cards?'<div class="teaching-workload-stack">'+cards+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการตามสถานะที่เลือก</h3></div>')+
+  '</section>';
+}
+async function academicWorkloadHtml(data){
+  const page=await loadTeachingWorkloadPage();
+  const year=workloadSelectedYear(page),term=workloadSelectedTerm(page);
+  const personnel=page.can_manage
+    ?(page.personnel||[]).find(p=>p.id===state.teachingWorkloadPersonnelId)||null
+    :page.own_personnel;
+  const workload=personnel?(page.workloads||[]).find(w=>w.personnel_id===personnel.id)||null:null;
+  const pending=Number(page.stats&&page.stats.submitted||0);
+  const approved=Number(page.stats&&page.stats.approved||0);
+  const termOptions=year&&year.terms||[];
+
+  return '<section class="academic-page">'+academicNavHtml("workload",data)+
+    '<section class="panel teaching-workload-overview"><div class="panel-head"><div><p class="eyebrow">TEACHING WORKLOAD</p><h2>ภาระงานสอน</h2><p class="panel-sub">'+(year?'ปีการศึกษา '+esc(year.year_be):'ยังไม่มีปีการศึกษา')+' · เลือกภาคเรียนเพื่อจัดหรือเสนอภาระงานสอน</p></div>'+
+      (termOptions.length?'<label class="teaching-term-switch">ภาคเรียน<select data-workload-term>'+termOptions.map(t=>'<option value="'+esc(t.id)+'" '+(page.selected_term_id===t.id?"selected":"")+'>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+(t.is_current?' · ปัจจุบัน':'')+'</option>').join("")+'</select></label>':'')+
+    '</div>'+
+      (page.can_view_all?'<div class="teaching-workload-stats"><article><small>รอตรวจสอบ</small><strong>'+pending.toLocaleString("th-TH")+'</strong><span>รายการ</span></article><article><small>อนุมัติแล้ว</small><strong>'+approved.toLocaleString("th-TH")+'</strong><span>รายการ</span></article><article><small>มีภาระงานแล้ว</small><strong>'+Number(page.stats&&page.stats.personnel_with_workload||0).toLocaleString("th-TH")+'</strong><span>คน</span></article></div>':'')+
+      (!term?'<div class="notice warning">ปีการศึกษานี้ยังไม่มีภาคเรียน กรุณากำหนดภาคเรียนก่อน</div>':'')+
+    '</section>'+
+    (page.can_manage&&term?'<section class="panel teaching-personnel-picker"><div><strong>จัดภาระงานโดยฝ่ายวิชาการ</strong><small>เลือกบุคลากรได้แม้ยังไม่ได้เชื่อมบัญชี LAO-EMS</small></div><label>บุคลากร<select data-workload-personnel><option value="">เลือกบุคลากร</option>'+(page.personnel||[]).map(p=>'<option value="'+esc(p.id)+'" '+(personnel&&personnel.id===p.id?"selected":"")+'>'+esc(p.full_name)+(p.position_title?' · '+esc(p.position_title):'')+(p.account_linked?'':' · ยังไม่เชื่อมบัญชี')+'</option>').join("")+'</select></label></section>':'')+
+    (term?workloadEditorHtml(page,workload,personnel):'')+
+    (term?teachingWorkloadCardsHtml(page):'')+
+  '</section>';
+}
+function bindTeachingWorkloadControls(){
+  const page=state.teachingWorkloadData||{};
+  const school=currentSchool();
+
+  const termSelect=q("[data-workload-term]");
+  if(termSelect)termSelect.addEventListener("change",()=>{
+    state.academicTermId=termSelect.value||null;
+    state.teachingWorkloadPersonnelId=null;
+    state.teachingWorkloadData=null;
+    renderRoute();
+  });
+
+  const personnelSelect=q("[data-workload-personnel]");
+  if(personnelSelect)personnelSelect.addEventListener("change",()=>{
+    state.teachingWorkloadPersonnelId=personnelSelect.value||null;
+    renderRoute();
+  });
+
+  const statusFilter=q("[data-workload-status-filter]");
+  if(statusFilter)statusFilter.addEventListener("change",()=>{
+    state.teachingWorkloadStatus=statusFilter.value||"";
+    renderRoute();
+  });
+
+  const rowsBox=q("[data-teaching-rows]");
+  function renumberRows(){
+    if(!rowsBox)return;
+    qa("[data-teaching-row]",rowsBox).forEach((row,i)=>{
+      const no=q("[data-teaching-row-no]",row);if(no)no.textContent=String(i+1);
+      const remove=q("[data-remove-teaching-row]",row);if(remove)remove.disabled=qa("[data-teaching-row]",rowsBox).length<=1;
+    });
+  }
+  function bindRow(row){
+    if(!row||row.dataset.bound==="1")return;
+    row.dataset.bound="1";
+    const offering=q("[data-teaching-offering]",row),periods=q("[data-teaching-periods]",row),remove=q("[data-remove-teaching-row]",row);
+    if(offering)offering.addEventListener("change",()=>{
+      const opt=offering.options[offering.selectedIndex];
+      if(periods&&!periods.value&&opt&&opt.dataset.periods)periods.value=opt.dataset.periods;
+    });
+    if(remove)remove.addEventListener("click",()=>{row.remove();renumberRows();});
+  }
+  if(rowsBox)qa("[data-teaching-row]",rowsBox).forEach(bindRow);
+  renumberRows();
+
+  const addRow=q("[data-add-teaching-row]");
+  if(addRow&&rowsBox)addRow.addEventListener("click",()=>{
+    const wrap=document.createElement("div");
+    wrap.innerHTML=teachingWorkloadRowHtml(page,null,qa("[data-teaching-row]",rowsBox).length);
+    const row=wrap.firstElementChild;
+    rowsBox.appendChild(row);bindRow(row);renumberRows();
+    const sel=q("[data-teaching-offering]",row);if(sel)sel.focus();
+  });
+
+  const form=q("#teaching-workload-form");
+  if(form){
+    form.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const action=e.submitter&&e.submitter.dataset.workloadAction||"draft";
+      const rowEls=qa("[data-teaching-row]",form);
+      const items=[];
+      const seen=new Set();
+      for(const row of rowEls){
+        const key=String(q("[data-teaching-offering]",row).value||"");
+        if(!key){toast("กรุณาเลือกรายวิชาและชั้นเรียนให้ครบ","error");return;}
+        if(seen.has(key)){toast("มีรายวิชาและชั้นเรียนซ้ำ กรุณาตรวจรายการ","error");return;}
+        seen.add(key);
+        const parts=key.split("|");
+        const periods=Number(q("[data-teaching-periods]",row).value||0);
+        if(!Number.isFinite(periods)||periods<=0){toast("คาบต่อสัปดาห์ต้องมากกว่า 0","error");return;}
+        items.push({
+          course_id:parts[0],class_section_id:parts[1],weekly_periods:periods,
+          teaching_role:q("[data-teaching-role]",row).value||"main",
+          notes:String(q("[data-teaching-note]",row).value||"").trim()
+        });
+      }
+      const confirmText=action==="submit"?"ส่งภาระงานสอนให้ฝ่ายวิชาการตรวจสอบ?":action==="approve"?"บันทึกและอนุมัติภาระงานสอนของบุคลากรรายนี้?":null;
+      if(confirmText&&!confirm(confirmText))return;
+      const btn=e.submitter;setBusy(btn,true,action==="approve"?"กำลังอนุมัติ...":action==="submit"?"กำลังส่ง...":"กำลังบันทึก...");
+      const fd=new FormData(form);
+      const res=await supabase.rpc("lao_save_teaching_workload",{
+        p_school_id:school.id,
+        p_workload_id:form.dataset.workloadId||null,
+        p_personnel_id:form.dataset.personnelId||null,
+        p_term_id:page.selected_term_id||null,
+        p_note:String(fd.get("note")||"").trim()||null,
+        p_items:items,
+        p_action:action
+      });
+      setBusy(btn,false);
+      if(res.error){toast(res.error.message,"error");return;}
+      await Promise.all([loadAcademicWorkCounts(),loadNotifications()]);
+      refreshHeader();
+      toast(action==="approve"?"บันทึกและอนุมัติภาระงานสอนแล้ว":action==="submit"?"ส่งภาระงานสอนให้ฝ่ายวิชาการแล้ว":"บันทึกฉบับร่างแล้ว","success");
+      renderRoute();
+    });
+  }
+
+  qa("[data-edit-workload-personnel]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.teachingWorkloadPersonnelId=btn.dataset.editWorkloadPersonnel||null;
+    renderRoute().then?.(()=>{});
+    setTimeout(()=>{const editor=q("#teaching-workload-editor");if(editor)editor.scrollIntoView({behavior:"smooth",block:"start"});},120);
+  }));
+
+  qa("[data-approve-workload]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("ยืนยันอนุมัติภาระงานสอนรายการนี้?"))return;
+    setBusy(btn,true,"กำลังอนุมัติ...");
+    const res=await supabase.rpc("lao_review_teaching_workload",{p_workload_id:btn.dataset.approveWorkload,p_decision:"approved",p_review_note:null});
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    await Promise.all([loadAcademicWorkCounts(),loadNotifications()]);refreshHeader();
+    toast("อนุมัติภาระงานสอนแล้ว","success");renderRoute();
+  }));
+
+  qa("[data-return-workload]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const note=prompt("ระบุสิ่งที่ต้องแก้ไขก่อนส่งกลับ");
+    if(note===null)return;
+    if(!String(note).trim()){toast("กรุณาระบุสิ่งที่ต้องแก้ไข","error");return;}
+    setBusy(btn,true,"กำลังส่งกลับ...");
+    const res=await supabase.rpc("lao_review_teaching_workload",{p_workload_id:btn.dataset.returnWorkload,p_decision:"returned",p_review_note:String(note).trim()});
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    await Promise.all([loadAcademicWorkCounts(),loadNotifications()]);refreshHeader();
+    toast("ส่งกลับให้แก้ไขแล้ว","success");renderRoute();
+  }));
+}
+
 async function academicsHtml(){
   const school=currentSchool();
   if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>เลือกโรงเรียนเพื่อเปิดงานวิชาการ</p></div></section>';
@@ -3081,6 +3345,7 @@ function academicScrollToForm(form){
 function bindAcademics(){
   const data=state.academicData||{};
   const school=currentSchool();
+  bindTeachingWorkloadControls();
   const yearSelect=q("[data-academic-year-select]");
   if(yearSelect)yearSelect.addEventListener("change",()=>{
     state.academicYearId=yearSelect.value||null;
