@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.8.3";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.8.4";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -798,9 +798,12 @@ function profileFieldsHtml(context){
   return '<div class="profile-fields">'+
     (context==="profile"?
       '<div class="field profile-email">'+
-        '<div class="profile-field-label-row"><span class="field-label-line">อีเมลบัญชี</span><label class="profile-edit-toggle"><input type="checkbox" data-email-edit-toggle><span class="profile-toggle-track"><span></span></span><em>เปิดแก้ไข</em></label></div>'+
-        '<input name="new_email" type="email" value="'+email+'" data-original-email="'+email+'" data-email-input autocomplete="email" required readonly aria-readonly="true">'+
-        '<small data-email-help>ล็อกไว้เพื่อป้องกันการแก้ไขโดยไม่ตั้งใจ หากต้องการเปลี่ยนอีเมลให้เปิดสวิตช์ “เปิดแก้ไข” ก่อน</small>'+
+        '<span class="field-label-line">อีเมลบัญชี</span>'+
+        '<div class="profile-email-input-wrap">'+
+          '<input name="new_email" type="email" value="'+email+'" data-original-email="'+email+'" data-email-input autocomplete="email" required readonly aria-readonly="true">'+
+          '<label class="profile-edit-toggle profile-edit-toggle-inline" title="แก้ไข" aria-label="แก้ไขอีเมล" data-tooltip="แก้ไข"><input type="checkbox" data-email-edit-toggle><span class="profile-toggle-track"><span></span></span></label>'+
+        '</div>'+
+        '<small data-email-help>ล็อกไว้เพื่อป้องกันการแก้ไขโดยไม่ตั้งใจ เปิดสวิตช์ในช่องอีเมลเมื่อต้องการแก้ไข</small>'+
       '</div>'
     :'')+
     '<div class="profile-name-grid">'+

@@ -830,3 +830,80 @@ table{max-width:none}
   background:var(--primary-soft);
   color:var(--primary);
 }
+
+
+/* Inline email edit switch — v0.8.4 */
+.profile-email>.field-label-line{
+  display:inline-flex;
+  margin-bottom:6px;
+}
+.profile-email-input-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-width:0;
+}
+.profile-email-input-wrap>input{
+  width:100%;
+  min-width:0;
+  padding-right:64px!important;
+}
+.profile-edit-toggle-inline{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  margin:0!important;
+  z-index:2;
+}
+.profile-edit-toggle-inline::after{
+  content:attr(data-tooltip);
+  position:absolute;
+  right:50%;
+  bottom:calc(100% + 8px);
+  transform:translateX(50%) translateY(2px);
+  padding:5px 8px;
+  border-radius:7px;
+  background:#101828;
+  color:#fff;
+  font-size:10px;
+  font-weight:700;
+  line-height:1;
+  white-space:nowrap;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity .14s ease,transform .14s ease,visibility .14s ease;
+  box-shadow:0 6px 16px rgba(16,24,40,.18);
+}
+.profile-edit-toggle-inline::before{
+  content:"";
+  position:absolute;
+  right:50%;
+  bottom:calc(100% + 3px);
+  transform:translateX(50%);
+  border:5px solid transparent;
+  border-top-color:#101828;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .14s ease,visibility .14s ease;
+}
+.profile-edit-toggle-inline:hover::after,
+.profile-edit-toggle-inline:focus-within::after,
+.profile-edit-toggle-inline:hover::before,
+.profile-edit-toggle-inline:focus-within::before{
+  opacity:1;
+  visibility:visible;
+}
+.profile-edit-toggle-inline:hover::after,
+.profile-edit-toggle-inline:focus-within::after{
+  transform:translateX(50%) translateY(0);
+}
+@media(max-width:480px){
+  .profile-email-input-wrap>input{
+    padding-right:60px!important;
+  }
+  .profile-edit-toggle-inline{
+    right:8px;
+  }
+}
