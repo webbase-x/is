@@ -13,7 +13,7 @@
   <title>LAO-EMS | ระบบสารสนเทศเพื่อการบริหารสถานศึกษา</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./assets/css/app.css?v=0.10.1">
+  <link rel="stylesheet" href="./assets/css/app.css?v=0.10.2">
 </head>
 <body>
   <a class="skip-link" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
@@ -26,7 +26,7 @@
       <div class="auth-hero-inner">
         <div class="hero-brand"><span>L</span><strong>LAO-EMS</strong></div>
         <p class="hero-kicker">LOCAL ADMINISTRATIVE ORGANIZATION</p>
-        <h1>ระบบสารสนเทศเพื่อการบริหารสถานศึกษา</h1>
+        <h1><span class="system-name-responsive"><span>ระบบสารสนเทศ</span><span>เพื่อการบริหารสถานศึกษา</span></span></h1>
         <p class="hero-copy">แพลตฟอร์มเดียวสำหรับหลายสถานศึกษา เชื่อมข้อมูลต้นทางร่วมกัน ลดการกรอกข้อมูลซ้ำ และควบคุมสิทธิ์ตามบทบาทและขอบเขตงาน</p>
         <div class="hero-points">
           <div><span>01</span><strong>ข้อมูลเดียว</strong><small>บันทึก ณ แหล่งกำเนิด แล้วใช้ต่อได้ทุกระบบ</small></div>
@@ -37,7 +37,7 @@
     </div>
     <div class="auth-panel">
       <div class="auth-card">
-        <div class="auth-mobile-brand"><span>L</span><div><strong>LAO-EMS</strong><small>ระบบสารสนเทศเพื่อการบริหารสถานศึกษา</small></div></div>
+        <div class="auth-mobile-brand"><span>L</span><div><strong>LAO-EMS</strong><small><span class="system-name-responsive system-name-responsive--compact"><span>ระบบสารสนเทศ</span><span>เพื่อการบริหารสถานศึกษา</span></span></small></div></div>
         <form id="signin-form" class="auth-form" autocomplete="on">
           <div class="form-heading"><h2>เข้าสู่ระบบ</h2><p>บัญชี LAO-EMS สร้างโดยผู้ดูแลสถานศึกษา หากได้รับคำเชิญครั้งแรกให้เปิดลิงก์จากอีเมลเพื่อตั้งค่าโปรไฟล์และรหัสผ่าน</p></div>
           <div class="form-field">
@@ -61,13 +61,13 @@
         <div id="personnel-join-screen" class="auth-form hidden"></div>
 
       </div>
-      <p class="auth-footer">LAO-EMS · ระบบสารสนเทศเพื่อการบริหารสถานศึกษา · <span class="version-text" data-app-version>v0.10.1</span></p>
+      <p class="auth-footer">LAO-EMS · ระบบสารสนเทศเพื่อการบริหารสถานศึกษา · <span class="version-text" data-app-version>v0.10.2</span></p>
     </div>
   </section>
 
   <div id="app-shell" class="app-shell hidden">
     <aside class="sidebar" id="sidebar" aria-label="เมนูหลัก">
-      <div class="brand"><div class="brand-mark">L</div><div class="brand-copy"><strong>LAO-EMS</strong><span>ระบบสารสนเทศเพื่อการบริหารสถานศึกษา</span></div><button class="icon-btn sidebar-close" type="button" data-sidebar-close aria-label="ปิดเมนู">×</button></div>
+      <div class="brand"><div class="brand-mark">L</div><div class="brand-copy"><strong>LAO-EMS</strong><span><span class="system-name-responsive system-name-responsive--compact"><span>ระบบสารสนเทศ</span><span>เพื่อการบริหารสถานศึกษา</span></span></span></div><button class="icon-btn sidebar-close" type="button" data-sidebar-close aria-label="ปิดเมนู">×</button></div>
       <div class="tenant-card"><span class="tenant-label">บริบทที่กำลังใช้งาน</span><select id="tenant-select" class="tenant-select" aria-label="เลือกสถานศึกษา"><option value="">ยังไม่มีสิทธิ์สถานศึกษา</option></select></div>
       <nav class="nav-list">
         <a href="#/overview" data-route="overview" class="active"><span>▦</span>หน้าหลัก</a>
@@ -80,13 +80,13 @@
         <a href="#/students" data-route="students" data-student-menu class="hidden"><span>🎓</span>นักเรียน</a>
         <a href="#/setup" data-route="setup" data-admin-menu><span>⚙</span>ตั้งค่าระบบ</a>
       </nav>
-      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>LAO-EMS</strong><small>ระบบสารสนเทศเพื่อการบริหารสถานศึกษา · <span class="version-text" data-app-version>v0.10.1</span></small></div></div>
+      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>LAO-EMS</strong><small><span class="system-name-responsive system-name-responsive--compact"><span>ระบบสารสนเทศ</span><span>เพื่อการบริหารสถานศึกษา</span></span> <span class="version-text" data-app-version>v0.10.2</span></small></div></div>
     </aside>
 
     <div class="page">
       <header class="topbar">
-        <div class="topbar-start"><button class="icon-btn mobile-menu" type="button" data-sidebar-open aria-label="เปิดเมนู">☰</button><div><p class="eyebrow">ระบบสารสนเทศเพื่อการบริหารสถานศึกษา</p><h1 data-page-title>ภาพรวมระบบ</h1></div></div>
-        <div class="topbar-actions"><span class="topbar-version" data-app-version aria-label="รุ่นระบบ">v0.10.1</span><div class="view-switch hidden" data-view-switch><button type="button" data-view-mode="user">มุมมองผู้ใช้</button><button type="button" data-view-mode="admin">Admin</button></div><button class="profile-btn" type="button"><span class="avatar" data-avatar>ผู้</span><span class="profile-copy"><strong data-profile-name>ผู้ใช้งาน</strong><small data-profile-role>กำลังตรวจสอบสิทธิ์</small></span></button><button class="icon-btn" type="button" data-signout aria-label="ออกจากระบบ" title="ออกจากระบบ">↪</button></div>
+        <div class="topbar-start"><button class="icon-btn mobile-menu" type="button" data-sidebar-open aria-label="เปิดเมนู">☰</button><div><p class="eyebrow"><span class="system-name-responsive"><span>ระบบสารสนเทศ</span><span>เพื่อการบริหารสถานศึกษา</span></span></p><h1 data-page-title>ภาพรวมระบบ</h1></div></div>
+        <div class="topbar-actions"><span class="topbar-version" data-app-version aria-label="รุ่นระบบ">v0.10.2</span><div class="view-switch hidden" data-view-switch><button type="button" data-view-mode="user">มุมมองผู้ใช้</button><button type="button" data-view-mode="admin">Admin</button></div><button class="profile-btn" type="button"><span class="avatar" data-avatar>ผู้</span><span class="profile-copy"><strong data-profile-name>ผู้ใช้งาน</strong><small data-profile-role>กำลังตรวจสอบสิทธิ์</small></span></button><button class="icon-btn" type="button" data-signout aria-label="ออกจากระบบ" title="ออกจากระบบ">↪</button></div>
       </header>
       <main id="main" class="content" tabindex="-1"></main>
     </div>
@@ -95,6 +95,6 @@
 
   <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script type="module" src="./assets/js/app.js?v=0.10.1"></script>
+  <script type="module" src="./assets/js/app.js?v=0.10.2"></script>
 </body>
 </html>
