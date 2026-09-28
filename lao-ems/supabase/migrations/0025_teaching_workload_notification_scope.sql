@@ -1,4 +1,6 @@
--- Align teaching workload submission notifications with school-level reviewers only.\n\ncreate or replace function public.lao_save_teaching_workload(
+-- Align teaching workload submission notifications with school-level reviewers only.
+
+create or replace function public.lao_save_teaching_workload(
   p_school_id uuid,
   p_workload_id uuid default null,
   p_personnel_id uuid default null,
