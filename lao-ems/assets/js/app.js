@@ -2118,9 +2118,10 @@ function bindProfile(){
     const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
     const currentPassword=String(fd.get("current_password")||"");
     const password=String(fd.get("password")||""),confirmPassword=String(fd.get("confirm_password")||"");
-    const newEmail=String(fd.get("new_email")||state.user.email||"").trim().toLowerCase();
     const oldEmail=String(state.user&&state.user.email||"").trim().toLowerCase();
-    const emailChanged=newEmail!==oldEmail,passwordChanged=Boolean(password);
+    const emailEditing=Boolean(q("[data-email-edit-toggle]",form)&&q("[data-email-edit-toggle]",form).checked);
+    const newEmail=emailEditing?String(fd.get("new_email")||oldEmail).trim().toLowerCase():oldEmail;
+    const emailChanged=emailEditing&&newEmail!==oldEmail,passwordChanged=Boolean(password);
     if(passwordChanged&&password.length<8){toast("รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร","error");return;}
     if(password!==confirmPassword){toast("รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน","error");return;}
     if((emailChanged||passwordChanged)&&!currentPassword){toast("กรุณากรอกรหัสผ่านปัจจุบันก่อนเปลี่ยนอีเมลหรือรหัสผ่าน","error");return;}
