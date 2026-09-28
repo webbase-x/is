@@ -901,7 +901,7 @@ insert into public.lao_class_sections(
 select distinct
   e.school_id,
   e.academic_year_id,
-  null,
+  null::uuid,
   case
     when e.grade_level ~ '^อนุบาล[[:space:]]*1$' then 'K1'
     when e.grade_level ~ '^อนุบาล[[:space:]]*2$' then 'K2'
@@ -922,7 +922,7 @@ select distinct
   end,
   btrim(e.grade_level),
   btrim(e.classroom),
-  null,
+  null::text,
   'lec',
   true,
   case
