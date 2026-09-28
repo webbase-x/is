@@ -10,7 +10,8 @@ const APP_SHELL=[
   '/is/P1/child-ui.js',
   '/is/P1/manifest.webmanifest',
   '/is/P1/pwa-install.js',
-  '/is/P1/assets/p1-app-icon.svg',
+  '/is/P1/assets/p1-app-icon-192.svg',
+  '/is/P1/assets/p1-app-icon-512.svg',
   '/is/P1/assets/p1-thai-learning-cover.webp'
 ];
 
