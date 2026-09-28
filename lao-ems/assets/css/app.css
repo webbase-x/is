@@ -1281,3 +1281,42 @@ table{max-width:none}
 .join-password-section>strong{display:block;color:#101828;font-size:11px}
 .join-password-section>p{margin:3px 0 10px;color:#667085;font-size:9px;line-height:1.45}
 .join-password-section .responsive-form-grid{margin:0}
+
+
+/* Responsive Thai system name — v0.10.2 */
+.system-name-responsive{
+  display:inline-flex;
+  align-items:baseline;
+  gap:.24em;
+  white-space:nowrap;
+  max-width:100%;
+}
+.system-name-responsive--compact{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:0;
+  white-space:normal;
+  line-height:1.28;
+}
+.auth-hero h1 .system-name-responsive{
+  font:inherit;
+  color:inherit;
+}
+.brand-copy .system-name-responsive,
+.auth-mobile-brand .system-name-responsive,
+.sidebar-footer .system-name-responsive{
+  max-width:100%;
+}
+@media(max-width:700px){
+  .system-name-responsive:not(.system-name-responsive--compact){
+    flex-direction:column;
+    align-items:flex-start;
+    gap:0;
+    white-space:normal;
+    line-height:1.2;
+  }
+  .auth-hero h1 .system-name-responsive{
+    line-height:1.12;
+  }
+}
