@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.8.2";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.8.3";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -210,6 +210,43 @@ function displayName(){
 function initials(name){
   const parts=String(name||"ผู้").trim().split(/\s+/).filter(Boolean);
   return ((parts[0]&&parts[0][0])||"ผู้")+((parts[1]&&parts[1][0])||"");
+}
+function loginAvatarUrl(){
+  const u=state.user||{};
+  const meta=u.user_metadata||{};
+  const identity=(Array.isArray(u.identities)?u.identities:[]).find(x=>x&&x.provider==="google");
+  const identityData=identity&&identity.identity_data||{};
+  const candidates=[
+    meta.avatar_url,
+    meta.picture,
+    identityData.avatar_url,
+    identityData.picture
+  ].filter(Boolean);
+  for(const value of candidates){
+    try{
+      const url=new URL(String(value));
+      if(url.protocol==="https:")return url.href;
+    }catch(_){}
+  }
+  return "";
+}
+function avatarHtml(name,extraClass=""){
+  const fallback=esc(initials(name).slice(0,2));
+  const url=loginAvatarUrl();
+  const cls=extraClass?(" "+extraClass):"";
+  if(!url)return '<span class="avatar-fallback'+cls+'">'+fallback+'</span>';
+  return '<img class="login-avatar-img'+cls+'" src="'+esc(url)+'" alt="รูปโปรไฟล์ '+esc(name)+'" referrerpolicy="no-referrer" data-login-avatar-img><span class="avatar-fallback hidden'+cls+'" data-avatar-fallback>'+fallback+'</span>';
+}
+function bindAvatarFallback(root=document){
+  qa("[data-login-avatar-img]",root).forEach(img=>{
+    if(img.dataset.bound==="1")return;
+    img.dataset.bound="1";
+    img.addEventListener("error",()=>{
+      img.classList.add("hidden");
+      const fallback=img.nextElementSibling;
+      if(fallback)fallback.classList.remove("hidden");
+    },{once:true});
+  });
 }
 function currentSchool(){
   if(state.isPlatformAdmin&&state.viewMode==="admin")return state.adminSchool||null;
@@ -569,7 +606,11 @@ async function loadContext(){
 function refreshHeader(){
   const name=displayName();
   q("[data-profile-name]").textContent=name;
-  q("[data-avatar]").textContent=initials(name).slice(0,2);
+  const topAvatar=q("[data-avatar]");
+  if(topAvatar){
+    topAvatar.innerHTML=avatarHtml(name,"topbar-avatar-media");
+    bindAvatarFallback(topAvatar);
+  }
   const schoolMode=isSchoolAdminContext();
   const schoolRoleText=roleCodes(state.currentMembership).map(code=>roleLabels[code]||code).join(" · ");
   q("[data-profile-role]").textContent=isPlatformAdminMode()
@@ -852,7 +893,7 @@ function profileHtml(){
     '<div class="profile-page-head"><div><p class="eyebrow">MY PROFILE</p><h2>โปรไฟล์ของฉัน</h2><p>จัดการข้อมูลส่วนตัว ข้อมูลติดต่อ และความปลอดภัยของบัญชี LAO-EMS</p></div></div>'+
     '<div class="profile-layout">'+
       '<aside class="profile-summary-card">'+
-        '<div class="profile-summary-top"><div class="profile-hero-avatar">'+esc(initials(name).slice(0,2))+'</div><div class="profile-summary-copy"><span class="profile-kicker">บัญชี LAO-EMS</span><h3>'+esc(name)+'</h3><p class="profile-email-text">'+esc(email)+'</p></div></div>'+
+        '<div class="profile-summary-top"><div class="profile-hero-avatar">'+avatarHtml(name,"profile-avatar-media")+'</div><div class="profile-summary-copy"><span class="profile-kicker">บัญชี LAO-EMS</span><h3>'+esc(name)+'</h3><p class="profile-email-text">'+esc(email)+'</p></div></div>'+
         '<div class="profile-tags"><span class="pill success">บัญชีใช้งานได้</span>'+(school?'<span class="pill">'+esc(school.name_th)+'</span>':'')+'</div>'+
         '<div class="profile-summary-list">'+
           '<div><span>สถานศึกษา</span><strong>'+esc(school&&school.name_th||"ยังไม่เลือกสถานศึกษา")+'</strong></div>'+
@@ -2113,6 +2154,7 @@ function bindProfile(){
   const form=q("#profile-form"); if(!form)return;
   bindPasswordToggles(form);
   bindProfileFields(form);
+  bindAvatarFallback(q(".profile-page")||document);
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const fd=new FormData(form),btn=form.querySelector("button[type=submit]");
