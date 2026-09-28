@@ -2511,3 +2511,141 @@ table{max-width:none}
     grid-column:auto;
   }
 }
+
+
+/* Personnel registry horizontal rows — v0.12.2 */
+.personnel-list-panel{
+  overflow:hidden;
+}
+.personnel-list-scroll{
+  width:100%;
+  max-width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+  border:1px solid #eaecf0;
+  border-radius:14px;
+  background:#fff;
+}
+.personnel-list-scroll:focus{
+  outline:2px solid #84adff;
+  outline-offset:2px;
+}
+.personnel-list{
+  display:block;
+  min-width:900px;
+  width:100%;
+}
+.personnel-list-head,
+.personnel-row{
+  display:grid;
+  grid-template-columns:44px minmax(230px,1.45fr) 130px minmax(170px,.95fr) 112px 100px 90px;
+  gap:10px;
+  align-items:center;
+  min-width:900px;
+  width:100%;
+}
+.personnel-list-head{
+  position:sticky;
+  top:0;
+  z-index:1;
+}
+.personnel-row{
+  min-height:64px;
+  background:#fff;
+}
+.personnel-row:nth-child(odd){
+  background:#fcfcfd;
+}
+.personnel-row:hover{
+  background:#f7faff;
+}
+.personnel-row-person strong{
+  font-size:13px;
+  line-height:1.35;
+}
+.personnel-row-person small{
+  line-height:1.4;
+}
+.personnel-row>a{
+  justify-self:end;
+}
+@media(max-width:1150px){
+  .personnel-list{
+    min-width:860px;
+  }
+  .personnel-list-head,
+  .personnel-row{
+    min-width:860px;
+    grid-template-columns:40px minmax(220px,1.4fr) 120px minmax(155px,.9fr) 105px 92px 86px;
+    gap:8px;
+  }
+}
+@media(max-width:900px){
+  .personnel-list-head{
+    display:grid;
+  }
+  .personnel-list{
+    display:block;
+    min-width:840px;
+  }
+  .personnel-list-head,
+  .personnel-row{
+    display:grid;
+    min-width:840px;
+    grid-template-columns:40px minmax(210px,1.4fr) 116px minmax(150px,.9fr) 104px 90px 82px;
+    grid-template-areas:none;
+    gap:8px;
+    border-radius:0;
+    border-left:0;
+    border-right:0;
+    padding:10px;
+  }
+  .personnel-row-index{
+    display:block;
+  }
+  .personnel-row-person,
+  .personnel-type-pill,
+  .personnel-contact,
+  .personnel-account,
+  .personnel-status,
+  .personnel-row>a{
+    grid-area:auto;
+  }
+  .personnel-type-pill{
+    justify-self:start;
+  }
+  .personnel-account{
+    align-self:center;
+  }
+  .personnel-status{
+    justify-self:start;
+  }
+  .personnel-row>a{
+    justify-self:end;
+  }
+}
+@media(max-width:700px){
+  .personnel-list{
+    min-width:800px;
+  }
+  .personnel-list-head,
+  .personnel-row{
+    min-width:800px;
+    grid-template-columns:36px minmax(200px,1.35fr) 108px minmax(145px,.9fr) 98px 86px 78px;
+    gap:7px;
+  }
+  .personnel-list-scroll::after{
+    content:"เลื่อนซ้าย–ขวาเพื่อดูข้อมูลเพิ่มเติม";
+    display:block;
+    position:sticky;
+    left:0;
+    padding:7px 10px;
+    color:#667085;
+    background:#f9fafb;
+    border-top:1px solid #eaecf0;
+    font-size:9px;
+    text-align:center;
+  }
+}

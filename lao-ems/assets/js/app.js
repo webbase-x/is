@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.13.1";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.13.2";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -2574,7 +2574,7 @@ async function personnelListHtml(){
       '</form>'+
     '</section>'+
     '<section class="panel personnel-list-panel"><div class="student-list-head"><div><h2>รายชื่อบุคลากร</h2><p>เรียงตามลำดับที่กำหนด ประเภทบุคลากร และชื่อ–สกุล</p></div><strong>'+Number(d.total||0).toLocaleString("th-TH")+' คน</strong></div>'+
-      (items.length?'<div class="personnel-list"><div class="personnel-list-head"><span>ลำดับ</span><span>ชื่อ–สกุล / ตำแหน่ง</span><span>ประเภท</span><span>ติดต่อ</span><span>บัญชี</span><span>สถานะ</span><span></span></div>'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">🪪</div><h3>ยังไม่พบบุคลากร</h3><p>'+(canManage?'กด “เพิ่มบุคลากร” เพื่อเริ่มทะเบียน':'ยังไม่มีข้อมูลบุคลากรในสถานศึกษานี้')+'</p></div>')+
+      (items.length?'<div class="personnel-list-scroll" role="region" aria-label="รายชื่อบุคลากร" tabindex="0"><div class="personnel-list"><div class="personnel-list-head"><span>ลำดับ</span><span>ชื่อ–สกุล / ตำแหน่ง</span><span>ประเภท</span><span>ติดต่อ</span><span>บัญชี</span><span>สถานะ</span><span></span></div>'+rows+'</div></div>':'<div class="empty-state compact-empty"><div class="empty-icon">🪪</div><h3>ยังไม่พบบุคลากร</h3><p>'+(canManage?'กด “เพิ่มบุคลากร” เพื่อเริ่มทะเบียน':'ยังไม่มีข้อมูลบุคลากรในสถานศึกษานี้')+'</p></div>')+
     '</section>'+
   '</section>';
 }
