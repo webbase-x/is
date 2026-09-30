@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.15.1";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.15.2";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -543,7 +543,7 @@ function bindStaticUI(){
   const close=()=>{sidebar.classList.remove("open");scrim.classList.remove("show");};
   q("[data-sidebar-close]").addEventListener("click",close);
   scrim.addEventListener("click",close);
-  window.addEventListener("hashchange",()=>{if(!location.hash.startsWith("#/academics/classes"))state.classProgramEditMode=false;if(state.user)renderRoute();else showAuth();close();});
+  window.addEventListener("hashchange",()=>{if(!location.hash.startsWith("#/academics/classes")){state.classProgramEditMode=false;state.classGradeFilter="";}if(state.user)renderRoute();else showAuth();close();});
   q("[data-signout]").addEventListener("click",()=>{
     localStorage.setItem("lao_legacy_session_rejected","1");
     clearLaoAuthSession();
@@ -3262,8 +3262,16 @@ function academicProgramsHtml(data,timeline){
 function academicClassesHtml(data){
   const allItems=data.classes||[],canManage=Boolean(data.can_manage),year=academicSelectedYear(data);
   const items=allItems.filter(x=>x.source_type==="lec"&&x.is_active!==false);
-  const normal=items.filter(x=>!x.program_id);
-  const special=items.filter(x=>Boolean(x.program_id));
+  const gradeCounts={};
+  items.forEach(x=>{gradeCounts[x.grade_label]=(gradeCounts[x.grade_label]||0)+1;});
+  const gradeTabs=Object.keys(gradeCounts).sort((a,b)=>academicGradeOrder(a)-academicGradeOrder(b)||a.localeCompare(b,"th"));
+  if(state.classGradeFilter&&!gradeCounts[state.classGradeFilter])state.classGradeFilter="";
+  const totalNormal=items.filter(x=>!x.program_id);
+  const totalSpecial=items.filter(x=>Boolean(x.program_id));
+  const totalProgramIds=new Set(totalSpecial.map(x=>x.program_id).filter(Boolean));
+  const visibleItems=state.classGradeFilter?items.filter(x=>x.grade_label===state.classGradeFilter):items;
+  const normal=visibleItems.filter(x=>!x.program_id);
+  const special=visibleItems.filter(x=>Boolean(x.program_id));
   const activePrograms=(data.programs||[]).filter(p=>p.is_active);
   const programOptions=(selected)=>'<option value="">ห้องปกติ / ไม่ระบุโปรแกรม</option>'+activePrograms.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?"selected":"")+'>'+esc(p.name_th)+(p.code?' ('+esc(p.code)+')':'')+'</option>').join("");
   const roomCard=(c,specialRoom)=>'<article class="academic-room-card '+(specialRoom?"special":"normal")+'" data-class-card="'+esc(c.id)+'">'+
@@ -3288,6 +3296,8 @@ function academicClassesHtml(data){
     '<section class="academic-program-room-group"><div class="academic-program-room-head"><div><span>⭐</span><div><strong>'+esc(group.name)+'</strong><small>'+group.rooms.length+' ห้องที่กำหนดโปรแกรมนี้</small></div></div></div><div class="academic-room-grid">'+group.rooms.sort((x,y)=>academicGradeOrder(x.grade_label)-academicGradeOrder(y.grade_label)||String(x.section_label).localeCompare(String(y.section_label),"th")).map(c=>roomCard(c,true)).join("")+'</div></section>'
   ).join("");
 
+  const gradeTabsHtml=items.length?'<nav class="academic-grade-tabs" aria-label="เลือกระดับชั้น"><button type="button" class="'+(!state.classGradeFilter?"active":"")+'" data-class-grade-tab="">ทั้งหมด <span>'+items.length+'</span></button>'+gradeTabs.map(grade=>'<button type="button" class="'+(state.classGradeFilter===grade?"active":"")+'" data-class-grade-tab="'+esc(grade)+'">'+esc(shortGrade(grade))+' <span>'+gradeCounts[grade]+'</span></button>').join("")+'</nav>':'';
+
   const sourceNotice='<div class="academic-class-source-note"><span>🔗</span><div><strong>ชั้น/ห้องมาจากระบบนักเรียน LEC เท่านั้น</strong><p>หน้านี้ไม่สามารถสร้างห้องใหม่เองได้ หากต้องการเพิ่มห้อง ให้ปรับข้อมูลนักเรียน/ห้องใน LEC แล้วนำเข้าระบบนักเรียน จากนั้นห้องจะปรากฏที่นี่อัตโนมัติ</p></div></div>';
 
   const editSwitch=canManage&&activePrograms.length?'<section class="academic-program-edit-guard"><div><strong>โหมดกำหนดโปรแกรม</strong><p>ปิดไว้เป็นค่าเริ่มต้นเพื่อป้องกันการเปลี่ยนห้องผิด เปิดเมื่อต้องการแก้ไข แล้วเลือกโปรแกรมจากแต่ละห้อง ระบบจะบันทึกทันที</p></div><label class="academic-edit-switch"><input type="checkbox" data-class-program-edit-switch '+(state.classProgramEditMode?"checked":"")+'><span class="switch-track"><i></i></span><b data-class-program-edit-label>'+(state.classProgramEditMode?"เปิด":"ปิด")+'</b></label></section><div class="academic-program-edit-warning hidden" data-class-program-edit-warning><strong>กำลังอยู่ในโหมดแก้ไขการจัดโปรแกรมห้องเรียน</strong><span>ทุกการเปลี่ยนโปรแกรมจะบันทึกทันที และโหมดนี้จะปิดอัตโนมัติเมื่อออกจากหน้า/โหลดใหม่</span></div>':'';
@@ -3295,8 +3305,10 @@ function academicClassesHtml(data){
   return '<section class="academic-page">'+academicNavHtml("classes",data)+
     '<section class="panel academic-class-overview"><div class="panel-head"><div><p class="eyebrow">CLASS SECTIONS · LEC SOURCE</p><h2>ชั้น/ห้องจากระบบนักเรียน</h2><p class="panel-sub">'+(year?'ปีการศึกษา '+esc(year.year_be):'ยังไม่ได้เลือกปีการศึกษา')+' · ใช้ข้อมูลห้องที่พบจากนักเรียนใน LEC เป็นข้อมูลต้นทาง</p></div><span class="pill success">'+items.length+' ห้องจาก LEC</span></div>'+
       '<div class="academic-class-control-grid">'+sourceNotice+editSwitch+'</div>'+
-      '<div class="academic-class-stat-grid"><article><small>ห้องทั้งหมด</small><strong>'+items.length+'</strong><span>ห้อง</span></article><article><small>ห้องปกติ</small><strong>'+normal.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมพิเศษ</small><strong>'+special.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมที่ใช้</small><strong>'+Object.keys(byProgram).length+'</strong><span>โปรแกรม</span></article></div>'+
+      '<div class="academic-class-stat-grid"><article><small>ห้องทั้งหมด</small><strong>'+items.length+'</strong><span>ห้อง</span></article><article><small>ห้องปกติ</small><strong>'+totalNormal.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมพิเศษ</small><strong>'+totalSpecial.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมที่ใช้</small><strong>'+totalProgramIds.size+'</strong><span>โปรแกรม</span></article></div>'+
     '</section>'+
+    gradeTabsHtml+
+    '<section class="academic-class-filter-summary">'+(state.classGradeFilter?'<strong>กำลังแสดง '+esc(shortGrade(state.classGradeFilter))+'</strong><span>'+visibleItems.length+' ห้องในระดับชั้นนี้</span>':'<strong>แสดงทุกระดับชั้น</strong><span>'+items.length+' ห้องจาก LEC</span>')+'</section>'+
     '<section class="academic-class-layout">'+
       '<section class="panel academic-class-section normal"><div class="panel-head"><div><p class="eyebrow">GENERAL ROOMS</p><h2>ห้องปกติ</h2><p class="panel-sub">ห้องจาก LEC ที่ยังไม่ได้กำหนดหลักสูตร/โครงการ/โปรแกรมพิเศษ</p></div><span class="pill">'+normal.length+' ห้อง</span></div>'+
         (normalGroups||'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีห้องปกติที่รอกำหนด</h3></div>')+
@@ -3867,6 +3879,11 @@ function bindAcademics(){
     if(res.error){toast(res.error.message,"error");return;}
     toast("บันทึกหลักสูตร/โปรแกรมแล้ว","success");renderRoute();
   });
+
+  qa("[data-class-grade-tab]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.classGradeFilter=btn.dataset.classGradeTab||"";
+    renderRoute();
+  }));
 
   const classProgramSwitch=q("[data-class-program-edit-switch]");
   const classProgramWarning=q("[data-class-program-edit-warning]");

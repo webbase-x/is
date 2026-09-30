@@ -3673,3 +3673,19 @@ table{max-width:none}
   .academic-room-program-editor select{font-size:10px;min-height:42px}
   .academic-program-edit-warning{padding:10px 11px}
 }
+
+
+/* Academic class grade tabs */
+.academic-grade-tabs{display:flex;align-items:center;gap:8px;margin:14px 0 10px;padding:4px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}
+.academic-grade-tabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#344054;font-size:10px;font-weight:800;white-space:nowrap}
+.academic-grade-tabs button span{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#f2f4f7;color:#667085;font-size:8px}
+.academic-grade-tabs button.active{border-color:#84adff;background:#eff4ff;color:#1849a9;box-shadow:0 2px 8px rgba(23,92,211,.10)}
+.academic-grade-tabs button.active span{background:#d1e0ff;color:#1849a9}
+.academic-class-filter-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:9px 12px;border:1px solid #eaecf0;border-radius:12px;background:#f9fafb}
+.academic-class-filter-summary strong{font-size:10px;color:#101828}
+.academic-class-filter-summary span{font-size:9px;color:#667085}
+@media(max-width:680px){
+  .academic-grade-tabs{margin-inline:-2px;padding-bottom:8px}
+  .academic-grade-tabs button{min-height:40px;padding:8px 11px}
+  .academic-class-filter-summary{align-items:flex-start;flex-direction:column;gap:2px}
+}
