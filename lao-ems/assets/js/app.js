@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.1";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.2";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -476,6 +476,20 @@ async function signInWithGoogle(){
     setBusy(btn,false);
     toast("เข้าสู่ระบบด้วย Google ไม่สำเร็จ: "+res.error.message,"error");
   }
+}
+
+function bindManualRefresh(){
+  qa("[data-manual-refresh]").forEach(btn=>{
+    if(btn.dataset.bound==="1")return;
+    btn.dataset.bound="1";
+    btn.addEventListener("click",async()=>{
+      if(state.lecImporting){toast("กำลังนำเข้า LEC กรุณารอจนกว่าระบบจะแจ้งว่าเสร็จ","error");return;}
+      setBusy(btn,true,"");
+      btn.classList.add("is-refreshing");
+      btn.setAttribute("aria-label","กำลังรีเฟรช");
+      await forceRefreshCurrentPage();
+    });
+  });
 }
 
 function bindStaticUI(){
@@ -4277,6 +4291,7 @@ async function init(){
   renderAppVersion();
   void checkLatestVersion();
   bindStaticUI();
+  bindManualRefresh();
   bindPullToRefresh();
   bindPwaRuntime();
   bindAttentionRefresh();
