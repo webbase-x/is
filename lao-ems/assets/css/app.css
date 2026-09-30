@@ -3789,3 +3789,32 @@ table{max-width:none}
   .subject-selection-tabs .subject-scope-tabs{margin-inline:-2px}
   .subject-selection-tabs .subject-early-note{margin:0 13px 12px}
 }
+
+
+/* True tab menu for subject setup */
+.subject-tab-menu-panel{padding:0;overflow:hidden}
+.subject-setup-menu{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:1px solid #eaecf0;background:#f9fafb}
+.subject-setup-menu button{min-width:0;padding:12px 14px;border:0;border-right:1px solid #eaecf0;background:transparent;text-align:left}
+.subject-setup-menu button:last-child{border-right:0}
+.subject-setup-menu button span,.subject-setup-menu button strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.subject-setup-menu button span{font-size:8px;color:#667085;font-weight:700}
+.subject-setup-menu button strong{margin-top:3px;font-size:10px;color:#344054}
+.subject-setup-menu button.active{background:#fff;box-shadow:inset 0 -2px 0 var(--primary)}
+.subject-setup-menu button.active span,.subject-setup-menu button.active strong{color:#1849a9}
+.subject-setup-panel{padding:14px 16px}
+.subject-setup-panel-head{margin-bottom:9px}
+.subject-setup-panel-head strong,.subject-setup-panel-head small{display:block}
+.subject-setup-panel-head strong{font-size:11px;color:#101828}
+.subject-setup-panel-head small{margin-top:2px;font-size:8px;color:#667085}
+.subject-tab-menu-panel .subject-target-tabs,
+.subject-tab-menu-panel .subject-grade-tabs,
+.subject-tab-menu-panel .subject-scope-tabs{margin:0;padding:2px 0 4px}
+.subject-inline-note{margin-top:9px;padding:8px 10px;border-radius:9px;background:#f9fafb;border:1px solid #eaecf0;font-size:8px;color:#667085}
+.subject-tab-menu-panel>.subject-early-note{margin:0 16px 13px}
+@media(max-width:620px){
+  .subject-setup-menu{display:flex;overflow-x:auto;scrollbar-width:none}
+  .subject-setup-menu::-webkit-scrollbar{display:none}
+  .subject-setup-menu button{flex:0 0 min(46vw,180px);padding:11px 12px}
+  .subject-setup-panel{padding:12px 13px}
+  .subject-tab-menu-panel>.subject-early-note{margin:0 13px 12px}
+}
