@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.16.1";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.16.2";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3644,7 +3644,7 @@ function teachingWorkloadCardsHtml(page){
       (w.review_note?'<div class="teaching-review-note"><strong>หมายเหตุการตรวจ:</strong> '+esc(w.review_note)+'</div>':'')+
     '</article>'
   ).join("");
-  return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">TEACHING WORKLOADS</p><h2>ภาระงานสอนของบุคลากร</h2><p class="panel-sub">รายการรอตรวจจะแจ้งเตือนเฉพาะ School Admin และงานวิชาการ</p></div><label class="teaching-status-filter">สถานะ<select data-workload-status-filter><option value="">ทั้งหมด</option>'+["submitted","approved","returned","draft"].map(v=>'<option value="'+v+'" '+(filter===v?"selected":"")+'>'+teachingWorkloadStatusLabel(v)+'</option>').join("")+'</select></label></div>'+
+  return '<section class="panel teaching-workload-list-panel"><div class="panel-head"><div><p class="eyebrow">TEACHING WORKLOADS</p><h2>ภาระงานสอนของบุคลากร</h2><p class="panel-sub">รายการรอตรวจจะแจ้งเตือนเฉพาะ School Admin และงานวิชาการ</p></div><label class="teaching-status-filter">สถานะ<select data-workload-status-filter><option value="">ทั้งหมด</option>'+["submitted","approved","returned","draft"].map(v=>'<option value="'+v+'" '+(filter===v?"selected":"")+'>'+teachingWorkloadStatusLabel(v)+'</option>').join("")+'</select></label></div>'+
     (cards?'<div class="teaching-workload-stack">'+cards+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการตามสถานะที่เลือก</h3></div>')+
   '</section>';
 }
@@ -3659,7 +3659,7 @@ async function academicWorkloadHtml(data){
   const approved=Number(page.stats&&page.stats.approved||0);
   const termOptions=year&&year.terms||[];
 
-  return '<section class="academic-page">'+academicNavHtml("workload",data)+
+  return '<section class="academic-page teaching-workload-page">'+academicNavHtml("workload",data)+
     '<section class="panel teaching-workload-overview"><div class="panel-head"><div><p class="eyebrow">TEACHING WORKLOAD</p><h2>ภาระงานสอน</h2><p class="panel-sub">'+(year?'ปีการศึกษา '+esc(year.year_be):'ยังไม่มีปีการศึกษา')+' · เลือกภาคเรียนเพื่อจัดหรือเสนอภาระงานสอน</p></div>'+
       (termOptions.length?'<label class="teaching-term-switch">ภาคเรียน<select data-workload-term>'+termOptions.map(t=>'<option value="'+esc(t.id)+'" '+(page.selected_term_id===t.id?"selected":"")+'>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+(t.is_current?' · ปัจจุบัน':'')+'</option>').join("")+'</select></label>':'')+
     '</div>'+
