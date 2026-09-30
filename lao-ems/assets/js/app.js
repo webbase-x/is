@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.15.5";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.15.6";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -764,6 +764,7 @@ async function showPersonnelJoin(session){
   if(adminApp)adminApp.classList.add("hidden");
   if(joinBox)joinBox.classList.remove("hidden");
   await renderPublicPersonnelJoin(token,session||null);
+  dismissBootScreen();
 }
 
 async function renderPublicSchoolAdminApplication(token){
@@ -4504,8 +4505,16 @@ function bindNotifications(){
   }));
 }
 
+function dismissBootScreen(){
+  const boot=q("#boot-screen");
+  if(!boot||boot.classList.contains("hidden")||boot.classList.contains("is-leaving"))return;
+  boot.classList.add("is-leaving");
+  window.setTimeout(()=>boot.classList.add("hidden"),180);
+}
+
 async function renderRoute(){
   if(!state.user)return;
+  const renderId=++state.routeRenderId;
   let route=routeName();
   const invitationStatus=state.pendingInvitation&&state.pendingInvitation.status;
   const invitationRouteApplies=!state.isPlatformAdmin||state.viewMode==="user";
@@ -4531,40 +4540,56 @@ async function renderRoute(){
     route="setup";
     toast("กรุณาตั้งค่าสถานศึกษาและ Google Drive ให้ครบก่อนเชิญผู้ใช้","error");
   }
+
   const meta=routeMeta[route]||routeMeta.overview,main=q("#main");
   q("[data-page-title]").textContent=meta[0];
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
-  main.innerHTML='<section class="panel"><div class="loading-inline"><span class="spinner"></span>กำลังโหลด...</div></section>';
+  main.classList.add("route-pending");
+  main.setAttribute("aria-busy","true");
+
+  let html="",bind=null;
   try{
     if(route==="overview"){
-      main.innerHTML=installCardHtml()+((state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():await overviewHtml());
-      bindOverview();bindDepartmentSetupTimeline();bindPwaInstallCard();
+      html=installCardHtml()+((state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():await overviewHtml());
+      bind=()=>{bindOverview();bindDepartmentSetupTimeline();bindPwaInstallCard();};
     }
-    else if(route==="membership"){main.innerHTML=membershipHtml();}
-    else if(route==="activate"){main.innerHTML=activationHtml();bindActivation();}
-    else if(route==="profile"){main.innerHTML=profileHtml();bindProfile();}
-    else if(route==="notifications"){main.innerHTML=notificationsHtml();bindNotifications();}
-    else if(route==="setup"){main.innerHTML=await setupHtml();bindSetup();}
-    else if(route==="organization"){main.innerHTML=await organizationHtml();bindOrganizationForms();}
-    else if(route==="lec"){main.innerHTML=await lecHtml();bindLec();}
-    else if(route==="users"){main.innerHTML=await usersHtml();bindInvites();bindPlatformAdminApplications();}
-    else if(route==="personnel"){main.innerHTML=await personnelHtml();bindPersonnel();}
-    else if(route==="students"){main.innerHTML=await studentsHtml();bindStudents();}
-    else if(route==="academics"){main.innerHTML=await academicsHtml();bindAcademics();}
-    else main.innerHTML=placeholderHtml(route);
+    else if(route==="membership"){html=membershipHtml();}
+    else if(route==="activate"){html=activationHtml();bind=bindActivation;}
+    else if(route==="profile"){html=profileHtml();bind=bindProfile;}
+    else if(route==="notifications"){html=notificationsHtml();bind=bindNotifications;}
+    else if(route==="setup"){html=await setupHtml();bind=bindSetup;}
+    else if(route==="organization"){html=await organizationHtml();bind=bindOrganizationForms;}
+    else if(route==="lec"){html=await lecHtml();bind=bindLec;}
+    else if(route==="users"){html=await usersHtml();bind=()=>{bindInvites();bindPlatformAdminApplications();};}
+    else if(route==="personnel"){html=await personnelHtml();bind=bindPersonnel;}
+    else if(route==="students"){html=await studentsHtml();bind=bindStudents;}
+    else if(route==="academics"){html=await academicsHtml();bind=bindAcademics;}
+    else html=placeholderHtml(route);
+
+    if(renderId!==state.routeRenderId)return;
+    main.innerHTML=html;
+    if(bind)bind();
   }catch(e){
     console.error(e);
+    if(renderId!==state.routeRenderId)return;
     main.innerHTML='<section class="panel"><div class="notice danger"><strong>โหลดข้อมูลไม่สำเร็จ</strong><br>'+esc(e.message||e)+'</div></section>';
+  }finally{
+    if(renderId===state.routeRenderId){
+      main.classList.remove("route-pending");
+      main.removeAttribute("aria-busy");
+    }
   }
 }
 async function showApp(session){
   state.session=session;state.user=session.user;
-  q("#auth-screen").classList.add("hidden");q("#app-shell").classList.remove("hidden");
   try{
     await detectPwaInstalled();
     await loadContext();
     if(!location.hash)location.hash=state.pendingInvitation?"#/activate":"#/overview";
     await renderRoute();
+    q("#auth-screen").classList.add("hidden");
+    q("#app-shell").classList.remove("hidden");
+    dismissBootScreen();
     const driveNotice=sessionStorage.getItem("lao_drive_notice");
     if(driveNotice){
       sessionStorage.removeItem("lao_drive_notice");
@@ -4582,11 +4607,13 @@ async function showApp(session){
       location.reload();
       return;
     }
+    dismissBootScreen();
     toast("โหลดข้อมูลผู้ใช้ไม่สำเร็จ: "+e.message,"error");
   }
 }
 function showAuth(){
   q("#app-shell").classList.add("hidden");q("#auth-screen").classList.remove("hidden");
+  dismissBootScreen();
   const joinToken=personnelJoinToken(),token=schoolAdminApplyToken(),signin=q("#signin-form"),application=q("#school-admin-application"),joinBox=q("#personnel-join-screen");
   if(joinToken){
     if(signin)signin.classList.add("hidden");
@@ -4633,7 +4660,6 @@ async function init(){
     signInForm.elements.remember_login.checked=remember;
   }
   const res=await supabase.auth.getSession();
-  q("#boot-screen").classList.add("hidden");
   const query=new URLSearchParams(location.search);
   const refreshToken=query.get("lao_refresh");
   if(refreshToken){
