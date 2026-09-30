@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.3";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.4";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -111,15 +111,33 @@ async function clearLaoEmsRuntimeCache(){
     await Promise.all(own.map(name=>caches.delete(name)));
   }catch(_){}
 }
+async function unregisterLaoServiceWorkers(){
+  if(!("serviceWorker" in navigator))return;
+  try{
+    const regs=await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.filter(reg=>{
+      try{
+        const scope=new URL(reg.scope);
+        return scope.origin===location.origin&&location.pathname.startsWith(scope.pathname);
+      }catch(_){return false;}
+    }).map(async reg=>{
+      try{await reg.update();}catch(_){}
+      try{await reg.unregister();}catch(_){}
+    }));
+  }catch(_){}
+}
 async function forceRefreshCurrentPage(){
   setPullRefreshState("refreshing",92);
+  await unregisterLaoServiceWorkers();
   await clearLaoEmsRuntimeCache();
+  const stamp=Date.now();
   try{
-    await fetch("./VERSION?refresh="+Date.now(),{cache:"no-store"});
-    await fetch(location.pathname+"?lao_preload="+Date.now(),{cache:"reload"});
+    await fetch("./VERSION?hard_refresh="+stamp,{cache:"no-store",headers:{"cache-control":"no-cache"}});
+    await fetch("./index.html?hard_refresh="+stamp,{cache:"no-store",headers:{"cache-control":"no-cache"}});
   }catch(_){}
-  const url=new URL(location.href);
-  url.searchParams.set("lao_refresh",String(Date.now()));
+  const url=new URL("./index.html",location.href);
+  url.searchParams.set("hard_refresh",String(stamp));
+  url.hash=location.hash||"#/overview";
   location.replace(url.toString());
 }
 function bindPullToRefresh(){
@@ -442,7 +460,7 @@ function bindPwaInstallCard(){
 }
 function bindPwaRuntime(){
   if("serviceWorker" in navigator){
-    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(err=>console.error("PWA service worker",err)),{once:true});
+    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v="+encodeURIComponent(APP_VERSION),{scope:"./",updateViaCache:"none"}).catch(err=>console.error("PWA service worker",err)),{once:true});
   }
   window.addEventListener("beforeinstallprompt",event=>{
     event.preventDefault();
