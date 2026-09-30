@@ -2413,6 +2413,87 @@ function personnelPrefixControls(prefix){
     '<input class="personnel-prefix-custom '+(custom?"":"hidden")+'" name="prefix_custom" data-personnel-prefix-custom value="'+esc(custom?raw:"")+'" placeholder="ระบุคำนำหน้า" maxlength="40" '+(custom?"required":"")+'>';
 }
 
+async function loadDepartmentSetupTimeline(departmentCode){
+  const school=currentSchool();
+  if(!school)return null;
+  const res=await supabase.rpc("lao_department_setup_timeline",{
+    p_school_id:school.id,
+    p_department_code:departmentCode
+  });
+  if(res.error)throw res.error;
+  return res.data||null;
+}
+function departmentSetupStatusLabel(status){
+  return ({completed:"เสร็จแล้ว",skipped:"ข้ามแล้ว",current:"ทำต่อขั้นนี้",queued:"รอคิว"})[status]||status||"-";
+}
+function departmentSetupTimelineHtml(timeline){
+  if(!timeline||!Array.isArray(timeline.steps)||!timeline.steps.length)return "";
+  const total=Number(timeline.total_count||timeline.steps.length||0);
+  const resolved=Number(timeline.resolved_count||0);
+  const pct=total?Math.max(0,Math.min(100,Math.round(resolved*100/total))):100;
+  const next=timeline.next_step||null;
+  const summary=timeline.is_complete
+    ?'<strong>ตั้งค่าตามไทม์ไลน์ครบแล้ว</strong><span>หากข้อมูลจริงเปลี่ยน ระบบจะเปิดขั้นตอนที่เกี่ยวข้องให้ดำเนินการอีกครั้งอัตโนมัติ</span>'
+    :'<strong>ครั้งถัดไปทำต่อ: '+esc(next&&next.title||"ขั้นตอนถัดไป")+'</strong><span>ระบบจดจำขั้นตอนที่เสร็จและขั้นตอนที่ข้ามไว้ให้ ไม่ต้องเริ่มใหม่</span>';
+
+  const rows=timeline.steps.map(step=>{
+    const status=step.status||"queued";
+    const icon=status==="completed"?"✓":status==="skipped"?"↷":status==="current"?"→":"·";
+    let action="";
+    if(status==="completed"){
+      action='<a class="department-step-link" href="'+esc(step.route)+'">เปิดดู</a>';
+    }else if(status==="skipped"){
+      action=timeline.can_manage
+        ?'<button type="button" class="department-step-link department-step-link-button" data-department-setup-action="resume" data-department-code="'+esc(timeline.department_code)+'" data-step-code="'+esc(step.step_code)+'" data-step-route="'+esc(step.route)+'">กลับมาทำ</button>'
+        :'<span class="department-step-muted">ข้ามไว้</span>';
+    }else if(status==="current"){
+      action='<div class="department-step-actions"><a class="department-step-link primary" href="'+esc(step.route)+'">ทำขั้นตอนนี้</a>'+
+        (timeline.can_manage&&step.is_skippable?'<button type="button" class="department-step-link department-step-link-button" data-department-setup-action="skip" data-department-code="'+esc(timeline.department_code)+'" data-step-code="'+esc(step.step_code)+'">ข้ามขั้นนี้</button>':'')+
+      '</div>';
+    }else{
+      action='<span class="department-step-muted">รอขั้นก่อนหน้า</span>';
+    }
+    return '<article class="department-setup-step '+esc(status)+'">'+
+      '<div class="department-step-marker"><span>'+icon+'</span><i></i></div>'+
+      '<div class="department-step-copy"><div class="department-step-title"><b>'+esc(step.sequence_no)+'</b><strong>'+esc(step.title)+'</strong><span class="department-step-kind '+(step.is_required?"required":"optional")+'">'+(step.is_required?"จำเป็น":"ข้ามได้")+'</span></div><p>'+esc(step.description||"")+'</p></div>'+
+      '<span class="department-step-status '+esc(status)+'">'+esc(departmentSetupStatusLabel(status))+'</span>'+
+      '<div class="department-step-control">'+action+'</div>'+
+    '</article>';
+  }).join("");
+
+  return '<section class="department-setup-timeline panel" data-department-timeline="'+esc(timeline.department_code)+'">'+
+    '<div class="department-timeline-head"><div><p class="eyebrow">SETUP TIMELINE</p><h2>ไทม์ไลน์ตั้งค่า'+esc(timeline.department_name||"")+'</h2><p>ทำตามลำดับทีละขั้น · ขั้นที่ไม่กระทบงานส่วนอื่นสามารถข้ามและกลับมาทำภายหลังได้</p></div><div class="department-timeline-progress"><strong>'+resolved+'/'+total+'</strong><span>ดำเนินการแล้ว</span></div></div>'+
+    '<div class="department-progress-track"><span style="width:'+pct+'%"></span></div>'+
+    '<div class="department-resume-card '+(timeline.is_complete?"complete":"")+'"><span>'+(timeline.is_complete?"✓":"▶")+'</span><div>'+summary+'</div>'+(next?'<a class="primary-btn compact-btn" href="'+esc(next.route)+'">ทำต่อ</a>':'')+'</div>'+
+    '<div class="department-setup-steps">'+rows+'</div>'+
+  '</section>';
+}
+function bindDepartmentSetupTimeline(){
+  qa("[data-department-setup-action]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const action=btn.dataset.departmentSetupAction;
+    const department=btn.dataset.departmentCode;
+    const step=btn.dataset.stepCode;
+    const route=btn.dataset.stepRoute||"";
+    if(action==="skip"&&!confirm("ข้ามขั้นตอนนี้ไว้ก่อน?\n\nระบบจะจดจำว่าเป็นขั้นตอนที่ข้ามได้ และคุณสามารถกลับมาทำภายหลังโดยข้อมูลส่วนอื่นไม่ถูกลบ"))return;
+    setBusy(btn,true,action==="skip"?"กำลังข้าม...":"กำลังเปิด...");
+    const res=await supabase.rpc("lao_update_department_setup_step",{
+      p_school_id:currentSchool().id,
+      p_department_code:department,
+      p_step_code:step,
+      p_action:action
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    if(action==="skip"){
+      toast("ข้ามขั้นตอนนี้ไว้แล้ว ระบบจะพาไปขั้นตอนถัดไป","success");
+      renderRoute();
+    }else{
+      toast("เปิดขั้นตอนนี้กลับมาดำเนินการแล้ว","success");
+      if(route)location.hash=route;else renderRoute();
+    }
+  }));
+}
+
 function personnelNavHtml(active){
   const work=state.personnelWork||{};
   const pending=Number(work.pending_join_requests||0);
@@ -2435,9 +2516,11 @@ async function personnelDashboardHtml(){
   const stats=dir.data&&dir.data.stats||{};
   const work=state.personnelWork||{};
   const pending=Number(work.pending_join_requests||0);
+  const timeline=await loadDepartmentSetupTimeline("personnel");
 
   return '<section class="personnel-page">'+personnelNavHtml("dashboard")+
     '<section class="personnel-work-hero"><div><p class="eyebrow">PERSONNEL WORK</p><h2>งานบุคลากร</h2><p>'+esc(school.name_th||"")+' · จัดการทะเบียน การรับบุคลากรเข้าระบบ และงานที่รอดำเนินการตามสิทธิ์ของคุณ</p></div><a class="primary-btn" href="#/personnel/registry">เปิดทะเบียนบุคลากร</a></section>'+
+    departmentSetupTimelineHtml(timeline)+
     '<section class="personnel-summary-grid">'+
       '<article><small>บุคลากรทั้งหมด</small><strong>'+Number(stats.total||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
       '<article><small>ปฏิบัติงาน</small><strong>'+Number(stats.active||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
@@ -2662,6 +2745,7 @@ async function personnelHtml(){
   return await personnelDashboardHtml();
 }
 function bindPersonnel(){
+  bindDepartmentSetupTimeline();
   const root=q("#main");
   bindAvatarFallback(root||document);
 
@@ -2999,11 +3083,13 @@ async function loadAcademicStructure(){
   state.academicYearId=nextYear;
   return state.academicData;
 }
-function academicDashboardHtml(data){
+async function academicDashboardHtml(data){
   const school=currentSchool(),stats=data.stats||{},year=academicSelectedYear(data),canManage=Boolean(data.can_manage);
   const noYear=!(data.years&&data.years.length);
+  const timeline=await loadDepartmentSetupTimeline("academics");
   return '<section class="academic-page">'+academicNavHtml("dashboard",data)+
     '<section class="academic-hero"><div><p class="eyebrow">ACADEMIC STRUCTURE</p><h2>งานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · วางข้อมูลต้นทางรายปีเพื่อให้ภาระงานสอน ตารางเรียน และงานวัดผลใช้ข้อมูลชุดเดียวกัน</p></div>'+(canManage?'<a class="primary-btn" href="#/academics/periods">'+(noYear?"เริ่มตั้งค่าปีการศึกษา":"จัดการโครงสร้าง")+'</a>':'')+'</section>'+
+    departmentSetupTimelineHtml(timeline)+
     '<section class="academic-stats-grid">'+
       '<article><small>ปีการศึกษา</small><strong>'+(year?esc(year.year_be):"-")+'</strong><span>'+(year&&year.is_current?"ปีปัจจุบัน":"ปีที่เลือก")+'</span></article>'+
       '<article><small>ภาคเรียน</small><strong>'+Number(year&&year.terms&&year.terms.length||0).toLocaleString("th-TH")+'</strong><span>ภาคเรียน</span></article>'+
@@ -3426,7 +3512,7 @@ async function academicsHtml(){
   if(mode==="subjects")return academicSubjectsHtml(data);
   if(mode==="curriculum"){await loadAcademicCurriculumPreset(data);return academicCurriculumHtml(data);}
   if(mode==="workload")return await academicWorkloadHtml(data);
-  return academicDashboardHtml(data);
+  return await academicDashboardHtml(data);
 }
 function academicSetFormValue(form,name,value){
   const el=form&&form.elements&&form.elements[name];
@@ -3446,6 +3532,7 @@ function academicScrollToForm(form){
   form.scrollIntoView({behavior:"smooth",block:"center"});
 }
 function bindAcademics(){
+  bindDepartmentSetupTimeline();
   const data=state.academicData||{};
   const school=currentSchool();
   bindTeachingWorkloadControls();
