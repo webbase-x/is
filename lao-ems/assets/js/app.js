@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.6";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.7";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3222,7 +3222,7 @@ function academicPeriodsHtml(data){
   const years=data.years||[],canManage=Boolean(data.can_manage);
   const yearCards=years.map(y=>{
     const terms=(y.terms||[]).map(t=>'<div class="academic-term-row"><div><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><small>'+(t.starts_on||t.ends_on?esc(thaiDate(t.starts_on))+' – '+esc(thaiDate(t.ends_on)):'ยังไม่กำหนดช่วงวันที่')+'</small></div>'+(t.is_current?'<span class="pill success">ภาคเรียนปัจจุบัน</span>':'')+(canManage?'<button type="button" class="text-btn" data-edit-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">แก้ไข</button>':'')+'</div>').join("");
-    return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
+    return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-add-term="'+esc(y.id)+'">＋ เพิ่มภาคเรียน</button><button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
   }).join("");
   return '<section class="academic-page">'+academicNavHtml("periods",data)+
     '<section class="panel"><div class="panel-head"><div><p class="eyebrow">ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">ข้อมูลจาก LEC ที่มีอยู่จะคงไว้ และสามารถเพิ่มปีการศึกษาใหม่เพื่อใช้กับงานวิชาการของปีปัจจุบันได้</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
@@ -3715,6 +3715,19 @@ function bindAcademics(){
     if(termForm&&data.selected_year_id)academicSetFormValue(termForm,"academic_year_id",data.selected_year_id);
   };
   qa("[data-reset-term-form]").forEach(btn=>btn.addEventListener("click",()=>{resetTerm();showAcademicPeriodPanel("term");academicScrollToForm(termForm);}));
+  qa("[data-add-term]").forEach(btn=>btn.addEventListener("click",()=>{
+    const y=(data.years||[]).find(x=>x.id===btn.dataset.addTerm);if(!y||!termForm)return;
+    resetTerm();
+    const used=new Set((y.terms||[]).map(t=>Number(t.term_no)));
+    const next=[1,2,3,4].find(n=>!used.has(n))||1;
+    showAcademicPeriodPanel("term");
+    academicSetFormValue(termForm,"academic_year_id",y.id);
+    academicSetFormValue(termForm,"term_no",next);
+    academicSetFormValue(termForm,"name","ภาคเรียนที่ "+next);
+    academicSetFormValue(termForm,"is_current",false);
+    const h=q("[data-term-form-title]");if(h)h.textContent="เพิ่มภาคเรียน ปีการศึกษา "+y.year_be;
+    academicScrollToForm(termForm);
+  }));
   qa("[data-edit-term]").forEach(btn=>btn.addEventListener("click",()=>{
     const y=(data.years||[]).find(x=>x.id===btn.dataset.yearId);
     const t=y&&(y.terms||[]).find(x=>x.id===btn.dataset.editTerm);if(!t||!termForm)return;
