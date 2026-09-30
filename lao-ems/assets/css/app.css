@@ -3764,3 +3764,28 @@ table{max-width:none}
 @keyframes route-progress{from{background-position:-50% 0}to{background-position:150% 0}}
 @media(max-width:900px){.content.route-pending::before{left:0}}
 @media(prefers-reduced-motion:reduce){.boot-screen{transition:none}.content.route-pending::before{animation:none;background:var(--primary)}}
+
+
+/* Compact tab selector for subject setup */
+.subject-selection-tabs{display:grid;gap:0;padding:0;overflow:hidden}
+.subject-tab-row{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:14px;align-items:center;padding:13px 16px;border-bottom:1px solid #eaecf0}
+.subject-tab-row:last-of-type{border-bottom:0}
+.subject-tab-label{min-width:0}
+.subject-tab-label strong,.subject-tab-label small{display:block}
+.subject-tab-label strong{font-size:10.5px;color:#101828}
+.subject-tab-label small{margin-top:2px;font-size:8px;line-height:1.4;color:#667085}
+.subject-selection-tabs .subject-target-tabs,
+.subject-selection-tabs .subject-grade-tabs,
+.subject-selection-tabs .subject-scope-tabs{margin:0;padding:2px 0 4px;min-width:0}
+.subject-selection-tabs .subject-target-tabs button,
+.subject-selection-tabs .subject-grade-tabs button,
+.subject-selection-tabs .subject-scope-tabs button{min-height:36px}
+.subject-selection-tabs .subject-early-note{margin:0 16px 13px}
+@media(max-width:760px){
+  .subject-tab-row{grid-template-columns:1fr;gap:7px;padding:12px 13px}
+  .subject-tab-label small{max-width:100%}
+  .subject-selection-tabs .subject-target-tabs,
+  .subject-selection-tabs .subject-grade-tabs,
+  .subject-selection-tabs .subject-scope-tabs{margin-inline:-2px}
+  .subject-selection-tabs .subject-early-note{margin:0 13px 12px}
+}
