@@ -3358,10 +3358,11 @@ function academicSubjectsHtml(data){
   const allCatalog=(preset.items||[]).filter(x=>x.grade_code===gradeCode);
   const catalog=allCatalog.filter(x=>scope==="core"?x.is_national_core:scope==="additional"?x.subject_type==="additional"&&!x.is_national_core:x.subject_type==="activity");
   const typeLabel={basic:"วิชาพื้นฐาน",additional:"วิชาเพิ่มเติม",activity:"กิจกรรมพัฒนาผู้เรียน",other:"อื่น ๆ"};
-  const hasCourse=(x)=>selectedCourses.some(c=>
-    (x.subject_code&&c.subject_code&&String(c.subject_code).toLowerCase()===String(x.subject_code).toLowerCase())||
-    (!x.subject_code&&String(c.subject_name||"").trim()===String(x.subject_name||"").trim()&&c.subject_type===x.subject_type)
-  );
+  const hasCourse=(x)=>selectedCourses.some(c=>{
+    const sameCode=x.subject_code&&c.subject_code&&String(c.subject_code).toLowerCase()===String(x.subject_code).toLowerCase();
+    if(x.choice_group)return Boolean(sameCode&&String(c.subject_name||"").trim()===String(x.subject_name||"").trim());
+    return Boolean(sameCode||(!x.subject_code&&String(c.subject_name||"").trim()===String(x.subject_name||"").trim()&&c.subject_type===x.subject_type));
+  });
 
   const shownCourses=selectedCourses.filter(c=>scope==="core"?c.subject_type==="basic":scope==="additional"?c.subject_type==="additional":c.subject_type==="activity");
   const selectedCourseRows=shownCourses.map(c=>{
@@ -3375,7 +3376,9 @@ function academicSubjectsHtml(data){
     '</div>';
   }).join("");
 
-  const catalogRows=catalog.map(x=>{
+  const activityOptions=allCatalog.filter(x=>x.subject_type==="activity"&&x.choice_group==="student_activity");
+  const selectedActivityOption=activityOptions.find(hasCourse)||null;
+  const catalogRows=catalog.filter(x=>!x.choice_group).map(x=>{
     const already=hasCourse(x);
     return '<div class="subject-source-row '+(already?"is-present":"")+'">'+
       '<span class="subject-source-status">'+(already?"✓":"＋")+'</span>'+
@@ -3398,14 +3401,15 @@ function academicSubjectsHtml(data){
   const generalRooms=classes.filter(c=>!c.program_id).length,specialRooms=classes.length-generalRooms;
   const coreExpected=allCatalog.filter(x=>x.is_national_core);
   const coreReady=coreExpected.length>0&&coreExpected.every(hasCourse);
-  const activityExpected=allCatalog.filter(x=>x.subject_type==="activity");
-  const activityReady=activityExpected.length>0&&activityExpected.every(hasCourse);
+  const activityExpected=allCatalog.filter(x=>x.subject_type==="activity"&&x.auto_apply!==false);
+  const activityReady=activityExpected.length>0&&activityExpected.every(hasCourse)&&Boolean(selectedActivityOption);
   const additionalCount=selectedCourses.filter(c=>c.subject_type==="additional"&&(selectedProgram?c._origin==="program":true)).length;
   const missingCount=scope==="additional"?catalog.filter(x=>!hasCourse(x)).length:0;
   const sourceTitle=scope==="additional"?"เพิ่มจากฐานข้อมูลกลาง":scope==="activity"?"รายการกิจกรรมจากฐานกลาง":"ค่าพื้นฐานกลาง";
   const sourceSub=scope==="core"?"ระบบกำหนดให้อัตโนมัติตามระดับชั้น":scope==="activity"?"กิจกรรมพัฒนาผู้เรียนเป็นประเภทกิจกรรม แต่ละกิจกรรมมีรหัสของตนเอง":"เลือกเพิ่มตามบริบท จุดเน้น หรือโปรแกรมของโรงเรียน";
 
-  const activityInfo=scope==="activity"?'<div class="subject-default-info"><strong>✓ ระบบตั้งรายการกิจกรรมและรหัสให้อัตโนมัติ</strong><p>ระดับประถมศึกษาใช้ 4 รายการ ได้แก่ แนะแนว ลูกเสือ/เนตรนารี/ยุวกาชาด ชุมนุม และกิจกรรมเพื่อสังคมและสาธารณประโยชน์ รวมค่าเริ่มต้น 120 ชม./ปี การกระจายชั่วโมงเป็นค่าเริ่มต้นของระบบและโรงเรียนปรับได้ตามหลักสูตรสถานศึกษา</p></div>':'';
+  const activityChoiceHtml=scope==="activity"&&activityOptions.length?'<div class="student-activity-choice"><div class="student-activity-choice-head"><div><strong>กิจกรรมนักเรียน</strong><small>เลือก 1 รายการตามหลักสูตรสถานศึกษา · ใช้รหัสเดียวกันตามระดับชั้น</small></div><span class="pill '+(selectedActivityOption?"success":"warning")+'">'+(selectedActivityOption?"เลือกแล้ว":"รอเลือก")+'</span></div><div class="student-activity-choice-options">'+activityOptions.map(x=>{const selected=hasCourse(x);return '<button type="button" class="'+(selected?"selected":"")+'" '+(!selectedProgram&&canManage?'data-student-activity-choice="'+esc(x.choice_key||"")+'"':'disabled')+'><span>'+esc(x.subject_code||"—")+'</span><strong>'+esc(x.subject_name)+'</strong>'+(selected?'<small>✓ ใช้อยู่</small>':'<small>'+(selectedProgram?"ใช้ตามห้องปกติ":"เลือกกิจกรรม")+'</small>')+'</button>';}).join("")+'</div>'+(selectedProgram?'<p class="student-activity-inherit">โปรแกรมพิเศษใช้กิจกรรมนักเรียนตามห้องปกติของระดับชั้นนี้</p>':'')+'</div>':'';
+  const activityInfo=scope==="activity"?'<div class="subject-default-info"><strong>กิจกรรมพัฒนาผู้เรียนเป็น “ประเภทกิจกรรม”</strong><p>ระบบเติมแนะแนว ชุมนุม และกิจกรรมเพื่อสังคมและสาธารณประโยชน์ให้อัตโนมัติ ส่วนกิจกรรมนักเรียนให้โรงเรียนเลือก <b>ลูกเสือ/เนตรนารี</b> หรือ <b>ยุวกาชาด</b> เพียงหนึ่งรายการต่อระดับชั้น</p></div>':'';
 
   return '<section class="academic-page subjects-workspace">'+academicNavHtml("subjects",data)+
     '<section class="panel subjects-hero"><div class="panel-head"><div><p class="eyebrow">SUBJECT SETUP</p><h2>จัดรายวิชาให้แต่ละระดับชั้น</h2><p class="panel-sub">รายวิชาพื้นฐานและกิจกรรมพัฒนาผู้เรียนถูกตั้งเป็นค่าพื้นฐานอัตโนมัติ เหลือให้โรงเรียนจัดเฉพาะวิชาเพิ่มเติมและจุดเน้น</p></div><div class="panel-head-actions">'+(year?'<span class="pill success">ปี '+esc(year.year_be)+'</span>':'')+(canManage?'<button type="button" class="secondary-btn" data-new-subject-form>＋ เพิ่มรายวิชาเอง</button>':'')+'</div></div>'+
@@ -3431,8 +3435,9 @@ function academicSubjectsHtml(data){
       '<section class="panel subject-used-panel"><div class="panel-head"><div><p class="eyebrow">CLASS SUBJECTS</p><h2>รายวิชาของระดับชั้นนี้</h2><p class="panel-sub">'+esc(targetLabel)+' · '+esc(shortGrade(gradeLabel))+' · '+targetRoomCount+' ห้อง</p></div><div class="panel-head-actions"><span class="pill">'+shownCourses.length+' รายการ</span><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div></div>'+
         (selectedCourseRows?'<div class="subject-used-list">'+selectedCourseRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายการในหมวดนี้</h3></div>')+
       '</section>'+
-      '<section class="panel subject-source-panel"><div class="panel-head"><div><p class="eyebrow">CENTRAL CATALOG</p><h2>'+sourceTitle+'</h2><p class="panel-sub">'+sourceSub+'</p></div>'+(scope==="additional"?'<span class="pill '+(missingCount?"warning":"success")+'">'+(missingCount?missingCount+" วิชายังเพิ่มได้":"ครบตามชุดที่เลือก")+'</span>':'<span class="pill success">อัตโนมัติ</span>')+'</div>'+
+      '<section class="panel subject-source-panel"><div class="panel-head"><div><p class="eyebrow">CENTRAL CATALOG</p><h2>'+sourceTitle+'</h2><p class="panel-sub">'+sourceSub+'</p></div>'+(scope==="additional"?'<span class="pill '+(missingCount?"warning":"success")+'">'+(missingCount?missingCount+" วิชายังเพิ่มได้":"ครบตามชุดที่เลือก")+'</span>':scope==="activity"?'<span class="pill '+(selectedActivityOption?"success":"warning")+'">'+(selectedActivityOption?"กิจกรรมนักเรียนพร้อม":"รอเลือกกิจกรรมนักเรียน")+'</span>':'<span class="pill success">อัตโนมัติ</span>')+'</div>'+
         activityInfo+
+        activityChoiceHtml+
         (catalogRows?'<div class="subject-source-list">'+catalogRows+'</div>':'<div class="empty-state compact-empty"><h3>ยังไม่มีรายการในประเภทนี้</h3></div>')+
         (canManage&&year&&scope==="additional"&&catalog.length&&missingCount?'<div class="subject-source-actions"><button type="button" class="primary-btn" data-import-subject-catalog data-scope="additional">＋ เพิ่มวิชาเพิ่มเติมที่ยังขาด</button><small>เพิ่มให้ '+esc(targetLabel)+' · '+esc(shortGrade(gradeLabel))+' เท่านั้น และไม่เขียนทับรายการเดิม</small></div>':'')+
       '</section>'+
@@ -4081,6 +4086,26 @@ function bindAcademics(){
     state.subjectSetupTab="type";
     renderRoute();
   }));
+  qa("[data-student-activity-choice]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const choiceKey=btn.dataset.studentActivityChoice||"";
+    const option=(state.academicPreset?.items||[]).find(x=>x.grade_code===(state.academicPresetGrade||"P1")&&x.choice_group==="student_activity"&&x.choice_key===choiceKey);
+    if(!option)return;
+    if(!confirm("เลือก “"+option.subject_name+"” สำหรับ "+academicGradeLabelFromCode(state.academicPresetGrade||"P1")+" ?"))return;
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_select_student_activity",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_grade_code:state.academicPresetGrade||"P1",
+      p_choice_key:choiceKey
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    state.academicData=null;
+    state.academicPreset=null;
+    toast("บันทึกกิจกรรมนักเรียนแล้ว · "+option.subject_name,"success");
+    renderRoute();
+  }));
+
   const importCatalog=q("[data-import-subject-catalog]");
   if(importCatalog)importCatalog.addEventListener("click",async()=>{
     const scope=importCatalog.dataset.scope||"core";
