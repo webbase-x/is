@@ -3327,16 +3327,21 @@ function academicSubjectsHtml(data){
   const courses=data.courses||[];
   const programs=(data.programs||[]).filter(p=>p.is_active);
   const actualPrograms=programs.filter(p=>classes.some(c=>c.program_id===p.id));
-  const actualGrades=Array.from(new Set(classes.map(c=>c.grade_label).filter(Boolean))).sort((a,b)=>academicGradeOrder(a)-academicGradeOrder(b)||a.localeCompare(b,"th"));
-  const actualGradeCodes=actualGrades.map(g=>academicGradeCode(g)).filter(Boolean);
-  if(!actualGradeCodes.includes(state.academicPresetGrade))state.academicPresetGrade=actualGradeCodes[0]||"P1";
   if(state.subjectProgramId&&!actualPrograms.some(p=>p.id===state.subjectProgramId))state.subjectProgramId="";
+  const selectedProgram=actualPrograms.find(p=>p.id===state.subjectProgramId)||null;
+  const targetLabel=selectedProgram?selectedProgram.name_th:"ห้องปกติ";
+  const targetClasses=classes.filter(c=>selectedProgram?c.program_id===selectedProgram.id:!c.program_id);
+  const supportedGradeSet=new Set((preset.supported_grades||[]).map(g=>g.grade_code));
+  const targetGrades=Array.from(new Set(targetClasses.map(c=>c.grade_label).filter(Boolean)))
+    .filter(g=>supportedGradeSet.has(academicGradeCode(g)))
+    .sort((a,b)=>academicGradeOrder(a)-academicGradeOrder(b)||a.localeCompare(b,"th"));
+  const targetGradeCodes=targetGrades.map(g=>academicGradeCode(g)).filter(Boolean);
+  if(!targetGradeCodes.includes(state.academicPresetGrade))state.academicPresetGrade=targetGradeCodes[0]||"P1";
   const gradeCode=state.academicPresetGrade||"P1";
   const gradeLabel=academicGradeLabelFromCode(gradeCode);
   const scope=state.subjectCatalogScope||"core";
-  const selectedProgram=actualPrograms.find(p=>p.id===state.subjectProgramId)||null;
-  const targetLabel=selectedProgram?selectedProgram.name_th:"ห้องปกติ";
-  const targetRoomCount=classes.filter(c=>(selectedProgram?c.program_id===selectedProgram.id:!c.program_id)&&c.grade_label===gradeLabel).length;
+  const targetRoomCount=targetClasses.filter(c=>c.grade_label===gradeLabel).length;
+  const earlyChildhoodCount=classes.filter(c=>String(academicGradeCode(c.grade_label)||"").startsWith("K")).length;
   const allCatalog=(preset.items||[]).filter(x=>x.grade_code===gradeCode);
   const catalog=allCatalog.filter(x=>scope==="core"?x.is_national_core:scope==="additional"?x.subject_type==="additional"&&!x.is_national_core:scope==="activity"?x.subject_type==="activity":true);
   const selectedCourses=courses.filter(c=>c.grade_label===gradeLabel&&((selectedProgram&&c.program_id===selectedProgram.id)||(!selectedProgram&&!c.program_id)));
@@ -3360,16 +3365,17 @@ function academicSubjectsHtml(data){
       '<div><strong>'+Number(x.annual_hours||0).toLocaleString("th-TH")+'</strong><small>ชม./ปี</small></div>'+
     '</div>';
   }).join("");
-  const gradeTabs=actualGrades.map(g=>{
+  const gradeTabs=targetGrades.map(g=>{
     const code=academicGradeCode(g)||"";
-    const rooms=classes.filter(c=>c.grade_label===g).length;
+    const rooms=targetClasses.filter(c=>c.grade_label===g).length;
     return '<button type="button" class="'+(code===gradeCode?"active":"")+'" data-subject-catalog-grade="'+esc(code)+'">'+esc(shortGrade(g))+' <span>'+rooms+'</span></button>';
   }).join("");
   const targetTabs='<button type="button" class="'+(!selectedProgram?"active":"")+'" data-subject-target="">ห้องปกติ <span>'+classes.filter(c=>!c.program_id).length+'</span></button>'+
     actualPrograms.map(p=>'<button type="button" class="'+(selectedProgram&&p.id===selectedProgram.id?"active":"")+'" data-subject-target="'+esc(p.id)+'">'+esc(p.name_th)+' <span>'+classes.filter(c=>c.program_id===p.id).length+'</span></button>').join("");
   const scopeTabs=[["core","วิชาพื้นฐาน"],["additional","วิชาเพิ่มเติม"],["activity","กิจกรรมพัฒนาผู้เรียน"],["all","ทั้งหมด"]]
     .map(([v,l])=>'<button type="button" class="'+(scope===v?"active":"")+'" data-subject-catalog-scope="'+v+'">'+l+'</button>').join("");
-  const allLevelCount=actualGrades.length;
+  const allSchoolGrades=Array.from(new Set(classes.map(c=>c.grade_label).filter(Boolean)));
+  const allLevelCount=allSchoolGrades.length;
   const generalRooms=classes.filter(c=>!c.program_id).length;
   const specialRooms=classes.length-generalRooms;
   const missingCount=catalog.filter(x=>!x.present).length;
@@ -3379,13 +3385,13 @@ function academicSubjectsHtml(data){
       '<div class="subjects-summary-grid"><article><small>ระดับชั้นที่มีจริง</small><strong>'+allLevelCount+'</strong><span>ระดับ</span></article><article><small>ห้องเรียนทั้งหมด</small><strong>'+classes.length+'</strong><span>ห้อง</span></article><article><small>ห้องปกติ</small><strong>'+generalRooms+'</strong><span>ห้อง</span></article><article><small>ห้องพิเศษ</small><strong>'+specialRooms+'</strong><span>'+actualPrograms.length+' โปรแกรม</span></article></div>'+
     '</section>'+
     '<section class="panel subject-step-card"><div class="subject-step-head"><span>1</span><div><strong>เลือกกลุ่มห้อง</strong><small>รายวิชาของห้องปกติและโปรแกรมพิเศษแยกจากกันได้</small></div></div><div class="subject-target-tabs">'+targetTabs+'</div></section>'+
-    '<section class="panel subject-step-card"><div class="subject-step-head"><span>2</span><div><strong>เลือกระดับชั้น</strong><small>แสดงเฉพาะระดับชั้นที่พบจริงจาก LEC</small></div></div><div class="subject-grade-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีข้อมูลชั้นเรียน</span>')+'</div></section>'+
+    '<section class="panel subject-step-card"><div class="subject-step-head"><span>2</span><div><strong>เลือกระดับชั้น</strong><small>แสดงเฉพาะระดับที่มีห้องจริงในกลุ่มที่เลือก</small></div></div><div class="subject-grade-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับ ป.1–ม.6 ในกลุ่มนี้</span>')+'</div>'+(earlyChildhoodCount?'<div class="subject-early-note">ระดับอนุบาลใช้หลักสูตรการศึกษาปฐมวัย จึงแยกออกจากฐานรายวิชาหลักสูตรขั้นพื้นฐานนี้</div>':'')+'</section>'+
     '<section class="panel subject-step-card"><div class="subject-step-head"><span>3</span><div><strong>เลือกหมวดวิชา</strong><small>วิชาพื้นฐานเป็นชุดหลัก ส่วนวิชาเพิ่มเติมและกิจกรรมเลือกตามบริบทโรงเรียน</small></div></div><div class="subject-scope-tabs">'+scopeTabs+'</div></section>'+
     '<section class="subjects-two-column">'+
       '<section class="panel subject-used-panel"><div class="panel-head"><div><p class="eyebrow">CURRENT</p><h2>วิชาที่ใช้แล้ว</h2><p class="panel-sub">'+esc(targetLabel)+' · '+esc(shortGrade(gradeLabel))+' · '+targetRoomCount+' ห้อง</p></div><div class="panel-head-actions"><span class="pill">'+selectedCourses.length+' วิชา</span><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div></div>'+
         (selectedCourseRows?'<div class="subject-used-list">'+selectedCourseRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายวิชา</h3><p>เลือกวิชาจากฐานกลางด้านขวาแล้วนำเข้า</p></div>')+
       '</section>'+
-      '<section class="panel subject-source-panel"><div class="panel-head"><div><p class="eyebrow">CENTRAL CATALOG</p><h2>เพิ่มจากฐานข้อมูลกลาง</h2><p class="panel-sub">'+esc(typeLabel[scope]||"ทุกหมวด")+' · '+catalog.length+' รายการ</p></div><span class="pill '+(missingCount?"warning":"success")+'">'+(missingCount?missingCount+" วิชายังขาด":"ครบแล้ว")+'</span></div>'+
+      '<section class="panel subject-source-panel"><div class="panel-head"><div><p class="eyebrow">CENTRAL CATALOG</p><h2>เพิ่มจากฐานข้อมูลกลาง</h2><p class="panel-sub">'+esc(({core:"วิชาพื้นฐาน",additional:"วิชาเพิ่มเติม",activity:"กิจกรรมพัฒนาผู้เรียน",all:"ทุกหมวด"})[scope]||"ทุกหมวด")+' · '+catalog.length+' รายการ</p></div><span class="pill '+(missingCount?"warning":"success")+'">'+(missingCount?missingCount+" วิชายังขาด":"ครบแล้ว")+'</span></div>'+
         (catalogRows?'<div class="subject-source-list">'+catalogRows+'</div>':'<div class="empty-state compact-empty"><h3>ไม่มีรายการในหมวดนี้</h3></div>')+
         (canManage&&year&&catalog.length&&missingCount?'<div class="subject-source-actions"><button type="button" class="primary-btn" data-import-subject-catalog data-scope="'+esc(scope)+'">＋ เพิ่มวิชาที่ยังขาด</button><small>เพิ่มให้ '+esc(targetLabel)+' · '+esc(shortGrade(gradeLabel))+' เท่านั้น และไม่เขียนทับรายการเดิม</small></div>':'')+
       '</section>'+
