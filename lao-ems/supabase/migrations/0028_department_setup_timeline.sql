@@ -246,13 +246,13 @@ begin
   effective as (
     select *,
       (
-        auto_done
-        or (completion_mode='manual' and override_status='completed')
+        coalesce(auto_done,false)
+        or (completion_mode='manual' and coalesce(override_status='completed',false))
       ) as is_done,
       (
         not is_required
-        and override_status='skipped'
-        and not auto_done
+        and coalesce(override_status='skipped',false)
+        and not coalesce(auto_done,false)
       ) as is_skipped
     from base
   ),
