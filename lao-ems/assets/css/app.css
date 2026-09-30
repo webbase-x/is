@@ -3818,3 +3818,23 @@ table{max-width:none}
   .subject-setup-panel{padding:12px 13px}
   .subject-tab-menu-panel>.subject-early-note{margin:0 13px 12px}
 }
+
+
+/* Student activity choice within learner development activities */
+.student-activity-choice{margin:10px 0;padding:12px;border:1px solid #fedf89;border-radius:12px;background:#fffcf5}
+.student-activity-choice-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.student-activity-choice-head strong,.student-activity-choice-head small{display:block}
+.student-activity-choice-head strong{font-size:10.5px;color:#7a2e0e}
+.student-activity-choice-head small{margin-top:2px;font-size:8px;color:#667085}
+.student-activity-choice-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.student-activity-choice-options button{min-width:0;padding:11px 12px;border:1px solid #d0d5dd;border-radius:10px;background:#fff;text-align:left}
+.student-activity-choice-options button:hover:not(:disabled){border-color:#84adff;background:#f5f8ff}
+.student-activity-choice-options button.selected{border-color:#75e0a7;background:#ecfdf3;box-shadow:0 0 0 1px #75e0a7}
+.student-activity-choice-options button:disabled{cursor:default;opacity:.82}
+.student-activity-choice-options span,.student-activity-choice-options strong,.student-activity-choice-options small{display:block}
+.student-activity-choice-options span{font-size:8px;color:#667085;font-weight:800}
+.student-activity-choice-options strong{margin-top:2px;font-size:10px;color:#101828}
+.student-activity-choice-options small{margin-top:3px;font-size:8px;color:#667085}
+.student-activity-choice-options button.selected small{color:#067647}
+.student-activity-inherit{margin:8px 0 0;font-size:8px;color:#667085}
+@media(max-width:620px){.student-activity-choice-options{grid-template-columns:1fr}.student-activity-choice-head{flex-direction:column}}
