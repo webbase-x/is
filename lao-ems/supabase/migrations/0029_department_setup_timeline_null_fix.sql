@@ -1,4 +1,6 @@
--- Fix unresolved setup-step detection when no progress override exists.\n\ncreate or replace function public.lao_department_setup_timeline(
+-- Fix unresolved setup-step detection when no progress override exists.
+
+create or replace function public.lao_department_setup_timeline(
   p_school_id uuid,
   p_department_code text
 )
@@ -118,4 +120,4 @@ end;
 $$;
 
 revoke all on function public.lao_department_setup_timeline(uuid,text) from public,anon;
-grant execute on function public.lao_department_setup_timeline(uuid,text) to authenticated;\n
+grant execute on function public.lao_department_setup_timeline(uuid,text) to authenticated;
