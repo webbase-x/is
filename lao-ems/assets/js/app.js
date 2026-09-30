@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.7";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.8";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3234,15 +3234,29 @@ function academicPeriodsHtml(data){
     '</section>':'')+
   '</section>';
 }
-function academicProgramsHtml(data){
+function academicProgramsHtml(data,timeline){
   const items=data.programs||[],canManage=Boolean(data.can_manage);
+  const activeItems=items.filter(p=>p.is_active);
+  const programStep=(timeline&&timeline.steps||[]).find(x=>x.step_code==="programs")||null;
+  const usingGeneralOnly=Boolean(programStep&&programStep.status==="skipped"&&!activeItems.length);
   const rows=items.map(p=>'<div class="academic-simple-row '+(!p.is_active?"muted-row":"")+'"><div><strong>'+esc(p.name_th)+'</strong><small>'+esc(p.code||"ไม่มีรหัส")+(p.name_en?' · '+esc(p.name_en):'')+'</small></div><span class="pill '+(p.is_active?"success":"warning")+'">'+(p.is_active?"ใช้งาน":"ปิดใช้งาน")+'</span>'+(canManage?'<button class="secondary-btn compact-btn" type="button" data-edit-program="'+esc(p.id)+'">แก้ไข</button>':'')+'</div>').join("");
+  const setupState=activeItems.length
+    ?'<div class="academic-program-state success"><span>✓</span><div><strong>ตั้งค่าโปรแกรมพิเศษแล้ว</strong><p>รายการนี้เป็นข้อมูลระดับโรงเรียน ใช้ต่อในปีการศึกษาถัดไปได้ ไม่ต้องสร้างใหม่ทุกปี เว้นแต่มีการเปลี่ยนแปลง</p></div></div>'
+    :usingGeneralOnly
+      ?'<div class="academic-program-state success"><span>✓</span><div><strong>บันทึกแล้ว: ใช้เฉพาะห้องปกติ / ไม่มีโปรแกรมพิเศษ</strong><p>ไทม์ไลน์ถือว่าขั้นนี้ดำเนินการแล้ว และปีถัดไปไม่ต้องทำซ้ำ หากภายหลังมี MEP / MLP / ห้องพิเศษ ค่อยกด “＋ เพิ่มหลักสูตร / โปรแกรม” ได้</p></div></div>'
+      :'<div class="academic-program-state"><span>2</span><div><strong>เลือกวิธีใช้งานของโรงเรียน</strong><p>ถ้ามีเฉพาะห้องปกติ ให้ยืนยันว่าไม่มีโปรแกรมพิเศษเพื่อข้ามขั้นนี้อย่างถูกต้อง หรือเพิ่ม MEP / MLP / ห้องพิเศษเมื่อโรงเรียนมีใช้งานจริง</p></div></div>';
+
   return '<section class="academic-page">'+academicNavHtml("programs",data)+
-    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">PROGRAMS</p><h2>หลักสูตร / โปรแกรม</h2><p class="panel-sub">ใช้เฉพาะเมื่อโรงเรียนต้องแยกโครงสร้างของโปรแกรมหรือโครงการพิเศษ เช่น MEP / MLP / ห้องพิเศษ</p></div></div>'+
-      '<div class="academic-program-guidance"><span>💡</span><div><strong>ห้องทั่วไปต้องเลือกอะไร?</strong><p>ห้องเรียนทั่วไป <b>ไม่ต้องสร้างโปรแกรมชื่อ “ปกติ”</b> ให้เลือก <b>“ห้องทั่วไป / ไม่ระบุโปรแกรม”</b> ในหน้าชั้น/ห้องและโครงสร้างเวลาเรียน เมนูนี้ใช้เพิ่มเฉพาะโปรแกรมที่ต้องแยกจริง เช่น MEP, MLP หรือห้องพิเศษ</p></div></div>'+
-      (rows?'<div class="academic-simple-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">◫</div><h3>ยังไม่ได้กำหนดโปรแกรมพิเศษ</h3><p>ห้องทั่วไปใช้งานได้ทันทีโดยเลือก “ห้องทั่วไป / ไม่ระบุโปรแกรม” ไม่จำเป็นต้องเพิ่มรายการในหน้านี้</p></div>')+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">PROGRAMS</p><h2>หลักสูตร / โปรแกรม</h2><p class="panel-sub">กำหนดเฉพาะโปรแกรมหรือโครงการพิเศษของโรงเรียน ส่วนห้องปกติไม่ต้องสร้างเป็นโปรแกรม</p></div>'+(canManage?'<button type="button" class="primary-btn" data-new-program-form>＋ เพิ่มหลักสูตร / โปรแกรม</button>':'')+'</div>'+
+      setupState+
+      '<div class="academic-program-choice-grid">'+
+        '<article><span>🏫</span><div><strong>ห้องปกติ</strong><p>ไม่ต้องสร้างรายการ “ปกติ” ระบบจะถือว่าไม่ระบุโปรแกรม และใช้กับห้องทั่วไปทุกปี</p></div>'+(canManage&&!activeItems.length?'<button type="button" class="secondary-btn" data-program-general-only '+(usingGeneralOnly?'disabled':'')+'>'+(usingGeneralOnly?'บันทึกแล้ว':'ใช้ห้องปกติ / ไม่มีโปรแกรมพิเศษ')+'</button>':'')+'</article>'+
+        '<article><span>⭐</span><div><strong>มีโปรแกรมพิเศษ</strong><p>เพิ่มเฉพาะรายการที่ต้องแยกจริง เช่น MEP, MLP, ห้องพิเศษ หรือโครงการเฉพาะของโรงเรียน</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-program-form>＋ เพิ่มโปรแกรมพิเศษ</button>':'')+'</article>'+
+      '</div>'+
+      (rows?'<div class="academic-simple-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">◫</div><h3>ยังไม่มีโปรแกรมพิเศษ</h3><p>หากโรงเรียนใช้เฉพาะห้องปกติ ให้กด “ใช้ห้องปกติ / ไม่มีโปรแกรมพิเศษ” เพื่อบันทึกขั้นตอนนี้ในไทม์ไลน์</p></div>')+
+      '<div class="academic-program-next-year"><strong>ปีการศึกษาถัดไปต้องทำอะไร?</strong><p><b>ไม่ต้องสร้างโปรแกรมใหม่ซ้ำ</b> เพราะรายการโปรแกรมเป็นข้อมูลระดับโรงเรียน ใช้ต่อเนื่องข้ามปีได้ เมื่อสร้างชั้น/ห้องของปีใหม่ ให้เลือกโปรแกรมเดิมกับห้องที่เกี่ยวข้อง หรือเลือก “ห้องทั่วไป / ไม่ระบุโปรแกรม” สำหรับห้องปกติ</p></div>'+
     '</section>'+
-    (canManage?'<section class="panel academic-form-panel"><div class="panel-head"><div><h2 data-program-form-title>เพิ่มหลักสูตร / โปรแกรม</h2></div></div><form id="academic-program-form" class="academic-form academic-form-3" data-id=""><label>รหัส<input name="code" placeholder="เช่น MEP"></label><label>ชื่อภาษาไทย <span class="required-mark">*</span><input name="name_th" required placeholder="เช่น โครงการจัดการเรียนการสอนโดยใช้ภาษาอังกฤษเป็นสื่อ"></label><label>ชื่อภาษาอังกฤษ<input name="name_en" placeholder="เช่น Mini English Program (MEP)"></label><label class="span-all">รายละเอียด<textarea name="description" rows="2"></textarea></label><label>ลำดับ<input name="sort_order" type="number" value="0"></label><label class="check-row"><input name="is_active" type="checkbox" checked><span>ใช้งาน</span></label><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-program-form>ล้าง</button><button type="submit" class="primary-btn">บันทึก</button></div></form></section>':'')+
+    (canManage?'<section class="panel academic-form-panel hidden" data-program-form-panel><div class="panel-head"><div><h2 data-program-form-title>เพิ่มหลักสูตร / โปรแกรม</h2><p class="panel-sub">บันทึกเฉพาะโปรแกรมพิเศษที่โรงเรียนมีใช้งานจริง</p></div></div><form id="academic-program-form" class="academic-form academic-form-3" data-id=""><label>รหัส<input name="code" placeholder="เช่น MEP"></label><label>ชื่อภาษาไทย <span class="required-mark">*</span><input name="name_th" required placeholder="เช่น โครงการจัดการเรียนการสอนโดยใช้ภาษาอังกฤษเป็นสื่อ"></label><label>ชื่อภาษาอังกฤษ<input name="name_en" placeholder="เช่น Mini English Program (MEP)"></label><label class="span-all">รายละเอียด<textarea name="description" rows="2"></textarea></label><label>ลำดับ<input name="sort_order" type="number" value="0"></label><label class="check-row"><input name="is_active" type="checkbox" checked><span>ใช้งาน</span></label><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-program-form>ล้าง</button><button type="submit" class="primary-btn">บันทึก</button></div></form></section>':'')+
   '</section>';
 }
 function academicClassesHtml(data){
@@ -3616,7 +3630,10 @@ async function academicsHtml(){
   const data=await loadAcademicStructure();
   const mode=academicRouteState().mode;
   if(mode==="periods")return academicPeriodsHtml(data);
-  if(mode==="programs")return academicProgramsHtml(data);
+  if(mode==="programs"){
+    const timeline=await loadDepartmentSetupTimeline("academics");
+    return academicProgramsHtml(data,timeline);
+  }
   if(mode==="classes")return academicClassesHtml(data);
   if(mode==="subjects")return academicSubjectsHtml(data);
   if(mode==="curriculum"){await loadAcademicCurriculumPreset(data);return academicCurriculumHtml(data);}
@@ -3761,15 +3778,42 @@ function bindAcademics(){
   });
 
   const programForm=q("#academic-program-form");
+  const programPanel=q("[data-program-form-panel]");
   const resetProgram=()=>academicResetForm(programForm,"[data-program-form-title]","เพิ่มหลักสูตร / โปรแกรม");
-  qa("[data-reset-program-form]").forEach(btn=>btn.addEventListener("click",()=>{resetProgram();academicScrollToForm(programForm);}));
+  const showProgramForm=()=>{
+    if(programPanel)programPanel.classList.remove("hidden");
+    academicScrollToForm(programForm);
+  };
+  qa("[data-new-program-form]").forEach(btn=>btn.addEventListener("click",()=>{
+    resetProgram();
+    if(programForm){
+      academicSetFormValue(programForm,"sort_order",0);
+      academicSetFormValue(programForm,"is_active",true);
+    }
+    showProgramForm();
+  }));
+  qa("[data-program-general-only]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!school)return;
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_update_department_setup_step",{
+      p_school_id:school.id,
+      p_department_code:"academics",
+      p_step_code:"programs",
+      p_action:"skip"
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกแล้ว: ใช้ห้องปกติ / ไม่มีโปรแกรมพิเศษ","success");
+    renderRoute();
+  }));
+  qa("[data-reset-program-form]").forEach(btn=>btn.addEventListener("click",()=>{resetProgram();showProgramForm();}));
   qa("[data-edit-program]").forEach(btn=>btn.addEventListener("click",()=>{
     const p=(data.programs||[]).find(x=>x.id===btn.dataset.editProgram);if(!p||!programForm)return;
     programForm.dataset.id=p.id;
     ["code","name_th","name_en","description","sort_order"].forEach(k=>academicSetFormValue(programForm,k,p[k]));
     academicSetFormValue(programForm,"is_active",p.is_active);
     const h=q("[data-program-form-title]");if(h)h.textContent="แก้ไข "+p.name_th;
-    academicScrollToForm(programForm);
+    showProgramForm();
   }));
   if(programForm)programForm.addEventListener("submit",async e=>{
     e.preventDefault();
