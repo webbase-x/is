@@ -3908,3 +3908,102 @@ table{max-width:none}
   .subject-card-copy strong{font-size:9.5px}
   .subject-library-meta,.subject-card-hours{padding-left:68px}
 }
+
+
+/* Teaching workload mobile layout reset — v0.16.2 */
+.teaching-workload-page{gap:10px}
+.teaching-workload-page .panel{padding:16px}
+.teaching-workload-page .panel-head>div:first-child{flex:0 1 auto}
+.teaching-workload-overview>.panel-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(220px,320px);
+  align-items:end;
+  gap:12px;
+}
+.teaching-workload-overview .teaching-term-switch{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:4px;
+  width:100%;
+  white-space:normal;
+}
+.teaching-workload-overview .teaching-term-switch select{width:100%;max-width:none;min-width:0}
+.teaching-workload-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.teaching-workload-stats article{min-width:0;padding:10px 11px}
+.teaching-workload-stats strong{font-size:18px}
+.teaching-personnel-picker{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(280px,420px);
+  align-items:end;
+  gap:12px;
+}
+.teaching-personnel-picker>div{flex:none}
+.teaching-personnel-picker label{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:4px;
+  width:100%;
+  max-width:none;
+  min-width:0;
+}
+.teaching-personnel-picker select{width:100%;max-width:none;min-width:0}
+.teaching-editor-panel .empty-state.compact-empty{padding:20px 12px}
+.teaching-editor-panel .empty-state.compact-empty .empty-icon{font-size:30px}
+.teaching-editor-panel .empty-state.compact-empty h3{margin-top:6px;font-size:14px}
+.teaching-editor-panel .empty-state.compact-empty p{margin-bottom:0;font-size:11px}
+.teaching-workload-list-panel>.panel-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(150px,190px);
+  align-items:end;
+  gap:12px;
+}
+.teaching-workload-list-panel>.panel-head>div:first-child{flex:none}
+.teaching-workload-list-panel .teaching-status-filter{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:4px;
+  width:100%;
+}
+.teaching-workload-list-panel .teaching-status-filter select{width:100%;min-width:0}
+.teaching-workload-list-panel .empty-state.compact-empty{padding:20px 10px}
+.teaching-workload-list-panel .empty-state.compact-empty .empty-icon{font-size:28px}
+
+@media(max-width:760px){
+  .teaching-workload-page .panel{padding:14px}
+  .teaching-workload-page .panel-head,
+  .teaching-workload-overview>.panel-head,
+  .teaching-workload-list-panel>.panel-head{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:9px;
+  }
+  .teaching-workload-page .panel-head>div:first-child,
+  .teaching-personnel-picker>div{
+    flex:0 0 auto;
+    min-height:0;
+  }
+  .teaching-personnel-picker{
+    display:grid;
+    grid-template-columns:1fr;
+    align-items:start;
+    gap:9px;
+  }
+  .teaching-personnel-picker label{flex:none}
+  .teaching-workload-list-panel .teaching-status-filter{max-width:none}
+}
+@media(max-width:520px){
+  .teaching-workload-page{gap:8px}
+  .teaching-workload-page .panel{padding:12px}
+  .teaching-workload-page .panel h2{font-size:17px}
+  .teaching-workload-page .panel-sub{font-size:10px;line-height:1.45}
+  .teaching-workload-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .teaching-workload-stats article{padding:9px 7px;border-radius:10px;text-align:left}
+  .teaching-workload-stats small{font-size:7.5px;line-height:1.25}
+  .teaching-workload-stats strong{font-size:17px}
+  .teaching-workload-stats span{font-size:7px}
+  .teaching-personnel-picker strong{font-size:11px}
+  .teaching-personnel-picker small{font-size:8px;line-height:1.4}
+  .teaching-editor-panel .empty-state.compact-empty,
+  .teaching-workload-list-panel .empty-state.compact-empty{padding:16px 8px}
+  .teaching-editor-panel .empty-state.compact-empty p{max-width:260px}
+}
