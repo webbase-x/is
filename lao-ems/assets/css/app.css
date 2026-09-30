@@ -3838,3 +3838,73 @@ table{max-width:none}
 .student-activity-choice-options button.selected small{color:#067647}
 .student-activity-inherit{margin:8px 0 0;font-size:8px;color:#667085}
 @media(max-width:620px){.student-activity-choice-options{grid-template-columns:1fr}.student-activity-choice-head{flex-direction:column}}
+
+
+/* Subject library workspace v0.16.1 */
+.subjects-compact-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.subjects-context-chips{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.subjects-context-chips span,.subject-workspace-summary span{padding:6px 9px;border:1px solid #eaecf0;border-radius:999px;background:#f9fafb;font-size:8px;color:#475467;white-space:nowrap}
+.subject-workspace-summary{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:-2px 0 12px}
+.subject-workspace-summary span:first-child{background:#eff4ff;border-color:#d1e0ff;color:#1849a9}
+.subjects-library-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:14px;align-items:start}
+.subject-selected-list,.subject-library-list{display:grid;gap:8px}
+.subject-selected-card,.subject-library-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:11px 12px;border:1px solid #eaecf0;border-radius:12px;background:#fff}
+.subject-library-card{grid-template-columns:minmax(0,1fr) auto}
+.subject-card-main{display:flex;align-items:center;gap:10px;min-width:0}
+.subject-code-box{flex:0 0 auto;min-width:65px;padding:6px 8px;border-radius:8px;background:#f2f4f7;font:800 9px ui-monospace,SFMono-Regular,monospace;color:#344054;text-align:center}
+.subject-card-copy{min-width:0}
+.subject-card-copy strong,.subject-card-copy small{display:block}
+.subject-card-copy strong{font-size:10px;color:#101828;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.subject-card-copy small{margin-top:2px;font-size:8px;color:#667085;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.subject-card-hours{display:flex;gap:10px;align-items:center}
+.subject-card-hours span{min-width:54px;text-align:right}
+.subject-card-hours b,.subject-card-hours small{display:block}
+.subject-card-hours b{font-size:9px}.subject-card-hours small{font-size:7px;color:#667085}
+.subject-origin{padding:5px 8px;border-radius:999px;font-size:7.5px;font-weight:800;white-space:nowrap}
+.subject-origin.inherited{background:#eff8ff;color:#175cd3}
+.subject-remove-btn,.subject-add-btn{border:0;border-radius:8px;padding:7px 9px;font-size:8px;font-weight:800;white-space:nowrap}
+.subject-remove-btn{background:#fef3f2;color:#b42318}
+.subject-add-btn{background:#eff4ff;color:#1849a9}
+.subject-remove-btn:hover{background:#fee4e2}.subject-add-btn:hover{background:#d1e0ff}
+.subject-library-source{position:absolute;top:7px;right:8px;padding:3px 6px;border-radius:999px;font-size:7px;font-weight:800}
+.subject-library-source.central{background:#ecfdf3;color:#067647}
+.subject-library-source.school{background:#fff4ed;color:#b93815}
+.subject-library-card .subject-card-main{padding-top:10px}
+.subject-library-meta{grid-column:1/-1;display:flex;gap:8px;margin-top:-3px;padding-left:75px}
+.subject-library-meta span{font-size:7.5px;color:#667085}
+.subject-library-search{display:block;margin:0 0 10px}
+.subject-library-search span{display:block;margin-bottom:4px;font-size:8px;font-weight:800;color:#475467}
+.subject-library-search input{width:100%;min-height:38px;padding:8px 11px;border:1px solid #d0d5dd;border-radius:10px;background:#fff;font-size:9px}
+.subject-library-no-results{padding:16px;text-align:center;font-size:9px;color:#667085}
+.subject-custom-form{margin-top:12px;padding:13px;border:1px solid #d1e0ff;border-radius:12px;background:#f9fbff}
+.subject-custom-form-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+.subject-custom-form-head strong,.subject-custom-form-head small{display:block}
+.subject-custom-form-head strong{font-size:10.5px}.subject-custom-form-head small{margin-top:2px;font-size:8px;color:#667085}
+.subject-custom-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.subject-custom-grid label{font-size:8px;font-weight:800;color:#475467}
+.subject-custom-grid input,.subject-custom-grid select{width:100%;margin-top:4px;min-height:38px}
+.subject-custom-grid .wide{grid-column:1/-1}
+.subject-custom-note{margin-top:9px;padding:8px 9px;border-radius:8px;background:#fff7ed;font-size:7.5px;color:#9a3412}
+.subject-custom-actions{display:flex;justify-content:flex-end;margin-top:10px}
+.subject-bottom-note{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;font-size:8px;color:#667085}
+.subject-bottom-note a{font-weight:800;color:#175cd3}
+@media(max-width:1050px){
+  .subjects-library-layout{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .subjects-compact-head{flex-direction:column}
+  .subjects-context-chips{justify-content:flex-start}
+  .subject-selected-card{grid-template-columns:minmax(0,1fr) auto}
+  .subject-card-hours{grid-column:1/-1;justify-content:flex-start;padding-left:75px}
+  .subject-card-hours span{text-align:left}
+  .subject-origin,.subject-remove-btn{grid-column:2;grid-row:1}
+  .subject-library-card{grid-template-columns:minmax(0,1fr) auto}
+  .subject-custom-grid{grid-template-columns:1fr}
+  .subject-custom-grid .wide{grid-column:auto}
+}
+@media(max-width:430px){
+  .subject-selected-card,.subject-library-card{padding:10px}
+  .subject-code-box{min-width:58px}
+  .subject-card-copy strong{font-size:9.5px}
+  .subject-library-meta,.subject-card-hours{padding-left:68px}
+}
