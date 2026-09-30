@@ -4607,6 +4607,10 @@ async function showApp(session){
       location.reload();
       return;
     }
+    const main=q("#main");
+    if(main&&!main.innerHTML.trim())main.innerHTML='<section class="panel"><div class="notice danger"><strong>โหลดข้อมูลไม่สำเร็จ</strong><br>'+esc(e.message||e)+'</div></section>';
+    q("#auth-screen").classList.add("hidden");
+    q("#app-shell").classList.remove("hidden");
     dismissBootScreen();
     toast("โหลดข้อมูลผู้ใช้ไม่สำเร็จ: "+e.message,"error");
   }
