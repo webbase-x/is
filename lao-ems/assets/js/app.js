@@ -4193,7 +4193,7 @@ function bindAcademics(){
     state.academicPreset=null;
     toast("สร้างรายวิชาของโรงเรียนและเพิ่มเข้าระดับชั้นแล้ว","success");
     renderRoute();
-  }));
+  });
 
   qa("[data-student-activity-choice]").forEach(btn=>btn.addEventListener("click",async()=>{
     const choiceKey=btn.dataset.studentActivityChoice||"";
