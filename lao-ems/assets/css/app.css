@@ -3542,3 +3542,47 @@ table{max-width:none}
   .academic-program-choice-grid{grid-template-columns:1fr}
   .academic-program-choice-grid button{width:100%}
 }
+
+
+/* LEC-owned academic class/program assignment */
+.academic-class-source-note{display:flex;gap:12px;align-items:flex-start;margin:14px 0;padding:14px;border:1px solid #b2ddff;border-radius:14px;background:#eff8ff}
+.academic-class-source-note>span{font-size:20px}
+.academic-class-source-note strong{display:block;color:#175cd3;font-size:11px}
+.academic-class-source-note p{margin:3px 0 0;color:#475467;font-size:9px;line-height:1.55}
+.academic-class-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px}
+.academic-class-stat-grid article{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.academic-class-stat-grid small,.academic-class-stat-grid strong,.academic-class-stat-grid span{display:block}
+.academic-class-stat-grid small{font-size:9px;color:var(--muted)}
+.academic-class-stat-grid strong{margin-top:4px;font-size:20px;color:var(--text)}
+.academic-class-stat-grid span{font-size:9px;color:var(--muted)}
+.academic-class-split{display:grid;grid-template-columns:1fr;gap:14px}
+.academic-class-section.normal{border-top:4px solid #84adff}
+.academic-class-section.special{border-top:4px solid #fdb022}
+.academic-room-grade{margin-top:15px}
+.academic-room-grade-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.academic-room-grade-head strong{font-size:11px}
+.academic-room-grade-head span{font-size:9px;color:var(--muted)}
+.academic-room-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.academic-room-card{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:9px;align-items:center;padding:11px;border:1px solid var(--line);border-radius:13px;background:#fff;min-width:0}
+.academic-room-card.special{background:#fffcf5;border-color:#fedf89}
+.academic-room-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#f2f4f7}
+.academic-room-card.special .academic-room-icon{background:#fef0c7}
+.academic-room-copy{min-width:0}
+.academic-room-copy strong,.academic-room-copy small{display:block}
+.academic-room-copy strong{font-size:12px}
+.academic-room-copy small{margin-top:2px;font-size:8px;color:var(--muted)}
+.academic-room-program{display:inline-flex;margin-top:5px;padding:2px 7px;border-radius:999px;background:#fff3cd;color:#7a2e0e;font-size:8px;font-weight:800}
+.academic-room-program.muted{background:#f2f4f7;color:#667085}
+.academic-program-room-group{margin-top:14px;padding:12px;border:1px solid #fedf89;border-radius:14px;background:#fffaf0}
+.academic-program-room-head>div{display:flex;gap:8px;align-items:center;margin-bottom:9px}
+.academic-program-room-head strong,.academic-program-room-head small{display:block}
+.academic-program-room-head strong{font-size:11px}
+.academic-program-room-head small{font-size:8px;color:var(--muted)}
+.academic-class-program-panel{scroll-margin-top:100px}
+.academic-class-readonly{grid-column:1/-1;padding:12px 14px;border-radius:12px;background:#f8fafc;border:1px solid var(--line)}
+.academic-class-readonly small,.academic-class-readonly strong,.academic-class-readonly span{display:block}
+.academic-class-readonly small{font-size:8px;color:var(--muted)}
+.academic-class-readonly strong{margin-top:2px;font-size:16px}
+.academic-class-readonly span{margin-top:3px;font-size:8px;color:#667085}
+@media(max-width:900px){.academic-room-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.academic-class-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.academic-room-grid{grid-template-columns:1fr}.academic-room-card{grid-template-columns:34px minmax(0,1fr)}.academic-room-card button{grid-column:1/-1;width:100%}.academic-class-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
