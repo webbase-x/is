@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.1";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1069,42 +1069,119 @@ function adminOverviewHtml(){
   '<section class="module-section"><div class="section-head"><div><p class="eyebrow">Roadmap</p><h2>โมดูลทั้งหมด</h2></div></div><div class="module-grid">'+moduleHtml+'</div></section>';
 }
 
-function overviewHtml(){
+async function overviewHtml(){
   const active=state.memberships.filter(m=>m.status==="active").length;
-  const tenant=(currentSchool()&&currentSchool().name_th)||(currentOrg()&&currentOrg().name_th)||"ยังไม่ได้ผูกสถานศึกษา";
+  const school=currentSchool();
+  const tenant=(school&&school.name_th)||(currentOrg()&&currentOrg().name_th)||"ยังไม่ได้ผูกสถานศึกษา";
   const name=displayName();
   const schoolAdmin=isSchoolAdminContext();
-  const accessText=isPlatformAdminMode()?"ผู้ดูแลแพลตฟอร์ม":schoolAdmin?"ผู้ดูแลสถานศึกษา":state.currentMembership?roleNames():"ยังไม่มีสิทธิ์ใช้งาน";
-  let nextAction="";
-  let notice="";
-  if(isPlatformAdminMode()){
-    nextAction='<a class="primary-btn" href="#/users">เชิญ School Admin คนแรก</a>';
-    notice='<div class="notice">มุมมอง Platform Admin ใช้สำหรับกำกับระบบและแต่งตั้ง School Admin คนแรกของแต่ละโรงเรียน</div>';
-  }else if(state.isPlatformAdmin&&state.viewMode==="user"&&!state.currentMembership){
-    nextAction='<button class="primary-btn" type="button" data-platform-self-school>ตั้งค่าสถานศึกษาของฉันจาก LEC</button>';
-    notice='<div class="notice"><strong>บัญชีนี้เป็น Platform Admin แล้ว</strong><br>หากต้องการทำงานในฐานะ School Admin ของโรงเรียนตนเอง ให้เริ่มจาก LEC ระบบจะสร้าง school_id และผูกสิทธิ์ School Admin ให้อัตโนมัติ</div>';
-  }else if(schoolAdmin&&!schoolSetupReady()){
-    nextAction='<a class="primary-btn" href="#/setup">ตั้งค่าสถานศึกษาให้ครบ</a>';
-    notice='<div class="notice warning"><strong>ยังเปิดการเชิญผู้ใช้ไม่ได้</strong><br>หลังนำเข้า LEC แล้ว ให้ตรวจการตั้งค่าและเชื่อม Google Drive ก่อน ระบบจึงจะเปิดเมนูผู้ใช้และสิทธิ์</div>';
-  }else if(schoolAdmin){
-    nextAction='<a class="primary-btn" href="#/users">เชิญและจัดการผู้ใช้</a>';
-    notice='<div class="notice success">สถานศึกษาพร้อมใช้งาน สามารถเชิญผู้ใช้และกำหนดสิทธิ์ภายในโรงเรียนได้แล้ว</div>';
-  }else if(active){
-    nextAction='<a class="primary-btn" href="#/membership">ดูสิทธิ์ของฉัน</a>';
-    notice='<div class="notice success">บัญชีของคุณพร้อมใช้งาน ระบบจะแสดงข้อมูลตามบทบาทที่ผู้ดูแลกำหนดให้</div>';
-  }else{
-    notice='<div class="notice">บัญชี LAO-EMS ใช้ระบบคำเชิญจากผู้ดูแล หากยังไม่มีสิทธิ์ กรุณาติดต่อผู้ดูแลสถานศึกษาของคุณ</div>';
+  const accessText=schoolAdmin?"ผู้ดูแลสถานศึกษา":state.currentMembership?roleNames():"ยังไม่มีสิทธิ์ใช้งาน";
+  const personnelWork=state.personnelWork||{};
+  const academicWork=state.academicWork||{};
+  const unread=(state.notifications||[]).filter(n=>!n.read_at && (!school||!n.school_id||n.school_id===school.id));
+  const personnelResponsible=Boolean(school)&&(schoolAdmin||personnelWork.can_review||personnelWork.can_manage_intake||personnelWork.can_assign_authority);
+  const academicResponsible=Boolean(school)&&(schoolAdmin||academicWork.can_manage);
+  const timelines=[];
+
+  if(personnelResponsible){
+    try{
+      const timeline=await loadDepartmentSetupTimeline("personnel");
+      if(timeline)timelines.push(timeline);
+    }catch(e){console.warn("overview personnel timeline",e);}
+  }
+  if(academicResponsible){
+    try{
+      const timeline=await loadDepartmentSetupTimeline("academics");
+      if(timeline)timelines.push(timeline);
+    }catch(e){console.warn("overview academics timeline",e);}
   }
 
-  return '<section class="system-banner"><div><span class="badge">LAO-EMS</span><h2>สวัสดี '+esc(name)+'</h2><p>ระบบสารสนเทศเพื่อการบริหารสถานศึกษา</p></div></section>'+
-  '<section class="stats-grid">'+
-    '<article class="stat-card"><span class="stat-icon">🏫</span><div><small>สถานศึกษา</small><strong>'+esc(tenant)+'</strong><p>ข้อมูลโรงเรียนและนักเรียนอ้างอิงจาก LEC</p></div></article>'+
-    '<article class="stat-card"><span class="stat-icon">👤</span><div><small>สิทธิ์การใช้งาน</small><strong>'+esc(accessText)+'</strong><p>'+esc(state.currentMembership?roleNames():"")+'</p></div></article>'+
-    (schoolAdmin?'<article class="stat-card"><span class="stat-icon">'+(schoolSetupReady()?"✓":"⚙")+'</span><div><small>ความพร้อมของโรงเรียน</small><strong>'+(schoolSetupReady()?"พร้อมเชิญผู้ใช้":"กำลังตั้งค่า")+'</strong><p>'+(state.schoolSetup&&state.schoolSetup.drive_connected?"Google Drive เชื่อมแล้ว":"ต้องเชื่อม Google Drive")+'</p></div></article>':'')+
-  '</section>'+
-  '<section class="panel"><div class="panel-head"><div><p class="eyebrow">เริ่มใช้งาน</p><h2>สิ่งที่ต้องดำเนินการ</h2></div></div>'+notice+(nextAction?'<div class="action-row">'+nextAction+'</div>':'')+'</section>';
-}
+  const totalSteps=timelines.reduce((sum,t)=>sum+Number(t.total_count||0),0);
+  const resolvedSteps=timelines.reduce((sum,t)=>sum+Number(t.resolved_count||0),0);
+  const progressPct=totalSteps?Math.round(resolvedSteps*100/totalSteps):(timelines.length?100:0);
+  const pendingJoin=Number(personnelWork.pending_join_requests||0);
+  const pendingTeaching=Number(academicWork.pending_teaching_workloads||0);
+  const returnedTeaching=Number(academicWork.my_returned_workloads||0);
+  const attentionCount=pendingJoin+pendingTeaching+returnedTeaching+unread.length;
 
+  const priority=[];
+  if(schoolAdmin&&!schoolSetupReady()){
+    priority.push({icon:"⚙",title:"ตั้งค่าสถานศึกษาให้ครบ",desc:"ตรวจข้อมูลพื้นฐานและเชื่อม Google Drive ก่อนเปิดใช้งานส่วนอื่น",route:"#/setup",label:"ทำต่อ",tone:"warning"});
+  }
+  timelines.forEach(t=>{
+    if(t.next_step)priority.push({
+      icon:"▶",title:(t.department_name||"งาน")+" · "+t.next_step.title,
+      desc:t.next_step.is_required?"ขั้นตอนจำเป็น ต้องดำเนินการก่อนขั้นถัดไป":"ขั้นตอนนี้ข้ามได้ หากยังไม่กระทบงานถัดไป",
+      route:t.next_step.route,label:"ทำต่อ",tone:"primary"
+    });
+  });
+  if(pendingJoin>0&&personnelWork.can_review){
+    priority.push({icon:"👥",title:"ตรวจคำขอเข้าร่วม "+pendingJoin+" รายการ",desc:"มีบุคลากรรอการตรวจสอบและอนุมัติ",route:"#/personnel/requests",label:"ตรวจสอบ",tone:"warning"});
+  }
+  if(pendingTeaching>0&&academicWork.can_manage){
+    priority.push({icon:"📚",title:"ตรวจภาระงานสอน "+pendingTeaching+" รายการ",desc:"มีภาระงานสอนที่ส่งมาและรอการพิจารณา",route:"#/academics/workload",label:"ตรวจสอบ",tone:"warning"});
+  }
+  if(returnedTeaching>0){
+    priority.push({icon:"↩",title:"แก้ไขภาระงานสอนที่ถูกส่งกลับ "+returnedTeaching+" รายการ",desc:"มีรายการของคุณที่ต้องปรับแก้แล้วส่งใหม่",route:"#/academics/workload",label:"แก้ไข",tone:"danger"});
+  }
+
+  const priorityHtml=priority.length
+    ?priority.slice(0,6).map((item,i)=>'<a class="overview-priority-item '+esc(item.tone||"")+'" href="'+esc(item.route)+'"><span class="overview-priority-order">'+(i+1)+'</span><span class="overview-priority-icon">'+item.icon+'</span><span class="overview-priority-copy"><strong>'+esc(item.title)+'</strong><small>'+esc(item.desc)+'</small></span><em>'+esc(item.label)+'</em></a>').join("")
+    :'<div class="overview-clear-state"><span>✓</span><div><strong>ยังไม่มีงานเร่งด่วนที่ต้องดำเนินการ</strong><p>เมื่อมีขั้นตอนใหม่ งานส่งกลับ หรือรายการรออนุมัติ ระบบจะแสดงที่นี่อัตโนมัติ</p></div></div>';
+
+  const timelineCards=timelines.length
+    ?timelines.map(t=>{
+      const total=Number(t.total_count||0),resolved=Number(t.resolved_count||0);
+      const pct=total?Math.round(resolved*100/total):100;
+      const next=t.next_step;
+      const pending=Math.max(total-resolved,0);
+      return '<article class="overview-department-card">'+
+        '<div class="overview-department-head"><div><span class="overview-department-icon">'+(t.department_code==="personnel"?"👥":"📚")+'</span><div><small>ฝ่ายที่รับผิดชอบ</small><strong>'+esc(t.department_name||t.department_code)+'</strong></div></div><span class="pill '+(t.is_complete?"success":"warning")+'">'+(t.is_complete?"ครบแล้ว":"เหลือ "+pending+" ขั้น")+'</span></div>'+
+        '<div class="overview-department-progress"><div><span>ความก้าวหน้า</span><strong>'+pct+'%</strong></div><div class="department-progress-track"><span style="width:'+pct+'%"></span></div><small>'+resolved+' จาก '+total+' ขั้นตอนดำเนินการแล้ว/ข้ามตามเงื่อนไข</small></div>'+
+        (next?'<div class="overview-department-next"><span>ทำต่อ</span><div><strong>'+esc(next.title)+'</strong><small>'+(next.is_required?"จำเป็นต้องทำตามลำดับ":"ข้ามได้หากยังไม่กระทบขั้นอื่น")+'</small></div><a href="'+esc(next.route)+'">เปิดงาน</a></div>':'<div class="overview-department-complete">✓ ไม่มีขั้นตอนตั้งค่าค้างในฝ่ายนี้</div>')+
+        '<a class="overview-department-open" href="'+(t.department_code==="personnel"?"#/personnel":"#/academics")+'">ดูไทม์ไลน์ทั้งหมด →</a>'+
+      '</article>';
+    }).join("")
+    :'<div class="overview-empty-responsibility"><span>ℹ</span><div><strong>ยังไม่มีไทม์ไลน์ฝ่ายที่บัญชีนี้ต้องรับผิดชอบ</strong><p>ระบบจะแสดงเฉพาะฝ่ายที่ได้รับสิทธิ์บริหารหรือได้รับมอบหมาย ไม่แสดงงานที่ไม่มีหน้าที่รับผิดชอบ</p></div></div>';
+
+  const notificationHtml=unread.length
+    ?unread.slice(0,5).map(n=>'<a class="overview-notification-row" href="#/notifications"><span>🔔</span><div><strong>'+esc(n.title||"การแจ้งเตือน")+'</strong><small>'+esc(n.body||"")+'</small></div><time>'+esc(thaiDateTime(n.created_at))+'</time></a>').join("")
+    :'<div class="overview-mini-empty">ไม่มีการแจ้งเตือนที่ยังไม่ได้อ่าน</div>';
+
+  let onboardingNotice="";
+  if(!school){
+    onboardingNotice='<div class="notice"><strong>ยังไม่ได้เลือกหรือผูกสถานศึกษา</strong><br>เมื่อมีสิทธิ์ในสถานศึกษาแล้ว ระบบจะแสดงงานตามหน้าที่รับผิดชอบของคุณที่หน้านี้</div>';
+  }else if(schoolAdmin&&!schoolSetupReady()){
+    onboardingNotice='<div class="notice warning"><strong>การตั้งค่าสถานศึกษายังไม่สมบูรณ์</strong><br>ส่วนที่ต้องพึ่งข้อมูลตั้งต้นอาจยังใช้งานไม่ได้ครบ กรุณาดำเนินการรายการแรกใน “งานที่ต้องทำต่อ”</div>';
+  }
+
+  return '<section class="system-banner overview-banner"><div><span class="badge">MY WORKSPACE</span><h2>สวัสดี '+esc(name)+'</h2><p>'+esc(tenant)+' · '+esc(accessText)+'</p></div><div class="overview-banner-progress"><small>ความก้าวหน้าการตั้งค่าที่รับผิดชอบ</small><strong>'+progressPct+'%</strong><span>'+resolvedSteps+'/'+totalSteps+' ขั้นตอน</span></div></section>'+
+    onboardingNotice+
+    '<section class="overview-kpi-grid">'+
+      '<article><span>🎯</span><div><small>งานที่ควรทำต่อ</small><strong>'+priority.length.toLocaleString("th-TH")+'</strong><p>รายการตามลำดับความสำคัญ</p></div></article>'+
+      '<article><span>⏳</span><div><small>งานรอดำเนินการ</small><strong>'+attentionCount.toLocaleString("th-TH")+'</strong><p>อนุมัติ / ส่งกลับ / แจ้งเตือน</p></div></article>'+
+      '<article><span>✅</span><div><small>ความก้าวหน้ารวม</small><strong>'+progressPct+'%</strong><p>'+resolvedSteps+' จาก '+totalSteps+' ขั้นตอน</p></div></article>'+
+      '<article><span>🔔</span><div><small>แจ้งเตือนใหม่</small><strong>'+unread.length.toLocaleString("th-TH")+'</strong><p>รายการที่ยังไม่ได้อ่าน</p></div></article>'+
+    '</section>'+
+    '<section class="overview-dashboard-grid">'+
+      '<article class="panel overview-priority-panel"><div class="panel-head"><div><p class="eyebrow">NEXT ACTION</p><h2>งานที่ต้องทำต่อ</h2><p class="panel-sub">เรียงจากงานตั้งค่าที่จำเป็น งานรออนุมัติ และงานที่ถูกส่งกลับ</p></div></div><div class="overview-priority-list">'+priorityHtml+'</div></article>'+
+      '<article class="panel overview-attention-panel"><div class="panel-head"><div><p class="eyebrow">ATTENTION</p><h2>สิ่งที่ต้องติดตาม</h2></div><a class="text-btn" href="#/notifications">ดูทั้งหมด</a></div>'+
+        '<div class="overview-attention-summary">'+
+          (personnelWork.can_review?'<div><span>👥</span><strong>'+pendingJoin+'</strong><small>คำขอบุคลากรรอตรวจ</small></div>':'')+
+          (academicWork.can_manage?'<div><span>📚</span><strong>'+pendingTeaching+'</strong><small>ภาระงานสอนรออนุมัติ</small></div>':'')+
+          (returnedTeaching?'<div><span>↩</span><strong>'+returnedTeaching+'</strong><small>งานของฉันถูกส่งกลับ</small></div>':'')+
+          '<div><span>🔔</span><strong>'+unread.length+'</strong><small>แจ้งเตือนใหม่</small></div>'+
+        '</div><div class="overview-notification-list">'+notificationHtml+'</div></article>'+
+    '</section>'+
+    '<section class="overview-section-head"><div><p class="eyebrow">RESPONSIBILITY TIMELINE</p><h2>ไทม์ไลน์งานที่ฉันรับผิดชอบ</h2><p>แสดงเฉพาะฝ่ายที่บัญชีนี้มีหน้าที่จัดการ พร้อมจุดที่ทำค้างไว้และขั้นตอนถัดไป</p></div></section>'+
+    '<section class="overview-department-grid">'+timelineCards+'</section>'+
+    '<section class="panel overview-context-panel"><div class="panel-head"><div><p class="eyebrow">MY CONTEXT</p><h2>บริบทการทำงานปัจจุบัน</h2></div></div><div class="overview-context-grid">'+
+      '<div><small>สถานศึกษา</small><strong>'+esc(tenant)+'</strong></div>'+
+      '<div><small>บทบาท</small><strong>'+esc(state.currentMembership?roleNames():"-")+'</strong></div>'+
+      '<div><small>สิทธิ์ที่ใช้งาน</small><strong>'+active.toLocaleString("th-TH")+'</strong><span>Membership</span></div>'+
+      '<div><small>ความพร้อมสถานศึกษา</small><strong>'+(schoolAdmin?(schoolSetupReady()?"พร้อมใช้งาน":"กำลังตั้งค่า"):"ตามสิทธิ์ที่ได้รับ")+'</strong></div>'+
+    '</div></section>';
+}
 function membershipHtml(){
   const statusMap={pending:["รออนุมัติ","warning"],active:["ใช้งานได้","success"],rejected:["ไม่อนุมัติ","danger"],suspended:["ระงับ","danger"],ended:["สิ้นสุด","neutral"]};
   const rows=state.memberships.map(m=>{
@@ -4115,7 +4192,10 @@ async function renderRoute(){
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
   main.innerHTML='<section class="panel"><div class="loading-inline"><span class="spinner"></span>กำลังโหลด...</div></section>';
   try{
-    if(route==="overview"){main.innerHTML=installCardHtml()+((state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():overviewHtml());bindOverview();bindPwaInstallCard();}
+    if(route==="overview"){
+      main.innerHTML=installCardHtml()+((state.isPlatformAdmin&&state.viewMode==="admin")?adminOverviewHtml():await overviewHtml());
+      bindOverview();bindDepartmentSetupTimeline();bindPwaInstallCard();
+    }
     else if(route==="membership"){main.innerHTML=membershipHtml();}
     else if(route==="activate"){main.innerHTML=activationHtml();bindActivation();}
     else if(route==="profile"){main.innerHTML=profileHtml();bindProfile();}
