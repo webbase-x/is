@@ -3753,3 +3753,14 @@ table{max-width:none}
 .subject-default-info{padding:12px 14px;border:1px solid #abefc6;border-radius:12px;background:#f6fef9}
 .subject-default-info strong{display:block;font-size:10px;color:#067647}
 .subject-default-info p{margin:4px 0 0;font-size:8.5px;line-height:1.55;color:#475467}
+
+
+/* Flicker-free route rendering */
+.boot-screen{transition:opacity .16s ease,visibility .16s ease}
+.boot-screen.is-leaving{opacity:0;visibility:hidden;pointer-events:none}
+.content{position:relative}
+.content.route-pending{min-height:180px}
+.content.route-pending::before{content:"";position:fixed;left:var(--sidebar);right:0;top:0;height:2px;z-index:950;background:linear-gradient(90deg,transparent,var(--primary),transparent);background-size:45% 100%;animation:route-progress 1s linear infinite;pointer-events:none}
+@keyframes route-progress{from{background-position:-50% 0}to{background-position:150% 0}}
+@media(max-width:900px){.content.route-pending::before{left:0}}
+@media(prefers-reduced-motion:reduce){.boot-screen{transition:none}.content.route-pending::before{animation:none;background:var(--primary)}}
