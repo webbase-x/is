@@ -3266,6 +3266,9 @@ function academicClassesHtml(data){
   items.forEach(x=>{gradeCounts[x.grade_label]=(gradeCounts[x.grade_label]||0)+1;});
   const gradeTabs=Object.keys(gradeCounts).sort((a,b)=>academicGradeOrder(a)-academicGradeOrder(b)||a.localeCompare(b,"th"));
   if(state.classGradeFilter&&!gradeCounts[state.classGradeFilter])state.classGradeFilter="";
+  const totalNormal=items.filter(x=>!x.program_id);
+  const totalSpecial=items.filter(x=>Boolean(x.program_id));
+  const totalProgramIds=new Set(totalSpecial.map(x=>x.program_id).filter(Boolean));
   const visibleItems=state.classGradeFilter?items.filter(x=>x.grade_label===state.classGradeFilter):items;
   const normal=visibleItems.filter(x=>!x.program_id);
   const special=visibleItems.filter(x=>Boolean(x.program_id));
@@ -3302,7 +3305,7 @@ function academicClassesHtml(data){
   return '<section class="academic-page">'+academicNavHtml("classes",data)+
     '<section class="panel academic-class-overview"><div class="panel-head"><div><p class="eyebrow">CLASS SECTIONS · LEC SOURCE</p><h2>ชั้น/ห้องจากระบบนักเรียน</h2><p class="panel-sub">'+(year?'ปีการศึกษา '+esc(year.year_be):'ยังไม่ได้เลือกปีการศึกษา')+' · ใช้ข้อมูลห้องที่พบจากนักเรียนใน LEC เป็นข้อมูลต้นทาง</p></div><span class="pill success">'+items.length+' ห้องจาก LEC</span></div>'+
       '<div class="academic-class-control-grid">'+sourceNotice+editSwitch+'</div>'+
-      '<div class="academic-class-stat-grid"><article><small>ห้องทั้งหมด</small><strong>'+items.length+'</strong><span>ห้อง</span></article><article><small>ห้องปกติ</small><strong>'+normal.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมพิเศษ</small><strong>'+special.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมที่ใช้</small><strong>'+Object.keys(byProgram).length+'</strong><span>โปรแกรม</span></article></div>'+
+      '<div class="academic-class-stat-grid"><article><small>ห้องทั้งหมด</small><strong>'+items.length+'</strong><span>ห้อง</span></article><article><small>ห้องปกติ</small><strong>'+totalNormal.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมพิเศษ</small><strong>'+totalSpecial.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมที่ใช้</small><strong>'+totalProgramIds.size+'</strong><span>โปรแกรม</span></article></div>'+
     '</section>'+
     gradeTabsHtml+
     '<section class="academic-class-filter-summary">'+(state.classGradeFilter?'<strong>กำลังแสดง '+esc(shortGrade(state.classGradeFilter))+'</strong><span>'+visibleItems.length+' ห้องในระดับชั้นนี้</span>':'<strong>แสดงทุกระดับชั้น</strong><span>'+items.length+' ห้องจาก LEC</span>')+'</section>'+
