@@ -3743,3 +3743,13 @@ table{max-width:none}
 @media(max-width:650px){.subjects-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.subject-used-row{grid-template-columns:90px minmax(0,1fr)}.subject-used-row>div:nth-child(3),.subject-used-row>div:nth-child(4){margin-top:3px}.subject-source-row{grid-template-columns:28px minmax(0,1fr)}.subject-source-row>div:nth-child(2),.subject-source-row>div:nth-child(3){grid-column:auto}.subject-source-row>div:nth-child(4),.subject-source-row>div:nth-child(5){grid-column:auto}.subject-source-actions{align-items:stretch;flex-direction:column}.subject-source-actions .primary-btn{width:100%}}
 
 .subject-early-note{margin-top:8px;padding:8px 10px;border-radius:9px;background:#f9fafb;border:1px dashed #d0d5dd;font-size:8px;color:#667085}
+
+
+/* Automatic curriculum defaults */
+.subjects-ready-strip{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+.subjects-ready-strip span{padding:7px 10px;border:1px solid #eaecf0;border-radius:999px;background:#fff;font-size:8px;font-weight:800;color:#475467}
+.subjects-ready-strip span.ready{background:#ecfdf3;border-color:#abefc6;color:#067647}
+.subjects-ready-strip span.pending{background:#fffaeb;border-color:#fedf89;color:#93370d}
+.subject-default-info{padding:12px 14px;border:1px solid #abefc6;border-radius:12px;background:#f6fef9}
+.subject-default-info strong{display:block;font-size:10px;color:#067647}
+.subject-default-info p{margin:4px 0 0;font-size:8.5px;line-height:1.55;color:#475467}
