@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.15.8";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.15.9";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -3342,6 +3342,9 @@ function academicSubjectsHtml(data){
   const gradeLabel=academicGradeLabelFromCode(gradeCode);
   const scope=["core","additional","activity"].includes(state.subjectCatalogScope)?state.subjectCatalogScope:"core";
   state.subjectCatalogScope=scope;
+  const scopeLabel={core:"วิชาพื้นฐาน",activity:"กิจกรรมพัฒนาผู้เรียน",additional:"วิชาเพิ่มเติม / จุดเน้น"}[scope];
+  const setupTab=["target","grade","type"].includes(state.subjectSetupTab)?state.subjectSetupTab:"target";
+  state.subjectSetupTab=setupTab;
   const targetRoomCount=targetClasses.filter(c=>c.grade_label===gradeLabel).length;
   const earlyChildhoodCount=classes.filter(c=>String(academicGradeCode(c.grade_label)||"").startsWith("K")).length;
 
@@ -3408,10 +3411,19 @@ function academicSubjectsHtml(data){
       '<div class="subjects-summary-grid"><article><small>ระดับชั้นที่มีจริง</small><strong>'+allSchoolGrades.length+'</strong><span>ระดับ</span></article><article><small>ห้องเรียนทั้งหมด</small><strong>'+classes.length+'</strong><span>ห้อง</span></article><article><small>ห้องปกติ</small><strong>'+generalRooms+'</strong><span>ห้อง</span></article><article><small>ห้องพิเศษ</small><strong>'+specialRooms+'</strong><span>'+actualPrograms.length+' โปรแกรม</span></article></div>'+
     '</section>'+
     '<section class="subjects-ready-strip"><span class="'+(coreReady?"ready":"pending")+'">'+(coreReady?"✓":"!")+' วิชาพื้นฐาน '+(coreReady?"พร้อม":"กำลังตั้งค่า")+'</span><span class="'+(activityReady?"ready":"pending")+'">'+(activityReady?"✓":"!")+' กิจกรรมพัฒนาผู้เรียน '+(activityReady?"พร้อม":"กำลังตั้งค่า")+'</span><span>วิชาเพิ่มเติม '+additionalCount+' วิชา</span></section>'+
-    '<section class="panel subject-selection-tabs">'+
-      '<div class="subject-tab-row"><div class="subject-tab-label"><strong>กลุ่มห้อง</strong><small>'+(selectedProgram?'รับค่าพื้นฐานจากห้องปกติ และเพิ่มเฉพาะวิชาเฉพาะโปรแกรม':'เลือกห้องปกติหรือโปรแกรมพิเศษ')+'</small></div><div class="subject-target-tabs">'+targetTabs+'</div></div>'+
-      '<div class="subject-tab-row"><div class="subject-tab-label"><strong>ระดับชั้น</strong><small>แสดงเฉพาะระดับที่มีห้องจริง</small></div><div class="subject-grade-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับ ป.1–ม.6 ในกลุ่มนี้</span>')+'</div></div>'+
-      '<div class="subject-tab-row"><div class="subject-tab-label"><strong>ประเภทวิชา</strong><small>พื้นฐานและกิจกรรมเป็นค่าเริ่มต้น ส่วนวิชาเพิ่มเติมโรงเรียนเลือกเอง</small></div><div class="subject-scope-tabs">'+scopeTabs+'</div></div>'+
+    '<section class="panel subject-tab-menu-panel">'+
+      '<nav class="subject-setup-menu" aria-label="ตั้งค่ารายวิชา">'+
+        '<button type="button" class="'+(setupTab==="target"?"active":"")+'" data-subject-setup-tab="target"><span>กลุ่มห้อง</span><strong>'+esc(targetLabel)+'</strong></button>'+
+        '<button type="button" class="'+(setupTab==="grade"?"active":"")+'" data-subject-setup-tab="grade"><span>ระดับชั้น</span><strong>'+esc(shortGrade(gradeLabel))+'</strong></button>'+
+        '<button type="button" class="'+(setupTab==="type"?"active":"")+'" data-subject-setup-tab="type"><span>ประเภทวิชา</span><strong>'+esc(scopeLabel)+'</strong></button>'+
+      '</nav>'+
+      '<div class="subject-setup-panel">'+
+        (setupTab==="target"
+          ?'<div class="subject-setup-panel-head"><strong>เลือกกลุ่มห้อง</strong><small>เลือกห้องปกติหรือโปรแกรมพิเศษ</small></div><div class="subject-target-tabs">'+targetTabs+'</div>'+(selectedProgram?'<div class="subject-inline-note">โปรแกรมพิเศษรับค่าพื้นฐานจากห้องปกติ และเพิ่มเฉพาะวิชาเฉพาะโปรแกรม</div>':'')
+          :setupTab==="grade"
+            ?'<div class="subject-setup-panel-head"><strong>เลือกระดับชั้น</strong><small>แสดงเฉพาะระดับที่มีห้องจริงใน '+esc(targetLabel)+'</small></div><div class="subject-grade-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับ ป.1–ม.6 ในกลุ่มนี้</span>')+'</div>'
+            :'<div class="subject-setup-panel-head"><strong>เลือกประเภทวิชา</strong><small>พื้นฐานและกิจกรรมเป็นค่าเริ่มต้น ส่วนวิชาเพิ่มเติมโรงเรียนเลือกเอง</small></div><div class="subject-scope-tabs">'+scopeTabs+'</div>')+
+      '</div>'+
       (earlyChildhoodCount?'<div class="subject-early-note">ระดับอนุบาลใช้หลักสูตรการศึกษาปฐมวัย จึงแยกออกจากฐานรายวิชาหลักสูตรขั้นพื้นฐานนี้</div>':'')+
     '</section>'+
     '<section class="subjects-two-column">'+
@@ -4048,17 +4060,24 @@ function bindAcademics(){
     setTimeout(()=>renderRoute(),450);
   }));
 
+  qa("[data-subject-setup-tab]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.subjectSetupTab=btn.dataset.subjectSetupTab||"target";
+    renderRoute();
+  }));
   qa("[data-subject-catalog-grade]").forEach(btn=>btn.addEventListener("click",()=>{
     state.academicPresetGrade=btn.dataset.subjectCatalogGrade||"P1";
+    state.subjectSetupTab="type";
     renderRoute();
   }));
   qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectProgramId=btn.dataset.subjectTarget||"";
+    state.subjectSetupTab="grade";
     state.academicPreset=null;
     renderRoute();
   }));
   qa("[data-subject-catalog-scope]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectCatalogScope=btn.dataset.subjectCatalogScope||"core";
+    state.subjectSetupTab="type";
     renderRoute();
   }));
   const importCatalog=q("[data-import-subject-catalog]");
