@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.15.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.15.1";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3294,10 +3294,10 @@ function academicClassesHtml(data){
 
   return '<section class="academic-page">'+academicNavHtml("classes",data)+
     '<section class="panel academic-class-overview"><div class="panel-head"><div><p class="eyebrow">CLASS SECTIONS · LEC SOURCE</p><h2>ชั้น/ห้องจากระบบนักเรียน</h2><p class="panel-sub">'+(year?'ปีการศึกษา '+esc(year.year_be):'ยังไม่ได้เลือกปีการศึกษา')+' · ใช้ข้อมูลห้องที่พบจากนักเรียนใน LEC เป็นข้อมูลต้นทาง</p></div><span class="pill success">'+items.length+' ห้องจาก LEC</span></div>'+
-      sourceNotice+editSwitch+
+      '<div class="academic-class-control-grid">'+sourceNotice+editSwitch+'</div>'+
       '<div class="academic-class-stat-grid"><article><small>ห้องทั้งหมด</small><strong>'+items.length+'</strong><span>ห้อง</span></article><article><small>ห้องปกติ</small><strong>'+normal.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมพิเศษ</small><strong>'+special.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมที่ใช้</small><strong>'+Object.keys(byProgram).length+'</strong><span>โปรแกรม</span></article></div>'+
     '</section>'+
-    '<section class="academic-class-split">'+
+    '<section class="academic-class-layout">'+
       '<section class="panel academic-class-section normal"><div class="panel-head"><div><p class="eyebrow">GENERAL ROOMS</p><h2>ห้องปกติ</h2><p class="panel-sub">ห้องจาก LEC ที่ยังไม่ได้กำหนดหลักสูตร/โครงการ/โปรแกรมพิเศษ</p></div><span class="pill">'+normal.length+' ห้อง</span></div>'+
         (normalGroups||'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีห้องปกติที่รอกำหนด</h3></div>')+
       '</section>'+
