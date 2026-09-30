@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.15.0";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -543,7 +543,7 @@ function bindStaticUI(){
   const close=()=>{sidebar.classList.remove("open");scrim.classList.remove("show");};
   q("[data-sidebar-close]").addEventListener("click",close);
   scrim.addEventListener("click",close);
-  window.addEventListener("hashchange",()=>{if(state.user)renderRoute();else showAuth();close();});
+  window.addEventListener("hashchange",()=>{if(!location.hash.startsWith("#/academics/classes"))state.classProgramEditMode=false;if(state.user)renderRoute();else showAuth();close();});
   q("[data-signout]").addEventListener("click",()=>{
     localStorage.setItem("lao_legacy_session_rejected","1");
     clearLaoAuthSession();
@@ -3879,9 +3879,12 @@ function bindAcademics(){
     q(".academic-page")?.classList.toggle("class-program-editing",enabled);
   };
   if(classProgramSwitch){
-    classProgramSwitch.checked=false;
-    setClassProgramEditMode(false);
-    classProgramSwitch.addEventListener("change",()=>setClassProgramEditMode(classProgramSwitch.checked));
+    classProgramSwitch.checked=Boolean(state.classProgramEditMode);
+    setClassProgramEditMode(Boolean(state.classProgramEditMode));
+    classProgramSwitch.addEventListener("change",()=>{
+      state.classProgramEditMode=classProgramSwitch.checked;
+      setClassProgramEditMode(state.classProgramEditMode);
+    });
   }
   classProgramSelects.forEach(sel=>sel.addEventListener("change",async()=>{
     if(!classProgramSwitch||!classProgramSwitch.checked){
@@ -3910,6 +3913,8 @@ function bindAcademics(){
       return;
     }
     const program=(data.programs||[]).find(p=>p.id===newValue);
+    c.program_id=newValue||null;
+    c.program_name=program?program.name_th:null;
     if(status){status.textContent="บันทึกแล้ว"+(program?" · "+program.name_th:" · ห้องปกติ");status.className="saved";}
     toast("บันทึกแล้ว · "+shortGrade(c.grade_label)+"/"+c.section_label+" → "+(program?program.name_th:"ห้องปกติ"),"success");
     setTimeout(()=>renderRoute(),450);
