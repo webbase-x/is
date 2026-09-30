@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.5";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.14.6";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3229,8 +3229,8 @@ function academicPeriodsHtml(data){
       '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
     '</section>'+
     (canManage?'<section class="academic-edit-grid">'+
-      '<article class="panel"><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">เมื่อเพิ่มปีใหม่ ระบบจะสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2569"></label><label>วันเริ่มปีการศึกษา<input name="starts_on" type="date"></label><label>วันสิ้นสุดปีการศึกษา<input name="ends_on" type="date"></label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
-      '<article class="panel" data-term-form-panel><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม<input name="starts_on" type="date"></label><label>วันสิ้นสุด<input name="ends_on" type="date"></label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
+      '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">เมื่อเพิ่มปีใหม่ ระบบจะสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2569"></label><label>วันเริ่มปีการศึกษา<input name="starts_on" type="date"></label><label>วันสิ้นสุดปีการศึกษา<input name="ends_on" type="date"></label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
+      '<article class="panel hidden" data-term-form-panel><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม<input name="starts_on" type="date"></label><label>วันสิ้นสุด<input name="ends_on" type="date"></label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
     '</section>':'')+
   '</section>';
 }
@@ -3656,7 +3656,12 @@ function bindAcademics(){
   });
 
   const yearForm=q("#academic-year-form");
+  const yearPanel=q("[data-year-form-panel]");
   const termPanel=q("[data-term-form-panel]");
+  const showAcademicPeriodPanel=(panel)=>{
+    if(yearPanel)yearPanel.classList.toggle("hidden",panel!=="year");
+    if(termPanel)termPanel.classList.toggle("hidden",panel!=="term");
+  };
   const prepareNewYear=()=>{
     academicResetForm(yearForm,"[data-year-form-title]","เพิ่มปีการศึกษา");
     if(yearForm){
@@ -3666,7 +3671,7 @@ function bindAcademics(){
   };
   qa("[data-new-year-form]").forEach(btn=>btn.addEventListener("click",()=>{
     prepareNewYear();
-    if(termPanel)termPanel.classList.add("hidden");
+    showAcademicPeriodPanel("year");
   }));
   qa("[data-reset-year-form]").forEach(btn=>btn.addEventListener("click",()=>{
     academicResetForm(yearForm,"[data-year-form-title]","เพิ่มปีการศึกษา");
@@ -3677,6 +3682,7 @@ function bindAcademics(){
   }));
   qa("[data-edit-year]").forEach(btn=>btn.addEventListener("click",()=>{
     const y=(data.years||[]).find(x=>x.id===btn.dataset.editYear);if(!y||!yearForm)return;
+    showAcademicPeriodPanel("year");
     yearForm.dataset.id=y.id;
     academicSetFormValue(yearForm,"year_be",y.year_be);
     academicSetFormValue(yearForm,"starts_on",y.starts_on);
@@ -3708,10 +3714,11 @@ function bindAcademics(){
     academicResetForm(termForm,"[data-term-form-title]","เพิ่ม/แก้ไขภาคเรียน");
     if(termForm&&data.selected_year_id)academicSetFormValue(termForm,"academic_year_id",data.selected_year_id);
   };
-  qa("[data-reset-term-form]").forEach(btn=>btn.addEventListener("click",()=>{resetTerm();academicScrollToForm(termForm);}));
+  qa("[data-reset-term-form]").forEach(btn=>btn.addEventListener("click",()=>{resetTerm();showAcademicPeriodPanel("term");academicScrollToForm(termForm);}));
   qa("[data-edit-term]").forEach(btn=>btn.addEventListener("click",()=>{
     const y=(data.years||[]).find(x=>x.id===btn.dataset.yearId);
     const t=y&&(y.terms||[]).find(x=>x.id===btn.dataset.editTerm);if(!t||!termForm)return;
+    showAcademicPeriodPanel("term");
     termForm.dataset.id=t.id;
     academicSetFormValue(termForm,"academic_year_id",y.id);
     academicSetFormValue(termForm,"term_no",t.term_no);
