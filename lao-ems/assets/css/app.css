@@ -4007,3 +4007,51 @@ table{max-width:none}
   .teaching-workload-list-panel .empty-state.compact-empty{padding:16px 8px}
   .teaching-editor-panel .empty-state.compact-empty p{max-width:260px}
 }
+
+
+/* Subject library readiness + clean curriculum flow */
+.subject-timeline-strip{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0 0 12px;padding:8px 10px;border:1px solid #eaecf0;border-radius:12px;background:#fff}
+.subject-timeline-strip>b{font-size:8px;color:#98a2b3}
+.subject-timeline-step{padding:6px 9px;border-radius:999px;font-size:8px;font-weight:800;background:#f2f4f7;color:#667085}
+.subject-timeline-step.completed{background:#ecfdf3;color:#067647}
+.subject-timeline-step.current{background:#eff4ff;color:#1849a9}
+.curriculum-readiness-card{padding:14px 15px}
+.curriculum-readiness-card.success{border-color:#abefc6;background:#f6fef9}
+.curriculum-readiness-card.info{border-color:#b2ddff;background:#f5fbff}
+.curriculum-readiness-card.warning{border-color:#fedf89;background:#fffcf5}
+.curriculum-readiness-main{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.curriculum-readiness-main h3{margin:2px 0 3px;font-size:12px}
+.curriculum-readiness-main p{margin:0;font-size:8.5px;color:#667085}
+.curriculum-readiness-progress{min-width:130px;text-align:right}
+.curriculum-readiness-progress>strong,.curriculum-readiness-progress>span{display:block}
+.curriculum-readiness-progress>strong{font-size:17px}.curriculum-readiness-progress>span{font-size:7.5px;color:#667085}
+.curriculum-readiness-progress>div{height:5px;margin-top:5px;border-radius:999px;background:#eaecf0;overflow:hidden}
+.curriculum-readiness-progress i{display:block;height:100%;border-radius:999px;background:#17b26a}
+.curriculum-readiness-metrics{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.curriculum-readiness-metrics span{padding:5px 8px;border:1px solid #eaecf0;border-radius:999px;background:#fff;font-size:7.5px;color:#475467}
+.curriculum-readiness-metrics span.ok{border-color:#abefc6;color:#067647}
+.curriculum-readiness-metrics span.warn{border-color:#fedf89;color:#93370d}
+.curriculum-readiness-actions{display:flex;align-items:center;gap:8px;margin-top:10px}
+.readiness-confirmed{font-size:8px;font-weight:800;color:#067647}
+.readiness-help{font-size:8px;color:#667085}
+.subject-card-action{display:flex;align-items:center;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.subject-origin.direct{background:#f2f4f7;color:#475467}
+.subject-selected-card{grid-template-columns:minmax(0,1fr) auto minmax(110px,auto)}
+.subject-library-panel,.subject-selected-panel{overflow:hidden}
+.subject-library-list,.subject-selected-list{max-height:560px;overflow:auto;padding-right:2px}
+.subject-library-list::-webkit-scrollbar,.subject-selected-list::-webkit-scrollbar{width:5px}
+.subject-library-list::-webkit-scrollbar-thumb,.subject-selected-list::-webkit-scrollbar-thumb{background:#d0d5dd;border-radius:999px}
+@media(max-width:1050px){
+  .subjects-library-layout{grid-template-columns:1fr}
+  .subject-library-list,.subject-selected-list{max-height:none}
+}
+@media(max-width:680px){
+  .curriculum-readiness-main{flex-direction:column}
+  .curriculum-readiness-progress{width:100%;min-width:0;text-align:left}
+  .subject-selected-card{grid-template-columns:1fr}
+  .subject-card-hours{justify-content:flex-start}
+  .subject-card-hours span{text-align:left}
+  .subject-card-action{justify-content:flex-start}
+  .subject-timeline-strip{overflow-x:auto;flex-wrap:nowrap}
+  .subject-timeline-step{flex:0 0 auto}
+}
