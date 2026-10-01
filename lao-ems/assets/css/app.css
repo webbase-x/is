@@ -4096,3 +4096,42 @@ table{max-width:none}
   .subject-workspace-panel .subject-selected-list,
   .subject-workspace-panel .subject-library-list{max-height:none}
 }
+
+
+/* Subject library + elective time groups v0.16.5 */
+.subject-parallel-tools{margin:0 0 12px;padding:11px 12px;border:1px solid #d1e0ff;border-radius:12px;background:#f9fbff}
+.subject-parallel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.subject-parallel-head strong,.subject-parallel-head small{display:block}
+.subject-parallel-head strong{font-size:10px;color:#1849a9}
+.subject-parallel-head small{margin-top:2px;font-size:8px;line-height:1.45;color:#667085}
+.parallel-group-list{display:grid;gap:6px;margin-top:9px}
+.parallel-group-card{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:8px 10px;border:1px solid #d0d5dd;border-radius:9px;background:#fff}
+.parallel-group-card strong,.parallel-group-card small{display:block}
+.parallel-group-card strong{font-size:9px;color:#101828}
+.parallel-group-card small{margin-top:2px;font-size:7.5px;color:#667085;line-height:1.4}
+.parallel-group-card>span{font-size:8px;font-weight:800;color:#1849a9;white-space:nowrap}
+.parallel-group-form{margin-top:9px;padding-top:9px;border-top:1px solid #d1e0ff}
+.parallel-group-form-grid{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:8px}
+.parallel-group-form label{font-size:8px;font-weight:800;color:#475467}
+.parallel-group-form input{width:100%;min-height:38px;margin-top:4px}
+.parallel-group-picked{margin-top:7px;font-size:8px;line-height:1.45;color:#667085}
+.parallel-group-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:9px}
+.subject-group-check{display:flex;align-items:center;justify-content:center;align-self:center}
+.subject-group-check input{position:absolute;opacity:0;pointer-events:none}
+.subject-group-check span{display:block;width:20px;height:20px;border:1px solid #98a2b3;border-radius:6px;background:#fff}
+.subject-group-check input:checked+span{border-color:#175cd3;background:#175cd3;box-shadow:inset 0 0 0 4px #fff}
+.subject-selected-card:has(.subject-group-check){grid-template-columns:24px minmax(0,1fr) auto minmax(110px,auto)}
+.subject-selected-card.in-parallel-group{border-color:#b2ccff;background:#fbfcff}
+@media(max-width:760px){
+  .subject-parallel-head{flex-direction:column}
+  .parallel-group-card{grid-template-columns:1fr auto}
+  .parallel-group-card .text-btn{grid-column:1/-1;justify-self:start}
+  .parallel-group-form-grid{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .subject-selected-card:has(.subject-group-check){grid-template-columns:24px minmax(0,1fr)}
+  .subject-selected-card:has(.subject-group-check) .subject-card-hours{grid-column:2}
+  .subject-selected-card:has(.subject-group-check) .subject-card-action{grid-column:2}
+}
+
+.subject-custom-type{display:flex;align-items:center;min-height:38px;margin-top:4px;padding:8px 10px;border:1px solid #d0d5dd;border-radius:9px;background:#f9fafb;font-size:9px;font-weight:800;color:#344054}
