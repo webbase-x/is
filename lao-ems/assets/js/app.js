@@ -4273,7 +4273,7 @@ function bindAcademics(){
     if(res.error){toast(res.error.message,"error");return;}
     toast("ยืนยันโครงสร้างเรียบร้อยแล้ว","success");
     refreshSubjects();
-  }));
+  });
 
   const exportSubjects=q("[data-export-subjects]");
   if(exportSubjects)exportSubjects.addEventListener("click",()=>{
