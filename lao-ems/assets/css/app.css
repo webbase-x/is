@@ -4133,3 +4133,5 @@ table{max-width:none}
   .subject-selected-card:has(.subject-group-check) .subject-card-hours{grid-column:2}
   .subject-selected-card:has(.subject-group-check) .subject-card-action{grid-column:2}
 }
+
+.subject-custom-type{display:flex;align-items:center;min-height:38px;margin-top:4px;padding:8px 10px;border:1px solid #d0d5dd;border-radius:9px;background:#f9fafb;font-size:9px;font-weight:800;color:#344054}
