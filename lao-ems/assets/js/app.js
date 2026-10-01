@@ -3165,15 +3165,24 @@ function academicYearSelectorHtml(data){
     '</select></label>';
 }
 function academicNavHtml(active,data){
-  return '<div class="academic-toolbar">'+
-    '<nav class="academic-subnav" aria-label="งานวิชาการ">'+
-      '<a href="#/academics" class="'+(active==="dashboard"?"active":"")+'">ภาพรวม</a>'+
-      '<a href="#/academics/periods" class="'+(active==="periods"?"active":"")+'">ปี/ภาคเรียน</a>'+
-      '<a href="#/academics/programs" class="'+(active==="programs"?"active":"")+'">หลักสูตร/โปรแกรม</a>'+
-      '<a href="#/academics/classes" class="'+(active==="classes"?"active":"")+'">ชั้น/ห้อง</a>'+
-      '<a href="#/academics/subjects" class="'+(active==="subjects"?"active":"")+'">รายวิชา</a>'+
-      '<a href="#/academics/curriculum" class="'+(active==="curriculum"?"active":"")+'">โครงสร้างเวลาเรียน</a>'+
-      '<a href="#/academics/workload" class="'+(active==="workload"?"active":"")+'">ภาระงานสอน'+(Number(state.academicWork&&state.academicWork.attention_count||0)>0?'<span class="subnav-badge">'+Number(state.academicWork.attention_count)+'</span>':'')+'</a>'+
+  const steps=[
+    {key:"dashboard",href:"#/academics",label:"ภาพรวม"},
+    {key:"periods",href:"#/academics/periods",label:"ปี/ภาคเรียน"},
+    {key:"programs",href:"#/academics/programs",label:"หลักสูตร/โปรแกรม"},
+    {key:"classes",href:"#/academics/classes",label:"ชั้น/ห้อง"},
+    {key:"subjects",href:"#/academics/subjects",label:"รายวิชา"},
+    {key:"curriculum",href:"#/academics/curriculum",label:"โครงสร้างเวลาเรียน"},
+    {key:"workload",href:"#/academics/workload",label:"ภาระงานสอน"}
+  ];
+  const attention=Number(state.academicWork&&state.academicWork.attention_count||0);
+  return '<div class="academic-toolbar academic-step-toolbar">'+
+    '<nav class="academic-subnav academic-step-nav" aria-label="ลำดับขั้นตอนงานวิชาการ">'+
+      steps.map((step,index)=>
+        '<a href="'+step.href+'" class="academic-step-link '+(active===step.key?"active":"")+'" '+(active===step.key?'aria-current="page"':'')+'>'+
+          '<span class="academic-step-node">'+(index+1)+'</span>'+
+          '<span class="academic-step-title">'+esc(step.label)+(step.key==="workload"&&attention>0?'<span class="subnav-badge">'+attention+'</span>':'')+'</span>'+
+        '</a>'
+      ).join("")+
     '</nav>'+
     academicYearSelectorHtml(data)+
   '</div>';
