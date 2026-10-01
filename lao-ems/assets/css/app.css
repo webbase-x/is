@@ -4423,3 +4423,33 @@ table{max-width:none}
     padding:16px 10px;
   }
 }
+
+
+/* LEC class stage tabs — v0.16.9 */
+.academic-stage-tabs{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(118px,1fr));
+  gap:8px;
+  overflow:visible;
+}
+.academic-stage-tabs button{
+  width:100%;
+  justify-content:center;
+  min-width:0;
+}
+@media(max-width:680px){
+  .academic-stage-tabs{
+    display:flex;
+    gap:7px;
+    overflow-x:auto;
+    padding:3px 1px 7px;
+    scrollbar-width:none;
+  }
+  .academic-stage-tabs::-webkit-scrollbar{display:none}
+  .academic-stage-tabs button{
+    flex:0 0 auto;
+    width:auto;
+    min-width:106px;
+    justify-content:center;
+  }
+}
