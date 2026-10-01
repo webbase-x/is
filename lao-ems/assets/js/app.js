@@ -4154,51 +4154,75 @@ function bindAcademics(){
     if(noResults)noResults.classList.toggle("hidden",visible>0||!needle);
   });
 
+  const refreshSubjects=()=>{
+    state.academicData=null;
+    state.academicPreset=null;
+    state.curriculumReadiness=null;
+    renderRoute();
+  };
+
   qa("[data-add-central-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const item=(state.academicPreset?.items||[]).find(x=>
+      x.grade_code===(state.academicPresetGrade||"P1")&&Number(x.sort_order)===Number(btn.dataset.addCentralSubject)
+    );
+    if(!item)return;
     setBusy(btn,true,"กำลังเพิ่ม...");
-    const res=await supabase.rpc("lao_add_catalog_item_to_curriculum",{
+    const res=await supabase.rpc("lao_add_subject_to_curriculum",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,
       p_grade_code:state.academicPresetGrade||"P1",
-      p_catalog_sort_order:Number(btn.dataset.addCentralSubject),
-      p_program_id:state.subjectProgramId||null
+      p_subject_id:null,
+      p_subject_code:item.subject_code||null,
+      p_subject_name:item.subject_name,
+      p_learning_area:item.learning_area||null,
+      p_subject_type:item.subject_type,
+      p_weekly_periods:item.weekly_periods==null?null:Number(item.weekly_periods),
+      p_annual_hours:item.annual_hours==null?null:Number(item.annual_hours)
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.academicPreset=null;
-    toast("เพิ่มรายวิชาแล้ว","success");
-    renderRoute();
+    toast("เพิ่ม “"+item.subject_name+"” แล้ว","success");
+    refreshSubjects();
   }));
 
   qa("[data-add-school-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const subject=(data.subjects||[]).find(x=>x.id===btn.dataset.addSchoolSubject);
+    if(!subject)return;
     setBusy(btn,true,"กำลังเพิ่ม...");
-    const res=await supabase.rpc("lao_add_school_subject_to_curriculum",{
+    const res=await supabase.rpc("lao_add_subject_to_curriculum",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,
       p_grade_code:state.academicPresetGrade||"P1",
-      p_subject_id:btn.dataset.addSchoolSubject,
-      p_program_id:state.subjectProgramId||null
+      p_subject_id:subject.id,
+      p_subject_code:null,
+      p_subject_name:null,
+      p_learning_area:null,
+      p_subject_type:subject.subject_type||"other",
+      p_weekly_periods:null,
+      p_annual_hours:null
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.academicPreset=null;
-    toast("เพิ่มรายวิชาแล้ว","success");
-    renderRoute();
+    toast("เพิ่ม “"+subject.name_th+"” แล้ว","success");
+    refreshSubjects();
   }));
 
-  qa("[data-remove-subject-course]").forEach(btn=>btn.addEventListener("click",async()=>{
-    if(!confirm("นำรายวิชานี้ออกจากระดับชั้น/โปรแกรมที่เลือก?\n\nรายวิชาจะยังอยู่ในคลังและสามารถเพิ่มกลับได้ภายหลัง"))return;
+  qa("[data-remove-curriculum-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("นำรายการนี้ออกจาก "+academicGradeLabelFromCode(state.academicPresetGrade||"P1")+" · "+((data.programs||[]).find(p=>p.id===state.subjectProgramId)?.name_th||"ห้องปกติ")+" ?\n\nรายการจะยังอยู่ในคลังและเพิ่มกลับได้ภายหลัง"))return;
     setBusy(btn,true,"กำลังนำออก...");
-    const res=await supabase.rpc("lao_set_curriculum_course_active",{
+    const res=await supabase.rpc("lao_remove_subject_from_curriculum",{
       p_school_id:school.id,
-      p_course_id:btn.dataset.removeSubjectCourse,
-      p_is_active:false
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,
+      p_grade_code:state.academicPresetGrade||"P1",
+      p_subject_id:btn.dataset.removeCurriculumSubject
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.academicPreset=null;
-    toast("นำออกจากแผนการเรียนแล้ว · รายวิชายังอยู่ในคลัง","success");
-    renderRoute();
+    toast("นำออกแล้ว · รายการยังอยู่ในคลัง","success");
+    refreshSubjects();
   }));
 
   const customSubjectForm=q("#subject-library-custom-form");
@@ -4216,69 +4240,40 @@ function bindAcademics(){
     if(!name){toast("กรุณาระบุชื่อรายวิชา/กิจกรรม","error");return;}
     const numOrNull=v=>String(v||"").trim()===""?null:Number(v);
     setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_quick_add_curriculum_subject",{
+    const res=await supabase.rpc("lao_add_subject_to_curriculum",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
-      p_grade_label:academicGradeLabelFromCode(state.academicPresetGrade||"P1"),
+      p_grade_code:state.academicPresetGrade||"P1",
+      p_subject_id:null,
       p_subject_code:String(fd.get("subject_code")||"").trim()||null,
       p_subject_name:name,
       p_learning_area:String(fd.get("learning_area")||"").trim()||null,
       p_subject_type:String(fd.get("subject_type")||"additional"),
       p_weekly_periods:numOrNull(fd.get("weekly_periods")),
-      p_annual_hours:numOrNull(fd.get("annual_hours")),
-      p_sort_order:null
+      p_annual_hours:numOrNull(fd.get("annual_hours"))
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.academicPreset=null;
-    toast("สร้างรายวิชาของโรงเรียนและเพิ่มเข้าระดับชั้นแล้ว","success");
-    renderRoute();
+    toast("บันทึกไว้ในคลังของโรงเรียนและเพิ่มเข้าระดับชั้นแล้ว","success");
+    refreshSubjects();
   });
 
-  qa("[data-student-activity-choice]").forEach(btn=>btn.addEventListener("click",async()=>{
-    const choiceKey=btn.dataset.studentActivityChoice||"";
-    const option=(state.academicPreset?.items||[]).find(x=>x.grade_code===(state.academicPresetGrade||"P1")&&x.choice_group==="student_activity"&&x.choice_key===choiceKey);
-    if(!option)return;
-    if(!confirm("เลือก “"+option.subject_name+"” สำหรับ "+academicGradeLabelFromCode(state.academicPresetGrade||"P1")+" ?"))return;
-    setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_select_student_activity",{
+  const confirmStructure=q("[data-confirm-curriculum-structure]");
+  if(confirmStructure)confirmStructure.addEventListener("click",async()=>{
+    if(!confirm("ยืนยันว่าโครงสร้างรายวิชาและเวลาเรียนของบริบทที่เลือกครบตามหลักสูตรสถานศึกษาแล้ว?"))return;
+    setBusy(confirmStructure,true,"กำลังยืนยัน...");
+    const res=await supabase.rpc("lao_confirm_curriculum_structure",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
-      p_grade_code:state.academicPresetGrade||"P1",
-      p_choice_key:choiceKey
+      p_program_id:state.subjectProgramId||null,
+      p_grade_code:state.academicPresetGrade||"P1"
     });
-    setBusy(btn,false);
+    setBusy(confirmStructure,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.academicData=null;
-    state.academicPreset=null;
-    toast("บันทึกกิจกรรมนักเรียนแล้ว · "+option.subject_name,"success");
-    renderRoute();
+    toast("ยืนยันโครงสร้างเรียบร้อยแล้ว","success");
+    refreshSubjects();
   }));
-
-  const importCatalog=q("[data-import-subject-catalog]");
-  if(importCatalog)importCatalog.addEventListener("click",async()=>{
-    const scope=importCatalog.dataset.scope||"core";
-    const gradeCode=state.academicPresetGrade||"P1";
-    const gradeLabel=academicGradeLabelFromCode(gradeCode);
-    const scopeLabel={core:"วิชาพื้นฐานกลาง",additional:"วิชาเพิ่มเติมตัวอย่าง",activity:"กิจกรรมพัฒนาผู้เรียน",all:"ทุกหมวด"}[scope]||scope;
-    if(!confirm("นำเข้า "+scopeLabel+" ของ "+gradeLabel+" สู่ปีการศึกษา "+(academicSelectedYear(data)?.year_be||"")+" ?\n\nระบบจะเพิ่มเฉพาะรายการที่ยังขาด และไม่เขียนทับรายการที่โรงเรียนแก้ไว้แล้ว"))return;
-    setBusy(importCatalog,true,"กำลังนำเข้า...");
-    const res=await supabase.rpc("lao_import_curriculum_catalog",{
-      p_school_id:school.id,
-      p_academic_year_id:data.selected_year_id,
-      p_grade_code:gradeCode,
-      p_scope:scope,
-      p_program_id:state.subjectProgramId||null
-    });
-    setBusy(importCatalog,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    const d=res.data||{};
-    state.academicPreset=null;
-    toast("นำเข้าแล้ว "+Number(d.added_courses||0)+" รายการ · มีอยู่เดิม "+Number(d.existing_courses||0)+" รายการ","success");
-    state.academicData=null;
-    renderRoute();
-  });
 
   const exportSubjects=q("[data-export-subjects]");
   if(exportSubjects)exportSubjects.addEventListener("click",()=>{
