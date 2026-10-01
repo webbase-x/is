@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.16.6";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -543,7 +543,7 @@ function bindStaticUI(){
   const close=()=>{sidebar.classList.remove("open");scrim.classList.remove("show");};
   q("[data-sidebar-close]").addEventListener("click",close);
   scrim.addEventListener("click",close);
-  window.addEventListener("hashchange",()=>{if(!location.hash.startsWith("#/academics/classes")){state.classProgramEditMode=false;state.classGradeFilter="";}if(state.user)renderRoute();else showAuth();close();});
+  window.addEventListener("hashchange",()=>{if(!location.hash.startsWith("#/academics/classes")){state.classProgramEditMode=false;state.classStageFilter="";}if(state.user)renderRoute();else showAuth();close();});
   q("[data-signout]").addEventListener("click",()=>{
     localStorage.setItem("lao_legacy_session_rejected","1");
     clearLaoAuthSession();
@@ -3272,14 +3272,32 @@ function academicProgramsHtml(data,timeline){
 function academicClassesHtml(data){
   const allItems=data.classes||[],canManage=Boolean(data.can_manage),year=academicSelectedYear(data);
   const items=allItems.filter(x=>x.source_type==="lec"&&x.is_active!==false);
-  const gradeCounts={};
-  items.forEach(x=>{gradeCounts[x.grade_label]=(gradeCounts[x.grade_label]||0)+1;});
-  const gradeTabs=Object.keys(gradeCounts).sort((a,b)=>academicGradeOrder(a)-academicGradeOrder(b)||a.localeCompare(b,"th"));
-  if(state.classGradeFilter&&!gradeCounts[state.classGradeFilter])state.classGradeFilter="";
+  const classStageDefinitions=[
+    {key:"K",label:"อนุบาล",match:code=>/^K[1-3]$/.test(code)},
+    {key:"PLOW",label:"ประถมต้น",match:code=>/^P[1-3]$/.test(code)},
+    {key:"PUP",label:"ประถมปลาย",match:code=>/^P[4-6]$/.test(code)},
+    {key:"MLOW",label:"ม.ต้น",match:code=>/^M[1-3]$/.test(code)},
+    {key:"MUP",label:"ม.ปลาย",match:code=>/^M[4-6]$/.test(code)}
+  ];
+  const classStageKey=item=>{
+    const code=academicGradeCode(item&&item.grade_label);
+    const stage=classStageDefinitions.find(x=>x.match(code));
+    return stage?stage.key:"";
+  };
+  const stageCounts={};
+  items.forEach(x=>{
+    const key=classStageKey(x);
+    if(key)stageCounts[key]=(stageCounts[key]||0)+1;
+  });
+  const availableStages=classStageDefinitions.filter(x=>stageCounts[x.key]>0);
+  if(!state.classStageFilter||!stageCounts[state.classStageFilter]){
+    state.classStageFilter=availableStages[0]&&availableStages[0].key||"";
+  }
+  const currentStage=availableStages.find(x=>x.key===state.classStageFilter)||null;
   const totalNormal=items.filter(x=>!x.program_id);
   const totalSpecial=items.filter(x=>Boolean(x.program_id));
   const totalProgramIds=new Set(totalSpecial.map(x=>x.program_id).filter(Boolean));
-  const visibleItems=state.classGradeFilter?items.filter(x=>x.grade_label===state.classGradeFilter):items;
+  const visibleItems=currentStage?items.filter(x=>classStageKey(x)===currentStage.key):items;
   const normal=visibleItems.filter(x=>!x.program_id);
   const special=visibleItems.filter(x=>Boolean(x.program_id));
   const activePrograms=(data.programs||[]).filter(p=>p.is_active);
@@ -3306,7 +3324,7 @@ function academicClassesHtml(data){
     '<section class="academic-program-room-group"><div class="academic-program-room-head"><div><span>⭐</span><div><strong>'+esc(group.name)+'</strong><small>'+group.rooms.length+' ห้องที่กำหนดโปรแกรมนี้</small></div></div></div><div class="academic-room-grid">'+group.rooms.sort((x,y)=>academicGradeOrder(x.grade_label)-academicGradeOrder(y.grade_label)||String(x.section_label).localeCompare(String(y.section_label),"th")).map(c=>roomCard(c,true)).join("")+'</div></section>'
   ).join("");
 
-  const gradeTabsHtml=items.length?'<nav class="academic-grade-tabs" aria-label="เลือกระดับชั้น"><button type="button" class="'+(!state.classGradeFilter?"active":"")+'" data-class-grade-tab="">ทั้งหมด <span>'+items.length+'</span></button>'+gradeTabs.map(grade=>'<button type="button" class="'+(state.classGradeFilter===grade?"active":"")+'" data-class-grade-tab="'+esc(grade)+'">'+esc(shortGrade(grade))+' <span>'+gradeCounts[grade]+'</span></button>').join("")+'</nav>':'';
+  const gradeTabsHtml=availableStages.length?'<nav class="academic-grade-tabs academic-stage-tabs" aria-label="เลือกช่วงชั้น">'+availableStages.map(stage=>'<button type="button" class="'+(state.classStageFilter===stage.key?"active":"")+'" data-class-stage-tab="'+esc(stage.key)+'">'+esc(stage.label)+' <span>'+stageCounts[stage.key]+'</span></button>').join("")+'</nav>':'';
 
   const sourceNotice='<div class="academic-class-source-note"><span>🔗</span><div><strong>ชั้น/ห้องมาจากระบบนักเรียน LEC เท่านั้น</strong><p>หน้านี้ไม่สามารถสร้างห้องใหม่เองได้ หากต้องการเพิ่มห้อง ให้ปรับข้อมูลนักเรียน/ห้องใน LEC แล้วนำเข้าระบบนักเรียน จากนั้นห้องจะปรากฏที่นี่อัตโนมัติ</p></div></div>';
 
@@ -3318,7 +3336,7 @@ function academicClassesHtml(data){
       '<div class="academic-class-stat-grid"><article><small>ห้องทั้งหมด</small><strong>'+items.length+'</strong><span>ห้อง</span></article><article><small>ห้องปกติ</small><strong>'+totalNormal.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมพิเศษ</small><strong>'+totalSpecial.length+'</strong><span>ห้อง</span></article><article><small>โปรแกรมที่ใช้</small><strong>'+totalProgramIds.size+'</strong><span>โปรแกรม</span></article></div>'+
     '</section>'+
     gradeTabsHtml+
-    '<section class="academic-class-filter-summary">'+(state.classGradeFilter?'<strong>กำลังแสดง '+esc(shortGrade(state.classGradeFilter))+'</strong><span>'+visibleItems.length+' ห้องในระดับชั้นนี้</span>':'<strong>แสดงทุกระดับชั้น</strong><span>'+items.length+' ห้องจาก LEC</span>')+'</section>'+
+    '<section class="academic-class-filter-summary">'+(currentStage?'<strong>'+esc(currentStage.label)+'</strong><span>'+visibleItems.length+' ห้องจาก LEC ในช่วงชั้นนี้</span>':'<strong>ยังไม่มีข้อมูลช่วงชั้น</strong><span>0 ห้องจาก LEC</span>')+'</section>'+
     '<section class="academic-class-layout">'+
       '<section class="panel academic-class-section normal"><div class="panel-head"><div><p class="eyebrow">GENERAL ROOMS</p><h2>ห้องปกติ</h2><p class="panel-sub">ห้องจาก LEC ที่ยังไม่ได้กำหนดหลักสูตร/โครงการ/โปรแกรมพิเศษ</p></div><span class="pill">'+normal.length+' ห้อง</span></div>'+
         (normalGroups||'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีห้องปกติที่รอกำหนด</h3></div>')+
@@ -4163,8 +4181,8 @@ function bindAcademics(){
     toast("บันทึกหลักสูตร/โปรแกรมแล้ว","success");renderRoute();
   });
 
-  qa("[data-class-grade-tab]").forEach(btn=>btn.addEventListener("click",()=>{
-    state.classGradeFilter=btn.dataset.classGradeTab||"";
+  qa("[data-class-stage-tab]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.classStageFilter=btn.dataset.classStageTab||"";
     renderRoute();
   }));
 
