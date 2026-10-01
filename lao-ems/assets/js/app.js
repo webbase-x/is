@@ -4176,19 +4176,54 @@ function bindAcademics(){
   qa("[data-subject-catalog-grade]").forEach(btn=>btn.addEventListener("click",()=>{
     state.academicPresetGrade=btn.dataset.subjectCatalogGrade||"P1";
     state.subjectSetupTab="type";
+    state.subjectWorkspaceView="selected";
     renderRoute();
   }));
   qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectProgramId=btn.dataset.subjectTarget||"";
     state.subjectSetupTab="grade";
+    state.subjectWorkspaceView="selected";
     state.academicPreset=null;
     renderRoute();
   }));
   qa("[data-subject-catalog-scope]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectCatalogScope=btn.dataset.subjectCatalogScope||"all";
     state.subjectSetupTab="type";
+    state.subjectWorkspaceView="selected";
     renderRoute();
   }));
+  qa("[data-subject-workspace-view]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.subjectWorkspaceView=btn.dataset.subjectWorkspaceView||"selected";
+    renderRoute();
+  }));
+  qa("[data-open-subject-library]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.subjectWorkspaceView="library";
+    renderRoute();
+  }));
+
+  const scheduleForm=q("[data-schedule-settings-form]");
+  const showScheduleForm=()=>scheduleForm?.classList.remove("hidden");
+  qa("[data-toggle-schedule-settings]").forEach(btn=>btn.addEventListener("click",showScheduleForm));
+  qa("[data-close-schedule-settings]").forEach(btn=>btn.addEventListener("click",()=>scheduleForm?.classList.add("hidden")));
+  if(scheduleForm)scheduleForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(scheduleForm),btn=scheduleForm.querySelector('button[type="submit"]');
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_academic_schedule_settings",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_school_days_per_week:Number(fd.get("school_days_per_week")),
+      p_periods_per_day:Number(fd.get("periods_per_day")),
+      p_minutes_per_period:Number(fd.get("minutes_per_period")),
+      p_instructional_weeks_per_year:Number(fd.get("instructional_weeks_per_year"))
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    state.curriculumReadiness=null;
+    toast("บันทึกโครงสร้างเวลาเรียนแล้ว","success");
+    renderRoute();
+  });
+
   const librarySearch=q("[data-subject-library-search]");
   if(librarySearch)librarySearch.addEventListener("input",()=>{
     const needle=String(librarySearch.value||"").trim().toLowerCase();
@@ -4230,6 +4265,7 @@ function bindAcademics(){
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
+    state.subjectWorkspaceView="selected";
     toast("เพิ่ม “"+item.subject_name+"” แล้ว","success");
     refreshSubjects();
   }));
@@ -4253,6 +4289,7 @@ function bindAcademics(){
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
+    state.subjectWorkspaceView="selected";
     toast("เพิ่ม “"+subject.name_th+"” แล้ว","success");
     refreshSubjects();
   }));
@@ -4269,7 +4306,8 @@ function bindAcademics(){
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    toast("นำออกแล้ว · รายการยังอยู่ในคลัง","success");
+    state.subjectWorkspaceView="library";
+    toast("นำออกแล้ว · รายการกลับไปอยู่ในคลังแล้ว","success");
     refreshSubjects();
   }));
 
@@ -4303,6 +4341,7 @@ function bindAcademics(){
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
+    state.subjectWorkspaceView="selected";
     toast("บันทึกไว้ในคลังของโรงเรียนและเพิ่มเข้าระดับชั้นแล้ว","success");
     refreshSubjects();
   });
