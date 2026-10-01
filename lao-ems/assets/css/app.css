@@ -4453,3 +4453,168 @@ table{max-width:none}
     justify-content:center;
   }
 }
+
+
+/* Readable global typography — v0.17.0
+   Thai-first scale: clear on phones, tablets and desktop without forcing zoom. */
+:root{
+  --fs-body:clamp(15px,14.4px + .16vw,17px);
+  --fs-small:clamp(12.5px,12.1px + .10vw,13.5px);
+  --fs-caption:clamp(12px,11.7px + .08vw,13px);
+  --fs-control:clamp(14px,13.6px + .10vw,15px);
+  --fs-h2:clamp(20px,19px + .25vw,23px);
+}
+body{
+  font-size:var(--fs-body);
+  line-height:1.58;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+small{font-size:var(--fs-small);line-height:1.45}
+button{font-size:var(--fs-control);line-height:1.35}
+input,select,textarea{font-size:var(--fs-control);line-height:1.4}
+label{font-size:14px;line-height:1.45}
+
+.topbar h1{font-size:clamp(21px,20px + .25vw,24px)}
+.panel h2,.section-head h2{font-size:var(--fs-h2);line-height:1.3}
+.panel-sub,
+.stat-card p,
+.module-card p,
+.empty-state p,
+.form-hint,
+.subject-workspace-head p,
+.subject-advanced-body p{
+  font-size:clamp(13.5px,13px + .12vw,14.5px);
+  line-height:1.55;
+}
+.eyebrow,
+.tenant-label,
+.connection-badge,
+.counter,
+.badge,
+.status-pill,.pill,
+.module-card .module-stage,
+.setup-list em,
+.academic-year-switch,
+.academic-year-empty{
+  font-size:var(--fs-caption);
+}
+.nav-list a{font-size:15px}
+.brand-copy span,.profile-copy small,.sidebar-footer small{font-size:13px}
+.brand-copy strong{font-size:19px}
+
+.primary-btn,.secondary-btn,.danger-btn,.text-btn,.compact-btn{
+  font-size:14px;
+  line-height:1.35;
+}
+th,td{font-size:14px;line-height:1.45}
+.setup-list small,.status-list small{font-size:13px;line-height:1.45}
+.module-card h3{font-size:16px}
+.stat-card small{font-size:13px}
+.stat-card strong{font-size:20px}
+
+/* Academic navigation and forms */
+.academic-step-title{font-size:12.5px;line-height:1.35}
+.academic-step-node{font-size:13px}
+.academic-year-switch{font-size:12.5px}
+.academic-year-switch select{font-size:14px}
+.academic-page .panel-sub{font-size:14px;line-height:1.5}
+.academic-page .eyebrow{font-size:12px}
+.academic-page label{font-size:14px}
+.academic-page input,
+.academic-page select,
+.academic-page textarea{font-size:14px}
+.academic-page .pill{font-size:12px}
+.academic-page .notice{font-size:13.5px;line-height:1.55}
+
+/* Subject workspace: remove legacy 7.5–10px text */
+.subject-workspace-tabs button{font-size:13px;line-height:1.35}
+.subject-setup-menu button span{font-size:12px}
+.subject-setup-menu button strong{font-size:14px}
+.subject-setup-panel-head strong{font-size:15px}
+.subject-setup-panel-head small,
+.subject-inline-note,
+.subject-early-note{font-size:12.5px;line-height:1.5}
+.subject-target-tabs button,
+.subject-grade-tabs button,
+.subject-scope-tabs button{font-size:13px}
+.subject-card-copy strong{font-size:14px;line-height:1.35}
+.subject-card-copy small{font-size:12.5px;line-height:1.45}
+.subject-library-search span,
+.subject-library-search span b{font-size:12px}
+.subject-code-box{font-size:12.5px}
+.subject-library-meta,
+.subject-library-meta span{font-size:12px}
+.subject-card-hours strong{font-size:14px}
+.subject-card-hours small{font-size:12px}
+.subject-remove-btn,.subject-add-btn{font-size:13px}
+.curriculum-readiness-metrics span{font-size:12px}
+.subject-default-info strong{font-size:14px}
+.subject-default-info p{font-size:12.5px;line-height:1.55}
+.student-activity-choice-head strong{font-size:14px}
+.student-activity-choice-head small{font-size:12.5px}
+.student-activity-choice-options span{font-size:12px}
+.student-activity-choice-options strong{font-size:14px}
+.student-activity-choice-options small,
+.student-activity-inherit{font-size:12px}
+.subject-custom-type{font-size:13px}
+.subject-parallel-head strong{font-size:14px}
+.subject-parallel-head small{font-size:12.5px}
+.parallel-group-card strong{font-size:13px}
+.parallel-group-card small,
+.parallel-group-card>span,
+.parallel-group-form label,
+.parallel-group-picked{font-size:12px}
+.subject-workspace-head strong{font-size:15px}
+
+/* General cards and compact academic rows */
+.academic-room-copy strong,
+.academic-subject-row strong,
+.academic-term-row strong,
+.academic-year-head strong{font-size:14px}
+.academic-room-copy small,
+.academic-subject-row small,
+.academic-term-row small,
+.academic-year-dates,
+.academic-room-program,
+.academic-class-filter-summary span{font-size:12.5px;line-height:1.45}
+
+/* Mobile readability */
+@media(max-width:720px){
+  :root{
+    --fs-body:15.5px;
+    --fs-small:12.5px;
+    --fs-caption:12px;
+    --fs-control:14.5px;
+    --fs-h2:20px;
+  }
+  body{line-height:1.6}
+  input,select,textarea,
+  .academic-page input,
+  .academic-page select,
+  .academic-page textarea{
+    font-size:16px;
+    min-height:44px;
+  }
+  button,.primary-btn,.secondary-btn,.danger-btn,.text-btn,.compact-btn{
+    font-size:14px;
+  }
+  .academic-page .panel h2{font-size:20px;line-height:1.3}
+  .academic-page .panel-sub{font-size:13.5px;line-height:1.5}
+  .academic-step-title{font-size:12.5px}
+  .academic-year-switch{font-size:12.5px}
+  .subject-workspace-tabs button{font-size:13px}
+  .subject-card-copy strong{font-size:14px}
+  .subject-card-copy small{font-size:12.5px}
+  .curriculum-readiness-metrics span{font-size:12px}
+  .subject-library-search input{font-size:16px}
+  .subject-setup-menu button span{font-size:12px}
+  .subject-setup-menu button strong{font-size:14px}
+}
+@media(max-width:430px){
+  .academic-page .panel h2{font-size:19px}
+  .academic-page .panel-sub{font-size:13px}
+  .eyebrow,.academic-page .eyebrow{font-size:11.5px}
+  .pill,.status-pill,.academic-page .pill{font-size:12px}
+  .panel-sub{font-size:13px}
+}
