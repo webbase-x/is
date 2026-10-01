@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.16.3";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.16.4";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -3392,8 +3392,8 @@ function academicSubjectsHtml(data,timeline){
     const inherited=c._origin==="inherited";
     return '<article class="subject-selected-card">'+
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(c.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(c.subject_name)+'</strong><small>'+esc(typeLabel[c.subject_type]||"อื่น ๆ")+(c.learning_area?' · '+esc(c.learning_area):'')+'</small></div></div>'+
-      '<div class="subject-card-hours"><span><b>'+(weekly?Number(weekly.weekly_periods).toLocaleString("th-TH"):"—")+'</b><small>ชม./สัปดาห์</small></span><span><b>'+(c.annual_hours!=null?Number(c.annual_hours).toLocaleString("th-TH"):"—")+'</b><small>ชม./ปี</small></span></div>'+
-      '<div class="subject-card-action">'+(inherited?'<span class="subject-origin inherited">รับจากห้องปกติ</span>':'<span class="subject-origin direct">ของกลุ่มนี้</span>')+
+      '<div class="subject-card-hours"><span><b>'+(weekly?Number(weekly.weekly_periods).toLocaleString("th-TH"):"—")+'</b><small>คาบ/สัปดาห์</small></span><span><b>'+(c.annual_hours!=null?Number(c.annual_hours).toLocaleString("th-TH"):"—")+'</b><small>ชม./ปี</small></span></div>'+
+      '<div class="subject-card-action">'+(c.subject_type==="activity"&&c.subject_code&&(activityCodeCounts.get(String(c.subject_code).trim().toLowerCase())||0)>1?'<span class="subject-origin grouped">รหัสเดียวกัน · นับรวม 1 ช่องเวลา</span>':'')+(inherited?'<span class="subject-origin inherited">รับจากห้องปกติ</span>':'<span class="subject-origin direct">ของกลุ่มนี้</span>')+
       (canManage?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.subject_id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+'</div>'+
     '</article>';
   }).join("");
@@ -3402,7 +3402,7 @@ function academicSubjectsHtml(data,timeline){
     '<article class="subject-library-card" data-subject-library-item data-search-text="'+esc(((x.subject_code||"")+" "+x.subject_name+" "+(x.learning_area||"")+" ฐานกลาง").toLowerCase())+'">'+
       '<div class="subject-library-source central">ฐานกลาง</div>'+
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(typeLabel[x.subject_type]||"อื่น ๆ")+(x.learning_area?' · '+esc(x.learning_area):'')+'</small></div></div>'+
-      '<div class="subject-library-meta"><span>'+(x.weekly_periods==null?"—":Number(x.weekly_periods).toLocaleString("th-TH"))+' ชม./สัปดาห์</span><span>'+(x.annual_hours==null?"—":Number(x.annual_hours).toLocaleString("th-TH"))+' ชม./ปี</span></div>'+
+      '<div class="subject-library-meta"><span>'+(x.weekly_periods==null?"—":Number(x.weekly_periods).toLocaleString("th-TH"))+' คาบ/สัปดาห์</span><span>'+(x.annual_hours==null?"—":Number(x.annual_hours).toLocaleString("th-TH"))+' ชม./ปี</span></div>'+
       (canManage?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.sort_order)+'">＋ เพิ่ม</button>':'')+
     '</article>'
   ).join("");
@@ -3425,13 +3425,35 @@ function academicSubjectsHtml(data,timeline){
     .map(([v,l])=>'<button type="button" class="'+(scope===v?"active":"")+'" data-subject-catalog-scope="'+v+'">'+l+'</button>').join("");
 
   const currentGroup=(readiness.groups||[]).find(g=>g.grade_code===gradeCode&&(g.program_id||"")===(selectedProgram?selectedProgram.id:""))||null;
+  const scheduleSettings=readiness.schedule_settings||{configured:false};
   const totalGroups=Number(readiness.total_groups||0),confirmedGroups=Number(readiness.confirmed_groups||0);
   const completionPct=totalGroups?Math.round(confirmedGroups*100/totalGroups):0;
   const issueCount=currentGroup?Number(currentGroup.missing_time_count||0):0;
   const recommendedMissing=currentGroup?Number(currentGroup.central_core_missing_count||0)+Number(currentGroup.default_activity_missing_count||0):0;
+  const weeklyTotal=currentGroup?Number(currentGroup.weekly_periods_total||0):0;
+  const weeklyCapacity=currentGroup&&currentGroup.periods_per_week_capacity!=null?Number(currentGroup.periods_per_week_capacity):null;
+  const periodGap=currentGroup&&currentGroup.periods_per_week_gap!=null?Number(currentGroup.periods_per_week_gap):null;
+  const parallelVariants=currentGroup?Number(currentGroup.parallel_variant_count||0):0;
+  const parallelMismatch=currentGroup?Number(currentGroup.parallel_mismatch_count||0):0;
   const currentStatus=currentGroup&&currentGroup.status||"empty";
-  const currentStatusLabel={confirmed:"ยืนยันครบแล้ว",ready_to_confirm:"พร้อมยืนยัน",needs_time:"ยังขาดเวลาเรียน",needs_subjects:"ยังขาดประเภทวิชาหลัก",empty:"ยังไม่มีรายวิชา"}[currentStatus]||"รอตรวจ";
+  const currentStatusLabel={
+    confirmed:"ยืนยันครบแล้ว",
+    ready_to_confirm:"คาบครบ · พร้อมยืนยัน",
+    needs_schedule_settings:"ยังไม่กำหนดเวลาเรียนของโรงเรียน",
+    needs_time:"ยังมีรายวิชาที่ไม่กำหนดคาบ",
+    parallel_time_mismatch:"วิชาทางเลือกกำหนดคาบไม่เท่ากัน",
+    needs_periods:"คาบต่อสัปดาห์ยังไม่ครบ",
+    over_periods:"คาบต่อสัปดาห์เกิน",
+    empty:"ยังไม่มีรายวิชา"
+  }[currentStatus]||"รอตรวจ";
   const currentStatusClass=currentStatus==="confirmed"?"success":currentStatus==="ready_to_confirm"?"info":"warning";
+  const workspaceView=["selected","library"].includes(state.subjectWorkspaceView)?state.subjectWorkspaceView:"selected";
+  state.subjectWorkspaceView=workspaceView;
+  const activityCodeCounts=new Map();
+  selectedCourses.filter(c=>c.subject_type==="activity"&&c.subject_code).forEach(c=>{
+    const key=String(c.subject_code).trim().toLowerCase();
+    activityCodeCounts.set(key,(activityCodeCounts.get(key)||0)+1);
+  });
   const timelineSteps=timeline&&timeline.steps||[];
   const stepChip=code=>{
     const x=timelineSteps.find(v=>v.step_code===code);
@@ -3466,31 +3488,57 @@ function academicSubjectsHtml(data,timeline){
     '</section>'+
 
     '<section class="panel curriculum-readiness-card '+currentStatusClass+'">'+
-      '<div class="curriculum-readiness-main"><div><p class="eyebrow">CURRICULUM CHECK</p><h3>ความครบตามโครงสร้างหลักสูตรของโรงเรียน</h3><p>'+esc(targetLabel)+' · '+esc(shortGrade(gradeLabel))+' · <strong>'+esc(currentStatusLabel)+'</strong></p></div>'+
+      '<div class="curriculum-readiness-main"><div><p class="eyebrow">CURRICULUM CHECK</p><h3>ตรวจความครบของโครงสร้างเวลาเรียน</h3><p>'+esc(targetLabel)+' · '+esc(shortGrade(gradeLabel))+' · <strong>'+esc(currentStatusLabel)+'</strong></p></div>'+
       '<div class="curriculum-readiness-progress"><strong>'+confirmedGroups+'/'+totalGroups+'</strong><span>ชุดที่ยืนยันแล้ว</span><div><i style="width:'+completionPct+'%"></i></div></div></div>'+
-      (currentGroup?'<div class="curriculum-readiness-metrics"><span>รายวิชา <b>'+Number(currentGroup.course_count||0)+'</b></span><span class="'+(issueCount?"warn":"ok")+'">เวลาเรียน '+(issueCount?"ขาด "+issueCount:"ครบ")+'</span><span class="'+(recommendedMissing?"warn":"ok")+'">รายการฐานกลาง '+(recommendedMissing?"ควรตรวจ "+recommendedMissing:"ครบ")+'</span><span>รวม '+Number(currentGroup.annual_hours_total||0).toLocaleString("th-TH")+' ชม./ปี</span></div>':'')+
+      '<div class="schedule-capacity-bar">'+
+        (scheduleSettings.configured
+          ?'<div><strong>'+Number(scheduleSettings.school_days_per_week||0)+' วัน × '+Number(scheduleSettings.periods_per_day||0).toLocaleString("th-TH")+' คาบ</strong><small>'+Number(scheduleSettings.minutes_per_period||0)+' นาที/คาบ · '+Number(scheduleSettings.instructional_weeks_per_year||0).toLocaleString("th-TH")+' สัปดาห์/ปี</small></div><button type="button" class="secondary-btn compact-btn" data-toggle-schedule-settings>แก้เวลาเรียน</button>'
+          :'<div><strong>ยังไม่ได้กำหนดโครงสร้างเวลาเรียนของปีนี้</strong><small>กำหนดวันเรียน คาบต่อวัน นาทีต่อคาบ และสัปดาห์เรียนต่อปี</small></div>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-toggle-schedule-settings>ตั้งค่าเวลาเรียน</button>':''))+
+      '</div>'+
+      (currentGroup?'<div class="curriculum-readiness-metrics">'+
+        '<span class="'+(weeklyCapacity!=null&&Math.abs(periodGap||0)<.001?"ok":"warn")+'">จัดแล้ว <b>'+weeklyTotal.toLocaleString("th-TH")+(weeklyCapacity!=null?' / '+weeklyCapacity.toLocaleString("th-TH"):'')+'</b> คาบ/สัปดาห์</span>'+
+        (weeklyCapacity!=null?'<span class="'+(Math.abs(periodGap||0)<.001?"ok":"warn")+'">'+(Math.abs(periodGap||0)<.001?'คาบครบ':periodGap>0?'ยังขาด '+Math.abs(periodGap).toLocaleString("th-TH")+' คาบ':'เกิน '+Math.abs(periodGap).toLocaleString("th-TH")+' คาบ')+'</span>':'')+
+        '<span class="'+(issueCount?"warn":"ok")+'">ไม่กำหนดคาบ <b>'+issueCount+'</b> รายการ</span>'+
+        (parallelVariants?'<span class="'+(parallelMismatch?"warn":"ok")+'">ทางเลือกนับรวม <b>'+parallelVariants+'</b> รายการ'+(parallelMismatch?' · คาบไม่ตรงกัน':'')+'</span>':'')+
+        '<span>ประมาณ <b>'+Number(currentGroup.annual_hours_total||0).toLocaleString("th-TH")+'</b> ชม./ปี</span>'+
+        (recommendedMissing?'<span class="warn">ฐานกลางควรตรวจ '+recommendedMissing+' รายการ</span>':'')+
+      '</div>':'')+
+      (canManage?'<form class="schedule-settings-form hidden" data-schedule-settings-form>'+
+        '<div class="schedule-settings-grid"><label>วันเรียน/สัปดาห์<input name="school_days_per_week" type="number" min="1" max="7" step="1" value="'+esc(scheduleSettings.school_days_per_week??"")+'" placeholder="เช่น 5" required></label>'+
+        '<label>คาบเรียน/วัน<input name="periods_per_day" type="number" min="1" max="20" step="0.5" value="'+esc(scheduleSettings.periods_per_day??"")+'" placeholder="เช่น 7" required></label>'+
+        '<label>นาที/คาบ<input name="minutes_per_period" type="number" min="20" max="120" step="5" value="'+esc(scheduleSettings.minutes_per_period??"")+'" placeholder="เช่น 60" required></label>'+
+        '<label>สัปดาห์เรียน/ปี<input name="instructional_weeks_per_year" type="number" min="1" max="60" step="0.5" value="'+esc(scheduleSettings.instructional_weeks_per_year??"")+'" placeholder="เช่น 40" required></label></div>'+
+        '<div class="schedule-settings-note">จำนวนคาบต่อสัปดาห์ = วันเรียน × คาบต่อวัน ส่วนชั่วโมงต่อปีคำนวณจากคาบ × นาที/คาบ × สัปดาห์เรียน</div>'+
+        '<div class="schedule-settings-actions"><button type="button" class="text-btn" data-close-schedule-settings>ยกเลิก</button><button type="submit" class="primary-btn">บันทึกเวลาเรียน</button></div>'+
+      '</form>':'')+
       '<div class="curriculum-readiness-actions">'+
-        (currentStatus==="confirmed"?'<span class="readiness-confirmed">✓ ยืนยันแล้ว หากมีการเพิ่ม/นำออก/แก้เวลา ระบบจะให้ยืนยันใหม่อัตโนมัติ</span>':
-          currentGroup&&currentGroup.is_ready_to_confirm&&canManage?'<button type="button" class="primary-btn" data-confirm-curriculum-structure>ยืนยันว่าครบตามหลักสูตรสถานศึกษา</button>':
-          issueCount?'<a class="secondary-btn" href="#/academics/curriculum">กำหนดเวลาเรียนที่ยังขาด</a>':
-          '<span class="readiness-help">เพิ่มรายวิชาพื้นฐานและกิจกรรมให้ครบก่อนยืนยัน</span>')+
+        (currentStatus==="confirmed"?'<span class="readiness-confirmed">✓ ยืนยันแล้ว หากเพิ่ม/นำออกวิชาหรือแก้เวลา ระบบจะให้ยืนยันใหม่อัตโนมัติ</span>':
+          currentGroup&&currentGroup.is_ready_to_confirm&&canManage?'<button type="button" class="primary-btn" data-confirm-curriculum-structure>ยืนยันว่าโครงสร้างครบ</button>':
+          currentStatus==="needs_schedule_settings"?'<span class="readiness-help">ตั้งค่าเวลาเรียนก่อน ระบบจึงตรวจจำนวนคาบได้</span>':
+          currentStatus==="parallel_time_mismatch"?'<span class="readiness-help">กิจกรรม/วิชาทางเลือกที่ใช้รหัสเดียวกันควรกำหนดคาบเท่ากัน เพราะนับเป็นช่องเวลาเดียว</span>':
+          currentStatus==="needs_periods"||currentStatus==="over_periods"?'<span class="readiness-help">ปรับคาบ/สัปดาห์ให้ตรงกับจำนวนคาบเรียนของโรงเรียน</span>':
+          issueCount?'<a class="secondary-btn" href="#/academics/curriculum">กำหนดคาบที่ยังขาด</a>':
+          '<span class="readiness-help">เพิ่มรายวิชาให้ครบตามโครงสร้างของโรงเรียน</span>')+
       '</div>'+
     '</section>'+
 
     '<section class="subject-workspace-summary"><span><strong>'+esc(targetLabel)+'</strong></span><span>'+esc(shortGrade(gradeLabel))+'</span><span>'+esc(scopeLabel)+'</span><span>'+targetRoomCount+' ห้อง</span></section>'+
 
-    '<section class="subjects-library-layout">'+
-      '<section class="panel subject-selected-panel"><div class="panel-head"><div><p class="eyebrow">SCHOOL CURRICULUM</p><h2>รายวิชาที่เรียน</h2><p class="panel-sub">แสดงเฉพาะ '+esc(scopeLabel)+' ของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</p></div><div class="panel-head-actions"><span class="pill">'+shownCourses.length+' รายการ</span><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div></div>'+
-        (selectedRows?'<div class="subject-selected-list">'+selectedRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายการในประเภทนี้</h3><p>เลือกเพิ่มจากคลังรายวิชา</p></div>')+
-      '</section>'+
-
-      '<section class="panel subject-library-panel"><div class="panel-head"><div><p class="eyebrow">SUBJECT LIBRARY</p><h2>คลังรายวิชา</h2><p class="panel-sub">'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · แสดงเฉพาะรายการที่ยังไม่ได้เลือก</p></div><div class="panel-head-actions"><span class="pill">'+totalAvailable+' ตัวเลือก</span>'+(canManage?'<button type="button" class="secondary-btn compact-btn" data-toggle-custom-subject>＋ เพิ่มรายวิชาใหม่</button>':'')+'</div></div>'+
-        (totalAvailable>6?'<label class="subject-library-search"><span>ค้นหา</span><input type="search" data-subject-library-search placeholder="ค้นหารหัส ชื่อวิชา หรือกลุ่มสาระ"></label>':'')+
-        '<div class="subject-library-list" data-subject-library-list>'+centralRows+schoolRows+
-          (!totalAvailable?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายการที่เลือกแล้วจะไม่แสดงในคลัง หรือกด “เพิ่มรายวิชาใหม่” เพื่อสร้างตัวเลือกของโรงเรียน</p></div>':'')+
-        '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>'+
-        (canManage?'<form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>เพิ่มรายวิชาใหม่ของโรงเรียน</strong><small>บันทึกไว้ในคลังของโรงเรียนและเพิ่มเข้าบริบทที่เลือกทันที</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท<select name="subject_type">'+academicSubjectTypeOptions(customDefaultType)+'</select></label><label>รหัสวิชา<input name="subject_code" placeholder="เว้นว่างได้"></label><label class="wide">ชื่อรายวิชา / กิจกรรม <span class="required-mark">*</span><input name="subject_name" required></label><label>กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาไทย"></label><label>ชม./สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25"></label><label>ชม./ปี<input name="annual_hours" type="number" min="0" step="0.5"></label></div><div class="subject-custom-note">กิจกรรมสามารถใช้รหัสเดียวกันแต่ต่างชื่อได้ เช่น ลูกเสือ/เนตรนารี และลูกเสือ/ยุวกาชาด ตามบริบทของโรงเรียน</div><div class="subject-custom-actions"><button type="submit" class="primary-btn">บันทึกและเพิ่ม</button></div></form>':'')+
-      '</section>'+
+    '<section class="panel subject-workspace-panel">'+
+      '<nav class="subject-workspace-tabs">'+
+        '<button type="button" class="'+(workspaceView==="selected"?"active":"")+'" data-subject-workspace-view="selected">รายวิชาที่เรียน <span>'+shownCourses.length+'</span></button>'+
+        '<button type="button" class="'+(workspaceView==="library"?"active":"")+'" data-subject-workspace-view="library">คลังรายวิชา <span>'+totalAvailable+'</span></button>'+
+      '</nav>'+
+      (workspaceView==="selected"
+        ?'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>รายวิชาที่เรียน</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</p></div><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div>'+
+          (selectedRows?'<div class="subject-selected-list">'+selectedRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายการในประเภทนี้</h3><p>เปิดคลังรายวิชาเพื่อเลือกเพิ่ม</p>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-open-subject-library>เปิดคลังรายวิชา</button>':'')+'</div>')+'</div>'
+        :'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>คลังรายวิชา</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · แสดงเฉพาะรายการที่ยังไม่ได้เลือก</p></div>'+(canManage?'<button type="button" class="secondary-btn compact-btn" data-toggle-custom-subject>＋ เพิ่มรายวิชาใหม่</button>':'')+'</div>'+
+          (totalAvailable?'<label class="subject-library-search"><span>ค้นหารายวิชา</span><input type="search" data-subject-library-search placeholder="ค้นหารหัส ชื่อวิชา หรือกลุ่มสาระ"></label>':'')+
+          '<div class="subject-library-list" data-subject-library-list>'+centralRows+schoolRows+
+            (!totalAvailable?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายการที่เลือกแล้วจะไม่แสดงในคลัง หรือสร้างรายวิชาใหม่ของโรงเรียน</p></div>':'')+
+          '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>'+
+          (canManage?'<form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>เพิ่มรายวิชาใหม่ของโรงเรียน</strong><small>บันทึกไว้ในคลังของโรงเรียนและเพิ่มเข้าบริบทที่เลือกทันที</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท<select name="subject_type">'+academicSubjectTypeOptions(customDefaultType)+'</select></label><label>รหัสวิชา<input name="subject_code" placeholder="เว้นว่างได้"></label><label class="wide">ชื่อรายวิชา / กิจกรรม <span class="required-mark">*</span><input name="subject_name" required></label><label>กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาไทย"></label><label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25"></label><label>ชม./ปี<input name="annual_hours" type="number" min="0" step="0.5"></label></div><div class="subject-custom-note">กิจกรรมที่ใช้รหัสเดียวกันแต่ผู้เรียนต่างกลุ่ม เช่น ลูกเสือ/เนตรนารี และลูกเสือ/ยุวกาชาด สามารถเก็บแยกชื่อได้ ระบบตรวจคาบจะนับรวมเป็นช่องเวลาเดียว</div><div class="subject-custom-actions"><button type="submit" class="primary-btn">บันทึกและเพิ่ม</button></div></form>':'')+
+        '</div>')+
     '</section>'+
     '<section class="subject-bottom-note"><span>ขั้นถัดไป: ตรวจชั่วโมงและโครงสร้างเวลาเรียน</span><a href="#/academics/curriculum">ไปโครงสร้างเวลาเรียน →</a></section>'+
   '</section>';
