@@ -3608,7 +3608,7 @@ function academicCurriculumHtml(data){
         '<label>ชื่อรายวิชา <span class="required-mark">*</span><input name="subject_name" required placeholder="ชื่อรายวิชา"></label>'+
         '<label>ประเภท<select name="subject_type">'+academicSubjectTypeOptions("basic")+'</select></label>'+
         '<label>กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เว้นว่างได้"></label>'+
-        '<label>ชม./สัปดาห์<input name="weekly_periods" type="number" min="0.25" step="0.25" placeholder="เช่น 5"></label>'+
+        '<label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0.25" step="0.25" placeholder="เช่น 5"></label>'+
         '<label>เวลาเรียน (ชม./ปี)<input name="annual_hours" type="number" min="0.5" step="0.5" placeholder="เช่น 200"></label>'+
         '<div class="academic-form-actions span-all"><button type="reset" class="secondary-btn">ล้าง</button><button type="submit" class="primary-btn">＋ เพิ่มรายวิชาในระดับชั้นนี้</button></div>'+
       '</form>'+
@@ -4375,7 +4375,7 @@ function bindAcademics(){
       raw.filter(c=>!c.program_id).forEach(c=>map.set(c.subject_id||c.subject_code||c.subject_name,c));
     }
     const rows=Array.from(map.values());
-    const csvRows=[["รหัสวิชา","ชื่อรายวิชา","ประเภท","กลุ่มสาระ","ชั่วโมง/ปี","ชั่วโมง/สัปดาห์"]];
+    const csvRows=[["รหัสวิชา","ชื่อรายวิชา","ประเภท","กลุ่มสาระ","ชั่วโมง/ปี","คาบ/สัปดาห์"]];
     rows.forEach(c=>{
       const weekly=(c.term_plans||[]).find(t=>t.weekly_periods!=null);
       csvRows.push([c.subject_code||"",c.subject_name||"",academicSubjectTypeLabel(c.subject_type),c.learning_area||"",c.annual_hours??"",weekly?weekly.weekly_periods:""]);
