@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.16.4";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.16.5";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -3341,15 +3341,15 @@ function academicSubjectsHtml(data,timeline){
   if(!targetGradeCodes.includes(state.academicPresetGrade))state.academicPresetGrade=targetGradeCodes[0]||"P1";
   const gradeCode=state.academicPresetGrade||"P1";
   const gradeLabel=academicGradeLabelFromCode(gradeCode);
-  const scope=["all","core","activity","additional","other"].includes(state.subjectCatalogScope)?state.subjectCatalogScope:"core";
+  const scope=["core","activity","additional","other"].includes(state.subjectCatalogScope)?state.subjectCatalogScope:"core";
   state.subjectCatalogScope=scope;
-  const scopeLabel={all:"ทุกประเภท",core:"วิชาพื้นฐาน",activity:"กิจกรรมพัฒนาผู้เรียน",additional:"วิชาเพิ่มเติม",other:"อื่น ๆ"}[scope];
+  const scopeLabel={core:"วิชาพื้นฐาน",activity:"กิจกรรมพัฒนาผู้เรียน",additional:"วิชาเพิ่มเติม",other:"อื่น ๆ"}[scope];
   const setupTab=["target","grade","type"].includes(state.subjectSetupTab)?state.subjectSetupTab:"target";
   state.subjectSetupTab=setupTab;
   const targetRoomCount=targetClasses.filter(c=>c.grade_label===gradeLabel).length;
   const earlyChildhoodCount=classes.filter(c=>String(academicGradeCode(c.grade_label)||"").startsWith("K")).length;
   const typeLabel={basic:"วิชาพื้นฐาน",additional:"วิชาเพิ่มเติม",activity:"กิจกรรมพัฒนาผู้เรียน",other:"อื่น ๆ"};
-  const scopeMatches=type=>scope==="all"||(scope==="core"&&type==="basic")||scope===type;
+  const scopeMatches=type=>(scope==="core"&&type==="basic")||scope===type;
   const logicalKey=x=>{
     const code=String(x.subject_code||"").trim().toLowerCase(),name=String(x.subject_name||x.name_th||"").trim().toLowerCase(),type=x.subject_type||"";
     if(type==="activity"&&code)return "activity|"+code+"|"+name;
@@ -3369,10 +3369,15 @@ function academicSubjectsHtml(data,timeline){
   directCourses.forEach(c=>merged.set(logicalKey(c),{...c,_origin:"direct"}));
   const selectedCourses=Array.from(merged.values()).sort((x,y)=>Number(x.sort_order||0)-Number(y.sort_order||0)||String(x.subject_name||"").localeCompare(String(y.subject_name||""),"th"));
   const shownCourses=selectedCourses.filter(c=>scopeMatches(c.subject_type));
+  const subjectWorkspace=state.subjectWorkspaceData||{parallel_groups:[],status:null};
+  const parallelGroups=subjectWorkspace.parallel_groups||[];
+  const parallelByCourseId=new Map();
+  parallelGroups.forEach(g=>(g.members||[]).forEach(m=>parallelByCourseId.set(m.course_id,g)));
+  const groupEligibleCourses=shownCourses.filter(c=>c._origin==="direct"&&!parallelByCourseId.has(c.id));
   const selectedKeys=new Set(selectedCourses.map(logicalKey));
 
   const allCatalog=(preset.items||[]).filter(x=>x.grade_code===gradeCode);
-  const catalogMatches=x=>scope==="all"||(scope==="core"&&x.subject_type==="basic")||x.subject_type===scope;
+  const catalogMatches=x=>(scope==="core"&&x.subject_type==="basic")||x.subject_type===scope;
   const centralAvailable=allCatalog.filter(x=>catalogMatches(x)&&!selectedKeys.has(logicalKey(x)));
 
   const schoolSubjects=(data.subjects||[]).filter(x=>x.is_active!==false);
@@ -3395,11 +3400,18 @@ function academicSubjectsHtml(data,timeline){
   const selectedRows=shownCourses.map(c=>{
     const weekly=(c.term_plans||[]).find(t=>t.weekly_periods!=null);
     const inherited=c._origin==="inherited";
-    return '<article class="subject-selected-card">'+
+    const pg=parallelByCourseId.get(c.id)||null;
+    const canGroup=canManage&&!inherited&&!pg;
+    return '<article class="subject-selected-card '+(pg?"in-parallel-group":"")+'">'+
+      (canGroup?'<label class="subject-group-check" title="เลือกเพื่อรวมเป็นกลุ่มเวลาเดียวกัน"><input type="checkbox" data-parallel-course="'+esc(c.id)+'"><span></span></label>':'')+
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(c.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(c.subject_name)+'</strong><small>'+esc(typeLabel[c.subject_type]||"อื่น ๆ")+(c.learning_area?' · '+esc(c.learning_area):'')+'</small></div></div>'+
       '<div class="subject-card-hours"><span><b>'+(weekly?Number(weekly.weekly_periods).toLocaleString("th-TH"):"—")+'</b><small>คาบ/สัปดาห์</small></span><span><b>'+(c.annual_hours!=null?Number(c.annual_hours).toLocaleString("th-TH"):"—")+'</b><small>ชม./ปี</small></span></div>'+
-      '<div class="subject-card-action">'+(c.subject_type==="activity"&&c.subject_code&&(activityCodeCounts.get(String(c.subject_code).trim().toLowerCase())||0)>1?'<span class="subject-origin grouped">รหัสเดียวกัน · นับรวม 1 ช่องเวลา</span>':'')+(inherited?'<span class="subject-origin inherited">รับจากห้องปกติ</span>':'<span class="subject-origin direct">ของกลุ่มนี้</span>')+
-      (canManage?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.subject_id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+'</div>'+
+      '<div class="subject-card-action">'+
+        (pg?'<span class="subject-origin grouped">กลุ่ม '+esc(pg.name)+' · นับ '+Number(pg.weekly_periods||0).toLocaleString("th-TH")+' คาบ</span>':'')+
+        (!pg&&c.subject_type==="activity"&&c.subject_code&&(activityCodeCounts.get(String(c.subject_code).trim().toLowerCase())||0)>1?'<span class="subject-origin grouped">รหัสเดียวกัน · นับรวม 1 ช่องเวลา</span>':'')+
+        (inherited?'<span class="subject-origin inherited">รับจากห้องปกติ</span>':'<span class="subject-origin direct">ของกลุ่มนี้</span>')+
+        (canManage?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+
+      '</div>'+
     '</article>';
   }).join("");
 
@@ -3408,7 +3420,7 @@ function academicSubjectsHtml(data,timeline){
       '<div class="subject-library-source central">ฐานกลาง</div>'+
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(typeLabel[x.subject_type]||"อื่น ๆ")+(x.learning_area?' · '+esc(x.learning_area):'')+'</small></div></div>'+
       '<div class="subject-library-meta"><span>'+(x.weekly_periods==null?"—":Number(x.weekly_periods).toLocaleString("th-TH"))+' คาบ/สัปดาห์</span><span>'+(x.annual_hours==null?"—":Number(x.annual_hours).toLocaleString("th-TH"))+' ชม./ปี</span></div>'+
-      (canManage?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.sort_order)+'">＋ เพิ่ม</button>':'')+
+      (canManage?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.id||'')+'">＋ เพิ่ม</button>':'')+
     '</article>'
   ).join("");
 
@@ -3426,7 +3438,7 @@ function academicSubjectsHtml(data,timeline){
   }).join("");
   const targetTabs='<button type="button" class="'+(!selectedProgram?"active":"")+'" data-subject-target="">ห้องปกติ <span>'+classes.filter(c=>!c.program_id).length+'</span></button>'+
     actualPrograms.map(p=>'<button type="button" class="'+(selectedProgram&&p.id===selectedProgram.id?"active":"")+'" data-subject-target="'+esc(p.id)+'">'+esc(p.name_th)+' <span>'+classes.filter(c=>c.program_id===p.id).length+'</span></button>').join("");
-  const scopeTabs=[["all","ทั้งหมด"],["core","วิชาพื้นฐาน"],["activity","กิจกรรมพัฒนาผู้เรียน"],["additional","วิชาเพิ่มเติม"],["other","อื่น ๆ"]]
+  const scopeTabs=[["core","วิชาพื้นฐาน"],["activity","กิจกรรมพัฒนาผู้เรียน"],["additional","วิชาเพิ่มเติม"],["other","อื่น ๆ"]]
     .map(([v,l])=>'<button type="button" class="'+(scope===v?"active":"")+'" data-subject-catalog-scope="'+v+'">'+l+'</button>').join("");
 
   const currentGroup=(readiness.groups||[]).find(g=>g.grade_code===gradeCode&&(g.program_id||"")===(selectedProgram?selectedProgram.id:""))||null;
@@ -3463,6 +3475,15 @@ function academicSubjectsHtml(data,timeline){
   };
   const allSchoolGrades=Array.from(new Set(classes.map(c=>c.grade_label).filter(Boolean)));
   const customDefaultType=scope==="core"?"basic":(["activity","additional","other"].includes(scope)?scope:"additional");
+  const parallelGroupCards=parallelGroups.map(g=>
+    '<article class="parallel-group-card"><div><strong>'+esc(g.name)+'</strong><small>'+(g.members||[]).map(m=>esc(m.subject_name)).join(' · ')+'</small></div><span>'+Number(g.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span>'+(canManage?'<button type="button" class="text-btn danger" data-delete-parallel-group="'+esc(g.id)+'">ยกเลิกกลุ่ม</button>':'')+'</article>'
+  ).join("");
+  const parallelTools=canManage&&shownCourses.length>1
+    ?'<section class="subject-parallel-tools"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>หลายรหัสที่เรียนในช่วงเดียวกันให้นับเวลาเพียงครั้งเดียว</small></div>'+(groupEligibleCourses.length>1?'<button type="button" class="secondary-btn compact-btn" data-open-parallel-group disabled>รวมวิชาที่เลือก <span data-parallel-selected-count>0</span></button>':'')+'</div>'+
+      (parallelGroupCards?'<div class="parallel-group-list">'+parallelGroupCards+'</div>':'')+
+      '<form class="parallel-group-form hidden" data-parallel-group-form><div class="parallel-group-form-grid"><label>ชื่อกลุ่ม<input name="name" required placeholder="เช่น เลือกเสรี ป.6 กลุ่ม 1"></label><label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0.25" max="20" step="0.25" required placeholder="เช่น 2"></label></div><div class="parallel-group-picked" data-parallel-picked-text></div><div class="parallel-group-actions"><button type="button" class="text-btn" data-close-parallel-group>ยกเลิก</button><button type="submit" class="primary-btn">บันทึกกลุ่มเวลาเดียวกัน</button></div></form>'+
+    '</section>'
+    :(parallelGroupCards?'<section class="subject-parallel-tools"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>ระบบนับเวลาของแต่ละกลุ่มเพียงครั้งเดียว</small></div></div><div class="parallel-group-list">'+parallelGroupCards+'</div></section>':'');
 
   return '<section class="academic-page subjects-workspace subject-library-workspace">'+academicNavHtml("subjects",data)+
     '<section class="panel subjects-compact-head"><div><p class="eyebrow">SUBJECT WORKSPACE</p><h2>จัดรายวิชาของสถานศึกษา</h2><p class="panel-sub">เลือกบริบทก่อน แล้วจัดรายวิชาเฉพาะระดับชั้นและประเภทที่กำลังดู รายการที่นำออกจะกลับเข้าคลังโดยไม่ลบฐานกลาง</p></div><div class="subjects-context-chips">'+
@@ -3531,9 +3552,10 @@ function academicSubjectsHtml(data,timeline){
       '</nav>'+
       (workspaceView==="selected"
         ?'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>รายวิชาที่เรียน</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</p></div><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div>'+
+          parallelTools+
           (selectedRows?'<div class="subject-selected-list">'+selectedRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายการในประเภทนี้</h3><p>เปิดคลังรายวิชาเพื่อเลือกเพิ่ม</p>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-open-subject-library>เปิดคลังรายวิชา</button>':'')+'</div>')+'</div>'
         :'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>คลังรายวิชา</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · แสดงเฉพาะรายการที่ยังไม่ได้เลือก</p></div>'+(canManage?'<button type="button" class="secondary-btn compact-btn" data-toggle-custom-subject>＋ เพิ่มรายวิชาใหม่</button>':'')+'</div>'+
-          (totalAvailable?'<label class="subject-library-search"><span>ค้นหารายวิชา</span><input type="search" data-subject-library-search placeholder="ค้นหารหัส ชื่อวิชา หรือกลุ่มสาระ"></label>':'')+
+          (totalAvailable>6?'<label class="subject-library-search"><span>ค้นหารายวิชา</span><input type="search" data-subject-library-search placeholder="ค้นหารหัส ชื่อวิชา หรือกลุ่มสาระ"></label>':'')+
           '<div class="subject-library-list" data-subject-library-list>'+centralRows+schoolRows+
             (!totalAvailable?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายการที่เลือกแล้วจะไม่แสดงในคลัง หรือสร้างรายวิชาใหม่ของโรงเรียน</p></div>':'')+
           '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>'+
@@ -3912,6 +3934,19 @@ async function academicsHtml(){
       p_academic_year_id:data.selected_year_id
     });
     state.curriculumReadiness=readyRes.error?null:(readyRes.data||null);
+    const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
+    const targetProgram=state.subjectProgramId||null;
+    const targetClasses=classes.filter(c=>targetProgram?c.program_id===targetProgram:!c.program_id);
+    const supported=new Set((state.academicPreset?.supported_grades||[]).map(g=>g.grade_code));
+    const gradeCodes=Array.from(new Set(targetClasses.map(c=>c.grade_code).filter(code=>supported.has(code))));
+    if(!gradeCodes.includes(state.academicPresetGrade))state.academicPresetGrade=gradeCodes[0]||"P1";
+    const wsRes=await supabase.rpc("lao_subject_workspace",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:targetProgram,
+      p_grade_code:state.academicPresetGrade||"P1"
+    });
+    state.subjectWorkspaceData=wsRes.error?null:(wsRes.data||null);
     const timeline=await loadDepartmentSetupTimeline("academics");
     return academicSubjectsHtml(data,timeline);
   }
@@ -4176,12 +4211,14 @@ function bindAcademics(){
   qa("[data-subject-catalog-grade]").forEach(btn=>btn.addEventListener("click",()=>{
     state.academicPresetGrade=btn.dataset.subjectCatalogGrade||"P1";
     state.subjectSetupTab="type";
+    state.subjectWorkspaceData=null;
     state.subjectWorkspaceView="selected";
     renderRoute();
   }));
   qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectProgramId=btn.dataset.subjectTarget||"";
     state.subjectSetupTab="grade";
+    state.subjectWorkspaceData=null;
     state.subjectWorkspaceView="selected";
     state.academicPreset=null;
     renderRoute();
@@ -4241,27 +4278,21 @@ function bindAcademics(){
     state.academicData=null;
     state.academicPreset=null;
     state.curriculumReadiness=null;
+    state.subjectWorkspaceData=null;
     renderRoute();
   };
 
   qa("[data-add-central-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
-    const item=(state.academicPreset?.items||[]).find(x=>
-      x.grade_code===(state.academicPresetGrade||"P1")&&Number(x.sort_order)===Number(btn.dataset.addCentralSubject)
-    );
+    const item=(state.academicPreset?.items||[]).find(x=>x.id===btn.dataset.addCentralSubject);
     if(!item)return;
     setBusy(btn,true,"กำลังเพิ่ม...");
-    const res=await supabase.rpc("lao_add_subject_to_curriculum",{
+    const res=await supabase.rpc("lao_add_curriculum_library_item",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
       p_grade_code:state.academicPresetGrade||"P1",
-      p_subject_id:null,
-      p_subject_code:item.subject_code||null,
-      p_subject_name:item.subject_name,
-      p_learning_area:item.learning_area||null,
-      p_subject_type:item.subject_type,
-      p_weekly_periods:item.weekly_periods==null?null:Number(item.weekly_periods),
-      p_annual_hours:item.annual_hours==null?null:Number(item.annual_hours)
+      p_source_kind:"preset",
+      p_source_id:item.id
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
@@ -4274,18 +4305,13 @@ function bindAcademics(){
     const subject=(data.subjects||[]).find(x=>x.id===btn.dataset.addSchoolSubject);
     if(!subject)return;
     setBusy(btn,true,"กำลังเพิ่ม...");
-    const res=await supabase.rpc("lao_add_subject_to_curriculum",{
+    const res=await supabase.rpc("lao_add_curriculum_library_item",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
       p_grade_code:state.academicPresetGrade||"P1",
-      p_subject_id:subject.id,
-      p_subject_code:null,
-      p_subject_name:null,
-      p_learning_area:null,
-      p_subject_type:subject.subject_type||"other",
-      p_weekly_periods:null,
-      p_annual_hours:null
+      p_source_kind:"school",
+      p_source_id:subject.id
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
@@ -4297,12 +4323,12 @@ function bindAcademics(){
   qa("[data-remove-curriculum-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!confirm("นำรายการนี้ออกจาก "+academicGradeLabelFromCode(state.academicPresetGrade||"P1")+" · "+((data.programs||[]).find(p=>p.id===state.subjectProgramId)?.name_th||"ห้องปกติ")+" ?\n\nรายการจะยังอยู่ในคลังและเพิ่มกลับได้ภายหลัง"))return;
     setBusy(btn,true,"กำลังนำออก...");
-    const res=await supabase.rpc("lao_remove_subject_from_curriculum",{
+    const res=await supabase.rpc("lao_remove_curriculum_item",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
       p_grade_code:state.academicPresetGrade||"P1",
-      p_subject_id:btn.dataset.removeCurriculumSubject
+      p_course_id:btn.dataset.removeCurriculumSubject
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
@@ -4350,7 +4376,7 @@ function bindAcademics(){
   if(confirmStructure)confirmStructure.addEventListener("click",async()=>{
     if(!confirm("ยืนยันว่าโครงสร้างรายวิชาและเวลาเรียนของบริบทที่เลือกครบตามหลักสูตรสถานศึกษาแล้ว?"))return;
     setBusy(confirmStructure,true,"กำลังยืนยัน...");
-    const res=await supabase.rpc("lao_confirm_curriculum_structure",{
+    const res=await supabase.rpc("lao_confirm_curriculum_group",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
@@ -4361,6 +4387,58 @@ function bindAcademics(){
     toast("ยืนยันโครงสร้างเรียบร้อยแล้ว","success");
     refreshSubjects();
   });
+
+  const parallelChecks=qa("[data-parallel-course]");
+  const parallelOpen=q("[data-open-parallel-group]");
+  const parallelForm=q("[data-parallel-group-form]");
+  const parallelPicked=q("[data-parallel-picked-text]");
+  const updateParallelSelection=()=>{
+    const checked=parallelChecks.filter(x=>x.checked);
+    const count=q("[data-parallel-selected-count]");
+    if(count)count.textContent=String(checked.length);
+    if(parallelOpen)parallelOpen.disabled=checked.length<2;
+    if(parallelPicked){
+      const names=checked.map(ch=>ch.closest(".subject-selected-card")?.querySelector(".subject-card-copy strong")?.textContent||"").filter(Boolean);
+      parallelPicked.textContent=names.length?"เลือกแล้ว: "+names.join(" · "):"";
+    }
+  };
+  parallelChecks.forEach(ch=>ch.addEventListener("change",updateParallelSelection));
+  if(parallelOpen)parallelOpen.addEventListener("click",()=>{
+    if(parallelChecks.filter(x=>x.checked).length<2)return;
+    parallelForm?.classList.remove("hidden");
+    updateParallelSelection();
+    parallelForm?.querySelector('input[name="name"]')?.focus();
+  });
+  qa("[data-close-parallel-group]").forEach(btn=>btn.addEventListener("click",()=>parallelForm?.classList.add("hidden")));
+  if(parallelForm)parallelForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const ids=parallelChecks.filter(x=>x.checked).map(x=>x.dataset.parallelCourse);
+    if(ids.length<2){toast("กรุณาเลือกอย่างน้อย 2 รายวิชา","error");return;}
+    const fd=new FormData(parallelForm),btn=parallelForm.querySelector('button[type="submit"]');
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_create_curriculum_parallel_group",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,
+      p_grade_code:state.academicPresetGrade||"P1",
+      p_name:String(fd.get("name")||"").trim(),
+      p_weekly_periods:Number(fd.get("weekly_periods")),
+      p_course_ids:ids
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("สร้างกลุ่มเวลาเดียวกันแล้ว · ระบบนับคาบเพียงครั้งเดียว","success");
+    refreshSubjects();
+  });
+  qa("[data-delete-parallel-group]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("ยกเลิกการรวมเวลาในกลุ่มนี้? รายวิชายังคงอยู่ตามเดิม"))return;
+    setBusy(btn,true,"กำลังยกเลิก...");
+    const res=await supabase.rpc("lao_delete_curriculum_parallel_group",{p_school_id:school.id,p_group_id:btn.dataset.deleteParallelGroup});
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("ยกเลิกกลุ่มเวลาเดียวกันแล้ว","success");
+    refreshSubjects();
+  }));
 
   const exportSubjects=q("[data-export-subjects]");
   if(exportSubjects)exportSubjects.addEventListener("click",()=>{
