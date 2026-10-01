@@ -3386,6 +3386,11 @@ function academicSubjectsHtml(data,timeline){
     return true;
   });
   const totalAvailable=centralAvailable.length+schoolAvailable.length;
+  const activityCodeCounts=new Map();
+  selectedCourses.filter(c=>c.subject_type==="activity"&&c.subject_code).forEach(c=>{
+    const key=String(c.subject_code).trim().toLowerCase();
+    activityCodeCounts.set(key,(activityCodeCounts.get(key)||0)+1);
+  });
 
   const selectedRows=shownCourses.map(c=>{
     const weekly=(c.term_plans||[]).find(t=>t.weekly_periods!=null);
@@ -3449,11 +3454,6 @@ function academicSubjectsHtml(data,timeline){
   const currentStatusClass=currentStatus==="confirmed"?"success":currentStatus==="ready_to_confirm"?"info":"warning";
   const workspaceView=["selected","library"].includes(state.subjectWorkspaceView)?state.subjectWorkspaceView:"selected";
   state.subjectWorkspaceView=workspaceView;
-  const activityCodeCounts=new Map();
-  selectedCourses.filter(c=>c.subject_type==="activity"&&c.subject_code).forEach(c=>{
-    const key=String(c.subject_code).trim().toLowerCase();
-    activityCodeCounts.set(key,(activityCodeCounts.get(key)||0)+1);
-  });
   const timelineSteps=timeline&&timeline.steps||[];
   const stepChip=code=>{
     const x=timelineSteps.find(v=>v.step_code===code);
