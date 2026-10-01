@@ -3393,8 +3393,9 @@ function academicSubjectsHtml(data,timeline){
     const hasCurrentContext=subjectContexts.some(c=>
       c.grade_code===gradeCode && (c.program_id||null)===(currentProgramId||null)
     );
+    const isExcludedInherited=Boolean(selectedProgram&&excludedIds.has(x.id));
     const hasAnyContextThisYear=subjectContexts.length>0;
-    if(hasAnyContextThisYear&&!hasCurrentContext)return false;
+    if(hasAnyContextThisYear&&!hasCurrentContext&&!isExcludedInherited)return false;
     schoolSeen.add(key);
     return true;
   });
