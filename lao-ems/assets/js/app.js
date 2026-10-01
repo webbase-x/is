@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.16.5";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.16.6";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classGradeFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3326,7 +3326,8 @@ function academicSubjectsHtml(data,timeline){
   const canManage=Boolean(data.can_manage),year=academicSelectedYear(data),preset=state.academicPreset||{};
   const readiness=state.curriculumReadiness||{groups:[],exclusions:[],total_groups:0,confirmed_groups:0,groups_with_courses:0};
   const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
-  const activeCourses=(data.courses||[]).filter(c=>c.is_active!==false);
+  const allCourses=data.courses||[];
+  const activeCourses=allCourses.filter(c=>c.is_active!==false);
   const programs=(data.programs||[]).filter(p=>p.is_active);
   const actualPrograms=programs.filter(p=>classes.some(c=>c.program_id===p.id));
   if(state.subjectProgramId&&!actualPrograms.some(p=>p.id===state.subjectProgramId))state.subjectProgramId="";
@@ -3381,12 +3382,20 @@ function academicSubjectsHtml(data,timeline){
   const centralAvailable=allCatalog.filter(x=>catalogMatches(x)&&!selectedKeys.has(logicalKey(x)));
 
   const schoolSubjects=(data.subjects||[]).filter(x=>x.is_active!==false);
-  const centralKeys=new Set(allCatalog.map(logicalKey));
+  const centralKeys=new Set((preset.items||[]).map(logicalKey));
+  const currentProgramId=selectedProgram?selectedProgram.id:null;
   const schoolSeen=new Set();
   const schoolAvailable=schoolSubjects.filter(x=>{
     if(!scopeMatches(x.subject_type))return false;
     const key=logicalKey(x);
     if(selectedKeys.has(key)||centralKeys.has(key)||schoolSeen.has(key))return false;
+    const subjectContexts=allCourses.filter(c=>c.subject_id===x.id);
+    const hasCurrentContext=subjectContexts.some(c=>
+      c.grade_code===gradeCode && (c.program_id||null)===(currentProgramId||null)
+    );
+    const isExcludedInherited=Boolean(selectedProgram&&excludedIds.has(x.id));
+    const hasAnyContextThisYear=subjectContexts.length>0;
+    if(hasAnyContextThisYear&&!hasCurrentContext&&!isExcludedInherited)return false;
     schoolSeen.add(key);
     return true;
   });
@@ -3543,8 +3552,6 @@ function academicSubjectsHtml(data,timeline){
       '</div>'+
     '</section>'+
 
-    '<section class="subject-workspace-summary"><span><strong>'+esc(targetLabel)+'</strong></span><span>'+esc(shortGrade(gradeLabel))+'</span><span>'+esc(scopeLabel)+'</span><span>'+targetRoomCount+' ห้อง</span></section>'+
-
     '<section class="panel subject-workspace-panel">'+
       '<nav class="subject-workspace-tabs">'+
         '<button type="button" class="'+(workspaceView==="selected"?"active":"")+'" data-subject-workspace-view="selected">รายวิชาที่เรียน <span>'+shownCourses.length+'</span></button>'+
@@ -3555,11 +3562,11 @@ function academicSubjectsHtml(data,timeline){
           parallelTools+
           (selectedRows?'<div class="subject-selected-list">'+selectedRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายการในประเภทนี้</h3><p>เปิดคลังรายวิชาเพื่อเลือกเพิ่ม</p>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-open-subject-library>เปิดคลังรายวิชา</button>':'')+'</div>')+'</div>'
         :'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>คลังรายวิชา</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · แสดงเฉพาะรายการที่ยังไม่ได้เลือก</p></div>'+(canManage?'<button type="button" class="secondary-btn compact-btn" data-toggle-custom-subject>＋ เพิ่มรายวิชาใหม่</button>':'')+'</div>'+
-          (totalAvailable>6?'<label class="subject-library-search"><span>ค้นหารายวิชา</span><input type="search" data-subject-library-search placeholder="ค้นหารหัส ชื่อวิชา หรือกลุ่มสาระ"></label>':'')+
+          (totalAvailable>4?'<label class="subject-library-search"><span>ค้นหารายวิชา <b>'+totalAvailable+' รายการ</b></span><input type="search" data-subject-library-search placeholder="ค้นหารหัส ชื่อวิชา หรือกลุ่มสาระ"></label>':'')+
           '<div class="subject-library-list" data-subject-library-list>'+centralRows+schoolRows+
             (!totalAvailable?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายการที่เลือกแล้วจะไม่แสดงในคลัง หรือสร้างรายวิชาใหม่ของโรงเรียน</p></div>':'')+
           '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>'+
-          (canManage?'<form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>เพิ่มรายวิชาใหม่ของโรงเรียน</strong><small>บันทึกไว้ในคลังของโรงเรียนและเพิ่มเข้าบริบทที่เลือกทันที</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท<div class="subject-custom-type">'+esc(scopeLabel)+'</div><input type="hidden" name="subject_type" value="'+esc(customDefaultType)+'"></label><label>รหัสวิชา<input name="subject_code" placeholder="เว้นว่างได้"></label><label class="wide">ชื่อรายวิชา / กิจกรรม <span class="required-mark">*</span><input name="subject_name" required></label><label>กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาไทย"></label><label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25"></label><label>ชม./ปี<input name="annual_hours" type="number" min="0" step="0.5"></label></div><div class="subject-custom-note">กิจกรรมที่ใช้รหัสเดียวกันแต่ผู้เรียนต่างกลุ่ม เช่น ลูกเสือ/เนตรนารี และลูกเสือ/ยุวกาชาด สามารถเก็บแยกชื่อได้ ระบบตรวจคาบจะนับรวมเป็นช่องเวลาเดียว</div><div class="subject-custom-actions"><button type="submit" class="primary-btn">บันทึกและเพิ่ม</button></div></form>':'')+
+          (canManage?'<form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>เพิ่มรายวิชาใหม่ของโรงเรียน</strong><small>บันทึกไว้ในคลังของโรงเรียนและเพิ่มเข้าบริบทที่เลือกทันที</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท<div class="subject-custom-type">'+esc(scopeLabel)+'</div><input type="hidden" name="subject_type" value="'+esc(customDefaultType)+'"></label><label>รหัสวิชา<input name="subject_code" placeholder="เว้นว่างได้"></label><label class="wide">ชื่อรายวิชา / กิจกรรม <span class="required-mark">*</span><input name="subject_name" required></label><label>กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาไทย"></label><label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25"></label><label>ชม./ปี<input name="annual_hours" type="number" min="0" step="0.5"></label></div><div class="subject-custom-note">กิจกรรมรหัสเดียวกันแต่ผู้เรียนต่างกลุ่ม เช่น ลูกเสือ/เนตรนารี และลูกเสือ/ยุวกาชาด เก็บแยกชื่อได้และนับเวลาเพียงหนึ่งช่อง ส่วนวิชาเลือกต่างรหัสที่เรียนพร้อมกัน ให้เพิ่มรายวิชาก่อนแล้วรวมเป็น “กลุ่มเวลาเดียวกัน” ในแท็บรายวิชาที่เรียน</div><div class="subject-custom-actions"><button type="submit" class="primary-btn">บันทึกและเพิ่ม</button></div></form>':'')+
         '</div>')+
     '</section>'+
     '<section class="subject-bottom-note"><span>ขั้นถัดไป: ตรวจชั่วโมงและโครงสร้างเวลาเรียน</span><a href="#/academics/curriculum">ไปโครงสร้างเวลาเรียน →</a></section>'+

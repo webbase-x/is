@@ -4135,3 +4135,43 @@ table{max-width:none}
 }
 
 .subject-custom-type{display:flex;align-items:center;min-height:38px;margin-top:4px;padding:8px 10px;border:1px solid #d0d5dd;border-radius:9px;background:#f9fafb;font-size:9px;font-weight:800;color:#344054}
+
+
+/* Subject workspace polish v0.16.6 */
+.subjects-compact-head{padding:14px 15px}
+.subjects-compact-head h2{margin-bottom:3px}
+.subjects-context-chips{max-width:52%}
+.subject-workspace-panel{box-shadow:0 1px 2px rgba(16,24,40,.03)}
+.subject-workspace-head{margin-bottom:12px}
+.subject-workspace-head p{line-height:1.45}
+.subject-library-search span{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.subject-library-search span b{font-size:7.5px;color:#667085;font-weight:700}
+.subject-library-card,.subject-selected-card{transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
+.subject-library-card:hover{border-color:#b2ccff;box-shadow:0 3px 10px rgba(16,24,40,.05)}
+.subject-selected-card:hover{border-color:#d0d5dd}
+.curriculum-readiness-card{box-shadow:0 1px 2px rgba(16,24,40,.03)}
+@media(min-width:1180px){
+  .subject-workspace-panel .subject-library-list{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  .subject-workspace-panel .subject-library-list>.empty-state{grid-column:1/-1}
+}
+@media(max-width:700px){
+  .subjects-compact-head{padding:13px}
+  .subjects-context-chips{max-width:none}
+  .subject-card-copy strong{font-size:11px}
+  .subject-card-copy small{font-size:8.5px;line-height:1.35}
+  .subject-library-card,.subject-selected-card{padding:11px}
+  .subject-library-meta{padding-left:0;margin-top:0;flex-wrap:wrap}
+  .subject-library-search input{min-height:42px;font-size:16px}
+  .subject-code-box{min-width:60px}
+  .curriculum-readiness-card{padding:12px}
+  .curriculum-readiness-metrics{gap:5px}
+  .curriculum-readiness-metrics span{font-size:8px}
+}
+@media(max-width:480px){
+  .subjects-context-chips span{padding:5px 7px}
+  .subject-workspace-content{padding:11px}
+  .subject-card-main{gap:8px}
+  .subject-card-hours{padding-left:0}
+  .subject-card-action{width:100%}
+  .subject-remove-btn,.subject-add-btn{min-height:34px}
+}
