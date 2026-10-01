@@ -1338,13 +1338,108 @@ table{max-width:none}
 /* Academic annual structure — v0.11.0 */
 .academic-page{display:flex;flex-direction:column;gap:14px}
 .academic-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.academic-subnav{display:flex;align-items:center;gap:5px;padding:5px;border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow-x:auto;scrollbar-width:none;min-width:0}
-.academic-subnav::-webkit-scrollbar{display:none}
-.academic-subnav a{display:inline-flex;align-items:center;min-height:36px;padding:7px 10px;border-radius:10px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:800;white-space:nowrap}
-.academic-subnav a.active{background:var(--primary-soft);color:var(--primary)}
+.academic-toolbar.academic-step-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
+.academic-subnav.academic-step-nav{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(92px,1fr));
+  align-items:start;
+  gap:0;
+  min-width:0;
+  padding:9px 8px 7px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--surface);
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.academic-step-nav::-webkit-scrollbar{display:none}
+.academic-step-nav .academic-step-link{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  gap:7px;
+  min-width:92px;
+  padding:0 6px 4px;
+  text-decoration:none;
+  color:var(--muted);
+  text-align:center;
+  outline:none;
+}
+.academic-step-nav .academic-step-link:not(:last-child)::after{
+  content:"";
+  position:absolute;
+  top:18px;
+  left:50%;
+  width:100%;
+  height:2px;
+  background:#d8dee9;
+  z-index:0;
+  pointer-events:none;
+}
+.academic-step-node{
+  position:relative;
+  z-index:1;
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  border:2px solid #cbd5e1;
+  border-radius:999px;
+  background:var(--surface);
+  color:#667085;
+  font-size:12px;
+  font-weight:900;
+  line-height:1;
+  transition:border-color .18s ease,background .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+.academic-step-title{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  min-height:30px;
+  max-width:116px;
+  color:#667085;
+  font-size:10px;
+  font-weight:800;
+  line-height:1.35;
+  white-space:normal;
+}
+.academic-step-link:hover .academic-step-node,
+.academic-step-link:focus-visible .academic-step-node{
+  border-color:var(--primary);
+  color:var(--primary);
+  transform:translateY(-1px);
+}
+.academic-step-link.active .academic-step-node{
+  border-color:var(--primary);
+  background:var(--primary);
+  color:#fff;
+  box-shadow:0 0 0 5px var(--primary-soft);
+}
+.academic-step-link.active .academic-step-title{color:var(--primary)}
+.academic-step-link.active:not(:last-child)::after{
+  background:linear-gradient(90deg,var(--primary) 0 50%,#d8dee9 50% 100%);
+}
 .academic-year-switch{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:10px;font-weight:800;color:var(--muted)}
 .academic-year-switch select{min-width:150px;min-height:38px;padding:7px 30px 7px 9px}
 .academic-year-empty{font-size:10px;color:var(--muted);white-space:nowrap}
+@media(max-width:900px){
+  .academic-toolbar.academic-step-toolbar{grid-template-columns:minmax(0,1fr)}
+  .academic-step-nav{grid-template-columns:repeat(7,minmax(98px,1fr))}
+  .academic-year-switch,.academic-year-empty{justify-self:end}
+}
+@media(max-width:560px){
+  .academic-subnav.academic-step-nav{padding:8px 4px 6px}
+  .academic-step-nav .academic-step-link{min-width:88px;padding-inline:4px}
+  .academic-step-node{width:34px;height:34px;font-size:11px}
+  .academic-step-nav .academic-step-link:not(:last-child)::after{top:17px}
+  .academic-step-title{max-width:96px;font-size:9px}
+}
 
 .academic-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:21px;border:1px solid #d8e6fb;border-radius:18px;background:linear-gradient(135deg,#f7faff,#eef8f6)}
 .academic-hero h2{margin:2px 0 5px;font-size:22px}
