@@ -4571,18 +4571,12 @@ async function academicsHtml(){
   if(mode==="classes")return academicClassesHtml(data);
   if(mode==="subjects"){
     await Promise.all([loadAcademicCurriculumPreset(data,state.subjectProgramId),loadAcademicCourseTimeOverview(data)]);
-    const [readyRes,subjectReadyRes]=await Promise.all([
-      supabase.rpc("lao_curriculum_readiness",{
-        p_school_id:school.id,
-        p_academic_year_id:data.selected_year_id
-      }),
-      supabase.rpc("lao_subject_readiness",{
-        p_school_id:school.id,
-        p_academic_year_id:data.selected_year_id
-      })
-    ]);
+    const readyRes=await supabase.rpc("lao_curriculum_readiness",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id
+    });
     state.curriculumReadiness=readyRes.error?null:(readyRes.data||null);
-    state.subjectReadiness=subjectReadyRes.error?null:(subjectReadyRes.data||null);
+    state.subjectReadiness=state.academicTimeline&&state.academicTimeline.subject_readiness||null;
     const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
     const targetProgram=state.subjectProgramId||null;
     const targetClasses=classes.filter(c=>targetProgram?c.program_id===targetProgram:!c.program_id);
