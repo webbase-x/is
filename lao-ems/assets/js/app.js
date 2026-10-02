@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.6";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.7";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,academicTimeline:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -1206,7 +1206,7 @@ async function overviewHtml(){
   }
   if(academicResponsible){
     try{
-      const timeline=await loadDepartmentSetupTimeline("academics");
+      const timeline=state.academicTimeline||await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
       if(timeline)timelines.push(timeline);
     }catch(e){console.warn("overview academics timeline",e);}
   }
@@ -2758,63 +2758,135 @@ function personnelPrefixControls(prefix){
     '<input class="personnel-prefix-custom '+(custom?"":"hidden")+'" name="prefix_custom" data-personnel-prefix-custom value="'+esc(custom?raw:"")+'" placeholder="ระบุคำนำหน้า" maxlength="40" '+(custom?"required":"")+'>';
 }
 
-async function loadDepartmentSetupTimeline(departmentCode){
+async function loadDepartmentSetupTimeline(departmentCode,academicYearId=null){
   const school=currentSchool();
   if(!school)return null;
-  const res=await supabase.rpc("lao_department_setup_timeline",{
-    p_school_id:school.id,
-    p_department_code:departmentCode
-  });
+  const res=departmentCode==="academics"
+    ?await supabase.rpc("lao_academic_year_setup_timeline",{
+      p_school_id:school.id,
+      p_academic_year_id:academicYearId||state.academicYearId||null
+    })
+    :await supabase.rpc("lao_department_setup_timeline",{
+      p_school_id:school.id,
+      p_department_code:departmentCode
+    });
   if(res.error)throw res.error;
   return res.data||null;
 }
 function departmentSetupStatusLabel(status){
-  return ({completed:"เสร็จแล้ว",skipped:"ข้ามแล้ว",current:"ทำต่อขั้นนี้",queued:"รอคิว"})[status]||status||"-";
+  return ({
+    completed:"เสร็จแล้ว",
+    reused:"ใช้ข้อมูลเดิม · ตรวจสอบแล้ว",
+    skipped:"ข้ามปีนี้",
+    not_applicable:"ไม่เกี่ยวข้อง",
+    current:"กำลังดำเนินการ",
+    queued:"รอดำเนินการ"
+  })[status]||status||"-";
+}
+function academicTimelineChangeSummaryHtml(timeline){
+  const x=timeline&&timeline.change_summary||{};
+  if(!x.has_previous){
+    return timeline&&timeline.academic_year_id
+      ?'<div class="academic-year-change-summary first-year"><strong>เทียบปีก่อน</strong><span>ยังไม่มีปีการศึกษาก่อนหน้าในระบบสำหรับเปรียบเทียบ</span></div>'
+      :"";
+  }
+  const delta=(v,unit)=>{
+    const n=Number(v||0);
+    return (n>0?"+":"")+n.toLocaleString("th-TH")+" "+unit;
+  };
+  return '<div class="academic-year-change-summary"><div><strong>เปลี่ยนจากปี '+esc(x.previous_year_be)+'</strong><span>สรุปเฉพาะโครงสร้างที่มีผลต่อการตั้งค่าปีใหม่</span></div><div class="academic-year-change-chips">'+
+    '<span>ห้อง '+delta(x.rooms_delta,"ห้อง")+'</span>'+
+    '<span>โปรแกรมที่ผูกห้อง '+Number(x.programs_current||0).toLocaleString("th-TH")+' ('+delta(Number(x.programs_current||0)-Number(x.programs_previous||0),"") +')</span>'+
+    '<span>รายวิชาเพิ่ม +'+Number(x.subjects_added||0).toLocaleString("th-TH")+'</span>'+
+    '<span>รายวิชานำออก '+Number(x.subjects_removed||0).toLocaleString("th-TH")+'</span>'+
+    '<span>เวลาเรียนเปลี่ยน '+Number(x.time_changed||0).toLocaleString("th-TH")+'</span>'+
+  '</div></div>';
 }
 function departmentSetupTimelineHtml(timeline){
   if(!timeline||!Array.isArray(timeline.steps)||!timeline.steps.length)return "";
-  const total=Number(timeline.total_count||timeline.steps.length||0);
-  const resolved=Number(timeline.resolved_count||0);
-  const pct=total?Math.max(0,Math.min(100,Math.round(resolved*100/total))):100;
+  const annual=timeline.timeline_scope==="academic_year";
+  const total=Number(annual?timeline.applicable_count:(timeline.total_count||timeline.steps.length)||0);
+  const resolved=Number(annual?timeline.completed_count:timeline.resolved_count||0);
+  const pct=annual
+    ?Number(timeline.progress_percent||0)
+    :(total?Math.max(0,Math.min(100,Math.round(resolved*100/total))):100);
   const next=timeline.next_step||null;
-  const summary=timeline.is_complete
-    ?'<strong>ตั้งค่าตามไทม์ไลน์ครบแล้ว</strong><span>หากข้อมูลจริงเปลี่ยน ระบบจะเปิดขั้นตอนที่เกี่ยวข้องให้ดำเนินการอีกครั้งอัตโนมัติ</span>'
-    :'<strong>ครั้งถัดไปทำต่อ: '+esc(next&&next.title||"ขั้นตอนถัดไป")+'</strong><span>ระบบจดจำขั้นตอนที่เสร็จและขั้นตอนที่ข้ามไว้ให้ ไม่ต้องเริ่มใหม่</span>';
+  const complete=Boolean(timeline.is_complete);
+  const summary=complete
+    ?'<strong>'+(annual?'พร้อมใช้งานแล้ว':'ตั้งค่าตามไทม์ไลน์ครบแล้ว')+'</strong><span>'+(annual?'ทุกขั้นตอนที่เกี่ยวข้องกับปีการศึกษานี้เสร็จครบแล้ว':'หากข้อมูลจริงเปลี่ยน ระบบจะเปิดขั้นตอนที่เกี่ยวข้องให้ดำเนินการอีกครั้งอัตโนมัติ')+'</span>'
+    :'<strong>ขั้นถัดไป: '+esc(next&&next.title||"ขั้นตอนถัดไป")+'</strong><span>'+(annual?'ระบบบันทึกความคืบหน้าแยกตามปีการศึกษา ไม่ต้องสร้างข้อมูลระดับโรงเรียนซ้ำ':'ระบบจดจำขั้นตอนที่เสร็จและขั้นตอนที่ข้ามไว้ให้ ไม่ต้องเริ่มใหม่')+'</span>';
 
   const rows=timeline.steps.map(step=>{
     const status=step.status||"queued";
-    const icon=status==="completed"?"✓":status==="skipped"?"↷":status==="current"?"→":"·";
+    const icon=status==="completed"?"✓":status==="reused"?"↻":status==="skipped"?"↷":status==="not_applicable"?"–":status==="current"?"●":"○";
     let action="";
-    if(status==="completed"){
+    if(status==="completed"||status==="reused"){
       action='<a class="department-step-link" href="'+esc(step.route)+'">เปิดดู</a>';
+    }else if(status==="not_applicable"){
+      action='<span class="department-step-muted">ไม่ต้องดำเนินการ</span>';
+    }else if(status==="skipped"&&annual){
+      action=timeline.can_manage
+        ?'<button type="button" class="department-step-link department-step-link-button" data-academic-year-setup-action="resume" data-step-code="'+esc(step.step_code)+'" data-academic-year-id="'+esc(timeline.academic_year_id||"")+'" data-step-route="'+esc(step.route)+'">กลับมาทำ</button>'
+        :'<span class="department-step-muted">ข้ามไว้</span>';
     }else if(status==="skipped"){
       action=timeline.can_manage
         ?'<button type="button" class="department-step-link department-step-link-button" data-department-setup-action="resume" data-department-code="'+esc(timeline.department_code)+'" data-step-code="'+esc(step.step_code)+'" data-step-route="'+esc(step.route)+'">กลับมาทำ</button>'
         :'<span class="department-step-muted">ข้ามไว้</span>';
     }else if(status==="current"){
       action='<div class="department-step-actions"><a class="department-step-link primary" href="'+esc(step.route)+'">ทำขั้นตอนนี้</a>'+
-        (timeline.can_manage&&step.is_skippable?'<button type="button" class="department-step-link department-step-link-button" data-department-setup-action="skip" data-department-code="'+esc(timeline.department_code)+'" data-step-code="'+esc(step.step_code)+'">ข้ามขั้นนี้</button>':'')+
+        (annual&&timeline.can_manage&&step.is_skippable?'<button type="button" class="department-step-link department-step-link-button" data-academic-year-setup-action="skip" data-step-code="'+esc(step.step_code)+'" data-academic-year-id="'+esc(timeline.academic_year_id||"")+'">ข้ามปีนี้</button>':
+        (!annual&&timeline.can_manage&&step.is_skippable?'<button type="button" class="department-step-link department-step-link-button" data-department-setup-action="skip" data-department-code="'+esc(timeline.department_code)+'" data-step-code="'+esc(step.step_code)+'">ข้ามขั้นนี้</button>':''))+
       '</div>';
     }else{
       action='<span class="department-step-muted">รอขั้นก่อนหน้า</span>';
     }
+    const kind=status==="not_applicable"
+      ?'<span class="department-step-kind optional">ไม่นับร้อยละ</span>'
+      :(status==="skipped"
+        ?'<span class="department-step-kind optional">ข้ามได้ · ไม่นับร้อยละ</span>'
+        :'<span class="department-step-kind '+(step.is_required?"required":"optional")+'">'+(step.is_required?"จำเป็น":"ข้ามได้")+'</span>');
     return '<article class="department-setup-step '+esc(status)+'">'+
       '<div class="department-step-marker"><span>'+icon+'</span><i></i></div>'+
-      '<div class="department-step-copy"><div class="department-step-title"><b>'+esc(step.sequence_no)+'</b><strong>'+esc(step.title)+'</strong><span class="department-step-kind '+(step.is_required?"required":"optional")+'">'+(step.is_required?"จำเป็น":"ข้ามได้")+'</span></div><p>'+esc(step.description||"")+'</p></div>'+
+      '<div class="department-step-copy"><div class="department-step-title"><b>'+esc(step.sequence_no)+'</b><strong>'+esc(step.title)+'</strong>'+kind+'</div><p>'+esc(step.description||"")+'</p></div>'+
       '<span class="department-step-status '+esc(status)+'">'+esc(departmentSetupStatusLabel(status))+'</span>'+
       '<div class="department-step-control">'+action+'</div>'+
     '</article>';
   }).join("");
 
-  return '<section class="department-setup-timeline panel" data-department-timeline="'+esc(timeline.department_code)+'">'+
-    '<div class="department-timeline-head"><div><p class="eyebrow">SETUP TIMELINE</p><h2>ไทม์ไลน์ตั้งค่า'+esc(timeline.department_name||"")+'</h2><p>ทำตามลำดับทีละขั้น · ขั้นที่ไม่กระทบงานส่วนอื่นสามารถข้ามและกลับมาทำภายหลังได้</p></div><div class="department-timeline-progress"><strong>'+resolved+'/'+total+'</strong><span>ดำเนินการแล้ว</span></div></div>'+
-    '<div class="department-progress-track"><span style="width:'+pct+'%"></span></div>'+
-    '<div class="department-resume-card '+(timeline.is_complete?"complete":"")+'"><span>'+(timeline.is_complete?"✓":"▶")+'</span><div>'+summary+'</div>'+(next?'<a class="primary-btn compact-btn" href="'+esc(next.route)+'">ทำต่อ</a>':'')+'</div>'+
+  const progress=annual
+    ?'<div class="academic-progress-ring-wrap"><div class="academic-progress-ring '+(complete?"complete":"")+'" style="--progress:'+Math.max(0,Math.min(100,pct))+'%" role="img" aria-label="ความพร้อม '+pct+' เปอร์เซ็นต์"><div>'+(complete?'<strong>✓</strong><small>100%</small>':'<strong>'+pct+'%</strong><small>ความพร้อม</small>')+'</div></div><span>'+(complete?'ครบทุกขั้นที่เกี่ยวข้อง':'เสร็จแล้ว '+resolved+' จาก '+total+' ขั้น')+'</span></div>'
+    :'<div class="department-timeline-progress"><strong>'+resolved+'/'+total+'</strong><span>ดำเนินการแล้ว</span></div>';
+
+  return '<section class="department-setup-timeline panel '+(annual?"academic-year-timeline":"")+'" data-department-timeline="'+esc(timeline.department_code)+'">'+
+    '<div class="department-timeline-head"><div><p class="eyebrow">'+(annual?'ANNUAL ACADEMIC TIMELINE':'SETUP TIMELINE')+'</p><h2>'+(annual?'ความพร้อมปีการศึกษา '+esc(timeline.year_be||"—"):'ไทม์ไลน์ตั้งค่า'+esc(timeline.department_name||""))+'</h2><p>'+(annual?'ติดตามเฉพาะงานของปีที่เลือก · ข้อมูลระดับโรงเรียนใช้ต่อได้ แต่ต้องตรวจสอบเมื่อขึ้นปีใหม่':'ทำตามลำดับทีละขั้น · ขั้นที่ไม่กระทบงานส่วนอื่นสามารถข้ามและกลับมาทำภายหลังได้')+'</p></div>'+progress+'</div>'+
+    (annual?'':'<div class="department-progress-track"><span style="width:'+pct+'%"></span></div>')+
+    '<div class="department-resume-card '+(complete?"complete":"")+'"><span>'+(complete?"✓":"▶")+'</span><div>'+summary+'</div>'+(next?'<a class="primary-btn compact-btn" href="'+esc(next.route)+'">ทำต่อ</a>':'')+'</div>'+
+    (annual?academicTimelineChangeSummaryHtml(timeline):'')+
     '<div class="department-setup-steps">'+rows+'</div>'+
   '</section>';
 }
 function bindDepartmentSetupTimeline(){
-  qa("[data-department-setup-action]").forEach(btn=>btn.addEventListener("click",async()=>{
+  qa("[data-academic-year-setup-action]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const action=btn.dataset.academicYearSetupAction;
+    const step=btn.dataset.stepCode;
+    const yearId=btn.dataset.academicYearId||state.academicYearId;
+    const route=btn.dataset.stepRoute||"";
+    if(action==="skip"&&!confirm("ข้ามขั้นตอนนี้สำหรับปีการศึกษานี้?\n\nขั้นนี้จะไม่นำมาคิดในร้อยละความพร้อม และสามารถกลับมาทำภายหลังได้"))return;
+    setBusy(btn,true,action==="skip"?"กำลังข้าม...":"กำลังเปิด...");
+    const res=await supabase.rpc("lao_update_academic_year_setup_step",{
+      p_school_id:currentSchool().id,
+      p_academic_year_id:yearId,
+      p_step_code:step,
+      p_action:action
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    state.academicTimeline=res.data||null;
+    if(action==="resume"&&route){location.hash=route.slice(1);return;}
+    toast(action==="skip"?"ข้ามขั้นนี้สำหรับปีที่เลือกแล้ว":"เปิดขั้นตอนกลับมาดำเนินการแล้ว","success");
+    renderRoute();
+  }));
+  qa("[data-department-setup-action].forEach(btn=>btn.addEventListener("click",async()=>{
     const action=btn.dataset.departmentSetupAction;
     const department=btn.dataset.departmentCode;
     const step=btn.dataset.stepCode;
@@ -3544,23 +3616,29 @@ function academicYearSelectorHtml(data){
 }
 function academicNavHtml(active,data){
   const steps=[
-    {key:"dashboard",href:"#/academics",label:"ภาพรวม"},
-    {key:"periods",href:"#/academics/periods",label:"ปี/ภาคเรียน"},
-    {key:"programs",href:"#/academics/programs",label:"หลักสูตร/โปรแกรม"},
-    {key:"classes",href:"#/academics/classes",label:"ชั้น/ห้อง"},
-    {key:"subjects",href:"#/academics/subjects",label:"รายวิชา"},
-    {key:"curriculum",href:"#/academics/curriculum",label:"โครงสร้างเวลาเรียน"},
-    {key:"workload",href:"#/academics/workload",label:"ภาระงานสอน"}
+    {key:"periods",href:"#/academics/periods",label:"ปี/ภาคเรียน",stepCode:"periods"},
+    {key:"programs",href:"#/academics/programs",label:"โปรแกรมพิเศษ",stepCode:"programs"},
+    {key:"classes",href:"#/academics/classes",label:"ชั้น/ห้อง",stepCode:"classes"},
+    {key:"subjects",href:"#/academics/subjects",label:"รายวิชา",stepCode:"subjects"},
+    {key:"curriculum",href:"#/academics/curriculum",label:"โครงสร้างเวลาเรียน",stepCode:"curriculum"},
+    {key:"workload",href:"#/academics/workload",label:"ภาระงานสอน",stepCode:"workload"}
   ];
+  const timeline=state.academicTimeline||null;
+  const statusByStep=new Map(((timeline&&timeline.steps)||[]).map(x=>[x.step_code,x.status]));
   const attention=Number(state.academicWork&&state.academicWork.attention_count||0);
+  const pct=Number(timeline&&timeline.progress_percent||0);
+  const complete=Boolean(timeline&&timeline.is_complete);
   return '<div class="academic-toolbar academic-step-toolbar">'+
-    '<nav class="academic-subnav academic-step-nav" aria-label="ลำดับขั้นตอนงานวิชาการ">'+
-      steps.map((step,index)=>
-        '<a href="'+step.href+'" class="academic-step-link '+(active===step.key?"active":"")+'" '+(active===step.key?'aria-current="page"':'')+'>'+
-          '<span class="academic-step-node">'+(index+1)+'</span>'+
+    '<a href="#/academics" class="academic-overview-link '+(active==="dashboard"?"active":"")+'"><span class="academic-overview-mini-ring '+(complete?"complete":"")+'" style="--progress:'+Math.max(0,Math.min(100,pct))+'%">'+(complete?"✓":pct+"%")+'</span><span>ภาพรวม</span></a>'+
+    '<nav class="academic-subnav academic-step-nav" aria-label="ลำดับขั้นตอนงานวิชาการรายปี">'+
+      steps.map((step,index)=>{
+        const status=statusByStep.get(step.stepCode)||"queued";
+        const node=status==="completed"?"✓":status==="reused"?"↻":status==="not_applicable"?"–":status==="skipped"?"↷":String(index+1);
+        return '<a href="'+step.href+'" class="academic-step-link '+(active===step.key?"active ":"")+'status-'+esc(status)+'" '+(active===step.key?'aria-current="page"':'')+'>'+
+          '<span class="academic-step-node">'+node+'</span>'+
           '<span class="academic-step-title">'+esc(step.label)+(step.key==="workload"&&attention>0?'<span class="subnav-badge">'+attention+'</span>':'')+'</span>'+
-        '</a>'
-      ).join("")+
+        '</a>';
+      }).join("")+
     '</nav>'+
     academicYearSelectorHtml(data)+
   '</div>';
@@ -3657,22 +3735,24 @@ function academicProgramsHtml(data,timeline){
   const items=data.programs||[],canManage=Boolean(data.can_manage);
   const activeItems=items.filter(p=>p.is_active);
   const programStep=(timeline&&timeline.steps||[]).find(x=>x.step_code==="programs")||null;
-  const usingGeneralOnly=Boolean(programStep&&programStep.status==="skipped"&&!activeItems.length);
+  const selectedYear=(data.years||[]).find(y=>y.id===data.selected_year_id)||null;
+  const programReviewed=programStep&&programStep.status==="reused";
+  const noSpecialPrograms=activeItems.length===0;
   const rows=items.map(p=>'<div class="academic-simple-row '+(!p.is_active?"muted-row":"")+'"><div><strong>'+esc(p.name_th)+'</strong><small>'+(p.code?'อักษรย่อ '+esc(p.code):'ไม่มีอักษรย่อ')+(p.name_en?' · '+esc(p.name_en):'')+'</small></div><span class="pill '+(p.is_active?"success":"warning")+'">'+(p.is_active?"ใช้งาน":"ปิดใช้งาน")+'</span>'+(canManage?'<button class="secondary-btn compact-btn" type="button" data-edit-program="'+esc(p.id)+'">แก้ไข</button>':'')+'</div>').join("");
   const setupState=activeItems.length
-    ?'<div class="academic-program-state success"><span>✓</span><div><strong>ตั้งค่าโปรแกรมพิเศษแล้ว</strong><p>รายการนี้เป็นข้อมูลระดับโรงเรียน ใช้ต่อในปีการศึกษาถัดไปได้ ไม่ต้องสร้างใหม่ทุกปี เว้นแต่มีการเปลี่ยนแปลง</p></div></div>'
-    :usingGeneralOnly
-      ?'<div class="academic-program-state success"><span>✓</span><div><strong>บันทึกแล้ว: ใช้เฉพาะห้องปกติ / ไม่มีโปรแกรมพิเศษ</strong><p>ไทม์ไลน์ถือว่าขั้นนี้ดำเนินการแล้ว และปีถัดไปไม่ต้องทำซ้ำ หากภายหลังมี MEP / MLP / ห้องพิเศษ ค่อยกด “＋ เพิ่มหลักสูตร / โปรแกรม” ได้</p></div></div>'
-      :'<div class="academic-program-state"><span>2</span><div><strong>เลือกวิธีใช้งานของโรงเรียน</strong><p>ถ้ามีเฉพาะห้องปกติ ให้ยืนยันว่าไม่มีโปรแกรมพิเศษเพื่อข้ามขั้นนี้อย่างถูกต้อง หรือเพิ่ม MEP / MLP / ห้องพิเศษเมื่อโรงเรียนมีใช้งานจริง</p></div></div>';
+    ?(programReviewed
+      ?'<div class="academic-program-state success"><span>✓</span><div><strong>ตรวจสอบแล้วสำหรับปี '+esc(selectedYear&&selectedYear.year_be||"—")+'</strong><p>ใช้โปรแกรมพิเศษของโรงเรียน '+activeItems.length+' รายการต่อในปีนี้ ข้อมูลโปรแกรมไม่ถูกสร้างซ้ำ</p></div></div>'
+      :'<div class="academic-program-state warning"><span>↻</span><div><strong>มีโปรแกรมพิเศษเดิม '+activeItems.length+' รายการ · รอตรวจสอบปี '+esc(selectedYear&&selectedYear.year_be||"—")+'</strong><p>ตรวจรายการด้านล่าง แล้วกดยืนยันใช้ต่อสำหรับปีนี้ หากแก้ไขโปรแกรมภายหลัง ระบบจะเปิดขั้นตอนนี้ให้ตรวจสอบใหม่</p></div>'+(canManage&&selectedYear?'<button type="button" class="primary-btn compact-btn" data-confirm-year-programs data-academic-year-id="'+esc(selectedYear.id)+'">ยืนยันใช้ต่อในปี '+esc(selectedYear.year_be)+'</button>':'')+'</div>')
+    :'<div class="academic-program-state success"><span>–</span><div><strong>ไม่มีโปรแกรมพิเศษที่ต้องบันทึก</strong><p>ห้องปกติไม่ต้องสร้างเป็นโปรแกรม ขั้นนี้จะถูกระบุว่า “ไม่เกี่ยวข้อง” และไม่นำมาคิดในร้อยละความพร้อมของปี</p></div></div>';
 
   return '<section class="academic-page">'+academicNavHtml("programs",data)+
     '<section class="panel"><div class="panel-head"><div><p class="eyebrow">SPECIAL PROGRAMS</p><h2>โปรแกรมพิเศษของโรงเรียน</h2><p class="panel-sub">บันทึกเฉพาะโปรแกรมพิเศษที่โรงเรียนมีใช้งานจริง ส่วนห้องปกติไม่ต้องสร้างรายการ</p></div>'+(canManage?'<button type="button" class="primary-btn" data-new-program-form>＋ เพิ่มโปรแกรมพิเศษ</button>':'')+'</div>'+
       setupState+
       '<div class="academic-program-choice-grid">'+
-        '<article><span>🏫</span><div><strong>ห้องปกติ</strong><p>ไม่ต้องสร้างรายการ “ปกติ” ระบบจะถือว่าไม่ระบุโปรแกรม และใช้กับห้องทั่วไปทุกปี</p></div>'+(canManage&&!activeItems.length?'<button type="button" class="secondary-btn" data-program-general-only '+(usingGeneralOnly?'disabled':'')+'>'+(usingGeneralOnly?'บันทึกแล้ว':'ใช้ห้องปกติ / ไม่มีโปรแกรมพิเศษ')+'</button>':'')+'</article>'+
+        '<article><span>🏫</span><div><strong>ห้องปกติ</strong><p>ไม่ต้องสร้างรายการ “ปกติ” ระบบถือว่าห้องที่ไม่ระบุโปรแกรมเป็นห้องทั่วไปโดยอัตโนมัติ</p></div></article>'+
         '<article><span>⭐</span><div><strong>มีโปรแกรมพิเศษ</strong><p>เพิ่มเฉพาะรายการที่ต้องแยกจริง เช่น MEP, MLP, ห้องพิเศษ หรือโครงการเฉพาะของโรงเรียน</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-program-form>＋ เพิ่มโปรแกรมพิเศษ</button>':'')+'</article>'+
       '</div>'+
-      (rows?'<div class="academic-simple-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">◫</div><h3>ยังไม่มีโปรแกรมพิเศษ</h3><p>หากโรงเรียนใช้เฉพาะห้องปกติ ให้กด “ใช้ห้องปกติ / ไม่มีโปรแกรมพิเศษ” เพื่อบันทึกขั้นตอนนี้ในไทม์ไลน์</p></div>')+
+      (rows?'<div class="academic-simple-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">◫</div><h3>ไม่มีโปรแกรมพิเศษ</h3><p>ไม่ต้องบันทึกห้องปกติ ระบบจะไม่นับขั้นโปรแกรมพิเศษในร้อยละของปีนี้</p></div>')+
       '<div class="academic-program-next-year"><strong>ปีการศึกษาถัดไปต้องทำอะไร?</strong><p><b>ไม่ต้องสร้างโปรแกรมใหม่ซ้ำ</b> เพราะรายการโปรแกรมเป็นข้อมูลระดับโรงเรียน ใช้ต่อเนื่องข้ามปีได้ เมื่อสร้างชั้น/ห้องของปีใหม่ ให้เลือกโปรแกรมเดิมกับห้องที่เกี่ยวข้อง หรือเลือก “ห้องทั่วไป / ไม่ระบุโปรแกรม” สำหรับห้องปกติ</p></div>'+
     '</section>'+
     (canManage?'<section class="panel academic-form-panel hidden" data-program-form-panel><div class="panel-head"><div><h2 data-program-form-title>เพิ่มโปรแกรมพิเศษ</h2><p class="panel-sub">บันทึกเฉพาะโปรแกรมพิเศษที่โรงเรียนมีใช้งานจริง · แบบฟอร์มเก็บเฉพาะข้อมูลจำเป็น</p></div></div><form id="academic-program-form" class="academic-form academic-form-3" data-id=""><label>อักษรย่อ<input name="code" maxlength="30" placeholder="เช่น MEP"></label><label>ชื่อภาษาไทย <span class="required-mark">*</span><input name="name_th" required placeholder="เช่น โครงการจัดการเรียนการสอนโดยใช้ภาษาอังกฤษเป็นสื่อ"></label><label>ชื่อภาษาอังกฤษ<input name="name_en" placeholder="เช่น Mini English Program"></label><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-program-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกโปรแกรมพิเศษ</button></div></form></section>':'')+
@@ -4412,10 +4492,15 @@ async function academicsHtml(){
   if(!canViewAcademic())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ดูงานวิชาการ</h3></div></section>';
   let data=await loadAcademicStructure();
   const mode=academicRouteState().mode;
+  try{
+    state.academicTimeline=await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
+  }catch(e){
+    console.warn("academic yearly timeline",e);
+    state.academicTimeline=null;
+  }
   if(mode==="periods")return academicPeriodsHtml(data);
   if(mode==="programs"){
-    const timeline=await loadDepartmentSetupTimeline("academics");
-    return academicProgramsHtml(data,timeline);
+    return academicProgramsHtml(data,state.academicTimeline);
   }
   if(mode==="classes")return academicClassesHtml(data);
   if(mode==="subjects"){
@@ -4442,8 +4527,7 @@ async function academicsHtml(){
     }else{
       state.subjectWorkspaceData=null;
     }
-    const timeline=await loadDepartmentSetupTimeline("academics");
-    return academicSubjectsHtml(data,timeline);
+    return academicSubjectsHtml(data,state.academicTimeline);
   }
   if(mode==="curriculum"){
     const [timeOverview,readyRes]=await Promise.all([
@@ -4783,6 +4867,22 @@ function bindAcademics(){
   qa("[data-new-program-form]").forEach(btn=>btn.addEventListener("click",()=>{
     resetProgram();
     showProgramForm();
+  }));
+  qa("[data-confirm-year-programs]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const yearId=btn.dataset.academicYearId||state.academicYearId;
+    if(!yearId)return;
+    setBusy(btn,true,"กำลังยืนยัน...");
+    const res=await supabase.rpc("lao_update_academic_year_setup_step",{
+      p_school_id:school.id,
+      p_academic_year_id:yearId,
+      p_step_code:"programs",
+      p_action:"confirm"
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    state.academicTimeline=res.data||null;
+    toast("ยืนยันโปรแกรมพิเศษสำหรับปีการศึกษานี้แล้ว","success");
+    renderRoute();
   }));
   qa("[data-program-general-only]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!school)return;
