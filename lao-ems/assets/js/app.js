@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.6";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.7";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -2501,6 +2501,10 @@ async function studentsHtml(){
   }).join("");
 
   const total=Number(d.total||0);
+  const canResetYear=isSchoolAdminContext()&&Boolean(d.selected_year);
+  const resetToolsHtml=canResetYear
+    ?'<section class="panel student-year-reset-card"><div class="student-year-reset-head"><div><p class="eyebrow">DATA SAFETY</p><h2>จัดการข้อมูลนักเรียนรายปี</h2><p class="panel-sub">สำหรับข้อมูลทดลองหรือนำเข้าผิด ระบบจะลบเฉพาะข้อมูลนักเรียนและประวัติ LEC ของปีที่เลือก โดยคงปีการศึกษา ภาคเรียน หลักสูตร รายวิชา โปรแกรม เวลาเรียน และภาระงานสอนไว้</p></div><button type="button" class="secondary-btn" data-open-student-year-reset data-year="'+esc(d.selected_year)+'">ตรวจสอบก่อนล้าง</button></div><div class="student-year-reset-panel hidden" data-student-year-reset-panel><div class="student-reset-preview-loading hidden" data-student-reset-preview-loading><span class="spinner"></span>กำลังตรวจสอบข้อมูล...</div><div data-student-reset-preview></div></div></section>'
+    :'';
   return '<section class="student-directory">'+
     '<section class="student-summary-grid">'+
       '<article><small>นักเรียนในทะเบียน</small><strong>'+Number(stats.school_total||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
@@ -2519,6 +2523,7 @@ async function studentsHtml(){
         '<div class="student-filter-actions"><button class="primary-btn" type="submit">ค้นหา</button><button class="secondary-btn" type="button" data-student-reset>ล้างตัวกรอง</button></div>'+
       '</form>'+
     '</section>'+
+    resetToolsHtml+
     '<section class="student-roster-stack"><div class="student-list-head"><div><h2>รายชื่อนักเรียนแยกตามห้อง</h2><p>'+esc(school.name_th||"")+' · ปีการศึกษา '+esc(d.selected_year||"-")+' · ภาคเรียนที่ '+esc(d.selected_term||"-")+'</p></div><strong>'+total.toLocaleString("th-TH")+' คน</strong></div>'+
       (items.length?roster:'<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">🔎</div><h3>ไม่พบนักเรียนตามเงื่อนไข</h3><p>ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p></div></section>')+
     '</section>'+
@@ -2552,6 +2557,87 @@ function bindStudents(){
     state.studentFilters={search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000};
     renderRoute();
   });
+
+  const openReset=q("[data-open-student-year-reset]");
+  const resetPanel=q("[data-student-year-reset-panel]");
+  const previewHost=q("[data-student-reset-preview]");
+  const previewLoading=q("[data-student-reset-preview-loading]");
+  if(openReset&&resetPanel&&previewHost){
+    openReset.addEventListener("click",async()=>{
+      const school=currentSchool();
+      const year=Number(openReset.dataset.year||0);
+      if(!school||!year)return;
+      resetPanel.classList.remove("hidden");
+      previewHost.innerHTML="";
+      if(previewLoading)previewLoading.classList.remove("hidden");
+      setBusy(openReset,true,"กำลังตรวจสอบ...");
+      try{
+        const res=await supabase.rpc("lao_student_year_reset_preview",{p_school_id:school.id,p_year_be:year});
+        if(res.error)throw res.error;
+        const p=res.data||{};
+        const phrase=String(p.confirmation_text||("ลบข้อมูลนักเรียนปี "+year));
+        const num=v=>Number(v||0).toLocaleString("th-TH");
+        previewHost.innerHTML=
+          '<div class="student-reset-warning '+(p.is_current?"is-current":"")+'"><strong>'+(p.is_current?"ปีการศึกษาปัจจุบัน — ตรวจสอบให้แน่ใจก่อนล้าง":"ข้อมูลของปีการศึกษา "+esc(year))+'</strong><p>การดำเนินการนี้ใช้สำหรับข้อมูลทดลองหรือนำเข้าผิด และไม่ลบโครงสร้างวิชาการของปีนี้</p></div>'+
+          '<div class="student-reset-preview-grid">'+
+            '<article><small>นักเรียน</small><strong>'+num(p.student_count)+'</strong><span>คน</span></article>'+
+            '<article><small>รายการลงทะเบียน</small><strong>'+num(p.enrollment_count)+'</strong><span>รายการ</span></article>'+
+            '<article><small>ชุดนำเข้า LEC</small><strong>'+num(p.lec_batch_count)+'</strong><span>ชุด</span></article>'+
+            '<article><small>แถวต้นฉบับ LEC</small><strong>'+num(p.lec_row_count)+'</strong><span>แถว</span></article>'+
+            '<article><small>ห้องจาก LEC</small><strong>'+num(p.lec_class_count)+'</strong><span>ห้อง</span></article>'+
+            '<article><small>กิจกรรมรายนักเรียน</small><strong>'+num(p.activity_enrollment_count)+'</strong><span>รายการ</span></article>'+
+          '</div>'+
+          '<div class="student-reset-preserve"><strong>ข้อมูลที่จะเก็บไว้</strong><span>ปีการศึกษา · ภาคเรียน · หลักสูตร · รายวิชา · โปรแกรม · เวลาเรียน · ภาระงานสอน</span>'+
+            (Number(p.protected_lec_class_count||0)>0?'<small>มี '+num(p.protected_lec_class_count)+' ห้องที่ถูกใช้อ้างอิงในภาระงานสอน ระบบจะเก็บห้องเหล่านี้ไว้เพื่อไม่ให้ข้อมูลเดิมเสียหาย</small>':'')+
+          '</div>'+
+          '<div class="student-reset-confirm"><label class="student-reset-ack"><input type="checkbox" data-student-reset-ack><span>ฉันตรวจสอบแล้วว่าเป็นข้อมูลทดลอง/นำเข้าผิด และต้องการล้างข้อมูลนักเรียนของปีนี้</span></label><label>พิมพ์ข้อความยืนยันให้ตรงกัน<input type="text" autocomplete="off" data-student-reset-confirm-input placeholder="'+esc(phrase)+'"></label><div class="student-reset-phrase">พิมพ์: <strong>'+esc(phrase)+'</strong></div><div class="student-reset-actions"><button type="button" class="secondary-btn" data-close-student-year-reset>ยกเลิก</button><button type="button" class="danger-btn" data-confirm-student-year-reset disabled>ล้างข้อมูลนักเรียนปี '+esc(year)+'</button></div></div>';
+        resetPanel.dataset.confirmation=phrase;
+        resetPanel.dataset.year=String(year);
+
+        const ack=q("[data-student-reset-ack]",resetPanel);
+        const input=q("[data-student-reset-confirm-input]",resetPanel);
+        const confirmBtn=q("[data-confirm-student-year-reset]",resetPanel);
+        const closeBtn=q("[data-close-student-year-reset]",resetPanel);
+        const syncGuard=()=>{
+          if(!confirmBtn)return;
+          confirmBtn.disabled=!(ack&&ack.checked&&input&&input.value.trim()===phrase);
+        };
+        if(ack)ack.addEventListener("change",syncGuard);
+        if(input)input.addEventListener("input",syncGuard);
+        if(closeBtn)closeBtn.addEventListener("click",()=>{resetPanel.classList.add("hidden");previewHost.innerHTML="";});
+        if(confirmBtn)confirmBtn.addEventListener("click",async()=>{
+          if(confirmBtn.disabled)return;
+          if(!window.confirm("ยืนยันล้างข้อมูลนักเรียนปี "+year+" ใช่หรือไม่?\n\nโครงสร้างปีการศึกษาและหลักสูตรจะยังคงอยู่"))return;
+          setBusy(confirmBtn,true,"กำลังล้างข้อมูล...");
+          try{
+            const run=await supabase.rpc("lao_reset_student_year_data",{
+              p_school_id:school.id,
+              p_year_be:year,
+              p_confirmation:input.value.trim()
+            });
+            if(run.error)throw run.error;
+            const out=run.data||{};
+            state.studentDirectory=null;
+            state.academicData=null;
+            state.academicPreset=null;
+            state.subjectWorkspaceData=null;
+            state.curriculumReadiness=null;
+            toast("ล้างข้อมูลนักเรียนปี "+year+" แล้ว · ลบรายการลงทะเบียน "+num(out.student_enrollments_removed)+" รายการ","success");
+            renderRoute();
+          }catch(err){
+            toast(err.message||"ล้างข้อมูลไม่สำเร็จ","error");
+            setBusy(confirmBtn,false);
+          }
+        });
+      }catch(err){
+        previewHost.innerHTML='<div class="notice danger"><strong>ตรวจสอบข้อมูลไม่ได้</strong><br>'+esc(err.message||"เกิดข้อผิดพลาด")+'</div>';
+        toast(err.message||"ตรวจสอบข้อมูลไม่สำเร็จ","error");
+      }finally{
+        if(previewLoading)previewLoading.classList.add("hidden");
+        setBusy(openReset,false);
+      }
+    });
+  }
 }
 
 
