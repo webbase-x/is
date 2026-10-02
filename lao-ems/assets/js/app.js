@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.1";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.2";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -4870,12 +4870,21 @@ function bindAcademics(){
     if(noResults)noResults.classList.toggle("hidden",visible>0||!needle);
   });
 
-  const refreshSubjects=()=>{
+  const refreshSubjects=(preservePosition=false)=>{
+    const keepView=state.subjectWorkspaceView;
+    const scrollTop=window.scrollY;
     state.academicData=null;
     state.academicPreset=null;
     state.curriculumReadiness=null;
     state.subjectWorkspaceData=null;
-    renderRoute();
+    state.subjectWorkspaceView=keepView;
+    const rendered=renderRoute();
+    if(preservePosition&&rendered&&typeof rendered.then==="function"){
+      rendered.then(()=>window.requestAnimationFrame(()=>{
+        window.scrollTo({top:scrollTop,behavior:"auto"});
+      }));
+    }
+    return rendered;
   };
 
   qa("[data-add-central-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
@@ -4893,9 +4902,8 @@ function bindAcademics(){
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.subjectWorkspaceView="selected";
-    toast("เพิ่ม “"+item.subject_name+"” แล้ว","success");
-    refreshSubjects();
+    toast("เพิ่ม “"+item.subject_name+"” แล้ว · อยู่ในแท็บเดิม","success");
+    refreshSubjects(true);
   }));
 
   qa("[data-add-school-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
@@ -4913,9 +4921,8 @@ function bindAcademics(){
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.subjectWorkspaceView="selected";
-    toast("เพิ่ม “"+subject.name_th+"” แล้ว","success");
-    refreshSubjects();
+    toast("เพิ่ม “"+subject.name_th+"” แล้ว · อยู่ในแท็บเดิม","success");
+    refreshSubjects(true);
   }));
 
   qa("[data-remove-curriculum-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
@@ -4931,9 +4938,8 @@ function bindAcademics(){
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.subjectWorkspaceView="library";
-    toast("นำออกแล้ว · รายการกลับไปอยู่ในคลังแล้ว","success");
-    refreshSubjects();
+    toast("นำออกแล้ว · รายการยังอยู่ในคลังและหน้าปัจจุบันไม่เปลี่ยน","success");
+    refreshSubjects(true);
   }));
 
   const finderForm=q("#subject-finder-form");
@@ -4971,9 +4977,8 @@ function bindAcademics(){
       });
       setBusy(btn,false);
       if(res.error){toast(res.error.message,"error");return;}
-      state.subjectWorkspaceView="selected";
-      toast("เพิ่มรายวิชาเข้าหลักสูตรโรงเรียนแล้ว","success");
-      refreshSubjects();
+      toast("เพิ่มรายวิชาเข้าหลักสูตรโรงเรียนแล้ว · อยู่ในแท็บเดิม","success");
+      refreshSubjects(true);
     }));
   };
   if(finderForm)finderForm.addEventListener("submit",async e=>{
@@ -5027,9 +5032,8 @@ function bindAcademics(){
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.subjectWorkspaceView="selected";
-    toast("สร้างรายวิชาและเพิ่มให้ "+shortGrade(gradeLabel)+(res.data?.shared_catalog_id?" · เผยแพร่คลังร่วมแล้ว":"")+"","success");
-    refreshSubjects();
+    toast("สร้างรายวิชาและเพิ่มให้ "+shortGrade(gradeLabel)+(res.data?.shared_catalog_id?" · เผยแพร่คลังร่วมแล้ว":"")+" · อยู่ในแท็บเดิม","success");
+    refreshSubjects(true);
   });
 
   const confirmStructure=q("[data-confirm-curriculum-structure]");
