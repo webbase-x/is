@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.4";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.5";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -3842,7 +3842,7 @@ function academicSubjectsHtml(data,timeline){
     const standardText=academicStandardTimeSummary(standard);
     const schoolText=academicSchoolTimeSummary(c,standard);
     return '<article class="subject-selected-card '+(pg?"in-parallel-group":"")+' '+(timeInfo&&timeInfo.time_customized?"time-customized":"")+'">'+
-      (canGroup?'<label class="subject-group-check" title="เลือกเพื่อรวมเป็นกลุ่มเวลาเดียวกัน"><input type="checkbox" data-parallel-course="'+esc(c.id)+'"><span></span></label>':'')+
+      (canGroup&&state.subjectParallelSelectionMode?'<label class="subject-group-check" title="เลือกเพื่อรวมเป็นกลุ่มเวลาเดียวกัน"><input type="checkbox" data-parallel-course="'+esc(c.id)+'"><span></span></label>':'')+
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(c.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(c.subject_name)+'</strong><small>'+(c.learning_area?esc(c.learning_area):esc(typeLabel[c.subject_type]||"อื่น ๆ"))+(subtypeText?' · '+esc(subtypeText):'')+'</small></div></div>'+
       (standard?'<div class="subject-time-compare"><div><small>มาตรฐานกลางขั้นต่ำ</small><strong>'+esc(standardText||"ไม่กำหนด")+'</strong></div><div><small>โรงเรียนใช้</small><strong>'+esc(schoolText)+'</strong></div></div>':'<div class="subject-time-compare single"><div><small>เวลาเรียนของโรงเรียน</small><strong>'+esc(schoolText)+'</strong></div></div>')+
       '<div class="subject-card-action">'+
@@ -3947,7 +3947,14 @@ function academicSubjectsHtml(data,timeline){
     '<article class="parallel-group-card"><div><strong>'+esc(g.name)+'</strong><small>'+(g.members||[]).map(m=>esc(m.subject_name)).join(' · ')+'</small></div><span>'+Number(g.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span>'+(canEdit?'<button type="button" class="text-btn danger" data-delete-parallel-group="'+esc(g.id)+'">ยกเลิกกลุ่ม</button>':'')+'</article>'
   ).join("");
   const parallelTools=canEdit&&shownCourses.length>1
-    ?'<section class="subject-parallel-tools"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>หลายรหัสที่เรียนในช่วงเดียวกันให้นับเวลาเพียงครั้งเดียว</small></div>'+(groupEligibleCourses.length>1?'<button type="button" class="secondary-btn compact-btn" data-open-parallel-group disabled>รวมวิชาที่เลือก <span data-parallel-selected-count>0</span></button>':'')+'</div>'+
+    ?'<section class="subject-parallel-tools '+(state.subjectParallelSelectionMode?"is-selecting":"")+'"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>'+(state.subjectParallelSelectionMode?"เลือกอย่างน้อย 2 รายวิชาที่เรียนในช่วงเวลาเดียวกัน แล้วกดรวมเป็นกลุ่ม":"หลายรหัสที่เรียนในช่วงเดียวกันให้นับเวลาเพียงครั้งเดียว")+'</small></div>'+
+      (groupEligibleCourses.length>1
+        ?(state.subjectParallelSelectionMode
+          ?'<div class="parallel-selection-actions"><button type="button" class="secondary-btn compact-btn" data-cancel-parallel-selection>ยกเลิกการเลือก</button><button type="button" class="primary-btn compact-btn" data-open-parallel-group disabled>รวมวิชาที่เลือก <span data-parallel-selected-count>0</span></button></div>'
+          :'<button type="button" class="secondary-btn compact-btn" data-start-parallel-selection>เลือกวิชาเพื่อรวมกลุ่ม</button>')
+        :'')+
+      '</div>'+
+      (state.subjectParallelSelectionMode?'<div class="parallel-selection-banner"><strong>โหมดเลือกวิชา</strong><span>ช่องสี่เหลี่ยมจะแสดงเฉพาะตอนนี้ และใช้สำหรับ “รวมเวลา” เท่านั้น ไม่ใช่การลบหลายรายการ</span></div>':'')+
       (parallelGroupCards?'<div class="parallel-group-list">'+parallelGroupCards+'</div>':'')+
       '<form class="parallel-group-form hidden" data-parallel-group-form><div class="parallel-group-form-grid"><label>ชื่อกลุ่ม<input name="name" required placeholder="เช่น เลือกเสรี ป.6 กลุ่ม 1"></label><label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0.25" max="20" step="0.25" required placeholder="เช่น 2"></label></div><div class="parallel-group-picked" data-parallel-picked-text></div><div class="parallel-group-actions"><button type="button" class="text-btn" data-close-parallel-group>ยกเลิก</button><button type="submit" class="primary-btn">บันทึกกลุ่มเวลาเดียวกัน</button></div></form>'+
     '</section>'
@@ -4846,6 +4853,7 @@ function bindAcademics(){
     };
     state.subjectWorkspaceData=null;
     state.subjectEditMode=false;
+    state.subjectParallelSelectionMode=false;
     renderRoute();
   }));
   qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -4857,20 +4865,24 @@ function bindAcademics(){
     state.subjectWorkspaceData=null;
     state.academicPreset=null;
     state.subjectEditMode=false;
+    state.subjectParallelSelectionMode=false;
     renderRoute();
   }));
   qa("[data-subject-catalog-scope]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectCatalogScope=btn.dataset.subjectCatalogScope||"all";
     state.subjectSetupTab="type";
     state.subjectWorkspaceView="library";
+    state.subjectParallelSelectionMode=false;
     renderRoute();
   }));
   qa("[data-subject-workspace-view]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectWorkspaceView=btn.dataset.subjectWorkspaceView||"selected";
+    state.subjectParallelSelectionMode=false;
     renderRoute();
   }));
   qa("[data-open-subject-library]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectWorkspaceView="library";
+    state.subjectParallelSelectionMode=false;
     renderRoute();
   }));
   const subjectFinder=q("#subject-finder-panel");
@@ -4893,6 +4905,7 @@ function bindAcademics(){
   const subjectEditSwitch=q("[data-subject-edit-switch]");
   if(subjectEditSwitch)subjectEditSwitch.addEventListener("change",()=>{
     state.subjectEditMode=subjectEditSwitch.checked;
+    if(!state.subjectEditMode)state.subjectParallelSelectionMode=false;
     renderRoute();
   });
 
@@ -5183,6 +5196,16 @@ function bindAcademics(){
     refreshSubjects();
   });
 
+  qa("[data-start-parallel-selection]").forEach(btn=>btn.addEventListener("click",()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+    state.subjectParallelSelectionMode=true;
+    refreshSubjects(true);
+  }));
+  qa("[data-cancel-parallel-selection]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.subjectParallelSelectionMode=false;
+    refreshSubjects(true);
+  }));
+
   const parallelChecks=qa("[data-parallel-course]");
   const parallelOpen=q("[data-open-parallel-group]");
   const parallelForm=q("[data-parallel-group-form]");
@@ -5223,8 +5246,9 @@ function bindAcademics(){
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
+    state.subjectParallelSelectionMode=false;
     toast("สร้างกลุ่มเวลาเดียวกันแล้ว · ระบบนับคาบเพียงครั้งเดียว","success");
-    refreshSubjects();
+    refreshSubjects(true);
   });
   qa("[data-delete-parallel-group]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
