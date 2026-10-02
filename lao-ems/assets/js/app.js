@@ -3452,7 +3452,7 @@ function academicSubjectsHtml(data,timeline){
   const schoolSubjectKeys=new Set(schoolSubjects.map(logicalKey));
   const centralAvailable=allCatalog.filter(x=>{
     const key=logicalKey(x);
-    return catalogMatches(x)&&!selectedKeys.has(key)&&!schoolSubjectKeys.has(key);
+    return catalogMatches(x)&&!selectedKeys.has(key);
   });
 
   const currentProgramId=selectedProgram?selectedProgram.id:null;
@@ -3511,7 +3511,6 @@ function academicSubjectsHtml(data,timeline){
     '<article class="subject-library-card" data-subject-library-item data-search-text="'+esc(((x.subject_code||"")+" "+x.subject_name+" "+(x.learning_area||"")+" ฐานกลาง").toLowerCase())+'">'+
       '<div class="subject-library-source central">ฐานกลาง</div>'+
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(typeLabel[x.subject_type]||"อื่น ๆ")+(x.learning_area?' · '+esc(x.learning_area):'')+'</small></div></div>'+
-      '<div class="subject-library-meta"><span>'+(x.weekly_periods==null?"—":Number(x.weekly_periods).toLocaleString("th-TH"))+' คาบ/สัปดาห์</span><span>'+(x.annual_hours==null?"—":Number(x.annual_hours).toLocaleString("th-TH"))+' ชม./ปี</span></div>'+
       (canManage?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.id||'')+'">＋ เพิ่ม</button>':'')+
     '</article>'
   ).join("");
