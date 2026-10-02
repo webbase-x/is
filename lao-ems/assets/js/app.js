@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.9";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.0";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3506,18 +3506,25 @@ async function academicDashboardHtml(data){
     '<section class="academic-next-note"><span>ขั้นถัดไป</span><div><strong>ตารางเรียน / ตารางสอน</strong><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นฐานในการจัดตาราง เพื่อลดการกรอกชื่อครู รายวิชา และห้องเรียนซ้ำ</p></div></section>'+
   '</section>';
 }
-function academicEndDateAfter200Weekdays(startIso){
+function academicDateAfterWeekdays(startIso,totalDays){
   if(!startIso)return "";
   const d=new Date(startIso+"T12:00:00");
   if(Number.isNaN(d.getTime()))return "";
+  const target=Math.max(1,Number(totalDays)||1);
   let count=0;
-  while(count<200){
+  while(count<target){
     const day=d.getDay();
     if(day!==0&&day!==6)count++;
-    if(count<200)d.setDate(d.getDate()+1);
+    if(count<target)d.setDate(d.getDate()+1);
   }
   const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
   return y+"-"+m+"-"+day;
+}
+function academicEndDateAfter200Weekdays(startIso){
+  return academicDateAfterWeekdays(startIso,200);
+}
+function academicEndDateAfter100Weekdays(startIso){
+  return academicDateAfterWeekdays(startIso,100);
 }
 function academicPeriodsHtml(data){
   const years=data.years||[],canManage=Boolean(data.can_manage),canDelete=isSchoolAdminContext();
@@ -3526,13 +3533,13 @@ function academicPeriodsHtml(data){
     return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-add-term="'+esc(y.id)+'">＋ เพิ่มภาคเรียน</button><button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+(canDelete?'<button type="button" class="danger-btn compact-btn" data-safe-delete-year="'+esc(y.id)+'">ลบปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
   }).join("");
   return '<section class="academic-page">'+academicNavHtml("periods",data)+
-    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">ฝ่ายวิชาการเพิ่มปีการศึกษาได้เองก่อนข้อมูล LEC จะออก เมื่อกำหนดวันเริ่ม ระบบช่วยคำนวณวันสิ้นสุดจากวันเรียน จ.–ศ. 200 วัน และแก้ไขภายหลังได้</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">ฝ่ายวิชาการเพิ่มปีการศึกษาได้เองก่อนข้อมูล LEC จะออก เมื่อกำหนดวันเริ่ม ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ โดยตั้งต้นภาคเรียนละ 100 วันเรียน จ.–ศ. รวม 200 วัน และแก้ไขช่วงวันที่ภายหลังได้</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
       '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
       (canDelete?'<div class="academic-delete-policy"><strong>การลบแบบปลอดภัย</strong><span>ระบบจะตรวจข้อมูลเชื่อมโยงก่อนทุกครั้ง หากมีนักเรียน LEC ห้องเรียน รายวิชา เวลาเรียน หรือภาระงานสอน ระบบจะบล็อกการลบโดยอัตโนมัติ</span></div><div class="academic-safe-delete-panel hidden" data-academic-safe-delete-panel></div>':'')+
     '</section>'+
     (canManage?'<section class="academic-edit-grid">'+
-      '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">สร้างได้ก่อน LEC เปิดปีใหม่ · ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2570"></label><label>วันเริ่มปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุดปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><div class="academic-year-auto-note span-all">เมื่อเลือกวันเริ่ม ระบบจะเติมวันสิ้นสุดเป็นวันเรียนลำดับที่ 200 โดยนับวันจันทร์–ศุกร์เบื้องต้น ไม่หักวันหยุดราชการ และสามารถแก้วันที่ได้เองภายหลัง</div><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
-      '<article class="panel hidden" data-term-form-panel><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุด (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
+      '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">สร้างได้ก่อน LEC เปิดปีใหม่ · ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ ภาคเรียนละ 100 วันเรียน · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2570"></label><label>วันเริ่มปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุดปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><div class="academic-year-auto-note span-all"><strong>ตั้งต้นอัตโนมัติ:</strong> ภาคเรียนที่ 1 = 100 วันเรียน และภาคเรียนที่ 2 = 100 วันเรียน โดยนับวันจันทร์–ศุกร์เบื้องต้น ไม่หักวันหยุดราชการ ช่วงวันที่ของแต่ละภาคเรียนแก้ไขได้ภายหลัง</div><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
+      '<article class="panel hidden" data-term-form-panel><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน · เมื่อกำหนดวันเริ่ม ระบบเติมวันสิ้นสุดที่ 100 วันเรียนให้อัตโนมัติ และแก้ไขภายหลังได้ · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุด (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
     '</section>':'')+
   '</section>';
 }
@@ -4406,14 +4413,29 @@ function bindAcademics(){
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
     if(!yearForm.dataset.id)state.academicYearId=res.data&&res.data.id||state.academicYearId;
-    toast("บันทึกปีการศึกษาแล้ว","success");renderRoute();
+    toast(yearForm.dataset.id?"บันทึกปีการศึกษาแล้ว · เติมช่วงภาคเรียนที่ยังว่างเป็น 100 วันเรียน":"บันทึกปีการศึกษาแล้ว · สร้างภาคเรียนที่ 1–2 ภาคเรียนละ 100 วันเรียน","success");renderRoute();
   });
 
   const termForm=q("#academic-term-form");
   const resetTerm=()=>{
     academicResetForm(termForm,"[data-term-form-title]","เพิ่ม/แก้ไขภาคเรียน");
-    if(termForm&&data.selected_year_id)academicSetFormValue(termForm,"academic_year_id",data.selected_year_id);
+    if(termForm){
+      termForm.dataset.autoEnd="true";
+      if(data.selected_year_id)academicSetFormValue(termForm,"academic_year_id",data.selected_year_id);
+    }
   };
+  if(termForm){
+    const termStart=termForm.elements.namedItem("starts_on");
+    const termEnd=termForm.elements.namedItem("ends_on");
+    if(termStart&&termEnd){
+      termStart.addEventListener("change",()=>{
+        if(termForm.dataset.autoEnd!=="false"&&termStart.value){
+          setBuddhistDateControlValue(termEnd.closest("[data-be-date-control]"),academicEndDateAfter100Weekdays(termStart.value),false);
+        }
+      });
+      termEnd.addEventListener("change",()=>{termForm.dataset.autoEnd="false";});
+    }
+  }
   qa("[data-reset-term-form]").forEach(btn=>btn.addEventListener("click",()=>{resetTerm();showAcademicPeriodPanel("term");academicScrollToForm(termForm);}));
   qa("[data-add-term]").forEach(btn=>btn.addEventListener("click",()=>{
     const y=(data.years||[]).find(x=>x.id===btn.dataset.addTerm);if(!y||!termForm)return;
@@ -4433,11 +4455,16 @@ function bindAcademics(){
     const t=y&&(y.terms||[]).find(x=>x.id===btn.dataset.editTerm);if(!t||!termForm)return;
     showAcademicPeriodPanel("term");
     termForm.dataset.id=t.id;
+    termForm.dataset.autoEnd=t.ends_on?"false":"true";
     academicSetFormValue(termForm,"academic_year_id",y.id);
     academicSetFormValue(termForm,"term_no",t.term_no);
     academicSetFormValue(termForm,"name",t.name);
     academicSetFormValue(termForm,"starts_on",t.starts_on);
     academicSetFormValue(termForm,"ends_on",t.ends_on);
+    if(t.starts_on&&!t.ends_on){
+      const termEnd=termForm.elements.namedItem("ends_on");
+      if(termEnd)setBuddhistDateControlValue(termEnd.closest("[data-be-date-control]"),academicEndDateAfter100Weekdays(t.starts_on),false);
+    }
     academicSetFormValue(termForm,"is_current",t.is_current);
     const h=q("[data-term-form-title]");if(h)h.textContent="แก้ไข "+(t.name||("ภาคเรียนที่ "+t.term_no));
     academicScrollToForm(termForm);
