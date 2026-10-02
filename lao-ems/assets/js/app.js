@@ -3437,7 +3437,8 @@ function academicSubjectsHtml(data,timeline){
   baseInherited.forEach(c=>merged.set(logicalKey(c),{...c,_origin:"inherited"}));
   directCourses.forEach(c=>merged.set(logicalKey(c),{...c,_origin:"direct"}));
   const selectedCourses=Array.from(merged.values()).sort((x,y)=>Number(x.sort_order||0)-Number(y.sort_order||0)||String(x.subject_name||"").localeCompare(String(y.subject_name||""),"th"));
-  const shownCourses=selectedCourses.filter(c=>scopeMatches(c.subject_type));
+  // ฐานรายวิชาโรงเรียนแสดงทุกรายวิชาของระดับชั้น ไม่ใช้ตัวกรองประเภทจากคลัง
+  const shownCourses=selectedCourses;
   const subjectWorkspace=state.subjectWorkspaceData||{parallel_groups:[],status:null};
   const parallelGroups=subjectWorkspace.parallel_groups||[];
   const parallelByCourseId=new Map();
@@ -3555,6 +3556,23 @@ function academicSubjectsHtml(data,timeline){
   };
   const allSchoolGrades=Array.from(new Set(classes.map(c=>c.grade_label).filter(Boolean)));
   const customDefaultType=scope==="core"?"basic":(["activity","additional","other"].includes(scope)?scope:"additional");
+  const catalogSetupHtml='<section class="subject-catalog-setup">'+
+    '<nav class="subject-setup-menu" aria-label="ตัวกรองรายการรายวิชาจากคลัง">'+
+      '<button type="button" class="'+(setupTab==="target"?"active":"")+'" data-subject-setup-tab="target"><span>กลุ่มห้อง</span><strong>'+esc(targetLabel)+'</strong></button>'+
+      '<button type="button" class="'+(setupTab==="grade"?"active":"")+'" data-subject-setup-tab="grade"><span>ระดับชั้น</span><strong>'+esc(gradeLabel?shortGrade(gradeLabel):"ยังไม่มี")+'</strong></button>'+
+      '<button type="button" class="'+(setupTab==="type"?"active":"")+'" data-subject-setup-tab="type"><span>ประเภทวิชา</span><strong>'+esc(scopeLabel)+'</strong></button>'+
+    '</nav>'+
+    '<div class="subject-setup-panel">'+
+      (setupTab==="target"
+        ?'<div class="subject-setup-panel-head"><strong>เลือกกลุ่มห้อง</strong><small>เลือกบริบทที่จะนำรายวิชาจากคลังไปใช้</small></div><div class="subject-target-tabs">'+targetTabs+'</div>'
+        :setupTab==="grade"
+          ?'<div class="subject-setup-panel-head"><strong>เลือกระดับชั้น</strong><small>แสดงเฉพาะระดับที่มีห้องจริงใน '+esc(targetLabel)+'</small></div><div class="subject-grade-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับชั้นสำหรับโครงสร้างรายวิชาในกลุ่มนี้</span>')+'</div>'
+          :'<div class="subject-setup-panel-head"><strong>เลือกประเภทวิชาในคลัง</strong><small>ตัวกรองนี้มีผลเฉพาะรายการรายวิชาจากคลัง ไม่กรองฐานรายวิชาโรงเรียน</small></div><div class="subject-scope-tabs">'+scopeTabs+'</div>')+
+    '</div>'+
+    (earlyChildhoodCount?'<div class="subject-early-note">ระดับอนุบาลใช้หลักสูตรการศึกษาปฐมวัย จึงแยกออกจากหน้านี้</div>':'')+
+  '</section>';
+  const libraryRows=centralRows+schoolRows;
+
   const parallelGroupCards=parallelGroups.map(g=>
     '<article class="parallel-group-card"><div><strong>'+esc(g.name)+'</strong><small>'+(g.members||[]).map(m=>esc(m.subject_name)).join(' · ')+'</small></div><span>'+Number(g.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span>'+(canManage?'<button type="button" class="text-btn danger" data-delete-parallel-group="'+esc(g.id)+'">ยกเลิกกลุ่ม</button>':'')+'</article>'
   ).join("");
@@ -3571,22 +3589,6 @@ function academicSubjectsHtml(data,timeline){
     '</div></section>'+
 
     '<section class="subject-timeline-strip">'+stepChip("subjects")+'<b>→</b>'+stepChip("curriculum")+'<b>→</b>'+stepChip("workload")+'</section>'+
-
-    '<section class="panel subject-tab-menu-panel">'+
-      '<nav class="subject-setup-menu" aria-label="ตั้งค่ารายวิชา">'+
-        '<button type="button" class="'+(setupTab==="target"?"active":"")+'" data-subject-setup-tab="target"><span>กลุ่มห้อง</span><strong>'+esc(targetLabel)+'</strong></button>'+
-        '<button type="button" class="'+(setupTab==="grade"?"active":"")+'" data-subject-setup-tab="grade"><span>ระดับชั้น</span><strong>'+esc(gradeLabel?shortGrade(gradeLabel):"ยังไม่มี")+'</strong></button>'+
-        '<button type="button" class="'+(setupTab==="type"?"active":"")+'" data-subject-setup-tab="type"><span>ประเภทวิชา</span><strong>'+esc(scopeLabel)+'</strong></button>'+
-      '</nav>'+
-      '<div class="subject-setup-panel">'+
-        (setupTab==="target"
-          ?'<div class="subject-setup-panel-head"><strong>เลือกกลุ่มห้อง</strong><small>ห้องพิเศษรับวิชาพื้นฐานและกิจกรรมจากห้องปกติเป็นค่าเริ่มต้น แต่สามารถนำออกเฉพาะโปรแกรมได้</small></div><div class="subject-target-tabs">'+targetTabs+'</div>'
-          :setupTab==="grade"
-            ?'<div class="subject-setup-panel-head"><strong>เลือกระดับชั้น</strong><small>แสดงเฉพาะระดับที่มีห้องจริงใน '+esc(targetLabel)+'</small></div><div class="subject-grade-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับชั้นสำหรับโครงสร้างรายวิชาในกลุ่มนี้</span>')+'</div>'
-            :'<div class="subject-setup-panel-head"><strong>เลือกประเภทวิชา</strong><small>คลังด้านล่างจะแสดงเฉพาะตัวเลือกของประเภทนี้และระดับชั้นที่เลือก</small></div><div class="subject-scope-tabs">'+scopeTabs+'</div>')+
-      '</div>'+
-      (earlyChildhoodCount?'<div class="subject-early-note">ระดับอนุบาลใช้หลักสูตรการศึกษาปฐมวัย จึงแยกออกจากหน้านี้</div>':'')+
-    '</section>'+
 
     '<section class="panel curriculum-readiness-card '+currentStatusClass+'">'+
       '<div class="curriculum-readiness-main"><div><p class="eyebrow">CURRICULUM CHECK</p><h3>ตรวจความครบของโครงสร้างเวลาเรียน</h3><p>'+esc(targetLabel)+' · '+esc(shortGrade(gradeLabel))+' · <strong>'+esc(currentStatusLabel)+'</strong></p></div>'+
@@ -3625,19 +3627,20 @@ function academicSubjectsHtml(data,timeline){
 
     '<section class="panel subject-workspace-panel">'+
       '<nav class="subject-workspace-tabs">'+
-        '<button type="button" class="'+(workspaceView==="selected"?"active":"")+'" data-subject-workspace-view="selected">ฐานรายวิชาโรงเรียน <span>'+shownCourses.length+'</span></button>'+
-        '<button type="button" class="'+(workspaceView==="library"?"active":"")+'" data-subject-workspace-view="library">เพิ่มรายวิชา <span>'+totalAvailable+'</span></button>'+
+        '<button type="button" class="'+(workspaceView==="selected"?"active":"")+'" data-subject-workspace-view="selected">รายวิชาของโรงเรียน <span>'+selectedCourses.length+'</span></button>'+
+        '<button type="button" class="'+(workspaceView==="library"?"active":"")+'" data-subject-workspace-view="library">รายการรายวิชาจากคลัง <span>'+totalAvailable+'</span></button>'+
       '</nav>'+
       (workspaceView==="selected"
-        ?'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>ฐานรายวิชาตามระดับชั้นของโรงเรียน</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · แสดงเฉพาะรายวิชาที่เพิ่มเข้าฐานของโรงเรียนแล้ว</p></div><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div>'+
+        ?'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>รายวิชาของโรงเรียน · '+esc(shortGrade(gradeLabel))+'</h2><p>'+esc(targetLabel)+' · แสดงรายวิชาทุกประเภทของระดับชั้นนี้ที่เพิ่มเข้าฐานโรงเรียนแล้ว</p></div><div class="subject-workspace-head-actions"><button type="button" class="secondary-btn compact-btn" data-open-subject-library>＋ รายการจากคลัง</button><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div></div>'+
           parallelTools+
           (selectedRows?'<div class="subject-selected-list">'+selectedRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายวิชาในฐานของระดับชั้นนี้</h3><p>เพิ่มจากฐานรายวิชาของโรงเรียน หรือเลือกจากคลังรายวิชากลาง</p>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-open-subject-library>＋ เพิ่มรายวิชา</button>':'')+'</div>')+'</div>'
-        :'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>เพิ่มรายวิชา</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · รายการที่เพิ่มแล้วจะย้ายไปอยู่ในฐานรายวิชาของโรงเรียน</p></div>'+(canManage&&gradeCode?'<button type="button" class="secondary-btn compact-btn" data-toggle-custom-subject>＋ สร้างรายวิชาใหม่ของโรงเรียน</button>':'')+'</div>'+
+        :'<div class="subject-workspace-content subject-library-content">'+catalogSetupHtml+
+          '<div class="subject-workspace-head"><div><h2>รายการรายวิชาจากคลัง</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · รวมคลังกลางและรายวิชาที่โรงเรียนสร้างไว้ในรายการเดียวกัน</p></div>'+(canManage&&gradeCode?'<button type="button" class="secondary-btn compact-btn" data-toggle-custom-subject>＋ สร้างรายวิชาใหม่ของโรงเรียน</button>':'')+'</div>'+
+          '<div class="subject-library-source-legend"><span><i class="central"></i>คลังกลาง</span><span><i class="school"></i>ของโรงเรียน</span><small>เมื่อเพิ่มจากคลังกลาง ระบบจะบันทึกเป็นรายวิชาของโรงเรียนก่อนนำไปใช้ในชั้นที่เลือก</small></div>'+
           (totalAvailable>4?'<label class="subject-library-search"><span>ค้นหารายวิชา <b>'+totalAvailable+' รายการ</b></span><input type="search" data-subject-library-search placeholder="ค้นหารหัส ชื่อวิชา หรือกลุ่มสาระ"></label>':'')+
           '<div class="subject-library-list" data-subject-library-list>'+
-            (schoolRows?'<div class="subject-library-section-head"><strong>ฐานรายวิชาของโรงเรียน</strong><small>มีอยู่ในฐานโรงเรียนแล้ว แต่ยังไม่ได้ใช้ในบริบทนี้</small></div>'+schoolRows:'')+
-            (centralRows?'<div class="subject-library-section-head"><strong>คลังรายวิชากลาง</strong><small>ยังไม่ได้เพิ่มเข้าฐานรายวิชาของโรงเรียน</small></div>'+centralRows:'')+
-            (!totalAvailable?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายวิชาที่เพิ่มแล้วจะแสดงในแท็บ “ฐานรายวิชาโรงเรียน”</p></div>':'')+
+            libraryRows+
+            (!totalAvailable?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายวิชาที่เพิ่มแล้วจะแสดงในแท็บ “รายวิชาของโรงเรียน”</p></div>':'')+
           '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>'+
           (canManage&&gradeCode?'<form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>เพิ่มรายวิชาใหม่ของโรงเรียน</strong><small>บันทึกไว้ในคลังของโรงเรียนและเพิ่มเข้าบริบทที่เลือกทันที</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท<div class="subject-custom-type">'+esc(scopeLabel)+'</div><input type="hidden" name="subject_type" value="'+esc(customDefaultType)+'"></label><label>รหัสวิชา<input name="subject_code" placeholder="เว้นว่างได้"></label><label class="wide">ชื่อรายวิชา / กิจกรรม <span class="required-mark">*</span><input name="subject_name" required></label><label>กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาไทย"></label><label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25"></label><label>ชม./ปี<input name="annual_hours" type="number" min="0" step="0.5"></label></div><div class="subject-custom-note">กิจกรรมรหัสเดียวกันแต่ผู้เรียนต่างกลุ่ม เช่น ลูกเสือ/เนตรนารี และลูกเสือ/ยุวกาชาด เก็บแยกชื่อได้และนับเวลาเพียงหนึ่งช่อง ส่วนวิชาเลือกต่างรหัสที่เรียนพร้อมกัน ให้เพิ่มรายวิชาก่อนแล้วรวมเป็น “กลุ่มเวลาเดียวกัน” ในแท็บรายวิชาที่เรียน</div><div class="subject-custom-actions"><button type="submit" class="primary-btn">บันทึกและเพิ่ม</button></div></form>':'')+
         '</div>')+
@@ -4297,21 +4300,21 @@ function bindAcademics(){
     state.academicPresetGrade=btn.dataset.subjectCatalogGrade||"";
     state.subjectSetupTab="type";
     state.subjectWorkspaceData=null;
-    state.subjectWorkspaceView="selected";
+    state.subjectWorkspaceView="library";
     renderRoute();
   }));
   qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectProgramId=btn.dataset.subjectTarget||"";
     state.subjectSetupTab="grade";
     state.subjectWorkspaceData=null;
-    state.subjectWorkspaceView="selected";
+    state.subjectWorkspaceView="library";
     state.academicPreset=null;
     renderRoute();
   }));
   qa("[data-subject-catalog-scope]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectCatalogScope=btn.dataset.subjectCatalogScope||"all";
     state.subjectSetupTab="type";
-    state.subjectWorkspaceView="selected";
+    state.subjectWorkspaceView="library";
     renderRoute();
   }));
   qa("[data-subject-workspace-view]").forEach(btn=>btn.addEventListener("click",()=>{
