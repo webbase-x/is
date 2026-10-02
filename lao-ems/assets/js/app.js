@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.1";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.2";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3447,16 +3447,19 @@ function academicSubjectsHtml(data,timeline){
 
   const allCatalog=(preset.items||[]).filter(x=>x.grade_code===gradeCode);
   const catalogMatches=x=>(scope==="core"&&x.subject_type==="basic")||x.subject_type===scope;
-  const centralAvailable=allCatalog.filter(x=>catalogMatches(x)&&!selectedKeys.has(logicalKey(x)));
-
   const schoolSubjects=(data.subjects||[]).filter(x=>x.is_active!==false);
-  const centralKeys=new Set((preset.items||[]).map(logicalKey));
+  const schoolSubjectKeys=new Set(schoolSubjects.map(logicalKey));
+  const centralAvailable=allCatalog.filter(x=>{
+    const key=logicalKey(x);
+    return catalogMatches(x)&&!selectedKeys.has(key)&&!schoolSubjectKeys.has(key);
+  });
+
   const currentProgramId=selectedProgram?selectedProgram.id:null;
   const schoolSeen=new Set();
   const schoolAvailable=gradeCode?schoolSubjects.filter(x=>{
     if(!scopeMatches(x.subject_type))return false;
     const key=logicalKey(x);
-    if(selectedKeys.has(key)||centralKeys.has(key)||schoolSeen.has(key))return false;
+    if(selectedKeys.has(key)||schoolSeen.has(key))return false;
     const subjectContexts=allCourses.filter(c=>c.subject_id===x.id);
     const hasCurrentContext=subjectContexts.some(c=>
       c.grade_code===gradeCode && (c.program_id||null)===(currentProgramId||null)
@@ -3622,17 +3625,19 @@ function academicSubjectsHtml(data,timeline){
 
     '<section class="panel subject-workspace-panel">'+
       '<nav class="subject-workspace-tabs">'+
-        '<button type="button" class="'+(workspaceView==="selected"?"active":"")+'" data-subject-workspace-view="selected">รายวิชาที่เรียน <span>'+shownCourses.length+'</span></button>'+
-        '<button type="button" class="'+(workspaceView==="library"?"active":"")+'" data-subject-workspace-view="library">คลังรายวิชา <span>'+totalAvailable+'</span></button>'+
+        '<button type="button" class="'+(workspaceView==="selected"?"active":"")+'" data-subject-workspace-view="selected">ฐานรายวิชาโรงเรียน <span>'+shownCourses.length+'</span></button>'+
+        '<button type="button" class="'+(workspaceView==="library"?"active":"")+'" data-subject-workspace-view="library">เพิ่มรายวิชา <span>'+totalAvailable+'</span></button>'+
       '</nav>'+
       (workspaceView==="selected"
-        ?'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>รายวิชาที่เรียน</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</p></div><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div>'+
+        ?'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>ฐานรายวิชาตามระดับชั้นของโรงเรียน</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · แสดงเฉพาะรายวิชาที่เพิ่มเข้าฐานของโรงเรียนแล้ว</p></div><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div>'+
           parallelTools+
-          (selectedRows?'<div class="subject-selected-list">'+selectedRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายการในประเภทนี้</h3><p>เปิดคลังรายวิชาเพื่อเลือกเพิ่ม</p>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-open-subject-library>เปิดคลังรายวิชา</button>':'')+'</div>')+'</div>'
-        :'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>คลังรายวิชา</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · แสดงเฉพาะรายการที่ยังไม่ได้เลือก</p></div>'+(canManage&&gradeCode?'<button type="button" class="secondary-btn compact-btn" data-toggle-custom-subject>＋ เพิ่มรายวิชาใหม่</button>':'')+'</div>'+
+          (selectedRows?'<div class="subject-selected-list">'+selectedRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายวิชาในฐานของระดับชั้นนี้</h3><p>เพิ่มจากฐานรายวิชาของโรงเรียน หรือเลือกจากคลังรายวิชากลาง</p>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-open-subject-library>＋ เพิ่มรายวิชา</button>':'')+'</div>')+'</div>'
+        :'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>เพิ่มรายวิชา</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · รายการที่เพิ่มแล้วจะย้ายไปอยู่ในฐานรายวิชาของโรงเรียน</p></div>'+(canManage&&gradeCode?'<button type="button" class="secondary-btn compact-btn" data-toggle-custom-subject>＋ สร้างรายวิชาใหม่ของโรงเรียน</button>':'')+'</div>'+
           (totalAvailable>4?'<label class="subject-library-search"><span>ค้นหารายวิชา <b>'+totalAvailable+' รายการ</b></span><input type="search" data-subject-library-search placeholder="ค้นหารหัส ชื่อวิชา หรือกลุ่มสาระ"></label>':'')+
-          '<div class="subject-library-list" data-subject-library-list>'+centralRows+schoolRows+
-            (!totalAvailable?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายการที่เลือกแล้วจะไม่แสดงในคลัง หรือสร้างรายวิชาใหม่ของโรงเรียน</p></div>':'')+
+          '<div class="subject-library-list" data-subject-library-list>'+
+            (schoolRows?'<div class="subject-library-section-head"><strong>ฐานรายวิชาของโรงเรียน</strong><small>มีอยู่ในฐานโรงเรียนแล้ว แต่ยังไม่ได้ใช้ในบริบทนี้</small></div>'+schoolRows:'')+
+            (centralRows?'<div class="subject-library-section-head"><strong>คลังรายวิชากลาง</strong><small>ยังไม่ได้เพิ่มเข้าฐานรายวิชาของโรงเรียน</small></div>'+centralRows:'')+
+            (!totalAvailable?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายวิชาที่เพิ่มแล้วจะแสดงในแท็บ “ฐานรายวิชาโรงเรียน”</p></div>':'')+
           '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>'+
           (canManage&&gradeCode?'<form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>เพิ่มรายวิชาใหม่ของโรงเรียน</strong><small>บันทึกไว้ในคลังของโรงเรียนและเพิ่มเข้าบริบทที่เลือกทันที</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท<div class="subject-custom-type">'+esc(scopeLabel)+'</div><input type="hidden" name="subject_type" value="'+esc(customDefaultType)+'"></label><label>รหัสวิชา<input name="subject_code" placeholder="เว้นว่างได้"></label><label class="wide">ชื่อรายวิชา / กิจกรรม <span class="required-mark">*</span><input name="subject_name" required></label><label>กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาไทย"></label><label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25"></label><label>ชม./ปี<input name="annual_hours" type="number" min="0" step="0.5"></label></div><div class="subject-custom-note">กิจกรรมรหัสเดียวกันแต่ผู้เรียนต่างกลุ่ม เช่น ลูกเสือ/เนตรนารี และลูกเสือ/ยุวกาชาด เก็บแยกชื่อได้และนับเวลาเพียงหนึ่งช่อง ส่วนวิชาเลือกต่างรหัสที่เรียนพร้อมกัน ให้เพิ่มรายวิชาก่อนแล้วรวมเป็น “กลุ่มเวลาเดียวกัน” ในแท็บรายวิชาที่เรียน</div><div class="subject-custom-actions"><button type="submit" class="primary-btn">บันทึกและเพิ่ม</button></div></form>':'')+
         '</div>')+
@@ -3644,7 +3649,7 @@ function academicCurriculumHtml(data){
   const schoolGradeSet=new Set(academicCurriculumGradeCodes(data));
   const items=(data.courses||[]).filter(c=>schoolGradeSet.has(c.grade_code||academicGradeCode(c.grade_label)));
   const subjects=(data.subjects||[]).filter(s=>s.is_active),year=academicSelectedYear(data),canManage=Boolean(data.can_manage);
-  const f=state.academicFilters||{},preset=state.academicPreset||null;
+  const f=state.academicFilters||{};
   if(f.grade_label&&!academicGradeValues(data).includes(f.grade_label))state.academicFilters={...f,grade_label:""};
   const currentFilters=state.academicFilters||{};
   const filtered=items
@@ -3652,23 +3657,32 @@ function academicCurriculumHtml(data){
     .sort((a,b)=>academicGradeOrder(a.grade_label)-academicGradeOrder(b.grade_label)||(Number(a.sort_order||0)-Number(b.sort_order||0))||String(a.subject_name||"").localeCompare(String(b.subject_name||""),"th"));
   const gradeOptions=academicGradeValues(data);
   const terms=year&&year.terms||[];
-  const presetGrades=(preset&&preset.supported_grades||[]).filter(g=>schoolGradeSet.has(g.grade_code));
-  if(!presetGrades.some(g=>g.grade_code===state.academicPresetGrade))state.academicPresetGrade=presetGrades[0]&&presetGrades[0].grade_code||"";
-  const activePresetGrade=presetGrades.find(g=>g.grade_code===state.academicPresetGrade)||presetGrades[0]||null;
-  const presetItems=(preset&&preset.items||[]).filter(x=>activePresetGrade&&schoolGradeSet.has(x.grade_code)&&x.grade_code===activePresetGrade.grade_code);
+  const schoolGrades=academicCurriculumGradeRows(data);
+  const filterGradeCode=academicGradeCode(currentFilters.grade_label);
+  if(!schoolGrades.some(g=>g.grade_code===state.academicPresetGrade)){
+    state.academicPresetGrade=(filterGradeCode&&schoolGrades.some(g=>g.grade_code===filterGradeCode)?filterGradeCode:(schoolGrades[0]&&schoolGrades[0].grade_code))||"";
+  }
+  const activeSchoolGrade=schoolGrades.find(g=>g.grade_code===state.academicPresetGrade)||schoolGrades[0]||null;
   const selectedProgram=(data.programs||[]).find(p=>p.id===currentFilters.program_id)||null;
-  const selectedProgramLabel=selectedProgram?selectedProgram.name_th:"ไม่ระบุโปรแกรม";
-  const templateRows=presetItems.map(x=>{
-    const weeklyText=x.weekly_periods==null?"กำหนดเอง":Number(x.weekly_periods).toLocaleString("th-TH")+" ชม./สป.";
-    const annualText=x.annual_hours==null?"กำหนดเอง":Number(x.annual_hours).toLocaleString("th-TH")+" ชม./ปี";
-    const sourceText=x.is_national_core?"พื้นฐานกลางประเทศ":"ชุดตัวอย่างโรงเรียน";
-    return '<div class="curriculum-preset-row '+(x.present?"is-present":"is-missing")+'">'+
-      '<span class="preset-order">'+esc(x.sort_order)+'</span>'+
-      '<span class="preset-code">'+esc(x.subject_code||"กำหนดรหัสเอง")+'</span>'+
-      '<div class="preset-subject"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(x.learning_area||academicSubjectTypeLabel(x.subject_type))+' · '+esc(sourceText)+'</small></div>'+
-      '<span class="preset-weekly">'+esc(weeklyText)+'</span>'+
-      '<span class="preset-annual">'+esc(annualText)+'</span>'+
-      '<span class="pill '+(x.present?"success":"warning")+'">'+(x.present?"มีแล้ว":"ยังขาด")+'</span>'+
+  const selectedProgramLabel=selectedProgram?selectedProgram.name_th:"ห้องปกติ";
+  const courseInContext=(c,gradeCode)=>c.is_active!==false&&c.grade_code===gradeCode&&(
+    selectedProgram
+      ?(c.program_id===selectedProgram.id||(!c.program_id&&(c.subject_type==="basic"||c.subject_type==="activity")))
+      :!c.program_id
+  );
+  const schoolBaseCourses=activeSchoolGrade
+    ?items.filter(c=>courseInContext(c,activeSchoolGrade.grade_code))
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.subject_name||"").localeCompare(String(b.subject_name||""),"th"))
+    :[];
+  const schoolBaseRows=schoolBaseCourses.map((c,index)=>{
+    const weekly=(c.term_plans||[]).find(t=>t.weekly_periods!=null);
+    return '<div class="curriculum-preset-row is-present">'+
+      '<span class="preset-order">'+(index+1)+'</span>'+
+      '<span class="preset-code">'+esc(c.subject_code||"—")+'</span>'+
+      '<div class="preset-subject"><strong>'+esc(c.subject_name)+'</strong><small>'+esc(c.learning_area||academicSubjectTypeLabel(c.subject_type))+(c.program_name?' · '+esc(c.program_name):'')+'</small></div>'+
+      '<span class="preset-weekly">'+(weekly?Number(weekly.weekly_periods).toLocaleString("th-TH")+' คาบ/สป.':'ยังไม่กำหนด')+'</span>'+
+      '<span class="preset-annual">'+(c.annual_hours!=null?Number(c.annual_hours).toLocaleString("th-TH")+' ชม./ปี':'ยังไม่กำหนด')+'</span>'+
+      '<span class="pill success">อยู่ในฐานโรงเรียน</span>'+
     '</div>';
   }).join("");
 
@@ -3684,17 +3698,17 @@ function academicCurriculumHtml(data){
   }).join("");
 
   const termInputs=terms.map(t=>'<div class="academic-term-plan-box"><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><label>คาบ/สัปดาห์<input name="weekly_'+esc(t.id)+'" type="number" min="0" step="0.25" placeholder="เช่น 5"></label><label>ชั่วโมง/ภาค<input name="hours_'+esc(t.id)+'" type="number" min="0" step="0.5" placeholder="เว้นว่างได้"></label></div>').join("");
-  const presetGradeButtons=presetGrades.map(g=>{
-    const weeklyLabel=g.weekly_total==null?"เวลาเรียนยืดหยุ่น":Number(g.weekly_total||0).toLocaleString("th-TH")+" ชม./สป.";
-    return '<button type="button" class="curriculum-grade-choice '+(activePresetGrade&&activePresetGrade.grade_code===g.grade_code?"active":"")+'" data-preset-grade="'+esc(g.grade_code)+'"><strong>'+esc(shortGrade(g.grade_label))+'</strong><small>'+Number(g.subject_count||0)+' วิชา · '+esc(weeklyLabel)+'</small><em>'+Number(g.present_count||0)+'/'+Number(g.subject_count||0)+'</em></button>';
+  const schoolGradeButtons=schoolGrades.map(g=>{
+    const count=items.filter(c=>courseInContext(c,g.grade_code)).length;
+    return '<button type="button" class="curriculum-grade-choice '+(activeSchoolGrade&&activeSchoolGrade.grade_code===g.grade_code?"active":"")+'" data-preset-grade="'+esc(g.grade_code)+'"><strong>'+esc(shortGrade(g.grade_label))+'</strong><small>'+count+' รายวิชาในฐานโรงเรียน</small><em>'+count+'</em></button>';
   }).join("");
 
   return '<section class="academic-page">'+academicNavHtml("curriculum",data)+
-    (canManage&&year&&preset?'<section class="panel curriculum-preset-panel"><div class="panel-head"><div><p class="eyebrow">DEFAULT CHOICES</p><h2>'+esc(preset.preset_name||"ชุดวิชาหลัก")+'</h2><p class="panel-sub">ฐานกลางเก็บระดับชั้นไว้ครบ แต่หน้านี้แสดงและเติมเฉพาะระดับที่พบจริงจาก LEC ของโรงเรียนในปีการศึกษาที่เลือก โดยไม่ทับรายการที่โรงเรียนแก้ไว้แล้ว</p></div><span class="pill neutral">'+esc(selectedProgramLabel)+'</span></div>'+
-      '<div class="curriculum-grade-choices">'+presetGradeButtons+'</div>'+
-      (activePresetGrade?'<div class="curriculum-preset-summary"><div><small>ระดับชั้น</small><strong>'+esc(activePresetGrade.grade_label)+'</strong></div><div><small>จำนวนรายวิชา</small><strong>'+Number(activePresetGrade.subject_count||0).toLocaleString("th-TH")+'</strong></div><div><small>รวมต่อสัปดาห์</small><strong>'+Number(activePresetGrade.weekly_total||0).toLocaleString("th-TH")+' ชม.</strong></div><div><small>รวมต่อปี</small><strong>'+Number(activePresetGrade.annual_total||0).toLocaleString("th-TH")+' ชม.</strong></div><div><small>มีในระบบแล้ว</small><strong>'+Number(activePresetGrade.present_count||0).toLocaleString("th-TH")+'/'+Number(activePresetGrade.subject_count||0).toLocaleString("th-TH")+'</strong></div></div>':'')+
-      '<div class="curriculum-preset-list">'+templateRows+'</div>'+
-      '<div class="curriculum-preset-actions"><div class="notice"><strong>ขอบเขตโรงเรียน: '+esc(academicSchoolGradeSummary(data))+'</strong><br>ฐานข้อมูลกลางยังคงมีรายการระดับอื่นครบถ้วน แต่จะไม่แสดงหรือเสนอให้โรงเรียนนี้เลือก หากระดับนั้นไม่มีอยู่ในข้อมูล LEC ของปีการศึกษาที่เลือก</div><button type="button" class="primary-btn" data-apply-curriculum-preset '+(activePresetGrade&&Number(activePresetGrade.present_count||0)>=Number(activePresetGrade.subject_count||0)?"disabled":"")+'>＋ เพิ่มเฉพาะวิชาที่ยังขาด</button></div>'+
+    (year?'<section class="panel curriculum-preset-panel"><div class="panel-head"><div><p class="eyebrow">SCHOOL SUBJECT BASE</p><h2>ฐานรายวิชาตามระดับชั้นของโรงเรียน</h2><p class="panel-sub">แสดงเฉพาะรายวิชาที่เพิ่มเข้าฐานข้อมูลของโรงเรียนแล้วเท่านั้น รายการที่ยังอยู่เฉพาะคลังกลางจะไม่แสดงในส่วนนี้</p></div><span class="pill neutral">'+esc(selectedProgramLabel)+'</span></div>'+
+      '<div class="curriculum-grade-choices">'+schoolGradeButtons+'</div>'+
+      (activeSchoolGrade?'<div class="curriculum-preset-summary"><div><small>ระดับชั้น</small><strong>'+esc(activeSchoolGrade.grade_label)+'</strong></div><div><small>รายวิชาในฐานโรงเรียน</small><strong>'+Number(schoolBaseCourses.length).toLocaleString("th-TH")+'</strong></div><div><small>บริบท</small><strong>'+esc(selectedProgramLabel)+'</strong></div></div>':'')+
+      (schoolBaseRows?'<div class="curriculum-preset-list">'+schoolBaseRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📚</div><h3>ยังไม่มีรายวิชาในฐานของระดับชั้นนี้</h3><p>เพิ่มรายวิชาจากคลังกลางหรือสร้างรายวิชาของโรงเรียนก่อน</p></div>')+
+      '<div class="curriculum-preset-actions"><div class="notice"><strong>ฐานกลางแยกจากฐานโรงเรียน</strong><br>ระบบจะไม่นำรายวิชาจากคลังกลางเข้ามาปะปนหรือเพิ่มอัตโนมัติ เมื่อเลือกเพิ่มแล้วจึงจะปรากฏในฐานรายวิชาของโรงเรียน</div>'+(canManage?'<a class="primary-btn" href="#/academics/subjects">＋ เพิ่มจากคลังรายวิชากลาง</a>':'')+'</div>'+
     '</section>':'')+
     '<section class="panel"><div class="panel-head"><div><p class="eyebrow">CURRICULUM STRUCTURE</p><h2>โครงสร้างเวลาเรียน</h2><p class="panel-sub">'+(year?'ปีการศึกษา '+esc(year.year_be):'ยังไม่ได้เลือกปี')+' · เลือกระดับชั้นเพื่อดูและเรียงวิชา หรือเพิ่มวิชาที่ขาดได้เอง</p></div><span class="pill">'+items.length+' รายการ</span></div>'+
       '<form id="academic-course-filter" class="academic-course-filter"><label>ระดับชั้น<select name="grade_label">'+academicGradeOptionsHtml(data,currentFilters.grade_label||"",true)+'</select></label><label>โปรแกรม<select name="program_id">'+academicProgramOptions(data,currentFilters.program_id||"",true)+'</select></label><button class="secondary-btn" type="button" data-reset-course-filter>ล้างตัวกรอง</button></form>'+
@@ -3703,7 +3717,7 @@ function academicCurriculumHtml(data){
     (canManage&&year?'<section class="panel curriculum-quick-add-panel"><div class="panel-head"><div><p class="eyebrow">ADD MISSING SUBJECT</p><h2>เพิ่มรายวิชาที่ขาดเอง</h2><p class="panel-sub">กรอกรหัสและชื่อวิชาได้ทันที ถ้ารหัสมีอยู่ในทะเบียนรายวิชา ระบบจะนำรายการเดิมมาใช้โดยไม่สร้างซ้ำ</p></div><a class="secondary-btn compact-btn" href="#/academics/subjects">เปิดทะเบียนรายวิชา</a></div>'+
       '<form id="academic-quick-course-form" class="academic-form academic-form-3">'+
         '<label>โปรแกรม<select name="program_id">'+academicProgramOptions(data,currentFilters.program_id||"",false)+'</select></label>'+
-        '<label>ระดับชั้น <span class="required-mark">*</span><select name="grade_label" required>'+academicGradeOptionsHtml(data,currentFilters.grade_label||activePresetGrade&&activePresetGrade.grade_label||gradeOptions[0]||"",false)+'</select></label>'+
+        '<label>ระดับชั้น <span class="required-mark">*</span><select name="grade_label" required>'+academicGradeOptionsHtml(data,currentFilters.grade_label||activeSchoolGrade&&activeSchoolGrade.grade_label||gradeOptions[0]||"",false)+'</select></label>'+
         '<label>ลำดับ<input name="sort_order" type="number" min="0" placeholder="อัตโนมัติ"></label>'+
         '<label>รหัสวิชา<input name="subject_code" placeholder="เช่น ท15101"></label>'+
         '<label>ชื่อรายวิชา <span class="required-mark">*</span><input name="subject_name" required placeholder="ชื่อรายวิชา"></label>'+
@@ -3715,7 +3729,7 @@ function academicCurriculumHtml(data){
       '</form>'+
     '</section>':'')+
     (canManage&&year?'<section class="panel academic-form-panel curriculum-existing-subject-panel"><div class="panel-head"><div><h2 data-course-form-title>เลือกจากทะเบียนรายวิชา</h2><p class="panel-sub">สำหรับรายวิชาที่มีในทะเบียนอยู่แล้ว สามารถเลือกมาเพิ่มในระดับชั้นได้โดยไม่ต้องพิมพ์รหัสและชื่อใหม่</p></div></div>'+
-      (subjects.length?'<form id="academic-course-form" class="academic-form academic-course-form" data-id=""><input type="hidden" name="academic_year_id" value="'+esc(year.id)+'"><label>โปรแกรม<select name="program_id">'+academicProgramOptions(data,currentFilters.program_id||"",false)+'</select></label><label>ระดับชั้น <span class="required-mark">*</span><select name="grade_label" required>'+academicGradeOptionsHtml(data,currentFilters.grade_label||activePresetGrade&&activePresetGrade.grade_label||gradeOptions[0]||"",false)+'</select></label><label>รายวิชา <span class="required-mark">*</span><select name="subject_id" required><option value="">เลือกรายวิชา</option>'+subjects.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.subject_code?s.subject_code+" · "+s.name_th:s.name_th)+'</option>').join("")+'</select></label><label>ชั่วโมง/ปี<input name="annual_hours" type="number" min="0" step="0.5" placeholder="เช่น 200"></label><label>หน่วยกิต<input name="credits" type="number" min="0" step="0.5" placeholder="ใช้เมื่อหลักสูตรกำหนด"></label><label>ลำดับ<input name="sort_order" type="number" value="0"></label><label class="check-row"><input name="is_active" type="checkbox" checked><span>ใช้งาน</span></label><label class="span-all">หมายเหตุ<textarea name="notes" rows="2"></textarea></label><div class="span-all"><div class="academic-term-plan-title">คาบ/ชั่วโมงแยกตามภาคเรียน</div><div class="academic-term-plan-grid">'+(termInputs||'<div class="notice warning">ปีการศึกษานี้ยังไม่มีภาคเรียน กรุณาเพิ่มภาคเรียนก่อน</div>')+'</div></div><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-course-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกโครงสร้างรายวิชา</button></div></form>':'<div class="notice warning"><strong>ยังไม่มีทะเบียนรายวิชา</strong><br>เพิ่มวิชาใหม่จากแบบฟอร์มด้านบนได้ทันที</div>')+
+      (subjects.length?'<form id="academic-course-form" class="academic-form academic-course-form" data-id=""><input type="hidden" name="academic_year_id" value="'+esc(year.id)+'"><label>โปรแกรม<select name="program_id">'+academicProgramOptions(data,currentFilters.program_id||"",false)+'</select></label><label>ระดับชั้น <span class="required-mark">*</span><select name="grade_label" required>'+academicGradeOptionsHtml(data,currentFilters.grade_label||activeSchoolGrade&&activeSchoolGrade.grade_label||gradeOptions[0]||"",false)+'</select></label><label>รายวิชา <span class="required-mark">*</span><select name="subject_id" required><option value="">เลือกรายวิชา</option>'+subjects.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.subject_code?s.subject_code+" · "+s.name_th:s.name_th)+'</option>').join("")+'</select></label><label>ชั่วโมง/ปี<input name="annual_hours" type="number" min="0" step="0.5" placeholder="เช่น 200"></label><label>หน่วยกิต<input name="credits" type="number" min="0" step="0.5" placeholder="ใช้เมื่อหลักสูตรกำหนด"></label><label>ลำดับ<input name="sort_order" type="number" value="0"></label><label class="check-row"><input name="is_active" type="checkbox" checked><span>ใช้งาน</span></label><label class="span-all">หมายเหตุ<textarea name="notes" rows="2"></textarea></label><div class="span-all"><div class="academic-term-plan-title">คาบ/ชั่วโมงแยกตามภาคเรียน</div><div class="academic-term-plan-grid">'+(termInputs||'<div class="notice warning">ปีการศึกษานี้ยังไม่มีภาคเรียน กรุณาเพิ่มภาคเรียนก่อน</div>')+'</div></div><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-course-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกโครงสร้างรายวิชา</button></div></form>':'<div class="notice warning"><strong>ยังไม่มีทะเบียนรายวิชา</strong><br>เพิ่มวิชาใหม่จากแบบฟอร์มด้านบนได้ทันที</div>')+
     '</section>':'')+
   '</section>';
 }
@@ -3995,18 +4009,6 @@ async function academicsHtml(){
   }
   if(mode==="classes")return academicClassesHtml(data);
   if(mode==="subjects"){
-    if(data.can_manage&&data.selected_year_id){
-      const ensured=await supabase.rpc("lao_ensure_required_curriculum_defaults",{
-        p_school_id:school.id,
-        p_academic_year_id:data.selected_year_id
-      });
-      if(!ensured.error){
-        const d=ensured.data||{};
-        if(Number(d.added_courses||0)>0||Number(d.added_subjects||0)>0||Number(d.added_term_plans||0)>0){
-          data=await loadAcademicStructure();
-        }
-      }
-    }
     await loadAcademicCurriculumPreset(data,state.subjectProgramId);
     const readyRes=await supabase.rpc("lao_curriculum_readiness",{
       p_school_id:school.id,
@@ -4033,7 +4035,7 @@ async function academicsHtml(){
     const timeline=await loadDepartmentSetupTimeline("academics");
     return academicSubjectsHtml(data,timeline);
   }
-  if(mode==="curriculum"){await loadAcademicCurriculumPreset(data);return academicCurriculumHtml(data);}
+  if(mode==="curriculum")return academicCurriculumHtml(data);
   if(mode==="workload")return await academicWorkloadHtml(data);
   return await academicDashboardHtml(data);
 }
@@ -4610,30 +4612,6 @@ function bindAcademics(){
     };
     renderRoute();
   }));
-
-  const applyPreset=q("[data-apply-curriculum-preset]");
-  if(applyPreset)applyPreset.addEventListener("click",async()=>{
-    const gradeCode=state.academicPresetGrade||"";
-    const gradeLabel=academicGradeLabelFromCode(gradeCode);
-    if(!confirm("เพิ่มเฉพาะรายวิชาที่ยังขาดของ "+gradeLabel+" จากชุดวิชาหลัก? รายการที่มีอยู่แล้วจะไม่ถูกเขียนทับ"))return;
-    setBusy(applyPreset,true,"กำลังเพิ่มวิชาที่ขาด...");
-    const res=await supabase.rpc("lao_apply_curriculum_preset",{
-      p_school_id:school.id,
-      p_academic_year_id:data.selected_year_id,
-      p_grade_code:gradeCode,
-      p_program_id:state.academicFilters&&state.academicFilters.program_id||null
-    });
-    setBusy(applyPreset,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    const d=res.data||{};
-    state.academicFilters={
-      grade_label:d.grade_label||gradeLabel,
-      program_id:state.academicFilters&&state.academicFilters.program_id||""
-    };
-    state.academicPreset=null;
-    toast("เพิ่มวิชาที่ขาดแล้ว "+Number(d.added_courses||0)+" รายการ · วิชาเดิม "+Number(d.existing_courses||0)+" รายการ","success");
-    renderRoute();
-  });
 
   const quickCourseForm=q("#academic-quick-course-form");
   if(quickCourseForm)quickCourseForm.addEventListener("submit",async e=>{

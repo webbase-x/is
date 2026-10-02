@@ -4136,6 +4136,10 @@ table{max-width:none}
 .subject-library-list,.subject-selected-list{max-height:560px;overflow:auto;padding-right:2px}
 .subject-library-list::-webkit-scrollbar,.subject-selected-list::-webkit-scrollbar{width:5px}
 .subject-library-list::-webkit-scrollbar-thumb,.subject-selected-list::-webkit-scrollbar-thumb{background:#d0d5dd;border-radius:999px}
+.subject-library-section-head{grid-column:1/-1;display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:4px 0 0;padding:8px 10px;border-radius:10px;background:#f8fafc;border:1px solid #eaecf0}
+.subject-library-section-head strong{font-size:13px;color:#101828}
+.subject-library-section-head small{font-size:12px;color:#667085;text-align:right}
+
 @media(max-width:1050px){
   .subjects-library-layout{grid-template-columns:1fr}
   .subject-library-list,.subject-selected-list{max-height:none}
