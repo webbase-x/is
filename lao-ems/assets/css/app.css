@@ -4841,6 +4841,14 @@ th,td{line-height:1.45}
   line-height:1.45;
   color:#667085;
 }
+.subject-room-impact small{
+  display:block;
+  margin-top:4px;
+  max-width:760px;
+  font-size:10.5px;
+  line-height:1.45;
+  color:#98a2b3;
+}
 .subject-room-impact>span{
   flex:0 0 auto;
   padding:6px 9px;
