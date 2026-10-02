@@ -5214,7 +5214,7 @@ th,td{line-height:1.45}
 
 /* Safe academic period deletion — v0.18.9 */
 .danger-text{color:var(--danger)!important}
-.academic-period-row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.academic-period-row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:0 0 auto}
 .academic-delete-policy{
   display:grid;
   gap:3px;
@@ -5255,6 +5255,7 @@ th,td{line-height:1.45}
 .academic-delete-actions .danger-btn:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:680px){
   .academic-year-tags .danger-btn{width:auto}
+  .academic-term-row>.academic-period-row-actions{order:3;margin-left:auto}
   .academic-period-row-actions{margin-left:auto}
   .academic-delete-preview-head{display:grid;grid-template-columns:1fr}
   .academic-delete-preview-head .pill{justify-self:start}
