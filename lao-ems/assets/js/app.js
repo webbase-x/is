@@ -4164,6 +4164,8 @@ function bindAcademics(){
     state.teachingWorkloadData=null;
     state.teachingWorkloadPersonnelId=null;
     state.academicFilters={grade_label:"",program_id:""};
+    state.subjectEditMode=false;
+    state.subjectCopyYearId="";
     renderRoute();
   });
 
@@ -4412,6 +4414,7 @@ function bindAcademics(){
       program_id:state.subjectProgramId||""
     };
     state.subjectWorkspaceData=null;
+    state.subjectEditMode=false;
     renderRoute();
   }));
   qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -4422,6 +4425,7 @@ function bindAcademics(){
     };
     state.subjectWorkspaceData=null;
     state.academicPreset=null;
+    state.subjectEditMode=false;
     renderRoute();
   }));
   qa("[data-subject-catalog-scope]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -4454,6 +4458,42 @@ function bindAcademics(){
     customSubjectForm?.querySelector('input[name="subject_name"]')?.focus();
   }));
   qa("[data-back-to-subject-search]").forEach(btn=>btn.addEventListener("click",openSubjectFinder));
+
+  const subjectEditSwitch=q("[data-subject-edit-switch]");
+  if(subjectEditSwitch)subjectEditSwitch.addEventListener("change",()=>{
+    state.subjectEditMode=subjectEditSwitch.checked;
+    renderRoute();
+  });
+
+  const subjectCopyYear=q("[data-subject-copy-year]");
+  if(subjectCopyYear)subjectCopyYear.addEventListener("change",()=>{
+    state.subjectCopyYearId=subjectCopyYear.value||"";
+  });
+
+  const copySubjectYear=q("[data-copy-subject-year]");
+  if(copySubjectYear)copySubjectYear.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+    const sourceYear=(data.years||[]).find(y=>y.id===state.subjectCopyYearId);
+    const targetYear=(data.years||[]).find(y=>y.id===data.selected_year_id);
+    if(!sourceYear||!targetYear){toast("กรุณาเลือกปีการศึกษาต้นทาง","error");return;}
+    const gradeLabel=academicGradeLabelFromCode(state.academicPresetGrade||"");
+    const targetProgram=(data.programs||[]).find(p=>p.id===state.subjectProgramId)||null;
+    const contextLabel=shortGrade(gradeLabel)+" · "+(targetProgram?targetProgram.name_th:"ห้องปกติ");
+    if(!confirm("คัดลอกรายวิชา "+contextLabel+" จากปีการศึกษา "+sourceYear.year_be+" มาใช้ในปี "+targetYear.year_be+" ?\n\nระบบจะผสานกับรายการเดิม ไม่ลบวิชาที่มีอยู่"))return;
+    setBusy(copySubjectYear,true,"กำลังคัดลอก...");
+    const res=await supabase.rpc("lao_copy_curriculum_group_from_year",{
+      p_school_id:school.id,
+      p_source_academic_year_id:sourceYear.id,
+      p_target_academic_year_id:targetYear.id,
+      p_program_id:state.subjectProgramId||null,
+      p_grade_code:state.academicPresetGrade||""
+    });
+    setBusy(copySubjectYear,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    const x=res.data||{};
+    toast("คัดลอกจากปี "+sourceYear.year_be+" แล้ว · เพิ่ม "+Number(x.inserted_courses||0)+" · อัปเดต "+Number(x.updated_courses||0)+" รายการ","success");
+    refreshSubjects();
+  });
 
   const scheduleForm=q("[data-schedule-settings-form]");
   const showScheduleForm=()=>scheduleForm?.classList.remove("hidden");
@@ -4500,6 +4540,7 @@ function bindAcademics(){
   };
 
   qa("[data-add-central-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     const item=(state.academicPreset?.items||[]).find(x=>x.id===btn.dataset.addCentralSubject);
     if(!item)return;
     setBusy(btn,true,"กำลังเพิ่ม...");
@@ -4519,6 +4560,7 @@ function bindAcademics(){
   }));
 
   qa("[data-add-school-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     const subject=(data.subjects||[]).find(x=>x.id===btn.dataset.addSchoolSubject);
     if(!subject)return;
     setBusy(btn,true,"กำลังเพิ่ม...");
@@ -4538,6 +4580,7 @@ function bindAcademics(){
   }));
 
   qa("[data-remove-curriculum-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     if(!confirm("นำรายการนี้ออกจาก "+academicGradeLabelFromCode(state.academicPresetGrade||"")+" · "+((data.programs||[]).find(p=>p.id===state.subjectProgramId)?.name_th||"ห้องปกติ")+" ?\n\nรายการจะยังอยู่ในคลังและเพิ่มกลับได้ภายหลัง"))return;
     setBusy(btn,true,"กำลังนำออก...");
     const res=await supabase.rpc("lao_remove_curriculum_item",{
@@ -4577,6 +4620,7 @@ function bindAcademics(){
     ).join("");
     finderCreate?.classList.remove("hidden");
     qa("[data-adopt-subject-source-id]",finderResults).forEach(btn=>btn.addEventListener("click",async()=>{
+      if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
       setBusy(btn,true,"กำลังเพิ่ม...");
       const res=await supabase.rpc("lao_adopt_subject_catalog_item",{
         p_school_id:school.id,
@@ -4619,6 +4663,7 @@ function bindAcademics(){
   qa("[data-close-custom-subject]").forEach(btn=>btn.addEventListener("click",()=>customSubjectForm?.classList.add("hidden")));
   if(customSubjectForm)customSubjectForm.addEventListener("submit",async e=>{
     e.preventDefault();
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     const fd=new FormData(customSubjectForm),btn=customSubjectForm.querySelector('button[type="submit"]');
     const name=String(fd.get("subject_name")||"").trim();
     const gradeCode=state.academicPresetGrade||"";
@@ -4688,6 +4733,7 @@ function bindAcademics(){
   qa("[data-close-parallel-group]").forEach(btn=>btn.addEventListener("click",()=>parallelForm?.classList.add("hidden")));
   if(parallelForm)parallelForm.addEventListener("submit",async e=>{
     e.preventDefault();
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     const ids=parallelChecks.filter(x=>x.checked).map(x=>x.dataset.parallelCourse);
     if(ids.length<2){toast("กรุณาเลือกอย่างน้อย 2 รายวิชา","error");return;}
     const fd=new FormData(parallelForm),btn=parallelForm.querySelector('button[type="submit"]');
@@ -4707,6 +4753,7 @@ function bindAcademics(){
     refreshSubjects();
   });
   qa("[data-delete-parallel-group]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     if(!confirm("ยกเลิกการรวมเวลาในกลุ่มนี้? รายวิชายังคงอยู่ตามเดิม"))return;
     setBusy(btn,true,"กำลังยกเลิก...");
     const res=await supabase.rpc("lao_delete_curriculum_parallel_group",{p_school_id:school.id,p_group_id:btn.dataset.deleteParallelGroup});
