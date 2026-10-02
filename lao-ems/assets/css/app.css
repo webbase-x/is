@@ -4182,6 +4182,8 @@ table{max-width:none}
 .subject-workspace-panel .subject-selected-list,
 .subject-workspace-panel .subject-library-list{max-height:520px;overflow:auto;padding-right:2px}
 .subject-workspace-panel .subject-library-search{margin-bottom:10px}
+.subject-selected-grade-filter{margin:-2px 0 14px;padding:10px 12px;border:1px solid #eaecf0;border-radius:12px;background:#f9fafb}
+.subject-selected-grade-filter .subject-setup-panel-head{margin-bottom:4px}
 .subject-catalog-setup{margin:-14px -16px 14px;border-bottom:1px solid #eaecf0;background:#fbfcfe}
 .subject-catalog-setup .subject-early-note{margin:0 16px 13px}
 .subject-workspace-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
