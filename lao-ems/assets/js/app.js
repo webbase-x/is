@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.7";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.8";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,academicTimeline:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -4005,6 +4005,12 @@ function academicSubjectsHtml(data,timeline){
     .map(([v,l])=>'<button type="button" class="'+(scope===v?"active":"")+'" data-subject-catalog-scope="'+v+'">'+l+'</button>').join("");
 
   const currentGroup=(readiness.groups||[]).find(g=>g.grade_code===gradeCode&&(g.program_id||"")===(selectedProgram?selectedProgram.id:""))||null;
+  const subjectReadiness=state.subjectReadiness||{groups:[],total_groups:0,completed_groups:0,progress_percent:0,coverage_percent:0};
+  const subjectCompleteness=subjectWorkspace.subject_completeness
+    ||(subjectReadiness.groups||[]).find(g=>g.grade_code===gradeCode&&(g.program_id||"")===(selectedProgram?selectedProgram.id:""))
+    ||null;
+  const subjectGroupStatusByKey=new Map((subjectReadiness.groups||[]).map(g=>[(g.grade_code||"")+"|"+(g.program_id||""),g]));
+
   const scheduleSettings=readiness.schedule_settings||{configured:false};
   const totalGroups=Number(readiness.total_groups||0),confirmedGroups=Number(readiness.confirmed_groups||0);
   const completionPct=totalGroups?Math.round(confirmedGroups*100/totalGroups):0;
@@ -4033,7 +4039,7 @@ function academicSubjectsHtml(data,timeline){
   const stepChip=code=>{
     const x=timelineSteps.find(v=>v.step_code===code);
     if(!x)return "";
-    const icon=x.status==="completed"?"✓":x.status==="current"?"●":"○";
+    const icon=x.status==="completed"?"✓":x.status==="reused"?"↻":x.status==="not_applicable"?"–":x.status==="skipped"?"↷":x.status==="current"?"●":"○";
     return '<span class="subject-timeline-step '+esc(x.status||"queued")+'">'+icon+' '+esc(x.title||"")+'</span>';
   };
   const allSchoolGrades=Array.from(new Set(classes.map(c=>c.grade_label).filter(Boolean)));
@@ -4052,6 +4058,66 @@ function academicSubjectsHtml(data,timeline){
           :'<div class="subject-setup-panel-head"><strong>เลือกประเภทวิชาในคลัง</strong><small>ตัวกรองนี้มีผลเฉพาะรายการรายวิชาจากคลัง ไม่กรองฐานรายวิชาโรงเรียน</small></div><div class="subject-scope-tabs">'+scopeTabs+'</div>')+
     '</div>'+
     (earlyChildhoodCount?'<div class="subject-early-note">ระดับอนุบาลใช้หลักสูตรการศึกษาปฐมวัย จึงแยกออกจากหน้านี้</div>':'')+
+  '</section>';
+
+  const subjectOverallPct=Number(subjectReadiness.progress_percent||0);
+  const subjectOverallComplete=Boolean(subjectReadiness.is_complete);
+  const subjectGroupsHtml=(subjectReadiness.groups||[]).map(g=>{
+    const key=(g.grade_code||"")+"|"+(g.program_id||"");
+    const currentKey=(gradeCode||"")+"|"+(selectedProgram?selectedProgram.id:"");
+    const label=shortGrade(g.grade_label||academicGradeLabelFromCode(g.grade_code));
+    const program=g.program_name||"ห้องปกติ";
+    return '<button type="button" class="subject-completeness-group '+(g.is_complete?"complete":"incomplete")+' '+(key===currentKey?"active":"")+'" data-subject-completeness-grade="'+esc(g.grade_code||"")+'" data-subject-completeness-program="'+esc(g.program_id||"")+'">'+
+      '<span class="subject-completeness-group-state">'+(g.is_complete?"✓":"!")+'</span>'+
+      '<span class="subject-completeness-group-copy"><strong>'+esc(label)+' · '+esc(program)+'</strong><small>พื้นฐาน '+Number(g.basic_met_count||0)+'/'+Number(g.basic_required_count||0)+' · กิจกรรม '+Number(g.activity_met_count||0)+'/'+Number(g.activity_required_count||0)+(Number(g.anomaly_count||0)?' · ผิดปกติ '+Number(g.anomaly_count):'')+'</small></span>'+
+      '<b>'+Number(g.completion_percent||0)+'%</b>'+
+    '</button>';
+  }).join("");
+
+  const replacementOptions=(shownCourses||[]).map(c=>'<option value="'+esc(c.subject_id)+'">'+esc((c.subject_code?c.subject_code+" ":"")+c.subject_name)+'</option>').join("");
+  const missingRequirements=subjectCompleteness&&subjectCompleteness.missing_requirements||[];
+  const missingRequirementsHtml=missingRequirements.map(req=>{
+    const term=req.term_no?'ภาค '+req.term_no+' · ':'';
+    const choice=req.requirement_kind==="activity_choice"&&Array.isArray(req.choice_names)
+      ?'<small class="subject-requirement-choice">เลือกอย่างน้อย 1: '+req.choice_names.map(esc).join(' · ')+'</small>'
+      :'';
+    const decision=req.decision==="not_used"
+      ?'<div class="subject-requirement-decision warning"><strong>ระบุว่าไม่นำมาใช้</strong><span>'+esc(req.decision_note||"ยังไม่ระบุเหตุผล")+' · สถานะนี้ยังไม่นับว่าครบ</span></div>'
+      :req.decision==="replaced"
+        ?'<div class="subject-requirement-decision warning"><strong>กำหนดวิชาแทนไว้ แต่ยังตรวจไม่พบวิชาแทน</strong><span>'+esc(req.message||"ตรวจสอบวิชาแทนอีกครั้ง")+'</span></div>'
+        :'';
+    const sourceScope=req.requirement_kind==="core_basic"?"core":"activity";
+    return '<article class="subject-requirement-missing">'+
+      '<div class="subject-requirement-id"><span>'+esc(req.subject_code||"—")+'</span><div><strong>'+esc(term+(req.subject_name||"ข้อกำหนดรายวิชา"))+'</strong>'+choice+'<small>'+esc(req.message||"ยังไม่ครบ")+'</small></div></div>'+
+      decision+
+      (canEdit?'<div class="subject-requirement-actions">'+
+        '<button type="button" class="secondary-btn compact-btn" data-open-required-library="'+sourceScope+'">เพิ่มจากคลัง</button>'+
+        '<label>หรือใช้วิชาในโครงสร้างแทน<select data-subject-replacement-select="'+esc(req.requirement_key)+'"><option value="">เลือกวิชาแทน...</option>'+replacementOptions+'</select></label>'+
+        '<button type="button" class="secondary-btn compact-btn" data-save-subject-replacement="'+esc(req.requirement_key)+'">ใช้วิชาที่เลือกแทน</button>'+
+        '<button type="button" class="text-btn" data-mark-subject-not-used="'+esc(req.requirement_key)+'">ระบุว่าไม่นำมาใช้</button>'+
+        (req.decision?'<button type="button" class="text-btn danger" data-clear-subject-requirement="'+esc(req.requirement_key)+'">ล้างสถานะ</button>':'')+
+      '</div>':'')+
+    '</article>';
+  }).join("");
+
+  const subjectAnomaliesHtml=(subjectCompleteness&&subjectCompleteness.anomalies||[]).map(x=>
+    '<li><strong>'+esc(x.subject_code||"ตรวจพบรายการผิดปกติ")+'</strong><span>'+esc(x.message||"กรุณาตรวจสอบ")+'</span></li>'
+  ).join("");
+
+  const subjectCurrentComplete=Boolean(subjectCompleteness&&subjectCompleteness.is_complete);
+  const subjectCompletenessHtml='<section class="panel subject-completeness-panel '+(subjectOverallComplete?"complete":"")+'">'+
+    '<div class="subject-completeness-overview">'+
+      '<div class="subject-completeness-ring '+(subjectOverallComplete?"complete":"")+'" style="--progress:'+Math.max(0,Math.min(100,subjectOverallPct))+'%"><div>'+(subjectOverallComplete?'<strong>✓</strong><small>100%</small>':'<strong>'+subjectOverallPct+'%</strong><small>รายวิชาครบ</small>')+'</div></div>'+
+      '<div class="subject-completeness-summary"><p class="eyebrow">SUBJECT COMPLETENESS</p><h3>'+(subjectOverallComplete?'รายวิชาครบทุกระดับ/โปรแกรมแล้ว':'ตรวจความครบถ้วนรายวิชา')+'</h3><p>ผ่าน '+Number(subjectReadiness.completed_groups||0)+' จาก '+Number(subjectReadiness.total_groups||0)+' กลุ่มระดับชั้น/โปรแกรม · ความครอบคลุมข้อกำหนด '+Number(subjectReadiness.coverage_percent||0)+'%</p><small>รายวิชาเพิ่มเติมเป็นทางเลือกและไม่ทำให้ร้อยละลด · ชั่วโมงเรียนตรวจในขั้น “โครงสร้างเวลาเรียน”</small></div>'+
+      '<div class="subject-current-completeness '+(subjectCurrentComplete?"complete":"warning")+'"><strong>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>'+(subjectCompleteness?Number(subjectCompleteness.completion_percent||0):0)+'%</span><small>'+(subjectCurrentComplete?'✓ ครบ '+Number(subjectCompleteness.met_count||0)+'/'+Number(subjectCompleteness.required_count||0)+' ข้อกำหนด':'ขาด '+Number(subjectCompleteness&&subjectCompleteness.missing_count||0)+' · ผิดปกติ '+Number(subjectCompleteness&&subjectCompleteness.anomaly_count||0))+'</small></div>'+
+    '</div>'+
+    '<div class="subject-completeness-groups">'+subjectGroupsHtml+'</div>'+
+    ((missingRequirementsHtml||subjectAnomaliesHtml)
+      ?'<div class="subject-completeness-detail">'+
+        (missingRequirementsHtml?'<div><div class="subject-completeness-detail-head"><strong>รายการที่ยังไม่ครบ · '+missingRequirements.length+'</strong><span>เพิ่มจากคลัง หรือระบุวิชาที่โรงเรียนใช้แทน</span></div><div class="subject-requirement-list">'+missingRequirementsHtml+'</div></div>':'')+
+        (subjectAnomaliesHtml?'<div class="subject-anomaly-box"><strong>รายการผิดปกติที่ต้องแก้ก่อนเป็น 100%</strong><ul>'+subjectAnomaliesHtml+'</ul></div>':'')+
+      '</div>'
+      :'<div class="subject-completeness-done">✓ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ครบตามโครงสร้างรายวิชาแล้ว</div>')+
   '</section>';
 
   const parallelGroupCards=parallelGroups.map(g=>
@@ -4073,7 +4139,7 @@ function academicSubjectsHtml(data,timeline){
 
   const centralOnlyCount=centralCatalog.length;
   const centralRowsOnly=centralRows;
-  const compactReadiness='<section class="subject-readiness-strip '+currentStatusClass+'"><div><strong>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>'+esc(currentStatusLabel)+(weeklyCapacity!=null?' · '+weeklyTotal.toLocaleString("th-TH")+' / '+weeklyCapacity.toLocaleString("th-TH")+' คาบ/สัปดาห์':'')+'</span></div><a href="#/academics/curriculum">ตรวจโครงสร้างเวลาเรียน →</a></section>';
+  const compactReadiness='<section class="subject-readiness-strip '+currentStatusClass+'"><div><strong>ขั้นถัดไป · โครงสร้างเวลาเรียน</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · '+esc(currentStatusLabel)+(weeklyCapacity!=null?' · '+weeklyTotal.toLocaleString("th-TH")+' / '+weeklyCapacity.toLocaleString("th-TH")+' คาบ/สัปดาห์':'')+'</span></div><a href="#/academics/curriculum">ตรวจเวลาเรียน →</a></section>';
   const curriculumFrameworkHtml=academicCurriculumTimeFrameworkHtml(currentGroup,gradeLabel);
   const schoolGroups=
     selectedGroupHtml("basic","รายวิชาพื้นฐาน","รายวิชาที่ใช้ตามโครงสร้างหลักสูตรของระดับชั้นนี้")+
@@ -4096,6 +4162,7 @@ function academicSubjectsHtml(data,timeline){
       '<div class="subjects-v2-context-row"><div><strong>ระดับชั้น</strong><small>แสดงเฉพาะระดับที่มีห้องจริงจาก LEC</small></div><div class="subject-grade-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับชั้น</span>')+'</div></div>'+
       (earlyChildhoodCount?'<div class="subject-early-note">ระดับอนุบาลใช้หลักสูตรการศึกษาปฐมวัย จึงแยกออกจากหน้ารายวิชาขั้นพื้นฐาน</div>':'')+
     '</section>'+
+    subjectCompletenessHtml+
     editGuardHtml+
     roomImpactHtml+
     copyYearHtml+
@@ -4505,11 +4572,18 @@ async function academicsHtml(){
   if(mode==="classes")return academicClassesHtml(data);
   if(mode==="subjects"){
     await Promise.all([loadAcademicCurriculumPreset(data,state.subjectProgramId),loadAcademicCourseTimeOverview(data)]);
-    const readyRes=await supabase.rpc("lao_curriculum_readiness",{
-      p_school_id:school.id,
-      p_academic_year_id:data.selected_year_id
-    });
+    const [readyRes,subjectReadyRes]=await Promise.all([
+      supabase.rpc("lao_curriculum_readiness",{
+        p_school_id:school.id,
+        p_academic_year_id:data.selected_year_id
+      }),
+      supabase.rpc("lao_subject_readiness",{
+        p_school_id:school.id,
+        p_academic_year_id:data.selected_year_id
+      })
+    ]);
     state.curriculumReadiness=readyRes.error?null:(readyRes.data||null);
+    state.subjectReadiness=subjectReadyRes.error?null:(subjectReadyRes.data||null);
     const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
     const targetProgram=state.subjectProgramId||null;
     const targetClasses=classes.filter(c=>targetProgram?c.program_id===targetProgram:!c.program_id);
@@ -5030,6 +5104,82 @@ function bindAcademics(){
   }));
   qa("[data-back-to-subject-search]").forEach(btn=>btn.addEventListener("click",openSubjectFinder));
 
+  qa("[data-subject-completeness-grade]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.subjectProgramId=btn.dataset.subjectCompletenessProgram||"";
+    state.academicPresetGrade=btn.dataset.subjectCompletenessGrade||"";
+    state.subjectSetupTab="target";
+    state.subjectWorkspaceView="selected";
+    state.subjectParallelSelectionMode=false;
+    renderRoute();
+  }));
+  qa("[data-open-required-library]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.subjectCatalogScope=btn.dataset.openRequiredLibrary||"core";
+    state.subjectSetupTab="type";
+    state.subjectWorkspaceView="library";
+    renderRoute();
+  }));
+  qa("[data-save-subject-replacement]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+    const key=btn.dataset.saveSubjectReplacement;
+    const sel=q('[data-subject-replacement-select="'+CSS.escape(key)+'"]');
+    const replacement=sel&&sel.value||"";
+    if(!replacement){toast("กรุณาเลือกวิชาที่ใช้แทน","error");return;}
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_set_subject_requirement_decision",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,
+      p_grade_code:state.academicPresetGrade||"",
+      p_requirement_key:key,
+      p_decision:"replaced",
+      p_replacement_subject_id:replacement,
+      p_note:null
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกวิชาที่ใช้แทนแล้ว","success");
+    refreshSubjects(true);
+  }));
+  qa("[data-mark-subject-not-used]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+    const note=prompt("ระบุเหตุผลที่ไม่นำรายการนี้มาใช้\n\nหมายเหตุ: การระบุว่าไม่นำมาใช้จะช่วยให้มีหลักฐาน แต่รายการบังคับที่ยังไม่มีวิชาแทนจะยังไม่ถือว่าครบ 100%");
+    if(note===null)return;
+    if(!String(note).trim()){toast("กรุณาระบุเหตุผล","error");return;}
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_set_subject_requirement_decision",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,
+      p_grade_code:state.academicPresetGrade||"",
+      p_requirement_key:btn.dataset.markSubjectNotUsed,
+      p_decision:"not_used",
+      p_replacement_subject_id:null,
+      p_note:String(note).trim()
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกเหตุผลแล้ว · รายการยังไม่ถือว่าครบจนกว่าจะมีวิชาแทน/รายการที่กำหนด","success");
+    refreshSubjects(true);
+  }));
+  qa("[data-clear-subject-requirement]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+    setBusy(btn,true,"กำลังล้าง...");
+    const res=await supabase.rpc("lao_set_subject_requirement_decision",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,
+      p_grade_code:state.academicPresetGrade||"",
+      p_requirement_key:btn.dataset.clearSubjectRequirement,
+      p_decision:"clear",
+      p_replacement_subject_id:null,
+      p_note:null
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("ล้างสถานะแล้ว","success");
+    refreshSubjects(true);
+  }));
+
   const subjectEditSwitch=q("[data-subject-edit-switch]");
   if(subjectEditSwitch)subjectEditSwitch.addEventListener("change",()=>{
     state.subjectEditMode=subjectEditSwitch.checked;
@@ -5109,6 +5259,7 @@ function bindAcademics(){
     state.academicData=null;
     state.academicPreset=null;
     state.curriculumReadiness=null;
+    state.subjectReadiness=null;
     state.subjectWorkspaceData=null;
     state.subjectWorkspaceView=keepView;
     const rendered=renderRoute();
