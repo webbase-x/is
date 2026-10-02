@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.7";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.8";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3447,33 +3447,18 @@ function academicSubjectsHtml(data,timeline){
   const selectedKeys=new Set(selectedCourses.map(logicalKey));
 
   const allCatalog=(preset.items||[]).filter(x=>x.grade_code===gradeCode);
-  const catalogMatches=x=>(scope==="core"&&x.subject_type==="basic")||x.subject_type===scope;
-  const schoolSubjects=(data.subjects||[]).filter(x=>x.is_active!==false);
-  const schoolSubjectKeys=new Set(schoolSubjects.map(logicalKey));
-  const centralAvailable=allCatalog.filter(x=>{
-    const key=logicalKey(x);
-    return catalogMatches(x)&&!selectedKeys.has(key);
-  });
-
-  const currentProgramId=selectedProgram?selectedProgram.id:null;
-  const schoolSeen=new Set();
-  const schoolAvailable=gradeCode?schoolSubjects.filter(x=>{
-    if(!scopeMatches(x.subject_type))return false;
-    const key=logicalKey(x);
-    if(selectedKeys.has(key)||schoolSeen.has(key))return false;
-    const subjectContexts=allCourses.filter(c=>c.subject_id===x.id);
-    const hasCurrentGradeContext=subjectContexts.some(c=>c.grade_code===gradeCode);
-    const hasCurrentContext=subjectContexts.some(c=>
-      c.grade_code===gradeCode && (c.program_id||null)===(currentProgramId||null)
-    );
-    const isExcludedInherited=Boolean(selectedProgram&&excludedIds.has(x.id));
-    // แท็บระดับชั้นเป็นขอบเขตจริงของข้อมูล: ห้ามนำรายวิชาที่มีบริบทเฉพาะชั้นอื่นมาแสดงปะปน
-    if(!hasCurrentGradeContext)return false;
-    if(!hasCurrentContext&&!isExcludedInherited)return false;
-    schoolSeen.add(key);
-    return true;
-  }):[];
-  const totalAvailable=centralAvailable.length+schoolAvailable.length;
+  // คลังกลางต้องอ้างอิงเฉพาะข้อมูลส่วนกลางเท่านั้น
+  // วิชาพื้นฐานรับเฉพาะรายการ national core และแสดงครบแม้โรงเรียนจะนำไปใช้แล้ว
+  const catalogMatches=x=>
+    scope==="core"
+      ?x.subject_type==="basic"&&x.is_national_core===true
+      :x.subject_type===scope;
+  const centralCatalog=allCatalog.filter(catalogMatches);
+  const centralBasicKeys=new Set(
+    allCatalog
+      .filter(x=>x.subject_type==="basic"&&x.is_national_core===true)
+      .map(logicalKey)
+  );
   const activityCodeCounts=new Map();
   selectedCourses.filter(c=>c.subject_type==="activity"&&c.subject_code).forEach(c=>{
     const key=String(c.subject_code).trim().toLowerCase();
@@ -3485,11 +3470,13 @@ function academicSubjectsHtml(data,timeline){
     const inherited=c._origin==="inherited";
     const pg=parallelByCourseId.get(c.id)||null;
     const canGroup=canManage&&!inherited&&!pg;
+    const isCentralBasic=c.subject_type==="basic"&&centralBasicKeys.has(logicalKey(c));
     return '<article class="subject-selected-card '+(pg?"in-parallel-group":"")+'">'+
       (canGroup?'<label class="subject-group-check" title="เลือกเพื่อรวมเป็นกลุ่มเวลาเดียวกัน"><input type="checkbox" data-parallel-course="'+esc(c.id)+'"><span></span></label>':'')+
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(c.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(c.subject_name)+'</strong><small>'+(c.learning_area?esc(c.learning_area):esc(typeLabel[c.subject_type]||"อื่น ๆ"))+'</small></div></div>'+
       '<div class="subject-card-hours"><span><b>'+(weekly?Number(weekly.weekly_periods).toLocaleString("th-TH"):"—")+'</b><small>คาบ/สัปดาห์</small></span><span><b>'+(c.annual_hours!=null?Number(c.annual_hours).toLocaleString("th-TH"):"—")+'</b><small>ชม./ปี</small></span></div>'+
       '<div class="subject-card-action">'+
+        (isCentralBasic?'<span class="subject-origin central-core">ส่วนกลาง</span>':'')+
         (pg?'<span class="subject-origin grouped">กลุ่ม '+esc(pg.name)+' · นับ '+Number(pg.weekly_periods||0).toLocaleString("th-TH")+' คาบ</span>':'')+
         (!pg&&c.subject_type==="activity"&&c.subject_code&&(activityCodeCounts.get(String(c.subject_code).trim().toLowerCase())||0)>1?'<span class="subject-origin grouped">รหัสเดียวกัน · นับรวม 1 ช่องเวลา</span>':'')+
         (inherited?'<span class="subject-origin inherited">รับจากห้องปกติ</span>':'')+
@@ -3507,21 +3494,16 @@ function academicSubjectsHtml(data,timeline){
     (selectedByType[type].length?'<div class="subject-selected-list">'+selectedByType[type].map(selectedCardHtml).join("")+'</div>':'<div class="subject-type-empty">ยังไม่มีรายการในหมวดนี้</div>')+
   '</section>';
 
-  const centralRows=centralAvailable.map(x=>
-    '<article class="subject-library-card" data-subject-library-item data-search-text="'+esc(((x.subject_code||"")+" "+x.subject_name+" "+(x.learning_area||"")+" ฐานกลาง").toLowerCase())+'">'+
-      '<div class="subject-library-source central">ฐานกลาง</div>'+
+  const centralRows=centralCatalog.map(x=>{
+    const isSelected=selectedKeys.has(logicalKey(x));
+    return '<article class="subject-library-card '+(isSelected?"is-selected":"")+'" data-subject-library-item data-search-text="'+esc(((x.subject_code||"")+" "+x.subject_name+" "+(x.learning_area||"")+" ส่วนกลาง").toLowerCase())+'">'+
+      '<div class="subject-library-source central">ส่วนกลาง</div>'+
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(typeLabel[x.subject_type]||"อื่น ๆ")+(x.learning_area?' · '+esc(x.learning_area):'')+'</small></div></div>'+
-      (canManage?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.id||'')+'">＋ เพิ่ม</button>':'')+
-    '</article>'
-  ).join("");
-
-  const schoolRows=schoolAvailable.map(x=>
-    '<article class="subject-library-card" data-subject-library-item data-search-text="'+esc(((x.subject_code||"")+" "+x.name_th+" "+(x.learning_area||"")+" ของโรงเรียน").toLowerCase())+'">'+
-      '<div class="subject-library-source school">ของโรงเรียน</div>'+
-      '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.name_th)+'</strong><small>'+esc(typeLabel[x.subject_type]||"อื่น ๆ")+(x.learning_area?' · '+esc(x.learning_area):'')+'</small></div></div>'+
-      (canManage?'<button type="button" class="subject-add-btn" data-add-school-subject="'+esc(x.id)+'">＋ เพิ่ม</button>':'')+
-    '</article>'
-  ).join("");
+      (isSelected
+        ?'<span class="subject-library-used">✓ อยู่ในหลักสูตรแล้ว</span>'
+        :canManage?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.id||'')+'">＋ เพิ่ม</button>':'')+
+    '</article>';
+  }).join("");
 
   const gradeTabs=targetGrades.map(g=>{
     const code=academicGradeCode(g)||"",rooms=targetClasses.filter(c=>c.grade_label===g).length;
@@ -3593,7 +3575,7 @@ function academicSubjectsHtml(data,timeline){
     '</section>'
     :(parallelGroupCards?'<section class="subject-parallel-tools"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>ระบบนับเวลาของแต่ละกลุ่มเพียงครั้งเดียว</small></div></div><div class="parallel-group-list">'+parallelGroupCards+'</div></section>':'');
 
-  const centralOnlyCount=centralAvailable.length;
+  const centralOnlyCount=centralCatalog.length;
   const centralRowsOnly=centralRows;
   const compactReadiness='<section class="subject-readiness-strip '+currentStatusClass+'"><div><strong>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>'+esc(currentStatusLabel)+(weeklyCapacity!=null?' · '+weeklyTotal.toLocaleString("th-TH")+' / '+weeklyCapacity.toLocaleString("th-TH")+' คาบ/สัปดาห์':'')+'</span></div><a href="#/academics/curriculum">ตรวจโครงสร้างเวลาเรียน →</a></section>';
   const schoolGroups=
