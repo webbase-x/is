@@ -3584,7 +3584,7 @@ function academicSubjectsHtml(data,timeline){
     :(parallelGroupCards?'<section class="subject-parallel-tools"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>ระบบนับเวลาของแต่ละกลุ่มเพียงครั้งเดียว</small></div></div><div class="parallel-group-list">'+parallelGroupCards+'</div></section>':'');
 
   return '<section class="academic-page subjects-workspace subject-library-workspace">'+academicNavHtml("subjects",data)+
-    '<section class="panel subjects-compact-head"><div><p class="eyebrow">SUBJECT WORKSPACE</p><h2>จัดรายวิชาของสถานศึกษา</h2><p class="panel-sub">เลือกบริบทก่อน แล้วจัดรายวิชาเฉพาะระดับชั้นและประเภทที่กำลังดู รายการที่นำออกจะกลับเข้าคลังโดยไม่ลบฐานกลาง</p></div><div class="subjects-context-chips">'+
+    '<section class="panel subjects-compact-head"><div><p class="eyebrow">SUBJECT WORKSPACE</p><h2>จัดรายวิชาของสถานศึกษา</h2><p class="panel-sub">รายวิชาของโรงเรียนแสดงครบทุกประเภทตามระดับชั้น ส่วนการเลือกกลุ่มห้อง ระดับชั้น และประเภท ใช้เมื่อต้องการเพิ่มรายวิชาจากคลัง</p></div><div class="subjects-context-chips">'+
       (year?'<span>ปี '+esc(year.year_be)+'</span>':'')+'<span>'+allSchoolGrades.length+' ระดับชั้น</span><span>'+classes.length+' ห้อง</span><span>'+actualPrograms.length+' โปรแกรมพิเศษ</span>'+
     '</div></section>'+
 
