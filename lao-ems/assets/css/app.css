@@ -1450,7 +1450,7 @@ table{max-width:none}
 .academic-stats-grid small{font-size:12px;color:var(--muted);font-weight:800}
 .academic-stats-grid strong{margin:4px 0 1px;font-size:21px;color:var(--text);overflow-wrap:anywhere}
 .academic-stats-grid span{font-size:12px;color:var(--muted)}
-.academic-flow-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
+.academic-flow-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}
 .academic-flow-grid a{display:flex;gap:9px;align-items:flex-start;padding:13px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-decoration:none;min-width:0}
 .academic-flow-grid a:hover{border-color:#b2ccff;background:#fbfdff}
 .academic-flow-grid b{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:9px;background:var(--primary-soft);color:var(--primary);font-size:12px}
@@ -3597,6 +3597,8 @@ table{max-width:none}
   color:#175cd3;
   font-weight:900;
 }
+.academic-program-state>div{flex:1 1 auto;min-width:0}
+.academic-program-state>button{flex:0 0 auto;align-self:center}
 .academic-program-state strong{display:block;color:#101828;font-size:13px}
 .academic-program-state p{margin:3px 0 0;color:#667085;font-size:12px;line-height:1.5}
 .academic-program-state.success{background:#ecfdf3;border-color:#abefc6}
@@ -5868,4 +5870,287 @@ th,td{line-height:1.45}
   .curriculum-framework-foot a{
     justify-self:start;
   }
+}
+
+/* Academic yearly timeline + progress ring — v0.19.7 */
+.academic-toolbar.academic-step-toolbar{
+  grid-template-columns:auto minmax(0,1fr) auto;
+}
+.academic-overview-link{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-width:72px;
+  padding:7px 8px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface);
+  color:#667085;
+  font-size:11.5px;
+  font-weight:900;
+  text-decoration:none;
+}
+.academic-overview-link.active{
+  border-color:#b2ccff;
+  background:#f5f8ff;
+  color:#175cd3;
+}
+.academic-overview-mini-ring{
+  --progress:0%;
+  display:grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at center,var(--surface) 62%,transparent 64%),
+    conic-gradient(#2e90fa var(--progress),#e4e7ec 0);
+  color:#344054;
+  font-size:10px;
+  font-weight:900;
+}
+.academic-overview-mini-ring.complete{
+  background:
+    radial-gradient(circle at center,#ecfdf3 62%,transparent 64%),
+    conic-gradient(#12b76a 100%,#12b76a 0);
+  color:#067647;
+  font-size:16px;
+}
+.academic-subnav.academic-step-nav{
+  grid-template-columns:repeat(6,minmax(92px,1fr));
+}
+.academic-step-link.status-completed .academic-step-node{
+  border-color:#6ce9a6;
+  background:#ecfdf3;
+  color:#067647;
+}
+.academic-step-link.status-reused .academic-step-node{
+  border-color:#b2ccff;
+  background:#eef4ff;
+  color:#3538cd;
+}
+.academic-step-link.status-not_applicable .academic-step-node,
+.academic-step-link.status-skipped .academic-step-node{
+  border-color:#d0d5dd;
+  background:#f2f4f7;
+  color:#667085;
+}
+.academic-step-link.status-current .academic-step-node{
+  border-color:#84adff;
+  background:#eaf2ff;
+  color:#175cd3;
+}
+.academic-step-link.status-completed:not(:last-child)::after,
+.academic-step-link.status-reused:not(:last-child)::after{
+  background:#b7e4cf;
+}
+.academic-step-link.active .academic-step-node{
+  box-shadow:0 0 0 5px var(--primary-soft);
+}
+.academic-year-timeline{
+  overflow:visible;
+}
+.academic-progress-ring-wrap{
+  flex:0 0 auto;
+  display:grid;
+  justify-items:center;
+  gap:5px;
+  min-width:112px;
+}
+.academic-progress-ring-wrap>span{
+  color:#667085;
+  font-size:11px;
+  font-weight:800;
+  text-align:center;
+}
+.academic-progress-ring{
+  --progress:0%;
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:92px;
+  height:92px;
+  border-radius:50%;
+  background:conic-gradient(#2e90fa var(--progress),#eaecf0 0);
+}
+.academic-progress-ring::before{
+  content:"";
+  position:absolute;
+  inset:9px;
+  border-radius:50%;
+  background:#fff;
+}
+.academic-progress-ring>div{
+  position:relative;
+  z-index:1;
+  display:grid;
+  justify-items:center;
+  gap:1px;
+}
+.academic-progress-ring strong{
+  color:#175cd3;
+  font-size:20px;
+  line-height:1;
+}
+.academic-progress-ring small{
+  color:#667085;
+  font-size:10px;
+  font-weight:800;
+}
+.academic-progress-ring.complete{
+  background:conic-gradient(#12b76a 100%,#12b76a 0);
+}
+.academic-progress-ring.complete::before{
+  background:#ecfdf3;
+}
+.academic-progress-ring.complete strong{
+  color:#067647;
+  font-size:30px;
+}
+.academic-progress-ring.complete small{
+  color:#067647;
+}
+.department-setup-step.reused{
+  background:#f8f9ff;
+}
+.department-setup-step.not_applicable{
+  background:#fafafa;
+}
+.department-setup-step.reused .department-step-marker>span{
+  border-color:#b2ccff;
+  background:#eef4ff;
+  color:#3538cd;
+}
+.department-setup-step.not_applicable .department-step-marker>span{
+  border-color:#d0d5dd;
+  background:#f2f4f7;
+  color:#98a2b3;
+}
+.department-step-status.reused{
+  background:#eef4ff;
+  color:#3538cd;
+}
+.department-step-status.not_applicable{
+  background:#f2f4f7;
+  color:#667085;
+}
+.academic-year-change-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 12px;
+  padding:10px 12px;
+  border:1px solid #e4e7ec;
+  border-radius:12px;
+  background:#fcfcfd;
+}
+.academic-year-change-summary>div:first-child{
+  min-width:0;
+}
+.academic-year-change-summary strong,
+.academic-year-change-summary>div:first-child>span{
+  display:block;
+}
+.academic-year-change-summary strong{
+  color:#344054;
+  font-size:12.5px;
+}
+.academic-year-change-summary>div:first-child>span{
+  margin-top:2px;
+  color:#667085;
+  font-size:11px;
+  line-height:1.4;
+}
+.academic-year-change-summary.first-year{
+  justify-content:flex-start;
+}
+.academic-year-change-chips{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.academic-year-change-chips span{
+  display:inline-flex;
+  min-height:25px;
+  align-items:center;
+  padding:4px 7px;
+  border-radius:999px;
+  background:#f2f4f7;
+  color:#475467;
+  font-size:10.5px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.academic-program-state.warning{
+  border-color:#fedf89;
+  background:#fffcf5;
+}
+.academic-program-state.warning>span{
+  background:#fef0c7;
+  color:#b54708;
+}
+@media(max-width:900px){
+  .academic-toolbar.academic-step-toolbar{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+  .academic-year-switch,.academic-year-empty{
+    grid-column:1/-1;
+    justify-self:end;
+  }
+  .academic-subnav.academic-step-nav{
+    grid-template-columns:repeat(6,minmax(98px,1fr));
+  }
+}
+@media(max-width:700px){
+  .academic-year-change-summary{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .academic-year-change-chips{
+    justify-content:flex-start;
+  }
+}
+@media(max-width:620px){
+  .department-timeline-head .academic-progress-ring-wrap{
+    width:100%;
+    grid-template-columns:auto minmax(0,1fr);
+    align-items:center;
+    justify-items:start;
+  }
+  .academic-progress-ring{
+    width:78px;
+    height:78px;
+  }
+  .academic-progress-ring-wrap>span{
+    text-align:left;
+  }
+}
+@media(max-width:560px){
+  .academic-toolbar.academic-step-toolbar{
+    grid-template-columns:64px minmax(0,1fr);
+    gap:8px;
+  }
+  .academic-overview-link{
+    min-width:60px;
+    padding-inline:5px;
+  }
+  .academic-overview-mini-ring{
+    width:34px;
+    height:34px;
+  }
+}
+
+
+@media(max-width:1180px){
+  .academic-flow-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:620px){
+  .academic-program-state{flex-wrap:wrap}
+  .academic-program-state>button{width:100%;margin-left:46px}
+  .academic-flow-grid{grid-template-columns:1fr}
 }
