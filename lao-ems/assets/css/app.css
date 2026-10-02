@@ -5747,3 +5747,125 @@ th,td{line-height:1.45}
     width:100%;
   }
 }
+
+/* Curriculum-time guardrails — v0.19.6 */
+.curriculum-framework-panel{
+  display:grid;
+  gap:10px;
+  margin:12px 0;
+  padding:12px;
+  border:1px solid #dbe7f7;
+  border-radius:14px;
+  background:#f8fbff;
+}
+.curriculum-framework-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.curriculum-framework-head>div strong,
+.curriculum-framework-head>div span{
+  display:block;
+}
+.curriculum-framework-head>div strong{
+  color:#1849a9;
+  font-size:13px;
+}
+.curriculum-framework-head>div span{
+  margin-top:2px;
+  color:#667085;
+  font-size:11.5px;
+}
+.curriculum-framework-rule{
+  flex:0 0 auto;
+  padding:5px 8px;
+  border-radius:999px;
+  background:#eef4ff;
+  color:#3538cd;
+  font-size:11px;
+  font-weight:800;
+}
+.curriculum-framework-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.curriculum-framework-card{
+  min-width:0;
+  padding:9px 10px;
+  border:1px solid #e4e7ec;
+  border-radius:11px;
+  background:#fff;
+}
+.curriculum-framework-card small,
+.curriculum-framework-card strong,
+.curriculum-framework-card span{
+  display:block;
+}
+.curriculum-framework-card small{
+  color:#667085;
+  font-size:10.5px;
+}
+.curriculum-framework-card strong{
+  margin-top:2px;
+  color:#344054;
+  font-size:13px;
+  line-height:1.35;
+}
+.curriculum-framework-card span{
+  margin-top:3px;
+  color:#667085;
+  font-size:10.5px;
+  line-height:1.35;
+}
+.curriculum-framework-card.ok{
+  border-color:#abefc6;
+  background:#f6fef9;
+}
+.curriculum-framework-card.attention{
+  border-color:#fedf89;
+  background:#fffcf5;
+}
+.curriculum-framework-card.neutral{
+  border-color:#d0d5dd;
+  background:#f9fafb;
+}
+.curriculum-framework-foot{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding-top:8px;
+  border-top:1px solid #e4e7ec;
+  color:#667085;
+  font-size:11px;
+  line-height:1.45;
+}
+.curriculum-framework-foot a{
+  flex:0 0 auto;
+  color:#175cd3;
+  font-weight:800;
+  text-decoration:none;
+}
+@media(max-width:900px){
+  .curriculum-framework-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:600px){
+  .curriculum-framework-head,
+  .curriculum-framework-foot{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .curriculum-framework-rule{
+    justify-self:start;
+  }
+  .curriculum-framework-grid{
+    grid-template-columns:1fr;
+  }
+  .curriculum-framework-foot a{
+    justify-self:start;
+  }
+}
