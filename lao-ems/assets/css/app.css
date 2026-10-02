@@ -4809,3 +4809,101 @@ th,td{line-height:1.45}
   .lec-period-context{padding:12px}
   .lec-period-input-grid{grid-template-columns:1fr;gap:8px;margin-top:10px}
 }
+
+
+/* Subject edit lock and prior-year copy — v0.18.5 */
+.subject-edit-guard,
+.subject-room-impact,
+.subject-copy-year{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:12px 14px;
+  border:1px solid #d0d5dd;
+  border-radius:14px;
+  background:#fff;
+}
+.subject-edit-guard.is-locked{background:#f9fafb}
+.subject-edit-guard.is-open{border-color:#84adff;background:#f5f8ff}
+.subject-edit-guard-copy strong,
+.subject-room-impact strong,
+.subject-copy-year-copy strong{
+  display:block;
+  font-size:12.5px;
+  color:#101828;
+}
+.subject-edit-guard-copy p,
+.subject-room-impact p,
+.subject-copy-year-copy p{
+  margin:3px 0 0;
+  font-size:11.5px;
+  line-height:1.45;
+  color:#667085;
+}
+.subject-room-impact small{
+  display:block;
+  margin-top:4px;
+  max-width:760px;
+  font-size:10.5px;
+  line-height:1.45;
+  color:#98a2b3;
+}
+.subject-room-impact>span{
+  flex:0 0 auto;
+  padding:6px 9px;
+  border-radius:999px;
+  background:#eff4ff;
+  color:#175cd3;
+  font-size:11.5px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.subject-copy-year-actions{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  flex:0 0 auto;
+}
+.subject-copy-year-actions label{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:130px;
+  font-size:10px;
+  font-weight:800;
+  color:#475467;
+}
+.subject-copy-year-actions select{
+  min-height:38px;
+  min-width:130px;
+  padding-top:6px;
+  padding-bottom:6px;
+}
+.subject-copy-year-actions button:disabled,
+.subject-workspace-head-actions button:disabled{
+  opacity:.48;
+  cursor:not-allowed;
+}
+.subject-edit-switch{margin-left:auto}
+@media(max-width:700px){
+  .subject-edit-guard,
+  .subject-room-impact,
+  .subject-copy-year{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:9px;
+  }
+  .subject-edit-switch{margin-left:0}
+  .subject-copy-year-actions{
+    width:100%;
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .subject-copy-year-actions label,
+  .subject-copy-year-actions select,
+  .subject-copy-year-actions button{
+    width:100%;
+    min-width:0;
+  }
+}

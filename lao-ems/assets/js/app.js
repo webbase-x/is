@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.4";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.5";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -543,7 +543,7 @@ function bindStaticUI(){
   const close=()=>{sidebar.classList.remove("open");scrim.classList.remove("show");};
   q("[data-sidebar-close]").addEventListener("click",close);
   scrim.addEventListener("click",close);
-  window.addEventListener("hashchange",()=>{if(!location.hash.startsWith("#/academics/classes")){state.classProgramEditMode=false;state.classStageFilter="";}if(state.user)renderRoute();else showAuth();close();});
+  window.addEventListener("hashchange",()=>{if(!location.hash.startsWith("#/academics/classes")){state.classProgramEditMode=false;state.classStageFilter="";}if(!location.hash.startsWith("#/academics/subjects")){state.subjectEditMode=false;state.subjectCopyYearId="";}if(state.user)renderRoute();else showAuth();close();});
   q("[data-signout]").addEventListener("click",()=>{
     localStorage.setItem("lao_legacy_session_rejected","1");
     clearLaoAuthSession();
@@ -3473,7 +3473,7 @@ function academicClassesHtml(data){
   '</section>';
 }
 function academicSubjectsHtml(data,timeline){
-  const canManage=Boolean(data.can_manage),year=academicSelectedYear(data),preset=state.academicPreset||{};
+  const canManage=Boolean(data.can_manage),canEdit=canManage&&Boolean(state.subjectEditMode),year=academicSelectedYear(data),preset=state.academicPreset||{};
   const readiness=state.curriculumReadiness||{groups:[],exclusions:[],total_groups:0,confirmed_groups:0,groups_with_courses:0};
   const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
   const allCourses=data.courses||[];
@@ -3499,7 +3499,15 @@ function academicSubjectsHtml(data,timeline){
   const scopeLabel=scope==="activity"?"กิจกรรมพัฒนาผู้เรียน":"วิชาพื้นฐาน";
   const setupTab=["target","grade","type"].includes(state.subjectSetupTab)?state.subjectSetupTab:"target";
   state.subjectSetupTab=setupTab;
-  const targetRoomCount=targetClasses.filter(c=>c.grade_label===gradeLabel).length;
+  const targetRooms=targetClasses.filter(c=>c.grade_label===gradeLabel)
+    .sort((a,b)=>String(a.section_label||"").localeCompare(String(b.section_label||""),"th",{numeric:true}));
+  const targetRoomCount=targetRooms.length;
+  const targetRoomLabels=targetRooms.map(c=>shortGrade(c.grade_label)+"/"+String(c.section_label||"").trim()).filter(Boolean);
+  const targetRoomPreview=targetRoomLabels.length<=6?targetRoomLabels.join(" · "):targetRoomLabels.slice(0,5).join(" · ")+" · และอีก "+(targetRoomLabels.length-5)+" ห้อง";
+  const copyYears=(data.years||[]).filter(y=>year&&y.id!==year.id&&Number(y.year_be)<Number(year.year_be))
+    .sort((a,b)=>Number(b.year_be)-Number(a.year_be));
+  if(state.subjectCopyYearId&&!copyYears.some(y=>y.id===state.subjectCopyYearId))state.subjectCopyYearId="";
+  if(!state.subjectCopyYearId&&copyYears.length)state.subjectCopyYearId=copyYears[0].id;
   const earlyChildhoodCount=classes.filter(c=>String(academicGradeCode(c.grade_label)||"").startsWith("K")).length;
   const typeLabel={basic:"วิชาพื้นฐาน",additional:"วิชาเพิ่มเติม",activity:"กิจกรรมพัฒนาผู้เรียน",other:"อื่น ๆ"};
   const subtypeLabel={
@@ -3569,7 +3577,7 @@ function academicSubjectsHtml(data,timeline){
     const weekly=(c.term_plans||[]).find(t=>t.weekly_periods!=null);
     const inherited=c._origin==="inherited";
     const pg=parallelByCourseId.get(c.id)||null;
-    const canGroup=canManage&&!inherited&&!pg;
+    const canGroup=canEdit&&!inherited&&!pg;
     const isCentralItem=centralItemKeys.has(logicalKey(c));
     const sourceInfo=sourceBySubjectId.get(c.subject_id)||{};
     const sourceKind=sourceInfo.source_kind||(isCentralItem?"official_central":"school_local");
@@ -3585,7 +3593,7 @@ function academicSubjectsHtml(data,timeline){
         (pg?'<span class="subject-origin grouped">กลุ่ม '+esc(pg.name)+' · นับ '+Number(pg.weekly_periods||0).toLocaleString("th-TH")+' คาบ</span>':'')+
         (!pg&&c.subject_type==="activity"&&c.subject_code&&(activityCodeCounts.get(String(c.subject_code).trim().toLowerCase())||0)>1?'<span class="subject-origin grouped">รหัสเดียวกัน · นับรวม 1 ช่องเวลา</span>':'')+
         (inherited?'<span class="subject-origin inherited">รับจากห้องปกติ</span>':'')+
-        (canManage?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+
+        (canEdit?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+
       '</div>'+
     '</article>';
   };
@@ -3608,7 +3616,7 @@ function academicSubjectsHtml(data,timeline){
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(typeLabel[x.subject_type]||"อื่น ๆ")+(x.learning_area?' · '+esc(x.learning_area):'')+(x.term_no?' · ภาคเรียนที่ '+esc(x.term_no):' · รายปี')+'</small>'+(isMultiActivity?'<span class="subject-library-multi">รหัสเดียวกัน · เลือกได้หลายรายการ</span>':'')+'</div></div>'+
       (isSelected
         ?'<span class="subject-library-used">✓ อยู่ในหลักสูตรแล้ว</span>'
-        :canManage?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.id||'')+'">＋ เพิ่ม</button>':'')+
+        :canEdit?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.id||'')+'">＋ เพิ่ม</button>':'')+
     '</article>';
   }).join("");
 
@@ -3672,9 +3680,9 @@ function academicSubjectsHtml(data,timeline){
   '</section>';
 
   const parallelGroupCards=parallelGroups.map(g=>
-    '<article class="parallel-group-card"><div><strong>'+esc(g.name)+'</strong><small>'+(g.members||[]).map(m=>esc(m.subject_name)).join(' · ')+'</small></div><span>'+Number(g.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span>'+(canManage?'<button type="button" class="text-btn danger" data-delete-parallel-group="'+esc(g.id)+'">ยกเลิกกลุ่ม</button>':'')+'</article>'
+    '<article class="parallel-group-card"><div><strong>'+esc(g.name)+'</strong><small>'+(g.members||[]).map(m=>esc(m.subject_name)).join(' · ')+'</small></div><span>'+Number(g.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span>'+(canEdit?'<button type="button" class="text-btn danger" data-delete-parallel-group="'+esc(g.id)+'">ยกเลิกกลุ่ม</button>':'')+'</article>'
   ).join("");
-  const parallelTools=canManage&&shownCourses.length>1
+  const parallelTools=canEdit&&shownCourses.length>1
     ?'<section class="subject-parallel-tools"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>หลายรหัสที่เรียนในช่วงเดียวกันให้นับเวลาเพียงครั้งเดียว</small></div>'+(groupEligibleCourses.length>1?'<button type="button" class="secondary-btn compact-btn" data-open-parallel-group disabled>รวมวิชาที่เลือก <span data-parallel-selected-count>0</span></button>':'')+'</div>'+
       (parallelGroupCards?'<div class="parallel-group-list">'+parallelGroupCards+'</div>':'')+
       '<form class="parallel-group-form hidden" data-parallel-group-form><div class="parallel-group-form-grid"><label>ชื่อกลุ่ม<input name="name" required placeholder="เช่น เลือกเสรี ป.6 กลุ่ม 1"></label><label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0.25" max="20" step="0.25" required placeholder="เช่น 2"></label></div><div class="parallel-group-picked" data-parallel-picked-text></div><div class="parallel-group-actions"><button type="button" class="text-btn" data-close-parallel-group>ยกเลิก</button><button type="submit" class="primary-btn">บันทึกกลุ่มเวลาเดียวกัน</button></div></form>'+
@@ -3690,6 +3698,12 @@ function academicSubjectsHtml(data,timeline){
     selectedGroupHtml("activity","กิจกรรมพัฒนาผู้เรียน","แนะแนว กิจกรรมนักเรียน ชุมนุม และกิจกรรมเพื่อสังคมฯ")+
     (selectedByType.other.length?selectedGroupHtml("other","อื่น ๆ","รายการเฉพาะที่โรงเรียนกำหนด"):"");
 
+  const editGuardHtml=canManage?'<section class="subject-edit-guard '+(canEdit?"is-open":"is-locked")+'"><div class="subject-edit-guard-copy"><strong>'+(canEdit?"เปิดการแก้ไขรายวิชาแล้ว":"รายการรายวิชาถูกล็อก")+'</strong><p>'+(canEdit?"สามารถเพิ่ม คัดลอก นำออก และจัดกลุ่มเวลาได้จนกว่าจะปิดสวิตช์หรือออกจากหน้านี้":"เปิดสวิตช์เมื่อต้องการเปลี่ยนข้อมูล เพื่อป้องกันการแก้ไขโดยไม่ตั้งใจ")+'</p></div><label class="academic-edit-switch subject-edit-switch"><input type="checkbox" data-subject-edit-switch '+(canEdit?"checked":"")+'><span class="switch-track"><i></i></span><b>'+(canEdit?"เปิด":"ปิด")+'</b></label></section>':'';
+
+  const roomImpactHtml=gradeCode?'<section class="subject-room-impact"><div><strong>ใช้กับห้องใดบ้าง</strong><p>'+(targetRoomCount?esc(targetRoomPreview):"ยังไม่พบห้องจาก LEC ในบริบทนี้")+'</p><small>รายวิชาจะใช้กับทุกห้องในระดับชั้นและกลุ่มห้อง/โปรแกรมที่เลือก หากต้องการหลักสูตรต่างกันให้แยกเป็นโปรแกรม/กลุ่มห้อง ไม่แยกรายวิชาทีละห้อง</small></div><span>'+targetRoomCount+' ห้อง</span></section>':'';
+
+  const copyYearHtml=canManage&&year&&gradeCode?'<section class="subject-copy-year"><div class="subject-copy-year-copy"><strong>คัดลอกจากปีการศึกษาก่อน</strong><p>คัดลอกเฉพาะ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' รวมคาบ/ภาคและกลุ่มรายวิชาทางเลือก โดยผสานกับรายการเดิมและไม่ลบวิชาที่มีอยู่</p></div>'+(copyYears.length?'<div class="subject-copy-year-actions"><label>ปีต้นทาง<select data-subject-copy-year>'+copyYears.map(y=>'<option value="'+esc(y.id)+'" '+(state.subjectCopyYearId===y.id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><button type="button" class="secondary-btn compact-btn" data-copy-subject-year '+(canEdit?"":"disabled")+'>คัดลอกมาใช้</button></div>':'<span class="muted">ยังไม่มีปีการศึกษาก่อนหน้าให้คัดลอก</span>')+'</section>':'';
+
   return '<section class="academic-page subjects-workspace subjects-workspace-v2">'+academicNavHtml("subjects",data)+
     '<section class="panel subjects-v2-head"><div><p class="eyebrow">SUBJECTS</p><h2>รายวิชา</h2><p class="panel-sub">ค้นหาจากคลังมาตรฐานกลาง คลังรายวิชาร่วม และคลังของโรงเรียนก่อนเพิ่ม เพื่อลดรหัสและชื่อวิชาซ้ำ</p></div><div class="subjects-context-chips">'+
       (year?'<span>ปี '+esc(year.year_be)+'</span>':'')+'<span>'+allSchoolGrades.length+' ระดับชั้น</span><span>'+classes.length+' ห้อง</span>'+
@@ -3699,6 +3713,9 @@ function academicSubjectsHtml(data,timeline){
       '<div class="subjects-v2-context-row"><div><strong>ระดับชั้น</strong><small>แสดงเฉพาะระดับที่มีห้องจริงจาก LEC</small></div><div class="subject-grade-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับชั้น</span>')+'</div></div>'+
       (earlyChildhoodCount?'<div class="subject-early-note">ระดับอนุบาลใช้หลักสูตรการศึกษาปฐมวัย จึงแยกออกจากหน้ารายวิชาขั้นพื้นฐาน</div>':'')+
     '</section>'+
+    editGuardHtml+
+    roomImpactHtml+
+    copyYearHtml+
     compactReadiness+
     '<section class="panel subject-workspace-panel subjects-v2-panel">'+
       '<nav class="subject-workspace-tabs subjects-v2-tabs">'+
@@ -3707,10 +3724,10 @@ function academicSubjectsHtml(data,timeline){
       '</nav>'+
       (workspaceView==="selected"
         ?'<div class="subject-workspace-content subjects-v2-content">'+
-          '<div class="subject-workspace-head"><div><h2>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</h2><p>ค้นหาจากทุกคลังก่อนเพิ่ม หากไม่พบจึงสร้างใหม่และเก็บที่มาของรายวิชาอัตโนมัติ</p></div><div class="subject-workspace-head-actions"><button type="button" class="primary-btn compact-btn" data-open-subject-finder>＋ เพิ่มรายวิชา</button><button type="button" class="secondary-btn compact-btn" data-open-subject-library>คลังมาตรฐานกลาง</button><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div></div>'+
+          '<div class="subject-workspace-head"><div><h2>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</h2><p>ค้นหาจากทุกคลังก่อนเพิ่ม หากไม่พบจึงสร้างใหม่และเก็บที่มาของรายวิชาอัตโนมัติ</p></div><div class="subject-workspace-head-actions"><button type="button" class="primary-btn compact-btn" data-open-subject-finder '+(canEdit?"":"disabled")+'>＋ เพิ่มรายวิชา</button><button type="button" class="secondary-btn compact-btn" data-open-subject-library>คลังมาตรฐานกลาง</button><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div></div>'+
           parallelTools+
           schoolGroups+
-          (canManage&&gradeCode?'<section id="subject-finder-panel" class="subject-finder-panel hidden"><div class="subject-custom-form-head"><div><strong>ค้นหาก่อนเพิ่มรายวิชา</strong><small>ค้นพร้อมกันจากคลังมาตรฐานกลาง · คลังรายวิชาร่วม · คลังของโรงเรียน</small></div><button type="button" class="text-btn" data-close-subject-finder>ปิด</button></div><form id="subject-finder-form" class="subject-finder-form"><label class="wide">รหัสหรือชื่อรายวิชา <span class="required-mark">*</span><input name="query" required autocomplete="off" placeholder="เช่น อ31205 หรือ ภาษาอังกฤษเพื่อการสื่อสาร"></label><label>ประเภท<select name="subject_type"><option value="">ทุกประเภท</option><option value="basic">วิชาพื้นฐาน</option><option value="additional">วิชาเพิ่มเติม</option><option value="activity">กิจกรรมพัฒนาผู้เรียน</option></select></label><button type="submit" class="primary-btn compact-btn">ค้นหา</button></form><div class="subject-finder-hint">ระบบตรวจทั้งรหัสตรง ชื่อตรง ชื่อใกล้เคียง กลุ่มสาระ และชื่อเรียกอื่น เพื่อช่วยลดรายการซ้ำ</div><div class="subject-finder-results" data-subject-finder-results><div class="subject-finder-empty">พิมพ์รหัสหรือชื่อวิชาแล้วกดค้นหา</div></div><div class="subject-finder-create hidden" data-subject-finder-create><span>ไม่พบรายการที่ต้องการ?</span><button type="button" class="secondary-btn compact-btn" data-show-create-subject>สร้างรายวิชาใหม่</button></div></section><form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>สร้างรายการใหม่ของโรงเรียน</strong><small>ใช้เมื่อค้นจากทุกคลังแล้วไม่พบรายการที่ต้องการ · ผูกกับ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท <select name="subject_type" required><option value="additional">วิชาเพิ่มเติม</option><option value="activity">กิจกรรมพัฒนาผู้เรียน</option></select></label><label>ประเภทย่อย<select name="subject_subtype"><option value="">ไม่ระบุ</option><option value="elective_free">เลือกเสรี</option><option value="career">อาชีพ</option><option value="language">ภาษา</option><option value="program_specific">เฉพาะโปรแกรม</option><option value="local">ท้องถิ่น</option><option value="special_focus">จุดเน้นพิเศษ</option><option value="school_additional_activity">กิจกรรมเพิ่มเติมของสถานศึกษา</option><option value="other_additional">เพิ่มเติมอื่น ๆ</option></select></label><label>รหัสวิชา<input name="subject_code" placeholder="เช่น อ31205"></label><label class="wide">ชื่อรายวิชา <span class="required-mark">*</span><input name="subject_name" required></label><label class="wide">กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาต่างประเทศ"></label><label class="wide">ชื่อเรียกอื่น / คำค้น<input name="aliases" placeholder="คั่นด้วยเครื่องหมายจุลภาค เช่น อังกฤษสื่อสาร, English Communication"></label><label>กรอบ/รุ่นหลักสูตร<input name="curriculum_version" placeholder="เช่น หลักสูตรสถานศึกษา 2569"></label><label class="subject-share-check"><input type="checkbox" name="share_to_catalog" checked><span>เผยแพร่เข้าคลังรายวิชาร่วม ให้โรงเรียนอื่นค้นหาและเลือกใช้ได้</span></label></div><div class="subject-custom-note">รายวิชาพื้นฐานไม่สร้างใหม่จากหน้านี้ ให้เลือกจากคลังมาตรฐานกลาง ส่วนรายการใหม่จะบันทึกในคลังโรงเรียนและเก็บแหล่งที่มาเพื่อใช้อ้างอิงย้อนหลัง</div><div class="subject-custom-actions"><button type="button" class="text-btn" data-back-to-subject-search>กลับไปค้นหา</button><button type="submit" class="primary-btn">สร้างและเพิ่มในชั้นนี้</button></div></form>':'')+
+          (canEdit&&gradeCode?'<section id="subject-finder-panel" class="subject-finder-panel hidden"><div class="subject-custom-form-head"><div><strong>ค้นหาก่อนเพิ่มรายวิชา</strong><small>ค้นพร้อมกันจากคลังมาตรฐานกลาง · คลังรายวิชาร่วม · คลังของโรงเรียน</small></div><button type="button" class="text-btn" data-close-subject-finder>ปิด</button></div><form id="subject-finder-form" class="subject-finder-form"><label class="wide">รหัสหรือชื่อรายวิชา <span class="required-mark">*</span><input name="query" required autocomplete="off" placeholder="เช่น อ31205 หรือ ภาษาอังกฤษเพื่อการสื่อสาร"></label><label>ประเภท<select name="subject_type"><option value="">ทุกประเภท</option><option value="basic">วิชาพื้นฐาน</option><option value="additional">วิชาเพิ่มเติม</option><option value="activity">กิจกรรมพัฒนาผู้เรียน</option></select></label><button type="submit" class="primary-btn compact-btn">ค้นหา</button></form><div class="subject-finder-hint">ระบบตรวจทั้งรหัสตรง ชื่อตรง ชื่อใกล้เคียง กลุ่มสาระ และชื่อเรียกอื่น เพื่อช่วยลดรายการซ้ำ</div><div class="subject-finder-results" data-subject-finder-results><div class="subject-finder-empty">พิมพ์รหัสหรือชื่อวิชาแล้วกดค้นหา</div></div><div class="subject-finder-create hidden" data-subject-finder-create><span>ไม่พบรายการที่ต้องการ?</span><button type="button" class="secondary-btn compact-btn" data-show-create-subject>สร้างรายวิชาใหม่</button></div></section><form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>สร้างรายการใหม่ของโรงเรียน</strong><small>ใช้เมื่อค้นจากทุกคลังแล้วไม่พบรายการที่ต้องการ · ผูกกับ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท <select name="subject_type" required><option value="additional">วิชาเพิ่มเติม</option><option value="activity">กิจกรรมพัฒนาผู้เรียน</option></select></label><label>ประเภทย่อย<select name="subject_subtype"><option value="">ไม่ระบุ</option><option value="elective_free">เลือกเสรี</option><option value="career">อาชีพ</option><option value="language">ภาษา</option><option value="program_specific">เฉพาะโปรแกรม</option><option value="local">ท้องถิ่น</option><option value="special_focus">จุดเน้นพิเศษ</option><option value="school_additional_activity">กิจกรรมเพิ่มเติมของสถานศึกษา</option><option value="other_additional">เพิ่มเติมอื่น ๆ</option></select></label><label>รหัสวิชา<input name="subject_code" placeholder="เช่น อ31205"></label><label class="wide">ชื่อรายวิชา <span class="required-mark">*</span><input name="subject_name" required></label><label class="wide">กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาต่างประเทศ"></label><label class="wide">ชื่อเรียกอื่น / คำค้น<input name="aliases" placeholder="คั่นด้วยเครื่องหมายจุลภาค เช่น อังกฤษสื่อสาร, English Communication"></label><label>กรอบ/รุ่นหลักสูตร<input name="curriculum_version" placeholder="เช่น หลักสูตรสถานศึกษา 2569"></label><label class="subject-share-check"><input type="checkbox" name="share_to_catalog" checked><span>เผยแพร่เข้าคลังรายวิชาร่วม ให้โรงเรียนอื่นค้นหาและเลือกใช้ได้</span></label></div><div class="subject-custom-note">รายวิชาพื้นฐานไม่สร้างใหม่จากหน้านี้ ให้เลือกจากคลังมาตรฐานกลาง ส่วนรายการใหม่จะบันทึกในคลังโรงเรียนและเก็บแหล่งที่มาเพื่อใช้อ้างอิงย้อนหลัง</div><div class="subject-custom-actions"><button type="button" class="text-btn" data-back-to-subject-search>กลับไปค้นหา</button><button type="submit" class="primary-btn">สร้างและเพิ่มในชั้นนี้</button></div></form>':'')+
         '</div>'
         :'<div class="subject-workspace-content subjects-v2-content subject-library-content">'+
           '<div class="subject-ministry-note"><div><strong>คลังมาตรฐานส่วนกลาง · '+esc(scopeLabel)+'</strong><p>'+(scope==="activity"?'กิจกรรมนักเรียนที่ใช้รหัสเดียวกันถูกแยกเป็นคนละตัวเลือก โรงเรียนเพิ่มได้หลายรายการตามที่เปิดสอนจริง ระบบนับเวลาเป็นช่องเดียวเมื่อใช้รหัสเดียวกัน และ ปพ.1 จะใช้ชื่อกิจกรรมที่ลงทะเบียนให้ผู้เรียนรายคนนั้น':'รวบรวมรหัส ชื่อรายวิชา ประเภท และระดับชั้นตามแม่แบบหลักสูตรแกนกลาง 2551/ฉบับปรับปรุง 2560 โรงเรียนเลือกนำไปใช้แล้วกำหนดเวลาเรียนตามหลักสูตรสถานศึกษา')+'</p><a href="https://www.academic.obec.go.th/web/mission/view/34" target="_blank" rel="noopener">อ้างอิงหลักสูตรแกนกลางและเอกสาร สพฐ. ↗</a></div><span>ส่วนกลาง</span></div>'+
@@ -4147,6 +4164,8 @@ function bindAcademics(){
     state.teachingWorkloadData=null;
     state.teachingWorkloadPersonnelId=null;
     state.academicFilters={grade_label:"",program_id:""};
+    state.subjectEditMode=false;
+    state.subjectCopyYearId="";
     renderRoute();
   });
 
@@ -4395,6 +4414,7 @@ function bindAcademics(){
       program_id:state.subjectProgramId||""
     };
     state.subjectWorkspaceData=null;
+    state.subjectEditMode=false;
     renderRoute();
   }));
   qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -4405,6 +4425,7 @@ function bindAcademics(){
     };
     state.subjectWorkspaceData=null;
     state.academicPreset=null;
+    state.subjectEditMode=false;
     renderRoute();
   }));
   qa("[data-subject-catalog-scope]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -4437,6 +4458,42 @@ function bindAcademics(){
     customSubjectForm?.querySelector('input[name="subject_name"]')?.focus();
   }));
   qa("[data-back-to-subject-search]").forEach(btn=>btn.addEventListener("click",openSubjectFinder));
+
+  const subjectEditSwitch=q("[data-subject-edit-switch]");
+  if(subjectEditSwitch)subjectEditSwitch.addEventListener("change",()=>{
+    state.subjectEditMode=subjectEditSwitch.checked;
+    renderRoute();
+  });
+
+  const subjectCopyYear=q("[data-subject-copy-year]");
+  if(subjectCopyYear)subjectCopyYear.addEventListener("change",()=>{
+    state.subjectCopyYearId=subjectCopyYear.value||"";
+  });
+
+  const copySubjectYear=q("[data-copy-subject-year]");
+  if(copySubjectYear)copySubjectYear.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+    const sourceYear=(data.years||[]).find(y=>y.id===state.subjectCopyYearId);
+    const targetYear=(data.years||[]).find(y=>y.id===data.selected_year_id);
+    if(!sourceYear||!targetYear){toast("กรุณาเลือกปีการศึกษาต้นทาง","error");return;}
+    const gradeLabel=academicGradeLabelFromCode(state.academicPresetGrade||"");
+    const targetProgram=(data.programs||[]).find(p=>p.id===state.subjectProgramId)||null;
+    const contextLabel=shortGrade(gradeLabel)+" · "+(targetProgram?targetProgram.name_th:"ห้องปกติ");
+    if(!confirm("คัดลอกรายวิชา "+contextLabel+" จากปีการศึกษา "+sourceYear.year_be+" มาใช้ในปี "+targetYear.year_be+" ?\n\nระบบจะผสานกับรายการเดิม ไม่ลบวิชาที่มีอยู่"))return;
+    setBusy(copySubjectYear,true,"กำลังคัดลอก...");
+    const res=await supabase.rpc("lao_copy_curriculum_group_from_year",{
+      p_school_id:school.id,
+      p_source_academic_year_id:sourceYear.id,
+      p_target_academic_year_id:targetYear.id,
+      p_program_id:state.subjectProgramId||null,
+      p_grade_code:state.academicPresetGrade||""
+    });
+    setBusy(copySubjectYear,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    const x=res.data||{};
+    toast("คัดลอกจากปี "+sourceYear.year_be+" แล้ว · เพิ่ม "+Number(x.inserted_courses||0)+" · อัปเดต "+Number(x.updated_courses||0)+" รายการ","success");
+    refreshSubjects();
+  });
 
   const scheduleForm=q("[data-schedule-settings-form]");
   const showScheduleForm=()=>scheduleForm?.classList.remove("hidden");
@@ -4483,6 +4540,7 @@ function bindAcademics(){
   };
 
   qa("[data-add-central-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     const item=(state.academicPreset?.items||[]).find(x=>x.id===btn.dataset.addCentralSubject);
     if(!item)return;
     setBusy(btn,true,"กำลังเพิ่ม...");
@@ -4502,6 +4560,7 @@ function bindAcademics(){
   }));
 
   qa("[data-add-school-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     const subject=(data.subjects||[]).find(x=>x.id===btn.dataset.addSchoolSubject);
     if(!subject)return;
     setBusy(btn,true,"กำลังเพิ่ม...");
@@ -4521,6 +4580,7 @@ function bindAcademics(){
   }));
 
   qa("[data-remove-curriculum-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     if(!confirm("นำรายการนี้ออกจาก "+academicGradeLabelFromCode(state.academicPresetGrade||"")+" · "+((data.programs||[]).find(p=>p.id===state.subjectProgramId)?.name_th||"ห้องปกติ")+" ?\n\nรายการจะยังอยู่ในคลังและเพิ่มกลับได้ภายหลัง"))return;
     setBusy(btn,true,"กำลังนำออก...");
     const res=await supabase.rpc("lao_remove_curriculum_item",{
@@ -4560,6 +4620,7 @@ function bindAcademics(){
     ).join("");
     finderCreate?.classList.remove("hidden");
     qa("[data-adopt-subject-source-id]",finderResults).forEach(btn=>btn.addEventListener("click",async()=>{
+      if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
       setBusy(btn,true,"กำลังเพิ่ม...");
       const res=await supabase.rpc("lao_adopt_subject_catalog_item",{
         p_school_id:school.id,
@@ -4602,6 +4663,7 @@ function bindAcademics(){
   qa("[data-close-custom-subject]").forEach(btn=>btn.addEventListener("click",()=>customSubjectForm?.classList.add("hidden")));
   if(customSubjectForm)customSubjectForm.addEventListener("submit",async e=>{
     e.preventDefault();
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     const fd=new FormData(customSubjectForm),btn=customSubjectForm.querySelector('button[type="submit"]');
     const name=String(fd.get("subject_name")||"").trim();
     const gradeCode=state.academicPresetGrade||"";
@@ -4671,6 +4733,7 @@ function bindAcademics(){
   qa("[data-close-parallel-group]").forEach(btn=>btn.addEventListener("click",()=>parallelForm?.classList.add("hidden")));
   if(parallelForm)parallelForm.addEventListener("submit",async e=>{
     e.preventDefault();
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     const ids=parallelChecks.filter(x=>x.checked).map(x=>x.dataset.parallelCourse);
     if(ids.length<2){toast("กรุณาเลือกอย่างน้อย 2 รายวิชา","error");return;}
     const fd=new FormData(parallelForm),btn=parallelForm.querySelector('button[type="submit"]');
@@ -4690,6 +4753,7 @@ function bindAcademics(){
     refreshSubjects();
   });
   qa("[data-delete-parallel-group]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     if(!confirm("ยกเลิกการรวมเวลาในกลุ่มนี้? รายวิชายังคงอยู่ตามเดิม"))return;
     setBusy(btn,true,"กำลังยกเลิก...");
     const res=await supabase.rpc("lao_delete_curriculum_parallel_group",{p_school_id:school.id,p_group_id:btn.dataset.deleteParallelGroup});
