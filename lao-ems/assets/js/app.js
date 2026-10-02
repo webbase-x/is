@@ -4474,6 +4474,8 @@ function bindAcademics(){
   const finderResults=q("[data-subject-finder-results]");
   const finderCreate=q("[data-subject-finder-create]");
   const sourceLabel={official_central:"มาตรฐานกลาง",shared_catalog:"คลังรายวิชาร่วม",school_library:"คลังของโรงเรียน"};
+  const finderTypeLabel={basic:"วิชาพื้นฐาน",additional:"วิชาเพิ่มเติม",activity:"กิจกรรมพัฒนาผู้เรียน",other:"อื่น ๆ"};
+  const finderSubtypeLabel={elective_free:"เลือกเสรี",career:"อาชีพ",language:"ภาษา",program_specific:"เฉพาะโปรแกรม",local:"ท้องถิ่น",special_focus:"จุดเน้นพิเศษ",other_additional:"เพิ่มเติมอื่น ๆ",school_additional_activity:"กิจกรรมเพิ่มเติมของสถานศึกษา"};
   const renderFinderResults=(rows,query)=>{
     if(!finderResults)return;
     if(!rows.length){
@@ -4484,7 +4486,7 @@ function bindAcademics(){
     finderResults.innerHTML=rows.map(x=>
       '<article class="subject-finder-card '+(x.already_in_curriculum?"is-used":"")+'">'+
         '<div class="subject-finder-card-source"><span class="subject-origin '+(x.source_kind==="official_central"?"central-core":x.source_kind==="shared_catalog"?"shared-catalog":"school-local")+'">'+esc(sourceLabel[x.source_kind]||x.source_kind)+'</span>'+(x.source_school_name&&x.source_kind==="shared_catalog"?'<small>'+esc(x.source_school_name)+'</small>':'')+'</div>'+
-        '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.name_th)+'</strong><small>'+esc(typeLabel[x.subject_type]||x.subject_type)+(x.learning_area?' · '+esc(x.learning_area):'')+(x.subject_subtype&&subtypeLabel[x.subject_subtype]?' · '+esc(subtypeLabel[x.subject_subtype]):'')+'</small></div></div>'+
+        '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.name_th)+'</strong><small>'+esc(finderTypeLabel[x.subject_type]||x.subject_type)+(x.learning_area?' · '+esc(x.learning_area):'')+(x.subject_subtype&&finderSubtypeLabel[x.subject_subtype]?' · '+esc(finderSubtypeLabel[x.subject_subtype]):'')+'</small></div></div>'+
         '<div class="subject-finder-meta">'+(x.usage_count?'<span>ใช้ร่วม '+Number(x.usage_count).toLocaleString("th-TH")+' รร.</span>':'')+(x.exact_match?'<span class="exact">ตรงกับคำค้น</span>':'')+'</div>'+
         (x.already_in_curriculum?'<span class="subject-library-used">✓ อยู่ในหลักสูตรแล้ว</span>:'<button type="button" class="subject-add-btn" data-adopt-subject-source-kind="'+esc(x.source_kind)+'" data-adopt-subject-source-id="'+esc(x.source_id)+'">＋ ใช้รายการนี้</button>')+
       '</article>'
