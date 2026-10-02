@@ -4698,3 +4698,16 @@ th,td{line-height:1.45}
 @media(min-width:1200px){
   body{font-size:15.5px}
 }
+
+@media(max-width:720px){
+  .subjects-v2-head{flex-direction:column}
+  .subjects-v2-head .subjects-context-chips{justify-content:flex-start}
+  .subjects-v2-context-row{grid-template-columns:1fr;gap:6px}
+  .subjects-v2-context-row .subject-grade-tabs,
+  .subjects-v2-context-row .subject-target-tabs{width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+  .subject-readiness-strip{align-items:flex-start;flex-direction:column}
+  .subject-library-toolbar{align-items:stretch;flex-direction:column}
+  .subject-library-toolbar .subject-library-search{max-width:none;width:100%}
+  .subject-type-head{align-items:flex-start}
+  .subjects-v2-content{padding:12px}
+}
