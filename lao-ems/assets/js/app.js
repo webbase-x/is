@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.1";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -4503,11 +4503,26 @@ function bindAcademics(){
     parallel_groups:"กลุ่มรายวิชาทางเลือก",
     course_term_plans:"แผนเวลาเรียนรายภาค"
   };
+  const academicInlineCleanupKeys=new Set([
+    "schedule_settings",
+    "default_initializations",
+    "grade_initializations",
+    "program_exclusions",
+    "structure_confirmations",
+    "parallel_groups"
+  ]);
   const academicDeletePreviewHtml=(p,kind)=>{
     const blockers=Object.entries(p.blockers||{}).filter(([,count])=>Number(count||0)>0);
     const title=kind==="year"?"ลบปีการศึกษา "+p.year_be:"ลบ "+(p.name||("ภาคเรียนที่ "+p.term_no))+" · ปีการศึกษา "+p.year_be;
     if(!p.can_delete){
-      return '<div class="academic-delete-preview is-blocked"><div class="academic-delete-preview-head"><div><strong>ไม่อนุญาตให้ลบ</strong><h3>'+esc(title)+'</h3></div><span class="pill danger">ป้องกันข้อมูล</span></div><p>พบข้อมูลที่เชื่อมโยงกับรายการนี้ ระบบจะไม่ลบเพื่อป้องกันข้อมูลสูญหาย</p><div class="academic-delete-blockers">'+blockers.map(([key,count])=>'<span><b>'+Number(count).toLocaleString("th-TH")+'</b> '+esc(academicDeleteBlockerLabels[key]||key)+'</span>').join("")+'</div>'+(kind==="year"&&Number((p.blockers||{}).student_enrollments||0)>0?'<div class="notice warning"><strong>หากเป็นข้อมูลนักเรียนทดลอง</strong><br>ไปที่หน้า “นักเรียน” แล้วใช้ “จัดการข้อมูลนักเรียนรายปี” ล้างข้อมูลของปีนี้ก่อน จากนั้นกลับมาตรวจสอบการลบปีอีกครั้ง</div>':'')+'<div class="academic-delete-actions"><button type="button" class="secondary-btn" data-close-academic-delete>ปิด</button></div></div>';
+      const cleanable=kind==="year"?blockers.filter(([key])=>academicInlineCleanupKeys.has(key)):[];
+      const protectedBlockers=blockers.filter(([key])=>!academicInlineCleanupKeys.has(key));
+      const cleanupPhrase=kind==="year"?"ลบข้อมูลเชื่อมโยงปี "+p.year_be:"";
+      const cleanupHtml=cleanable.length
+        ?'<div class="academic-linked-cleanup"><div class="academic-linked-cleanup-head"><strong>ต้องการลบส่วนที่เชื่อมโยงด้วยหรือไม่?</strong><span>เลือกได้เฉพาะข้อมูลตั้งค่าที่ระบบอนุญาตให้ลบจากหน้านี้</span></div><div class="academic-linked-cleanup-options">'+cleanable.map(([key,count])=>'<label><input type="checkbox" value="'+esc(key)+'" data-linked-cleanup-category checked><span>'+esc(academicDeleteBlockerLabels[key]||key)+' <b>'+Number(count).toLocaleString("th-TH")+' รายการ</b></span></label>').join("")+'</div><div class="academic-linked-cleanup-safe-note">ข้อมูลนักเรียน, LEC, ชั้น/ห้อง, โครงสร้างรายวิชา และภาระงานสอนจะไม่ถูกลบจากขั้นตอนนี้</div><label class="academic-delete-confirm-label">พิมพ์ข้อความยืนยัน<input type="text" autocomplete="off" data-linked-cleanup-confirm placeholder="'+esc(cleanupPhrase)+'"></label><div class="academic-delete-phrase">พิมพ์: <strong>'+esc(cleanupPhrase)+'</strong></div><button type="button" class="danger-btn" data-run-linked-cleanup disabled>ลบข้อมูลเชื่อมโยงที่เลือก</button></div>'
+        :'';
+      const protectedHtml=protectedBlockers.length?'<div class="academic-linked-protected"><strong>ข้อมูลที่ต้องจัดการจากโมดูลต้นทาง</strong><span>'+protectedBlockers.map(([key,count])=>esc(academicDeleteBlockerLabels[key]||key)+' '+Number(count).toLocaleString("th-TH")+' รายการ').join(" · ")+'</span></div>':'';
+      return '<div class="academic-delete-preview is-blocked"><div class="academic-delete-preview-head"><div><strong>ยังไม่อนุญาตให้ลบปี/ภาคเรียน</strong><h3>'+esc(title)+'</h3></div><span class="pill danger">ป้องกันข้อมูล</span></div><p>พบข้อมูลที่เชื่อมโยงกับรายการนี้ ระบบจะไม่ลบปีหรือภาคเรียนจนกว่าจะจัดการข้อมูลที่เชื่อมโยงก่อน</p><div class="academic-delete-blockers">'+blockers.map(([key,count])=>'<span><b>'+Number(count).toLocaleString("th-TH")+'</b> '+esc(academicDeleteBlockerLabels[key]||key)+'</span>').join("")+'</div>'+(kind==="year"&&Number((p.blockers||{}).student_enrollments||0)>0?'<div class="notice warning"><strong>หากเป็นข้อมูลนักเรียนทดลอง</strong><br>ไปที่หน้า “นักเรียน” แล้วใช้ “จัดการข้อมูลนักเรียนรายปี” ล้างข้อมูลของปีนี้ก่อน จากนั้นกลับมาตรวจสอบการลบปีอีกครั้ง</div>':'')+protectedHtml+cleanupHtml+'<div class="academic-delete-actions"><button type="button" class="secondary-btn" data-close-academic-delete>ปิด</button></div></div>';
     }
     const extra=kind==="year"&&Number(p.term_count||0)>0?'<p class="academic-delete-note">ภาคเรียนที่ว่างอยู่ '+Number(p.term_count).toLocaleString("th-TH")+' รายการจะถูกลบพร้อมปีการศึกษา</p>':'';
     return '<div class="academic-delete-preview is-safe"><div class="academic-delete-preview-head"><div><strong>ตรวจสอบแล้ว ลบได้</strong><h3>'+esc(title)+'</h3></div><span class="pill success">ไม่มีข้อมูลเชื่อมโยง</span></div><p>ระบบตรวจแล้วว่าไม่มีข้อมูลสำคัญเชื่อมโยงกับรายการนี้</p>'+extra+'<label class="academic-delete-ack"><input type="checkbox" data-academic-delete-ack><span>ฉันตรวจสอบแล้วและต้องการลบรายการนี้</span></label><label class="academic-delete-confirm-label">พิมพ์ข้อความยืนยัน<input type="text" autocomplete="off" data-academic-delete-confirm placeholder="'+esc(p.confirmation_text||"")+'"></label><div class="academic-delete-phrase">พิมพ์: <strong>'+esc(p.confirmation_text||"")+'</strong></div><div class="academic-delete-actions"><button type="button" class="secondary-btn" data-close-academic-delete>ยกเลิก</button><button type="button" class="danger-btn" data-run-academic-delete disabled>ลบอย่างถาวร</button></div></div>';
@@ -4516,6 +4531,43 @@ function bindAcademics(){
     if(!safeDeletePanel)return;
     const close=q("[data-close-academic-delete]",safeDeletePanel);
     if(close)close.addEventListener("click",()=>{safeDeletePanel.classList.add("hidden");safeDeletePanel.innerHTML="";});
+
+    const cleanupChecks=qa("[data-linked-cleanup-category]",safeDeletePanel);
+    const cleanupInput=q("[data-linked-cleanup-confirm]",safeDeletePanel);
+    const cleanupRun=q("[data-run-linked-cleanup]",safeDeletePanel);
+    if(cleanupRun&&cleanupInput&&kind==="year"){
+      const cleanupPhrase="ลบข้อมูลเชื่อมโยงปี "+p.year_be;
+      const syncCleanup=()=>{
+        const selected=cleanupChecks.some(x=>x.checked);
+        cleanupRun.disabled=!(selected&&cleanupInput.value.trim()===cleanupPhrase);
+      };
+      cleanupChecks.forEach(x=>x.addEventListener("change",syncCleanup));
+      cleanupInput.addEventListener("input",syncCleanup);
+      cleanupRun.addEventListener("click",async()=>{
+        if(cleanupRun.disabled)return;
+        const categories=cleanupChecks.filter(x=>x.checked).map(x=>x.value);
+        setBusy(cleanupRun,true,"กำลังลบข้อมูลเชื่อมโยง...");
+        try{
+          const res=await supabase.rpc("lao_clear_academic_year_linked_settings_safe",{
+            p_school_id:school.id,
+            p_academic_year_id:id,
+            p_categories:categories,
+            p_confirmation:cleanupInput.value.trim()
+          });
+          if(res.error)throw res.error;
+          const out=res.data||{};
+          const next=out.preview||{};
+          safeDeletePanel.innerHTML=academicDeletePreviewHtml(next,"year");
+          bindAcademicDeletePanel(next,"year",id);
+          toast("ลบข้อมูลเชื่อมโยงที่เลือกแล้ว ระบบตรวจสอบสถานะใหม่เรียบร้อย","success");
+        }catch(err){
+          toast(err.message||"ลบข้อมูลเชื่อมโยงไม่สำเร็จ","error");
+          setBusy(cleanupRun,false);
+        }
+      });
+      syncCleanup();
+    }
+
     if(!p.can_delete)return;
     const ack=q("[data-academic-delete-ack]",safeDeletePanel);
     const input=q("[data-academic-delete-confirm]",safeDeletePanel);
