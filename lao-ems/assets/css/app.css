@@ -4182,6 +4182,16 @@ table{max-width:none}
 .subject-workspace-panel .subject-selected-list,
 .subject-workspace-panel .subject-library-list{max-height:520px;overflow:auto;padding-right:2px}
 .subject-workspace-panel .subject-library-search{margin-bottom:10px}
+.subject-catalog-setup{margin:-14px -16px 14px;border-bottom:1px solid #eaecf0;background:#fbfcfe}
+.subject-catalog-setup .subject-early-note{margin:0 16px 13px}
+.subject-workspace-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.subject-library-source-legend{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-2px 0 10px;padding:8px 10px;border:1px solid #eaecf0;border-radius:10px;background:#f9fafb}
+.subject-library-source-legend span{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:#344054;white-space:nowrap}
+.subject-library-source-legend i{width:9px;height:9px;border-radius:999px}
+.subject-library-source-legend i.central{background:#12b76a}
+.subject-library-source-legend i.school{background:#f79009}
+.subject-library-source-legend small{flex:1 1 280px;font-size:12px;line-height:1.45;color:#667085}
+
 @media(max-width:760px){
   .schedule-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .schedule-capacity-bar{align-items:flex-start}
@@ -4192,6 +4202,10 @@ table{max-width:none}
   .subject-workspace-tabs{position:sticky;top:0;z-index:2}
   .subject-workspace-tabs button{padding:10px 8px;font-size:12px}
   .subject-workspace-content{padding:12px}
+  .subject-catalog-setup{margin:-12px -12px 12px}
+  .subject-catalog-setup .subject-early-note{margin:0 13px 12px}
+  .subject-workspace-head-actions{width:100%;justify-content:flex-start}
+
   .subject-workspace-panel .subject-selected-list,
   .subject-workspace-panel .subject-library-list{max-height:none}
 }
