@@ -67,6 +67,10 @@ begin
     raise exception 'ไม่พบปีการศึกษาปลายทาง';
   end if;
 
+  if v_source_year >= v_target_year then
+    raise exception 'เลือกได้เฉพาะปีการศึกษาก่อนหน้าปีปลายทาง';
+  end if;
+
   if p_program_id is not null and not exists(
     select 1 from public.lao_academic_programs
     where id=p_program_id and school_id=p_school_id
