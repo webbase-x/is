@@ -127,8 +127,7 @@ begin
     'subject_code',v_row.subject_code,'subject_name',v_row.subject_name
   );
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.lao_curriculum_group_status(p_school_id uuid, p_academic_year_id uuid, p_program_id uuid, p_grade_code text)
  RETURNS jsonb
@@ -414,8 +413,7 @@ begin
     end
   );
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.lao_import_curriculum_catalog(p_school_id uuid, p_academic_year_id uuid, p_grade_code text, p_scope text DEFAULT 'core'::text, p_program_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
@@ -562,8 +560,7 @@ begin
     'existing_courses',v_existing_courses,'added_term_plans',v_added_term_plans
   );
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.lao_select_student_activity(p_school_id uuid, p_academic_year_id uuid, p_grade_code text, p_choice_key text)
  RETURNS jsonb
@@ -592,7 +589,6 @@ begin
     p_school_id,p_academic_year_id,null,p_grade_code,'preset',v_item_id
   );
 end;
-$function$
-
+$function$;
 
 commit;
