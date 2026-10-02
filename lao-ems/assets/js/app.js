@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.4";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.5";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3462,12 +3462,14 @@ function academicSubjectsHtml(data,timeline){
     const key=logicalKey(x);
     if(selectedKeys.has(key)||schoolSeen.has(key))return false;
     const subjectContexts=allCourses.filter(c=>c.subject_id===x.id);
+    const hasCurrentGradeContext=subjectContexts.some(c=>c.grade_code===gradeCode);
     const hasCurrentContext=subjectContexts.some(c=>
       c.grade_code===gradeCode && (c.program_id||null)===(currentProgramId||null)
     );
     const isExcludedInherited=Boolean(selectedProgram&&excludedIds.has(x.id));
-    const hasAnyContextThisYear=subjectContexts.length>0;
-    if(hasAnyContextThisYear&&!hasCurrentContext&&!isExcludedInherited)return false;
+    // แท็บระดับชั้นเป็นขอบเขตจริงของข้อมูล: ห้ามนำรายวิชาที่มีบริบทเฉพาะชั้นอื่นมาแสดงปะปน
+    if(!hasCurrentGradeContext)return false;
+    if(!hasCurrentContext&&!isExcludedInherited)return false;
     schoolSeen.add(key);
     return true;
   }):[];
@@ -4297,7 +4299,12 @@ function bindAcademics(){
     renderRoute();
   }));
   qa("[data-subject-catalog-grade]").forEach(btn=>btn.addEventListener("click",()=>{
-    state.academicPresetGrade=btn.dataset.subjectCatalogGrade||"";
+    const gradeCode=btn.dataset.subjectCatalogGrade||"";
+    state.academicPresetGrade=gradeCode;
+    state.academicFilters={
+      grade_label:academicGradeLabelFromCode(gradeCode),
+      program_id:state.subjectProgramId||""
+    };
     state.subjectSetupTab="type";
     state.subjectWorkspaceData=null;
     state.subjectWorkspaceView="library";
@@ -4437,23 +4444,28 @@ function bindAcademics(){
     e.preventDefault();
     const fd=new FormData(customSubjectForm),btn=customSubjectForm.querySelector('button[type="submit"]');
     const name=String(fd.get("subject_name")||"").trim();
+    const gradeCode=state.academicPresetGrade||"";
+    const gradeLabel=academicGradeLabelFromCode(gradeCode);
     if(!name){toast("กรุณาระบุชื่อรายวิชา/กิจกรรม","error");return;}
+    if(!gradeCode||!gradeLabel){toast("กรุณาเลือกระดับชั้นก่อนสร้างรายวิชา","error");return;}
     setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_save_subject",{
+    const res=await supabase.rpc("lao_quick_add_curriculum_subject",{
       p_school_id:school.id,
-      p_subject_id:null,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,
+      p_grade_label:gradeLabel,
       p_subject_code:String(fd.get("subject_code")||"").trim()||null,
-      p_name_th:name,
-      p_name_en:null,
+      p_subject_name:name,
       p_learning_area:String(fd.get("learning_area")||"").trim()||null,
       p_subject_type:String(fd.get("subject_type")||"additional"),
-      p_is_active:true,
-      p_sort_order:0
+      p_weekly_periods:null,
+      p_annual_hours:null,
+      p_sort_order:null
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.subjectWorkspaceView="library";
-    toast("บันทึกเข้าคลังรายวิชาของโรงเรียนแล้ว · กด “เพิ่ม” เมื่อต้องการใช้กับชั้นนี้","success");
+    state.subjectWorkspaceView="selected";
+    toast("สร้างรายวิชาและเพิ่มให้ "+shortGrade(gradeLabel)+" แล้ว","success");
     refreshSubjects();
   });
 
