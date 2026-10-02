@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.0";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.1";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"P1",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -3230,6 +3230,14 @@ async function loadAcademicStructure(){
   });
   if(res.error)throw res.error;
   state.academicData=res.data||{};
+  state.academicData.classes=(state.academicData.classes||[]).filter(x=>x&&x.source_type==="lec"&&x.is_active!==false);
+  const schoolGradeSet=new Set(academicSchoolGradeCodes(state.academicData));
+  state.academicData.courses=(state.academicData.courses||[]).filter(c=>schoolGradeSet.has(c.grade_code||academicGradeCode(c.grade_label)));
+  state.academicData.grade_context={
+    source:"lec",
+    grade_codes:Array.from(schoolGradeSet),
+    grade_labels:academicSchoolGradeRows(state.academicData).map(x=>x.grade_label)
+  };
   const nextYear=state.academicData.selected_year_id||null;
   if(state.academicYearId!==nextYear)state.academicTermId=null;
   state.academicYearId=nextYear;
@@ -4284,7 +4292,7 @@ function bindAcademics(){
     renderRoute();
   }));
   qa("[data-subject-catalog-grade]").forEach(btn=>btn.addEventListener("click",()=>{
-    state.academicPresetGrade=btn.dataset.subjectCatalogGrade||"P1";
+    state.academicPresetGrade=btn.dataset.subjectCatalogGrade||"";
     state.subjectSetupTab="type";
     state.subjectWorkspaceData=null;
     state.subjectWorkspaceView="selected";
@@ -4365,7 +4373,7 @@ function bindAcademics(){
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
-      p_grade_code:state.academicPresetGrade||"P1",
+      p_grade_code:state.academicPresetGrade||"",
       p_source_kind:"preset",
       p_source_id:item.id
     });
@@ -4384,7 +4392,7 @@ function bindAcademics(){
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
-      p_grade_code:state.academicPresetGrade||"P1",
+      p_grade_code:state.academicPresetGrade||"",
       p_source_kind:"school",
       p_source_id:subject.id
     });
@@ -4396,13 +4404,13 @@ function bindAcademics(){
   }));
 
   qa("[data-remove-curriculum-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
-    if(!confirm("นำรายการนี้ออกจาก "+academicGradeLabelFromCode(state.academicPresetGrade||"P1")+" · "+((data.programs||[]).find(p=>p.id===state.subjectProgramId)?.name_th||"ห้องปกติ")+" ?\n\nรายการจะยังอยู่ในคลังและเพิ่มกลับได้ภายหลัง"))return;
+    if(!confirm("นำรายการนี้ออกจาก "+academicGradeLabelFromCode(state.academicPresetGrade||"")+" · "+((data.programs||[]).find(p=>p.id===state.subjectProgramId)?.name_th||"ห้องปกติ")+" ?\n\nรายการจะยังอยู่ในคลังและเพิ่มกลับได้ภายหลัง"))return;
     setBusy(btn,true,"กำลังนำออก...");
     const res=await supabase.rpc("lao_remove_curriculum_item",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
-      p_grade_code:state.academicPresetGrade||"P1",
+      p_grade_code:state.academicPresetGrade||"",
       p_course_id:btn.dataset.removeCurriculumSubject
     });
     setBusy(btn,false);
@@ -4431,7 +4439,7 @@ function bindAcademics(){
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
-      p_grade_code:state.academicPresetGrade||"P1",
+      p_grade_code:state.academicPresetGrade||"",
       p_subject_id:null,
       p_subject_code:String(fd.get("subject_code")||"").trim()||null,
       p_subject_name:name,
@@ -4455,7 +4463,7 @@ function bindAcademics(){
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
-      p_grade_code:state.academicPresetGrade||"P1"
+      p_grade_code:state.academicPresetGrade||""
     });
     setBusy(confirmStructure,false);
     if(res.error){toast(res.error.message,"error");return;}
@@ -4495,7 +4503,7 @@ function bindAcademics(){
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
       p_program_id:state.subjectProgramId||null,
-      p_grade_code:state.academicPresetGrade||"P1",
+      p_grade_code:state.academicPresetGrade||"",
       p_name:String(fd.get("name")||"").trim(),
       p_weekly_periods:Number(fd.get("weekly_periods")),
       p_course_ids:ids
@@ -4517,7 +4525,7 @@ function bindAcademics(){
 
   const exportSubjects=q("[data-export-subjects]");
   if(exportSubjects)exportSubjects.addEventListener("click",()=>{
-    const gradeLabel=academicGradeLabelFromCode(state.academicPresetGrade||"P1");
+    const gradeLabel=academicGradeLabelFromCode(state.academicPresetGrade||"");
     const selectedProgram=(data.programs||[]).find(p=>p.id===state.subjectProgramId)||null;
     const raw=(data.courses||[]).filter(c=>c.is_active!==false&&c.grade_label===gradeLabel);
     const map=new Map();
@@ -4595,7 +4603,7 @@ function bindAcademics(){
   });
 
   qa("[data-preset-grade]").forEach(btn=>btn.addEventListener("click",()=>{
-    state.academicPresetGrade=btn.dataset.presetGrade||"P1";
+    state.academicPresetGrade=btn.dataset.presetGrade||"";
     state.academicFilters={
       grade_label:academicGradeLabelFromCode(state.academicPresetGrade),
       program_id:state.academicFilters&&state.academicFilters.program_id||""
@@ -4605,7 +4613,7 @@ function bindAcademics(){
 
   const applyPreset=q("[data-apply-curriculum-preset]");
   if(applyPreset)applyPreset.addEventListener("click",async()=>{
-    const gradeCode=state.academicPresetGrade||"P1";
+    const gradeCode=state.academicPresetGrade||"";
     const gradeLabel=academicGradeLabelFromCode(gradeCode);
     if(!confirm("เพิ่มเฉพาะรายวิชาที่ยังขาดของ "+gradeLabel+" จากชุดวิชาหลัก? รายการที่มีอยู่แล้วจะไม่ถูกเขียนทับ"))return;
     setBusy(applyPreset,true,"กำลังเพิ่มวิชาที่ขาด...");
