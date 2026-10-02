@@ -92,13 +92,23 @@ begin
   if v_course.id is null then raise exception 'ไม่พบกิจกรรมที่เลือกในหลักสูตรของโรงเรียน'; end if;
   if nullif(btrim(v_course.subject_code),'') is null then raise exception 'กิจกรรมต้องมีรหัส'; end if;
 
-  select count(*),min(tp.term_id)
-  into v_term_count,v_term_id
+  select count(*)
+  into v_term_count
   from public.lao_course_term_plans tp
   join public.lao_terms t on t.id=tp.term_id
   where tp.course_id=p_course_id
     and t.academic_year_id=p_academic_year_id
     and (p_term_id is null or tp.term_id=p_term_id);
+
+  select tp.term_id
+  into v_term_id
+  from public.lao_course_term_plans tp
+  join public.lao_terms t on t.id=tp.term_id
+  where tp.course_id=p_course_id
+    and t.academic_year_id=p_academic_year_id
+    and (p_term_id is null or tp.term_id=p_term_id)
+  order by t.term_no,tp.term_id
+  limit 1;
 
   if exists(select 1 from public.lao_course_term_plans where course_id=p_course_id) then
     if p_term_id is not null then
