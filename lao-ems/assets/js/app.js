@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.7";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.8";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -365,13 +365,95 @@ function registryLabel(value){
 }
 function thaiDate(value){
   if(!value)return "-";
-  const d=new Date(value+"T00:00:00");
-  return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"numeric"});
+  const d=new Date(String(value).includes("T")?value:(value+"T00:00:00"));
+  return Number.isNaN(d.getTime())?String(value):new Intl.DateTimeFormat("th-TH-u-ca-buddhist",{day:"numeric",month:"short",year:"numeric"}).format(d);
 }
 function thaiDateTime(value){
   if(!value)return "-";
   const d=new Date(value);
-  return Number.isNaN(d.getTime())?String(value):d.toLocaleString("th-TH",{dateStyle:"medium",timeStyle:"short"});
+  return Number.isNaN(d.getTime())?String(value):new Intl.DateTimeFormat("th-TH-u-ca-buddhist",{dateStyle:"medium",timeStyle:"short"}).format(d);
+}
+const THAI_MONTHS=["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+function buddhistDateParts(value){
+  const m=String(value||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m)return null;
+  return {day:Number(m[3]),month:Number(m[2]),yearBe:Number(m[1])+543};
+}
+function buddhistDateControlHtml(name,value){
+  const iso=String(value||"");
+  const parts=buddhistDateParts(iso);
+  const dayOptions=Array.from({length:31},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'</option>').join("");
+  const monthOptions=THAI_MONTHS.map((m,i)=>'<option value="'+(i+1)+'">'+m+'</option>').join("");
+  return '<div class="be-date-control" data-be-date-control>'+
+    '<input type="hidden" name="'+esc(name)+'" value="'+esc(iso)+'" data-be-date-value>'+
+    '<button type="button" class="be-date-trigger" data-be-date-trigger aria-expanded="false"><span data-be-date-label>'+(parts?esc(thaiDate(iso)):'เลือกวันที่ (พ.ศ.)')+'</span><span class="be-date-chevron" aria-hidden="true">⌄</span></button>'+
+    '<div class="be-date-picker hidden" data-be-date-picker>'+
+      '<div class="be-date-picker-head"><strong>เลือกวันที่</strong><span>พุทธศักราช (พ.ศ.)</span></div>'+
+      '<div class="be-date-grid">'+
+        '<label>วัน<select data-be-day><option value="">วัน</option>'+dayOptions+'</select></label>'+
+        '<label>เดือน<select data-be-month><option value="">เดือน</option>'+monthOptions+'</select></label>'+
+        '<label>ปี พ.ศ.<input type="number" min="2400" max="2800" inputmode="numeric" data-be-year placeholder="เช่น 2569"></label>'+
+      '</div>'+
+      '<div class="be-date-picker-actions"><button type="button" class="secondary-btn compact-btn" data-be-clear>ล้าง</button><button type="button" class="primary-btn compact-btn" data-be-apply>ตกลง</button></div>'+
+    '</div>'+
+  '</div>';
+}
+function setBuddhistDateControlValue(control,value,emit){
+  if(!control)return;
+  const hidden=q("[data-be-date-value]",control),label=q("[data-be-date-label]",control);
+  const iso=String(value||"");
+  if(hidden)hidden.value=iso;
+  if(label)label.textContent=iso?thaiDate(iso):"เลือกวันที่ (พ.ศ.)";
+  const parts=buddhistDateParts(iso);
+  const day=q("[data-be-day]",control),month=q("[data-be-month]",control),year=q("[data-be-year]",control);
+  if(day)day.value=parts?String(parts.day):"";
+  if(month)month.value=parts?String(parts.month):"";
+  if(year)year.value=parts?String(parts.yearBe):"";
+  if(emit&&hidden)hidden.dispatchEvent(new Event("change",{bubbles:true}));
+}
+function refreshBuddhistDatePickers(root=document){
+  qa("[data-be-date-control]",root).forEach(control=>{
+    const hidden=q("[data-be-date-value]",control);
+    setBuddhistDateControlValue(control,hidden&&hidden.value||"",false);
+  });
+}
+function bindBuddhistDatePickers(root=document){
+  qa("[data-be-date-control]",root).forEach(control=>{
+    if(control.dataset.beBound==="1")return;
+    control.dataset.beBound="1";
+    const hidden=q("[data-be-date-value]",control);
+    const trigger=q("[data-be-date-trigger]",control);
+    const picker=q("[data-be-date-picker]",control);
+    const day=q("[data-be-day]",control),month=q("[data-be-month]",control),year=q("[data-be-year]",control);
+    const apply=q("[data-be-apply]",control),clear=q("[data-be-clear]",control);
+    const close=()=>{if(picker)picker.classList.add("hidden");if(trigger)trigger.setAttribute("aria-expanded","false");};
+    const open=()=>{
+      if(!picker)return;
+      const hasValue=Boolean(hidden&&hidden.value);
+      if(!hasValue){
+        const now=new Date();
+        if(day)day.value=String(now.getDate());
+        if(month)month.value=String(now.getMonth()+1);
+        if(year)year.value=String(now.getFullYear()+543);
+      }else setBuddhistDateControlValue(control,hidden.value,false);
+      picker.classList.remove("hidden");
+      if(trigger)trigger.setAttribute("aria-expanded","true");
+    };
+    if(trigger)trigger.addEventListener("click",()=>picker&&picker.classList.contains("hidden")?open():close());
+    if(clear)clear.addEventListener("click",()=>{setBuddhistDateControlValue(control,"",true);close();});
+    if(apply)apply.addEventListener("click",()=>{
+      const d=Number(day&&day.value),m=Number(month&&month.value),be=Number(year&&year.value);
+      if(!d||!m||!be){toast("กรุณาเลือกวัน เดือน และปี พ.ศ. ให้ครบ","error");return;}
+      if(be<2400||be>2800){toast("ปี พ.ศ. ต้องอยู่ระหว่าง 2400–2800","error");return;}
+      const ce=be-543;
+      const test=new Date(ce,m-1,d,12,0,0);
+      if(test.getFullYear()!==ce||test.getMonth()!==m-1||test.getDate()!==d){toast("วันที่ที่เลือกไม่ถูกต้อง","error");return;}
+      const iso=String(ce).padStart(4,"0")+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+      setBuddhistDateControlValue(control,iso,true);
+      close();
+    });
+    setBuddhistDateControlValue(control,hidden&&hidden.value||"",false);
+  });
 }
 function money(value){
   if(value==null||value==="")return "-";
@@ -1219,7 +1301,7 @@ function membershipHtml(){
   const statusMap={pending:["รออนุมัติ","warning"],active:["ใช้งานได้","success"],rejected:["ไม่อนุมัติ","danger"],suspended:["ระงับ","danger"],ended:["สิ้นสุด","neutral"]};
   const rows=state.memberships.map(m=>{
     const s=statusMap[m.status]||[m.status,"neutral"];
-    return '<tr><td>'+esc(m.lao_organizations&&m.lao_organizations.name_th||"-")+'</td><td>'+esc(m.lao_schools&&m.lao_schools.name_th||"-")+'</td><td>'+esc(roleLabels[m.requested_role_code]||m.requested_role_code||"-")+'</td><td><span class="pill '+s[1]+'">'+s[0]+'</span></td><td>'+new Date(m.requested_at).toLocaleDateString("th-TH")+'</td></tr>';
+    return '<tr><td>'+esc(m.lao_organizations&&m.lao_organizations.name_th||"-")+'</td><td>'+esc(m.lao_schools&&m.lao_schools.name_th||"-")+'</td><td>'+esc(roleLabels[m.requested_role_code]||m.requested_role_code||"-")+'</td><td><span class="pill '+s[1]+'">'+s[0]+'</span></td><td>'+thaiDate(m.requested_at)+'</td></tr>';
   }).join("");
   const history=rows?'<div class="table-wrap"><table><thead><tr><th>อปท.</th><th>สถานศึกษา</th><th>บทบาท</th><th>สถานะ</th><th>เริ่มต้น</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">🔐</div><h3>ยังไม่มีสิทธิ์สถานศึกษา</h3><p>บัญชี LAO-EMS สร้างและกำหนดสิทธิ์โดยผู้ดูแลเท่านั้น</p></div>';
   return '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">My access</p><h2>สิทธิ์การเข้าใช้งานของฉัน</h2><p class="panel-sub">ผู้ใช้ไม่ต้องสมัครเข้าร่วมโรงเรียนเอง ผู้ดูแลสถานศึกษาจะเป็นผู้เชิญและกำหนดบทบาทให้</p></div></div>'+history+'</article></section>';
@@ -1396,7 +1478,7 @@ async function setupHtml(){
     '<article class="setup-step '+(s.can_invite_users?"done":"")+'"><span>4</span><div><strong>เชิญผู้ใช้</strong><small>ปลดล็อกเมื่อขั้นตอนก่อนหน้าครบ</small></div>'+status(s.can_invite_users)+'</article>'+
   '</section>'+
   '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">ค่าการใช้งาน</p><h2>ตั้งค่าพื้นฐานของโรงเรียน</h2><p class="panel-sub">ข้อมูลชื่อโรงเรียน ที่อยู่ และข้อมูลทางราชการไม่แก้ที่หน้านี้ เพราะมาจาก LEC</p></div></div><form id="school-settings-form" class="form-grid compact-settings"><label class="field">เขตเวลา<select name="timezone"><option value="Asia/Bangkok" selected>ประเทศไทย (Asia/Bangkok)</option></select></label><label class="field">ภาษาหลัก<select name="locale"><option value="th-TH" '+(s.locale!=="en-US"?"selected":"")+'>ไทย</option><option value="en-US" '+(s.locale==="en-US"?"selected":"")+'>English</option></select></label><label class="field span-2">การมองเห็นไฟล์เริ่มต้น<select name="default_file_visibility"><option value="internal" '+(s.default_file_visibility==="internal"?"selected":"")+'>ภายในโรงเรียน</option><option value="private" '+(s.default_file_visibility==="private"?"selected":"")+'>เฉพาะผู้เกี่ยวข้อง</option><option value="public" '+(s.default_file_visibility==="public"?"selected":"")+'>สาธารณะ (เฉพาะไฟล์ที่อนุญาต)</option></select><small>สามารถกำหนดเป็นรายไฟล์ได้ภายหลัง</small></label><div class="span-2"><button class="primary-btn" type="submit">บันทึกการตั้งค่า</button></div></form></article>'+
-  '<article class="panel drive-setup-card"><div class="panel-head"><div><p class="eyebrow">Google Drive</p><h2>พื้นที่จัดเก็บของสถานศึกษา</h2><p class="panel-sub">หนึ่งโรงเรียนเชื่อม Google Drive หนึ่งบัญชี/Shared Drive เพื่อเก็บไฟล์จริง ส่วน LAO-EMS เก็บ metadata และสิทธิ์การเข้าถึง</p></div>'+status(s.drive_connected)+'</div><div class="drive-root-preview"><span class="drive-icon">▣</span><div><small>โฟลเดอร์หลักของระบบ</small><strong>'+root+'</strong><p>เมื่อเชื่อมสำเร็จ ระบบจะใช้โฟลเดอร์นี้เป็นราก และจะสร้างโฟลเดอร์ย่อยตามโมดูลเมื่อเปิดใช้งานในระยะต่อไป</p></div></div>'+(s.drive_connected?'<div class="drive-connected"><strong>'+esc(s.drive_account_email||"Google Drive")+'</strong><small>เชื่อมเมื่อ '+(s.drive_connected_at?new Date(s.drive_connected_at).toLocaleString("th-TH"):"-")+'</small></div>':'<div class="notice warning"><strong>ยังไม่ได้เชื่อม Google Drive</strong><br>กด “เชื่อม Google Drive” เพื่อเลือกบัญชี Google ของสถานศึกษา ระบบจะขอสิทธิ์เฉพาะไฟล์ที่ LAO-EMS สร้าง และสร้าง '+root+' อัตโนมัติ</div>')+'<div class="action-row">'+(s.drive_connected?'<button class="secondary-btn" type="button" data-drive-refresh>ตรวจสอบสถานะอีกครั้ง</button>':'<button class="primary-btn" type="button" data-drive-connect>เชื่อม Google Drive</button>')+'</div></article></section>'+
+  '<article class="panel drive-setup-card"><div class="panel-head"><div><p class="eyebrow">Google Drive</p><h2>พื้นที่จัดเก็บของสถานศึกษา</h2><p class="panel-sub">หนึ่งโรงเรียนเชื่อม Google Drive หนึ่งบัญชี/Shared Drive เพื่อเก็บไฟล์จริง ส่วน LAO-EMS เก็บ metadata และสิทธิ์การเข้าถึง</p></div>'+status(s.drive_connected)+'</div><div class="drive-root-preview"><span class="drive-icon">▣</span><div><small>โฟลเดอร์หลักของระบบ</small><strong>'+root+'</strong><p>เมื่อเชื่อมสำเร็จ ระบบจะใช้โฟลเดอร์นี้เป็นราก และจะสร้างโฟลเดอร์ย่อยตามโมดูลเมื่อเปิดใช้งานในระยะต่อไป</p></div></div>'+(s.drive_connected?'<div class="drive-connected"><strong>'+esc(s.drive_account_email||"Google Drive")+'</strong><small>เชื่อมเมื่อ '+(s.drive_connected_at?thaiDateTime(s.drive_connected_at):"-")+'</small></div>':'<div class="notice warning"><strong>ยังไม่ได้เชื่อม Google Drive</strong><br>กด “เชื่อม Google Drive” เพื่อเลือกบัญชี Google ของสถานศึกษา ระบบจะขอสิทธิ์เฉพาะไฟล์ที่ LAO-EMS สร้าง และสร้าง '+root+' อัตโนมัติ</div>')+'<div class="action-row">'+(s.drive_connected?'<button class="secondary-btn" type="button" data-drive-refresh>ตรวจสอบสถานะอีกครั้ง</button>':'<button class="primary-btn" type="button" data-drive-connect>เชื่อม Google Drive</button>')+'</div></article></section>'+
   (s.can_invite_users?'<section class="panel"><div class="notice success"><strong>ตั้งค่าครบแล้ว</strong><br>โรงเรียนพร้อมเชิญผู้ใช้และกำหนดสิทธิ์</div><div class="action-row"><a class="primary-btn" href="#/users">ไปที่ผู้ใช้และสิทธิ์</a></div></section>':'');
 }
 
@@ -1413,7 +1495,7 @@ async function organizationHtml(){
     const synced=s.source_system==="LEC"&&s.lec_synced_at;
     const source=synced?'<span class="pill success">LEC</span>':'<span class="pill warning">รอ LEC</span>';
     const area=[s.lec_district_name_th,s.lec_province_name_th].filter(Boolean).join(" · ")||"-";
-    const last=s.lec_synced_at?new Date(s.lec_synced_at).toLocaleString("th-TH"):"ยังไม่เคยนำเข้า";
+    const last=s.lec_synced_at?thaiDateTime(s.lec_synced_at):"ยังไม่เคยนำเข้า";
     return '<tr><td>'+esc(s.lao_organizations&&s.lao_organizations.name_th||s.lec_organization_name_th||"-")+'</td><td><strong>'+esc(s.name_th)+'</strong><br><small>'+esc(s.code||"")+'</small></td><td>'+esc(area)+'</td><td>'+source+'<br><small>'+esc(last)+'</small></td><td><span class="pill success">อ่านจาก LEC</span></td></tr>';
   }).join("");
 
@@ -1440,7 +1522,7 @@ async function usersHtml(){
     const links=(linkRes.data||[]).map(x=>{
       const url=base+"#/apply-school-admin/"+x.token;
       const open=x.is_active&&(!x.expires_at||new Date(x.expires_at)>new Date());
-      return '<tr><td><strong>'+esc(x.label)+'</strong><br><small>'+new Date(x.created_at).toLocaleString("th-TH")+'</small></td><td><span class="pill '+(open?"success":"neutral")+'">'+(open?"เปิดรับ":"ปิด")+'</span></td><td><code class="link-code">'+esc(url)+'</code></td><td><div class="row-actions"><button class="secondary-btn compact-btn" type="button" data-copy-admin-link="'+esc(url)+'">คัดลอกลิงก์</button><button class="'+(x.is_active?"danger-btn":"secondary-btn")+' compact-btn" type="button" data-toggle-admin-link="'+x.id+'" data-next-active="'+(!x.is_active)+'">'+(x.is_active?"ปิดรับ":"เปิดรับ")+'</button></div></td></tr>';
+      return '<tr><td><strong>'+esc(x.label)+'</strong><br><small>'+thaiDateTime(x.created_at)+'</small></td><td><span class="pill '+(open?"success":"neutral")+'">'+(open?"เปิดรับ":"ปิด")+'</span></td><td><code class="link-code">'+esc(url)+'</code></td><td><div class="row-actions"><button class="secondary-btn compact-btn" type="button" data-copy-admin-link="'+esc(url)+'">คัดลอกลิงก์</button><button class="'+(x.is_active?"danger-btn":"secondary-btn")+' compact-btn" type="button" data-toggle-admin-link="'+x.id+'" data-next-active="'+(!x.is_active)+'">'+(x.is_active?"ปิดรับ":"เปิดรับ")+'</button></div></td></tr>';
     }).join("");
     const apps=(appRes.data||[]).map(x=>{
       const status={pending:["รอตรวจเอกสาร","warning"],approved:["อนุมัติแล้ว","success"],rejected:["ไม่อนุมัติ","danger"]}[x.status]||[x.status,"neutral"];
@@ -1486,7 +1568,7 @@ async function usersHtml(){
 
   const rows=(invRes.data||[]).map(x=>{
     const status={pending:["รอยืนยัน","warning"],onboarding:["รอนำเข้า LEC","warning"],accepted:["เปิดใช้งานแล้ว","success"],revoked:["ยกเลิก","neutral"],failed:["ส่งไม่สำเร็จ","danger"]}[x.status]||[x.status,"neutral"];
-    return '<tr><td><strong>'+esc(x.email)+'</strong><br><small>'+new Date(x.sent_at).toLocaleString("th-TH")+'</small></td><td>'+esc(roleLabels[x.role_code]||x.role_code)+'</td><td><span class="pill '+status[1]+'">'+status[0]+'</span></td><td>'+esc(x.invitation_mode==="platform_first_admin"?"Platform Admin · คนแรก":"School Admin")+'</td></tr>';
+    return '<tr><td><strong>'+esc(x.email)+'</strong><br><small>'+thaiDateTime(x.sent_at)+'</small></td><td>'+esc(roleLabels[x.role_code]||x.role_code)+'</td><td><span class="pill '+status[1]+'">'+status[0]+'</span></td><td>'+esc(x.invitation_mode==="platform_first_admin"?"Platform Admin · คนแรก":"School Admin")+'</td></tr>';
   }).join("");
   const history='<article class="panel"><div class="panel-head"><div><p class="eyebrow">Invitation history</p><h2>บัญชีและคำเชิญ · '+esc(school.name_th)+'</h2></div></div>'+(rows?'<div class="table-wrap"><table><thead><tr><th>อีเมล</th><th>บทบาท</th><th>สถานะ</th><th>ผู้รับผิดชอบ</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">✉️</div><h3>ยังไม่มีคำเชิญ</h3></div>')+'</article>';
   return '<section class="content-grid">'+inviteForm+history+'</section>';
@@ -1495,7 +1577,7 @@ async function usersHtml(){
 function notificationsHtml(){
   const rows=state.notifications.map(n=>{
     const unread=!n.read_at;
-    return '<article class="notification-card '+(unread?"unread":"")+'"><div class="notification-icon">🔔</div><div class="notification-copy"><div class="notification-title"><strong>'+esc(n.title)+'</strong>'+(unread?'<span class="pill warning">ใหม่</span>':'')+'</div><p>'+esc(n.body||"")+'</p><small>'+new Date(n.created_at).toLocaleString("th-TH")+'</small></div>'+(unread?'<button class="secondary-btn" data-notification-read="'+n.id+'">ทำเครื่องหมายว่าอ่านแล้ว</button>':'')+'</article>';
+    return '<article class="notification-card '+(unread?"unread":"")+'"><div class="notification-icon">🔔</div><div class="notification-copy"><div class="notification-title"><strong>'+esc(n.title)+'</strong>'+(unread?'<span class="pill warning">ใหม่</span>':'')+'</div><p>'+esc(n.body||"")+'</p><small>'+thaiDateTime(n.created_at)+'</small></div>'+(unread?'<button class="secondary-btn" data-notification-read="'+n.id+'">ทำเครื่องหมายว่าอ่านแล้ว</button>':'')+'</article>';
   }).join("");
   return '<section class="panel"><div class="panel-head"><div><p class="eyebrow">Notifications</p><h2>การแจ้งเตือน</h2><p class="panel-sub">แจ้งคำขอสมาชิก การแต่งตั้งผู้ดูแล และเหตุการณ์สำคัญของระบบ</p></div></div>'+(rows?'<div class="notification-list">'+rows+'</div>':'<div class="empty-state"><div class="empty-icon">🔔</div><h3>ยังไม่มีการแจ้งเตือน</h3><p>เมื่อมีรายการที่ต้องดำเนินการ ระบบจะแสดงที่นี่</p></div>')+'</section>';
 }
@@ -2120,7 +2202,7 @@ async function lecHtml(){
       .select("id,academic_year_be,term_no,source_file_name,source_sheet_name,source_row_count,imported_row_count,new_student_count,updated_student_count,missing_from_latest_count,issue_count,status,imported_at")
       .eq("school_id",school.id).order("imported_at",{ascending:false}).limit(30);
     if(history.error)throw history.error;
-    historyRows=(history.data||[]).map(b=>'<tr><td><strong>'+b.academic_year_be+' / '+b.term_no+'</strong><br><small>'+new Date(b.imported_at).toLocaleString("th-TH")+'</small></td><td>'+esc(b.source_file_name)+'<br><small>'+esc(b.source_sheet_name||"ชีตข้อมูล LEC")+'</small></td><td>'+b.imported_row_count+' / '+b.source_row_count+'</td><td>'+b.new_student_count+'</td><td>'+b.updated_student_count+'</td><td>'+b.missing_from_latest_count+'</td><td>'+(b.issue_count?'<span class="pill danger">'+b.issue_count+'</span>':'<span class="pill success">0</span>')+'</td></tr>').join("");
+    historyRows=(history.data||[]).map(b=>'<tr><td><strong>'+b.academic_year_be+' / '+b.term_no+'</strong><br><small>'+thaiDateTime(b.imported_at)+'</small></td><td>'+esc(b.source_file_name)+'<br><small>'+esc(b.source_sheet_name||"ชีตข้อมูล LEC")+'</small></td><td>'+b.imported_row_count+' / '+b.source_row_count+'</td><td>'+b.new_student_count+'</td><td>'+b.updated_student_count+'</td><td>'+b.missing_from_latest_count+'</td><td>'+(b.issue_count?'<span class="pill danger">'+b.issue_count+'</span>':'<span class="pill success">0</span>')+'</td></tr>').join("");
   }
 
   const title=onboarding?"นำเข้า LEC ครั้งแรก":"นำเข้าข้อมูล LEC";
@@ -2987,8 +3069,8 @@ async function personnelFormHtml(id){
         '<label class="field"><span class="field-label-line">อีเมล</span><input name="email" type="email" value="'+esc(p.email||"")+'" autocomplete="email"><small>ถ้าตรงกับบัญชี LAO-EMS ที่มีสิทธิ์ในโรงเรียน ระบบจะเชื่อมบัญชีให้อัตโนมัติ</small></label>'+
         '<label class="field"><span class="field-label-line">โทรศัพท์</span><input name="phone" type="tel" value="'+esc(p.phone||"")+'" inputmode="tel"></label>'+
         '<label class="field"><span class="field-label-line">สถานะ</span><select name="employment_status">'+personnelStatusOptions(p.employment_status||"active")+'</select></label>'+
-        '<label class="field"><span class="field-label-line">วันที่เริ่มปฏิบัติงาน</span><input name="employment_start_date" type="date" value="'+esc(p.employment_start_date||"")+'"></label>'+
-        '<label class="field"><span class="field-label-line">วันที่สิ้นสุด</span><input name="employment_end_date" type="date" value="'+esc(p.employment_end_date||"")+'"></label>'+
+        '<label class="field"><span class="field-label-line">วันที่เริ่มปฏิบัติงาน (พ.ศ.)</span>'+buddhistDateControlHtml("employment_start_date",p.employment_start_date||"")+'</label>'+
+        '<label class="field"><span class="field-label-line">วันที่สิ้นสุด (พ.ศ.)</span>'+buddhistDateControlHtml("employment_end_date",p.employment_end_date||"")+'</label>'+
         '<label class="field"><span class="field-label-line">ลำดับแสดงผล</span><input name="sort_order" type="number" step="1" value="'+esc(p.sort_order??"")+'" placeholder="เว้นว่างได้"></label>'+
         '<label class="field personnel-form-notes"><span class="field-label-line">หมายเหตุ</span><textarea name="notes" rows="4" placeholder="ข้อมูลเพิ่มเติมภายในทะเบียน">'+esc(p.notes||"")+'</textarea></label>'+
         '<div class="personnel-form-actions"><a class="secondary-btn" href="'+(id?'#/personnel/'+esc(id):'#/personnel/registry')+'">ยกเลิก</a><button class="primary-btn" type="submit">บันทึกข้อมูลบุคลากร</button></div>'+
@@ -3448,8 +3530,8 @@ function academicPeriodsHtml(data){
       '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
     '</section>'+
     (canManage?'<section class="academic-edit-grid">'+
-      '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">สร้างได้ก่อน LEC เปิดปีใหม่ · ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2570"></label><label>วันเริ่มปีการศึกษา<input name="starts_on" type="date"></label><label>วันสิ้นสุดปีการศึกษา<input name="ends_on" type="date"></label><div class="academic-year-auto-note span-all">เมื่อเลือกวันเริ่ม ระบบจะเติมวันสิ้นสุดเป็นวันเรียนลำดับที่ 200 โดยนับวันจันทร์–ศุกร์เบื้องต้น ไม่หักวันหยุดราชการ และสามารถแก้วันที่ได้เองภายหลัง</div><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
-      '<article class="panel hidden" data-term-form-panel><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม<input name="starts_on" type="date"></label><label>วันสิ้นสุด<input name="ends_on" type="date"></label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
+      '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">สร้างได้ก่อน LEC เปิดปีใหม่ · ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2570"></label><label>วันเริ่มปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุดปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><div class="academic-year-auto-note span-all">เมื่อเลือกวันเริ่ม ระบบจะเติมวันสิ้นสุดเป็นวันเรียนลำดับที่ 200 โดยนับวันจันทร์–ศุกร์เบื้องต้น ไม่หักวันหยุดราชการ และสามารถแก้วันที่ได้เองภายหลัง</div><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
+      '<article class="panel hidden" data-term-form-panel><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุด (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
     '</section>':'')+
   '</section>';
 }
@@ -4225,11 +4307,13 @@ function academicSetFormValue(form,name,value){
   const el=form&&form.elements&&form.elements[name];
   if(!el)return;
   if(el.type==="checkbox")el.checked=Boolean(value);
+  else if(el.matches&&el.matches("[data-be-date-value]"))setBuddhistDateControlValue(el.closest("[data-be-date-control]"),value==null?"":String(value),false);
   else el.value=value==null?"":String(value);
 }
 function academicResetForm(form,titleSelector,title){
   if(!form)return;
   form.reset();
+  refreshBuddhistDatePickers(form);
   form.dataset.id="";
   const h=q(titleSelector);
   if(h)h.textContent=title;
@@ -4279,9 +4363,9 @@ function bindAcademics(){
     if(startInput&&endInput){
       startInput.addEventListener("change",()=>{
         if(yearForm.dataset.id)return;
-        if(yearForm.dataset.autoEnd!=="false")endInput.value=academicEndDateAfter200Weekdays(startInput.value);
+        if(yearForm.dataset.autoEnd!=="false")setBuddhistDateControlValue(endInput.closest("[data-be-date-control]"),academicEndDateAfter200Weekdays(startInput.value),false);
       });
-      endInput.addEventListener("input",()=>{
+      endInput.addEventListener("change",()=>{
         if(!yearForm.dataset.id)yearForm.dataset.autoEnd="false";
       });
     }
@@ -5315,6 +5399,7 @@ async function renderRoute(){
 
     if(renderId!==state.routeRenderId)return;
     main.innerHTML=html;
+    bindBuddhistDatePickers(main);
     if(bind)bind();
   }catch(e){
     console.error(e);
