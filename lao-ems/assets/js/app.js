@@ -3522,8 +3522,7 @@ function academicSubjectsHtml(data,timeline){
     const isMultiActivity=x.subject_type==="activity"&&activityCode&&(centralActivityCodeCounts.get(activityCode)||0)>1;
     return '<article class="subject-library-card '+(isSelected?"is-selected":"")+'" data-subject-library-item data-search-text="'+esc(((x.subject_code||"")+" "+x.subject_name+" "+(x.learning_area||"")+" ส่วนกลาง").toLowerCase())+'">'+
       '<div class="subject-library-source central">ส่วนกลาง</div>'+
-      '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(typeLabel[x.subject_type]||"อื่น ๆ")+(x.learning_area?' · '+esc(x.learning_area):'')+(x.term_no?' · ภาคเรียนที่ '+esc(x.term_no):' · รายปี')+(isMultiActivity?' · เลือกได้หลายรายการ':'')+'</small></div></div>'+
-      (isMultiActivity?'<span class="subject-library-multi">รหัสเดียวกัน · เลือกได้หลายรายการ</span>':'')+
+      '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(typeLabel[x.subject_type]||"อื่น ๆ")+(x.learning_area?' · '+esc(x.learning_area):'')+(x.term_no?' · ภาคเรียนที่ '+esc(x.term_no):' · รายปี')+'</small>'+(isMultiActivity?'<span class="subject-library-multi">รหัสเดียวกัน · เลือกได้หลายรายการ</span>':'')+'</div></div>'+
       (isSelected
         ?'<span class="subject-library-used">✓ อยู่ในหลักสูตรแล้ว</span>'
         :canManage?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.id||'')+'">＋ เพิ่ม</button>':'')+
