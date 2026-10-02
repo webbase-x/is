@@ -4488,7 +4488,7 @@ function bindAcademics(){
         '<div class="subject-finder-card-source"><span class="subject-origin '+(x.source_kind==="official_central"?"central-core":x.source_kind==="shared_catalog"?"shared-catalog":"school-local")+'">'+esc(sourceLabel[x.source_kind]||x.source_kind)+'</span>'+(x.source_school_name&&x.source_kind==="shared_catalog"?'<small>'+esc(x.source_school_name)+'</small>':'')+'</div>'+
         '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.name_th)+'</strong><small>'+esc(finderTypeLabel[x.subject_type]||x.subject_type)+(x.learning_area?' · '+esc(x.learning_area):'')+(x.subject_subtype&&finderSubtypeLabel[x.subject_subtype]?' · '+esc(finderSubtypeLabel[x.subject_subtype]):'')+'</small></div></div>'+
         '<div class="subject-finder-meta">'+(x.usage_count?'<span>ใช้ร่วม '+Number(x.usage_count).toLocaleString("th-TH")+' รร.</span>':'')+(x.exact_match?'<span class="exact">ตรงกับคำค้น</span>':'')+'</div>'+
-        (x.already_in_curriculum?'<span class="subject-library-used">✓ อยู่ในหลักสูตรแล้ว</span>:'<button type="button" class="subject-add-btn" data-adopt-subject-source-kind="'+esc(x.source_kind)+'" data-adopt-subject-source-id="'+esc(x.source_id)+'">＋ ใช้รายการนี้</button>')+
+        (x.already_in_curriculum?'<span class="subject-library-used">✓ อยู่ในหลักสูตรแล้ว</span>':'<button type="button" class="subject-add-btn" data-adopt-subject-source-kind="'+esc(x.source_kind)+'" data-adopt-subject-source-id="'+esc(x.source_id)+'">＋ ใช้รายการนี้</button>')+
       '</article>'
     ).join("");
     finderCreate?.classList.remove("hidden");
