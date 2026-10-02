@@ -3345,11 +3345,14 @@ function academicNumberText(value){
 function academicTimeTemplateDiffers(info){
   const a=info&&info.standard_current,b=info&&info.standard_snapshot;
   if(!a||!b)return false;
-  return ["period_scope","annual_hours","term_hours","weekly_periods","credits","basis_weeks","time_mode","is_flexible","term_no","note"]
+  return ["period_scope","annual_hours","term_hours","weekly_periods","credits","basis_weeks","time_mode","is_flexible","term_no","standard_kind","band_requirement_code","band_requirement_hours","band_requirement_scope","note"]
     .some(k=>String(a[k]??"")!==String(b[k]??""));
 }
 function academicStandardTimeSummary(t){
   if(!t)return "";
+  if(t.band_requirement_hours!=null){
+    return "กรอบรวม "+academicNumberText(t.band_requirement_hours)+" ชม./"+(t.band_requirement_scope||"ช่วงชั้น")+" · โรงเรียนกำหนดการกระจาย";
+  }
   const parts=[];
   if(t.period_scope==="term"){
     if(t.term_hours!=null)parts.push(academicNumberText(t.term_hours)+" ชม./ภาค");
@@ -3425,7 +3428,7 @@ function academicTimeEditorHtml(course,info){
     '<div class="subject-time-editor-head"><div><strong>แก้เวลาเรียนของโรงเรียน</strong><small>แก้เฉพาะโครงสร้างของโรงเรียน ไม่แก้ฐานมาตรฐานกลาง</small></div>'+flexible+'</div>'+
     '<div class="subject-time-compare compact"><div><small>มาตรฐานกลางขั้นต่ำ</small><strong>'+esc(standardText||"ไม่กำหนด")+'</strong></div><div><small>โรงเรียนใช้</small><strong>'+esc(schoolText)+'</strong></div></div>'+
     '<div class="subject-time-fields">'+fields+'<label class="subject-time-note">หมายเหตุ<input name="note" value="'+esc(info.time_override_note||"")+'" placeholder="เหตุผล/บริบทของโรงเรียน (ถ้ามี)"></label></div>'+
-    '<div class="subject-time-editor-actions"><button type="button" class="secondary-btn compact-btn" data-close-subject-time="'+esc(course.id)+'">ปิด</button><button type="button" class="secondary-btn compact-btn" data-reset-subject-time-standard="'+esc(course.id)+'">คืนค่ามาตรฐานกลาง</button><button type="submit" class="primary-btn compact-btn">บันทึกเวลาเรียน</button></div>'+
+    '<div class="subject-time-editor-actions"><button type="button" class="secondary-btn compact-btn" data-close-subject-time="'+esc(course.id)+'">ปิด</button>'+(standard.standard_kind==="three_year_band_allocation"?'':'<button type="button" class="secondary-btn compact-btn" data-reset-subject-time-standard="'+esc(course.id)+'">คืนค่ามาตรฐานกลาง</button>')+'<button type="submit" class="primary-btn compact-btn">บันทึกเวลาเรียน</button></div>'+
   '</form>';
 }
 function academicProgramOptions(data,selected,includeAll=false){
@@ -4099,7 +4102,7 @@ function academicCurriculumHtml(data){
       '<div class="academic-course-subject"><strong>'+esc(c.subject_code?c.subject_code+" "+c.subject_name:c.subject_name)+'</strong><small>'+esc(c.learning_area||academicSubjectTypeLabel(c.subject_type))+'</small>'+(standard?'<em>มาตรฐานกลาง: '+esc(standardText)+(academicTimeTemplateDiffers(ti)?' · มีมาตรฐานฉบับใหม่':'')+'</em>':'')+'</div>'+
       '<div class="academic-course-hours"><strong>'+esc(schoolText)+'</strong><small>'+(ti&&ti.time_customized?'โรงเรียนปรับจากมาตรฐาน':standard?'โรงเรียนใช้ค่ามาตรฐาน':'เวลาเรียนของโรงเรียน')+'</small></div>'+
       '<div class="academic-course-term"><span>'+esc(termText||"ยังไม่กำหนดคาบรายภาค")+'</span></div>'+
-      (canManage?'<div class="academic-course-actions"><button type="button" class="icon-btn compact-order-btn" data-move-course="'+esc(c.id)+'" data-direction="up" title="เลื่อนขึ้น" aria-label="เลื่อนขึ้น">↑</button><button type="button" class="icon-btn compact-order-btn" data-move-course="'+esc(c.id)+'" data-direction="down" title="เลื่อนลง" aria-label="เลื่อนลง">↓</button><button type="button" class="secondary-btn compact-btn" data-edit-course="'+esc(c.id)+'">แก้ไข</button>'+(standard?'<button type="button" class="secondary-btn compact-btn" data-reset-course-time-standard="'+esc(c.id)+'">คืนมาตรฐาน</button>':'')+'</div>':'')+
+      (canManage?'<div class="academic-course-actions"><button type="button" class="icon-btn compact-order-btn" data-move-course="'+esc(c.id)+'" data-direction="up" title="เลื่อนขึ้น" aria-label="เลื่อนขึ้น">↑</button><button type="button" class="icon-btn compact-order-btn" data-move-course="'+esc(c.id)+'" data-direction="down" title="เลื่อนลง" aria-label="เลื่อนลง">↓</button><button type="button" class="secondary-btn compact-btn" data-edit-course="'+esc(c.id)+'">แก้ไข</button>'+(standard&&standard.standard_kind!=="three_year_band_allocation"?'<button type="button" class="secondary-btn compact-btn" data-reset-course-time-standard="'+esc(c.id)+'">คืนมาตรฐาน</button>':'')+'</div>':'')+
     '</div>';
   }).join("");
 
