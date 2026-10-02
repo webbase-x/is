@@ -5694,3 +5694,56 @@ th,td{line-height:1.45}
     padding-top:0;
   }
 }
+
+/* Subject parallel-group selection mode — v0.19.5 */
+.parallel-selection-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.parallel-selection-banner{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  margin-top:9px;
+  padding:9px 10px;
+  border:1px solid #b2ccff;
+  border-radius:10px;
+  background:#f5f8ff;
+}
+.parallel-selection-banner strong{
+  flex:0 0 auto;
+  color:#1849a9;
+  font-size:12px;
+}
+.parallel-selection-banner span{
+  min-width:0;
+  color:#475467;
+  font-size:12px;
+  line-height:1.45;
+}
+.subject-parallel-tools.is-selecting{
+  border-color:#b2ccff;
+  background:#f9fbff;
+}
+@media(max-width:700px){
+  .parallel-selection-actions{
+    width:100%;
+    justify-content:flex-start;
+  }
+  .parallel-selection-banner{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+}
+@media(max-width:480px){
+  .parallel-selection-actions{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .parallel-selection-actions button{
+    width:100%;
+  }
+}
