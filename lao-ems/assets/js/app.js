@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.8";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.9";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3520,14 +3520,15 @@ function academicEndDateAfter200Weekdays(startIso){
   return y+"-"+m+"-"+day;
 }
 function academicPeriodsHtml(data){
-  const years=data.years||[],canManage=Boolean(data.can_manage);
+  const years=data.years||[],canManage=Boolean(data.can_manage),canDelete=isSchoolAdminContext();
   const yearCards=years.map(y=>{
-    const terms=(y.terms||[]).map(t=>'<div class="academic-term-row"><div><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><small>'+(t.starts_on||t.ends_on?esc(thaiDate(t.starts_on))+' – '+esc(thaiDate(t.ends_on)):'ยังไม่กำหนดช่วงวันที่')+'</small></div>'+(t.is_current?'<span class="pill success">ภาคเรียนปัจจุบัน</span>':'')+(canManage?'<button type="button" class="text-btn" data-edit-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">แก้ไข</button>':'')+'</div>').join("");
-    return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-add-term="'+esc(y.id)+'">＋ เพิ่มภาคเรียน</button><button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
+    const terms=(y.terms||[]).map(t=>'<div class="academic-term-row"><div><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><small>'+(t.starts_on||t.ends_on?esc(thaiDate(t.starts_on))+' – '+esc(thaiDate(t.ends_on)):'ยังไม่กำหนดช่วงวันที่')+'</small></div>'+(t.is_current?'<span class="pill success">ภาคเรียนปัจจุบัน</span>':'')+(canManage?'<div class="academic-period-row-actions"><button type="button" class="text-btn" data-edit-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">แก้ไข</button>'+(canDelete?'<button type="button" class="text-btn danger-text" data-safe-delete-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">ลบ</button>':'')+'</div>':'')+'</div>').join("");
+    return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-add-term="'+esc(y.id)+'">＋ เพิ่มภาคเรียน</button><button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+(canDelete?'<button type="button" class="danger-btn compact-btn" data-safe-delete-year="'+esc(y.id)+'">ลบปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
   }).join("");
   return '<section class="academic-page">'+academicNavHtml("periods",data)+
     '<section class="panel"><div class="panel-head"><div><p class="eyebrow">ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">ฝ่ายวิชาการเพิ่มปีการศึกษาได้เองก่อนข้อมูล LEC จะออก เมื่อกำหนดวันเริ่ม ระบบช่วยคำนวณวันสิ้นสุดจากวันเรียน จ.–ศ. 200 วัน และแก้ไขภายหลังได้</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
       '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
+      (canDelete?'<div class="academic-delete-policy"><strong>การลบแบบปลอดภัย</strong><span>ระบบจะตรวจข้อมูลเชื่อมโยงก่อนทุกครั้ง หากมีนักเรียน LEC ห้องเรียน รายวิชา เวลาเรียน หรือภาระงานสอน ระบบจะบล็อกการลบโดยอัตโนมัติ</span></div><div class="academic-safe-delete-panel hidden" data-academic-safe-delete-panel></div>':'')+
     '</section>'+
     (canManage?'<section class="academic-edit-grid">'+
       '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">สร้างได้ก่อน LEC เปิดปีใหม่ · ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2570"></label><label>วันเริ่มปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุดปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><div class="academic-year-auto-note span-all">เมื่อเลือกวันเริ่ม ระบบจะเติมวันสิ้นสุดเป็นวันเรียนลำดับที่ 200 โดยนับวันจันทร์–ศุกร์เบื้องต้น ไม่หักวันหยุดราชการ และสามารถแก้วันที่ได้เองภายหลัง</div><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
@@ -4458,6 +4459,95 @@ function bindAcademics(){
     if(res.error){toast(res.error.message,"error");return;}
     toast("บันทึกภาคเรียนแล้ว","success");renderRoute();
   });
+
+  const safeDeletePanel=q("[data-academic-safe-delete-panel]");
+  const academicDeleteBlockerLabels={
+    student_enrollments:"ข้อมูลนักเรียน/การลงทะเบียน",
+    lec_batches:"ชุดนำเข้า LEC",
+    student_activities:"กิจกรรมรายนักเรียน",
+    class_sections:"ชั้น/ห้อง",
+    curriculum_courses:"โครงสร้างรายวิชา",
+    teaching_workloads:"ภาระงานสอน",
+    schedule_settings:"การตั้งค่าเวลาเรียน",
+    default_initializations:"ข้อมูลตั้งต้นหลักสูตร",
+    grade_initializations:"ข้อมูลตั้งต้นระดับชั้น",
+    program_exclusions:"ข้อยกเว้นรายวิชา",
+    structure_confirmations:"การยืนยันโครงสร้าง",
+    parallel_groups:"กลุ่มรายวิชาทางเลือก",
+    course_term_plans:"แผนเวลาเรียนรายภาค"
+  };
+  const academicDeletePreviewHtml=(p,kind)=>{
+    const blockers=Object.entries(p.blockers||{}).filter(([,count])=>Number(count||0)>0);
+    const title=kind==="year"?"ลบปีการศึกษา "+p.year_be:"ลบ "+(p.name||("ภาคเรียนที่ "+p.term_no))+" · ปีการศึกษา "+p.year_be;
+    if(!p.can_delete){
+      return '<div class="academic-delete-preview is-blocked"><div class="academic-delete-preview-head"><div><strong>ไม่อนุญาตให้ลบ</strong><h3>'+esc(title)+'</h3></div><span class="pill danger">ป้องกันข้อมูล</span></div><p>พบข้อมูลที่เชื่อมโยงกับรายการนี้ ระบบจะไม่ลบเพื่อป้องกันข้อมูลสูญหาย</p><div class="academic-delete-blockers">'+blockers.map(([key,count])=>'<span><b>'+Number(count).toLocaleString("th-TH")+'</b> '+esc(academicDeleteBlockerLabels[key]||key)+'</span>').join("")+'</div>'+(kind==="year"&&Number((p.blockers||{}).student_enrollments||0)>0?'<div class="notice warning"><strong>หากเป็นข้อมูลนักเรียนทดลอง</strong><br>ไปที่หน้า “นักเรียน” แล้วใช้ “จัดการข้อมูลนักเรียนรายปี” ล้างข้อมูลของปีนี้ก่อน จากนั้นกลับมาตรวจสอบการลบปีอีกครั้ง</div>':'')+'<div class="academic-delete-actions"><button type="button" class="secondary-btn" data-close-academic-delete>ปิด</button></div></div>';
+    }
+    const extra=kind==="year"&&Number(p.term_count||0)>0?'<p class="academic-delete-note">ภาคเรียนที่ว่างอยู่ '+Number(p.term_count).toLocaleString("th-TH")+' รายการจะถูกลบพร้อมปีการศึกษา</p>':'';
+    return '<div class="academic-delete-preview is-safe"><div class="academic-delete-preview-head"><div><strong>ตรวจสอบแล้ว ลบได้</strong><h3>'+esc(title)+'</h3></div><span class="pill success">ไม่มีข้อมูลเชื่อมโยง</span></div><p>ระบบตรวจแล้วว่าไม่มีข้อมูลสำคัญเชื่อมโยงกับรายการนี้</p>'+extra+'<label class="academic-delete-ack"><input type="checkbox" data-academic-delete-ack><span>ฉันตรวจสอบแล้วและต้องการลบรายการนี้</span></label><label class="academic-delete-confirm-label">พิมพ์ข้อความยืนยัน<input type="text" autocomplete="off" data-academic-delete-confirm placeholder="'+esc(p.confirmation_text||"")+'"></label><div class="academic-delete-phrase">พิมพ์: <strong>'+esc(p.confirmation_text||"")+'</strong></div><div class="academic-delete-actions"><button type="button" class="secondary-btn" data-close-academic-delete>ยกเลิก</button><button type="button" class="danger-btn" data-run-academic-delete disabled>ลบอย่างถาวร</button></div></div>';
+  };
+  const bindAcademicDeletePanel=(p,kind,id)=>{
+    if(!safeDeletePanel)return;
+    const close=q("[data-close-academic-delete]",safeDeletePanel);
+    if(close)close.addEventListener("click",()=>{safeDeletePanel.classList.add("hidden");safeDeletePanel.innerHTML="";});
+    if(!p.can_delete)return;
+    const ack=q("[data-academic-delete-ack]",safeDeletePanel);
+    const input=q("[data-academic-delete-confirm]",safeDeletePanel);
+    const run=q("[data-run-academic-delete]",safeDeletePanel);
+    const phrase=String(p.confirmation_text||"");
+    const sync=()=>{if(run)run.disabled=!(ack&&ack.checked&&input&&input.value.trim()===phrase);};
+    if(ack)ack.addEventListener("change",sync);
+    if(input)input.addEventListener("input",sync);
+    if(run)run.addEventListener("click",async()=>{
+      if(run.disabled)return;
+      setBusy(run,true,"กำลังลบ...");
+      try{
+        const rpc=kind==="year"?"lao_delete_academic_year_safe":"lao_delete_term_safe";
+        const params=kind==="year"
+          ?{p_school_id:school.id,p_academic_year_id:id,p_confirmation:input.value.trim()}
+          :{p_school_id:school.id,p_term_id:id,p_confirmation:input.value.trim()};
+        const res=await supabase.rpc(rpc,params);
+        if(res.error)throw res.error;
+        state.academicData=null;
+        state.academicYearId=null;
+        state.academicTermId=null;
+        state.teachingWorkloadData=null;
+        state.subjectWorkspaceData=null;
+        state.curriculumReadiness=null;
+        toast(kind==="year"?"ลบปีการศึกษาแล้ว":"ลบภาคเรียนแล้ว","success");
+        renderRoute();
+      }catch(err){
+        toast(err.message||"ลบข้อมูลไม่สำเร็จ","error");
+        setBusy(run,false);
+      }
+    });
+  };
+  const openAcademicDeletePreview=async(kind,id,button)=>{
+    if(!safeDeletePanel||!school||!id)return;
+    safeDeletePanel.classList.remove("hidden");
+    safeDeletePanel.innerHTML='<div class="academic-delete-loading"><span class="spinner"></span>กำลังตรวจสอบข้อมูลเชื่อมโยง...</div>';
+    safeDeletePanel.scrollIntoView({behavior:"smooth",block:"center"});
+    setBusy(button,true,"กำลังตรวจ...");
+    try{
+      const rpc=kind==="year"?"lao_academic_year_delete_preview":"lao_term_delete_preview";
+      const params=kind==="year"
+        ?{p_school_id:school.id,p_academic_year_id:id}
+        :{p_school_id:school.id,p_term_id:id};
+      const res=await supabase.rpc(rpc,params);
+      if(res.error)throw res.error;
+      const p=res.data||{};
+      safeDeletePanel.innerHTML=academicDeletePreviewHtml(p,kind);
+      bindAcademicDeletePanel(p,kind,id);
+    }catch(err){
+      safeDeletePanel.innerHTML='<div class="notice danger"><strong>ตรวจสอบการลบไม่ได้</strong><br>'+esc(err.message||"เกิดข้อผิดพลาด")+'</div><div class="academic-delete-actions"><button type="button" class="secondary-btn" data-close-academic-delete>ปิด</button></div>';
+      const close=q("[data-close-academic-delete]",safeDeletePanel);
+      if(close)close.addEventListener("click",()=>{safeDeletePanel.classList.add("hidden");safeDeletePanel.innerHTML="";});
+      toast(err.message||"ตรวจสอบการลบไม่สำเร็จ","error");
+    }finally{
+      setBusy(button,false);
+    }
+  };
+  qa("[data-safe-delete-year]").forEach(btn=>btn.addEventListener("click",()=>openAcademicDeletePreview("year",btn.dataset.safeDeleteYear,btn)));
+  qa("[data-safe-delete-term]").forEach(btn=>btn.addEventListener("click",()=>openAcademicDeletePreview("term",btn.dataset.safeDeleteTerm,btn)));
 
   const programForm=q("#academic-program-form");
   const programPanel=q("[data-program-form-panel]");
