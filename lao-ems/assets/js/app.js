@@ -3642,7 +3642,7 @@ function academicSubjectsHtml(data,timeline){
             libraryRows+
             (!totalAvailable?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายวิชาที่เพิ่มแล้วจะแสดงในแท็บ “รายวิชาของโรงเรียน”</p></div>':'')+
           '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>'+
-          (canManage&&gradeCode?'<form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>เพิ่มรายวิชาใหม่ของโรงเรียน</strong><small>บันทึกไว้ในคลังของโรงเรียนและเพิ่มเข้าบริบทที่เลือกทันที</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท<div class="subject-custom-type">'+esc(scopeLabel)+'</div><input type="hidden" name="subject_type" value="'+esc(customDefaultType)+'"></label><label>รหัสวิชา<input name="subject_code" placeholder="เว้นว่างได้"></label><label class="wide">ชื่อรายวิชา / กิจกรรม <span class="required-mark">*</span><input name="subject_name" required></label><label>กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาไทย"></label><label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25"></label><label>ชม./ปี<input name="annual_hours" type="number" min="0" step="0.5"></label></div><div class="subject-custom-note">กิจกรรมรหัสเดียวกันแต่ผู้เรียนต่างกลุ่ม เช่น ลูกเสือ/เนตรนารี และลูกเสือ/ยุวกาชาด เก็บแยกชื่อได้และนับเวลาเพียงหนึ่งช่อง ส่วนวิชาเลือกต่างรหัสที่เรียนพร้อมกัน ให้เพิ่มรายวิชาก่อนแล้วรวมเป็น “กลุ่มเวลาเดียวกัน” ในแท็บรายวิชาที่เรียน</div><div class="subject-custom-actions"><button type="submit" class="primary-btn">บันทึกและเพิ่ม</button></div></form>':'')+
+          (canManage&&gradeCode?'<form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>สร้างรายวิชาใหม่ของโรงเรียน</strong><small>บันทึกเข้าคลังของโรงเรียนก่อน และแสดงรวมกับคลังกลางในรายการนี้</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท<div class="subject-custom-type">'+esc(scopeLabel)+'</div><input type="hidden" name="subject_type" value="'+esc(customDefaultType)+'"></label><label>รหัสวิชา<input name="subject_code" placeholder="เว้นว่างได้"></label><label class="wide">ชื่อรายวิชา / กิจกรรม <span class="required-mark">*</span><input name="subject_name" required></label><label class="wide">กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาไทย"></label></div><div class="subject-custom-note">เมื่อบันทึกแล้ว รายวิชาจะมีป้าย “ของโรงเรียน” และอยู่ในรายการเดียวกับคลังกลาง จากนั้นกด “＋ เพิ่ม” เมื่อต้องการนำไปใช้กับระดับชั้นที่เลือก</div><div class="subject-custom-actions"><button type="submit" class="primary-btn">บันทึกเข้าคลังโรงเรียน</button></div></form>':'')+
         '</div>')+
     '</section>'+
     '<section class="subject-bottom-note"><span>ขั้นถัดไป: ตรวจชั่วโมงและโครงสร้างเวลาเรียน</span><a href="#/academics/curriculum">ไปโครงสร้างเวลาเรียน →</a></section>'+
@@ -4438,25 +4438,22 @@ function bindAcademics(){
     const fd=new FormData(customSubjectForm),btn=customSubjectForm.querySelector('button[type="submit"]');
     const name=String(fd.get("subject_name")||"").trim();
     if(!name){toast("กรุณาระบุชื่อรายวิชา/กิจกรรม","error");return;}
-    const numOrNull=v=>String(v||"").trim()===""?null:Number(v);
     setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_add_subject_to_curriculum",{
+    const res=await supabase.rpc("lao_save_subject",{
       p_school_id:school.id,
-      p_academic_year_id:data.selected_year_id,
-      p_program_id:state.subjectProgramId||null,
-      p_grade_code:state.academicPresetGrade||"",
       p_subject_id:null,
       p_subject_code:String(fd.get("subject_code")||"").trim()||null,
-      p_subject_name:name,
+      p_name_th:name,
+      p_name_en:null,
       p_learning_area:String(fd.get("learning_area")||"").trim()||null,
       p_subject_type:String(fd.get("subject_type")||"additional"),
-      p_weekly_periods:numOrNull(fd.get("weekly_periods")),
-      p_annual_hours:numOrNull(fd.get("annual_hours"))
+      p_is_active:true,
+      p_sort_order:0
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.subjectWorkspaceView="selected";
-    toast("บันทึกไว้ในคลังของโรงเรียนและเพิ่มเข้าระดับชั้นแล้ว","success");
+    state.subjectWorkspaceView="library";
+    toast("บันทึกเข้าคลังรายวิชาของโรงเรียนแล้ว · กด “เพิ่ม” เมื่อต้องการใช้กับชั้นนี้","success");
     refreshSubjects();
   });
 
