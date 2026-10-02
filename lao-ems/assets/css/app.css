@@ -4758,3 +4758,54 @@ th,td{line-height:1.45}
   .subject-finder-create{align-items:stretch;flex-direction:column}
   .subject-finder-create .secondary-btn{width:100%}
 }
+
+
+/* LEC period context fallback — v0.18.4 */
+.lec-period-context{
+  margin:14px 0 0;
+  padding:14px;
+  border:1px solid #fedf89;
+  border-radius:14px;
+  background:#fffaeb;
+}
+.lec-period-context.success{
+  border-color:#abefc6;
+  background:#f6fef9;
+}
+.lec-period-context-copy strong{
+  display:block;
+  color:#93370d;
+  font-size:11px;
+}
+.lec-period-context.success .lec-period-context-copy strong{color:#067647}
+.lec-period-context-copy p{
+  margin:4px 0 0;
+  color:#667085;
+  font-size:9.5px;
+  line-height:1.5;
+}
+.lec-period-input-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+  margin-top:12px;
+}
+.lec-period-input-grid label{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  min-width:0;
+  color:#475467;
+  font-size:9px;
+  font-weight:800;
+}
+.lec-period-input-grid input,
+.lec-period-input-grid select{
+  width:100%;
+  min-width:0;
+  min-height:42px;
+}
+@media(max-width:700px){
+  .lec-period-context{padding:12px}
+  .lec-period-input-grid{grid-template-columns:1fr;gap:8px;margin-top:10px}
+}
