@@ -4017,6 +4017,7 @@ function academicSubjectsHtml(data,timeline){
     roomImpactHtml+
     copyYearHtml+
     compactReadiness+
+    curriculumFrameworkHtml+
     '<section class="panel subject-workspace-panel subjects-v2-panel">'+
       '<nav class="subject-workspace-tabs subjects-v2-tabs">'+
         '<button type="button" class="'+(workspaceView==="selected"?"active":"")+'" data-subject-workspace-view="selected">หลักสูตรของโรงเรียน <span>'+selectedCourses.length+'</span></button>'+
