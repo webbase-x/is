@@ -4009,7 +4009,6 @@ function academicSubjectsHtml(data,timeline){
   const subjectCompleteness=subjectWorkspace.subject_completeness
     ||(subjectReadiness.groups||[]).find(g=>g.grade_code===gradeCode&&(g.program_id||"")===(selectedProgram?selectedProgram.id:""))
     ||null;
-  const subjectGroupStatusByKey=new Map((subjectReadiness.groups||[]).map(g=>[(g.grade_code||"")+"|"+(g.program_id||""),g]));
 
   const scheduleSettings=readiness.schedule_settings||{configured:false};
   const totalGroups=Number(readiness.total_groups||0),confirmedGroups=Number(readiness.confirmed_groups||0);
@@ -4079,7 +4078,7 @@ function academicSubjectsHtml(data,timeline){
   const missingRequirementsHtml=missingRequirements.map(req=>{
     const term=req.term_no?'ภาค '+req.term_no+' · ':'';
     const choice=req.requirement_kind==="activity_choice"&&Array.isArray(req.choice_names)
-      ?'<small class="subject-requirement-choice">เลือกอย่างน้อย 1: '+req.choice_names.map(esc).join(' · ')+'</small>'
+      ?'<small class="subject-requirement-choice">กิจกรรมนักเรียน · เลือกอย่างน้อย 1: '+req.choice_names.map(esc).join(' · ')+'</small>'
       :'';
     const decision=req.decision==="not_used"
       ?'<div class="subject-requirement-decision warning"><strong>ระบุว่าไม่นำมาใช้</strong><span>'+esc(req.decision_note||"ยังไม่ระบุเหตุผล")+' · สถานะนี้ยังไม่นับว่าครบ</span></div>'
@@ -4108,7 +4107,7 @@ function academicSubjectsHtml(data,timeline){
   const subjectCompletenessHtml='<section class="panel subject-completeness-panel '+(subjectOverallComplete?"complete":"")+'">'+
     '<div class="subject-completeness-overview">'+
       '<div class="subject-completeness-ring '+(subjectOverallComplete?"complete":"")+'" style="--progress:'+Math.max(0,Math.min(100,subjectOverallPct))+'%"><div>'+(subjectOverallComplete?'<strong>✓</strong><small>100%</small>':'<strong>'+subjectOverallPct+'%</strong><small>รายวิชาครบ</small>')+'</div></div>'+
-      '<div class="subject-completeness-summary"><p class="eyebrow">SUBJECT COMPLETENESS</p><h3>'+(subjectOverallComplete?'รายวิชาครบทุกระดับ/โปรแกรมแล้ว':'ตรวจความครบถ้วนรายวิชา')+'</h3><p>ผ่าน '+Number(subjectReadiness.completed_groups||0)+' จาก '+Number(subjectReadiness.total_groups||0)+' กลุ่มระดับชั้น/โปรแกรม · ความครอบคลุมข้อกำหนด '+Number(subjectReadiness.coverage_percent||0)+'%</p><small>รายวิชาเพิ่มเติมเป็นทางเลือกและไม่ทำให้ร้อยละลด · ชั่วโมงเรียนตรวจในขั้น “โครงสร้างเวลาเรียน”</small></div>'+
+      '<div class="subject-completeness-summary"><p class="eyebrow">SUBJECT COMPLETENESS</p><h3>'+(subjectOverallComplete?'รายวิชาครบทุกระดับ/โปรแกรมแล้ว':'ตรวจความครบถ้วนรายวิชา')+'</h3><p>ผ่าน '+Number(subjectReadiness.completed_groups||0)+' จาก '+Number(subjectReadiness.total_groups||0)+' กลุ่มระดับชั้น/โปรแกรม · ความครอบคลุมข้อกำหนด '+Number(subjectReadiness.coverage_percent||0)+'%</p><small>รายวิชาเพิ่มเติมเป็นทางเลือกและไม่ทำให้ร้อยละลด · ชั่วโมงเรียนตรวจในขั้น “โครงสร้างเวลาเรียน”</small>'+(subjectOverallComplete?'<a class="primary-btn compact-btn subject-completeness-next" href="#/academics/curriculum">พร้อมไปขั้นถัดไป → โครงสร้างเวลาเรียน</a>':'')+'</div>'+
       '<div class="subject-current-completeness '+(subjectCurrentComplete?"complete":"warning")+'"><strong>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>'+(subjectCompleteness?Number(subjectCompleteness.completion_percent||0):0)+'%</span><small>'+(subjectCurrentComplete?'✓ ครบ '+Number(subjectCompleteness.met_count||0)+'/'+Number(subjectCompleteness.required_count||0)+' ข้อกำหนด':'ขาด '+Number(subjectCompleteness&&subjectCompleteness.missing_count||0)+' · ผิดปกติ '+Number(subjectCompleteness&&subjectCompleteness.anomaly_count||0))+'</small></div>'+
     '</div>'+
     '<div class="subject-completeness-groups">'+subjectGroupsHtml+'</div>'+
