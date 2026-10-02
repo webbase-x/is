@@ -4285,34 +4285,23 @@ function bindAcademics(){
     state.subjectSetupTab=btn.dataset.subjectSetupTab||"target";
     renderRoute();
   }));
-  qa("[data-subject-catalog-grade]").forEach(btn=>btn.addEventListener("click",()=>{
-    const gradeCode=btn.dataset.subjectCatalogGrade||"";
-    state.academicPresetGrade=gradeCode;
-    state.academicFilters={
-      grade_label:academicGradeLabelFromCode(gradeCode),
-      program_id:state.subjectProgramId||""
-    };
-    state.subjectSetupTab="type";
-    state.subjectWorkspaceData=null;
-    state.subjectWorkspaceView="library";
-    renderRoute();
-  }));
-  qa("[data-subject-selected-grade]").forEach(btn=>btn.addEventListener("click",()=>{
-    const gradeCode=btn.dataset.subjectSelectedGrade||"";
+  qa("[data-subject-context-grade]").forEach(btn=>btn.addEventListener("click",()=>{
+    const gradeCode=btn.dataset.subjectContextGrade||"";
     state.academicPresetGrade=gradeCode;
     state.academicFilters={
       grade_label:academicGradeLabelFromCode(gradeCode),
       program_id:state.subjectProgramId||""
     };
     state.subjectWorkspaceData=null;
-    state.subjectWorkspaceView="selected";
     renderRoute();
   }));
   qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectProgramId=btn.dataset.subjectTarget||"";
-    state.subjectSetupTab="grade";
+    state.academicFilters={
+      grade_label:"",
+      program_id:state.subjectProgramId||""
+    };
     state.subjectWorkspaceData=null;
-    state.subjectWorkspaceView="library";
     state.academicPreset=null;
     renderRoute();
   }));
