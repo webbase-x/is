@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.6";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.7";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3480,23 +3480,32 @@ function academicSubjectsHtml(data,timeline){
     activityCodeCounts.set(key,(activityCodeCounts.get(key)||0)+1);
   });
 
-  const selectedRows=shownCourses.map(c=>{
+  const selectedCardHtml=c=>{
     const weekly=(c.term_plans||[]).find(t=>t.weekly_periods!=null);
     const inherited=c._origin==="inherited";
     const pg=parallelByCourseId.get(c.id)||null;
     const canGroup=canManage&&!inherited&&!pg;
     return '<article class="subject-selected-card '+(pg?"in-parallel-group":"")+'">'+
       (canGroup?'<label class="subject-group-check" title="เลือกเพื่อรวมเป็นกลุ่มเวลาเดียวกัน"><input type="checkbox" data-parallel-course="'+esc(c.id)+'"><span></span></label>':'')+
-      '<div class="subject-card-main"><div class="subject-code-box">'+esc(c.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(c.subject_name)+'</strong><small>'+esc(typeLabel[c.subject_type]||"อื่น ๆ")+(c.learning_area?' · '+esc(c.learning_area):'')+'</small></div></div>'+
+      '<div class="subject-card-main"><div class="subject-code-box">'+esc(c.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(c.subject_name)+'</strong><small>'+(c.learning_area?esc(c.learning_area):esc(typeLabel[c.subject_type]||"อื่น ๆ"))+'</small></div></div>'+
       '<div class="subject-card-hours"><span><b>'+(weekly?Number(weekly.weekly_periods).toLocaleString("th-TH"):"—")+'</b><small>คาบ/สัปดาห์</small></span><span><b>'+(c.annual_hours!=null?Number(c.annual_hours).toLocaleString("th-TH"):"—")+'</b><small>ชม./ปี</small></span></div>'+
       '<div class="subject-card-action">'+
         (pg?'<span class="subject-origin grouped">กลุ่ม '+esc(pg.name)+' · นับ '+Number(pg.weekly_periods||0).toLocaleString("th-TH")+' คาบ</span>':'')+
         (!pg&&c.subject_type==="activity"&&c.subject_code&&(activityCodeCounts.get(String(c.subject_code).trim().toLowerCase())||0)>1?'<span class="subject-origin grouped">รหัสเดียวกัน · นับรวม 1 ช่องเวลา</span>':'')+
-        (inherited?'<span class="subject-origin inherited">รับจากห้องปกติ</span>':'<span class="subject-origin direct">ของกลุ่มนี้</span>')+
+        (inherited?'<span class="subject-origin inherited">รับจากห้องปกติ</span>':'')+
         (canManage?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+
       '</div>'+
     '</article>';
-  }).join("");
+  };
+  const selectedByType={
+    basic:shownCourses.filter(c=>c.subject_type==="basic"),
+    additional:shownCourses.filter(c=>c.subject_type==="additional"),
+    activity:shownCourses.filter(c=>c.subject_type==="activity"),
+    other:shownCourses.filter(c=>c.subject_type==="other")
+  };
+  const selectedGroupHtml=(type,title,note)=>'<section class="subject-type-section"><div class="subject-type-head"><div><h3>'+title+'</h3><p>'+note+'</p></div><span>'+selectedByType[type].length+' รายการ</span></div>'+
+    (selectedByType[type].length?'<div class="subject-selected-list">'+selectedByType[type].map(selectedCardHtml).join("")+'</div>':'<div class="subject-type-empty">ยังไม่มีรายการในหมวดนี้</div>')+
+  '</section>';
 
   const centralRows=centralAvailable.map(x=>
     '<article class="subject-library-card" data-subject-library-item data-search-text="'+esc(((x.subject_code||"")+" "+x.subject_name+" "+(x.learning_area||"")+" ฐานกลาง").toLowerCase())+'">'+
@@ -3517,11 +3526,7 @@ function academicSubjectsHtml(data,timeline){
 
   const gradeTabs=targetGrades.map(g=>{
     const code=academicGradeCode(g)||"",rooms=targetClasses.filter(c=>c.grade_label===g).length;
-    return '<button type="button" class="'+(code===gradeCode?"active":"")+'" data-subject-catalog-grade="'+esc(code)+'">'+esc(shortGrade(g))+' <span>'+rooms+'</span></button>';
-  }).join("");
-  const selectedGradeTabs=targetGrades.map(g=>{
-    const code=academicGradeCode(g)||"",rooms=targetClasses.filter(c=>c.grade_label===g).length;
-    return '<button type="button" class="'+(code===gradeCode?"active":"")+'" data-subject-selected-grade="'+esc(code)+'">'+esc(shortGrade(g))+' <span>'+rooms+'</span></button>';
+    return '<button type="button" class="'+(code===gradeCode?"active":"")+'" data-subject-context-grade="'+esc(code)+'">'+esc(shortGrade(g))+' <span>'+rooms+'</span></button>';
   }).join("");
   const targetTabs='<button type="button" class="'+(!selectedProgram?"active":"")+'" data-subject-target="">ห้องปกติ <span>'+classes.filter(c=>!c.program_id).length+'</span></button>'+
     actualPrograms.map(p=>'<button type="button" class="'+(selectedProgram&&p.id===selectedProgram.id?"active":"")+'" data-subject-target="'+esc(p.id)+'">'+esc(p.name_th)+' <span>'+classes.filter(c=>c.program_id===p.id).length+'</span></button>').join("");
@@ -3589,69 +3594,47 @@ function academicSubjectsHtml(data,timeline){
     '</section>'
     :(parallelGroupCards?'<section class="subject-parallel-tools"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>ระบบนับเวลาของแต่ละกลุ่มเพียงครั้งเดียว</small></div></div><div class="parallel-group-list">'+parallelGroupCards+'</div></section>':'');
 
-  return '<section class="academic-page subjects-workspace subject-library-workspace">'+academicNavHtml("subjects",data)+
-    '<section class="panel subjects-compact-head"><div><p class="eyebrow">SUBJECT WORKSPACE</p><h2>จัดรายวิชาของสถานศึกษา</h2><p class="panel-sub">รายวิชาของโรงเรียนแสดงครบทุกประเภทตามระดับชั้น ส่วนการเลือกกลุ่มห้อง ระดับชั้น และประเภท ใช้เมื่อต้องการเพิ่มรายวิชาจากคลัง</p></div><div class="subjects-context-chips">'+
-      (year?'<span>ปี '+esc(year.year_be)+'</span>':'')+'<span>'+allSchoolGrades.length+' ระดับชั้น</span><span>'+classes.length+' ห้อง</span><span>'+actualPrograms.length+' โปรแกรมพิเศษ</span>'+
+  const centralOnlyCount=centralAvailable.length;
+  const centralRowsOnly=centralRows;
+  const compactReadiness='<section class="subject-readiness-strip '+currentStatusClass+'"><div><strong>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>'+esc(currentStatusLabel)+(weeklyCapacity!=null?' · '+weeklyTotal.toLocaleString("th-TH")+' / '+weeklyCapacity.toLocaleString("th-TH")+' คาบ/สัปดาห์':'')+'</span></div><a href="#/academics/curriculum">ตรวจโครงสร้างเวลาเรียน →</a></section>';
+  const schoolGroups=
+    selectedGroupHtml("basic","รายวิชาพื้นฐาน","รายวิชาที่ใช้ตามโครงสร้างหลักสูตรของระดับชั้นนี้")+
+    selectedGroupHtml("additional","รายวิชาเพิ่มเติม","รายวิชาที่สถานศึกษากำหนดเพิ่มเติมตามหลักสูตรสถานศึกษา")+
+    selectedGroupHtml("activity","กิจกรรมพัฒนาผู้เรียน","แนะแนว กิจกรรมนักเรียน ชุมนุม และกิจกรรมเพื่อสังคมฯ")+
+    (selectedByType.other.length?selectedGroupHtml("other","อื่น ๆ","รายการเฉพาะที่โรงเรียนกำหนด"):"");
+
+  return '<section class="academic-page subjects-workspace subjects-workspace-v2">'+academicNavHtml("subjects",data)+
+    '<section class="panel subjects-v2-head"><div><p class="eyebrow">SUBJECTS</p><h2>รายวิชา</h2><p class="panel-sub">เลือกจากคลังมาตรฐานส่วนกลาง แล้วนำมาใช้เป็นหลักสูตรของโรงเรียนในระดับชั้นที่ต้องการ</p></div><div class="subjects-context-chips">'+
+      (year?'<span>ปี '+esc(year.year_be)+'</span>':'')+'<span>'+allSchoolGrades.length+' ระดับชั้น</span><span>'+classes.length+' ห้อง</span>'+
     '</div></section>'+
-
-    '<section class="subject-timeline-strip">'+stepChip("subjects")+'<b>→</b>'+stepChip("curriculum")+'<b>→</b>'+stepChip("workload")+'</section>'+
-
-    '<section class="panel curriculum-readiness-card '+currentStatusClass+'">'+
-      '<div class="curriculum-readiness-main"><div><p class="eyebrow">CURRICULUM CHECK</p><h3>ตรวจความครบของโครงสร้างเวลาเรียน</h3><p>'+esc(targetLabel)+' · '+esc(shortGrade(gradeLabel))+' · <strong>'+esc(currentStatusLabel)+'</strong></p></div>'+
-      '<div class="curriculum-readiness-progress"><strong>'+confirmedGroups+'/'+totalGroups+'</strong><span>ชุดที่ยืนยันแล้ว</span><div><i style="width:'+completionPct+'%"></i></div></div></div>'+
-      '<div class="schedule-capacity-bar">'+
-        (scheduleSettings.configured
-          ?'<div><strong>'+Number(scheduleSettings.school_days_per_week||0)+' วัน × '+Number(scheduleSettings.periods_per_day||0).toLocaleString("th-TH")+' คาบ</strong><small>'+Number(scheduleSettings.minutes_per_period||0)+' นาที/คาบ · '+Number(scheduleSettings.instructional_weeks_per_year||0).toLocaleString("th-TH")+' สัปดาห์/ปี</small></div><button type="button" class="secondary-btn compact-btn" data-toggle-schedule-settings>แก้เวลาเรียน</button>'
-          :'<div><strong>ยังไม่ได้กำหนดโครงสร้างเวลาเรียนของปีนี้</strong><small>กำหนดวันเรียน คาบต่อวัน นาทีต่อคาบ และสัปดาห์เรียนต่อปี</small></div>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-toggle-schedule-settings>ตั้งค่าเวลาเรียน</button>':''))+
-      '</div>'+
-      (currentGroup?'<div class="curriculum-readiness-metrics">'+
-        '<span class="'+(weeklyCapacity!=null&&Math.abs(periodGap||0)<.001?"ok":"warn")+'">จัดแล้ว <b>'+weeklyTotal.toLocaleString("th-TH")+(weeklyCapacity!=null?' / '+weeklyCapacity.toLocaleString("th-TH"):'')+'</b> คาบ/สัปดาห์</span>'+
-        (weeklyCapacity!=null?'<span class="'+(Math.abs(periodGap||0)<.001?"ok":"warn")+'">'+(Math.abs(periodGap||0)<.001?'คาบครบ':periodGap>0?'ยังขาด '+Math.abs(periodGap).toLocaleString("th-TH")+' คาบ':'เกิน '+Math.abs(periodGap).toLocaleString("th-TH")+' คาบ')+'</span>':'')+
-        '<span class="'+(issueCount?"warn":"ok")+'">ไม่กำหนดคาบ <b>'+issueCount+'</b> รายการ</span>'+
-        (parallelVariants?'<span class="'+(parallelMismatch?"warn":"ok")+'">ทางเลือกนับรวม <b>'+parallelVariants+'</b> รายการ'+(parallelMismatch?' · คาบไม่ตรงกัน':'')+'</span>':'')+
-        '<span>ประมาณ <b>'+Number(currentGroup.annual_hours_total||0).toLocaleString("th-TH")+'</b> ชม./ปี</span>'+
-        (recommendedMissing?'<span class="warn">ฐานกลางควรตรวจ '+recommendedMissing+' รายการ</span>':'')+
-      '</div>':'')+
-      (canManage?'<form class="schedule-settings-form hidden" data-schedule-settings-form>'+
-        '<div class="schedule-settings-grid"><label>วันเรียน/สัปดาห์<input name="school_days_per_week" type="number" min="1" max="7" step="1" value="'+esc(scheduleSettings.school_days_per_week??"")+'" placeholder="เช่น 5" required></label>'+
-        '<label>คาบเรียน/วัน<input name="periods_per_day" type="number" min="1" max="20" step="0.5" value="'+esc(scheduleSettings.periods_per_day??"")+'" placeholder="เช่น 7" required></label>'+
-        '<label>นาที/คาบ<input name="minutes_per_period" type="number" min="20" max="120" step="5" value="'+esc(scheduleSettings.minutes_per_period??"")+'" placeholder="เช่น 60" required></label>'+
-        '<label>สัปดาห์เรียน/ปี<input name="instructional_weeks_per_year" type="number" min="1" max="60" step="0.5" value="'+esc(scheduleSettings.instructional_weeks_per_year??"")+'" placeholder="เช่น 40" required></label></div>'+
-        '<div class="schedule-settings-note">จำนวนคาบต่อสัปดาห์ = วันเรียน × คาบต่อวัน ส่วนชั่วโมงต่อปีคำนวณจากคาบ × นาที/คาบ × สัปดาห์เรียน</div>'+
-        '<div class="schedule-settings-actions"><button type="button" class="text-btn" data-close-schedule-settings>ยกเลิก</button><button type="submit" class="primary-btn">บันทึกเวลาเรียน</button></div>'+
-      '</form>':'')+
-      '<div class="curriculum-readiness-actions">'+
-        (currentStatus==="confirmed"?'<span class="readiness-confirmed">✓ ยืนยันแล้ว หากเพิ่ม/นำออกวิชาหรือแก้เวลา ระบบจะให้ยืนยันใหม่อัตโนมัติ</span>':
-          currentGroup&&currentGroup.is_ready_to_confirm&&canManage?'<button type="button" class="primary-btn" data-confirm-curriculum-structure>ยืนยันว่าโครงสร้างครบ</button>':
-          currentStatus==="needs_schedule_settings"?'<span class="readiness-help">ตั้งค่าเวลาเรียนก่อน ระบบจึงตรวจจำนวนคาบได้</span>':
-          currentStatus==="parallel_time_mismatch"?'<span class="readiness-help">กิจกรรม/วิชาทางเลือกที่ใช้รหัสเดียวกันควรกำหนดคาบเท่ากัน เพราะนับเป็นช่องเวลาเดียว</span>':
-          currentStatus==="needs_periods"||currentStatus==="over_periods"?'<span class="readiness-help">ปรับคาบ/สัปดาห์ให้ตรงกับจำนวนคาบเรียนของโรงเรียน</span>':
-          issueCount?'<a class="secondary-btn" href="#/academics/curriculum">กำหนดคาบที่ยังขาด</a>':
-          '<span class="readiness-help">เพิ่มรายวิชาให้ครบตามโครงสร้างของโรงเรียน</span>')+
-      '</div>'+
+    '<section class="panel subjects-v2-context">'+
+      (actualPrograms.length?'<div class="subjects-v2-context-row"><div><strong>กลุ่มห้อง / โปรแกรม</strong><small>เลือกบริบทที่จะจัดรายวิชา</small></div><div class="subject-target-tabs">'+targetTabs+'</div></div>':'')+
+      '<div class="subjects-v2-context-row"><div><strong>ระดับชั้น</strong><small>แสดงเฉพาะระดับที่มีห้องจริงจาก LEC</small></div><div class="subject-grade-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับชั้น</span>')+'</div></div>'+
+      (earlyChildhoodCount?'<div class="subject-early-note">ระดับอนุบาลใช้หลักสูตรการศึกษาปฐมวัย จึงแยกออกจากหน้ารายวิชาขั้นพื้นฐาน</div>':'')+
     '</section>'+
-
-    '<section class="panel subject-workspace-panel">'+
-      '<nav class="subject-workspace-tabs">'+
-        '<button type="button" class="'+(workspaceView==="selected"?"active":"")+'" data-subject-workspace-view="selected">รายวิชาของโรงเรียน <span>'+selectedCourses.length+'</span></button>'+
-        '<button type="button" class="'+(workspaceView==="library"?"active":"")+'" data-subject-workspace-view="library">รายการรายวิชาจากคลัง <span>'+totalAvailable+'</span></button>'+
+    compactReadiness+
+    '<section class="panel subject-workspace-panel subjects-v2-panel">'+
+      '<nav class="subject-workspace-tabs subjects-v2-tabs">'+
+        '<button type="button" class="'+(workspaceView==="selected"?"active":"")+'" data-subject-workspace-view="selected">หลักสูตรของโรงเรียน <span>'+selectedCourses.length+'</span></button>'+
+        '<button type="button" class="'+(workspaceView==="library"?"active":"")+'" data-subject-workspace-view="library">คลังมาตรฐานส่วนกลาง <span>'+centralOnlyCount+'</span></button>'+
       '</nav>'+
       (workspaceView==="selected"
-        ?'<div class="subject-workspace-content"><section class="subject-selected-grade-filter"><div class="subject-setup-panel-head"><strong>เลือกระดับชั้น</strong><small>เลือกชั้นเพื่อดูรายวิชาของโรงเรียนเฉพาะระดับนั้น</small></div><div class="subject-grade-tabs">'+(selectedGradeTabs||'<span class="muted">ยังไม่มีระดับชั้นในกลุ่มห้องนี้</span>')+'</div></section><div class="subject-workspace-head"><div><h2>รายวิชาของโรงเรียน · '+esc(shortGrade(gradeLabel))+'</h2><p>'+esc(targetLabel)+' · แสดงรายวิชาทุกประเภทของระดับชั้นนี้ที่เพิ่มเข้าฐานโรงเรียนแล้ว</p></div><div class="subject-workspace-head-actions"><button type="button" class="secondary-btn compact-btn" data-open-subject-library>＋ รายการจากคลัง</button><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div></div>'+
+        ?'<div class="subject-workspace-content subjects-v2-content">'+
+          '<div class="subject-workspace-head"><div><h2>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</h2><p>รายวิชาที่โรงเรียนเลือกใช้จริง แยกตามประเภทวิชาอย่างชัดเจน</p></div><div class="subject-workspace-head-actions"><button type="button" class="primary-btn compact-btn" data-open-subject-library>＋ เพิ่มจากคลังกลาง</button><button type="button" class="secondary-btn compact-btn" data-toggle-custom-subject>＋ สร้างวิชาเพิ่มเติม</button><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div></div>'+
           parallelTools+
-          (selectedRows?'<div class="subject-selected-list">'+selectedRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายวิชาในฐานของระดับชั้นนี้</h3><p>เพิ่มจากฐานรายวิชาของโรงเรียน หรือเลือกจากคลังรายวิชากลาง</p>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-open-subject-library>＋ เพิ่มรายวิชา</button>':'')+'</div>')+'</div>'
-        :'<div class="subject-workspace-content subject-library-content">'+catalogSetupHtml+
-          '<div class="subject-workspace-head"><div><h2>รายการรายวิชาจากคลัง</h2><p>'+esc(scopeLabel)+' · '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · รวมคลังกลางและรายวิชาที่โรงเรียนสร้างไว้ในรายการเดียวกัน</p></div>'+(canManage&&gradeCode?'<button type="button" class="secondary-btn compact-btn" data-toggle-custom-subject>＋ สร้างรายวิชาใหม่ของโรงเรียน</button>':'')+'</div>'+
-          '<div class="subject-library-source-legend"><span><i class="central"></i>คลังกลาง</span><span><i class="school"></i>ของโรงเรียน</span><small>เมื่อเพิ่มจากคลังกลาง ระบบจะบันทึกเป็นรายวิชาของโรงเรียนก่อนนำไปใช้ในชั้นที่เลือก</small></div>'+
-          (totalAvailable>4?'<label class="subject-library-search"><span>ค้นหารายวิชา <b>'+totalAvailable+' รายการ</b></span><input type="search" data-subject-library-search placeholder="ค้นหารหัส ชื่อวิชา หรือกลุ่มสาระ"></label>':'')+
-          '<div class="subject-library-list" data-subject-library-list>'+
-            libraryRows+
-            (!totalAvailable?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายวิชาที่เพิ่มแล้วจะแสดงในแท็บ “รายวิชาของโรงเรียน”</p></div>':'')+
-          '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>'+
-          (canManage&&gradeCode?'<form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>สร้างรายวิชาใหม่ของโรงเรียน</strong><small>บันทึกเข้าคลังของโรงเรียนก่อน และแสดงรวมกับคลังกลางในรายการนี้</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><label>ประเภท<div class="subject-custom-type">'+esc(scopeLabel)+'</div><input type="hidden" name="subject_type" value="'+esc(customDefaultType)+'"></label><label>รหัสวิชา<input name="subject_code" placeholder="เว้นว่างได้"></label><label class="wide">ชื่อรายวิชา / กิจกรรม <span class="required-mark">*</span><input name="subject_name" required></label><label class="wide">กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาไทย"></label></div><div class="subject-custom-note">เมื่อบันทึกแล้ว รายวิชาจะมีป้าย “ของโรงเรียน” และอยู่ในรายการเดียวกับคลังกลาง จากนั้นกด “＋ เพิ่ม” เมื่อต้องการนำไปใช้กับระดับชั้นที่เลือก</div><div class="subject-custom-actions"><button type="submit" class="primary-btn">บันทึกเข้าคลังโรงเรียน</button></div></form>':'')+
+          schoolGroups+
+          (canManage&&gradeCode?'<form id="subject-library-custom-form" class="subject-custom-form hidden"><div class="subject-custom-form-head"><div><strong>สร้างรายวิชาเพิ่มเติมของโรงเรียน</strong><small>ผูกกับ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' โดยตรง ไม่เพิ่มเข้าคลังมาตรฐานส่วนกลาง</small></div><button type="button" class="text-btn" data-close-custom-subject>ปิด</button></div><div class="subject-custom-grid"><input type="hidden" name="subject_type" value="additional"><label>รหัสวิชา<input name="subject_code" placeholder="เช่น ท11201"></label><label class="wide">ชื่อรายวิชา <span class="required-mark">*</span><input name="subject_name" required></label><label class="wide">กลุ่มสาระ / หมวด<input name="learning_area" placeholder="เช่น ภาษาไทย"></label></div><div class="subject-custom-note">รายวิชาเพิ่มเติมเป็นส่วนของหลักสูตรสถานศึกษา โรงเรียนกำหนดชื่อ รหัส และเวลาเรียนตามบริบทของตนเอง</div><div class="subject-custom-actions"><button type="submit" class="primary-btn">สร้างและเพิ่มในชั้นนี้</button></div></form>':'')+
+        '</div>'
+        :'<div class="subject-workspace-content subjects-v2-content subject-library-content">'+
+          '<div class="subject-ministry-note"><div><strong>คลังมาตรฐานส่วนกลาง</strong><p>รวบรวมรหัส ชื่อรายวิชา ประเภท และระดับชั้นตามกรอบ/ตัวอย่างการจัดหลักสูตรของกระทรวงศึกษาธิการ โดยโรงเรียนเลือกนำไปใช้ แล้วกำหนดเวลาเรียนในหลักสูตรสถานศึกษาของตนเอง</p></div><span>ส่วนกลาง</span></div>'+
+          '<div class="subject-library-toolbar"><div class="subject-scope-tabs">'+scopeTabs+'</div>'+(centralOnlyCount>4?'<label class="subject-library-search"><input type="search" data-subject-library-search placeholder="ค้นหารหัส ชื่อวิชา หรือกลุ่มสาระ"></label>':'')+'</div>'+
+          (scope==="additional"
+            ?'<div class="subject-guidance-box"><strong>รายวิชาเพิ่มเติม</strong><p>ไม่มีรายการบังคับชุดเดียวสำหรับทุกโรงเรียน ให้สร้างในแท็บ “หลักสูตรของโรงเรียน” ตามหลักสูตรสถานศึกษา</p>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-subject-workspace-view="selected">ไปสร้างวิชาเพิ่มเติม</button>':'')+'</div>'
+            :'<div class="subject-library-list" data-subject-library-list>'+centralRowsOnly+
+              (!centralOnlyCount?'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีรายการที่ยังเพิ่มได้</h3><p>รายการของ '+esc(shortGrade(gradeLabel))+' ในหมวดนี้ถูกนำมาใช้ในหลักสูตรโรงเรียนแล้ว</p></div>':'')+
+            '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>')+
         '</div>')+
     '</section>'+
-    '<section class="subject-bottom-note"><span>ขั้นถัดไป: ตรวจชั่วโมงและโครงสร้างเวลาเรียน</span><a href="#/academics/curriculum">ไปโครงสร้างเวลาเรียน →</a></section>'+
   '</section>';
 }
 function academicCurriculumHtml(data){
