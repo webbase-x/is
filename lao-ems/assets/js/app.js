@@ -4884,20 +4884,6 @@ function bindAcademics(){
     toast("ยืนยันโปรแกรมพิเศษสำหรับปีการศึกษานี้แล้ว","success");
     renderRoute();
   }));
-  qa("[data-program-general-only]").forEach(btn=>btn.addEventListener("click",async()=>{
-    if(!school)return;
-    setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_update_department_setup_step",{
-      p_school_id:school.id,
-      p_department_code:"academics",
-      p_step_code:"programs",
-      p_action:"skip"
-    });
-    setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    toast("บันทึกแล้ว: ใช้ห้องปกติ / ไม่มีโปรแกรมพิเศษ","success");
-    renderRoute();
-  }));
   qa("[data-reset-program-form]").forEach(btn=>btn.addEventListener("click",()=>{resetProgram();showProgramForm();}));
   qa("[data-edit-program]").forEach(btn=>btn.addEventListener("click",()=>{
     const p=(data.programs||[]).find(x=>x.id===btn.dataset.editProgram);if(!p||!programForm)return;
