@@ -2886,7 +2886,7 @@ function bindDepartmentSetupTimeline(){
     toast(action==="skip"?"ข้ามขั้นนี้สำหรับปีที่เลือกแล้ว":"เปิดขั้นตอนกลับมาดำเนินการแล้ว","success");
     renderRoute();
   }));
-  qa("[data-department-setup-action].forEach(btn=>btn.addEventListener("click",async()=>{
+  qa("[data-department-setup-action]").forEach(btn=>btn.addEventListener("click",async()=>{
     const action=btn.dataset.departmentSetupAction;
     const department=btn.dataset.departmentCode;
     const step=btn.dataset.stepCode;
