@@ -28,8 +28,7 @@ where p.id=t.preset_item_id
 
 update public.lao_curriculum_preset_items p
 set weekly_periods=null,
-    annual_hours=null,
-    updated_at=now()
+    annual_hours=null
 from public.lao_central_subject_time_templates t
 where t.preset_item_id=p.id
   and t.band_requirement_code='MUP_HISTORY';
