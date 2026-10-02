@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.9";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.0";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3178,7 +3178,7 @@ async function loadAcademicCurriculumPreset(data,programIdOverride){
   }
   const schoolGradeSet=new Set(academicCurriculumGradeCodes(data));
   const preset=res.data||null;
-  if(preset){
+  if(preset&&schoolGradeSet.size){
     preset.supported_grades=(preset.supported_grades||[]).filter(g=>schoolGradeSet.has(g.grade_code));
     preset.items=(preset.items||[]).filter(g=>schoolGradeSet.has(g.grade_code));
     preset.school_grade_codes=Array.from(schoolGradeSet);
@@ -3232,9 +3232,11 @@ async function loadAcademicStructure(){
   state.academicData=res.data||{};
   state.academicData.classes=(state.academicData.classes||[]).filter(x=>x&&x.source_type==="lec"&&x.is_active!==false);
   const schoolGradeSet=new Set(academicSchoolGradeCodes(state.academicData));
-  state.academicData.courses=(state.academicData.courses||[]).filter(c=>schoolGradeSet.has(c.grade_code||academicGradeCode(c.grade_label)));
+  if(schoolGradeSet.size){
+    state.academicData.courses=(state.academicData.courses||[]).filter(c=>schoolGradeSet.has(c.grade_code||academicGradeCode(c.grade_label)));
+  }
   state.academicData.grade_context={
-    source:"lec",
+    source:schoolGradeSet.size?"lec":"pending_lec",
     grade_codes:Array.from(schoolGradeSet),
     grade_labels:academicSchoolGradeRows(state.academicData).map(x=>x.grade_label)
   };
@@ -3269,6 +3271,19 @@ async function academicDashboardHtml(data){
     '<section class="academic-next-note"><span>ขั้นถัดไป</span><div><strong>ตารางเรียน / ตารางสอน</strong><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นฐานในการจัดตาราง เพื่อลดการกรอกชื่อครู รายวิชา และห้องเรียนซ้ำ</p></div></section>'+
   '</section>';
 }
+function academicEndDateAfter200Weekdays(startIso){
+  if(!startIso)return "";
+  const d=new Date(startIso+"T12:00:00");
+  if(Number.isNaN(d.getTime()))return "";
+  let count=0;
+  while(count<200){
+    const day=d.getDay();
+    if(day!==0&&day!==6)count++;
+    if(count<200)d.setDate(d.getDate()+1);
+  }
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
+  return y+"-"+m+"-"+day;
+}
 function academicPeriodsHtml(data){
   const years=data.years||[],canManage=Boolean(data.can_manage);
   const yearCards=years.map(y=>{
@@ -3276,11 +3291,11 @@ function academicPeriodsHtml(data){
     return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-add-term="'+esc(y.id)+'">＋ เพิ่มภาคเรียน</button><button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
   }).join("");
   return '<section class="academic-page">'+academicNavHtml("periods",data)+
-    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">ข้อมูลจาก LEC ที่มีอยู่จะคงไว้ และสามารถเพิ่มปีการศึกษาใหม่เพื่อใช้กับงานวิชาการของปีปัจจุบันได้</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">ฝ่ายวิชาการเพิ่มปีการศึกษาได้เองก่อนข้อมูล LEC จะออก เมื่อกำหนดวันเริ่ม ระบบช่วยคำนวณวันสิ้นสุดจากวันเรียน จ.–ศ. 200 วัน และแก้ไขภายหลังได้</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
       '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
     '</section>'+
     (canManage?'<section class="academic-edit-grid">'+
-      '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">เมื่อเพิ่มปีใหม่ ระบบจะสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2569"></label><label>วันเริ่มปีการศึกษา<input name="starts_on" type="date"></label><label>วันสิ้นสุดปีการศึกษา<input name="ends_on" type="date"></label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
+      '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">สร้างได้ก่อน LEC เปิดปีใหม่ · ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2570"></label><label>วันเริ่มปีการศึกษา<input name="starts_on" type="date"></label><label>วันสิ้นสุดปีการศึกษา<input name="ends_on" type="date"></label><div class="academic-year-auto-note span-all">เมื่อเลือกวันเริ่ม ระบบจะเติมวันสิ้นสุดเป็นวันเรียนลำดับที่ 200 โดยนับวันจันทร์–ศุกร์เบื้องต้น ไม่หักวันหยุดราชการ และสามารถแก้วันที่ได้เองภายหลัง</div><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
       '<article class="panel hidden" data-term-form-panel><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม<input name="starts_on" type="date"></label><label>วันสิ้นสุด<input name="ends_on" type="date"></label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
     '</section>':'')+
   '</section>';
@@ -3403,16 +3418,18 @@ function academicSubjectsHtml(data,timeline){
   const targetLabel=selectedProgram?selectedProgram.name_th:"ห้องปกติ";
   const targetClasses=classes.filter(c=>selectedProgram?c.program_id===selectedProgram.id:!c.program_id);
   const supportedGradeSet=new Set((preset.supported_grades||[]).map(g=>g.grade_code));
-  const targetGrades=Array.from(new Set(targetClasses.map(c=>c.grade_label).filter(Boolean)))
+  const targetGrades=(targetClasses.length
+    ?Array.from(new Set(targetClasses.map(c=>c.grade_label).filter(Boolean)))
+    :(preset.supported_grades||[]).map(g=>g.grade_label).filter(Boolean))
     .filter(g=>supportedGradeSet.has(academicGradeCode(g)))
     .sort((x,y)=>academicGradeOrder(x)-academicGradeOrder(y)||x.localeCompare(y,"th"));
   const targetGradeCodes=targetGrades.map(g=>academicGradeCode(g)).filter(Boolean);
   if(!targetGradeCodes.includes(state.academicPresetGrade))state.academicPresetGrade=targetGradeCodes[0]||"";
   const gradeCode=state.academicPresetGrade||"";
   const gradeLabel=gradeCode?academicGradeLabelFromCode(gradeCode):"";
-  const scope=["core","activity","additional","other"].includes(state.subjectCatalogScope)?state.subjectCatalogScope:"core";
-  state.subjectCatalogScope=scope;
-  const scopeLabel={core:"วิชาพื้นฐาน",activity:"กิจกรรมพัฒนาผู้เรียน",additional:"วิชาเพิ่มเติม",other:"อื่น ๆ"}[scope];
+  const scope="core";
+  state.subjectCatalogScope="core";
+  const scopeLabel="วิชาพื้นฐาน";
   const setupTab=["target","grade","type"].includes(state.subjectSetupTab)?state.subjectSetupTab:"target";
   state.subjectSetupTab=setupTab;
   const targetRoomCount=targetClasses.filter(c=>c.grade_label===gradeLabel).length;
@@ -3498,7 +3515,7 @@ function academicSubjectsHtml(data,timeline){
     const isSelected=selectedKeys.has(logicalKey(x));
     return '<article class="subject-library-card '+(isSelected?"is-selected":"")+'" data-subject-library-item data-search-text="'+esc(((x.subject_code||"")+" "+x.subject_name+" "+(x.learning_area||"")+" ส่วนกลาง").toLowerCase())+'">'+
       '<div class="subject-library-source central">ส่วนกลาง</div>'+
-      '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(typeLabel[x.subject_type]||"อื่น ๆ")+(x.learning_area?' · '+esc(x.learning_area):'')+'</small></div></div>'+
+      '<div class="subject-card-main"><div class="subject-code-box">'+esc(x.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(x.subject_name)+'</strong><small>'+esc(typeLabel[x.subject_type]||"อื่น ๆ")+(x.learning_area?' · '+esc(x.learning_area):'')+(x.term_no?' · ภาคเรียนที่ '+esc(x.term_no):' · รายปี')+'</small></div></div>'+
       (isSelected
         ?'<span class="subject-library-used">✓ อยู่ในหลักสูตรแล้ว</span>'
         :canManage?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.id||'')+'">＋ เพิ่ม</button>':'')+
@@ -3507,12 +3524,11 @@ function academicSubjectsHtml(data,timeline){
 
   const gradeTabs=targetGrades.map(g=>{
     const code=academicGradeCode(g)||"",rooms=targetClasses.filter(c=>c.grade_label===g).length;
-    return '<button type="button" class="'+(code===gradeCode?"active":"")+'" data-subject-context-grade="'+esc(code)+'">'+esc(shortGrade(g))+' <span>'+rooms+'</span></button>';
+    return '<button type="button" class="'+(code===gradeCode?"active":"")+'" data-subject-context-grade="'+esc(code)+'">'+esc(shortGrade(g))+(rooms?' <span>'+rooms+'</span>':'')+'</button>';
   }).join("");
   const targetTabs='<button type="button" class="'+(!selectedProgram?"active":"")+'" data-subject-target="">ห้องปกติ <span>'+classes.filter(c=>!c.program_id).length+'</span></button>'+
     actualPrograms.map(p=>'<button type="button" class="'+(selectedProgram&&p.id===selectedProgram.id?"active":"")+'" data-subject-target="'+esc(p.id)+'">'+esc(p.name_th)+' <span>'+classes.filter(c=>c.program_id===p.id).length+'</span></button>').join("");
-  const scopeTabs=[["core","วิชาพื้นฐาน"],["activity","กิจกรรมพัฒนาผู้เรียน"],["additional","วิชาเพิ่มเติม"],["other","อื่น ๆ"]]
-    .map(([v,l])=>'<button type="button" class="'+(scope===v?"active":"")+'" data-subject-catalog-scope="'+v+'">'+l+'</button>').join("");
+  const scopeTabs='<button type="button" class="active" data-subject-catalog-scope="core">วิชาพื้นฐาน</button>';
 
   const currentGroup=(readiness.groups||[]).find(g=>g.grade_code===gradeCode&&(g.program_id||"")===(selectedProgram?selectedProgram.id:""))||null;
   const scheduleSettings=readiness.schedule_settings||{configured:false};
@@ -4053,10 +4069,27 @@ function bindAcademics(){
   const prepareNewYear=()=>{
     academicResetForm(yearForm,"[data-year-form-title]","เพิ่มปีการศึกษา");
     if(yearForm){
+      const maxYear=Math.max(0,...(data.years||[]).map(y=>Number(y.year_be)||0));
+      const currentBe=new Date().getFullYear()+543;
+      academicSetFormValue(yearForm,"year_be",maxYear?maxYear+1:currentBe);
       academicSetFormValue(yearForm,"is_current",false);
+      yearForm.dataset.autoEnd="true";
       academicScrollToForm(yearForm);
     }
   };
+  if(yearForm){
+    const startInput=yearForm.elements.namedItem("starts_on");
+    const endInput=yearForm.elements.namedItem("ends_on");
+    if(startInput&&endInput){
+      startInput.addEventListener("change",()=>{
+        if(yearForm.dataset.id)return;
+        if(yearForm.dataset.autoEnd!=="false")endInput.value=academicEndDateAfter200Weekdays(startInput.value);
+      });
+      endInput.addEventListener("input",()=>{
+        if(!yearForm.dataset.id)yearForm.dataset.autoEnd="false";
+      });
+    }
+  }
   qa("[data-new-year-form]").forEach(btn=>btn.addEventListener("click",()=>{
     prepareNewYear();
     showAcademicPeriodPanel("year");
@@ -4072,6 +4105,7 @@ function bindAcademics(){
     const y=(data.years||[]).find(x=>x.id===btn.dataset.editYear);if(!y||!yearForm)return;
     showAcademicPeriodPanel("year");
     yearForm.dataset.id=y.id;
+    yearForm.dataset.autoEnd="false";
     academicSetFormValue(yearForm,"year_be",y.year_be);
     academicSetFormValue(yearForm,"starts_on",y.starts_on);
     academicSetFormValue(yearForm,"ends_on",y.ends_on);
