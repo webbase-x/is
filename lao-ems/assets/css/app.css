@@ -5353,3 +5353,220 @@ th,td{line-height:1.45}
   }
 }
 
+/* Central vs school learning-time comparison — v0.19.3 */
+.subject-central-time{
+  display:block;
+  margin-top:5px;
+  padding:5px 7px;
+  border-radius:8px;
+  background:#f0f7ff;
+  color:#175cd3;
+  font-size:11.5px;
+  line-height:1.4;
+}
+.subject-central-time b{font-weight:900}
+.subject-time-compare{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(130px,1fr));
+  gap:7px;
+  min-width:260px;
+}
+.subject-time-compare.single{grid-template-columns:minmax(160px,1fr)}
+.subject-time-compare>div{
+  min-width:0;
+  padding:7px 9px;
+  border:1px solid #eaecf0;
+  border-radius:10px;
+  background:#f9fafb;
+}
+.subject-time-compare small,
+.subject-time-compare strong{
+  display:block;
+}
+.subject-time-compare small{
+  font-size:10.5px;
+  color:#667085;
+}
+.subject-time-compare strong{
+  margin-top:2px;
+  font-size:11.5px;
+  line-height:1.35;
+  color:#344054;
+  overflow-wrap:anywhere;
+}
+.subject-origin.time-standard{
+  background:#ecfdf3;
+  color:#067647;
+}
+.subject-origin.time-override{
+  background:#fff4e5;
+  color:#b54708;
+}
+.subject-origin.time-revision{
+  background:#f4f3ff;
+  color:#5925dc;
+}
+.subject-selected-card.time-customized{
+  border-color:#fedf89;
+  background:#fffdf8;
+}
+.subject-time-btn{white-space:nowrap}
+.subject-time-editor{
+  grid-column:1/-1;
+  display:grid;
+  gap:10px;
+  padding:11px;
+  border:1px solid #b2ccff;
+  border-radius:11px;
+  background:#f8fbff;
+}
+.subject-time-editor-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.subject-time-editor-head strong,
+.subject-time-editor-head small{display:block}
+.subject-time-editor-head strong{font-size:13px;color:#1849a9}
+.subject-time-editor-head small{margin-top:2px;font-size:11.5px;color:#667085}
+.subject-time-flex-note{
+  flex:0 0 auto;
+  padding:4px 7px;
+  border-radius:999px;
+  background:#fff4e5;
+  color:#b54708;
+  font-size:10.5px;
+  font-weight:800;
+}
+.subject-time-compare.compact{
+  min-width:0;
+  width:100%;
+}
+.subject-time-fields{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.subject-time-fields label{
+  display:grid;
+  gap:4px;
+  min-width:0;
+  color:#475467;
+  font-size:11.5px;
+  font-weight:800;
+}
+.subject-time-fields input{
+  min-height:38px;
+  padding:8px 9px;
+}
+.subject-time-fields .subject-time-note{
+  grid-column:1/-1;
+}
+.subject-time-editor-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.preset-subject em,
+.academic-course-subject em{
+  display:block;
+  margin-top:3px;
+  color:#175cd3;
+  font-size:10.5px;
+  font-style:normal;
+  line-height:1.4;
+}
+.curriculum-preset-row.time-customized{
+  border-color:#fedf89;
+  background:#fffdf8;
+}
+.curriculum-preset-row .preset-weekly{
+  white-space:normal;
+  line-height:1.35;
+}
+.curriculum-preset-row .preset-annual{
+  white-space:normal;
+  line-height:1.35;
+  text-align:right;
+}
+.academic-course-row.time-customized{
+  border-color:#fedf89;
+  background:#fffdf8;
+}
+.academic-course-hours{
+  text-align:left;
+}
+.academic-course-hours strong{
+  font-size:12px;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+.academic-course-actions{
+  flex-wrap:wrap;
+}
+
+@media(min-width:1001px){
+  .academic-course-row{
+    grid-template-columns:105px minmax(210px,1.2fr) minmax(180px,.9fr) minmax(180px,1fr) minmax(120px,auto);
+  }
+}
+@media(max-width:900px){
+  .subject-selected-card{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .subject-selected-card:has(.subject-group-check){
+    grid-template-columns:24px minmax(0,1fr);
+  }
+  .subject-selected-card:has(.subject-group-check) .subject-time-compare,
+  .subject-selected-card:has(.subject-group-check) .subject-card-action,
+  .subject-selected-card:has(.subject-group-check) .subject-time-editor{
+    grid-column:2;
+  }
+  .subject-time-compare{
+    min-width:0;
+    width:100%;
+  }
+  .subject-card-action{
+    justify-content:flex-start;
+  }
+}
+@media(max-width:640px){
+  .subject-time-compare{
+    grid-template-columns:1fr;
+  }
+  .subject-time-editor-head{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .subject-time-flex-note{justify-self:start}
+  .subject-time-fields{
+    grid-template-columns:1fr;
+  }
+  .subject-time-fields .subject-time-note{
+    grid-column:auto;
+  }
+  .subject-time-editor-actions{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .subject-time-editor-actions button{
+    width:100%;
+  }
+  .curriculum-preset-row{
+    grid-template-areas:
+      "order subject status"
+      "code code code"
+      "weekly weekly weekly"
+      "annual annual annual";
+  }
+  .curriculum-preset-row .preset-annual{
+    justify-self:start;
+    text-align:left;
+  }
+  .academic-course-actions{
+    justify-content:flex-start;
+  }
+}
+
