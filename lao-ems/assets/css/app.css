@@ -4716,3 +4716,45 @@ th,td{line-height:1.45}
   .subject-type-head{align-items:flex-start}
   .subjects-v2-content{padding:12px}
 }
+
+
+/* Subject catalog discovery + shared catalog v0.18.3 */
+.subject-finder-panel{margin:12px 0;padding:14px;border:1px solid #b2ccff;border-radius:13px;background:#f9fbff}
+.subject-finder-form{display:grid;grid-template-columns:minmax(0,1fr) 210px auto;gap:9px;align-items:end;margin-top:11px}
+.subject-finder-form label{font-size:12px;font-weight:800;color:#475467}
+.subject-finder-form input,.subject-finder-form select{width:100%;min-height:40px;margin-top:4px}
+.subject-finder-hint{margin:8px 0 10px;font-size:12px;line-height:1.5;color:#667085}
+.subject-finder-results{display:grid;gap:8px}
+.subject-finder-empty{padding:16px;border:1px dashed #d0d5dd;border-radius:10px;background:#fff;text-align:center;font-size:12px;color:#667085}
+.subject-finder-empty.error{border-color:#fecdca;background:#fff6f6;color:#b42318}
+.subject-finder-card{display:grid;grid-template-columns:minmax(125px,auto) minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:11px;border:1px solid #eaecf0;border-radius:11px;background:#fff}
+.subject-finder-card.is-used{background:#f6fef9;border-color:#abefc6}
+.subject-finder-card-source{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.subject-finder-card-source small{font-size:11px;line-height:1.3;color:#667085}
+.subject-finder-meta{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+.subject-finder-meta span{padding:3px 7px;border-radius:999px;background:#f2f4f7;font-size:11px;font-weight:700;color:#475467}
+.subject-finder-meta span.exact{background:#ecfdf3;color:#027a48}
+.subject-finder-create{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #d1e0ff}
+.subject-finder-create span{font-size:12px;color:#667085}
+.subject-origin.shared-catalog{background:#eef4ff;color:#3538cd}
+.subject-origin.school-local{background:#f2f4f7;color:#475467}
+.subject-share-check{grid-column:1/-1;display:flex!important;align-items:flex-start;gap:8px;padding:10px;border:1px solid #d0d5dd;border-radius:10px;background:#fff}
+.subject-share-check input{width:18px!important;min-height:auto!important;margin:1px 0 0!important}
+.subject-share-check span{font-size:12px;line-height:1.45;font-weight:700;color:#344054}
+@media(max-width:900px){
+  .subject-finder-form{grid-template-columns:1fr 180px}
+  .subject-finder-form .primary-btn{grid-column:1/-1;justify-self:start}
+  .subject-finder-card{grid-template-columns:1fr auto}
+  .subject-finder-card-source{grid-column:1}
+  .subject-finder-card .subject-card-main{grid-column:1/-1}
+  .subject-finder-meta{justify-content:flex-start}
+}
+@media(max-width:560px){
+  .subject-finder-form{grid-template-columns:1fr}
+  .subject-finder-form .primary-btn{grid-column:auto;width:100%}
+  .subject-finder-card{grid-template-columns:1fr}
+  .subject-finder-card .subject-card-main{grid-column:1}
+  .subject-finder-card .subject-add-btn,.subject-finder-card .subject-library-used{width:100%;justify-content:center}
+  .subject-finder-create{align-items:stretch;flex-direction:column}
+  .subject-finder-create .secondary-btn{width:100%}
+}
