@@ -2792,7 +2792,7 @@ function academicTimelineChangeSummaryHtml(timeline){
   }
   const delta=(v,unit)=>{
     const n=Number(v||0);
-    return (n>0?"+":"")+n.toLocaleString("th-TH")+" "+unit;
+    return (n>0?"+":"")+n.toLocaleString("th-TH")+(unit?" "+unit:"");
   };
   return '<div class="academic-year-change-summary"><div><strong>เปลี่ยนจากปี '+esc(x.previous_year_be)+'</strong><span>สรุปเฉพาะโครงสร้างที่มีผลต่อการตั้งค่าปีใหม่</span></div><div class="academic-year-change-chips">'+
     '<span>ห้อง '+delta(x.rooms_delta,"ห้อง")+'</span>'+
