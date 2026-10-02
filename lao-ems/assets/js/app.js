@@ -3402,7 +3402,7 @@ function academicSchoolTimeSummary(course,standard){
     const weekly=(course.term_plans||[]).find(x=>x.weekly_periods!=null);
     if(course.annual_hours!=null)parts.push(academicNumberText(course.annual_hours)+" ชม./ปี");
     if(weekly&&weekly.weekly_periods!=null)parts.push(academicNumberText(weekly.weekly_periods)+" คาบ/สัปดาห์");
-    else if(standard&&standard.time_mode==="integrated")parts.push("บูรณาการ");
+    else if(standard&&standard.time_mode==="integrated")parts.push("บูรณาการ · ไม่นับ ชม.ลงตาราง");
   }
   return parts.join(" · ")||"ยังไม่กำหนด";
 }
