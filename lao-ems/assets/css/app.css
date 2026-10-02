@@ -5402,6 +5402,10 @@ th,td{line-height:1.45}
   background:#fff4e5;
   color:#b54708;
 }
+.subject-origin.time-revision{
+  background:#f4f3ff;
+  color:#5925dc;
+}
 .subject-selected-card.time-customized{
   border-color:#fedf89;
   background:#fffdf8;
