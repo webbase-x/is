@@ -5212,3 +5212,54 @@ th,td{line-height:1.45}
   .be-date-picker-actions button{width:100%}
 }
 
+/* Safe academic period deletion — v0.18.9 */
+.danger-text{color:var(--danger)!important}
+.academic-period-row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:0 0 auto}
+.academic-delete-policy{
+  display:grid;
+  gap:3px;
+  margin-top:12px;
+  padding:10px 12px;
+  border:1px solid #dbe7f7;
+  border-radius:12px;
+  background:#f8fbff;
+}
+.academic-delete-policy strong{font-size:12.5px;color:#344054}
+.academic-delete-policy span{font-size:12px;line-height:1.45;color:#667085}
+.academic-safe-delete-panel{margin-top:12px}
+.academic-delete-loading{display:flex;align-items:center;gap:8px;padding:14px;color:#667085}
+.academic-delete-preview{
+  padding:14px;
+  border:1px solid #d0d5dd;
+  border-radius:14px;
+  background:#fff;
+}
+.academic-delete-preview.is-blocked{border-color:#fecdca;background:#fffafa}
+.academic-delete-preview.is-safe{border-color:#abefc6;background:#f8fffb}
+.academic-delete-preview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.academic-delete-preview-head>div{min-width:0}
+.academic-delete-preview-head>div>strong{display:block;font-size:12px;color:#667085}
+.academic-delete-preview-head h3{margin:2px 0 0;font-size:17px;color:#101828}
+.academic-delete-preview>p{margin:8px 0 0;font-size:12.5px;line-height:1.5;color:#667085}
+.academic-delete-blockers{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.academic-delete-blockers span{display:inline-flex;align-items:center;gap:4px;padding:6px 9px;border-radius:999px;background:#feeceb;color:#8f2d24;font-size:12px}
+.academic-delete-blockers b{font-size:12.5px}
+.academic-delete-preview .notice{margin-top:10px}
+.academic-delete-note{padding:8px 10px;border-radius:9px;background:#fff;color:#475467!important}
+.academic-delete-ack{display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-size:12.5px;line-height:1.45;color:#475467}
+.academic-delete-ack input{width:auto;min-height:0;margin-top:3px}
+.academic-delete-confirm-label{display:grid;gap:5px;margin-top:10px;font-size:12.5px;font-weight:800;color:#475467}
+.academic-delete-phrase{margin-top:7px;padding:8px 10px;border-radius:9px;background:#fff;font-size:12px;color:#667085}
+.academic-delete-phrase strong{color:var(--danger)}
+.academic-delete-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px}
+.academic-delete-actions .danger-btn:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:680px){
+  .academic-year-tags .danger-btn{width:auto}
+  .academic-term-row>.academic-period-row-actions{order:3;margin-left:auto}
+  .academic-period-row-actions{margin-left:auto}
+  .academic-delete-preview-head{display:grid;grid-template-columns:1fr}
+  .academic-delete-preview-head .pill{justify-self:start}
+  .academic-delete-actions{display:grid;grid-template-columns:1fr}
+  .academic-delete-actions button{width:100%}
+}
+
