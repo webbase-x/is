@@ -2239,6 +2239,29 @@ function renderLecPreview(preview){
   });
 }
 
+function ensureLecImportProgress(){
+  let overlay=q("#lec-import-progress");
+  if(overlay)return overlay;
+  overlay=document.createElement("div");
+  overlay.id="lec-import-progress";
+  overlay.className="lec-import-progress hidden";
+  overlay.setAttribute("role","dialog");
+  overlay.setAttribute("aria-modal","true");
+  overlay.setAttribute("aria-labelledby","lec-import-progress-title");
+  overlay.innerHTML='<div class="lec-import-progress-card"><div class="lec-import-progress-icon"><span class="spinner"></span></div><p class="eyebrow">LEC → LAO-EMS</p><h2 id="lec-import-progress-title">กำลังนำเข้าข้อมูล</h2><p class="lec-import-progress-warning"><strong>กรุณาอย่าออกจากหน้านี้</strong><br>อย่าปิดแท็บ รีเฟรช หรือเปลี่ยนหน้า จนกว่าระบบจะแจ้งว่านำเข้าเสร็จ</p><div class="lec-import-progress-row"><strong data-lec-progress-label>กำลังเตรียมข้อมูล...</strong><span data-lec-progress-percent>0%</span></div><div class="lec-import-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span data-lec-progress-bar></span></div><small data-lec-progress-detail>ระบบกำลังตรวจสอบไฟล์และเตรียมส่งข้อมูลไปยังฐานข้อมูล</small></div>';
+  document.body.appendChild(overlay);
+  return overlay;
+}
+function updateLecImportProgress(percent,label,detail){
+  const overlay=ensureLecImportProgress();
+  const value=Math.max(0,Math.min(100,Math.round(percent)));
+  const bar=q("[data-lec-progress-bar]",overlay),pct=q("[data-lec-progress-percent]",overlay),text=q("[data-lec-progress-label]",overlay),sub=q("[data-lec-progress-detail]",overlay),track=q(".lec-import-progress-track",overlay);
+  if(bar)bar.style.width=value+"%";
+  if(pct)pct.textContent=value+"%";
+  if(text&&label)text.textContent=label;
+  if(sub&&detail)sub.textContent=detail;
+  if(track)track.setAttribute("aria-valuenow",String(value));
+}
 function startLecImportProgress(){
   const overlay=ensureLecImportProgress();
   overlay.classList.remove("hidden");
