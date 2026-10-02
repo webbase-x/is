@@ -1850,14 +1850,12 @@ function lecSheetProfile(wb,sheetName){
   if(map.student_no==null)missing.push("เลขประจำตัวนักเรียน");
   if(map.first_name_th==null)missing.push("ชื่อ");
   if(map.last_name_th==null)missing.push("นามสกุล");
-  if(!metadata.academic_year_be)missing.push("ปีการศึกษา");
-  if(!metadata.term_no)missing.push("ภาคเรียน");
   if(metadata.period_conflicts&&metadata.period_conflicts.length)missing.push(...metadata.period_conflicts.map(x=>x+"ไม่สอดคล้อง"));
 
   let rowCount=0;
   for(let r=flat.dataStart;r<matrix.length;r++)if(lecMappedValue(matrix[r],map,"student_no"))rowCount++;
 
-  const corePresent=9-missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
+  const corePresent=7-missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
   const score=corePresent*100000+Math.min(rowCount,99999);
   return {sheetName,valid:missing.length===0&&rowCount>0,rowCount,missing,score,matrix,headerStart,flat,headers,map,metadata};
 }
@@ -1981,9 +1979,13 @@ async function parseLecFile(file){
       if(!p.metadata.academic_year_be&&filePeriod.academic_year_be)p.metadata.academic_year_be=filePeriod.academic_year_be;
       if(!p.metadata.term_no&&filePeriod.term_no)p.metadata.term_no=filePeriod.term_no;
       if(filePeriod.source&&(filePeriod.academic_year_be||filePeriod.term_no))p.metadata.period_source=filePeriod.source;
-      p.missing=(p.missing||[]).filter(x=>!(x==="ปีการศึกษา"&&p.metadata.academic_year_be)&&!(x==="ภาคเรียน"&&p.metadata.term_no));
+      p.missing=(p.missing||[]).filter(x=>x!=="ปีการศึกษา"&&x!=="ภาคเรียน");
+      p.periodMissingFromSource={
+        academic_year_be:!p.metadata.academic_year_be,
+        term_no:!p.metadata.term_no
+      };
       p.valid=p.missing.length===0&&p.rowCount>0;
-      const corePresent=9-p.missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
+      const corePresent=7-p.missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
       p.score=(p.score&&p.positionalFallback?p.score:corePresent*100000+Math.min(p.rowCount,99999));
     }
     return p;
@@ -1991,12 +1993,10 @@ async function parseLecFile(file){
 
   const scanWorkbook=book=>book.SheetNames.map(name=>{
     const isSheet1=String(name).trim().toLowerCase()==="sheet1";
-    let p=null;
-    if(isSheet1){
-      p=lecStandardSheet1PositionalProfile(book,name);
-      if(!p)p=lecSheetProfile(book,name);
-    }else{
-      p=lecSheetProfile(book,name);
+    let p=lecSheetProfile(book,name);
+    if(isSheet1&&(!p||!p.valid)){
+      const positional=lecStandardSheet1PositionalProfile(book,name);
+      if(positional&&(!p||positional.valid||positional.score>p.score))p=positional;
     }
     return applyPeriod(p);
   }).filter(Boolean);
@@ -2030,7 +2030,7 @@ async function parseLecFile(file){
       }
       return base;
     }).join(" | ");
-    const hint=" · ตัวอ่าน v0.2.4 อ่านค่าดิบของ SheetJS ด้วย sheet_to_json ก่อน และอ่าน Sheet1 จาก B–F/I/J โดยตรง";
+    const hint=" · ตัวอ่าน v0.2.5 เลือกหัวตาราง RPT318 ตามข้อมูลจริง และรองรับไฟล์ที่ไม่มีปีการศึกษา/ภาคเรียน";
     throw new Error("ยังไม่พบชีต LEC ที่พร้อมนำเข้า"+(details?" — "+details:"")+hint);
   }
   const selected=candidates[0];
@@ -2050,9 +2050,12 @@ async function parseLecFile(file){
   if(map.student_no==null)missing.push("เลขประจำตัวนักเรียน");
   if(map.first_name_th==null)missing.push("ชื่อ");
   if(map.last_name_th==null)missing.push("นามสกุล");
-  if(!metadata.academic_year_be)missing.push("ปีการศึกษา");
-  if(!metadata.term_no)missing.push("ภาคเรียน");
   if(missing.length)throw new Error("ชีต "+selected.sheetName+" ยังขาดข้อมูล: "+missing.join(", "));
+
+  const periodMissingFromSource={
+    academic_year_be:!metadata.academic_year_be,
+    term_no:!metadata.term_no
+  };
 
   const rows=[];
   for(let r=flat.dataStart;r<matrix.length;r++){
@@ -2076,6 +2079,8 @@ async function parseLecFile(file){
   metadata.sheet_selection_rule=selected.positionalFallback?"lec_sheet1_positional_fallback":(standardSheet1?"lec_sheet1_two_row_merged_header":"content_detected_lec_sheet");
   metadata.template_status=standardSheet1?"lec_standard_format":"detected_from_content";
   metadata.xls_codepage=isLegacyXls?"thai_874_retry_enabled":null;
+  metadata.parser_version="0.2.5";
+  if(!metadata.period_source&&(metadata.academic_year_be||metadata.term_no))metadata.period_source="lec_file";
 
   return {
     fileName:file.name,fileSize:file.size,sha256:await lecSha256(buffer),
@@ -2084,7 +2089,7 @@ async function parseLecFile(file){
     ignoredSheets:wb.SheetNames.filter(name=>name!==selected.sheetName),
     sheetScan:allProfiles.map(x=>({sheetName:x.sheetName,valid:x.valid,rowCount:x.rowCount,missing:x.missing,positionalFallback:Boolean(x.positionalFallback)})),
     headers,map,headerMap:lecHeaderMapForServer(headers,map),
-    missingRequired:[],rows,metadata
+    missingRequired:[],periodMissingFromSource,rows,metadata
   };
 }
 
