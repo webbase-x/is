@@ -4071,7 +4071,7 @@ function bindAcademics(){
     if(yearForm){
       const maxYear=Math.max(0,...(data.years||[]).map(y=>Number(y.year_be)||0));
       const currentBe=new Date().getFullYear()+543;
-      academicSetFormValue(yearForm,"year_be",maxYear?maxYear+1:currentBe);
+      academicSetFormValue(yearForm,"year_be",Math.max(maxYear?maxYear+1:0,currentBe));
       academicSetFormValue(yearForm,"is_current",false);
       yearForm.dataset.autoEnd="true";
       academicScrollToForm(yearForm);
@@ -4095,11 +4095,8 @@ function bindAcademics(){
     showAcademicPeriodPanel("year");
   }));
   qa("[data-reset-year-form]").forEach(btn=>btn.addEventListener("click",()=>{
-    academicResetForm(yearForm,"[data-year-form-title]","เพิ่มปีการศึกษา");
-    if(yearForm){
-      academicSetFormValue(yearForm,"is_current",false);
-      academicScrollToForm(yearForm);
-    }
+    prepareNewYear();
+    showAcademicPeriodPanel("year");
   }));
   qa("[data-edit-year]").forEach(btn=>btn.addEventListener("click",()=>{
     const y=(data.years||[]).find(x=>x.id===btn.dataset.editYear);if(!y||!yearForm)return;
