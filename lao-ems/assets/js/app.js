@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.4";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.5";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -543,7 +543,7 @@ function bindStaticUI(){
   const close=()=>{sidebar.classList.remove("open");scrim.classList.remove("show");};
   q("[data-sidebar-close]").addEventListener("click",close);
   scrim.addEventListener("click",close);
-  window.addEventListener("hashchange",()=>{if(!location.hash.startsWith("#/academics/classes")){state.classProgramEditMode=false;state.classStageFilter="";}if(state.user)renderRoute();else showAuth();close();});
+  window.addEventListener("hashchange",()=>{if(!location.hash.startsWith("#/academics/classes")){state.classProgramEditMode=false;state.classStageFilter="";}if(!location.hash.startsWith("#/academics/subjects")){state.subjectEditMode=false;state.subjectCopyYearId="";}if(state.user)renderRoute();else showAuth();close();});
   q("[data-signout]").addEventListener("click",()=>{
     localStorage.setItem("lao_legacy_session_rejected","1");
     clearLaoAuthSession();
@@ -3473,7 +3473,7 @@ function academicClassesHtml(data){
   '</section>';
 }
 function academicSubjectsHtml(data,timeline){
-  const canManage=Boolean(data.can_manage),year=academicSelectedYear(data),preset=state.academicPreset||{};
+  const canManage=Boolean(data.can_manage),canEdit=canManage&&Boolean(state.subjectEditMode),year=academicSelectedYear(data),preset=state.academicPreset||{};
   const readiness=state.curriculumReadiness||{groups:[],exclusions:[],total_groups:0,confirmed_groups:0,groups_with_courses:0};
   const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
   const allCourses=data.courses||[];
@@ -3499,7 +3499,15 @@ function academicSubjectsHtml(data,timeline){
   const scopeLabel=scope==="activity"?"กิจกรรมพัฒนาผู้เรียน":"วิชาพื้นฐาน";
   const setupTab=["target","grade","type"].includes(state.subjectSetupTab)?state.subjectSetupTab:"target";
   state.subjectSetupTab=setupTab;
-  const targetRoomCount=targetClasses.filter(c=>c.grade_label===gradeLabel).length;
+  const targetRooms=targetClasses.filter(c=>c.grade_label===gradeLabel)
+    .sort((a,b)=>String(a.section_label||"").localeCompare(String(b.section_label||""),"th",{numeric:true}));
+  const targetRoomCount=targetRooms.length;
+  const targetRoomLabels=targetRooms.map(c=>shortGrade(c.grade_label)+"/"+String(c.section_label||"").trim()).filter(Boolean);
+  const targetRoomPreview=targetRoomLabels.length<=6?targetRoomLabels.join(" · "):targetRoomLabels.slice(0,5).join(" · ")+" · และอีก "+(targetRoomLabels.length-5)+" ห้อง";
+  const copyYears=(data.years||[]).filter(y=>year&&y.id!==year.id&&Number(y.year_be)<Number(year.year_be))
+    .sort((a,b)=>Number(b.year_be)-Number(a.year_be));
+  if(state.subjectCopyYearId&&!copyYears.some(y=>y.id===state.subjectCopyYearId))state.subjectCopyYearId="";
+  if(!state.subjectCopyYearId&&copyYears.length)state.subjectCopyYearId=copyYears[0].id;
   const earlyChildhoodCount=classes.filter(c=>String(academicGradeCode(c.grade_label)||"").startsWith("K")).length;
   const typeLabel={basic:"วิชาพื้นฐาน",additional:"วิชาเพิ่มเติม",activity:"กิจกรรมพัฒนาผู้เรียน",other:"อื่น ๆ"};
   const subtypeLabel={
