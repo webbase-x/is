@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.5";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.17.6";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3519,6 +3519,10 @@ function academicSubjectsHtml(data,timeline){
     const code=academicGradeCode(g)||"",rooms=targetClasses.filter(c=>c.grade_label===g).length;
     return '<button type="button" class="'+(code===gradeCode?"active":"")+'" data-subject-catalog-grade="'+esc(code)+'">'+esc(shortGrade(g))+' <span>'+rooms+'</span></button>';
   }).join("");
+  const selectedGradeTabs=targetGrades.map(g=>{
+    const code=academicGradeCode(g)||"",rooms=targetClasses.filter(c=>c.grade_label===g).length;
+    return '<button type="button" class="'+(code===gradeCode?"active":"")+'" data-subject-selected-grade="'+esc(code)+'">'+esc(shortGrade(g))+' <span>'+rooms+'</span></button>';
+  }).join("");
   const targetTabs='<button type="button" class="'+(!selectedProgram?"active":"")+'" data-subject-target="">ห้องปกติ <span>'+classes.filter(c=>!c.program_id).length+'</span></button>'+
     actualPrograms.map(p=>'<button type="button" class="'+(selectedProgram&&p.id===selectedProgram.id?"active":"")+'" data-subject-target="'+esc(p.id)+'">'+esc(p.name_th)+' <span>'+classes.filter(c=>c.program_id===p.id).length+'</span></button>').join("");
   const scopeTabs=[["core","วิชาพื้นฐาน"],["activity","กิจกรรมพัฒนาผู้เรียน"],["additional","วิชาเพิ่มเติม"],["other","อื่น ๆ"]]
@@ -3633,7 +3637,7 @@ function academicSubjectsHtml(data,timeline){
         '<button type="button" class="'+(workspaceView==="library"?"active":"")+'" data-subject-workspace-view="library">รายการรายวิชาจากคลัง <span>'+totalAvailable+'</span></button>'+
       '</nav>'+
       (workspaceView==="selected"
-        ?'<div class="subject-workspace-content"><div class="subject-workspace-head"><div><h2>รายวิชาของโรงเรียน · '+esc(shortGrade(gradeLabel))+'</h2><p>'+esc(targetLabel)+' · แสดงรายวิชาทุกประเภทของระดับชั้นนี้ที่เพิ่มเข้าฐานโรงเรียนแล้ว</p></div><div class="subject-workspace-head-actions"><button type="button" class="secondary-btn compact-btn" data-open-subject-library>＋ รายการจากคลัง</button><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div></div>'+
+        ?'<div class="subject-workspace-content"><section class="subject-selected-grade-filter"><div class="subject-setup-panel-head"><strong>เลือกระดับชั้น</strong><small>เลือกชั้นเพื่อดูรายวิชาของโรงเรียนเฉพาะระดับนั้น</small></div><div class="subject-grade-tabs">'+(selectedGradeTabs||'<span class="muted">ยังไม่มีระดับชั้นในกลุ่มห้องนี้</span>')+'</div></section><div class="subject-workspace-head"><div><h2>รายวิชาของโรงเรียน · '+esc(shortGrade(gradeLabel))+'</h2><p>'+esc(targetLabel)+' · แสดงรายวิชาทุกประเภทของระดับชั้นนี้ที่เพิ่มเข้าฐานโรงเรียนแล้ว</p></div><div class="subject-workspace-head-actions"><button type="button" class="secondary-btn compact-btn" data-open-subject-library>＋ รายการจากคลัง</button><button type="button" class="secondary-btn compact-btn" data-export-subjects>ส่งออก CSV</button></div></div>'+
           parallelTools+
           (selectedRows?'<div class="subject-selected-list">'+selectedRows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายวิชาในฐานของระดับชั้นนี้</h3><p>เพิ่มจากฐานรายวิชาของโรงเรียน หรือเลือกจากคลังรายวิชากลาง</p>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-open-subject-library>＋ เพิ่มรายวิชา</button>':'')+'</div>')+'</div>'
         :'<div class="subject-workspace-content subject-library-content">'+catalogSetupHtml+
@@ -4308,6 +4312,17 @@ function bindAcademics(){
     state.subjectSetupTab="type";
     state.subjectWorkspaceData=null;
     state.subjectWorkspaceView="library";
+    renderRoute();
+  }));
+  qa("[data-subject-selected-grade]").forEach(btn=>btn.addEventListener("click",()=>{
+    const gradeCode=btn.dataset.subjectSelectedGrade||"";
+    state.academicPresetGrade=gradeCode;
+    state.academicFilters={
+      grade_label:academicGradeLabelFromCode(gradeCode),
+      program_id:state.subjectProgramId||""
+    };
+    state.subjectWorkspaceData=null;
+    state.subjectWorkspaceView="selected";
     renderRoute();
   }));
   qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",()=>{
