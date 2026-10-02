@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.3";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.18.4";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectWorkspaceData:null,curriculumReadiness:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1850,14 +1850,12 @@ function lecSheetProfile(wb,sheetName){
   if(map.student_no==null)missing.push("เลขประจำตัวนักเรียน");
   if(map.first_name_th==null)missing.push("ชื่อ");
   if(map.last_name_th==null)missing.push("นามสกุล");
-  if(!metadata.academic_year_be)missing.push("ปีการศึกษา");
-  if(!metadata.term_no)missing.push("ภาคเรียน");
   if(metadata.period_conflicts&&metadata.period_conflicts.length)missing.push(...metadata.period_conflicts.map(x=>x+"ไม่สอดคล้อง"));
 
   let rowCount=0;
   for(let r=flat.dataStart;r<matrix.length;r++)if(lecMappedValue(matrix[r],map,"student_no"))rowCount++;
 
-  const corePresent=9-missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
+  const corePresent=7-missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
   const score=corePresent*100000+Math.min(rowCount,99999);
   return {sheetName,valid:missing.length===0&&rowCount>0,rowCount,missing,score,matrix,headerStart,flat,headers,map,metadata};
 }
@@ -1981,9 +1979,13 @@ async function parseLecFile(file){
       if(!p.metadata.academic_year_be&&filePeriod.academic_year_be)p.metadata.academic_year_be=filePeriod.academic_year_be;
       if(!p.metadata.term_no&&filePeriod.term_no)p.metadata.term_no=filePeriod.term_no;
       if(filePeriod.source&&(filePeriod.academic_year_be||filePeriod.term_no))p.metadata.period_source=filePeriod.source;
-      p.missing=(p.missing||[]).filter(x=>!(x==="ปีการศึกษา"&&p.metadata.academic_year_be)&&!(x==="ภาคเรียน"&&p.metadata.term_no));
+      p.missing=(p.missing||[]).filter(x=>x!=="ปีการศึกษา"&&x!=="ภาคเรียน");
+      p.periodMissingFromSource={
+        academic_year_be:!p.metadata.academic_year_be,
+        term_no:!p.metadata.term_no
+      };
       p.valid=p.missing.length===0&&p.rowCount>0;
-      const corePresent=9-p.missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
+      const corePresent=7-p.missing.filter(x=>!x.endsWith("ไม่สอดคล้อง")).length;
       p.score=(p.score&&p.positionalFallback?p.score:corePresent*100000+Math.min(p.rowCount,99999));
     }
     return p;
@@ -1991,12 +1993,10 @@ async function parseLecFile(file){
 
   const scanWorkbook=book=>book.SheetNames.map(name=>{
     const isSheet1=String(name).trim().toLowerCase()==="sheet1";
-    let p=null;
-    if(isSheet1){
-      p=lecStandardSheet1PositionalProfile(book,name);
-      if(!p)p=lecSheetProfile(book,name);
-    }else{
-      p=lecSheetProfile(book,name);
+    let p=lecSheetProfile(book,name);
+    if(isSheet1&&(!p||!p.valid)){
+      const positional=lecStandardSheet1PositionalProfile(book,name);
+      if(positional&&(!p||positional.valid||positional.score>p.score))p=positional;
     }
     return applyPeriod(p);
   }).filter(Boolean);
@@ -2030,7 +2030,7 @@ async function parseLecFile(file){
       }
       return base;
     }).join(" | ");
-    const hint=" · ตัวอ่าน v0.2.4 อ่านค่าดิบของ SheetJS ด้วย sheet_to_json ก่อน และอ่าน Sheet1 จาก B–F/I/J โดยตรง";
+    const hint=" · ตัวอ่าน v0.2.5 เลือกหัวตาราง RPT318 ตามข้อมูลจริง และรองรับไฟล์ที่ไม่มีปีการศึกษา/ภาคเรียน";
     throw new Error("ยังไม่พบชีต LEC ที่พร้อมนำเข้า"+(details?" — "+details:"")+hint);
   }
   const selected=candidates[0];
@@ -2050,9 +2050,12 @@ async function parseLecFile(file){
   if(map.student_no==null)missing.push("เลขประจำตัวนักเรียน");
   if(map.first_name_th==null)missing.push("ชื่อ");
   if(map.last_name_th==null)missing.push("นามสกุล");
-  if(!metadata.academic_year_be)missing.push("ปีการศึกษา");
-  if(!metadata.term_no)missing.push("ภาคเรียน");
   if(missing.length)throw new Error("ชีต "+selected.sheetName+" ยังขาดข้อมูล: "+missing.join(", "));
+
+  const periodMissingFromSource={
+    academic_year_be:!metadata.academic_year_be,
+    term_no:!metadata.term_no
+  };
 
   const rows=[];
   for(let r=flat.dataStart;r<matrix.length;r++){
@@ -2076,6 +2079,8 @@ async function parseLecFile(file){
   metadata.sheet_selection_rule=selected.positionalFallback?"lec_sheet1_positional_fallback":(standardSheet1?"lec_sheet1_two_row_merged_header":"content_detected_lec_sheet");
   metadata.template_status=standardSheet1?"lec_standard_format":"detected_from_content";
   metadata.xls_codepage=isLegacyXls?"thai_874_retry_enabled":null;
+  metadata.parser_version="0.2.5";
+  if(!metadata.period_source&&(metadata.academic_year_be||metadata.term_no))metadata.period_source="lec_file";
 
   return {
     fileName:file.name,fileSize:file.size,sha256:await lecSha256(buffer),
@@ -2084,7 +2089,7 @@ async function parseLecFile(file){
     ignoredSheets:wb.SheetNames.filter(name=>name!==selected.sheetName),
     sheetScan:allProfiles.map(x=>({sheetName:x.sheetName,valid:x.valid,rowCount:x.rowCount,missing:x.missing,positionalFallback:Boolean(x.positionalFallback)})),
     headers,map,headerMap:lecHeaderMapForServer(headers,map),
-    missingRequired:[],rows,metadata
+    missingRequired:[],periodMissingFromSource,rows,metadata
   };
 }
 
@@ -2123,13 +2128,13 @@ async function lecHtml(){
     ?"บัญชี School Admin ของคุณได้รับการอนุมัติแล้ว สามารถเลือกไฟล์ LEC และนำเข้าได้ทันที"
     :"เลือกไฟล์จาก LEC ระบบจะตรวจสอบและอัปเดตข้อมูลตามแหล่งต้นทางโดยอัตโนมัติ";
 
-  const sourceInfo='<article class="panel lec-source-info"><div class="panel-head"><div><p class="eyebrow">แหล่งที่มาของข้อมูล</p><h2>ระบบสารสนเทศทางการศึกษาท้องถิ่น (LEC)</h2><p class="panel-sub">LAO-EMS ใช้ไฟล์ XLS/XLSX ที่ดาวน์โหลดจากระบบ LEC เป็นแหล่งข้อมูลต้นทางสำหรับข้อมูล อปท. สถานศึกษา ปีการศึกษา ภาคเรียน ชั้น ห้อง และข้อมูลนักเรียน เพื่อให้ข้อมูลในระบบสอดคล้องกับระบบกลางขององค์กรปกครองส่วนท้องถิ่น</p></div><span class="source-lock">🔒 LEC เท่านั้น</span></div><div class="lec-source-actions"><a class="primary-btn" href="https://lec.dla.go.th/index.jsp" target="_blank" rel="noopener noreferrer">เปิดระบบ LEC ↗</a><small>เว็บไซต์: lec.dla.go.th · ดาวน์โหลดไฟล์ข้อมูลจาก LEC แล้วกลับมานำเข้าที่หน้านี้</small></div></article>';
+  const sourceInfo='<article class="panel lec-source-info"><div class="panel-head"><div><p class="eyebrow">แหล่งที่มาของข้อมูล</p><h2>ระบบสารสนเทศทางการศึกษาท้องถิ่น (LEC)</h2><p class="panel-sub">LAO-EMS ใช้ไฟล์ XLS/XLSX ที่ดาวน์โหลดจากระบบ LEC เป็นแหล่งข้อมูลต้นทางสำหรับข้อมูล อปท. สถานศึกษา ชั้น ห้อง และข้อมูลนักเรียน โดยรายงาน RPT318 บางรุ่นไม่ได้ส่งปีการศึกษาและภาคเรียนมาในไฟล์ ระบบจึงให้ระบุรอบนำเข้าก่อนบันทึกเมื่อจำเป็น</p></div><span class="source-lock">🔒 LEC เท่านั้น</span></div><div class="lec-source-actions"><a class="primary-btn" href="https://lec.dla.go.th/index.jsp" target="_blank" rel="noopener noreferrer">เปิดระบบ LEC ↗</a><small>เว็บไซต์: lec.dla.go.th · ดาวน์โหลดไฟล์ข้อมูลจาก LEC แล้วกลับมานำเข้าที่หน้านี้</small></div></article>';
 
-  const importBox='<article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC → LAO-EMS</p><h2>'+title+'</h2><p class="panel-sub">'+sub+'</p></div><span class="pill success">School Admin</span></div><form id="lec-import-form" class="form-grid" style="margin-top:18px"><div class="span-2 auto-source-note"><div class="auto-source-icon">✓</div><div><strong>ไม่ต้องกรอกข้อมูลซ้ำ</strong><p>ระบบอ่านสถานศึกษา จังหวัด อำเภอ อปท. ปีการศึกษา ภาคเรียน ชั้น ห้อง และข้อมูลนักเรียนจากไฟล์ LEC โดยอัตโนมัติ</p></div></div><label class="lec-drop span-2"><input id="lec-file" name="file" type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><span class="lec-drop-icon">⇧</span><strong>เลือกไฟล์ XLS / XLSX จาก LEC</strong><small>ระบบจะเลือกชีตข้อมูลที่ครบและแสดงข้อมูลให้ตรวจสอบก่อนบันทึก</small></label><div id="lec-preview" class="span-2"></div><div class="span-2"><button class="primary-btn" type="submit" disabled data-lec-import>ยืนยันนำเข้าจาก LEC</button></div></form></article>';
+  const importBox='<article class="panel"><div class="panel-head"><div><p class="eyebrow">LEC → LAO-EMS</p><h2>'+title+'</h2><p class="panel-sub">'+sub+'</p></div><span class="pill success">School Admin</span></div><form id="lec-import-form" class="form-grid" style="margin-top:18px"><div class="span-2 auto-source-note"><div class="auto-source-icon">✓</div><div><strong>ไม่ต้องกรอกข้อมูลซ้ำ</strong><p>ระบบอ่านสถานศึกษา จังหวัด อำเภอ อปท. ชั้น ห้อง และข้อมูลนักเรียนจากไฟล์ LEC โดยอัตโนมัติ หากไฟล์ไม่ระบุปีการศึกษา/ภาคเรียน ระบบจะให้เลือกเฉพาะรอบนำเข้าก่อนยืนยัน</p></div></div><label class="lec-drop span-2"><input id="lec-file" name="file" type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><span class="lec-drop-icon">⇧</span><strong>เลือกไฟล์ XLS / XLSX จาก LEC</strong><small>ระบบจะเลือกชีตข้อมูลที่ครบและแสดงข้อมูลให้ตรวจสอบก่อนบันทึก</small></label><div id="lec-preview" class="span-2"></div><div class="span-2"><button class="primary-btn" type="submit" disabled data-lec-import>ยืนยันนำเข้าจาก LEC</button></div></form></article>';
 
   const hist=school?'<article class="panel"><div class="panel-head"><div><p class="eyebrow">Import history</p><h2>ประวัติการนำเข้า LEC · '+esc(school.name_th)+'</h2><p class="panel-sub">ข้อมูลเดิมไม่ถูกลบ เมื่อเด็กหายจากไฟล์รอบใหม่จะบันทึกว่า “ไม่พบใน LEC รอบล่าสุด” เท่านั้น</p></div></div>'+(historyRows?'<div class="table-wrap"><table><thead><tr><th>ปี / ภาค</th><th>ไฟล์</th><th>นำเข้า / ทั้งหมด</th><th>นักเรียนใหม่</th><th>อัปเดต</th><th>ไม่พบรอบล่าสุด</th><th>ปัญหา</th></tr></thead><tbody>'+historyRows+'</tbody></table></div>':'<div class="empty-state"><div class="empty-icon">⇧</div><h3>ยังไม่เคยนำเข้า LEC</h3></div>')+'</article>':'';
 
-  return '<section class="source-banner"><div><span class="badge">School Admin · Approved</span><h2>นำเข้าข้อมูลจาก LEC</h2><p>บัญชี School Admin ที่ได้รับการอนุมัติจาก Platform Admin สามารถนำเข้าไฟล์ LEC ได้โดยตรง</p></div><div class="banner-status"><span class="status-pill success">XLS/XLSX</span><span class="status-pill success">ไม่ต้องกรอกเอง</span><span class="status-pill success">เลือกชีตอัตโนมัติ</span></div></section><section class="lec-page-stack">'+sourceInfo+importBox+hist+'</section>';
+  return '<section class="source-banner"><div><span class="badge">School Admin · Approved</span><h2>นำเข้าข้อมูลจาก LEC</h2><p>บัญชี School Admin ที่ได้รับการอนุมัติจาก Platform Admin สามารถนำเข้าไฟล์ LEC ได้โดยตรง</p></div><div class="banner-status"><span class="status-pill success">XLS/XLSX</span><span class="status-pill success">กำหนดรอบเมื่อจำเป็น</span><span class="status-pill success">เลือกชีตอัตโนมัติ</span></div></section><section class="lec-page-stack">'+sourceInfo+importBox+hist+'</section>';
 }
 
 function lecSchoolFieldLabel(key){
@@ -2153,15 +2158,74 @@ function lecSchoolInfoHtml(preview){
   const title=check.is_first_import?"ข้อมูลสถานศึกษาที่จะนำเข้าจาก LEC":"ข้อมูลสถานศึกษาตรงกับรอบที่ผูกไว้";
   return '<div class="school-verify success"><strong>'+title+'</strong>'+(incomingRows?'<div class="table-wrap compact-table"><table><tbody>'+incomingRows+'</tbody></table></div>':'')+'</div>';
 }
+function lecPeriodSelectionState(preview){
+  const metadata=preview&&preview.metadata||{};
+  const sourceMissing=preview&&preview.periodMissingFromSource||{};
+  const year=Number(metadata.academic_year_be);
+  const term=Number(metadata.term_no);
+  const yearValid=Number.isInteger(year)&&year>=2400&&year<=2800;
+  const termValid=Number.isInteger(term)&&term>=1&&term<=4;
+  return {
+    year,term,yearValid,termValid,
+    ready:yearValid&&termValid,
+    yearNeedsInput:Boolean(sourceMissing.academic_year_be),
+    termNeedsInput:Boolean(sourceMissing.term_no),
+    needsInput:Boolean(sourceMissing.academic_year_be||sourceMissing.term_no)
+  };
+}
+function lecPeriodContextHtml(preview){
+  const s=lecPeriodSelectionState(preview);
+  if(!s.needsInput)return "";
+  const yearControl=s.yearNeedsInput
+    ?'<label><span>ปีการศึกษา (พ.ศ.)</span><input type="number" min="2400" max="2800" inputmode="numeric" data-lec-period-year placeholder="เช่น 2569" value="'+(s.yearValid?esc(s.year):"")+'"></label>'
+    :"";
+  const termControl=s.termNeedsInput
+    ?'<label><span>ภาคเรียน</span><select data-lec-period-term><option value="">เลือกภาคเรียน</option>'+[1,2,3,4].map(n=>'<option value="'+n+'" '+(s.termValid&&s.term===n?"selected":"")+'>ภาคเรียนที่ '+n+'</option>').join("")+'</select></label>'
+    :"";
+  return '<div class="lec-period-context '+(s.ready?"success":"warning")+'"><div class="lec-period-context-copy"><strong>'+(s.ready?"กำหนดรอบนำเข้าแล้ว":"ไฟล์ RPT318 นี้ไม่มีข้อมูลรอบการศึกษา")+'</strong><p>'+(s.ready?"ระบบจะใช้ปีการศึกษาและภาคเรียนที่ระบุด้านล่างเป็นบริบทของการนำเข้ารอบนี้ โดยไม่แก้ข้อมูลนักเรียนจาก LEC":"กรุณาระบุเฉพาะปีการศึกษาและภาคเรียนของไฟล์นี้ก่อนนำเข้า ข้อมูลโรงเรียน ชั้น ห้อง และนักเรียนยังอ่านจาก LEC ตามเดิม")+'</p></div><div class="lec-period-input-grid">'+yearControl+termControl+'</div></div>';
+}
 function renderLecPreview(preview){
   const box=q("#lec-preview"),btn=q("[data-lec-import]"); if(!box||!btn)return;
   const missing=preview.missingRequired||[],check=preview.schoolCheck||{};
+  const period=lecPeriodSelectionState(preview);
   const sample=preview.rows.slice(0,5).map(r=>'<tr><td>'+esc(r.canonical.student_no||"-")+'</td><td>'+esc([r.canonical.prefix,r.canonical.first_name_th,r.canonical.last_name_th].filter(Boolean).join(" "))+'</td><td>'+esc(lecMaskId(r.canonical.citizen_id))+'</td><td>'+esc(r.canonical.grade_level||"-")+'</td><td>'+esc(r.canonical.classroom||"-")+'</td></tr>').join("");
   const ignored=preview.ignoredSheets.length?preview.ignoredSheets.map(esc).join(", "):"ไม่มี";
   const sourceOk=check.can_import!==false;
   const confirmOk=!check.requires_confirmation||preview.schoolResolution==="accept_new_lec";
-  box.innerHTML='<div class="lec-preview-card"><div class="lec-preview-head"><div><strong>'+esc(preview.fileName)+'</strong><small>แท็บที่ใช้: '+esc(preview.sheetName)+' · '+preview.rows.length+' รายการ</small></div>'+(missing.length||!sourceOk?'<span class="pill danger">ยังนำเข้าไม่ได้</span>':confirmOk?'<span class="pill success">พร้อมนำเข้า</span>':'<span class="pill warning">รอยืนยัน</span>')+'</div><div class="lec-period-summary"><div><small>ปีการศึกษา</small><strong>'+esc(preview.metadata.academic_year_be||"-")+'</strong></div><div><small>ภาคเรียน</small><strong>'+(preview.metadata.term_no?("ภาคเรียนที่ "+esc(preview.metadata.term_no)):"-")+'</strong></div><div><small>นักเรียน</small><strong>'+preview.rows.length+' คน</strong></div></div><div class="lec-facts"><span>ชีตข้อมูล: '+esc(preview.sheetName)+'</span><span>'+(preview.metadata.template_status==="lec_standard_format"?"รูปแบบ LEC มาตรฐาน · ":"")+'หัวตาราง: แถว '+esc(preview.metadata.header_main_row||"-")+'–'+esc(preview.metadata.header_sub_row||"-")+' · ข้อมูลเริ่มแถว '+esc(preview.metadata.data_start_row||"-")+'</span><span>อ่านคอลัมน์ '+preview.headers.length+' ช่อง</span><span>ข้ามชีต: '+ignored+'</span><span>SHA-256: '+esc((preview.sha256||"").slice(0,12))+'…</span></div>'+lecSchoolInfoHtml(preview)+(missing.length?'<div class="notice danger">ไม่พบคอลัมน์จำเป็น: '+missing.map(esc).join(", ")+' กรุณาดาวน์โหลดรายงาน LEC รูปแบบ RPT318 ที่ถูกต้องอีกครั้ง</div>':'<div class="notice success">สถานศึกษา ปีการศึกษา ภาคเรียน และข้อมูลนักเรียนจะนำเข้าตรงจาก LEC ไม่มีช่องให้กรอกหรือแก้ค่าต้นทางก่อนนำเข้า</div>')+'<div class="table-wrap"><table><thead><tr><th>รหัสนักเรียน</th><th>ชื่อ-สกุล</th><th>เลขประชาชน</th><th>ชั้น</th><th>ห้อง</th></tr></thead><tbody>'+sample+'</tbody></table></div></div>';
-  btn.disabled=missing.length>0||!sourceOk||!confirmOk;
+  const ready=missing.length===0&&period.ready&&sourceOk&&confirmOk;
+  const status=missing.length||!sourceOk
+    ?'<span class="pill danger">ยังนำเข้าไม่ได้</span>'
+    :!period.ready
+      ?'<span class="pill warning">เลือกรอบนำเข้า</span>'
+      :confirmOk
+        ?'<span class="pill success">พร้อมนำเข้า</span>'
+        :'<span class="pill warning">รอยืนยัน</span>';
+  const periodNotice=missing.length
+    ?'<div class="notice danger">ไม่พบคอลัมน์จำเป็น: '+missing.map(esc).join(", ")+' กรุณาดาวน์โหลดรายงาน LEC รูปแบบ RPT318 ที่ถูกต้องอีกครั้ง</div>'
+    :period.needsInput
+      ?(period.ready
+        ?'<div class="notice success">ข้อมูลโรงเรียน ชั้น ห้อง และนักเรียนอ่านจาก LEC โดยตรง · รอบนำเข้า '+esc(period.year)+' / '+esc(period.term)+' ระบุโดยผู้ใช้ เพราะไฟล์รุ่นนี้ไม่มีสองค่านี้</div>'
+        :'<div class="notice warning"><strong>ต้องระบุรอบนำเข้าก่อน</strong><br>รายงาน RPT318 รุ่นนี้ไม่มีปีการศึกษาและ/หรือภาคเรียนอยู่ในไฟล์ จึงไม่ถือว่าไฟล์เสีย</div>')
+      :'<div class="notice success">ตรวจพบข้อมูลโรงเรียน รอบการศึกษา ชั้น ห้อง และนักเรียนจากไฟล์/ชื่อไฟล์ LEC พร้อมนำเข้า</div>';
+
+  box.innerHTML='<div class="lec-preview-card"><div class="lec-preview-head"><div><strong>'+esc(preview.fileName)+'</strong><small>แท็บที่ใช้: '+esc(preview.sheetName)+' · '+preview.rows.length+' รายการ</small></div>'+status+'</div>'+lecPeriodContextHtml(preview)+'<div class="lec-period-summary"><div><small>ปีการศึกษา</small><strong>'+(period.yearValid?esc(period.year):"รอเลือก")+'</strong></div><div><small>ภาคเรียน</small><strong>'+(period.termValid?("ภาคเรียนที่ "+esc(period.term)):"รอเลือก")+'</strong></div><div><small>นักเรียน</small><strong>'+preview.rows.length+' คน</strong></div></div><div class="lec-facts"><span>ชีตข้อมูล: '+esc(preview.sheetName)+'</span><span>'+(preview.metadata.template_status==="lec_standard_format"?"รูปแบบ LEC มาตรฐาน · ":"")+'หัวตาราง: แถว '+esc(preview.metadata.header_main_row||"-")+'–'+esc(preview.metadata.header_sub_row||"-")+' · ข้อมูลเริ่มแถว '+esc(preview.metadata.data_start_row||"-")+'</span><span>อ่านคอลัมน์ '+preview.headers.length+' ช่อง</span><span>ตัวอ่าน: '+esc(preview.metadata.parser_version||"-")+'</span><span>ข้ามชีต: '+ignored+'</span><span>SHA-256: '+esc((preview.sha256||"").slice(0,12))+'…</span></div>'+lecSchoolInfoHtml(preview)+periodNotice+'<div class="table-wrap"><table><thead><tr><th>รหัสนักเรียน</th><th>ชื่อ-สกุล</th><th>เลขประชาชน</th><th>ชั้น</th><th>ห้อง</th></tr></thead><tbody>'+sample+'</tbody></table></div></div>';
+  btn.disabled=!ready;
+
+  const periodYear=q("[data-lec-period-year]",box);
+  if(periodYear)periodYear.addEventListener("change",()=>{
+    const value=Number(periodYear.value);
+    preview.metadata.academic_year_be=Number.isInteger(value)&&value>=2400&&value<=2800?value:null;
+    preview.metadata.period_source="user_selected_import_context";
+    renderLecPreview(preview);
+  });
+  const periodTerm=q("[data-lec-period-term]",box);
+  if(periodTerm)periodTerm.addEventListener("change",()=>{
+    const value=Number(periodTerm.value);
+    preview.metadata.term_no=Number.isInteger(value)&&value>=1&&value<=4?value:null;
+    preview.metadata.period_source="user_selected_import_context";
+    renderLecPreview(preview);
+  });
+
   const useNew=q("[data-lec-use-new]",box);
   if(useNew)useNew.addEventListener("click",()=>{preview.schoolResolution="accept_new_lec";renderLecPreview(preview);});
   const changeChoice=q("[data-lec-change-choice]",box);
@@ -2174,6 +2238,7 @@ function renderLecPreview(preview){
     btn.disabled=true;
   });
 }
+
 function ensureLecImportProgress(){
   let overlay=q("#lec-import-progress");
   if(overlay)return overlay;
@@ -2264,6 +2329,8 @@ function bindLec(){
     const onboarding=Boolean(state.pendingInvitation&&state.pendingInvitation.status==="onboarding"&&state.pendingInvitation.invitation_mode==="platform_first_admin"&&!state.pendingInvitation.school_id);
     if(!p||(!school&&!onboarding))return;
     if(p.missingRequired.length){toast("โครงสร้างไฟล์ LEC ไม่ครบ","error");return;}
+    const period=lecPeriodSelectionState(p);
+    if(!period.ready){toast("กรุณาระบุปีการศึกษาและภาคเรียนของไฟล์นี้ก่อนนำเข้า","error");return;}
     if(p.schoolCheck&&p.schoolCheck.can_import===false){toast("ข้อมูลสถานศึกษาในไฟล์ไม่ตรงกับโรงเรียนนี้","error");return;}
     if(p.schoolCheck&&p.schoolCheck.requires_confirmation&&p.schoolResolution!=="accept_new_lec"){toast("กรุณายืนยันว่าจะใช้ข้อมูลสถานศึกษาจาก LEC ใหม่ก่อน","error");return;}
     if(!confirm("ยืนยันนำเข้า LEC ปีการศึกษา "+p.metadata.academic_year_be+" ภาคเรียนที่ "+p.metadata.term_no+" จำนวน "+p.rows.length+" คน? ระบบจะรักษาประวัติเดิมไว้"))return;
