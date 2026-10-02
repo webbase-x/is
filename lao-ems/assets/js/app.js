@@ -1211,8 +1211,8 @@ async function overviewHtml(){
     }catch(e){console.warn("overview academics timeline",e);}
   }
 
-  const totalSteps=timelines.reduce((sum,t)=>sum+Number(t.total_count||0),0);
-  const resolvedSteps=timelines.reduce((sum,t)=>sum+Number(t.resolved_count||0),0);
+  const totalSteps=timelines.reduce((sum,t)=>sum+Number(t.timeline_scope==="academic_year"?t.applicable_count:t.total_count||0),0);
+  const resolvedSteps=timelines.reduce((sum,t)=>sum+Number(t.timeline_scope==="academic_year"?t.completed_count:t.resolved_count||0),0);
   const progressPct=totalSteps?Math.round(resolvedSteps*100/totalSteps):(timelines.length?100:0);
   const pendingJoin=Number(personnelWork.pending_join_requests||0);
   const pendingTeaching=Number(academicWork.pending_teaching_workloads||0);
@@ -3671,7 +3671,7 @@ async function loadAcademicStructure(){
 async function academicDashboardHtml(data){
   const school=currentSchool(),stats=data.stats||{},year=academicSelectedYear(data),canManage=Boolean(data.can_manage);
   const noYear=!(data.years&&data.years.length);
-  const timeline=await loadDepartmentSetupTimeline("academics");
+  const timeline=state.academicTimeline||await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
   return '<section class="academic-page">'+academicNavHtml("dashboard",data)+
     '<section class="academic-hero"><div><p class="eyebrow">ACADEMIC STRUCTURE</p><h2>งานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · วางข้อมูลต้นทางรายปีเพื่อให้ภาระงานสอน ตารางเรียน และงานวัดผลใช้ข้อมูลชุดเดียวกัน</p></div>'+(canManage?'<a class="primary-btn" href="#/academics/periods">'+(noYear?"เริ่มตั้งค่าปีการศึกษา":"จัดการโครงสร้าง")+'</a>':'')+'</section>'+
     departmentSetupTimelineHtml(timeline)+
@@ -3685,11 +3685,11 @@ async function academicDashboardHtml(data){
     (noYear?'<section class="notice warning"><strong>ยังไม่มีโครงสร้างปีการศึกษาที่พร้อมใช้งาน</strong><br>เริ่มจากเพิ่มปีการศึกษา ระบบจะสร้างภาคเรียนที่ 1 และ 2 ให้เป็นค่าเริ่มต้น จากนั้นจึงกำหนดชั้น/ห้องและรายวิชา</section>':'')+
     '<section class="academic-flow-grid">'+
       '<a href="#/academics/periods"><b>01</b><div><strong>ปีการศึกษาและภาคเรียน</strong><small>กำหนดช่วงเวลาและปีปัจจุบัน</small></div></a>'+
-      '<a href="#/academics/programs"><b>02</b><div><strong>หลักสูตร / โปรแกรม</strong><small>เช่น ห้องปกติ MEP หรือ MLP — ไม่บังคับ</small></div></a>'+
+      '<a href="#/academics/programs"><b>02</b><div><strong>โปรแกรมพิเศษ</strong><small>ใช้ข้อมูลระดับโรงเรียนเดิม แล้วตรวจสอบสำหรับปีที่เลือก</small></div></a>'+
       '<a href="#/academics/classes"><b>03</b><div><strong>ระดับชั้นและห้อง</strong><small>ห้องจาก LEC ถูกนำมาเป็นฐานโดยไม่ต้องกรอกซ้ำ</small></div></a>'+
-      '<a href="#/academics/subjects"><b>04</b><div><strong>ทะเบียนรายวิชา</strong><small>รหัสวิชา ชื่อวิชา กลุ่มสาระ และประเภท</small></div></a>'+
+      '<a href="#/academics/subjects"><b>04</b><div><strong>รายวิชา</strong><small>ตรวจรายวิชาที่ใช้จริงของแต่ละระดับชั้นและโปรแกรม</small></div></a>'+
       '<a href="#/academics/curriculum"><b>05</b><div><strong>โครงสร้างเวลาเรียน</strong><small>รายวิชาต่อระดับชั้น ชั่วโมง/ปี และคาบต่อสัปดาห์</small></div></a>'+
-      '<a href="#/academics/workload"><b>06</b><div><strong>ภาระงานสอน</strong><small>ครูเสนอภาระงาน หรือฝ่ายวิชาการจัดให้และอนุมัติ</small></div></a>'+
+      '<a href="#/academics/workload"><b>06</b><div><strong>ภาระงานสอน</strong><small>จัดครูผู้สอนและอนุมัติภาระงานของปีการศึกษานี้</small></div></a>'+
     '</section>'+
     '<section class="academic-next-note"><span>ขั้นถัดไป</span><div><strong>ตารางเรียน / ตารางสอน</strong><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นฐานในการจัดตาราง เพื่อลดการกรอกชื่อครู รายวิชา และห้องเรียนซ้ำ</p></div></section>'+
   '</section>';
