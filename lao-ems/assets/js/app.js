@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.33";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.34";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -16,7 +16,7 @@ const routeMeta={
   lec:["นำเข้าข้อมูล LEC","นำเข้า XLS/XLSX โดยระบบเลือกชีตที่มีข้อมูลสถานศึกษาครบและรักษาประวัติทุกปีการศึกษา"],
   personnel:["บุคลากร","ข้อมูลบุคลากรต้นทางสำหรับทุกระบบ"],
   students:["นักเรียน","ค้นหาและดูข้อมูลนักเรียนจาก LEC ตามปีการศึกษา ชั้น และห้อง"],
-  academics:["งานวิชาการ","ปีการศึกษา ชั้นเรียน รายวิชา โครงสร้างเวลาเรียน และภาระงานสอน"],
+  academics:["โครงสร้างและตั้งค่าวิชาการ","ปีการศึกษา ชั้นเรียน รายวิชา โครงสร้างเวลาเรียน และภาระงานสอน"],
   assessment:["วัดผลและ ปพ.","บันทึกคะแนน สรุปผล ปพ.6 และส่งฝ่ายวิชาการ"],
   documents:["เอกสารและไฟล์","Google Drive แยกตามสถานศึกษา พร้อม metadata กลาง"],
   website:["เว็บไซต์สถานศึกษา","เว็บไซต์แต่ละโรงเรียนจากข้อมูลชุดเดียวกัน"],
@@ -1156,6 +1156,9 @@ function refreshHeader(){
   const assessmentLink=q('[data-route="assessment"][data-assessment-menu]');
   if(assessmentLink)assessmentLink.classList.toggle("hidden",!canViewAcademic());
 
+  const academicGroup=q("[data-academic-group]");
+  if(academicGroup)academicGroup.classList.toggle("hidden",!canViewAcademic());
+
   const setupLink=q('[data-route="setup"]');
   if(setupLink)setupLink.textContent=adminMode?"⚙ ตั้งค่าระบบ":"⚙ ตั้งค่าสถานศึกษา";
 
@@ -1244,7 +1247,7 @@ function workspaceRecentRouteInfo(hash){
     ["#/academics/time-frames","กรอบเวลาเรียน","⏱"],
     ["#/academics/programs","โปรแกรมที่ใช้ในปีนี้","⭐"],
     ["#/academics/periods","ปีการศึกษา / ภาคเรียน","🗓"],
-    ["#/academics","งานวิชาการ","📚"],
+    ["#/academics","โครงสร้างและตั้งค่าวิชาการ","📚"],
     ["#/assessment","วัดผลและ ปพ.","📝"],
     ["#/personnel/requests","คำขอบุคลากร","👥"],
     ["#/personnel/registry","ทะเบียนบุคลากร","👥"],
@@ -1274,7 +1277,7 @@ function workspaceAppItems(unreadCount,pendingJoin,pendingTeaching,assessmentAtt
   const items=[
     {icon:"👤",title:"โปรไฟล์ของฉัน",desc:"ข้อมูลส่วนตัวและภาระงานสอนของฉัน",route:"#/profile",key:"profile"}
   ];
-  if(canViewAcademic())items.push({icon:"📚",title:"งานวิชาการ",desc:"หลักสูตร เวลาเรียน และภาระงานสอน",route:"#/academics",key:"academics",badge:Number(pendingTeaching||0)});
+  if(canViewAcademic())items.push({icon:"📚",title:"โครงสร้างและตั้งค่าวิชาการ",desc:"ปีการศึกษา หลักสูตร เวลาเรียน ชั้น/ห้อง และภาระงานสอน",route:"#/academics",key:"academics",badge:Number(pendingTeaching||0)});
   if(canViewAcademic())items.push({icon:"📝",title:"วัดผลและ ปพ.",desc:"บันทึกคะแนน สรุป ปพ.6 และส่งผลให้ฝ่ายวิชาการ",route:"#/assessment",key:"assessment",badge:Number(assessmentAttention||0)});
   if(canViewStudentDirectory())items.push({icon:"🎓",title:"นักเรียน",desc:"ค้นหาและดูข้อมูลนักเรียนตามสิทธิ์",route:"#/students",key:"students"});
   if(canViewPersonnel())items.push({icon:"👥",title:"บุคลากร",desc:"ทะเบียนและงานบุคลากรที่ได้รับสิทธิ์",route:"#/personnel",key:"personnel",badge:Number(pendingJoin||0)});
@@ -1691,7 +1694,7 @@ function schoolProgramLibraryPanelHtml(library){
     '</article>'
   ).join("");
   return '<section class="panel school-program-master-panel"><div class="panel-head"><div><p class="eyebrow">SCHOOL MASTER DATA</p><h2>คลังโปรแกรม / หลักสูตรพิเศษของโรงเรียน</h2><p class="panel-sub">กำหนดอักษรย่อ ชื่อภาษาไทย และชื่อภาษาอังกฤษเพียงครั้งเดียว แล้วงานวิชาการแต่ละปีเลือกว่าจะใช้รายการใด ไม่สร้างชื่อซ้ำทุกปี</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-school-program>＋ เพิ่มโปรแกรม</button>':'')+'</div>'+
-    '<div class="school-program-master-rule"><span>ข้อมูลแม่แบบของโรงเรียน</span><b>≠</b><span>การเลือกใช้รายปี</span><p>การเปิดใช้โปรแกรมในคลังไม่ได้หมายความว่าทุกปีต้องใช้ โปรแกรมที่ใช้จริงเลือกใน “งานวิชาการ → โปรแกรมปีนี้”</p></div>'+
+    '<div class="school-program-master-rule"><span>ข้อมูลแม่แบบของโรงเรียน</span><b>≠</b><span>การเลือกใช้รายปี</span><p>การเปิดใช้โปรแกรมในคลังไม่ได้หมายความว่าทุกปีต้องใช้ โปรแกรมที่ใช้จริงเลือกใน “โครงสร้างและตั้งค่าวิชาการ → โปรแกรมปีนี้”</p></div>'+
     (rows?'<div class="school-program-master-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">⭐</div><h3>ยังไม่มีโปรแกรมพิเศษ</h3><p>หากโรงเรียนมีเฉพาะห้องปกติ ไม่ต้องเพิ่มรายการ</p></div>')+
     (canManage?'<form class="academic-form academic-form-3 hidden" data-school-program-master-form data-id=""><label>อักษรย่อ<input name="code" maxlength="30" placeholder="เช่น MEP"></label><label>ชื่อภาษาไทย <span class="required-mark">*</span><input name="name_th" required></label><label>ชื่อภาษาอังกฤษ<input name="name_en" placeholder="เช่น Mini English Program"></label><label class="check-row span-all"><input name="is_active" type="checkbox" checked><span>เปิดใช้งานในคลังโรงเรียน</span></label><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-cancel-school-program>ยกเลิก</button><button type="submit" class="primary-btn">บันทึกโปรแกรม</button></div></form>':'')+
   '</section>';
@@ -4081,7 +4084,7 @@ async function academicDashboardHtml(data){
   const noYear=!(data.years&&data.years.length);
   const timeline=state.academicTimeline||await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
   return '<section class="academic-page">'+academicNavHtml("dashboard",data)+
-    '<section class="academic-hero"><div><p class="eyebrow">ACADEMIC STRUCTURE</p><h2>งานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · วางข้อมูลต้นทางรายปีเพื่อให้ภาระงานสอน ตารางเรียน และงานวัดผลใช้ข้อมูลชุดเดียวกัน</p></div>'+(canManage?'<a class="primary-btn" href="#/academics/periods">'+(noYear?"เริ่มตั้งค่าพื้นฐาน":"เปิดการตั้งค่าประจำปี")+'</a>':'')+'</section>'+
+    '<section class="academic-hero"><div><p class="eyebrow">ACADEMIC STRUCTURE</p><h2>โครงสร้างและตั้งค่าวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · วางข้อมูลต้นทางรายปีเพื่อให้ภาระงานสอน ตารางเรียน และงานวัดผลใช้ข้อมูลชุดเดียวกัน</p></div>'+(canManage?'<a class="primary-btn" href="#/academics/periods">'+(noYear?"เริ่มตั้งค่าพื้นฐาน":"เปิดการตั้งค่าประจำปี")+'</a>':'')+'</section>'+
     departmentSetupTimelineHtml(timeline)+
     '<section class="academic-stats-grid">'+
       '<article><small>ปีการศึกษา</small><strong>'+(year?esc(year.year_be):"-")+'</strong><span>'+(year&&year.is_current?"ปีปัจจุบัน":"ปีที่เลือก")+'</span></article>'+
