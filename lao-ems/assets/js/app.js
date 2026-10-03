@@ -3565,6 +3565,7 @@ function academicRouteState(){
   const hash=location.hash||"#/academics";
   if(/^#\/academics\/periods\/?$/i.test(hash))return {mode:"periods"};
   if(/^#\/academics\/programs\/?$/i.test(hash))return {mode:"programs"};
+  if(/^#\/academics\/time-frames\/?$/i.test(hash))return {mode:"time-frames"};
   if(/^#\/academics\/classes\/?$/i.test(hash))return {mode:"classes"};
   if(/^#\/academics\/subjects\/?$/i.test(hash))return {mode:"subjects"};
   if(/^#\/academics\/curriculum\/?$/i.test(hash))return {mode:"subjects",legacy_curriculum:true};
@@ -3800,7 +3801,8 @@ function academicYearSelectorHtml(data){
 function academicNavHtml(active,data){
   const steps=[
     {key:"periods",href:"#/academics/periods",label:"ตั้งค่าพื้นฐาน",stepCode:"periods"},
-    {key:"programs",href:"#/academics/programs",label:"โปรแกรมพิเศษ",stepCode:"programs"},
+    {key:"programs",href:"#/academics/programs",label:"โปรแกรมปีนี้",stepCode:"programs"},
+    {key:"time-frames",href:"#/academics/time-frames",label:"กรอบเวลา",stepCode:"time_frames"},
     {key:"classes",href:"#/academics/classes",label:"ชั้น/ห้อง",stepCode:"classes"},
     {key:"subjects",href:"#/academics/subjects",label:"หลักสูตร/เวลาเรียน",stepCode:"subjects"},
     {key:"workload",href:"#/academics/workload",label:"ภาระงานสอน",stepCode:"workload"}
@@ -3871,7 +3873,7 @@ async function academicDashboardHtml(data){
     (noYear?'<section class="notice warning"><strong>ยังไม่มีโครงสร้างปีการศึกษาที่พร้อมใช้งาน</strong><br>เริ่มจากเพิ่มปีการศึกษา ระบบจะสร้างภาคเรียนที่ 1 และ 2 ให้เป็นค่าเริ่มต้น จากนั้นจึงกำหนดชั้น/ห้องและรายวิชา</section>':'')+
     '<section class="academic-flow-grid">'+
       '<a href="#/academics/periods"><b>01</b><div><strong>ตั้งค่าพื้นฐานงานวิชาการประจำปี</strong><small>ปี/ภาคเรียน ช่วงปฏิทิน และกรอบเวลาเรียนของห้องปกติ/โปรแกรมพิเศษ</small></div></a>'+
-      '<a href="#/academics/programs"><b>02</b><div><strong>โปรแกรมพิเศษ</strong><small>ใช้ข้อมูลระดับโรงเรียนเดิม แล้วตรวจสอบสำหรับปีที่เลือก</small></div></a>'+
+      '<a href="#/academics/programs"><b>02</b><div><strong>โปรแกรมที่ใช้ในปีนี้</strong><small>เลือกจากคลังโปรแกรมของโรงเรียน ไม่สร้างชื่อซ้ำรายปี</small></div></a>'+
       '<a href="#/academics/classes"><b>03</b><div><strong>ระดับชั้นและห้อง</strong><small>ห้องจาก LEC ถูกนำมาเป็นฐานโดยไม่ต้องกรอกซ้ำ</small></div></a>'+
       '<a href="#/academics/subjects"><b>04</b><div><strong>โครงสร้างหลักสูตรและเวลาเรียน</strong><small>เลือกรายวิชา กำหนดชั่วโมง/คาบ เทียบกรอบ และยืนยันความครบถ้วนในหน้าเดียว</small></div></a>'+
       '<a href="#/academics/workload"><b>05</b><div><strong>ภาระงานสอน</strong><small>จัดครูผู้สอนและอนุมัติภาระงานของปีการศึกษานี้</small></div></a>'+
@@ -3904,8 +3906,36 @@ function academicPeriodsHtml(data){
   const canManage=Boolean(data.can_manage_basic_settings);
   const canDelete=isSchoolAdminContext();
   const selectedYear=(data.years||[]).find(y=>y.id===data.selected_year_id)||null;
+
+  const yearCards=years.map(y=>{
+    const terms=(y.terms||[]).map(t=>'<div class="academic-term-row"><div><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><small>'+(t.starts_on||t.ends_on?esc(thaiDate(t.starts_on))+' – '+esc(thaiDate(t.ends_on)):'ยังไม่กำหนดช่วงวันที่')+'</small></div>'+(t.is_current?'<span class="pill success">ภาคเรียนปัจจุบัน</span>':'')+(canManage?'<div class="academic-period-row-actions"><button type="button" class="text-btn" data-edit-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">แก้ไข</button>'+(canDelete?'<button type="button" class="text-btn danger-text" data-safe-delete-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">ลบ</button>':'')+'</div>':'')+'</div>').join("");
+    return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-add-term="'+esc(y.id)+'">＋ เพิ่มภาคเรียน</button><button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+(canDelete?'<button type="button" class="danger-btn compact-btn" data-safe-delete-year="'+esc(y.id)+'">ลบปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
+  }).join("");
+
+  const nextAction=selectedYear
+    ?'<div class="academic-next-step-card"><div><span>ขั้นถัดไป</span><strong>เลือกโปรแกรมที่ใช้ในปี '+esc(selectedYear.year_be)+'</strong><p>เมื่อปี/ภาคเรียนพร้อมแล้ว ให้เลือก MEP, MLP หรือโปรแกรมพิเศษที่ใช้จริงในปีนี้ก่อนกำหนดกรอบเวลา</p></div><a class="primary-btn" href="#/academics/programs">ไปโปรแกรมปีนี้ →</a></div>'
+    :'';
+
+  return '<section class="academic-page">'+academicNavHtml("periods",data)+
+    '<section class="panel academic-basic-settings-head"><div class="panel-head"><div><p class="eyebrow">STEP 1 · ANNUAL ACADEMIC SETTINGS</p><h2>ปีการศึกษา / ภาคเรียน / ช่วงปฏิทิน</h2><p class="panel-sub">กำหนดข้อมูลเวลาระดับปีให้เสร็จก่อน จากนั้นระบบจะพาไปเลือกโปรแกรมที่ใช้ในปีนี้และกำหนดกรอบเวลาโดยไม่ต้องย้อนกลับ</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
+      '<div class="academic-shared-settings-owner"><span>🔐</span><div><strong>ผู้กำหนดข้อมูลส่วนกลาง</strong><p>School Admin และผู้ได้รับมอบหมายสิทธิ์ “ตั้งค่าพื้นฐานงานวิชาการประจำปี” เท่านั้น · การแก้ไขทุกครั้งมี Audit Log</p></div>'+(data.can_delegate_basic_settings?'<a class="secondary-btn compact-btn" href="#/work-authorities">จัดการผู้รับผิดชอบ</a>':'')+'</div>'+
+      '<div class="academic-settings-section-title"><strong>ปีการศึกษา / ภาคเรียน / ช่วงปฏิทิน</strong><span>กำหนดวันเปิด–ปิดของปีและแต่ละภาคเรียน</span></div>'+
+      '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
+      (canDelete?'<div class="academic-delete-policy"><strong>การลบแบบปลอดภัย</strong><span>ระบบจะตรวจข้อมูลเชื่อมโยงก่อนทุกครั้ง หากมีนักเรียน LEC ห้องเรียน รายวิชา เวลาเรียน หรือภาระงานสอน ระบบจะบล็อกการลบโดยอัตโนมัติ</span></div><div class="academic-safe-delete-panel hidden" data-academic-safe-delete-panel></div>':'')+
+      nextAction+
+    '</section>'+
+    (canManage?'<section class="academic-edit-grid">'+
+      '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">สร้างได้ก่อน LEC เปิดปีใหม่ · ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ ภาคเรียนละ 100 วันเรียน · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2570"></label><label>วันเริ่มปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุดปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><div class="academic-year-auto-note span-all"><strong>ตั้งต้นอัตโนมัติ:</strong> ภาคเรียนที่ 1 = 100 วันเรียน และภาคเรียนที่ 2 = 100 วันเรียน โดยนับวันจันทร์–ศุกร์เบื้องต้น ไม่หักวันหยุดราชการ ช่วงวันที่ของแต่ละภาคเรียนแก้ไขได้ภายหลัง</div><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
+      '<article class="panel hidden" data-term-form-panel><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน · เมื่อกำหนดวันเริ่ม ระบบเติมวันสิ้นสุดที่ 100 วันเรียนให้อัตโนมัติ และแก้ไขภายหลังได้ · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุด (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
+    '</section>':'')+
+  '</section>';
+}
+
+function academicTimeFramesHtml(data){
+  const canManage=Boolean(data.can_manage_basic_settings);
+  const selectedYear=(data.years||[]).find(y=>y.id===data.selected_year_id)||null;
   const timeFrames=(data.time_frames||[]).filter(x=>x&&x.is_active!==false);
-  const programs=(data.programs||[]).filter(x=>x&&x.is_active!==false);
+  const programs=(data.year_programs||[]).filter(x=>x&&x.is_active!==false);
   const defaultFrame=timeFrames.find(x=>x.is_default)||null;
   const specialFrames=timeFrames.filter(x=>!x.is_default);
   const assignedPrograms=new Set(specialFrames.map(x=>x.program_id).filter(Boolean));
@@ -3913,11 +3943,6 @@ function academicPeriodsHtml(data){
   const frameNumber=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:2});
   const frameCapacity=f=>Number(f&&f.capacity_hours_per_year||Number(f&&f.school_days_per_week||0)*Number(f&&f.periods_per_day||0)*Number(f&&f.minutes_per_period||0)/60*Number(f&&f.instructional_weeks_per_year||0));
   const frameWeekly=f=>Number(f&&f.periods_per_week||Number(f&&f.school_days_per_week||0)*Number(f&&f.periods_per_day||0));
-
-  const yearCards=years.map(y=>{
-    const terms=(y.terms||[]).map(t=>'<div class="academic-term-row"><div><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><small>'+(t.starts_on||t.ends_on?esc(thaiDate(t.starts_on))+' – '+esc(thaiDate(t.ends_on)):'ยังไม่กำหนดช่วงวันที่')+'</small></div>'+(t.is_current?'<span class="pill success">ภาคเรียนปัจจุบัน</span>':'')+(canManage?'<div class="academic-period-row-actions"><button type="button" class="text-btn" data-edit-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">แก้ไข</button>'+(canDelete?'<button type="button" class="text-btn danger-text" data-safe-delete-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">ลบ</button>':'')+'</div>':'')+'</div>').join("");
-    return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-add-term="'+esc(y.id)+'">＋ เพิ่มภาคเรียน</button><button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+(canDelete?'<button type="button" class="danger-btn compact-btn" data-safe-delete-year="'+esc(y.id)+'">ลบปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
-  }).join("");
 
   const programOptions=(selected,includeUsed=true)=>programs
     .filter(p=>includeUsed||!assignedPrograms.has(p.id)||p.id===selected)
@@ -3937,15 +3962,15 @@ function academicPeriodsHtml(data){
       '<label>ชื่อกรอบเวลาเรียน<input name="name_th" required maxlength="120" value="'+esc(nameValue)+'" placeholder="'+(isDefault?'เช่น ห้องเรียนปกติ':'เช่น ห้องเรียน MEP')+'"></label>'+
       '<label>รหัส/อักษรย่อ<input name="code" required maxlength="30" value="'+esc(codeValue)+'" placeholder="'+(isDefault?'NORMAL':'MEP')+'"></label>'+
       (isDefault
-        ?'<label><span>ใช้กับ</span><div class="academic-frame-fixed-target">ห้องปกติ + โปรแกรมที่ไม่มีกำหนดกรอบเฉพาะ</div><input name="program_id" type="hidden" value=""></label>'
-        :'<label>โปรแกรม / กลุ่มห้อง <select name="program_id" required><option value="">เลือกโปรแกรม</option>'+programOptions(f.program_id||"",!isNew)+'</select></label>')+
+        ?'<label><span>ใช้กับ</span><div class="academic-frame-fixed-target">ห้องปกติ + โปรแกรมปีนี้ที่ไม่มีกำหนดกรอบเฉพาะ</div><input name="program_id" type="hidden" value=""></label>'
+        :'<label>โปรแกรมที่ใช้ในปีนี้ <select name="program_id" required><option value="">เลือกโปรแกรม</option>'+programOptions(f.program_id||"",!isNew)+'</select></label>')+
       '<label>วันเรียน/สัปดาห์<input name="school_days_per_week" type="number" min="1" max="7" step="1" required value="'+esc(days)+'"></label>'+
       '<label>คาบ/วัน<input name="periods_per_day" type="number" min="0.25" max="20" step="0.25" required value="'+esc(periods)+'" placeholder="เช่น 6"></label>'+
       '<label>นาที/คาบ<input name="minutes_per_period" type="number" min="20" max="120" step="1" required value="'+esc(minutes)+'"></label>'+
       '<label>สัปดาห์เรียน/ปี<input name="instructional_weeks_per_year" type="number" min="1" max="60" step="0.5" required value="'+esc(weeks)+'"></label>'+
       '<input name="is_default" type="hidden" value="'+(isDefault?"1":"0")+'">'+
       '<div class="academic-time-frame-preview span-all" data-time-frame-preview>กรอกข้อมูลครบเพื่อดูความจุเวลาเรียน</div>'+
-      '<div class="academic-time-frame-note span-all"><strong>หลักการคำนวณ:</strong> วันเรียน × คาบ/วัน = คาบสูงสุด/สัปดาห์ แล้วคูณเวลาต่อคาบและจำนวนสัปดาห์เพื่อหาชั่วโมงสูงสุด/ปี · ระบบจะใช้กรอบเฉพาะโปรแกรมก่อน และใช้กรอบเริ่มต้นเมื่อไม่มีกรอบเฉพาะ</div>'+
+      '<div class="academic-time-frame-note span-all"><strong>หลักการ:</strong> ทุกโปรแกรมใช้กรอบปกติเป็นค่าเริ่มต้นโดยอัตโนมัติ สร้างกรอบเฉพาะเฉพาะเมื่อจำนวนคาบ/วัน นาที/คาบ หรือจำนวนสัปดาห์ต่างจากปกติ</div>'+
       '<div class="academic-form-actions span-all">'+
         (!isDefault&&!isNew?'<button type="button" class="danger-outline-btn" data-disable-time-frame="'+esc(f.id)+'">ปิดใช้กรอบนี้</button>':'')+
         '<button type="submit" class="primary-btn">'+(isNew?"เพิ่มกรอบเวลาเรียน":"บันทึกการแก้ไข")+'</button>'+
@@ -3956,7 +3981,7 @@ function academicPeriodsHtml(data){
   const frameCards=timeFrames.map(f=>{
     const programName=f.program_name||programs.find(p=>p.id===f.program_id)?.name_th||"";
     const target=f.is_default
-      ?'ค่าเริ่มต้นของโรงเรียน · ใช้กับห้องปกติและโปรแกรมที่ไม่มีกำหนดกรอบเฉพาะ'
+      ?'ค่าเริ่มต้นของปี · ใช้กับห้องปกติและโปรแกรมที่ไม่มีกรอบเฉพาะ'
       :'ใช้กับ '+(programName||"โปรแกรมพิเศษ");
     return '<article class="academic-time-frame-card '+(f.is_default?"default-frame":"special-frame")+'">'+
       '<div class="academic-time-frame-card-head"><div><div class="academic-frame-title-line"><strong>'+esc(f.name_th)+'</strong>'+(f.is_default?'<span class="pill success">ค่าเริ่มต้น</span>':'<span class="pill">กรอบเฉพาะ</span>')+(f.code?'<span class="academic-frame-code">'+esc(f.code)+'</span>':'')+'</div><p>'+esc(target)+' · '+Number(f.room_count||0).toLocaleString("th-TH")+' ห้อง</p></div></div>'+
@@ -3972,55 +3997,56 @@ function academicPeriodsHtml(data){
     '</article>';
   }).join("");
 
-  const scheduleFrameHtml=selectedYear?'<section class="panel academic-time-frame-panel '+(defaultFrame?"is-configured":"needs-setup")+'">'+
-    '<div class="panel-head"><div><p class="eyebrow">STEP 1.3 · LEARNING TIME FRAMES</p><h2>กรอบเวลาเรียนตามประเภทห้อง / โปรแกรม</h2><p class="panel-sub">ห้องเรียนปกติและห้องเรียนพิเศษอาจใช้โครงสร้างเวลาไม่เท่ากัน ระบบจะเลือกกรอบตามโปรแกรมของห้องโดยอัตโนมัติ แล้วใช้กรอบเริ่มต้นเป็นค่าทดแทนเมื่อไม่ได้กำหนดกรอบเฉพาะ</p></div><span class="pill '+(defaultFrame?"success":"warning")+'">'+(defaultFrame?"✓ มีกรอบเริ่มต้น":"รอกำหนดกรอบเริ่มต้น")+'</span></div>'+
-    (!defaultFrame?'<div class="academic-time-frame-warning"><strong>ยังคำนวณรายวิชา 100% จริงไม่ได้</strong><span>ต้องมีกรอบเวลาเรียนเริ่มต้นอย่างน้อย 1 กรอบก่อน ระบบจึงจะตรวจคาบ/สัปดาห์และชั่วโมง/ปีได้</span></div>':'')+
-    '<div class="academic-time-frame-list">'+(frameCards||'<div class="empty-state compact-empty"><div class="empty-icon">⏱</div><h3>ยังไม่มีกรอบเวลาเรียน</h3></div>')+'</div>'+
-    (canManage&&!defaultFrame?'<div class="academic-new-frame-box"><h3>สร้างกรอบเวลาเริ่มต้น</h3><p>กรอบนี้เป็นค่าหลักสำหรับห้องเรียนปกติและเป็น fallback ของโปรแกรมพิเศษ</p>'+timeFrameForm(null,true,true)+'</div>':'')+
-    (canManage&&defaultFrame&&availablePrograms.length?'<details class="academic-new-frame-box"><summary>＋ เพิ่มกรอบเวลาเรียนสำหรับโปรแกรมพิเศษ</summary><p>เพิ่มเฉพาะโปรแกรมที่มีจำนวนคาบ/วัน เวลาต่อคาบ หรือจำนวนสัปดาห์ต่างจากกรอบเริ่มต้น</p>'+timeFrameForm(null,true,false)+'</details>':'')+
-    (canManage&&defaultFrame&&!availablePrograms.length&&programs.length?'<div class="academic-time-frame-note"><strong>ครบทุกโปรแกรมแล้ว:</strong> ทุกโปรแกรมพิเศษที่เปิดใช้งานมีกรอบเวลาเฉพาะ หรือสามารถปิดกรอบเฉพาะเพื่อกลับไปใช้กรอบเริ่มต้นได้</div>':'')+
-    (!canManage?'<div class="academic-shared-settings-lock"><strong>ข้อมูลส่วนกลางของโรงเรียน</strong><span>ดูได้ตามสิทธิ์ แต่แก้ไขได้เฉพาะ School Admin หรือผู้ได้รับมอบหมายส่วนงานนี้เท่านั้น</span></div>':'')+
-  '</section>':'';
+  const annualProgramSummary=programs.length
+    ?'<div class="annual-frame-program-summary"><strong>โปรแกรมที่เลือกใช้ในปี '+esc(selectedYear&&selectedYear.year_be||"—")+'</strong><div>'+programs.map(p=>'<span>'+esc(p.code||p.name_th)+'</span>').join("")+'</div><p>โปรแกรมที่ไม่มีกรอบเฉพาะจะใช้กรอบปกติด้านล่างโดยอัตโนมัติ</p></div>'
+    :'<div class="annual-frame-program-summary empty"><strong>ปีนี้ไม่มีโปรแกรมพิเศษ</strong><p>กำหนดเฉพาะกรอบห้องปกติ แล้วไปขั้นชั้น/ห้องได้ทันที</p></div>';
 
-  return '<section class="academic-page">'+academicNavHtml("periods",data)+
-    '<section class="panel academic-basic-settings-head"><div class="panel-head"><div><p class="eyebrow">STEP 1 · ANNUAL ACADEMIC SETTINGS</p><h2>การตั้งค่าพื้นฐานงานวิชาการประจำปี</h2><p class="panel-sub">รวมปีการศึกษา ภาคเรียน ช่วงปฏิทิน และกรอบเวลาเรียนไว้ในขั้นเดียว เพื่อให้รายวิชา ตารางเรียน และภาระงานสอนอ้างอิงข้อมูลกลางชุดเดียวกัน</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
-      '<div class="academic-shared-settings-owner"><span>🔐</span><div><strong>ผู้กำหนดข้อมูลส่วนกลาง</strong><p>School Admin และผู้ได้รับมอบหมายสิทธิ์ “ตั้งค่าพื้นฐานงานวิชาการประจำปี” เท่านั้น · การแก้ไขทุกครั้งมี Audit Log</p></div>'+(data.can_delegate_basic_settings?'<a class="secondary-btn compact-btn" href="#/work-authorities">จัดการผู้รับผิดชอบ</a>':'')+'</div>'+
-      '<div class="academic-settings-section-title"><strong>1.1–1.2 ปีการศึกษา / ภาคเรียน / ช่วงปฏิทิน</strong><span>กำหนดช่วงวันเปิด–ปิดของปีและแต่ละภาคเรียน</span></div>'+
-      '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
-      (canDelete?'<div class="academic-delete-policy"><strong>การลบแบบปลอดภัย</strong><span>ระบบจะตรวจข้อมูลเชื่อมโยงก่อนทุกครั้ง หากมีนักเรียน LEC ห้องเรียน รายวิชา เวลาเรียน หรือภาระงานสอน ระบบจะบล็อกการลบโดยอัตโนมัติ</span></div><div class="academic-safe-delete-panel hidden" data-academic-safe-delete-panel></div>':'')+
+  return '<section class="academic-page">'+academicNavHtml("time-frames",data)+
+    '<section class="panel academic-time-frame-panel '+(defaultFrame?"is-configured":"needs-setup")+'">'+
+      '<div class="panel-head"><div><p class="eyebrow">STEP 3 · LEARNING TIME FRAMES</p><h2>กรอบเวลาเรียนของปีการศึกษา '+esc(selectedYear&&selectedYear.year_be||"—")+'</h2><p class="panel-sub">ขั้นนี้อยู่ต่อจาก “โปรแกรมปีนี้” โดยตรง จึงเห็นเฉพาะโปรแกรมที่เลือกใช้ในปีนี้ ไม่ต้องย้อนกลับไปตั้งชื่อหรือเลือกโปรแกรมใหม่</p></div><span class="pill '+(defaultFrame?"success":"warning")+'">'+(defaultFrame?"✓ มีกรอบเริ่มต้น":"รอกำหนดกรอบเริ่มต้น")+'</span></div>'+
+      annualProgramSummary+
+      (!defaultFrame?'<div class="academic-time-frame-warning"><strong>ยังคำนวณรายวิชา 100% จริงไม่ได้</strong><span>ต้องมีกรอบเวลาเรียนเริ่มต้นอย่างน้อย 1 กรอบก่อน ระบบจึงจะตรวจคาบ/สัปดาห์และชั่วโมง/ปีได้</span></div>':'')+
+      '<div class="academic-time-frame-list">'+(frameCards||'<div class="empty-state compact-empty"><div class="empty-icon">⏱</div><h3>ยังไม่มีกรอบเวลาเรียน</h3></div>')+'</div>'+
+      (canManage&&!defaultFrame?'<div class="academic-new-frame-box"><h3>สร้างกรอบเวลาเริ่มต้น</h3><p>กรอบนี้เป็นค่าหลักสำหรับห้องปกติ และเป็น fallback ของทุกโปรแกรมในปีนี้</p>'+timeFrameForm(null,true,true)+'</div>':'')+
+      (canManage&&defaultFrame&&availablePrograms.length?'<details class="academic-new-frame-box"><summary>＋ เพิ่มกรอบเฉพาะโปรแกรม</summary><p>เลือกเฉพาะโปรแกรมที่เวลาเรียนต่างจากกรอบปกติ</p>'+timeFrameForm(null,true,false)+'</details>':'')+
+      (canManage&&defaultFrame&&!availablePrograms.length&&programs.length?'<div class="academic-time-frame-note"><strong>กำหนดครบแล้ว:</strong> โปรแกรมปีนี้ทุกโปรแกรมมีกรอบเฉพาะ หรือสามารถปิดกรอบเฉพาะเพื่อให้กลับมาใช้กรอบปกติได้</div>':'')+
+      (!canManage?'<div class="academic-shared-settings-lock"><strong>ข้อมูลส่วนกลางของปีการศึกษา</strong><span>ดูได้ตามสิทธิ์ แต่แก้ไขได้เฉพาะ School Admin หรือผู้ได้รับมอบหมายส่วนตั้งค่าพื้นฐานงานวิชาการ</span></div>':'')+
+      (defaultFrame?'<div class="academic-next-step-card"><div><span>ขั้นถัดไป</span><strong>ผูกโปรแกรมกับชั้น/ห้อง</strong><p>เมื่อกรอบปกติพร้อมแล้ว ไปกำหนดว่าห้องใดใช้โปรแกรมใด ระบบจะเลือกกรอบเวลาที่ถูกต้องให้อัตโนมัติ</p></div><a class="primary-btn" href="#/academics/classes">ไปชั้น/ห้อง →</a></div>':'')+
     '</section>'+
-    scheduleFrameHtml+
-    (canManage?'<section class="academic-edit-grid">'+
-      '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">สร้างได้ก่อน LEC เปิดปีใหม่ · ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ ภาคเรียนละ 100 วันเรียน · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2570"></label><label>วันเริ่มปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุดปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><div class="academic-year-auto-note span-all"><strong>ตั้งต้นอัตโนมัติ:</strong> ภาคเรียนที่ 1 = 100 วันเรียน และภาคเรียนที่ 2 = 100 วันเรียน โดยนับวันจันทร์–ศุกร์เบื้องต้น ไม่หักวันหยุดราชการ ช่วงวันที่ของแต่ละภาคเรียนแก้ไขได้ภายหลัง</div><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
-      '<article class="panel hidden" data-term-form-panel><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน · เมื่อกำหนดวันเริ่ม ระบบเติมวันสิ้นสุดที่ 100 วันเรียนให้อัตโนมัติ และแก้ไขภายหลังได้ · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุด (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
-    '</section>':'')+
   '</section>';
 }
 function academicProgramsHtml(data,timeline){
-  const items=data.programs||[],canManage=Boolean(data.can_manage_programs);
-  const activeItems=items.filter(p=>p.is_active);
-  const programStep=(timeline&&timeline.steps||[]).find(x=>x.step_code==="programs")||null;
+  const items=(data.programs||[]).filter(p=>p.is_active);
+  const selectedItems=(data.year_programs||[]).filter(p=>p.is_active);
+  const selectedIds=new Set(selectedItems.map(p=>p.id));
+  const canManage=Boolean(data.can_manage_programs);
   const selectedYear=(data.years||[]).find(y=>y.id===data.selected_year_id)||null;
-  const programReviewed=programStep&&programStep.status==="reused";
-  const noSpecialPrograms=activeItems.length===0;
-  const rows=items.map(p=>'<div class="academic-simple-row '+(!p.is_active?"muted-row":"")+'"><div><strong>'+esc(p.name_th)+'</strong><small>'+(p.code?'อักษรย่อ '+esc(p.code):'ไม่มีอักษรย่อ')+(p.name_en?' · '+esc(p.name_en):'')+'</small></div><span class="pill '+(p.is_active?"success":"warning")+'">'+(p.is_active?"ใช้งาน":"ปิดใช้งาน")+'</span>'+(canManage?'<button class="secondary-btn compact-btn" type="button" data-edit-program="'+esc(p.id)+'">แก้ไข</button>':'')+'</div>').join("");
-  const setupState=activeItems.length
-    ?(programReviewed
-      ?'<div class="academic-program-state success"><span>✓</span><div><strong>ตรวจสอบแล้วสำหรับปี '+esc(selectedYear&&selectedYear.year_be||"—")+'</strong><p>ใช้โปรแกรมพิเศษของโรงเรียน '+activeItems.length+' รายการต่อในปีนี้ ข้อมูลโปรแกรมไม่ถูกสร้างซ้ำ</p></div></div>'
-      :'<div class="academic-program-state warning"><span>↻</span><div><strong>มีโปรแกรมพิเศษเดิม '+activeItems.length+' รายการ · รอตรวจสอบปี '+esc(selectedYear&&selectedYear.year_be||"—")+'</strong><p>ตรวจรายการด้านล่าง แล้วกดยืนยันใช้ต่อสำหรับปีนี้ หากแก้ไขโปรแกรมภายหลัง ระบบจะเปิดขั้นตอนนี้ให้ตรวจสอบใหม่</p></div>'+(canManage&&selectedYear?'<button type="button" class="primary-btn compact-btn" data-confirm-year-programs data-academic-year-id="'+esc(selectedYear.id)+'">ยืนยันใช้ต่อในปี '+esc(selectedYear.year_be)+'</button>':'')+'</div>')
-    :'<div class="academic-program-state success"><span>–</span><div><strong>ไม่มีโปรแกรมพิเศษที่ต้องบันทึก</strong><p>ห้องปกติไม่ต้องสร้างเป็นโปรแกรม ขั้นนี้จะถูกระบุว่า “ไม่เกี่ยวข้อง” และไม่นำมาคิดในร้อยละความพร้อมของปี</p></div></div>';
+  const programStep=(timeline&&timeline.steps||[]).find(x=>x.step_code==="programs")||null;
+  const confirmed=Boolean(data.annual_programs_confirmed||["completed","reused"].includes(programStep&&programStep.status));
+  const rows=items.map(p=>{
+    const on=selectedIds.has(p.id);
+    return '<article class="annual-program-row '+(on?"selected":"")+'">'+
+      '<div class="annual-program-identity"><span class="annual-program-mark">'+(p.code?esc(p.code):"★")+'</span><div><strong>'+esc(p.name_th)+'</strong><small>'+(p.name_en?esc(p.name_en):"")+(p.code&&p.name_en?' · ':'')+(p.code?'อักษรย่อ '+esc(p.code):'')+'</small></div></div>'+
+      '<div class="annual-program-state"><span class="pill '+(on?"success":"neutral")+'">'+(on?"ใช้ในปีนี้":"ไม่ใช้ปีนี้")+'</span>'+
+      (canManage?'<label class="academic-edit-switch compact"><input type="checkbox" data-year-program-toggle="'+esc(p.id)+'" '+(on?"checked":"")+'><span class="switch-track"><i></i></span></label>':'')+
+      '</div>'+
+    '</article>';
+  }).join("");
+
+  const stateHtml=items.length===0
+    ?'<div class="academic-program-state success"><span>–</span><div><strong>โรงเรียนยังไม่มีโปรแกรมพิเศษในคลัง</strong><p>หากโรงเรียนมีเฉพาะห้องปกติ สามารถไปกำหนดกรอบเวลาได้เลย ขั้นนี้ไม่นับเป็นงานค้าง</p></div></div>'
+    :confirmed
+      ?'<div class="academic-program-state success"><span>✓</span><div><strong>ยืนยันโปรแกรมปี '+esc(selectedYear&&selectedYear.year_be||"—")+' แล้ว</strong><p>'+(selectedItems.length?'เลือกใช้ '+selectedItems.length+' โปรแกรม':'ยืนยันแล้วว่าไม่ใช้โปรแกรมพิเศษในปีนี้')+' · หากเปลี่ยนสวิตช์ ระบบจะยกเลิกการยืนยันและให้ตรวจใหม่</p></div><a class="primary-btn compact-btn" href="#/academics/time-frames">ไปกำหนดกรอบเวลา →</a></div>'
+      :'<div class="academic-program-state warning"><span>2</span><div><strong>เลือกโปรแกรมที่ใช้จริงในปี '+esc(selectedYear&&selectedYear.year_be||"—")+'</strong><p>ชื่อโปรแกรมมาจากคลังของโรงเรียน ไม่สร้างซ้ำทุกปี เลือกแล้วกดยืนยันเพื่อไปกำหนดกรอบเวลา</p></div>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-confirm-year-programs>ยืนยันรายการปีนี้</button>':'')+'</div>';
 
   return '<section class="academic-page">'+academicNavHtml("programs",data)+
-    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">SPECIAL PROGRAMS</p><h2>โปรแกรมพิเศษของโรงเรียน</h2><p class="panel-sub">บันทึกเฉพาะโปรแกรมพิเศษที่โรงเรียนมีใช้งานจริง ส่วนห้องปกติไม่ต้องสร้างรายการ</p></div>'+(canManage?'<button type="button" class="primary-btn" data-new-program-form>＋ เพิ่มโปรแกรมพิเศษ</button>':'')+'</div>'+
-      setupState+
-      '<div class="academic-program-choice-grid">'+
-        '<article><span>🏫</span><div><strong>ห้องปกติ</strong><p>ไม่ต้องสร้างรายการ “ปกติ” ระบบถือว่าห้องที่ไม่ระบุโปรแกรมเป็นห้องทั่วไปโดยอัตโนมัติ</p></div></article>'+
-        '<article><span>⭐</span><div><strong>มีโปรแกรมพิเศษ</strong><p>เพิ่มเฉพาะรายการที่ต้องแยกจริง เช่น MEP, MLP, ห้องพิเศษ หรือโครงการเฉพาะของโรงเรียน</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-program-form>＋ เพิ่มโปรแกรมพิเศษ</button>':'')+'</article>'+
-      '</div>'+
-      (rows?'<div class="academic-simple-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">◫</div><h3>ไม่มีโปรแกรมพิเศษ</h3><p>ไม่ต้องบันทึกห้องปกติ ระบบจะไม่นับขั้นโปรแกรมพิเศษในร้อยละของปีนี้</p></div>')+
-      '<div class="academic-program-next-year"><strong>ปีการศึกษาถัดไปต้องทำอะไร?</strong><p><b>ไม่ต้องสร้างโปรแกรมใหม่ซ้ำ</b> เพราะรายการโปรแกรมเป็นข้อมูลระดับโรงเรียน ใช้ต่อเนื่องข้ามปีได้ เมื่อสร้างชั้น/ห้องของปีใหม่ ให้เลือกโปรแกรมเดิมกับห้องที่เกี่ยวข้อง หรือเลือก “ห้องทั่วไป / ไม่ระบุโปรแกรม” สำหรับห้องปกติ</p></div>'+
+    '<section class="panel annual-program-panel"><div class="panel-head"><div><p class="eyebrow">STEP 2 · PROGRAMS FOR THIS YEAR</p><h2>โปรแกรมที่ใช้ในปีการศึกษา '+esc(selectedYear&&selectedYear.year_be||"—")+'</h2><p class="panel-sub">เลือกจากคลังโปรแกรมของโรงเรียนก่อนกำหนดกรอบเวลา ชื่อโปรแกรมเป็นข้อมูลแม่แบบของโรงเรียนและไม่สร้างซ้ำรายปี</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-program-form>＋ เพิ่มโปรแกรมของโรงเรียน</button>':'')+'</div>'+
+      stateHtml+
+      '<div class="annual-program-flow-note"><span>คลังโรงเรียน</span><b>→</b><span class="active">เลือกใช้ปีนี้</span><b>→</b><span>กรอบเวลา</span><b>→</b><span>ชั้น/ห้อง</span></div>'+
+      (rows?'<div class="annual-program-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">⭐</div><h3>ไม่มีโปรแกรมพิเศษในคลังโรงเรียน</h3><p>ห้องปกติไม่ต้องสร้างเป็นโปรแกรม หากต้องการ MEP / MLP หรือโปรแกรมอื่น ให้เพิ่มจากปุ่มด้านบน</p></div>')+
+      '<div class="annual-program-master-note"><div><strong>ชื่อโปรแกรมเก็บที่ไหน?</strong><p>อักษรย่อ ชื่อไทย และชื่ออังกฤษเป็นข้อมูลแม่แบบของโรงเรียน จัดการหลักได้ที่ “ตั้งค่าระบบ → คลังโปรแกรม/หลักสูตรพิเศษ” ส่วนหน้านี้มีปุ่มเพิ่มแบบด่วนเพื่อไม่ให้ต้องออกจาก Workflow</p></div>'+(isSchoolAdminContext()?'<a class="secondary-btn compact-btn" href="#/setup">เปิดตั้งค่าระบบ</a>':'')+'</div>'+
     '</section>'+
-    (canManage?'<section class="panel academic-form-panel hidden" data-program-form-panel><div class="panel-head"><div><h2 data-program-form-title>เพิ่มโปรแกรมพิเศษ</h2><p class="panel-sub">บันทึกเฉพาะโปรแกรมพิเศษที่โรงเรียนมีใช้งานจริง · แบบฟอร์มเก็บเฉพาะข้อมูลจำเป็น</p></div></div><form id="academic-program-form" class="academic-form academic-form-3" data-id=""><label>อักษรย่อ<input name="code" maxlength="30" placeholder="เช่น MEP"></label><label>ชื่อภาษาไทย <span class="required-mark">*</span><input name="name_th" required placeholder="เช่น โครงการจัดการเรียนการสอนโดยใช้ภาษาอังกฤษเป็นสื่อ"></label><label>ชื่อภาษาอังกฤษ<input name="name_en" placeholder="เช่น Mini English Program"></label><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-program-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกโปรแกรมพิเศษ</button></div></form></section>':'')+
+    (canManage?'<section class="panel academic-form-panel hidden" data-program-form-panel><div class="panel-head"><div><h2 data-program-form-title>เพิ่มโปรแกรมของโรงเรียน</h2><p class="panel-sub">สร้างข้อมูลแม่แบบครั้งเดียว แล้วระบบจะเลือกใช้กับปี '+esc(selectedYear&&selectedYear.year_be||"—")+' ให้อัตโนมัติหลังบันทึก</p></div></div><form id="academic-program-form" class="academic-form academic-form-3" data-id=""><label>อักษรย่อ<input name="code" maxlength="30" placeholder="เช่น MEP"></label><label>ชื่อภาษาไทย <span class="required-mark">*</span><input name="name_th" required placeholder="เช่น โครงการจัดการเรียนการสอนโดยใช้ภาษาอังกฤษเป็นสื่อ"></label><label>ชื่อภาษาอังกฤษ<input name="name_en" placeholder="เช่น Mini English Program"></label><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-program-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกและเลือกใช้ปีนี้</button></div></form></section>':'')+
   '</section>';
 }
 function academicClassesHtml(data){
@@ -4054,7 +4080,7 @@ function academicClassesHtml(data){
   const visibleItems=currentStage?items.filter(x=>classStageKey(x)===currentStage.key):items;
   const normal=visibleItems.filter(x=>!x.program_id);
   const special=visibleItems.filter(x=>Boolean(x.program_id));
-  const activePrograms=(data.programs||[]).filter(p=>p.is_active);
+  const activePrograms=(data.year_programs||[]).filter(p=>p.is_active);
   const programOptions=(selected)=>'<option value="">ห้องปกติ / ไม่ระบุโปรแกรม</option>'+activePrograms.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?"selected":"")+'>'+esc(p.name_th)+(p.code?' ('+esc(p.code)+')':'')+'</option>').join("");
   const roomCard=(c,specialRoom)=>'<article class="academic-room-card '+(specialRoom?"special":"normal")+'" data-class-card="'+esc(c.id)+'">'+
     '<div class="academic-room-icon">'+(specialRoom?"⭐":"🏫")+'</div>'+
@@ -4096,10 +4122,10 @@ function academicClassesHtml(data){
         (normalGroups||'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ไม่มีห้องปกติที่รอกำหนด</h3></div>')+
       '</section>'+
       '<section class="panel academic-class-section special"><div class="panel-head"><div><p class="eyebrow">SPECIAL PROGRAM ROOMS</p><h2>หลักสูตร / โครงการ / โปรแกรมพิเศษ</h2><p class="panel-sub">เมื่อกำหนดโปรแกรมให้ห้อง ห้องนั้นจะแยกมาแสดงในส่วนนี้อัตโนมัติ</p></div><span class="pill">'+special.length+' ห้อง</span></div>'+
-        (specialGroups||'<div class="empty-state compact-empty"><div class="empty-icon">⭐</div><h3>ยังไม่มีห้องโปรแกรมพิเศษ</h3><p>'+(activePrograms.length?'เปิด “โหมดกำหนดโปรแกรม” แล้วเลือกโปรแกรมจากห้องปกติ':'เพิ่มหลักสูตร / โปรแกรมก่อน แล้วกลับมากำหนดว่าห้องใดอยู่ในโปรแกรมนั้น')+'</p></div>')+
+        (specialGroups||'<div class="empty-state compact-empty"><div class="empty-icon">⭐</div><h3>ยังไม่มีห้องโปรแกรมพิเศษ</h3><p>'+(activePrograms.length?'เปิด “โหมดกำหนดโปรแกรม” แล้วเลือกโปรแกรมจากห้องปกติ':'ไปขั้น “โปรแกรมปีนี้” เลือกโปรแกรมก่อน แล้วจึงกำหนดว่าห้องใดอยู่ในโปรแกรมนั้น')+'</p></div>')+
       '</section>'+
     '</section>'+
-    (!activePrograms.length&&canManage?'<section class="notice"><strong>ยังไม่มีโปรแกรมพิเศษที่ใช้งาน</strong><br>หากโรงเรียนมี MEP / MLP / ห้องพิเศษ ให้ไปที่เมนู “หลักสูตร / โปรแกรม” เพื่อเพิ่มก่อน จากนั้นกลับมาหน้านี้เพื่อกำหนดห้อง</section>':'')+
+    (!activePrograms.length&&canManage?'<section class="notice"><strong>ยังไม่มีโปรแกรมพิเศษที่ใช้งาน</strong><br>ปีนี้ยังไม่ได้เลือกโปรแกรมพิเศษ หากมี MEP / MLP / ห้องพิเศษ ให้ย้อนหนึ่งขั้นไป “โปรแกรมปีนี้” แล้วเลือกก่อนกำหนดห้อง</section>':'')+
     (!items.length?'<section class="notice warning"><strong>ยังไม่พบชั้น/ห้องจาก LEC ในปีการศึกษานี้</strong><br>ให้นำเข้าข้อมูลนักเรียนจาก LEC ก่อน ระบบจะสร้างรายการห้องจากข้อมูลนักเรียนโดยอัตโนมัติ</section>':'')+
   '</section>';
 }
@@ -4109,7 +4135,7 @@ function academicSubjectsHtml(data,timeline){
   const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
   const allCourses=data.courses||[];
   const activeCourses=allCourses.filter(c=>c.is_active!==false);
-  const programs=(data.programs||[]).filter(p=>p.is_active);
+  const programs=(data.year_programs||[]).filter(p=>p.is_active);
   const actualPrograms=programs.filter(p=>classes.some(c=>c.program_id===p.id));
   if(state.subjectProgramId&&!actualPrograms.some(p=>p.id===state.subjectProgramId))state.subjectProgramId="";
   const selectedProgram=actualPrograms.find(p=>p.id===state.subjectProgramId)||null;
@@ -4902,6 +4928,7 @@ async function academicsHtml(){
   if(mode==="programs"){
     return academicProgramsHtml(data,state.academicTimeline);
   }
+  if(mode==="time-frames")return academicTimeFramesHtml(data);
   if(mode==="classes")return academicClassesHtml(data);
   if(mode==="subjects"){
     await Promise.all([loadAcademicCurriculumPreset(data,state.subjectProgramId),loadAcademicCourseTimeOverview(data)]);
