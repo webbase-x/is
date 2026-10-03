@@ -8759,3 +8759,48 @@ th,td{line-height:1.45}
     grid-template-columns:1fr!important;
   }
 }
+
+
+/* Personnel-only main login entry — v0.19.32 */
+.auth-audience-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  margin-bottom:8px;
+  padding:4px 9px;
+  border-radius:999px;
+  background:#eef4ff;
+  color:#175cd3;
+  font-size:11.5px;
+  font-weight:900;
+  letter-spacing:.03em;
+}
+.auth-student-entry-note{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  margin-top:12px;
+  padding:11px 12px;
+  border:1px solid #d0d5dd;
+  border-radius:12px;
+  background:#f9fafb;
+}
+.auth-student-entry-note>span{
+  flex:0 0 auto;
+  font-size:18px;
+  line-height:1.2;
+}
+.auth-student-entry-note strong,
+.auth-student-entry-note small{
+  display:block;
+}
+.auth-student-entry-note strong{
+  color:#344054;
+  font-size:12.5px;
+}
+.auth-student-entry-note small{
+  margin-top:2px;
+  color:#667085;
+  font-size:11.5px;
+  line-height:1.45;
+}
