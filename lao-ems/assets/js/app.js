@@ -3854,6 +3854,19 @@ function academicNavHtml(active,data){
     academicYearSelectorHtml(data)+
   '</div>';
 }
+function focusActiveAcademicTimeline(){
+  const nav=q(".academic-step-nav");
+  const active=nav&&nav.querySelector(".academic-step-link.active");
+  if(!nav||!active)return;
+  window.requestAnimationFrame(()=>{
+    if(!nav.isConnected||!active.isConnected)return;
+    const maxScroll=Math.max(0,nav.scrollWidth-nav.clientWidth);
+    const centered=active.offsetLeft-((nav.clientWidth-active.offsetWidth)/2);
+    const left=Math.max(0,Math.min(maxScroll,centered));
+    const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    nav.scrollTo({left,behavior:reduceMotion?"auto":"smooth"});
+  });
+}
 async function loadAcademicStructure(){
   const school=currentSchool();
   if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
@@ -6544,6 +6557,7 @@ async function renderRoute(){
     main.innerHTML=html;
     bindBuddhistDatePickers(main);
     if(bind)bind();
+    if(route==="academics")focusActiveAcademicTimeline();
   }catch(e){
     console.error(e);
     if(renderId!==state.routeRenderId)return;
