@@ -3773,7 +3773,7 @@ function academicYearSelectorHtml(data){
 }
 function academicNavHtml(active,data){
   const steps=[
-    {key:"periods",href:"#/academics/periods",label:"ปี/ภาคเรียน",stepCode:"periods"},
+    {key:"periods",href:"#/academics/periods",label:"ตั้งค่าพื้นฐาน",stepCode:"periods"},
     {key:"programs",href:"#/academics/programs",label:"โปรแกรมพิเศษ",stepCode:"programs"},
     {key:"classes",href:"#/academics/classes",label:"ชั้น/ห้อง",stepCode:"classes"},
     {key:"subjects",href:"#/academics/subjects",label:"หลักสูตร/เวลาเรียน",stepCode:"subjects"},
