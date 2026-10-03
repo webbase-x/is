@@ -9854,3 +9854,58 @@ th,td{line-height:1.45}
   }
 }
 
+
+
+/* v0.19.37 — consistent route navigation and personnel group hub */
+.route-back-nav{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 14px;
+}
+.route-back-link,.route-home-link{
+  min-height:40px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:8px 12px;
+  border:1px solid var(--line,#dfe5ee);
+  border-radius:12px;
+  background:var(--surface,#fff);
+  color:var(--text,#172033);
+  text-decoration:none;
+  font-weight:700;
+  box-shadow:0 2px 8px rgba(15,23,42,.04);
+}
+.route-back-link:hover,.route-home-link:hover{
+  border-color:#b9c7db;
+  transform:translateY(-1px);
+}
+.personnel-group-page .personnel-summary-grid{margin:0 0 18px}
+.personnel-workstream-grid{margin-top:18px}
+.personnel-group-page .academic-group-hero{margin-bottom:18px}
+@media (max-width:720px){
+  .route-back-nav{
+    position:sticky;
+    top:0;
+    z-index:12;
+    margin:-4px -4px 12px;
+    padding:6px 4px;
+    background:rgba(247,249,252,.94);
+    backdrop-filter:blur(10px);
+  }
+  .route-back-link,.route-home-link{
+    min-height:42px;
+    padding:8px 11px;
+    font-size:14px;
+  }
+  .route-back-link span{
+    max-width:58vw;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .personnel-workstream-grid{grid-template-columns:1fr}
+}

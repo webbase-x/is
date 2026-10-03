@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.36";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.37";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -14,7 +14,7 @@ const routeMeta={
   users:["ผู้ใช้และสิทธิ์","คำขอเข้าใช้งาน บทบาท และขอบเขตสิทธิ์"],
   "work-authorities":["ผู้รับผิดชอบและการมอบหมายงาน","กำหนดหัวหน้าฝ่าย หัวหน้างาน และผู้ได้รับมอบหมายตามขอบเขตงาน"],
   lec:["นำเข้าข้อมูล LEC","นำเข้า XLS/XLSX โดยระบบเลือกชีตที่มีข้อมูลสถานศึกษาครบและรักษาประวัติทุกปีการศึกษา"],
-  personnel:["บุคลากร","ข้อมูลบุคลากรต้นทางสำหรับทุกระบบ"],
+  personnel:["กลุ่มบริหารงานบุคคล","ศูนย์รวมงานบุคคล 5 กลุ่มงาน ทะเบียน การรับเข้า การพัฒนา การประเมิน และสวัสดิการ"],
   students:["นักเรียน","ค้นหาและดูข้อมูลนักเรียนจาก LEC ตามปีการศึกษา ชั้น และห้อง"],
   "academic-group":["กลุ่มบริหารงานวิชาการ","รวมแอป งาน และสมาชิกของกลุ่มบริหารงานวิชาการ"],
   academics:["โครงสร้างและตั้งค่าวิชาการ","ปีการศึกษา ชั้นเรียน รายวิชา โครงสร้างเวลาเรียน และภาระงานสอน"],
@@ -225,6 +225,19 @@ function setBusy(button,busy,label){
   else{button.disabled=false;button.textContent=button.dataset.oldLabel||button.textContent;}
 }
 function routeName(){return (location.hash.replace(/^#\//,"").split("/")[0]||"overview").toLowerCase();}
+function routeBackContext(route){
+  const hash=location.hash||("#/"+route);
+  if(route==="academics"||route==="assessment")return {href:"#/academic-group",label:"กลุ่มบริหารงานวิชาการ"};
+  if(route==="academic-group"&&/^#\/academic-group\//i.test(hash))return {href:"#/academic-group",label:"กลุ่มบริหารงานวิชาการ"};
+  if(route==="personnel"&&!/^#\/personnel\/?$/i.test(hash))return {href:"#/personnel",label:"กลุ่มบริหารงานบุคคล"};
+  return {href:"#/overview",label:"หน้าหลัก"};
+}
+function routeBackNavigationHtml(route){
+  if(route==="overview"||route==="activate")return "";
+  const back=routeBackContext(route);
+  const home=back.href==="#/overview"?"":'<a class="route-home-link" href="#/overview" aria-label="กลับหน้าหลัก">⌂ หน้าหลัก</a>';
+  return '<nav class="route-back-nav" aria-label="เส้นทางนำทาง"><a class="route-back-link" href="'+esc(back.href)+'" aria-label="กลับ '+esc(back.label)+'">← <span>กลับ '+esc(back.label)+'</span></a>'+home+'</nav>';
+}
 function schoolAdminApplyToken(){
   const m=location.hash.match(/^#\/apply-school-admin\/([A-Za-z0-9_-]{20,})$/);
   return m?m[1]:null;
@@ -1253,7 +1266,7 @@ function workspaceRecentRouteInfo(hash){
     ["#/assessment","วัดผลและ ปพ.","📝"],
     ["#/personnel/requests","คำขอบุคลากร","👥"],
     ["#/personnel/registry","ทะเบียนบุคลากร","👥"],
-    ["#/personnel","บุคลากร","👥"],
+    ["#/personnel","กลุ่มบริหารงานบุคคล","👥"],
     ["#/students","นักเรียน","🎓"],
     ["#/work-authorities","ผู้รับผิดชอบและการมอบหมายงาน","🛡"],
     ["#/users","ผู้ใช้และสิทธิ์","🔐"],
@@ -1289,8 +1302,7 @@ function workspaceAppItems(unreadCount,pendingJoin,pendingTeaching,assessmentAtt
     badge:Number(pendingTeaching||0)+Number(assessmentAttention||0)
   });
   if(canViewStudentDirectory())items.push({icon:"🎓",title:"นักเรียน",desc:"ค้นหาและดูข้อมูลนักเรียนตามสิทธิ์",route:"#/students",key:"students"});
-  if(canViewPersonnel())items.push({icon:"👥",title:"บุคลากร",desc:"ทะเบียนและงานบุคลากรที่ได้รับสิทธิ์",route:"#/personnel",key:"personnel",badge:Number(pendingJoin||0)});
-  if(state.workAuthorityAccess&&state.workAuthorityAccess.can_view)items.push({icon:"🛡",title:"ผู้รับผิดชอบและการมอบหมาย",desc:"ดูขอบเขตงานและสิทธิ์ที่ได้รับมอบหมาย",route:"#/work-authorities",key:"work-authorities"});
+  if(canViewPersonnel())items.push({icon:"👥",title:"กลุ่มบริหารงานบุคคล",desc:"5 กลุ่มงานบุคคล · แอปตามสิทธิ์ · สมาชิกและการมอบหมาย",route:"#/personnel",routes:["#/personnel"],key:"personnel",badge:Number(pendingJoin||0)});
   if(schoolAdmin)items.push({icon:"🏛",title:"อปท. และสถานศึกษา",desc:"ข้อมูลโครงสร้างองค์กรและสถานศึกษาที่เกี่ยวข้อง",route:"#/organization",key:"organization"});
   if(schoolAdmin&&schoolSetupReady())items.push({icon:"🔐",title:"ผู้ใช้และสิทธิ์",desc:"จัดการบัญชีและสิทธิ์ภายในโรงเรียน",route:"#/users",key:"users"});
   if(schoolAdmin)items.push({icon:"⚙",title:"ตั้งค่าสถานศึกษา",desc:"ข้อมูลกลางและการเชื่อมบริการของโรงเรียน",route:"#/setup",key:"setup"});
@@ -3319,18 +3331,59 @@ function bindDepartmentSetupTimeline(){
 function personnelNavHtml(active){
   const work=state.personnelWork||{};
   const pending=Number(work.pending_join_requests||0);
-  return '<nav class="personnel-subnav" aria-label="งานบุคลากร">'+
-    '<a href="#/personnel" class="'+(active==="dashboard"?"active":"")+'">ภาพรวม</a>'+
+  return '<nav class="personnel-subnav" aria-label="กลุ่มบริหารงานบุคคล">'+
+    '<a href="#/personnel" class="'+(active==="dashboard"?"active":"")+'">หน้ากลุ่ม</a>'+
     '<a href="#/personnel/registry" class="'+(active==="registry"?"active":"")+'">ทะเบียนบุคลากร</a>'+
     (work.can_review?'<a href="#/personnel/requests" class="'+(active==="requests"?"active":"")+'">คำขอเข้าร่วม'+(pending>0?'<span class="subnav-badge">'+pending+'</span>':'')+'</a>':'')+
     (work.can_manage_intake?'<a href="#/personnel/intake" class="'+(active==="intake"?"active":"")+'">รับบุคลากรเข้าระบบ</a>':'')+
     (state.workAuthorityAccess&&state.workAuthorityAccess.can_delegate_any?'<a href="#/work-authorities">ผู้รับผิดชอบ/มอบหมายงาน</a>':'')+
   '</nav>';
 }
+function personnelWorkstreamCard(group){
+  return academicWorkstreamCard(group);
+}
+function personnelGroupWorkstreams(work,pending,stats){
+  const canManageRegistry=Boolean(work&&work.can_manage_intake)||Boolean(work&&work.can_review)||isSchoolAdminContext();
+  return [
+    {
+      no:1,icon:"🪪",title:"งานวางแผนอัตรากำลังและทะเบียนประวัติ",
+      responsibilities:["วางแผนอัตรากำลังและกรอบตำแหน่ง","ทะเบียนประวัติบุคลากร","ข้อมูลตำแหน่งและวิทยฐานะ","ข้อมูลการปฏิบัติงานและสถานะการจ้าง","ตรวจสอบความครบถ้วนของข้อมูลบุคลากร"],
+      visible:true,
+      apps:[{title:"ทะเบียนบุคลากร",route:"#/personnel/registry",icon:"🪪",badge:0,visible:true}]
+    },
+    {
+      no:2,icon:"🤝",title:"งานสรรหา บรรจุ แต่งตั้ง และรับบุคลากร",
+      responsibilities:["รับบุคลากรเข้าระบบ","ตรวจและอนุมัติคำขอเข้าร่วมสถานศึกษา","เชื่อมบัญชีกับทะเบียนบุคลากร","การบรรจุ แต่งตั้ง ย้าย และเปลี่ยนตำแหน่ง","ป้องกันข้อมูลบุคลากรซ้ำ"],
+      visible:Boolean(work&&work.can_manage_intake)||Boolean(work&&work.can_review)||isSchoolAdminContext(),
+      apps:[
+        {title:"คำขอเข้าร่วม",route:"#/personnel/requests",icon:"✅",badge:Number(pending||0),visible:Boolean(work&&work.can_review)},
+        {title:"รับบุคลากรเข้าระบบ",route:"#/personnel/intake",icon:"🔗",badge:0,visible:Boolean(work&&work.can_manage_intake)}
+      ]
+    },
+    {
+      no:3,icon:"🌱",title:"งานพัฒนาและส่งเสริมบุคลากร",
+      responsibilities:["แผนพัฒนารายบุคคล (IDP)","อบรมและพัฒนาวิชาชีพ","ชุมชนการเรียนรู้ทางวิชาชีพที่เกี่ยวข้องกับการพัฒนาบุคลากร","ส่งเสริมวิทยฐานะและความก้าวหน้า","คลังหลักฐานการพัฒนาตนเอง"],
+      visible:true,apps:[]
+    },
+    {
+      no:4,icon:"📈",title:"งานประเมินผลและความก้าวหน้า",
+      responsibilities:["ประเมินผลการปฏิบัติงาน","ข้อตกลงในการพัฒนางาน (PA)","เลื่อนเงินเดือน / ค่าตอบแทน","ยกย่องเชิดชูเกียรติและผลงาน","สรุปผลเพื่อวางแผนพัฒนาบุคลากร"],
+      visible:true,apps:[]
+    },
+    {
+      no:5,icon:"🛡",title:"งานวินัย การลา สวัสดิการ และการพ้นจากงาน",
+      responsibilities:["การลาและเวลาปฏิบัติงาน","วินัยและการรักษาวินัย","สวัสดิการและสิทธิประโยชน์","การย้าย ลาออก เกษียณ หรือสิ้นสุดการจ้าง","สรุปข้อมูลกำลังคนเพื่อใช้ต่อในปีถัดไป"],
+      visible:true,
+      apps:(state.workAuthorityAccess&&state.workAuthorityAccess.can_view)
+        ?[{title:"สมาชิกกลุ่มและการมอบหมาย",route:"#/work-authorities",icon:"🧩",badge:0,visible:true}]
+        :[]
+    }
+  ].map(group=>({...group,apps:(group.apps||[]).filter(app=>app.visible)})).filter(group=>group.visible);
+}
 async function personnelDashboardHtml(){
   const school=currentSchool();
   if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
-  if(!canViewPersonnel())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ดูงานบุคลากร</h3></div></section>';
+  if(!canViewPersonnel())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ดูกลุ่มบริหารงานบุคคล</h3></div></section>';
 
   await loadPersonnelWorkCounts();
   const dir=await supabase.rpc("lao_personnel_directory",{p_school_id:school.id,p_search:null,p_personnel_type:null,p_status:null});
@@ -3339,23 +3392,23 @@ async function personnelDashboardHtml(){
   const work=state.personnelWork||{};
   const pending=Number(work.pending_join_requests||0);
   const timeline=await loadDepartmentSetupTimeline("personnel");
+  const workstreams=personnelGroupWorkstreams(work,pending,stats);
+  const totalAttention=work.can_review?pending:0;
 
-  return '<section class="personnel-page">'+personnelNavHtml("dashboard")+
-    '<section class="personnel-work-hero"><div><p class="eyebrow">PERSONNEL WORK</p><h2>งานบุคลากร</h2><p>'+esc(school.name_th||"")+' · จัดการทะเบียน การรับบุคลากรเข้าระบบ และงานที่รอดำเนินการตามสิทธิ์ของคุณ</p></div><a class="primary-btn" href="#/personnel/registry">เปิดทะเบียนบุคลากร</a></section>'+
-    departmentSetupTimelineHtml(timeline)+
+  return '<section class="personnel-page personnel-group-page academic-group-page">'+
+    '<section class="academic-group-hero panel"><div><p class="eyebrow">PERSONNEL MANAGEMENT</p><h2>กลุ่มบริหารงานบุคคล</h2><p>'+esc(school.name_th||"")+' · ศูนย์รวม 5 กลุ่มงาน แสดงแอปตามสิทธิ์และใช้ข้อมูลบุคลากรชุดเดิมร่วมกันทั้งระบบ</p></div><div class="academic-group-hero-actions">'+
+      (totalAttention>0?'<span class="academic-group-attention">'+totalAttention.toLocaleString("th-TH")+' งานต้องตรวจ</span>':'')+
+      ((state.workAuthorityAccess&&state.workAuthorityAccess.can_view)?'<a class="secondary-btn compact-btn" href="#/work-authorities">👥 สมาชิกกลุ่ม / สิทธิ์</a>':'')+
+    '</div></section>'+
     '<section class="personnel-summary-grid">'+
       '<article><small>บุคลากรทั้งหมด</small><strong>'+Number(stats.total||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
       '<article><small>ปฏิบัติงาน</small><strong>'+Number(stats.active||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
       '<article><small>เชื่อมบัญชี</small><strong>'+Number(stats.linked_accounts||0).toLocaleString("th-TH")+'</strong><span>บัญชี</span></article>'+
       '<article class="'+(pending>0&&work.can_review?"needs-action":"")+'"><small>คำขอรอดำเนินการ</small><strong>'+pending.toLocaleString("th-TH")+'</strong><span>รายการ</span></article>'+
     '</section>'+
-    '<section class="personnel-action-grid">'+
-      '<a class="personnel-action-card" href="#/personnel/registry"><span>🪪</span><div><strong>ทะเบียนบุคลากร</strong><small>ค้นหา ดู และจัดการข้อมูลหลักของบุคลากร</small></div><em>เปิด</em></a>'+
-      (work.can_review?'<a class="personnel-action-card '+(pending>0?"priority":"")+'" href="#/personnel/requests"><span>✅</span><div><strong>คำขอเข้าร่วม'+(pending>0?' · '+pending+' รายการ':'')+'</strong><small>ตรวจข้อมูลที่ผู้สมัครระบุ แก้ไขก่อนอนุมัติ และป้องกันรายการซ้ำ</small></div><em>'+(pending>0?"ตรวจสอบ":"เปิด")+'</em></a>':'')+
-      (work.can_manage_intake?'<a class="personnel-action-card" href="#/personnel/intake"><span>🔗</span><div><strong>รับบุคลากรเข้าระบบ</strong><small>เปิด/ปิดลิงก์รับสมัครและคัดลอกลิงก์ส่งในกลุ่มโรงเรียน</small></div><em>ตั้งค่า</em></a>':'')+
-      (state.workAuthorityAccess&&state.workAuthorityAccess.can_delegate_any?'<a class="personnel-action-card" href="#/work-authorities"><span>🧩</span><div><strong>ผู้รับผิดชอบ/มอบหมายงาน</strong><small>กำหนดหัวหน้าฝ่าย หัวหน้างาน และสิทธิ์ย่อยตามขอบเขตงาน</small></div><em>จัดการ</em></a>':'')+
-    '</section>'+
-    (work.can_review&&pending>0?'<section class="notice warning personnel-attention"><strong>มีงานที่ต้องดำเนินการ '+pending+' รายการ</strong><br>มีผู้ยืนยันอีเมลและส่งคำขอเข้าร่วมโรงเรียนแล้ว กรุณาตรวจสอบก่อนอนุมัติ</section>':'')+
+    departmentSetupTimelineHtml(timeline)+
+    '<section class="academic-workstream-grid personnel-workstream-grid">'+workstreams.map(personnelWorkstreamCard).join("")+'</section>'+
+    (work.can_review&&pending>0?'<section class="notice warning personnel-attention"><strong>มีคำขอที่ต้องตรวจ '+pending.toLocaleString("th-TH")+' รายการ</strong><br>เปิด “งานสรรหา บรรจุ แต่งตั้ง และรับบุคลากร” เพื่อดำเนินการต่อ</section>':'')+
   '</section>';
 }
 async function personnelIntakeHtml(){
@@ -7251,7 +7304,7 @@ async function renderRoute(){
     else html=placeholderHtml(route);
 
     if(renderId!==state.routeRenderId)return;
-    main.innerHTML=html;
+    main.innerHTML=routeBackNavigationHtml(route)+html;
     bindBuddhistDatePickers(main);
     if(bind)bind();
     if(route==="academics")focusActiveAcademicTimeline();
@@ -7259,7 +7312,7 @@ async function renderRoute(){
   }catch(e){
     console.error(e);
     if(renderId!==state.routeRenderId)return;
-    main.innerHTML='<section class="panel"><div class="notice danger"><strong>โหลดข้อมูลไม่สำเร็จ</strong><br>'+esc(e.message||e)+'</div></section>';
+    main.innerHTML=routeBackNavigationHtml(route)+'<section class="panel"><div class="notice danger"><strong>โหลดข้อมูลไม่สำเร็จ</strong><br>'+esc(e.message||e)+'</div></section>';
   }finally{
     if(renderId===state.routeRenderId){
       main.classList.remove("route-pending");
