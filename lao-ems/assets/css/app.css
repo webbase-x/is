@@ -7276,3 +7276,147 @@ th,td{line-height:1.45}
 .academic-next-step-card{margin-top:18px;padding:16px 18px;border:1px solid #cfe0fb;background:#f5f9ff;border-radius:16px;display:flex;align-items:center;justify-content:space-between;gap:18px}.academic-next-step-card>div{min-width:0}.academic-next-step-card span{display:block;color:#0f5bd3;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.academic-next-step-card strong{display:block;margin-top:3px;font-size:18px}.academic-next-step-card p{margin:4px 0 0;color:var(--muted);line-height:1.6}.annual-program-panel .panel-head{align-items:flex-start}.annual-program-flow-note{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:16px 0;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface-soft)}.annual-program-flow-note span{padding:7px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--muted)}.annual-program-flow-note span.active{background:var(--primary-soft);border-color:#b7d2ff;color:var(--primary)}.annual-program-flow-note b{color:#98a2b3}.annual-program-list{display:flex;flex-direction:column;gap:10px;margin-top:14px}.annual-program-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:15px;background:#fff}.annual-program-row.selected{border-color:#b8dccd;background:#f7fcf9}.annual-program-identity{display:flex;align-items:center;gap:12px;min-width:0}.annual-program-mark{min-width:54px;height:42px;padding:0 10px;border-radius:12px;display:grid;place-items:center;background:#eef4ff;color:#0f5bd3;font-size:13px;font-weight:900}.annual-program-identity strong,.annual-program-identity small{display:block}.annual-program-identity strong{font-size:16px}.annual-program-identity small{margin-top:3px;color:var(--muted);line-height:1.45}.annual-program-state{display:flex;align-items:center;gap:10px}.academic-edit-switch.compact{gap:0}.academic-edit-switch.compact .switch-track{margin:0}.annual-program-master-note{margin-top:16px;padding:14px 16px;border:1px dashed #c7cfda;border-radius:15px;background:#fbfcfe;display:flex;align-items:center;justify-content:space-between;gap:16px}.annual-program-master-note strong{display:block}.annual-program-master-note p{margin:3px 0 0;color:var(--muted);line-height:1.6}.annual-frame-program-summary{padding:14px 16px;border:1px solid #d8e5f8;border-radius:15px;background:#f7faff;margin:14px 0}.annual-frame-program-summary strong{display:block;margin-bottom:8px}.annual-frame-program-summary>div{display:flex;flex-wrap:wrap;gap:7px}.annual-frame-program-summary>div span{padding:5px 9px;border-radius:999px;background:#fff;border:1px solid #cbdcf5;font-size:12px;font-weight:800;color:#365c91}.annual-frame-program-summary p{margin:8px 0 0;color:var(--muted);font-size:13px}.annual-frame-program-summary.empty{background:#fafafa;border-color:var(--line)}.school-program-master-panel{margin-top:18px}.school-program-master-rule{padding:14px 16px;border:1px solid #d8e5f8;border-radius:15px;background:#f7faff;display:flex;align-items:center;gap:9px;flex-wrap:wrap}.school-program-master-rule span{padding:5px 9px;border-radius:999px;background:#fff;border:1px solid #cbdcf5;font-size:12px;font-weight:800}.school-program-master-rule b{color:#667085}.school-program-master-rule p{flex-basis:100%;margin:2px 0 0;color:var(--muted);line-height:1.55}.school-program-master-list{display:flex;flex-direction:column;gap:9px;margin-top:14px}.school-program-master-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:13px 14px;border:1px solid var(--line);border-radius:14px;background:#fff}.school-program-master-row.muted-row{opacity:.72;background:#fafafa}.school-program-master-code{font-weight:900;color:#0f5bd3;background:#eef4ff;border-radius:10px;padding:8px;text-align:center;overflow:hidden;text-overflow:ellipsis}.school-program-master-copy strong,.school-program-master-copy small,.school-program-master-use small{display:block}.school-program-master-copy small,.school-program-master-use small{color:var(--muted);font-size:12.5px;margin-top:2px}.school-program-master-use{text-align:right}.school-program-master-panel form{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
 @media(max-width:900px){.academic-next-step-card,.annual-program-master-note{align-items:stretch;flex-direction:column}.academic-next-step-card .primary-btn,.annual-program-master-note .secondary-btn{width:100%}.school-program-master-row{grid-template-columns:64px minmax(0,1fr);}.school-program-master-use,.school-program-master-row>.secondary-btn{grid-column:2;text-align:left;justify-self:start}.annual-program-row{grid-template-columns:1fr}.annual-program-state{justify-content:space-between}.academic-step-nav{overflow-x:auto;scrollbar-width:none}.academic-step-nav::-webkit-scrollbar{display:none}}
 @media(max-width:560px){.annual-program-flow-note{gap:6px}.annual-program-flow-note span{font-size:11.5px;padding:6px 8px}.annual-program-mark{min-width:48px}.school-program-master-row{grid-template-columns:1fr}.school-program-master-code,.school-program-master-copy,.school-program-master-use,.school-program-master-row>.secondary-btn{grid-column:1;text-align:left;justify-self:stretch}.school-program-master-code{width:max-content}}
+
+
+/* Clean subject progress navigation — v0.19.22 */
+.subject-progress-context{
+  gap:14px;
+  padding:14px 16px;
+}
+.subject-progress-context .subjects-v2-context-row{
+  grid-template-columns:108px minmax(0,1fr);
+  align-items:start;
+}
+.subject-progress-context .subjects-v2-context-row>div:first-child{
+  padding-top:8px;
+}
+.subject-progress-context .subjects-v2-context-row>div:first-child strong{
+  font-size:13px;
+}
+.subject-progress-tabs{
+  display:flex!important;
+  gap:10px!important;
+  align-items:flex-start;
+  flex-wrap:nowrap!important;
+  overflow-x:auto;
+  padding:2px 2px 8px;
+  scrollbar-width:none;
+}
+.subject-progress-tabs::-webkit-scrollbar{display:none}
+.subject-progress-choice{
+  --progress:0%;
+  flex:0 0 82px;
+  min-width:82px;
+  min-height:0!important;
+  padding:5px 3px 7px!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:transparent!important;
+  color:#475467!important;
+  text-align:center;
+  box-shadow:none!important;
+}
+.subject-progress-choice:hover,
+.subject-progress-choice:focus-visible{
+  background:#f8fafc!important;
+}
+.subject-progress-choice.active{
+  background:#f5f9ff!important;
+  box-shadow:inset 0 0 0 1px #b2ccff!important;
+}
+.subject-progress-choice-ring{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:58px;
+  height:58px;
+  margin:0 auto 6px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at center,#fff 61%,transparent 63%),
+    conic-gradient(#2e90fa var(--progress),#e4e7ec 0);
+}
+.subject-progress-choice.complete .subject-progress-choice-ring{
+  background:
+    radial-gradient(circle at center,#f6fef9 61%,transparent 63%),
+    conic-gradient(#12b76a 100%,#12b76a 0);
+}
+.subject-progress-choice.active .subject-progress-choice-ring{
+  box-shadow:0 0 0 4px #eaf2ff;
+}
+.subject-progress-choice-ring b{
+  color:#175cd3;
+  font-size:11px;
+  font-weight:900;
+}
+.subject-progress-choice.complete .subject-progress-choice-ring b{color:#067647}
+.subject-progress-choice strong,
+.subject-progress-choice small{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.subject-progress-choice strong{
+  color:#344054;
+  font-size:12px;
+  font-weight:900;
+}
+.subject-progress-choice.active strong{color:#175cd3}
+.subject-progress-choice small{
+  margin-top:2px;
+  color:#98a2b3;
+  font-size:10px;
+}
+.subject-completeness-compact{
+  padding:14px 16px;
+}
+.subject-completeness-compact .subject-completeness-overview{
+  grid-template-columns:78px minmax(0,1fr) minmax(150px,220px);
+  gap:12px;
+}
+.subject-completeness-compact .subject-completeness-ring{
+  width:72px;
+  height:72px;
+}
+.subject-completeness-compact .subject-completeness-summary h3{
+  margin-top:0;
+}
+.subject-completeness-compact .subject-current-completeness{
+  align-self:center;
+}
+.subject-time-details{
+  margin-top:10px;
+  border-top:1px solid #eaecf0;
+  padding-top:8px;
+}
+.subject-time-details>summary{
+  cursor:pointer;
+  color:#175cd3;
+  font-size:12px;
+  font-weight:800;
+}
+.subject-time-details[open]>summary{margin-bottom:8px}
+@media(max-width:720px){
+  .subject-progress-context .subjects-v2-context-row{
+    grid-template-columns:1fr;
+    gap:4px;
+  }
+  .subject-progress-context .subjects-v2-context-row>div:first-child{
+    padding-top:0;
+  }
+  .subject-progress-choice{
+    flex-basis:76px;
+    min-width:76px;
+  }
+  .subject-progress-choice-ring{
+    width:54px;
+    height:54px;
+  }
+  .subject-completeness-compact .subject-completeness-overview{
+    grid-template-columns:72px minmax(0,1fr);
+  }
+  .subject-completeness-compact .subject-current-completeness{
+    grid-column:1/-1;
+  }
+}
