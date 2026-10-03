@@ -990,7 +990,8 @@ begin
   if v_scope is null or v_scope<>'academics' and v_scope not like 'academics.%' then
     return false;
   end if;
-  return public.lao_has_work_permission(p_school_id,v_scope,'edit');
+  return public.lao_has_work_permission(p_school_id,v_scope,'edit')
+    or public.lao_has_work_permission(p_school_id,v_scope,'approve');
 end;
 $function$;
 
