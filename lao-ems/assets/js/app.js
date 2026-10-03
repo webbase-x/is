@@ -3872,11 +3872,12 @@ async function academicDashboardHtml(data){
     '</section>'+
     (noYear?'<section class="notice warning"><strong>ยังไม่มีโครงสร้างปีการศึกษาที่พร้อมใช้งาน</strong><br>เริ่มจากเพิ่มปีการศึกษา ระบบจะสร้างภาคเรียนที่ 1 และ 2 ให้เป็นค่าเริ่มต้น จากนั้นจึงกำหนดชั้น/ห้องและรายวิชา</section>':'')+
     '<section class="academic-flow-grid">'+
-      '<a href="#/academics/periods"><b>01</b><div><strong>ตั้งค่าพื้นฐานงานวิชาการประจำปี</strong><small>ปี/ภาคเรียน ช่วงปฏิทิน และกรอบเวลาเรียนของห้องปกติ/โปรแกรมพิเศษ</small></div></a>'+
-      '<a href="#/academics/programs"><b>02</b><div><strong>โปรแกรมที่ใช้ในปีนี้</strong><small>เลือกจากคลังโปรแกรมของโรงเรียน ไม่สร้างชื่อซ้ำรายปี</small></div></a>'+
-      '<a href="#/academics/classes"><b>03</b><div><strong>ระดับชั้นและห้อง</strong><small>ห้องจาก LEC ถูกนำมาเป็นฐานโดยไม่ต้องกรอกซ้ำ</small></div></a>'+
-      '<a href="#/academics/subjects"><b>04</b><div><strong>โครงสร้างหลักสูตรและเวลาเรียน</strong><small>เลือกรายวิชา กำหนดชั่วโมง/คาบ เทียบกรอบ และยืนยันความครบถ้วนในหน้าเดียว</small></div></a>'+
-      '<a href="#/academics/workload"><b>05</b><div><strong>ภาระงานสอน</strong><small>จัดครูผู้สอนและอนุมัติภาระงานของปีการศึกษานี้</small></div></a>'+
+      '<a href="#/academics/periods"><b>01</b><div><strong>ปี/ภาคเรียน/ปฏิทิน</strong><small>กำหนดช่วงเวลาของปีและภาคเรียนให้พร้อม</small></div></a>'+
+      '<a href="#/academics/programs"><b>02</b><div><strong>โปรแกรมที่ใช้ในปีนี้</strong><small>เลือก MEP / MLP / โปรแกรมพิเศษจากคลังโรงเรียน</small></div></a>'+
+      '<a href="#/academics/time-frames"><b>03</b><div><strong>กรอบเวลาเรียน</strong><small>กำหนดกรอบปกติ และกรอบเฉพาะเฉพาะโปรแกรมที่เวลาแตกต่าง</small></div></a>'+
+      '<a href="#/academics/classes"><b>04</b><div><strong>ระดับชั้นและห้อง</strong><small>ผูกห้องจาก LEC กับโปรแกรมที่เลือกใช้ในปีนี้</small></div></a>'+
+      '<a href="#/academics/subjects"><b>05</b><div><strong>โครงสร้างหลักสูตรและเวลาเรียน</strong><small>เลือกรายวิชา กำหนดชั่วโมง/คาบ เทียบกรอบ และยืนยันความครบถ้วน</small></div></a>'+
+      '<a href="#/academics/workload"><b>06</b><div><strong>ภาระงานสอน</strong><small>จัดครูผู้สอนและอนุมัติภาระงานของปีการศึกษานี้</small></div></a>'+
     '</section>'+
     '<section class="academic-next-note"><span>ขั้นถัดไป</span><div><strong>ตารางเรียน / ตารางสอน</strong><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นฐานในการจัดตาราง เพื่อลดการกรอกชื่อครู รายวิชา และห้องเรียนซ้ำ</p></div></section>'+
   '</section>';
@@ -5287,7 +5288,7 @@ function bindAcademics(){
 
   const programForm=q("#academic-program-form");
   const programPanel=q("[data-program-form-panel]");
-  const resetProgram=()=>academicResetForm(programForm,"[data-program-form-title]","เพิ่มโปรแกรมพิเศษ");
+  const resetProgram=()=>academicResetForm(programForm,"[data-program-form-title]","เพิ่มโปรแกรมของโรงเรียน");
   const showProgramForm=()=>{
     if(programPanel)programPanel.classList.remove("hidden");
     academicScrollToForm(programForm);
@@ -5296,47 +5297,88 @@ function bindAcademics(){
     resetProgram();
     showProgramForm();
   }));
+
+  qa("[data-year-program-toggle]").forEach(toggle=>toggle.addEventListener("change",async()=>{
+    const programId=toggle.dataset.yearProgramToggle;
+    const enabled=toggle.checked;
+    toggle.disabled=true;
+    const res=await supabase.rpc("lao_set_academic_year_program",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:programId,
+      p_enabled:enabled
+    });
+    if(res.error){
+      toggle.checked=!enabled;
+      toggle.disabled=false;
+      toast(res.error.message,"error");
+      return;
+    }
+    state.academicData=null;
+    state.academicTimeline=null;
+    state.classProgramEditMode=false;
+    state.subjectProgramId="";
+    toast(enabled?"เลือกโปรแกรมใช้ในปีนี้แล้ว":"ยกเลิกโปรแกรมจากปีนี้แล้ว","success");
+    renderRoute();
+  }));
+
   qa("[data-confirm-year-programs]").forEach(btn=>btn.addEventListener("click",async()=>{
-    const yearId=btn.dataset.academicYearId||state.academicYearId;
+    const yearId=data.selected_year_id||state.academicYearId;
     if(!yearId)return;
     setBusy(btn,true,"กำลังยืนยัน...");
-    const res=await supabase.rpc("lao_update_academic_year_setup_step",{
+    const res=await supabase.rpc("lao_confirm_academic_year_programs",{
       p_school_id:school.id,
-      p_academic_year_id:yearId,
-      p_step_code:"programs",
-      p_action:"confirm"
+      p_academic_year_id:yearId
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.academicTimeline=res.data||null;
-    toast("ยืนยันโปรแกรมพิเศษสำหรับปีการศึกษานี้แล้ว","success");
+    state.academicData=null;
+    state.academicTimeline=null;
+    toast("ยืนยันโปรแกรมที่ใช้ในปีนี้แล้ว","success");
     renderRoute();
   }));
+
   qa("[data-reset-program-form]").forEach(btn=>btn.addEventListener("click",()=>{resetProgram();showProgramForm();}));
-  qa("[data-edit-program]").forEach(btn=>btn.addEventListener("click",()=>{
-    const p=(data.programs||[]).find(x=>x.id===btn.dataset.editProgram);if(!p||!programForm)return;
-    programForm.dataset.id=p.id;
-    ["code","name_th","name_en"].forEach(k=>academicSetFormValue(programForm,k,p[k]));
-    const h=q("[data-program-form-title]");if(h)h.textContent="แก้ไข "+p.name_th;
-    showProgramForm();
-  }));
   if(programForm)programForm.addEventListener("submit",async e=>{
     e.preventDefault();
     const fd=new FormData(programForm),btn=programForm.querySelector('button[type="submit"]');
-    const currentProgram=(data.programs||[]).find(x=>x.id===programForm.dataset.id)||null;
     setBusy(btn,true,"กำลังบันทึก...");
     const res=await supabase.rpc("lao_save_academic_program",{
-      p_school_id:school.id,p_program_id:programForm.dataset.id||null,
+      p_school_id:school.id,
+      p_program_id:null,
       p_code:String(fd.get("code")||"").trim()||null,
       p_name_th:String(fd.get("name_th")||"").trim(),
       p_name_en:String(fd.get("name_en")||"").trim()||null,
-      p_description:currentProgram&&currentProgram.description||null,
-      p_is_active:currentProgram?currentProgram.is_active:true,
-      p_sort_order:currentProgram?Number(currentProgram.sort_order||0):0
+      p_description:null,
+      p_is_active:true,
+      p_sort_order:0
     });
+    if(res.error){
+      setBusy(btn,false);
+      toast(res.error.message,"error");
+      return;
+    }
+    const programId=res.data&&res.data.id;
+    if(programId&&data.selected_year_id){
+      const selectRes=await supabase.rpc("lao_set_academic_year_program",{
+        p_school_id:school.id,
+        p_academic_year_id:data.selected_year_id,
+        p_program_id:programId,
+        p_enabled:true
+      });
+      if(selectRes.error){
+        setBusy(btn,false);
+        toast("สร้างโปรแกรมแล้ว แต่เลือกใช้ปีนี้ไม่สำเร็จ: "+selectRes.error.message,"error");
+        state.academicData=null;
+        renderRoute();
+        return;
+      }
+    }
     setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    toast("บันทึกโปรแกรมพิเศษแล้ว","success");renderRoute();
+    state.academicData=null;
+    state.academicTimeline=null;
+    toast("สร้างโปรแกรมของโรงเรียนและเลือกใช้ในปีนี้แล้ว","success");
+    renderRoute();
   });
 
   qa("[data-class-stage-tab]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -5388,7 +5430,7 @@ function bindAcademics(){
       toast(res.error.message,"error");
       return;
     }
-    const program=(data.programs||[]).find(p=>p.id===newValue);
+    const program=(data.year_programs||[]).find(p=>p.id===newValue);
     c.program_id=newValue||null;
     c.program_name=program?program.name_th:null;
     if(status){status.textContent="บันทึกแล้ว"+(program?" · "+program.name_th:" · ห้องปกติ");status.className="saved";}
@@ -5553,7 +5595,7 @@ function bindAcademics(){
     const targetYear=(data.years||[]).find(y=>y.id===data.selected_year_id);
     if(!sourceYear||!targetYear){toast("กรุณาเลือกปีการศึกษาต้นทาง","error");return;}
     const gradeLabel=academicGradeLabelFromCode(state.academicPresetGrade||"");
-    const targetProgram=(data.programs||[]).find(p=>p.id===state.subjectProgramId)||null;
+    const targetProgram=(data.year_programs||[]).find(p=>p.id===state.subjectProgramId)||null;
     const contextLabel=shortGrade(gradeLabel)+" · "+(targetProgram?targetProgram.name_th:"ห้องปกติ");
     if(!confirm("คัดลอกรายวิชา "+contextLabel+" จากปีการศึกษา "+sourceYear.year_be+" มาใช้ในปี "+targetYear.year_be+" ?\n\nระบบจะผสานกับรายการเดิม ไม่ลบวิชาที่มีอยู่"))return;
     setBusy(copySubjectYear,true,"กำลังคัดลอก...");
@@ -5744,7 +5786,7 @@ function bindAcademics(){
 
   qa("[data-remove-curriculum-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
-    if(!confirm("นำรายการนี้ออกจาก "+academicGradeLabelFromCode(state.academicPresetGrade||"")+" · "+((data.programs||[]).find(p=>p.id===state.subjectProgramId)?.name_th||"ห้องปกติ")+" ?\n\nรายการจะยังอยู่ในคลังและเพิ่มกลับได้ภายหลัง"))return;
+    if(!confirm("นำรายการนี้ออกจาก "+academicGradeLabelFromCode(state.academicPresetGrade||"")+" · "+((data.year_programs||[]).find(p=>p.id===state.subjectProgramId)?.name_th||"ห้องปกติ")+" ?\n\nรายการจะยังอยู่ในคลังและเพิ่มกลับได้ภายหลัง"))return;
     setBusy(btn,true,"กำลังนำออก...");
     const res=await supabase.rpc("lao_remove_curriculum_item",{
       p_school_id:school.id,
