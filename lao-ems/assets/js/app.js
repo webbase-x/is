@@ -5390,15 +5390,14 @@ function bindAcademics(){
     refreshSubjects();
   });
 
-  const scheduleForm=q("[data-schedule-settings-form]");
-  const updateTimeFramePreview=()=>{
-    if(!scheduleForm)return;
-    const fd=new FormData(scheduleForm);
+  const updateTimeFramePreview=form=>{
+    if(!form)return;
+    const fd=new FormData(form);
     const days=Number(fd.get("school_days_per_week")||0);
     const periods=Number(fd.get("periods_per_day")||0);
     const minutes=Number(fd.get("minutes_per_period")||0);
     const weeks=Number(fd.get("instructional_weeks_per_year")||0);
-    const preview=q("[data-time-frame-preview]",scheduleForm);
+    const preview=q("[data-time-frame-preview]",form);
     if(!preview)return;
     if(days>0&&periods>0&&minutes>0&&weeks>0){
       const weekly=days*periods;
@@ -5408,28 +5407,51 @@ function bindAcademics(){
       preview.textContent="กรอกข้อมูลครบเพื่อดูความจุเวลาเรียน";
     }
   };
-  if(scheduleForm){
-    scheduleForm.addEventListener("input",updateTimeFramePreview);
-    updateTimeFramePreview();
-  }
-  if(scheduleForm)scheduleForm.addEventListener("submit",async e=>{
-    e.preventDefault();
-    const fd=new FormData(scheduleForm),btn=scheduleForm.querySelector('button[type="submit"]');
-    setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_save_academic_schedule_settings",{
+  qa("[data-time-frame-form]").forEach(form=>{
+    form.addEventListener("input",()=>updateTimeFramePreview(form));
+    updateTimeFramePreview(form);
+    form.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const fd=new FormData(form),btn=form.querySelector('button[type="submit"]');
+      setBusy(btn,true,"กำลังบันทึก...");
+      const res=await supabase.rpc("lao_save_academic_time_frame",{
+        p_school_id:school.id,
+        p_academic_year_id:data.selected_year_id,
+        p_time_frame_id:form.dataset.id||null,
+        p_name_th:String(fd.get("name_th")||"").trim(),
+        p_code:String(fd.get("code")||"").trim(),
+        p_program_id:String(fd.get("program_id")||"").trim()||null,
+        p_is_default:String(fd.get("is_default")||"0")==="1",
+        p_school_days_per_week:Number(fd.get("school_days_per_week")),
+        p_periods_per_day:Number(fd.get("periods_per_day")),
+        p_minutes_per_period:Number(fd.get("minutes_per_period")),
+        p_instructional_weeks_per_year:Number(fd.get("instructional_weeks_per_year"))
+      });
+      setBusy(btn,false);
+      if(res.error){toast(res.error.message,"error");return;}
+      state.curriculumReadiness=null;
+      state.subjectReadiness=null;
+      state.academicData=null;
+      toast(form.dataset.id?"บันทึกการแก้ไขกรอบเวลาเรียนแล้ว":"เพิ่มกรอบเวลาเรียนแล้ว","success");
+      renderRoute();
+    });
+  });
+  qa("[data-disable-time-frame]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("ปิดใช้กรอบเวลาเรียนนี้?\n\nห้องในโปรแกรมนี้จะกลับไปใช้กรอบเวลาเริ่มต้นของโรงเรียนโดยอัตโนมัติ"))return;
+    setBusy(btn,true,"กำลังปิด...");
+    const res=await supabase.rpc("lao_set_academic_time_frame_active",{
       p_school_id:school.id,
-      p_academic_year_id:data.selected_year_id,
-      p_school_days_per_week:Number(fd.get("school_days_per_week")),
-      p_periods_per_day:Number(fd.get("periods_per_day")),
-      p_minutes_per_period:Number(fd.get("minutes_per_period")),
-      p_instructional_weeks_per_year:Number(fd.get("instructional_weeks_per_year"))
+      p_time_frame_id:btn.dataset.disableTimeFrame,
+      p_is_active:false
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
     state.curriculumReadiness=null;
-    toast("บันทึกกรอบเวลาเรียนของปีการศึกษาแล้ว","success");
+    state.subjectReadiness=null;
+    state.academicData=null;
+    toast("ปิดกรอบเวลาเรียนแล้ว · โปรแกรมนี้กลับไปใช้กรอบเริ่มต้น","success");
     renderRoute();
-  });
+  }));
 
   const librarySearch=q("[data-subject-library-search]");
   if(librarySearch)librarySearch.addEventListener("input",()=>{
