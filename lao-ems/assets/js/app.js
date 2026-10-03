@@ -3749,40 +3749,92 @@ function academicEndDateAfter100Weekdays(startIso){
   return academicDateAfterWeekdays(startIso,100);
 }
 function academicPeriodsHtml(data){
-  const years=data.years||[],canManage=Boolean(data.can_manage),canDelete=isSchoolAdminContext();
+  const years=data.years||[];
+  const canManage=Boolean(data.can_manage_basic_settings);
+  const canDelete=isSchoolAdminContext();
   const selectedYear=(data.years||[]).find(y=>y.id===data.selected_year_id)||null;
-  const schedule=data.schedule_settings||{configured:false};
-  const scheduleConfigured=Boolean(schedule.configured);
+  const timeFrames=(data.time_frames||[]).filter(x=>x&&x.is_active!==false);
+  const programs=(data.programs||[]).filter(x=>x&&x.is_active!==false);
+  const defaultFrame=timeFrames.find(x=>x.is_default)||null;
+  const specialFrames=timeFrames.filter(x=>!x.is_default);
+  const assignedPrograms=new Set(specialFrames.map(x=>x.program_id).filter(Boolean));
+  const availablePrograms=programs.filter(p=>!assignedPrograms.has(p.id));
   const frameNumber=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:2});
-  const framePeriodsPerWeek=scheduleConfigured?Number(schedule.periods_per_week||Number(schedule.school_days_per_week||0)*Number(schedule.periods_per_day||0)):0;
-  const frameCapacityHours=scheduleConfigured?Number(schedule.capacity_hours_per_year||Number(schedule.school_days_per_week||0)*Number(schedule.periods_per_day||0)*Number(schedule.minutes_per_period||0)/60*Number(schedule.instructional_weeks_per_year||0)):0;
+  const frameCapacity=f=>Number(f&&f.capacity_hours_per_year||Number(f&&f.school_days_per_week||0)*Number(f&&f.periods_per_day||0)*Number(f&&f.minutes_per_period||0)/60*Number(f&&f.instructional_weeks_per_year||0));
+  const frameWeekly=f=>Number(f&&f.periods_per_week||Number(f&&f.school_days_per_week||0)*Number(f&&f.periods_per_day||0));
+
   const yearCards=years.map(y=>{
     const terms=(y.terms||[]).map(t=>'<div class="academic-term-row"><div><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><small>'+(t.starts_on||t.ends_on?esc(thaiDate(t.starts_on))+' – '+esc(thaiDate(t.ends_on)):'ยังไม่กำหนดช่วงวันที่')+'</small></div>'+(t.is_current?'<span class="pill success">ภาคเรียนปัจจุบัน</span>':'')+(canManage?'<div class="academic-period-row-actions"><button type="button" class="text-btn" data-edit-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">แก้ไข</button>'+(canDelete?'<button type="button" class="text-btn danger-text" data-safe-delete-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">ลบ</button>':'')+'</div>':'')+'</div>').join("");
     return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-add-term="'+esc(y.id)+'">＋ เพิ่มภาคเรียน</button><button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+(canDelete?'<button type="button" class="danger-btn compact-btn" data-safe-delete-year="'+esc(y.id)+'">ลบปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
   }).join("");
-  const scheduleFrameHtml=selectedYear?'<section class="panel academic-time-frame-panel '+(scheduleConfigured?"is-configured":"needs-setup")+'">'+
-    '<div class="panel-head"><div><p class="eyebrow">STEP 1.3 · SCHOOL TIME FRAME</p><h2>กรอบเวลาเรียนของปีการศึกษา</h2><p class="panel-sub">กำหนดความจุเวลาเรียนของโรงเรียนสำหรับปี '+esc(selectedYear.year_be)+' ก่อนจัดรายวิชา ระบบใช้ค่านี้ตรวจว่าคาบ/สัปดาห์และชั่วโมงที่ต้องลงตารางไม่เกินเวลาที่มีจริง</p></div><span class="pill '+(scheduleConfigured?"success":"warning")+'">'+(scheduleConfigured?"✓ กำหนดแล้ว":"รอกำหนด")+'</span></div>'+
-    (scheduleConfigured?'<div class="academic-time-frame-summary">'+
-      '<article><small>วันเรียน</small><strong>'+frameNumber(schedule.school_days_per_week)+'</strong><span>วัน/สัปดาห์</span></article>'+
-      '<article><small>คาบต่อวัน</small><strong>'+frameNumber(schedule.periods_per_day)+'</strong><span>คาบ/วัน</span></article>'+
-      '<article><small>ความจุรายสัปดาห์</small><strong>'+frameNumber(framePeriodsPerWeek)+'</strong><span>คาบ/สัปดาห์</span></article>'+
-      '<article><small>เวลาต่อคาบ</small><strong>'+frameNumber(schedule.minutes_per_period)+'</strong><span>นาที/คาบ</span></article>'+
-      '<article><small>สัปดาห์เรียน</small><strong>'+frameNumber(schedule.instructional_weeks_per_year)+'</strong><span>สัปดาห์/ปี</span></article>'+
-      '<article><small>รองรับได้สูงสุด</small><strong>'+frameNumber(frameCapacityHours)+'</strong><span>ชั่วโมง/ปี</span></article>'+
-    '</div>':'<div class="academic-time-frame-warning"><strong>ยังคำนวณรายวิชา 100% จริงไม่ได้</strong><span>กรุณากำหนดวันเรียน คาบต่อวัน นาทีต่อคาบ และจำนวนสัปดาห์เรียนก่อน ระบบจึงจะตรวจความจุตารางของทุกระดับชั้นได้</span></div>')+
-    (canManage?'<form class="academic-time-frame-form" data-schedule-settings-form>'+
-      '<label>วันเรียน/สัปดาห์<input name="school_days_per_week" type="number" min="1" max="7" step="1" required value="'+esc(scheduleConfigured?schedule.school_days_per_week:"5")+'" placeholder="เช่น 5"></label>'+
-      '<label>คาบ/วัน<input name="periods_per_day" type="number" min="0.25" max="20" step="0.25" required value="'+esc(scheduleConfigured?schedule.periods_per_day:"")+'" placeholder="เช่น 6"></label>'+
-      '<label>นาที/คาบ<input name="minutes_per_period" type="number" min="20" max="120" step="1" required value="'+esc(scheduleConfigured?schedule.minutes_per_period:"60")+'" placeholder="เช่น 60"></label>'+
-      '<label>สัปดาห์เรียน/ปี<input name="instructional_weeks_per_year" type="number" min="1" max="60" step="0.5" required value="'+esc(scheduleConfigured?schedule.instructional_weeks_per_year:"40")+'" placeholder="เช่น 40"></label>'+
+
+  const programOptions=(selected,includeUsed=true)=>programs
+    .filter(p=>includeUsed||!assignedPrograms.has(p.id)||p.id===selected)
+    .map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?"selected":"")+'>'+esc(p.name_th)+(p.code?' · '+esc(p.code):'')+'</option>')
+    .join("");
+
+  const timeFrameForm=(frame,isNew=false,isDefaultNew=false)=>{
+    const f=frame||{};
+    const isDefault=Boolean(f.is_default||isDefaultNew);
+    const nameValue=f.name_th||(isDefault?"ห้องเรียนปกติ":"");
+    const codeValue=f.code||(isDefault?"NORMAL":"");
+    const days=f.school_days_per_week||5;
+    const periods=f.periods_per_day||(isDefault?6:"");
+    const minutes=f.minutes_per_period||60;
+    const weeks=f.instructional_weeks_per_year||40;
+    return '<form class="academic-time-frame-form academic-time-frame-edit-form" data-time-frame-form data-id="'+esc(f.id||"")+'" data-default="'+(isDefault?"1":"0")+'">'+
+      '<label>ชื่อกรอบเวลาเรียน<input name="name_th" required maxlength="120" value="'+esc(nameValue)+'" placeholder="'+(isDefault?'เช่น ห้องเรียนปกติ':'เช่น ห้องเรียน MEP')+'"></label>'+
+      '<label>รหัส/อักษรย่อ<input name="code" required maxlength="30" value="'+esc(codeValue)+'" placeholder="'+(isDefault?'NORMAL':'MEP')+'"></label>'+
+      (isDefault
+        ?'<label><span>ใช้กับ</span><div class="academic-frame-fixed-target">ห้องปกติ + โปรแกรมที่ไม่มีกำหนดกรอบเฉพาะ</div><input name="program_id" type="hidden" value=""></label>'
+        :'<label>โปรแกรม / กลุ่มห้อง <select name="program_id" required><option value="">เลือกโปรแกรม</option>'+programOptions(f.program_id||"",!isNew)+'</select></label>')+
+      '<label>วันเรียน/สัปดาห์<input name="school_days_per_week" type="number" min="1" max="7" step="1" required value="'+esc(days)+'"></label>'+
+      '<label>คาบ/วัน<input name="periods_per_day" type="number" min="0.25" max="20" step="0.25" required value="'+esc(periods)+'" placeholder="เช่น 6"></label>'+
+      '<label>นาที/คาบ<input name="minutes_per_period" type="number" min="20" max="120" step="1" required value="'+esc(minutes)+'"></label>'+
+      '<label>สัปดาห์เรียน/ปี<input name="instructional_weeks_per_year" type="number" min="1" max="60" step="0.5" required value="'+esc(weeks)+'"></label>'+
+      '<input name="is_default" type="hidden" value="'+(isDefault?"1":"0")+'">'+
       '<div class="academic-time-frame-preview span-all" data-time-frame-preview>กรอกข้อมูลครบเพื่อดูความจุเวลาเรียน</div>'+
-      '<div class="academic-time-frame-note span-all"><strong>หลักการคำนวณ:</strong> วันเรียน × คาบ/วัน = คาบสูงสุด/สัปดาห์ และคูณ นาที/คาบ × สัปดาห์/ปี เพื่อหาชั่วโมงที่รองรับได้สูงสุด · กิจกรรมบูรณาการไม่นับเป็นคาบที่กินตาราง</div>'+
-      '<div class="academic-form-actions span-all"><button type="submit" class="primary-btn">'+(scheduleConfigured?"บันทึกการแก้ไขกรอบเวลา":"บันทึกกรอบเวลาเรียน")+'</button></div>'+
-    '</form>':'')+
+      '<div class="academic-time-frame-note span-all"><strong>หลักการคำนวณ:</strong> วันเรียน × คาบ/วัน = คาบสูงสุด/สัปดาห์ แล้วคูณเวลาต่อคาบและจำนวนสัปดาห์เพื่อหาชั่วโมงสูงสุด/ปี · ระบบจะใช้กรอบเฉพาะโปรแกรมก่อน และใช้กรอบเริ่มต้นเมื่อไม่มีกรอบเฉพาะ</div>'+
+      '<div class="academic-form-actions span-all">'+
+        (!isDefault&&!isNew?'<button type="button" class="danger-outline-btn" data-disable-time-frame="'+esc(f.id)+'">ปิดใช้กรอบนี้</button>':'')+
+        '<button type="submit" class="primary-btn">'+(isNew?"เพิ่มกรอบเวลาเรียน":"บันทึกการแก้ไข")+'</button>'+
+      '</div>'+
+    '</form>';
+  };
+
+  const frameCards=timeFrames.map(f=>{
+    const programName=f.program_name||programs.find(p=>p.id===f.program_id)?.name_th||"";
+    const target=f.is_default
+      ?'ค่าเริ่มต้นของโรงเรียน · ใช้กับห้องปกติและโปรแกรมที่ไม่มีกำหนดกรอบเฉพาะ'
+      :'ใช้กับ '+(programName||"โปรแกรมพิเศษ");
+    return '<article class="academic-time-frame-card '+(f.is_default?"default-frame":"special-frame")+'">'+
+      '<div class="academic-time-frame-card-head"><div><div class="academic-frame-title-line"><strong>'+esc(f.name_th)+'</strong>'+(f.is_default?'<span class="pill success">ค่าเริ่มต้น</span>':'<span class="pill">กรอบเฉพาะ</span>')+(f.code?'<span class="academic-frame-code">'+esc(f.code)+'</span>':'')+'</div><p>'+esc(target)+' · '+Number(f.room_count||0).toLocaleString("th-TH")+' ห้อง</p></div></div>'+
+      '<div class="academic-time-frame-summary">'+
+        '<article><small>วันเรียน</small><strong>'+frameNumber(f.school_days_per_week)+'</strong><span>วัน/สัปดาห์</span></article>'+
+        '<article><small>คาบต่อวัน</small><strong>'+frameNumber(f.periods_per_day)+'</strong><span>คาบ/วัน</span></article>'+
+        '<article><small>ความจุรายสัปดาห์</small><strong>'+frameNumber(frameWeekly(f))+'</strong><span>คาบ/สัปดาห์</span></article>'+
+        '<article><small>เวลาต่อคาบ</small><strong>'+frameNumber(f.minutes_per_period)+'</strong><span>นาที/คาบ</span></article>'+
+        '<article><small>สัปดาห์เรียน</small><strong>'+frameNumber(f.instructional_weeks_per_year)+'</strong><span>สัปดาห์/ปี</span></article>'+
+        '<article><small>รองรับได้สูงสุด</small><strong>'+frameNumber(frameCapacity(f))+'</strong><span>ชั่วโมง/ปี</span></article>'+
+      '</div>'+
+      (canManage?'<details class="academic-frame-edit"><summary>แก้ไขกรอบเวลาเรียน</summary>'+timeFrameForm(f,false,false)+'</details>':'')+
+    '</article>';
+  }).join("");
+
+  const scheduleFrameHtml=selectedYear?'<section class="panel academic-time-frame-panel '+(defaultFrame?"is-configured":"needs-setup")+'">'+
+    '<div class="panel-head"><div><p class="eyebrow">STEP 1.3 · LEARNING TIME FRAMES</p><h2>กรอบเวลาเรียนตามประเภทห้อง / โปรแกรม</h2><p class="panel-sub">ห้องเรียนปกติและห้องเรียนพิเศษอาจใช้โครงสร้างเวลาไม่เท่ากัน ระบบจะเลือกกรอบตามโปรแกรมของห้องโดยอัตโนมัติ แล้วใช้กรอบเริ่มต้นเป็นค่าทดแทนเมื่อไม่ได้กำหนดกรอบเฉพาะ</p></div><span class="pill '+(defaultFrame?"success":"warning")+'">'+(defaultFrame?"✓ มีกรอบเริ่มต้น":"รอกำหนดกรอบเริ่มต้น")+'</span></div>'+
+    (!defaultFrame?'<div class="academic-time-frame-warning"><strong>ยังคำนวณรายวิชา 100% จริงไม่ได้</strong><span>ต้องมีกรอบเวลาเรียนเริ่มต้นอย่างน้อย 1 กรอบก่อน ระบบจึงจะตรวจคาบ/สัปดาห์และชั่วโมง/ปีได้</span></div>':'')+
+    '<div class="academic-time-frame-list">'+(frameCards||'<div class="empty-state compact-empty"><div class="empty-icon">⏱</div><h3>ยังไม่มีกรอบเวลาเรียน</h3></div>')+'</div>'+
+    (canManage&&!defaultFrame?'<div class="academic-new-frame-box"><h3>สร้างกรอบเวลาเริ่มต้น</h3><p>กรอบนี้เป็นค่าหลักสำหรับห้องเรียนปกติและเป็น fallback ของโปรแกรมพิเศษ</p>'+timeFrameForm(null,true,true)+'</div>':'')+
+    (canManage&&defaultFrame&&availablePrograms.length?'<details class="academic-new-frame-box"><summary>＋ เพิ่มกรอบเวลาเรียนสำหรับโปรแกรมพิเศษ</summary><p>เพิ่มเฉพาะโปรแกรมที่มีจำนวนคาบ/วัน เวลาต่อคาบ หรือจำนวนสัปดาห์ต่างจากกรอบเริ่มต้น</p>'+timeFrameForm(null,true,false)+'</details>':'')+
+    (canManage&&defaultFrame&&!availablePrograms.length&&programs.length?'<div class="academic-time-frame-note"><strong>ครบทุกโปรแกรมแล้ว:</strong> ทุกโปรแกรมพิเศษที่เปิดใช้งานมีกรอบเวลาเฉพาะ หรือสามารถปิดกรอบเฉพาะเพื่อกลับไปใช้กรอบเริ่มต้นได้</div>':'')+
+    (!canManage?'<div class="academic-shared-settings-lock"><strong>ข้อมูลส่วนกลางของโรงเรียน</strong><span>ดูได้ตามสิทธิ์ แต่แก้ไขได้เฉพาะ School Admin หรือผู้ได้รับมอบหมายส่วนงานนี้เท่านั้น</span></div>':'')+
   '</section>':'';
 
   return '<section class="academic-page">'+academicNavHtml("periods",data)+
-    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">STEP 1.1–1.2 · ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">กำหนดปีและภาคเรียนก่อน แล้วดำเนินการต่อที่ขั้นย่อย 1.3 “กรอบเวลาเรียนของปีการศึกษา” ในหน้าเดียวกัน เพื่อให้ขั้นที่ 1 พร้อมใช้จริง</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
+    '<section class="panel academic-basic-settings-head"><div class="panel-head"><div><p class="eyebrow">STEP 1 · ANNUAL ACADEMIC SETTINGS</p><h2>การตั้งค่าพื้นฐานงานวิชาการประจำปี</h2><p class="panel-sub">รวมปีการศึกษา ภาคเรียน ช่วงปฏิทิน และกรอบเวลาเรียนไว้ในขั้นเดียว เพื่อให้รายวิชา ตารางเรียน และภาระงานสอนอ้างอิงข้อมูลกลางชุดเดียวกัน</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
+      '<div class="academic-shared-settings-owner"><span>🔐</span><div><strong>ผู้กำหนดข้อมูลส่วนกลาง</strong><p>School Admin และผู้ได้รับมอบหมายสิทธิ์ “ตั้งค่าพื้นฐานงานวิชาการประจำปี” เท่านั้น · การแก้ไขทุกครั้งมี Audit Log</p></div>'+(data.can_delegate_basic_settings?'<a class="secondary-btn compact-btn" href="#/work-authorities">จัดการผู้รับผิดชอบ</a>':'')+'</div>'+
+      '<div class="academic-settings-section-title"><strong>1.1–1.2 ปีการศึกษา / ภาคเรียน / ช่วงปฏิทิน</strong><span>กำหนดช่วงวันเปิด–ปิดของปีและแต่ละภาคเรียน</span></div>'+
       '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
       (canDelete?'<div class="academic-delete-policy"><strong>การลบแบบปลอดภัย</strong><span>ระบบจะตรวจข้อมูลเชื่อมโยงก่อนทุกครั้ง หากมีนักเรียน LEC ห้องเรียน รายวิชา เวลาเรียน หรือภาระงานสอน ระบบจะบล็อกการลบโดยอัตโนมัติ</span></div><div class="academic-safe-delete-panel hidden" data-academic-safe-delete-panel></div>':'')+
     '</section>'+
