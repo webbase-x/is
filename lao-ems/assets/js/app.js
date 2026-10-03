@@ -1157,9 +1157,10 @@ function refreshHeader(){
     workAuthorityLink.classList.toggle("hidden",!(state.workAuthorityAccess&&state.workAuthorityAccess.can_view));
   }
 
+  const academicLinks=qa('[data-academic-menu]');
+  academicLinks.forEach(link=>link.classList.toggle("hidden",!canViewAcademic()));
   const academicLink=q('[data-route="academics"][data-academic-menu]');
   if(academicLink){
-    academicLink.classList.toggle("hidden",!canViewAcademic());
     const badge=q("[data-academic-badge]",academicLink);
     const attention=Number(state.academicWork&&state.academicWork.attention_count||0);
     if(badge){
