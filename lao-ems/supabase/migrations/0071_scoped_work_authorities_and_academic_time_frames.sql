@@ -972,6 +972,319 @@ grant execute on function public.lao_save_academic_year(uuid,uuid,integer,date,d
 revoke all on function public.lao_save_term(uuid,uuid,uuid,smallint,text,date,date,boolean) from public,anon;
 grant execute on function public.lao_save_term(uuid,uuid,uuid,smallint,text,date,date,boolean) to authenticated;
 
+-- Generic academic mutation gates remain strict. Scoped wrappers below temporarily
+-- expose only the delegated section to legacy functions that still call this helper.
+create or replace function public.lao_can_manage_academic(p_school_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path=public
+as $function$
+declare
+  v_scope text:=nullif(current_setting('lao.work_scope_override',true),'');
+begin
+  if public.lao_is_local_school_admin(p_school_id) then
+    return true;
+  end if;
+  if v_scope is null or v_scope<>'academics' and v_scope not like 'academics.%' then
+    return false;
+  end if;
+  return public.lao_has_work_permission(p_school_id,v_scope,'edit');
+end;
+$function$;
+
+revoke all on function public.lao_can_manage_academic(uuid) from public,anon;
+grant execute on function public.lao_can_manage_academic(uuid) to authenticated;
+
+-- Program scope
+alter function public.lao_save_academic_program(uuid,uuid,text,text,text,text,boolean,integer)
+  rename to lao_save_academic_program_base_v01914;
+revoke all on function public.lao_save_academic_program_base_v01914(uuid,uuid,text,text,text,text,boolean,integer)
+  from public,anon,authenticated;
+
+create function public.lao_save_academic_program(
+  p_school_id uuid,
+  p_program_id uuid default null,
+  p_code text default null,
+  p_name_th text default null,
+  p_name_en text default null,
+  p_description text default null,
+  p_is_active boolean default true,
+  p_sort_order integer default 0
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.programs','edit') then
+    raise exception 'ไม่มีสิทธิ์แก้ไขโปรแกรมพิเศษ';
+  end if;
+  perform set_config('lao.work_scope_override','academics.programs',true);
+  return public.lao_save_academic_program_base_v01914(
+    p_school_id,p_program_id,p_code,p_name_th,p_name_en,p_description,p_is_active,p_sort_order
+  );
+end;
+$function$;
+revoke all on function public.lao_save_academic_program(uuid,uuid,text,text,text,text,boolean,integer) from public,anon;
+grant execute on function public.lao_save_academic_program(uuid,uuid,text,text,text,text,boolean,integer) to authenticated;
+
+-- Class / room scope
+alter function public.lao_assign_class_program(uuid,uuid,uuid)
+  rename to lao_assign_class_program_base_v01914;
+revoke all on function public.lao_assign_class_program_base_v01914(uuid,uuid,uuid)
+  from public,anon,authenticated;
+
+create function public.lao_assign_class_program(
+  p_school_id uuid,
+  p_class_section_id uuid,
+  p_program_id uuid default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.classes','edit') then
+    raise exception 'ไม่มีสิทธิ์แก้ไขระดับชั้นและห้องเรียน';
+  end if;
+  perform set_config('lao.work_scope_override','academics.classes',true);
+  return public.lao_assign_class_program_base_v01914(p_school_id,p_class_section_id,p_program_id);
+end;
+$function$;
+revoke all on function public.lao_assign_class_program(uuid,uuid,uuid) from public,anon;
+grant execute on function public.lao_assign_class_program(uuid,uuid,uuid) to authenticated;
+
+-- Subject / curriculum scope. Each public mutator keeps its original API but is
+-- allowed to enter the legacy implementation only after the exact scope is checked.
+alter function public.lao_save_subject(uuid,uuid,text,text,text,text,text,boolean,integer)
+  rename to lao_save_subject_base_v01914;
+alter function public.lao_save_curriculum_course(uuid,uuid,uuid,uuid,text,text,uuid,numeric,numeric,text,boolean,integer,jsonb)
+  rename to lao_save_curriculum_course_base_v01914;
+alter function public.lao_copy_curriculum_group_from_year(uuid,uuid,uuid,uuid,text)
+  rename to lao_copy_curriculum_group_from_year_base_v01914;
+alter function public.lao_create_curriculum_parallel_group(uuid,uuid,uuid,text,text,numeric,uuid[])
+  rename to lao_create_curriculum_parallel_group_base_v01914;
+alter function public.lao_delete_curriculum_parallel_group(uuid,uuid)
+  rename to lao_delete_curriculum_parallel_group_base_v01914;
+alter function public.lao_update_course_time_override(uuid,uuid,numeric,numeric,numeric,numeric,text)
+  rename to lao_update_course_time_override_base_v01914;
+alter function public.lao_reset_course_time_to_standard(uuid,uuid)
+  rename to lao_reset_course_time_to_standard_base_v01914;
+alter function public.lao_adopt_subject_catalog_item(uuid,uuid,uuid,text,text,uuid)
+  rename to lao_adopt_subject_catalog_item_base_v01914;
+alter function public.lao_add_curriculum_library_item(uuid,uuid,uuid,text,text,uuid)
+  rename to lao_add_curriculum_library_item_base_v01914_delegate;
+alter function public.lao_remove_curriculum_item(uuid,uuid,uuid,text,uuid)
+  rename to lao_remove_curriculum_item_base_v01914;
+alter function public.lao_create_school_subject_and_add(uuid,uuid,uuid,text,text,text,text,text,text,text[],boolean,text)
+  rename to lao_create_school_subject_and_add_base_v01914;
+alter function public.lao_quick_add_curriculum_subject(uuid,uuid,uuid,text,text,text,text,text,numeric,numeric,integer)
+  rename to lao_quick_add_curriculum_subject_base_v01914;
+alter function public.lao_move_curriculum_course(uuid,uuid,text)
+  rename to lao_move_curriculum_course_base_v01914;
+alter function public.lao_set_subject_requirement_decision(uuid,uuid,uuid,text,text,text,uuid,text)
+  rename to lao_set_subject_requirement_decision_base_v01914;
+alter function public.lao_confirm_curriculum_group(uuid,uuid,uuid,text)
+  rename to lao_confirm_curriculum_group_base_v01914;
+
+revoke all on function public.lao_save_subject_base_v01914(uuid,uuid,text,text,text,text,text,boolean,integer) from public,anon,authenticated;
+revoke all on function public.lao_save_curriculum_course_base_v01914(uuid,uuid,uuid,uuid,text,text,uuid,numeric,numeric,text,boolean,integer,jsonb) from public,anon,authenticated;
+revoke all on function public.lao_copy_curriculum_group_from_year_base_v01914(uuid,uuid,uuid,uuid,text) from public,anon,authenticated;
+revoke all on function public.lao_create_curriculum_parallel_group_base_v01914(uuid,uuid,uuid,text,text,numeric,uuid[]) from public,anon,authenticated;
+revoke all on function public.lao_delete_curriculum_parallel_group_base_v01914(uuid,uuid) from public,anon,authenticated;
+revoke all on function public.lao_update_course_time_override_base_v01914(uuid,uuid,numeric,numeric,numeric,numeric,text) from public,anon,authenticated;
+revoke all on function public.lao_reset_course_time_to_standard_base_v01914(uuid,uuid) from public,anon,authenticated;
+revoke all on function public.lao_adopt_subject_catalog_item_base_v01914(uuid,uuid,uuid,text,text,uuid) from public,anon,authenticated;
+revoke all on function public.lao_add_curriculum_library_item_base_v01914_delegate(uuid,uuid,uuid,text,text,uuid) from public,anon,authenticated;
+revoke all on function public.lao_remove_curriculum_item_base_v01914(uuid,uuid,uuid,text,uuid) from public,anon,authenticated;
+revoke all on function public.lao_create_school_subject_and_add_base_v01914(uuid,uuid,uuid,text,text,text,text,text,text,text[],boolean,text) from public,anon,authenticated;
+revoke all on function public.lao_quick_add_curriculum_subject_base_v01914(uuid,uuid,uuid,text,text,text,text,text,numeric,numeric,integer) from public,anon,authenticated;
+revoke all on function public.lao_move_curriculum_course_base_v01914(uuid,uuid,text) from public,anon,authenticated;
+revoke all on function public.lao_set_subject_requirement_decision_base_v01914(uuid,uuid,uuid,text,text,text,uuid,text) from public,anon,authenticated;
+revoke all on function public.lao_confirm_curriculum_group_base_v01914(uuid,uuid,uuid,text) from public,anon,authenticated;
+
+create function public.lao_save_subject(
+  p_school_id uuid,p_subject_id uuid default null,p_subject_code text default null,p_name_th text default null,
+  p_name_en text default null,p_learning_area text default null,p_subject_type text default 'basic',
+  p_is_active boolean default true,p_sort_order integer default 0
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์แก้ไขรายวิชา'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_save_subject_base_v01914(p_school_id,p_subject_id,p_subject_code,p_name_th,p_name_en,p_learning_area,p_subject_type,p_is_active,p_sort_order);
+end;$function$;
+
+create function public.lao_save_curriculum_course(
+  p_school_id uuid,p_course_id uuid default null,p_academic_year_id uuid default null,p_program_id uuid default null,
+  p_grade_code text default null,p_grade_label text default null,p_subject_id uuid default null,p_annual_hours numeric default null,
+  p_credits numeric default null,p_notes text default null,p_is_active boolean default true,p_sort_order integer default 0,
+  p_term_plans jsonb default '[]'::jsonb
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์แก้ไขโครงสร้างหลักสูตร'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_save_curriculum_course_base_v01914(p_school_id,p_course_id,p_academic_year_id,p_program_id,p_grade_code,p_grade_label,p_subject_id,p_annual_hours,p_credits,p_notes,p_is_active,p_sort_order,p_term_plans);
+end;$function$;
+
+create function public.lao_copy_curriculum_group_from_year(
+  p_school_id uuid,p_source_academic_year_id uuid,p_target_academic_year_id uuid,p_program_id uuid,p_grade_code text
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์คัดลอกโครงสร้างรายวิชา'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_copy_curriculum_group_from_year_base_v01914(p_school_id,p_source_academic_year_id,p_target_academic_year_id,p_program_id,p_grade_code);
+end;$function$;
+
+create function public.lao_create_curriculum_parallel_group(
+  p_school_id uuid,p_academic_year_id uuid,p_program_id uuid,p_grade_code text,p_name text,p_weekly_periods numeric,p_course_ids uuid[]
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์จัดกลุ่มรายวิชา'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_create_curriculum_parallel_group_base_v01914(p_school_id,p_academic_year_id,p_program_id,p_grade_code,p_name,p_weekly_periods,p_course_ids);
+end;$function$;
+
+create function public.lao_delete_curriculum_parallel_group(p_school_id uuid,p_group_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์ยกเลิกกลุ่มรายวิชา'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_delete_curriculum_parallel_group_base_v01914(p_school_id,p_group_id);
+end;$function$;
+
+create function public.lao_update_course_time_override(
+  p_school_id uuid,p_course_id uuid,p_annual_hours numeric default null,p_term_hours numeric default null,
+  p_weekly_periods numeric default null,p_credits numeric default null,p_note text default null
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์แก้ไขเวลาเรียนรายวิชา'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_update_course_time_override_base_v01914(p_school_id,p_course_id,p_annual_hours,p_term_hours,p_weekly_periods,p_credits,p_note);
+end;$function$;
+
+create function public.lao_reset_course_time_to_standard(p_school_id uuid,p_course_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์คืนค่าเวลาเรียน'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_reset_course_time_to_standard_base_v01914(p_school_id,p_course_id);
+end;$function$;
+
+create function public.lao_adopt_subject_catalog_item(
+  p_school_id uuid,p_academic_year_id uuid,p_program_id uuid,p_grade_code text,p_source_kind text,p_source_id uuid
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์เพิ่มรายวิชาจากคลัง'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_adopt_subject_catalog_item_base_v01914(p_school_id,p_academic_year_id,p_program_id,p_grade_code,p_source_kind,p_source_id);
+end;$function$;
+
+create function public.lao_add_curriculum_library_item(
+  p_school_id uuid,p_academic_year_id uuid,p_program_id uuid,p_grade_code text,p_source_kind text,p_source_id uuid
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์เพิ่มรายวิชา'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_add_curriculum_library_item_base_v01914_delegate(p_school_id,p_academic_year_id,p_program_id,p_grade_code,p_source_kind,p_source_id);
+end;$function$;
+
+create function public.lao_remove_curriculum_item(
+  p_school_id uuid,p_academic_year_id uuid,p_program_id uuid,p_grade_code text,p_course_id uuid
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์นำรายวิชาออก'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_remove_curriculum_item_base_v01914(p_school_id,p_academic_year_id,p_program_id,p_grade_code,p_course_id);
+end;$function$;
+
+create function public.lao_create_school_subject_and_add(
+  p_school_id uuid,p_academic_year_id uuid,p_program_id uuid,p_grade_code text,p_subject_code text,p_subject_name text,
+  p_learning_area text,p_subject_type text,p_subject_subtype text default null,p_aliases text[] default '{}'::text[],
+  p_share_to_catalog boolean default true,p_curriculum_version text default null
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์สร้างรายวิชาของโรงเรียน'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_create_school_subject_and_add_base_v01914(p_school_id,p_academic_year_id,p_program_id,p_grade_code,p_subject_code,p_subject_name,p_learning_area,p_subject_type,p_subject_subtype,p_aliases,p_share_to_catalog,p_curriculum_version);
+end;$function$;
+
+create function public.lao_quick_add_curriculum_subject(
+  p_school_id uuid,p_academic_year_id uuid,p_program_id uuid default null,p_grade_label text default null,
+  p_subject_code text default null,p_subject_name text default null,p_learning_area text default null,p_subject_type text default 'basic',
+  p_weekly_periods numeric default null,p_annual_hours numeric default null,p_sort_order integer default null
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์เพิ่มรายวิชา'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_quick_add_curriculum_subject_base_v01914(p_school_id,p_academic_year_id,p_program_id,p_grade_label,p_subject_code,p_subject_name,p_learning_area,p_subject_type,p_weekly_periods,p_annual_hours,p_sort_order);
+end;$function$;
+
+create function public.lao_move_curriculum_course(p_school_id uuid,p_course_id uuid,p_direction text)
+returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์จัดลำดับรายวิชา'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_move_curriculum_course_base_v01914(p_school_id,p_course_id,p_direction);
+end;$function$;
+
+create function public.lao_set_subject_requirement_decision(
+  p_school_id uuid,p_academic_year_id uuid,p_program_id uuid,p_grade_code text,p_requirement_key text,p_decision text,
+  p_replacement_subject_id uuid default null,p_note text default null
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then raise exception 'ไม่มีสิทธิ์กำหนดการใช้รายวิชา'; end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_set_subject_requirement_decision_base_v01914(p_school_id,p_academic_year_id,p_program_id,p_grade_code,p_requirement_key,p_decision,p_replacement_subject_id,p_note);
+end;$function$;
+
+create function public.lao_confirm_curriculum_group(
+  p_school_id uuid,p_academic_year_id uuid,p_program_id uuid,p_grade_code text
+) returns jsonb language plpgsql security definer set search_path=public as $function$
+begin
+  if not public.lao_has_work_permission(p_school_id,'academics.subjects','approve')
+     and not public.lao_has_work_permission(p_school_id,'academics.subjects','edit') then
+    raise exception 'ไม่มีสิทธิ์ยืนยันโครงสร้างหลักสูตร';
+  end if;
+  perform set_config('lao.work_scope_override','academics.subjects',true);
+  return public.lao_confirm_curriculum_group_base_v01914(p_school_id,p_academic_year_id,p_program_id,p_grade_code);
+end;$function$;
+
+revoke all on function public.lao_save_subject(uuid,uuid,text,text,text,text,text,boolean,integer) from public,anon;
+revoke all on function public.lao_save_curriculum_course(uuid,uuid,uuid,uuid,text,text,uuid,numeric,numeric,text,boolean,integer,jsonb) from public,anon;
+revoke all on function public.lao_copy_curriculum_group_from_year(uuid,uuid,uuid,uuid,text) from public,anon;
+revoke all on function public.lao_create_curriculum_parallel_group(uuid,uuid,uuid,text,text,numeric,uuid[]) from public,anon;
+revoke all on function public.lao_delete_curriculum_parallel_group(uuid,uuid) from public,anon;
+revoke all on function public.lao_update_course_time_override(uuid,uuid,numeric,numeric,numeric,numeric,text) from public,anon;
+revoke all on function public.lao_reset_course_time_to_standard(uuid,uuid) from public,anon;
+revoke all on function public.lao_adopt_subject_catalog_item(uuid,uuid,uuid,text,text,uuid) from public,anon;
+revoke all on function public.lao_add_curriculum_library_item(uuid,uuid,uuid,text,text,uuid) from public,anon;
+revoke all on function public.lao_remove_curriculum_item(uuid,uuid,uuid,text,uuid) from public,anon;
+revoke all on function public.lao_create_school_subject_and_add(uuid,uuid,uuid,text,text,text,text,text,text,text[],boolean,text) from public,anon;
+revoke all on function public.lao_quick_add_curriculum_subject(uuid,uuid,uuid,text,text,text,text,text,numeric,numeric,integer) from public,anon;
+revoke all on function public.lao_move_curriculum_course(uuid,uuid,text) from public,anon;
+revoke all on function public.lao_set_subject_requirement_decision(uuid,uuid,uuid,text,text,text,uuid,text) from public,anon;
+revoke all on function public.lao_confirm_curriculum_group(uuid,uuid,uuid,text) from public,anon;
+
+grant execute on function public.lao_save_subject(uuid,uuid,text,text,text,text,text,boolean,integer) to authenticated;
+grant execute on function public.lao_save_curriculum_course(uuid,uuid,uuid,uuid,text,text,uuid,numeric,numeric,text,boolean,integer,jsonb) to authenticated;
+grant execute on function public.lao_copy_curriculum_group_from_year(uuid,uuid,uuid,uuid,text) to authenticated;
+grant execute on function public.lao_create_curriculum_parallel_group(uuid,uuid,uuid,text,text,numeric,uuid[]) to authenticated;
+grant execute on function public.lao_delete_curriculum_parallel_group(uuid,uuid) to authenticated;
+grant execute on function public.lao_update_course_time_override(uuid,uuid,numeric,numeric,numeric,numeric,text) to authenticated;
+grant execute on function public.lao_reset_course_time_to_standard(uuid,uuid) to authenticated;
+grant execute on function public.lao_adopt_subject_catalog_item(uuid,uuid,uuid,text,text,uuid) to authenticated;
+grant execute on function public.lao_add_curriculum_library_item(uuid,uuid,uuid,text,text,uuid) to authenticated;
+grant execute on function public.lao_remove_curriculum_item(uuid,uuid,uuid,text,uuid) to authenticated;
+grant execute on function public.lao_create_school_subject_and_add(uuid,uuid,uuid,text,text,text,text,text,text,text[],boolean,text) to authenticated;
+grant execute on function public.lao_quick_add_curriculum_subject(uuid,uuid,uuid,text,text,text,text,text,numeric,numeric,integer) to authenticated;
+grant execute on function public.lao_move_curriculum_course(uuid,uuid,text) to authenticated;
+grant execute on function public.lao_set_subject_requirement_decision(uuid,uuid,uuid,text,text,text,uuid,text) to authenticated;
+grant execute on function public.lao_confirm_curriculum_group(uuid,uuid,uuid,text) to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- 4) Use the effective frame in curriculum calculations
 -- ---------------------------------------------------------------------------
@@ -1365,7 +1678,18 @@ begin
       'schedule_settings',v_default,
       'time_frames',v_frames,
       'can_manage_basic_settings',public.lao_has_work_permission(p_school_id,'academics.basic_settings','edit'),
-      'can_delegate_basic_settings',public.lao_has_work_permission(p_school_id,'academics.basic_settings','delegate')
+      'can_delegate_basic_settings',public.lao_has_work_permission(p_school_id,'academics.basic_settings','delegate'),
+      'can_manage_programs',public.lao_has_work_permission(p_school_id,'academics.programs','edit'),
+      'can_manage_classes',public.lao_has_work_permission(p_school_id,'academics.classes','edit'),
+      'can_manage_subjects',public.lao_has_work_permission(p_school_id,'academics.subjects','edit'),
+      'can_approve_subjects',public.lao_has_work_permission(p_school_id,'academics.subjects','approve'),
+      'can_manage_any_academic',(
+        public.lao_has_work_permission(p_school_id,'academics.basic_settings','edit')
+        or public.lao_has_work_permission(p_school_id,'academics.programs','edit')
+        or public.lao_has_work_permission(p_school_id,'academics.classes','edit')
+        or public.lao_has_work_permission(p_school_id,'academics.subjects','edit')
+        or public.lao_has_work_permission(p_school_id,'academics.workload','edit')
+      )
     );
 end;
 $function$;
