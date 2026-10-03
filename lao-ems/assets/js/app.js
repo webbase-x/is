@@ -1,10 +1,10 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.29";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.30";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
-  overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
+  overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
   membership:["สิทธิ์การเข้าใช้งาน","ดูสถานศึกษาและบทบาทที่ผู้ดูแลกำหนดให้"],
   activate:["ตั้งค่าบัญชี","ยืนยันโปรไฟล์และกำหนดรหัสผ่านสำหรับบัญชีที่ผู้ดูแลเชิญ"],
   profile:["โปรไฟล์ของฉัน","ข้อมูลส่วนตัว ความปลอดภัย และภาระงานสอนของฉัน"],
@@ -911,6 +911,7 @@ async function renderPublicSchoolAdminApplication(token){
   });
 }
 function bindOverview(){
+  bindAvatarFallback(q(".workspace-home")||document);
   const btn=q("[data-platform-self-school]"); if(!btn)return;
   btn.addEventListener("click",async()=>{
     setBusy(btn,true,"กำลังเตรียม...");
@@ -1227,8 +1228,70 @@ function adminOverviewHtml(){
   '<section class="module-section"><div class="section-head"><div><p class="eyebrow">Roadmap</p><h2>โมดูลทั้งหมด</h2></div></div><div class="module-grid">'+moduleHtml+'</div></section>';
 }
 
+function workspaceRecentStorageKey(){
+  const school=currentSchool();
+  return "lao_recent_workspace_"+(school&&school.id||"global");
+}
+function workspaceRecentRouteInfo(hash){
+  const h=String(hash||"");
+  const rules=[
+    ["#/academics/workload","ภาระงานสอน","📚"],
+    ["#/academics/subjects","โครงสร้างหลักสูตรและเวลาเรียน","📘"],
+    ["#/academics/classes","ระดับชั้นและห้อง","🏫"],
+    ["#/academics/time-frames","กรอบเวลาเรียน","⏱"],
+    ["#/academics/programs","โปรแกรมที่ใช้ในปีนี้","⭐"],
+    ["#/academics/periods","ปีการศึกษา / ภาคเรียน","🗓"],
+    ["#/academics","งานวิชาการ","📚"],
+    ["#/personnel/requests","คำขอบุคลากร","👥"],
+    ["#/personnel/registry","ทะเบียนบุคลากร","👥"],
+    ["#/personnel","บุคลากร","👥"],
+    ["#/students","นักเรียน","🎓"],
+    ["#/work-authorities","ผู้รับผิดชอบและการมอบหมายงาน","🛡"],
+    ["#/users","ผู้ใช้และสิทธิ์","🔐"],
+    ["#/setup","ตั้งค่าสถานศึกษา","⚙"],
+    ["#/lec","นำเข้าข้อมูล LEC","⬆"]
+  ];
+  const found=rules.find(([prefix])=>h.startsWith(prefix));
+  return found?{label:found[1],icon:found[2]}:{label:"งานล่าสุด",icon:"↗"};
+}
+function rememberRecentWorkspaceRoute(route){
+  if(!state.user||state.viewMode!=="user")return;
+  if(["overview","profile","notifications","membership","activate"].includes(route))return;
+  const hash=location.hash||("#/"+route);
+  if(!hash.startsWith("#/"))return;
+  const info=workspaceRecentRouteInfo(hash);
+  try{
+    localStorage.setItem(workspaceRecentStorageKey(),JSON.stringify({hash,label:info.label,icon:info.icon,at:Date.now()}));
+  }catch(_){}
+}
+function workspaceAppItems(unreadCount,pendingJoin,pendingTeaching){
+  const school=currentSchool();
+  const schoolAdmin=isSchoolAdminContext();
+  const items=[
+    {icon:"👤",title:"โปรไฟล์ของฉัน",desc:"ข้อมูลส่วนตัวและภาระงานสอนของฉัน",route:"#/profile",key:"profile"}
+  ];
+  if(canViewAcademic())items.push({icon:"📚",title:"งานวิชาการ",desc:"หลักสูตร เวลาเรียน และภาระงานสอน",route:"#/academics",key:"academics",badge:Number(pendingTeaching||0)});
+  if(canViewStudentDirectory())items.push({icon:"🎓",title:"นักเรียน",desc:"ค้นหาและดูข้อมูลนักเรียนตามสิทธิ์",route:"#/students",key:"students"});
+  if(canViewPersonnel())items.push({icon:"👥",title:"บุคลากร",desc:"ทะเบียนและงานบุคลากรที่ได้รับสิทธิ์",route:"#/personnel",key:"personnel",badge:Number(pendingJoin||0)});
+  if(state.workAuthorityAccess&&state.workAuthorityAccess.can_view)items.push({icon:"🛡",title:"ผู้รับผิดชอบและการมอบหมาย",desc:"ดูขอบเขตงานและสิทธิ์ที่ได้รับมอบหมาย",route:"#/work-authorities",key:"work-authorities"});
+  if(schoolAdmin)items.push({icon:"🏛",title:"อปท. และสถานศึกษา",desc:"ข้อมูลโครงสร้างองค์กรและสถานศึกษาที่เกี่ยวข้อง",route:"#/organization",key:"organization"});
+  if(schoolAdmin&&schoolSetupReady())items.push({icon:"🔐",title:"ผู้ใช้และสิทธิ์",desc:"จัดการบัญชีและสิทธิ์ภายในโรงเรียน",route:"#/users",key:"users"});
+  if(schoolAdmin)items.push({icon:"⚙",title:"ตั้งค่าสถานศึกษา",desc:"ข้อมูลกลางและการเชื่อมบริการของโรงเรียน",route:"#/setup",key:"setup"});
+  if(schoolAdmin)items.push({icon:"⬆",title:"นำเข้าข้อมูล LEC",desc:"อัปเดตข้อมูลต้นทางของสถานศึกษา",route:"#/lec",key:"lec"});
+  items.push({icon:"🔔",title:"การแจ้งเตือน",desc:"รายการที่เกี่ยวข้องกับบัญชีของฉัน",route:"#/notifications",key:"notifications",badge:Number(unreadCount||0)});
+  items.push({icon:"🔑",title:"สิทธิ์ของฉัน",desc:"ดูสถานศึกษาและบทบาทที่ได้รับ",route:"#/membership",key:"membership"});
+  return items.filter(item=>school||["profile","notifications","membership"].includes(item.key));
+}
+function workspaceRecentItem(apps){
+  let recent=null;
+  try{recent=JSON.parse(localStorage.getItem(workspaceRecentStorageKey())||"null");}catch(_){}
+  if(!recent||!recent.hash)return null;
+  const allowed=(apps||[]).some(app=>recent.hash===app.route||recent.hash.startsWith(app.route+"/"));
+  if(!allowed)return null;
+  return {...workspaceRecentRouteInfo(recent.hash),...recent};
+}
+
 async function overviewHtml(){
-  const active=state.memberships.filter(m=>m.status==="active").length;
   const school=currentSchool();
   const tenant=(school&&school.name_th)||(currentOrg()&&currentOrg().name_th)||"ยังไม่ได้ผูกสถานศึกษา";
   const name=displayName();
@@ -1236,10 +1299,16 @@ async function overviewHtml(){
   const accessText=schoolAdmin?"ผู้ดูแลสถานศึกษา":state.currentMembership?roleNames():"ยังไม่มีสิทธิ์ใช้งาน";
   const personnelWork=state.personnelWork||{};
   const academicWork=state.academicWork||{};
-  const unread=(state.notifications||[]).filter(n=>!n.read_at && (!school||!n.school_id||n.school_id===school.id));
+  const unread=(state.notifications||[]).filter(n=>!n.read_at&&(!school||!n.school_id||n.school_id===school.id));
+  const pendingJoin=Number(personnelWork.pending_join_requests||0);
+  const pendingTeaching=Number(academicWork.pending_teaching_workloads||0);
+  const apps=workspaceAppItems(unread.length,pendingJoin,pendingTeaching);
+  const timelines=[];
+  const tasks=[];
+  const waiting=[];
+
   const personnelResponsible=Boolean(school)&&(schoolAdmin||personnelWork.can_review||personnelWork.can_manage_intake||personnelWork.can_assign_authority);
   const academicResponsible=Boolean(school)&&(schoolAdmin||academicWork.can_manage);
-  const timelines=[];
 
   if(personnelResponsible){
     try{
@@ -1249,96 +1318,108 @@ async function overviewHtml(){
   }
   if(academicResponsible){
     try{
-      const timeline=state.academicTimeline||await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
+      const timeline=state.academicTimeline||await loadDepartmentSetupTimeline("academics",state.academicYearId||null);
       if(timeline)timelines.push(timeline);
     }catch(e){console.warn("overview academics timeline",e);}
   }
 
-  const totalSteps=timelines.reduce((sum,t)=>sum+Number(t.timeline_scope==="academic_year"?t.applicable_count:t.total_count||0),0);
-  const resolvedSteps=timelines.reduce((sum,t)=>sum+Number(t.timeline_scope==="academic_year"?t.completed_count:t.resolved_count||0),0);
-  const progressPct=totalSteps?Math.round(resolvedSteps*100/totalSteps):(timelines.length?100:0);
-  const pendingJoin=Number(personnelWork.pending_join_requests||0);
-  const pendingTeaching=Number(academicWork.pending_teaching_workloads||0);
-  const returnedTeaching=Number(academicWork.my_returned_workloads||0);
-  const attentionCount=pendingJoin+pendingTeaching+returnedTeaching+unread.length;
-
-  const priority=[];
   if(schoolAdmin&&!schoolSetupReady()){
-    priority.push({icon:"⚙",title:"ตั้งค่าสถานศึกษาให้ครบ",desc:"ตรวจข้อมูลพื้นฐานและเชื่อม Google Drive ก่อนเปิดใช้งานส่วนอื่น",route:"#/setup",label:"ทำต่อ",tone:"warning"});
+    tasks.push({icon:"⚙",title:"ตั้งค่าสถานศึกษาให้ครบ",desc:"ดำเนินการข้อมูลตั้งต้นและการเชื่อมบริการที่จำเป็น",route:"#/setup",label:"ทำต่อ",tone:"warning"});
   }
   timelines.forEach(t=>{
-    if(t.next_step)priority.push({
-      icon:"▶",title:(t.department_name||"งาน")+" · "+t.next_step.title,
-      desc:t.next_step.is_required?"ขั้นตอนจำเป็น ต้องดำเนินการก่อนขั้นถัดไป":"ขั้นตอนนี้ข้ามได้ หากยังไม่กระทบงานถัดไป",
+    if(t.next_step)tasks.push({
+      icon:t.department_code==="personnel"?"👥":"📚",
+      title:(t.department_name||"งาน")+" · "+t.next_step.title,
+      desc:t.next_step.is_required?"ขั้นตอนจำเป็นตามลำดับงาน":"ขั้นตอนนี้ข้ามได้หากยังไม่กระทบงานถัดไป",
       route:t.next_step.route,label:"ทำต่อ",tone:"primary"
     });
   });
   if(pendingJoin>0&&personnelWork.can_review){
-    priority.push({icon:"👥",title:"ตรวจคำขอเข้าร่วม "+pendingJoin+" รายการ",desc:"มีบุคลากรรอการตรวจสอบและอนุมัติ",route:"#/personnel/requests",label:"ตรวจสอบ",tone:"warning"});
+    tasks.push({icon:"👥",title:"คำขอบุคลากรรอตรวจ "+pendingJoin+" รายการ",desc:"ตรวจข้อมูลและอนุมัติคำขอเข้าร่วมสถานศึกษา",route:"#/personnel/requests",label:"ตรวจสอบ",tone:"warning"});
   }
   if(pendingTeaching>0&&academicWork.can_manage){
-    priority.push({icon:"📚",title:"ตรวจภาระงานสอน "+pendingTeaching+" รายการ",desc:"มีภาระงานสอนที่ส่งมาและรอการพิจารณา",route:"#/academics/workload",label:"ตรวจสอบ",tone:"warning"});
-  }
-  if(returnedTeaching>0){
-    priority.push({icon:"↩",title:"แก้ไขภาระงานสอนที่ถูกส่งกลับ "+returnedTeaching+" รายการ",desc:"มีรายการของคุณที่ต้องปรับแก้แล้วส่งใหม่",route:"#/academics/workload",label:"แก้ไข",tone:"danger"});
+    tasks.push({icon:"📚",title:"ภาระงานสอนรออนุมัติ "+pendingTeaching+" รายการ",desc:"ครูส่งภาระงานสอนเข้ามาและรอฝ่ายวิชาการตรวจสอบ",route:"#/academics/workload",label:"ตรวจสอบ",tone:"warning"});
   }
 
-  const priorityHtml=priority.length
-    ?priority.slice(0,6).map((item,i)=>'<a class="overview-priority-item '+esc(item.tone||"")+'" href="'+esc(item.route)+'"><span class="overview-priority-order">'+(i+1)+'</span><span class="overview-priority-icon">'+item.icon+'</span><span class="overview-priority-copy"><strong>'+esc(item.title)+'</strong><small>'+esc(item.desc)+'</small></span><em>'+esc(item.label)+'</em></a>').join("")
-    :'<div class="overview-clear-state"><span>✓</span><div><strong>ยังไม่มีงานเร่งด่วนที่ต้องดำเนินการ</strong><p>เมื่อมีขั้นตอนใหม่ งานส่งกลับ หรือรายการรออนุมัติ ระบบจะแสดงที่นี่อัตโนมัติ</p></div></div>';
+  if(school&&roleCodes().includes("teacher")){
+    try{
+      const page=await loadTeachingWorkloadPage();
+      const own=page&&page.own_personnel||null;
+      const workload=own?(page.workloads||[]).find(w=>w.personnel_id===own.id):null;
+      if(!own){
+        waiting.push({tone:"warning",icon:"!",title:"ยังไม่เชื่อมบัญชีกับทะเบียนบุคลากร",desc:"ต้องเชื่อมข้อมูลบุคลากรก่อนจึงจะเสนอภาระงานสอนได้"});
+      }else if(!workload||workload.status==="cancelled"){
+        tasks.unshift({icon:"📝",title:"ระบุภาระงานสอนของฉัน",desc:"เลือกวิชา ห้อง และคาบสอน แล้วส่งฝ่ายวิชาการอนุมัติ",route:"#/profile",label:"เริ่มระบุ",tone:"primary"});
+      }else if(workload.status==="draft"){
+        tasks.unshift({icon:"📝",title:"ภาระงานสอนยังเป็นฉบับร่าง",desc:"กรอกข้อมูลให้ครบแล้วส่งฝ่ายวิชาการตรวจสอบ",route:"#/profile",label:"ทำต่อ",tone:"primary"});
+      }else if(workload.status==="returned"){
+        tasks.unshift({icon:"↩",title:"ภาระงานสอนถูกส่งกลับให้แก้ไข",desc:workload.review_note||"ตรวจรายการ แก้ไข แล้วส่งใหม่",route:"#/profile",label:"แก้ไข",tone:"danger"});
+      }else if(workload.status==="submitted"){
+        waiting.push({tone:"waiting",icon:"⏳",title:"ภาระงานสอนส่งแล้ว",desc:"กำลังรอฝ่ายวิชาการตรวจสอบและอนุมัติ"});
+      }else if(workload.status==="approved"){
+        waiting.push({tone:"success",icon:"✓",title:"ภาระงานสอนได้รับการอนุมัติแล้ว",desc:"รายการภาระงานสอนปัจจุบันผ่านการอนุมัติ"});
+      }
+    }catch(e){console.warn("overview own teaching workload",e);}
+  }
 
-  const timelineCards=timelines.length
-    ?timelines.map(t=>{
-      const total=Number(t.total_count||0),resolved=Number(t.resolved_count||0);
-      const pct=total?Math.round(resolved*100/total):100;
-      const next=t.next_step;
-      const pending=Math.max(total-resolved,0);
-      return '<article class="overview-department-card">'+
-        '<div class="overview-department-head"><div><span class="overview-department-icon">'+(t.department_code==="personnel"?"👥":"📚")+'</span><div><small>ฝ่ายที่รับผิดชอบ</small><strong>'+esc(t.department_name||t.department_code)+'</strong></div></div><span class="pill '+(t.is_complete?"success":"warning")+'">'+(t.is_complete?"ครบแล้ว":"เหลือ "+pending+" ขั้น")+'</span></div>'+
-        '<div class="overview-department-progress"><div><span>ความก้าวหน้า</span><strong>'+pct+'%</strong></div><div class="department-progress-track"><span style="width:'+pct+'%"></span></div><small>'+resolved+' จาก '+total+' ขั้นตอนดำเนินการแล้ว/ข้ามตามเงื่อนไข</small></div>'+
-        (next?'<div class="overview-department-next"><span>ทำต่อ</span><div><strong>'+esc(next.title)+'</strong><small>'+(next.is_required?"จำเป็นต้องทำตามลำดับ":"ข้ามได้หากยังไม่กระทบขั้นอื่น")+'</small></div><a href="'+esc(next.route)+'">เปิดงาน</a></div>':'<div class="overview-department-complete">✓ ไม่มีขั้นตอนตั้งค่าค้างในฝ่ายนี้</div>')+
-        '<a class="overview-department-open" href="'+(t.department_code==="personnel"?"#/personnel":"#/academics")+'">ดูไทม์ไลน์ทั้งหมด →</a>'+
-      '</article>';
-    }).join("")
-    :'<div class="overview-empty-responsibility"><span>ℹ</span><div><strong>ยังไม่มีไทม์ไลน์ฝ่ายที่บัญชีนี้ต้องรับผิดชอบ</strong><p>ระบบจะแสดงเฉพาะฝ่ายที่ได้รับสิทธิ์บริหารหรือได้รับมอบหมาย ไม่แสดงงานที่ไม่มีหน้าที่รับผิดชอบ</p></div></div>';
+  if(unread.length>0){
+    tasks.push({icon:"🔔",title:"มีการแจ้งเตือนใหม่ "+unread.length+" รายการ",desc:"เปิดดูข้อความและรายการที่เกี่ยวข้องกับคุณ",route:"#/notifications",label:"เปิดดู",tone:"neutral"});
+  }
 
-  const notificationHtml=unread.length
-    ?unread.slice(0,5).map(n=>'<a class="overview-notification-row" href="#/notifications"><span>🔔</span><div><strong>'+esc(n.title||"การแจ้งเตือน")+'</strong><small>'+esc(n.body||"")+'</small></div><time>'+esc(thaiDateTime(n.created_at))+'</time></a>').join("")
-    :'<div class="overview-mini-empty">ไม่มีการแจ้งเตือนที่ยังไม่ได้อ่าน</div>';
+  const seen=new Set();
+  const uniqueTasks=tasks.filter(item=>{
+    const key=item.route+"|"+item.title;
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
+
+  const taskHtml=uniqueTasks.length
+    ?uniqueTasks.slice(0,6).map(item=>'<a class="workspace-task '+esc(item.tone||"")+'" href="'+esc(item.route)+'"><span class="workspace-task-icon">'+item.icon+'</span><span class="workspace-task-copy"><strong>'+esc(item.title)+'</strong><small>'+esc(item.desc)+'</small></span><em>'+esc(item.label)+'</em></a>').join("")
+    :'<div class="workspace-clear"><span>✓</span><div><strong>ไม่มีงานที่ต้องดำเนินการตอนนี้</strong><small>เมื่อมีงานส่งกลับ งานรออนุมัติ หรือขั้นตอนที่ต้องทำ ระบบจะแสดงตรงนี้</small></div></div>';
+
+  const waitingHtml=waiting.length
+    ?'<div class="workspace-status-strip">'+waiting.map(item=>'<div class="'+esc(item.tone||"")+'"><span>'+item.icon+'</span><div><strong>'+esc(item.title)+'</strong><small>'+esc(item.desc)+'</small></div></div>').join("")+'</div>'
+    :"";
+
+  const appsHtml=apps.map(app=>
+    '<a class="workspace-app-card" href="'+esc(app.route)+'" data-workspace-app="'+esc(app.key)+'">'+
+      '<span class="workspace-app-icon">'+app.icon+'</span>'+
+      '<span class="workspace-app-copy"><strong>'+esc(app.title)+'</strong><small>'+esc(app.desc)+'</small></span>'+
+      (Number(app.badge||0)>0?'<b class="workspace-app-badge">'+Number(app.badge).toLocaleString("th-TH")+'</b>':'')+
+    '</a>'
+  ).join("");
+
+  const recent=workspaceRecentItem(apps);
+  const recentHtml=recent
+    ?'<section class="workspace-recent"><div class="workspace-section-head"><div><p class="eyebrow">CONTINUE</p><h2>ทำต่อจากครั้งล่าสุด</h2></div></div><a href="'+esc(recent.hash)+'"><span>'+esc(recent.icon||"↗")+'</span><div><strong>'+esc(recent.label||"งานล่าสุด")+'</strong><small>กลับไปยังหน้าที่ใช้งานล่าสุด</small></div><em>เปิดต่อ →</em></a></section>'
+    :"";
 
   let onboardingNotice="";
   if(!school){
-    onboardingNotice='<div class="notice"><strong>ยังไม่ได้เลือกหรือผูกสถานศึกษา</strong><br>เมื่อมีสิทธิ์ในสถานศึกษาแล้ว ระบบจะแสดงงานตามหน้าที่รับผิดชอบของคุณที่หน้านี้</div>';
+    onboardingNotice='<div class="notice"><strong>ยังไม่ได้เลือกหรือผูกสถานศึกษา</strong><br>เมื่อได้รับสิทธิ์แล้ว แอปและงานที่เกี่ยวข้องจะปรากฏบนหน้าหลักโดยอัตโนมัติ</div>';
   }else if(schoolAdmin&&!schoolSetupReady()){
-    onboardingNotice='<div class="notice warning"><strong>การตั้งค่าสถานศึกษายังไม่สมบูรณ์</strong><br>ส่วนที่ต้องพึ่งข้อมูลตั้งต้นอาจยังใช้งานไม่ได้ครบ กรุณาดำเนินการรายการแรกใน “งานที่ต้องทำต่อ”</div>';
+    onboardingNotice='<div class="notice warning"><strong>การตั้งค่าสถานศึกษายังไม่สมบูรณ์</strong><br>รายการที่ต้องดำเนินการจะแสดงใน “งานของฉัน” ตามลำดับ</div>';
   }
 
-  return '<section class="system-banner overview-banner"><div><span class="badge">MY WORKSPACE</span><h2>สวัสดี '+esc(name)+'</h2><p>'+esc(tenant)+' · '+esc(accessText)+'</p></div><div class="overview-banner-progress"><small>ความก้าวหน้าการตั้งค่าที่รับผิดชอบ</small><strong>'+progressPct+'%</strong><span>'+resolvedSteps+'/'+totalSteps+' ขั้นตอน</span></div></section>'+
+  const timelineHtml=timelines.length
+    ?'<section class="workspace-responsibility"><div class="workspace-section-head"><div><p class="eyebrow">RESPONSIBILITY</p><h2>งานที่ฉันรับผิดชอบ</h2><p>สรุปเฉพาะฝ่ายที่ได้รับสิทธิ์บริหารหรือได้รับมอบหมาย</p></div></div><div class="workspace-responsibility-list">'+timelines.map(t=>{
+      const total=Number(t.timeline_scope==="academic_year"?t.applicable_count:t.total_count||0);
+      const done=Number(t.timeline_scope==="academic_year"?t.completed_count:t.resolved_count||0);
+      const pending=Math.max(total-done,0);
+      const route=t.department_code==="personnel"?"#/personnel":"#/academics";
+      return '<a href="'+route+'"><span class="workspace-responsibility-icon">'+(t.department_code==="personnel"?"👥":"📚")+'</span><div><strong>'+esc(t.department_name||t.department_code)+'</strong><small>'+(pending>0?"เหลือ "+pending+" ขั้นตอน":"ดำเนินการครบแล้ว")+'</small></div><em>เปิด →</em></a>';
+    }).join("")+'</div></section>'
+    :"";
+
+  return '<section class="workspace-home">'+
+    '<section class="workspace-hero"><div class="workspace-hero-avatar">'+avatarHtml(name,"workspace-avatar-media")+'</div><div class="workspace-hero-copy"><p class="eyebrow">MY WORKSPACE</p><h2>สวัสดี '+esc(name)+'</h2><p>'+esc(tenant)+' · '+esc(accessText)+'</p></div><div class="workspace-hero-summary"><span><b>'+uniqueTasks.length.toLocaleString("th-TH")+'</b><small>งานที่ต้องทำ</small></span><span><b>'+apps.length.toLocaleString("th-TH")+'</b><small>แอปที่ใช้ได้</small></span></div></section>'+
     onboardingNotice+
-    '<section class="overview-kpi-grid">'+
-      '<article><span>🎯</span><div><small>งานที่ควรทำต่อ</small><strong>'+priority.length.toLocaleString("th-TH")+'</strong><p>รายการตามลำดับความสำคัญ</p></div></article>'+
-      '<article><span>⏳</span><div><small>งานรอดำเนินการ</small><strong>'+attentionCount.toLocaleString("th-TH")+'</strong><p>อนุมัติ / ส่งกลับ / แจ้งเตือน</p></div></article>'+
-      '<article><span>✅</span><div><small>ความก้าวหน้ารวม</small><strong>'+progressPct+'%</strong><p>'+resolvedSteps+' จาก '+totalSteps+' ขั้นตอน</p></div></article>'+
-      '<article><span>🔔</span><div><small>แจ้งเตือนใหม่</small><strong>'+unread.length.toLocaleString("th-TH")+'</strong><p>รายการที่ยังไม่ได้อ่าน</p></div></article>'+
-    '</section>'+
-    '<section class="overview-dashboard-grid">'+
-      '<article class="panel overview-priority-panel"><div class="panel-head"><div><p class="eyebrow">NEXT ACTION</p><h2>งานที่ต้องทำต่อ</h2><p class="panel-sub">เรียงจากงานตั้งค่าที่จำเป็น งานรออนุมัติ และงานที่ถูกส่งกลับ</p></div></div><div class="overview-priority-list">'+priorityHtml+'</div></article>'+
-      '<article class="panel overview-attention-panel"><div class="panel-head"><div><p class="eyebrow">ATTENTION</p><h2>สิ่งที่ต้องติดตาม</h2></div><a class="text-btn" href="#/notifications">ดูทั้งหมด</a></div>'+
-        '<div class="overview-attention-summary">'+
-          (personnelWork.can_review?'<div><span>👥</span><strong>'+pendingJoin+'</strong><small>คำขอบุคลากรรอตรวจ</small></div>':'')+
-          (academicWork.can_manage?'<div><span>📚</span><strong>'+pendingTeaching+'</strong><small>ภาระงานสอนรออนุมัติ</small></div>':'')+
-          (returnedTeaching?'<div><span>↩</span><strong>'+returnedTeaching+'</strong><small>งานของฉันถูกส่งกลับ</small></div>':'')+
-          '<div><span>🔔</span><strong>'+unread.length+'</strong><small>แจ้งเตือนใหม่</small></div>'+
-        '</div><div class="overview-notification-list">'+notificationHtml+'</div></article>'+
-    '</section>'+
-    '<section class="overview-section-head"><div><p class="eyebrow">RESPONSIBILITY TIMELINE</p><h2>ไทม์ไลน์งานที่ฉันรับผิดชอบ</h2><p>แสดงเฉพาะฝ่ายที่บัญชีนี้มีหน้าที่จัดการ พร้อมจุดที่ทำค้างไว้และขั้นตอนถัดไป</p></div></section>'+
-    '<section class="overview-department-grid">'+timelineCards+'</section>'+
-    '<section class="panel overview-context-panel"><div class="panel-head"><div><p class="eyebrow">MY CONTEXT</p><h2>บริบทการทำงานปัจจุบัน</h2></div></div><div class="overview-context-grid">'+
-      '<div><small>สถานศึกษา</small><strong>'+esc(tenant)+'</strong></div>'+
-      '<div><small>บทบาท</small><strong>'+esc(state.currentMembership?roleNames():"-")+'</strong></div>'+
-      '<div><small>สิทธิ์ที่ใช้งาน</small><strong>'+active.toLocaleString("th-TH")+'</strong><span>Membership</span></div>'+
-      '<div><small>ความพร้อมสถานศึกษา</small><strong>'+(schoolAdmin?(schoolSetupReady()?"พร้อมใช้งาน":"กำลังตั้งค่า"):"ตามสิทธิ์ที่ได้รับ")+'</strong></div>'+
-    '</div></section>';
+    '<section class="workspace-section workspace-task-section"><div class="workspace-section-head"><div><p class="eyebrow">TO DO</p><h2>งานของฉัน</h2><p>แสดงเฉพาะงานที่บัญชีนี้ต้องดำเนินการหรือติดตาม</p></div>'+(uniqueTasks.length?'<span class="counter">'+uniqueTasks.length.toLocaleString("th-TH")+' งาน</span>':'')+'</div><div class="workspace-task-list">'+taskHtml+'</div>'+waitingHtml+'</section>'+
+    '<section class="workspace-section workspace-app-section"><div class="workspace-section-head"><div><p class="eyebrow">MY APPS</p><h2>แอปของฉัน</h2><p>แสดงเฉพาะโมดูลที่บัญชีนี้มีสิทธิ์เข้าถึง</p></div></div><div class="workspace-app-grid">'+appsHtml+'</div></section>'+
+    recentHtml+
+    timelineHtml+
+  '</section>';
 }
 function membershipHtml(){
   const statusMap={pending:["รออนุมัติ","warning"],active:["ใช้งานได้","success"],rejected:["ไม่อนุมัติ","danger"],suspended:["ระงับ","danger"],ended:["สิ้นสุด","neutral"]};
@@ -6662,6 +6743,7 @@ async function renderRoute(){
     bindBuddhistDatePickers(main);
     if(bind)bind();
     if(route==="academics")focusActiveAcademicTimeline();
+    rememberRecentWorkspaceRoute(route);
   }catch(e){
     console.error(e);
     if(renderId!==state.routeRenderId)return;
