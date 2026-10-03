@@ -4077,12 +4077,13 @@ function academicSubjectsHtml(data,timeline){
     const currentKey=(gradeCode||"")+"|"+(selectedProgram?selectedProgram.id:"");
     const label=shortGrade(g.grade_label||academicGradeLabelFromCode(g.grade_code));
     const program=g.program_name||"ห้องปกติ";
+    const primaryTimeIssue=(g.time_issues||[]).find(x=>["period_capacity","hour_capacity","curriculum_hours","missing_time","parallel_time_mismatch"].includes(x.type))||null;
     const timeHint=g.time_is_complete
       ?"เวลา ✓"
       :!g.schedule_configured
         ?"ยังไม่ตั้งค่าความจุตาราง"
-        :Number(g.periods_per_week_over||0)>0
-          ?"เกิน "+Number(g.periods_per_week_over||0).toLocaleString("th-TH",{maximumFractionDigits:2})+" คาบ/สัปดาห์"
+        :primaryTimeIssue&&primaryTimeIssue.message
+          ?primaryTimeIssue.message
           :Number(g.time_issue_count||0)>0
             ?"เวลา "+Number(g.time_progress_percent||0)+"% · ต้องแก้ "+Number(g.time_issue_count||0)+" จุด"
             :"เวลา "+Number(g.time_progress_percent||0)+"%";
