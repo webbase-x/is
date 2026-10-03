@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.30";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.31";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -664,7 +664,7 @@ function bindStaticUI(){
   q("[data-sidebar-close]").addEventListener("click",close);
   scrim.addEventListener("click",close);
   window.addEventListener("hashchange",()=>{if(!location.hash.startsWith("#/academics/classes")){state.classProgramEditMode=false;state.classStageFilter="";}if(!location.hash.startsWith("#/academics/subjects")){state.subjectEditMode=false;state.subjectCopyYearId="";}if(state.user)renderRoute();else showAuth();close();});
-  q("[data-signout]").addEventListener("click",()=>{
+  q("[data-signout]")?.addEventListener("click",()=>{
     localStorage.setItem("lao_legacy_session_rejected","1");
     clearLaoAuthSession();
     location.reload();
@@ -1496,6 +1496,8 @@ function bindProfileFields(root=document){
       emailInput.setAttribute("aria-readonly",String(!editing));
       emailInput.classList.toggle("is-editing",editing);
       if(editing){
+        const securityDetails=q("[data-profile-security-details]",root);
+        if(securityDetails)securityDetails.open=true;
         emailInput.focus();
         emailInput.select();
       }else{
@@ -1597,33 +1599,42 @@ async function profileHtml(){
   const authMethod=isGoogleAuthUser()?"Google":"อีเมลและรหัสผ่าน";
   const teachingWorkloadHtml=await profileTeachingWorkloadHtml();
 
-  return '<section class="profile-page">'+
-    '<div class="profile-page-head"><div><p class="eyebrow">MY PROFILE</p><h2>โปรไฟล์ของฉัน</h2><p>จัดการข้อมูลส่วนตัว ความปลอดภัย และเสนอภาระงานสอนของฉันในที่เดียว</p></div></div>'+
-    '<div class="profile-layout">'+
-      '<aside class="profile-summary-card">'+
-        '<div class="profile-summary-top"><div class="profile-hero-avatar">'+avatarHtml(name,"profile-avatar-media")+'</div><div class="profile-summary-copy"><span class="profile-kicker">บัญชี LAO-EMS</span><h3>'+esc(name)+'</h3><p class="profile-email-text">'+esc(email)+'</p></div></div>'+
-        '<div class="profile-tags"><span class="pill success">บัญชีใช้งานได้</span>'+(school?'<span class="pill">'+esc(school.name_th)+'</span>':'')+'</div>'+
-        '<div class="profile-summary-list">'+
-          '<div><span>สถานศึกษา</span><strong>'+esc(school&&school.name_th||"ยังไม่เลือกสถานศึกษา")+'</strong></div>'+
-          '<div><span>สิทธิ์</span><strong>'+esc(roles)+'</strong></div>'+
-          '<div><span>วิธีเข้าสู่ระบบ</span><strong>'+esc(authMethod)+'</strong></div>'+
+  return '<section class="profile-page profile-clean-page">'+
+    '<section class="profile-clean-hero">'+
+      '<div class="profile-clean-avatar">'+avatarHtml(name,"profile-avatar-media")+'</div>'+
+      '<div class="profile-clean-identity"><p class="eyebrow">MY PROFILE</p><h2>'+esc(name)+'</h2>'+
+        '<div class="profile-clean-chips">'+
+          '<span>🏫 '+esc(school&&school.name_th||"ยังไม่เลือกสถานศึกษา")+'</span>'+
+          '<span>🪪 '+esc(roles)+'</span>'+
         '</div>'+
-      '</aside>'+
-      '<form id="profile-form" class="profile-form-shell">'+
-        '<section class="profile-section-card">'+
-          '<div class="profile-section-head"><div class="profile-section-icon">👤</div><div><p class="eyebrow">ข้อมูลส่วนตัว</p><h3>ข้อมูลบัญชีและการติดต่อ</h3><p>แก้ไขเฉพาะข้อมูลส่วนตัวของบัญชี ข้อมูลทางราชการของโรงเรียนและนักเรียนอ้างอิงจาก LEC</p></div></div>'+
-          profileFieldsHtml("profile")+
-        '</section>'+
-        '<section class="profile-section-card">'+
-          '<div class="profile-section-head"><div class="profile-section-icon">🔐</div><div><p class="eyebrow">ความปลอดภัย</p><h3>อีเมลและรหัสผ่าน</h3><p>หากต้องการเปลี่ยนอีเมลหรือรหัสผ่าน ให้ยืนยันด้วยรหัสผ่านปัจจุบันก่อน</p></div></div>'+
-          '<div class="profile-security-grid">'+
-            '<div class="form-field current-password-field"><label for="current-password">รหัสผ่านปัจจุบัน</label><div class="input-with-action"><input id="current-password" name="current_password" type="password" autocomplete="current-password" data-password-input placeholder="กรอกเมื่อเปลี่ยนอีเมลหรือรหัสผ่าน"><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div><small>เว้นว่างไว้หากไม่ได้เปลี่ยนอีเมลหรือรหัสผ่าน</small></div>'+
+      '</div>'+
+      '<div class="profile-clean-actions"><a class="secondary-btn compact-btn" href="#/overview">← หน้าหลัก</a><button class="profile-signout-btn" type="button" data-signout>ออกจากระบบ</button></div>'+
+    '</section>'+
+    '<form id="profile-form" class="profile-clean-form">'+
+      '<section class="profile-clean-card">'+
+        '<div class="profile-clean-card-head"><span class="profile-clean-card-icon">👤</span><div><h3>ข้อมูลส่วนตัว</h3><p>ชื่อและข้อมูลติดต่อที่ใช้ภายใน LAO-EMS</p></div></div>'+
+        profileFieldsHtml("profile-personal")+
+      '</section>'+
+      '<section class="profile-clean-card">'+
+        '<div class="profile-clean-card-head"><span class="profile-clean-card-icon">🔐</span><div><h3>บัญชีและความปลอดภัย</h3><p>จัดการอีเมลและรหัสผ่านเมื่อจำเป็น</p></div><span class="profile-auth-badge">'+esc(authMethod)+'</span></div>'+
+        '<div class="field profile-email">'+
+          '<span class="field-label-line">อีเมลบัญชี</span>'+
+          '<div class="profile-email-input-wrap">'+
+            '<input name="new_email" type="email" value="'+esc(email)+'" data-original-email="'+esc(email)+'" data-email-input autocomplete="email" required readonly aria-readonly="true">'+
+            '<label class="profile-edit-toggle profile-edit-toggle-inline" title="แก้ไข" aria-label="แก้ไขอีเมล" data-tooltip="แก้ไข"><input type="checkbox" data-email-edit-toggle><span class="profile-toggle-track"><span></span></span></label>'+
+          '</div>'+
+          '<small data-email-help>เปิดสวิตช์เมื่อต้องการเปลี่ยนอีเมล</small>'+
+        '</div>'+
+        '<details class="profile-security-details" data-profile-security-details>'+
+          '<summary><span>🔑 เปลี่ยนรหัสผ่าน / ยืนยันตัวตน</span><small>เปิดเฉพาะเมื่อต้องการแก้ข้อมูลความปลอดภัย</small></summary>'+
+          '<div class="profile-security-details-body">'+
+            '<div class="form-field current-password-field"><label for="current-password">รหัสผ่านปัจจุบัน</label><div class="input-with-action"><input id="current-password" name="current_password" type="password" autocomplete="current-password" data-password-input placeholder="ใช้ยืนยันเมื่อเปลี่ยนอีเมลหรือรหัสผ่าน"><button class="password-toggle" type="button" data-password-toggle aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A10 10 0 0 1 12 6c6.1 0 9.5 6 9.5 6a16 16 0 0 1-3.1 3.8M6.1 6.1C3.8 7.8 2.5 12 2.5 12s3.4 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"/></svg></button></div></div>'+
             passwordFieldsHtml(false)+
           '</div>'+
-        '</section>'+
-        '<div class="profile-save-bar"><div><strong>ตรวจสอบข้อมูลก่อนบันทึก</strong><span>การเปลี่ยนอีเมลอาจต้องยืนยันอีเมลใหม่ตามการตั้งค่าความปลอดภัย</span></div><button class="primary-btn profile-save-btn" type="submit">บันทึกโปรไฟล์</button></div>'+
-      '</form>'+
-    '</div>'+
+        '</details>'+
+      '</section>'+
+      '<div class="profile-clean-save"><span>บันทึกเฉพาะข้อมูลที่มีการเปลี่ยนแปลง</span><button class="primary-btn profile-save-btn" type="submit">บันทึกการเปลี่ยนแปลง</button></div>'+
+    '</form>'+
     teachingWorkloadHtml+
   '</section>';
 }
@@ -6567,6 +6578,11 @@ function bindProfile(){
     await loadContext();
     toast(emailChanged?"บันทึกแล้ว กรุณาตรวจอีเมลเพื่อยืนยันอีเมลใหม่หากระบบร้องขอ":"บันทึกโปรไฟล์แล้ว","success");
     renderRoute();
+  });
+  q("[data-signout]",q(".profile-page")||document)?.addEventListener("click",()=>{
+    localStorage.setItem("lao_legacy_session_rejected","1");
+    clearLaoAuthSession();
+    location.reload();
   });
   bindTeachingWorkloadControls();
 }
