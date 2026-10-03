@@ -68,7 +68,7 @@
         <div id="personnel-join-screen" class="auth-form hidden"></div>
 
       </div>
-      <p class="auth-footer">LAO-EMS · ระบบสารสนเทศเพื่อการบริหารสถานศึกษา · <span class="version-text" data-app-version>v0.14.0</span></p>
+      <p class="auth-footer">LAO-EMS · ระบบสารสนเทศเพื่อการบริหารสถานศึกษา · <span class="version-text" data-app-version>v0.19.14</span></p>
     </div>
   </section>
 
@@ -84,17 +84,18 @@
         <a href="#/users" data-route="users" data-admin-menu><span>👥</span>ผู้ใช้และสิทธิ์</a>
         <a href="#/lec" data-route="lec" data-lec-menu class="hidden"><span>⇧</span>นำเข้าข้อมูล LEC</a>
         <a href="#/personnel" data-route="personnel" data-personnel-menu class="hidden"><span>🪪</span>งานบุคลากร <span class="nav-badge hidden" data-personnel-badge>0</span></a>
+        <a href="#/work-authorities" data-route="work-authorities" data-work-authority-menu class="hidden"><span>🧩</span>ผู้รับผิดชอบ/มอบหมาย</a>
         <a href="#/students" data-route="students" data-student-menu class="hidden"><span>🎓</span>นักเรียน</a>
         <a href="#/academics" data-route="academics" data-academic-menu class="hidden"><span>📚</span>งานวิชาการ <span class="nav-badge hidden" data-academic-badge>0</span></a>
         <a href="#/setup" data-route="setup" data-admin-menu><span>⚙</span>ตั้งค่าระบบ</a>
       </nav>
-      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>LAO-EMS</strong><small><span class="system-name-responsive system-name-responsive--compact"><span>ระบบสารสนเทศ</span><span>เพื่อการบริหารสถานศึกษา</span></span> <span class="version-text" data-app-version>v0.14.0</span></small></div></div>
+      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>LAO-EMS</strong><small><span class="system-name-responsive system-name-responsive--compact"><span>ระบบสารสนเทศ</span><span>เพื่อการบริหารสถานศึกษา</span></span> <span class="version-text" data-app-version>v0.19.14</span></small></div></div>
     </aside>
 
     <div class="page">
       <header class="topbar">
         <div class="topbar-start"><button class="icon-btn mobile-menu" type="button" data-sidebar-open aria-label="เปิดเมนู">☰</button><div><p class="eyebrow"><span class="system-name-responsive"><span>ระบบสารสนเทศ</span><span>เพื่อการบริหารสถานศึกษา</span></span></p><h1 data-page-title>ภาพรวมระบบ</h1></div></div>
-        <div class="topbar-actions"><button class="icon-btn topbar-refresh" type="button" data-manual-refresh aria-label="รีเฟรชข้อมูลและโหลดระบบล่าสุด" title="รีเฟรช">⟳</button><span class="topbar-version" data-app-version aria-label="รุ่นระบบ">v0.14.0</span><div class="view-switch hidden" data-view-switch><button type="button" data-view-mode="user">มุมมองผู้ใช้</button><button type="button" data-view-mode="admin">Admin</button></div><button class="profile-btn" type="button"><span class="avatar" data-avatar>ผู้</span><span class="profile-copy"><strong data-profile-name>ผู้ใช้งาน</strong><small data-profile-role>กำลังตรวจสอบสิทธิ์</small></span></button><button class="icon-btn" type="button" data-signout aria-label="ออกจากระบบ" title="ออกจากระบบ">↪</button></div>
+        <div class="topbar-actions"><button class="icon-btn topbar-refresh" type="button" data-manual-refresh aria-label="รีเฟรชข้อมูลและโหลดระบบล่าสุด" title="รีเฟรช">⟳</button><span class="topbar-version" data-app-version aria-label="รุ่นระบบ">v0.19.14</span><div class="view-switch hidden" data-view-switch><button type="button" data-view-mode="user">มุมมองผู้ใช้</button><button type="button" data-view-mode="admin">Admin</button></div><button class="profile-btn" type="button"><span class="avatar" data-avatar>ผู้</span><span class="profile-copy"><strong data-profile-name>ผู้ใช้งาน</strong><small data-profile-role>กำลังตรวจสอบสิทธิ์</small></span></button><button class="icon-btn" type="button" data-signout aria-label="ออกจากระบบ" title="ออกจากระบบ">↪</button></div>
       </header>
       <main id="main" class="content" tabindex="-1"></main>
     </div>
@@ -103,7 +104,7 @@
 
   <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script type="module" src="./assets/js/app.js?v=0.19.13"></script>
+  <script type="module" src="./assets/js/app.js?v=0.19.14"></script>
 
   <script>
     window.setTimeout(function(){
