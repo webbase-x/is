@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.12";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.13";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3651,8 +3651,7 @@ function academicNavHtml(active,data){
     {key:"periods",href:"#/academics/periods",label:"ปี/ภาคเรียน",stepCode:"periods"},
     {key:"programs",href:"#/academics/programs",label:"โปรแกรมพิเศษ",stepCode:"programs"},
     {key:"classes",href:"#/academics/classes",label:"ชั้น/ห้อง",stepCode:"classes"},
-    {key:"subjects",href:"#/academics/subjects",label:"รายวิชา",stepCode:"subjects"},
-    {key:"curriculum",href:"#/academics/curriculum",label:"โครงสร้างเวลาเรียน",stepCode:"curriculum"},
+    {key:"subjects",href:"#/academics/subjects",label:"หลักสูตร/เวลาเรียน",stepCode:"subjects"},
     {key:"workload",href:"#/academics/workload",label:"ภาระงานสอน",stepCode:"workload"}
   ];
   const timeline=state.academicTimeline||null;
@@ -3723,9 +3722,8 @@ async function academicDashboardHtml(data){
       '<a href="#/academics/periods"><b>01</b><div><strong>ปีการศึกษาและภาคเรียน</strong><small>กำหนดช่วงเวลาและปีปัจจุบัน</small></div></a>'+
       '<a href="#/academics/programs"><b>02</b><div><strong>โปรแกรมพิเศษ</strong><small>ใช้ข้อมูลระดับโรงเรียนเดิม แล้วตรวจสอบสำหรับปีที่เลือก</small></div></a>'+
       '<a href="#/academics/classes"><b>03</b><div><strong>ระดับชั้นและห้อง</strong><small>ห้องจาก LEC ถูกนำมาเป็นฐานโดยไม่ต้องกรอกซ้ำ</small></div></a>'+
-      '<a href="#/academics/subjects"><b>04</b><div><strong>รายวิชา</strong><small>ตรวจรายวิชาที่ใช้จริงของแต่ละระดับชั้นและโปรแกรม</small></div></a>'+
-      '<a href="#/academics/curriculum"><b>05</b><div><strong>โครงสร้างเวลาเรียน</strong><small>รายวิชาต่อระดับชั้น ชั่วโมง/ปี และคาบต่อสัปดาห์</small></div></a>'+
-      '<a href="#/academics/workload"><b>06</b><div><strong>ภาระงานสอน</strong><small>จัดครูผู้สอนและอนุมัติภาระงานของปีการศึกษานี้</small></div></a>'+
+      '<a href="#/academics/subjects"><b>04</b><div><strong>โครงสร้างหลักสูตรและเวลาเรียน</strong><small>เลือกรายวิชา กำหนดชั่วโมง/คาบ เทียบกรอบ และยืนยันความครบถ้วนในหน้าเดียว</small></div></a>'+
+      '<a href="#/academics/workload"><b>05</b><div><strong>ภาระงานสอน</strong><small>จัดครูผู้สอนและอนุมัติภาระงานของปีการศึกษานี้</small></div></a>'+
     '</section>'+
     '<section class="academic-next-note"><span>ขั้นถัดไป</span><div><strong>ตารางเรียน / ตารางสอน</strong><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นฐานในการจัดตาราง เพื่อลดการกรอกชื่อครู รายวิชา และห้องเรียนซ้ำ</p></div></section>'+
   '</section>';
@@ -4224,7 +4222,7 @@ function academicSubjectsHtml(data,timeline){
   const subjectCompletenessHtml='<section class="panel subject-completeness-panel '+(subjectOverallComplete?"complete":"")+'">'+
     '<div class="subject-completeness-overview">'+
       '<div class="subject-completeness-ring '+(subjectOverallComplete?"complete":"")+'" style="--progress:'+Math.max(0,Math.min(100,subjectOverallPct))+'%"><div>'+(subjectOverallComplete?'<strong>✓</strong><small>100%</small>':'<strong>'+subjectOverallPct+'%</strong><small>ครบจริง</small>')+'</div></div>'+
-      '<div class="subject-completeness-summary"><p class="eyebrow">SUBJECT COMPLETENESS</p><h3>'+(subjectOverallComplete?'รายวิชาและเวลาเรียนครบจริงทุกระดับ/โปรแกรมแล้ว':'ตรวจความครบถ้วนรายวิชาและเวลาเรียนจริง')+'</h3><p>ครบจริง '+Number(subjectReadiness.completed_groups||0)+' จาก '+Number(subjectReadiness.total_groups||0)+' กลุ่มระดับชั้น/โปรแกรม · รายวิชาบังคับ '+Number(subjectReadiness.content_coverage_percent||0)+'% · เวลาเรียน '+Number(subjectReadiness.time_progress_percent||0)+'%</p><small>100% ต้องผ่านทั้งรายวิชาบังคับ ชั่วโมงตามโครงสร้าง และความจุตารางจริง · กิจกรรมบูรณาการนับชั่วโมงหลักสูตรแต่ไม่กินคาบ · กลุ่มทางเลือกที่เรียนพร้อมกันนับเวลาเพียงครั้งเดียว</small>'+(subjectOverallComplete?'<a class="primary-btn compact-btn subject-completeness-next" href="#/academics/curriculum">พร้อมไปยืนยันโครงสร้างเวลาเรียน →</a>':'')+'</div>'+
+      '<div class="subject-completeness-summary"><p class="eyebrow">SUBJECT COMPLETENESS</p><h3>'+(subjectOverallComplete?'รายวิชาและเวลาเรียนครบจริงทุกระดับ/โปรแกรมแล้ว':'ตรวจความครบถ้วนรายวิชาและเวลาเรียนจริง')+'</h3><p>ครบจริง '+Number(subjectReadiness.completed_groups||0)+' จาก '+Number(subjectReadiness.total_groups||0)+' กลุ่มระดับชั้น/โปรแกรม · รายวิชาบังคับ '+Number(subjectReadiness.content_coverage_percent||0)+'% · เวลาเรียน '+Number(subjectReadiness.time_progress_percent||0)+'%</p><small>100% ต้องผ่านทั้งรายวิชาบังคับ ชั่วโมงตามโครงสร้าง และความจุตารางจริง · กิจกรรมบูรณาการนับชั่วโมงหลักสูตรแต่ไม่กินคาบ · กลุ่มทางเลือกที่เรียนพร้อมกันนับเวลาเพียงครั้งเดียว</small>'+(subjectOverallComplete?'<button type="button" class="primary-btn compact-btn subject-completeness-next" data-scroll-combined-time>ตรวจและยืนยันเวลาเรียนในหน้านี้ ↓</button>':'')+'</div>'+
       '<div class="subject-current-completeness '+(subjectCurrentComplete?"complete":"warning")+'"><strong>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>'+(subjectCompleteness?Number(subjectCompleteness.completion_percent||0):0)+'%</span><small>รายวิชา '+subjectContentPct+'% · เวลา '+subjectTimePct+'%'+(Number(subjectCompleteness&&subjectCompleteness.missing_count||0)?' · ขาดวิชา '+Number(subjectCompleteness.missing_count):'')+(Number(subjectCompleteness&&subjectCompleteness.time_issue_count||0)?' · ปัญหาเวลา '+Number(subjectCompleteness.time_issue_count):'')+'</small></div>'+
     '</div>'+
     '<div class="subject-completeness-groups">'+subjectGroupsHtml+'</div>'+
@@ -4260,8 +4258,14 @@ function academicSubjectsHtml(data,timeline){
   const centralRowsOnly=centralRows;
   const compactReadiness=currentStatus==="needs_schedule_settings"
     ?'<section class="subject-readiness-strip warning"><div><strong>รอกำหนดกรอบเวลาเรียน · ขั้นที่ 1</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · ยังไม่สามารถตรวจคาบและชั่วโมงเทียบความจุจริงได้</span></div><a href="#/academics/periods">กำหนดกรอบเวลา →</a></section>'
-    :'<section class="subject-readiness-strip '+currentStatusClass+'"><div><strong>ขั้นถัดไป · โครงสร้างเวลาเรียน</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · '+esc(currentStatusLabel)+(weeklyCapacity!=null?' · '+weeklyTotal.toLocaleString("th-TH")+' / '+weeklyCapacity.toLocaleString("th-TH")+' คาบ/สัปดาห์':'')+'</span></div><a href="#/academics/curriculum">ตรวจเวลาเรียน →</a></section>';
+    :'<section class="subject-readiness-strip '+currentStatusClass+'"><div><strong>รายวิชาและเวลาเรียน · ขั้นเดียวกัน</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · '+esc(currentStatusLabel)+(weeklyCapacity!=null?' · '+weeklyTotal.toLocaleString("th-TH")+' / '+weeklyCapacity.toLocaleString("th-TH")+' คาบ/สัปดาห์':'')+'</span></div><button type="button" class="secondary-btn compact-btn" data-scroll-combined-time>ดูรายละเอียดเวลา ↓</button></section>';
+  state.academicFilters={...(state.academicFilters||{}),grade_label:gradeLabel,program_id:selectedProgram?selectedProgram.id:""};
   const curriculumFrameworkHtml=academicCurriculumTimeFrameworkHtml(currentGroup,gradeLabel);
+  const confirmationHtml=currentStatus==="confirmed"
+    ?'<section class="subject-combined-confirmation confirmed"><div><strong>✓ ยืนยันโครงสร้างแล้ว</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านการตรวจและยืนยันรายวิชา/เวลาเรียนแล้ว</span></div></section>'
+    :currentStatus==="ready_to_confirm"
+      ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว</span></div>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-confirm-curriculum-structure>ยืนยันโครงสร้างนี้</button>':'')+'</section>'
+      :'';
   const schoolGroups=
     selectedGroupHtml("basic","รายวิชาพื้นฐาน","รายวิชาที่ใช้ตามโครงสร้างหลักสูตรของระดับชั้นนี้")+
     selectedGroupHtml("additional","รายวิชาเพิ่มเติม","รายวิชาที่สถานศึกษากำหนดเพิ่มเติมตามหลักสูตรสถานศึกษา")+
@@ -4275,7 +4279,7 @@ function academicSubjectsHtml(data,timeline){
   const copyYearHtml=canManage&&year&&gradeCode?'<section class="subject-copy-year"><div class="subject-copy-year-copy"><strong>คัดลอกจากปีการศึกษาก่อน</strong><p>คัดลอกเฉพาะ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' รวมคาบ/ภาคและกลุ่มรายวิชาทางเลือก โดยผสานกับรายการเดิมและไม่ลบวิชาที่มีอยู่</p></div>'+(copyYears.length?'<div class="subject-copy-year-actions"><label>ปีต้นทาง<select data-subject-copy-year>'+copyYears.map(y=>'<option value="'+esc(y.id)+'" '+(state.subjectCopyYearId===y.id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><button type="button" class="secondary-btn compact-btn" data-copy-subject-year '+(canEdit?"":"disabled")+'>คัดลอกมาใช้</button></div>':'<span class="muted">ยังไม่มีปีการศึกษาก่อนหน้าให้คัดลอก</span>')+'</section>':'';
 
   return '<section class="academic-page subjects-workspace subjects-workspace-v2">'+academicNavHtml("subjects",data)+
-    '<section class="panel subjects-v2-head"><div><p class="eyebrow">SUBJECTS</p><h2>รายวิชา</h2><p class="panel-sub">ค้นหาจากคลังมาตรฐานกลาง คลังรายวิชาร่วม และคลังของโรงเรียนก่อนเพิ่ม เพื่อลดรหัสและชื่อวิชาซ้ำ</p></div><div class="subjects-context-chips">'+
+    '<section class="panel subjects-v2-head combined-curriculum-head"><div><p class="eyebrow">STEP 4 · CURRICULUM & LEARNING TIME</p><h2>โครงสร้างหลักสูตรและเวลาเรียน</h2><p class="panel-sub">จัดรายวิชา กำหนดชั่วโมง/คาบ เทียบกรอบหลักสูตร ตรวจความจุตาราง และยืนยันความครบถ้วนในหน้าเดียว ไม่ต้องสลับไปมาระหว่างสองเมนู</p></div><div class="subjects-context-chips">'+
       (year?'<span>ปี '+esc(year.year_be)+'</span>':'')+'<span>'+allSchoolGrades.length+' ระดับชั้น</span><span>'+classes.length+' ห้อง</span>'+
     '</div></section>'+
     '<section class="panel subjects-v2-context">'+
@@ -4289,6 +4293,7 @@ function academicSubjectsHtml(data,timeline){
     copyYearHtml+
     compactReadiness+
     curriculumFrameworkHtml+
+    confirmationHtml+
     '<section class="panel subject-workspace-panel subjects-v2-panel">'+
       '<nav class="subject-workspace-tabs subjects-v2-tabs">'+
         '<button type="button" class="'+(workspaceView==="selected"?"active":"")+'" data-subject-workspace-view="selected">หลักสูตรของโรงเรียน <span>'+selectedCourses.length+'</span></button>'+
@@ -4311,9 +4316,10 @@ function academicSubjectsHtml(data,timeline){
             '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>')+
         '</div>')+
     '</section>'+
+    academicCurriculumHtml(data,true)+
   '</section>';
 }
-function academicCurriculumHtml(data){
+function academicCurriculumHtml(data,embedded=false){
   const courseTimeById=new Map(((data.course_time_overview&&data.course_time_overview.items)||[]).map(x=>[x.course_id,x]));
   const readiness=state.curriculumReadiness||{groups:[]};
   const schoolGradeSet=new Set(academicCurriculumGradeCodes(data));
@@ -4380,7 +4386,7 @@ function academicCurriculumHtml(data){
     return '<button type="button" class="curriculum-grade-choice '+(activeSchoolGrade&&activeSchoolGrade.grade_code===g.grade_code?"active":"")+'" data-preset-grade="'+esc(g.grade_code)+'"><strong>'+esc(shortGrade(g.grade_label))+'</strong><small>'+count+' รายวิชาในฐานโรงเรียน</small><em>'+count+'</em></button>';
   }).join("");
 
-  return '<section class="academic-page">'+academicNavHtml("curriculum",data)+
+  return (embedded?'<section class="combined-curriculum-time" id="combined-curriculum-time">':'<section class="academic-page">'+academicNavHtml("subjects",data))+
     (year?'<section class="panel curriculum-preset-panel"><div class="panel-head"><div><p class="eyebrow">SCHOOL SUBJECT BASE</p><h2>ฐานรายวิชาตามระดับชั้นของโรงเรียน</h2><p class="panel-sub">แสดงเฉพาะรายวิชาที่เพิ่มเข้าฐานข้อมูลของโรงเรียนแล้วเท่านั้น รายการที่ยังอยู่เฉพาะคลังกลางจะไม่แสดงในส่วนนี้</p></div><span class="pill neutral">'+esc(selectedProgramLabel)+'</span></div>'+
       '<div class="curriculum-grade-choices">'+schoolGradeButtons+'</div>'+
       (activeSchoolGrade?'<div class="curriculum-preset-summary"><div><small>ระดับชั้น</small><strong>'+esc(activeSchoolGrade.grade_label)+'</strong></div><div><small>รายวิชาในฐานโรงเรียน</small><strong>'+Number(schoolBaseCourses.length).toLocaleString("th-TH")+'</strong></div><div><small>บริบท</small><strong>'+esc(selectedProgramLabel)+'</strong></div></div>':'')+
@@ -5591,6 +5597,10 @@ function bindAcademics(){
     toast("สร้างรายวิชาและเพิ่มให้ "+shortGrade(gradeLabel)+(res.data?.shared_catalog_id?" · เผยแพร่คลังร่วมแล้ว":"")+" · อยู่ในแท็บเดิม","success");
     refreshSubjects(true);
   });
+
+  qa("[data-scroll-combined-time]").forEach(btn=>btn.addEventListener("click",()=>{
+    q("#combined-curriculum-time")?.scrollIntoView({behavior:"smooth",block:"start"});
+  }));
 
   const confirmStructure=q("[data-confirm-curriculum-structure]");
   if(confirmStructure)confirmStructure.addEventListener("click",async()=>{
