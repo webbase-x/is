@@ -693,11 +693,11 @@ function bindStaticUI(){
       state.adminSchool=state.adminSchools.find(s=>s.id===id)||null;
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
-      state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;
+      state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;
       await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();}
   });
 }
 
@@ -3894,7 +3894,11 @@ function courseCurriculumTermSummary(validation){
 }
 function courseCurriculumListHtml(data){
   const school=currentSchool();
-  const rows=(data&&data.courses||[]).filter(row=>row.subject_type!=="activity");
+  const statusPriority={returned:0,submitted:1,draft:2,not_started:3,approved:4,cancelled:5};
+  const rows=(data&&data.courses||[]).filter(row=>row.subject_type!=="activity").sort((a,b)=>
+    (statusPriority[a.curriculum_status||"not_started"]??9)-(statusPriority[b.curriculum_status||"not_started"]??9)||
+    String(a.subject_name||"").localeCompare(String(b.subject_name||""),"th")
+  );
   const counts={not_started:0,draft:0,submitted:0,returned:0,approved:0};
   rows.forEach(row=>{const s=row.curriculum_status||"not_started";counts[s]=(counts[s]||0)+1;});
   const cards=rows.map(row=>{
