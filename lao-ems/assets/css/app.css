@@ -7498,3 +7498,180 @@ th,td{line-height:1.45}
     font-size:11.5px;
   }
 }
+
+
+/* Refined subject setup UI — v0.19.24 */
+.combined-curriculum-head{
+  padding:16px 18px;
+  border:1px solid #e4e7ec!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.combined-curriculum-head h2{
+  margin:0;
+  font-size:22px;
+  line-height:1.25;
+}
+.combined-curriculum-head .panel-sub{
+  margin-top:5px;
+  max-width:680px;
+  color:#667085;
+}
+.subject-progress-context{
+  padding:12px 14px;
+  gap:8px;
+  border:1px solid #e4e7ec!important;
+  background:#fff;
+  box-shadow:none!important;
+}
+.subject-progress-context .subjects-v2-context-row{
+  grid-template-columns:96px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  padding:8px 0;
+}
+.subject-progress-context .subjects-v2-context-row+ .subjects-v2-context-row{
+  border-top:1px solid #f2f4f7;
+}
+.subject-progress-context .subjects-v2-context-row>div:first-child{
+  padding-top:0;
+}
+.subject-progress-context .subjects-v2-context-row>div:first-child strong{
+  color:#475467;
+  font-size:12px;
+  font-weight:800;
+}
+.subject-progress-tabs{
+  gap:10px!important;
+  padding:2px 4px 4px!important;
+}
+.subject-progress-choice{
+  flex:0 0 60px!important;
+  width:60px!important;
+  min-width:60px!important;
+  padding:3px!important;
+}
+.subject-progress-choice-ring{
+  width:54px!important;
+  height:54px!important;
+  margin:0!important;
+  background:
+    radial-gradient(circle at center,#fff 0 80%,transparent 81% 100%),
+    conic-gradient(#2e90fa var(--progress),#e4e7ec 0)!important;
+}
+.subject-progress-choice.empty .subject-progress-choice-ring{
+  background:
+    radial-gradient(circle at center,#fff 0 80%,transparent 81% 100%),
+    conic-gradient(#d0d5dd 0%,#e4e7ec 0)!important;
+}
+.subject-progress-choice.complete .subject-progress-choice-ring{
+  background:
+    radial-gradient(circle at center,#f6fef9 0 80%,transparent 81% 100%),
+    conic-gradient(#12b76a 100%,#12b76a 0)!important;
+}
+.subject-progress-choice.active .subject-progress-choice-ring{
+  box-shadow:0 0 0 2px #fff,0 0 0 4px #84adff!important;
+}
+.subject-progress-choice-ring strong{
+  width:43px!important;
+  color:#344054;
+  font-size:10.5px!important;
+  line-height:1.08!important;
+}
+.subject-progress-choice.active .subject-progress-choice-ring strong{
+  color:#175cd3;
+}
+.subject-edit-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 14px;
+  border:1px solid #e4e7ec;
+  border-radius:14px;
+  background:#fff;
+}
+.subject-edit-toolbar>div strong,
+.subject-edit-toolbar>div small{
+  display:block;
+}
+.subject-edit-toolbar>div strong{
+  color:#344054;
+  font-size:12.5px;
+}
+.subject-edit-toolbar>div small{
+  margin-top:1px;
+  color:#98a2b3;
+  font-size:10.5px;
+}
+.subject-edit-toolbar .academic-edit-switch{
+  flex:0 0 auto;
+}
+.subject-copy-year-compact{
+  padding:0;
+  border:1px solid #e4e7ec;
+  border-radius:14px;
+  background:#fff;
+}
+.subject-copy-year-compact>summary{
+  cursor:pointer;
+  padding:11px 14px;
+  color:#475467;
+  font-size:12px;
+  font-weight:800;
+  list-style-position:inside;
+}
+.subject-copy-year-compact-body{
+  display:flex;
+  align-items:end;
+  gap:10px;
+  padding:0 14px 12px;
+}
+.subject-copy-year-compact-body label{
+  display:grid;
+  gap:4px;
+  color:#667085;
+  font-size:11px;
+}
+.subject-copy-year-compact-body select{
+  min-width:140px;
+}
+@media(max-width:720px){
+  .combined-curriculum-head{
+    padding:14px 15px;
+  }
+  .combined-curriculum-head h2{
+    font-size:19px;
+  }
+  .subject-progress-context{
+    padding:10px 12px;
+  }
+  .subject-progress-context .subjects-v2-context-row{
+    grid-template-columns:1fr;
+    gap:5px;
+    padding:7px 0;
+  }
+  .subject-progress-tabs{
+    gap:9px!important;
+  }
+  .subject-progress-choice{
+    flex-basis:58px!important;
+    width:58px!important;
+    min-width:58px!important;
+  }
+  .subject-progress-choice-ring{
+    width:52px!important;
+    height:52px!important;
+  }
+  .subject-progress-choice-ring strong{
+    width:41px!important;
+    font-size:10px!important;
+  }
+  .subject-edit-toolbar{
+    padding:9px 12px;
+  }
+  .subject-copy-year-compact-body{
+    align-items:stretch;
+    flex-direction:column;
+  }
+}
