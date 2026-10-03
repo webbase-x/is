@@ -7673,7 +7673,11 @@ async function renderRoute(){
     toast("กรุณาตั้งค่าสถานศึกษาและ Google Drive ให้ครบก่อนเชิญผู้ใช้","error");
   }
 
-  const meta=routeMeta[route]||routeMeta.overview,main=q("#main");
+  let meta=routeMeta[route]||routeMeta.overview;
+  if(route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses")){
+    meta=["หลักสูตรรายวิชาที่ฉันสอน","ครูผู้สอนจัดทำโครงสร้างรายวิชาและคะแนนก่อนส่งฝ่ายวิชาการตรวจ"];
+  }
+  const main=q("#main");
   q("[data-page-title]").textContent=meta[0];
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
   const courseCurriculumRoute=route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses");
