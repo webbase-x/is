@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.10";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.11";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -52,6 +52,31 @@ function renderAppVersion(){
     el.title="LAO-EMS รุ่น "+APP_VERSION;
   });
 }
+function academicTransientLoadError(error){
+  const message=String(error&&error.message||error||"");
+  return /load failed|failed to fetch|fetcherror|networkerror|network request failed/i.test(message);
+}
+function academicReadDelay(ms){
+  return new Promise(resolve=>setTimeout(resolve,ms));
+}
+async function academicReadWithRetry(task){
+  let lastResult=null,lastError=null;
+  for(let attempt=0;attempt<2;attempt++){
+    try{
+      const result=await task();
+      lastResult=result;
+      if(!result||!result.error||!academicTransientLoadError(result.error))return result;
+      lastError=result.error;
+    }catch(error){
+      lastError=error;
+      if(!academicTransientLoadError(error))throw error;
+    }
+    if(attempt===0)await academicReadDelay(320);
+  }
+  if(lastResult)return lastResult;
+  throw lastError||new Error("Load failed");
+}
+
 async function checkLatestVersion(){
   try{
     const res=await fetch("./VERSION?t="+Date.now(),{cache:"no-store"});
@@ -2762,14 +2787,14 @@ async function loadDepartmentSetupTimeline(departmentCode,academicYearId=null){
   const school=currentSchool();
   if(!school)return null;
   const res=departmentCode==="academics"
-    ?await supabase.rpc("lao_academic_year_setup_timeline",{
+    ?await academicReadWithRetry(()=>supabase.rpc("lao_academic_year_setup_timeline",{
       p_school_id:school.id,
       p_academic_year_id:academicYearId||state.academicYearId||null
-    })
-    :await supabase.rpc("lao_department_setup_timeline",{
+    }))
+    :await academicReadWithRetry(()=>supabase.rpc("lao_department_setup_timeline",{
       p_school_id:school.id,
       p_department_code:departmentCode
-    });
+    }));
   if(res.error)throw res.error;
   return res.data||null;
 }
@@ -3575,12 +3600,12 @@ async function loadAcademicCurriculumPreset(data,programIdOverride){
     return null;
   }
   const [res,timeRes]=await Promise.all([
-    supabase.rpc("lao_curriculum_preset",{
+    academicReadWithRetry(()=>supabase.rpc("lao_curriculum_preset",{
       p_school_id:school.id,
       p_academic_year_id:year.id,
       p_program_id:programIdOverride!==undefined?(programIdOverride||null):(state.academicFilters&&state.academicFilters.program_id||null)
-    }),
-    supabase.rpc("lao_central_time_templates",{p_school_id:school.id,p_grade_code:null})
+    })),
+    academicReadWithRetry(()=>supabase.rpc("lao_central_time_templates",{p_school_id:school.id,p_grade_code:null}))
   ]);
   if(res.error){
     state.academicPreset=null;
@@ -3610,7 +3635,7 @@ async function loadAcademicCourseTimeOverview(data){
     if(data)data.course_time_overview={items:[]};
     return null;
   }
-  const res=await supabase.rpc("lao_course_time_overview",{p_school_id:school.id,p_academic_year_id:year.id});
+  const res=await academicReadWithRetry(()=>supabase.rpc("lao_course_time_overview",{p_school_id:school.id,p_academic_year_id:year.id}));
   data.course_time_overview=res.error?{items:[]}:(res.data||{items:[]});
   return data.course_time_overview;
 }
@@ -3658,10 +3683,10 @@ async function loadAcademicStructure(){
   const school=currentSchool();
   if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
   if(!canViewAcademic())throw new Error("ไม่มีสิทธิ์ดูข้อมูลงานวิชาการ");
-  const res=await supabase.rpc("lao_academic_structure",{
+  const res=await academicReadWithRetry(()=>supabase.rpc("lao_academic_structure",{
     p_school_id:school.id,
     p_academic_year_id:state.academicYearId||null
-  });
+  }));
   if(res.error)throw res.error;
   state.academicData=res.data||{};
   state.academicData.classes=(state.academicData.classes||[]).filter(x=>x&&x.source_type==="lec"&&x.is_active!==false);
@@ -4077,7 +4102,7 @@ function academicSubjectsHtml(data,timeline){
     const currentKey=(gradeCode||"")+"|"+(selectedProgram?selectedProgram.id:"");
     const label=shortGrade(g.grade_label||academicGradeLabelFromCode(g.grade_code));
     const program=g.program_name||"ห้องปกติ";
-    const primaryTimeIssue=(g.time_issues||[]).find(x=>["period_capacity","hour_capacity","curriculum_hours","missing_time","parallel_time_mismatch"].includes(x.type))||null;
+    const primaryTimeIssue=g.primary_time_issue||(g.time_issues||[]).find(x=>["period_capacity","hour_capacity","curriculum_hours","missing_time","parallel_time_mismatch"].includes(x.type))||null;
     const timeHint=g.time_is_complete
       ?"เวลา ✓"
       :!g.schedule_configured
@@ -4638,10 +4663,10 @@ async function academicsHtml(){
   if(mode==="classes")return academicClassesHtml(data);
   if(mode==="subjects"){
     await Promise.all([loadAcademicCurriculumPreset(data,state.subjectProgramId),loadAcademicCourseTimeOverview(data)]);
-    const readyRes=await supabase.rpc("lao_curriculum_readiness",{
+    const readyRes=await academicReadWithRetry(()=>supabase.rpc("lao_curriculum_readiness",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id
-    });
+    }));
     state.curriculumReadiness=readyRes.error?null:(readyRes.data||null);
     state.subjectReadiness=state.academicTimeline&&state.academicTimeline.subject_readiness||null;
     const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
@@ -4651,12 +4676,12 @@ async function academicsHtml(){
     const gradeCodes=Array.from(new Set(targetClasses.map(c=>c.grade_code||academicGradeCode(c.grade_label)).filter(code=>supported.has(code))));
     if(!gradeCodes.includes(state.academicPresetGrade))state.academicPresetGrade=gradeCodes[0]||"";
     if(state.academicPresetGrade){
-      const wsRes=await supabase.rpc("lao_subject_workspace",{
+      const wsRes=await academicReadWithRetry(()=>supabase.rpc("lao_subject_workspace",{
         p_school_id:school.id,
         p_academic_year_id:data.selected_year_id,
         p_program_id:targetProgram,
         p_grade_code:state.academicPresetGrade
-      });
+      }));
       state.subjectWorkspaceData=wsRes.error?null:(wsRes.data||null);
     }else{
       state.subjectWorkspaceData=null;
@@ -4666,7 +4691,7 @@ async function academicsHtml(){
   if(mode==="curriculum"){
     const [timeOverview,readyRes]=await Promise.all([
       loadAcademicCourseTimeOverview(data),
-      supabase.rpc("lao_curriculum_readiness",{p_school_id:school.id,p_academic_year_id:data.selected_year_id})
+      academicReadWithRetry(()=>supabase.rpc("lao_curriculum_readiness",{p_school_id:school.id,p_academic_year_id:data.selected_year_id}))
     ]);
     state.curriculumReadiness=readyRes.error?null:(readyRes.data||null);
     return academicCurriculumHtml(data);
