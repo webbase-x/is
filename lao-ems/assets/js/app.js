@@ -1274,6 +1274,7 @@ function workspaceAppItems(unreadCount,pendingJoin,pendingTeaching){
   if(canViewStudentDirectory())items.push({icon:"🎓",title:"นักเรียน",desc:"ค้นหาและดูข้อมูลนักเรียนตามสิทธิ์",route:"#/students",key:"students"});
   if(canViewPersonnel())items.push({icon:"👥",title:"บุคลากร",desc:"ทะเบียนและงานบุคลากรที่ได้รับสิทธิ์",route:"#/personnel",key:"personnel",badge:Number(pendingJoin||0)});
   if(state.workAuthorityAccess&&state.workAuthorityAccess.can_view)items.push({icon:"🛡",title:"ผู้รับผิดชอบและการมอบหมาย",desc:"ดูขอบเขตงานและสิทธิ์ที่ได้รับมอบหมาย",route:"#/work-authorities",key:"work-authorities"});
+  if(schoolAdmin)items.push({icon:"🏛",title:"อปท. และสถานศึกษา",desc:"ข้อมูลโครงสร้างองค์กรและสถานศึกษาที่เกี่ยวข้อง",route:"#/organization",key:"organization"});
   if(schoolAdmin&&schoolSetupReady())items.push({icon:"🔐",title:"ผู้ใช้และสิทธิ์",desc:"จัดการบัญชีและสิทธิ์ภายในโรงเรียน",route:"#/users",key:"users"});
   if(schoolAdmin)items.push({icon:"⚙",title:"ตั้งค่าสถานศึกษา",desc:"ข้อมูลกลางและการเชื่อมบริการของโรงเรียน",route:"#/setup",key:"setup"});
   if(schoolAdmin)items.push({icon:"⬆",title:"นำเข้าข้อมูล LEC",desc:"อัปเดตข้อมูลต้นทางของสถานศึกษา",route:"#/lec",key:"lec"});
