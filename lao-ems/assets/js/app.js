@@ -1070,7 +1070,7 @@ async function loadContext(){
     state.viewMode="user";
   }
   await loadSchoolSetupStatus();
-  await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);
+  await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);
   refreshHeader();
   renderTenants();
 }
