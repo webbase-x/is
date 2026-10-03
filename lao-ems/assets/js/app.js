@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.28";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.29";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1460,11 +1460,61 @@ function activationHtml(){
   return '<section class="onboarding-shell"><article class="panel onboarding-card"><div class="panel-head"><div><p class="eyebrow">Account activation</p><h2>ตั้งค่าบัญชี LAO-EMS</h2><p class="panel-sub">กรอกโปรไฟล์และ'+(requirePassword?'กำหนดรหัสผ่านใหม่':'ตรวจสอบข้อมูลก่อนรับสิทธิ์ใหม่')+'</p></div></div><div class="invite-summary"><div><small>อีเมล</small><strong>'+esc(state.user.email||inv.email||"-")+'</strong></div><div><small>สถานศึกษา</small><strong>'+esc(schoolLabel)+'</strong></div><div><small>บทบาท</small><strong>'+esc(roleLabels[inv.role_code]||inv.role_code)+'</strong></div></div>'+(unbound?'<div class="notice success">หลังบันทึกบัญชี ระบบจะพาไปหน้า “นำเข้า LEC” เพื่อสร้างข้อมูล อปท. และสถานศึกษาจากไฟล์ต้นทางโดยอัตโนมัติ</div>':'')+'<form id="activation-form" class="form-grid">'+profileFieldsHtml("activation")+passwordFieldsHtml(requirePassword)+'<div class="span-2 notice">'+(requirePassword?'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และจะใช้เข้าสู่ระบบครั้งถัดไป':'หากต้องการเปลี่ยนรหัสผ่านในครั้งนี้ สามารถกรอกช่องรหัสผ่านใหม่ได้')+'</div><div class="span-2"><button class="primary-btn" type="submit">'+(unbound?'บันทึกโปรไฟล์และไปนำเข้า LEC':'บันทึกโปรไฟล์และเปิดใช้งานบัญชี')+'</button></div></form></article></section>';
 }
 
-function profileHtml(){
+async function profileTeachingWorkloadHtml(){
+  const school=currentSchool();
+  if(!school||state.viewMode!=="user"||!canViewAcademic())return "";
+  let page=null;
+  try{
+    page=await loadTeachingWorkloadPage();
+  }catch(error){
+    console.warn("profile teaching workload",error);
+    return "";
+  }
+
+  const own=page&&page.own_personnel||null;
+  const isTeacher=Boolean(own&&own.personnel_type==="teacher")||roleCodes().includes("teacher");
+  if(!isTeacher)return "";
+
+  if(!own){
+    return '<section class="panel profile-workload-shell"><div class="profile-workload-head"><div><p class="eyebrow">MY TEACHING LOAD</p><h2>ภาระงานสอนของฉัน</h2><p>ครูสามารถระบุรายวิชา ห้อง และคาบสอนจากโปรไฟล์ แล้วส่งให้ฝ่ายวิชาการอนุมัติ</p></div></div><div class="notice warning"><strong>ยังไม่เชื่อมบัญชีกับทะเบียนบุคลากร</strong><br>กรุณาให้ฝ่ายบุคลากรเชื่อมบัญชีกับข้อมูลครูก่อน จึงจะเสนอภาระงานสอนได้</div></section>';
+  }
+
+  let academicData=state.academicData;
+  if(!academicData||academicData.selected_year_id!==page.selected_year_id){
+    try{
+      academicData=await loadAcademicStructure();
+    }catch(error){
+      console.warn("profile academic structure",error);
+    }
+  }
+  page._programs=((academicData&&academicData.year_programs)||(academicData&&academicData.programs)||[]).filter(p=>p&&p.is_active!==false);
+
+  const selfPage={...page,can_manage:false,can_approve:false};
+  const workload=(page.workloads||[]).find(w=>w.personnel_id===own.id)||null;
+  const year=workloadSelectedYear(page),term=workloadSelectedTerm(page);
+  const termOptions=year&&year.terms||[];
+  const status=workload&&workload.status||"draft";
+  const statusHtml=workload
+    ?'<span class="pill '+teachingWorkloadStatusClass(status)+'">'+esc(teachingWorkloadStatusLabel(status))+'</span>'
+    :'<span class="pill neutral">ยังไม่ส่ง</span>';
+
+  return '<section class="profile-workload-shell">'+
+    '<section class="panel profile-workload-intro"><div class="profile-workload-head"><div><p class="eyebrow">MY TEACHING LOAD</p><h2>ภาระงานสอนของฉัน</h2><p>ระบุรายวิชา ห้อง และจำนวนคาบที่สอนตามจริง แล้วส่งให้ฝ่ายวิชาการตรวจสอบและอนุมัติ</p></div>'+statusHtml+'</div>'+
+      '<div class="profile-workload-context"><div><small>ปีการศึกษา</small><strong>'+(year?esc(year.year_be):"—")+'</strong></div>'+
+      (termOptions.length?'<label class="teaching-term-switch profile-workload-term">ภาคเรียน<select data-workload-term>'+termOptions.map(t=>'<option value="'+esc(t.id)+'" '+(page.selected_term_id===t.id?"selected":"")+'>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+(t.is_current?' · ปัจจุบัน':'')+'</option>').join("")+'</select></label>':'<div><small>ภาคเรียน</small><strong>ยังไม่ได้กำหนด</strong></div>')+
+      '</div>'+
+      '<div class="profile-workload-flow"><span>1 ระบุภาระงาน</span><span>2 ส่งฝ่ายวิชาการ</span><span>3 รออนุมัติ</span></div>'+
+    '</section>'+
+    (term?workloadEditorHtml(selfPage,workload,own):'<section class="panel"><div class="notice warning">ปีการศึกษานี้ยังไม่มีภาคเรียนที่พร้อมสำหรับระบุภาระงานสอน</div></section>')+
+  '</section>';
+}
+
+async function profileHtml(){
   const name=displayName(),school=currentSchool();
   const email=state.user&&state.user.email||"-";
   const roles=state.currentMembership?roleNames():(state.isPlatformAdmin?"ผู้ดูแลแพลตฟอร์ม":"ยังไม่มีสิทธิ์");
   const authMethod=isGoogleAuthUser()?"Google":"อีเมลและรหัสผ่าน";
+  const teachingWorkloadHtml=await profileTeachingWorkloadHtml();
 
   return '<section class="profile-page">'+
     '<div class="profile-page-head"><div><p class="eyebrow">MY PROFILE</p><h2>โปรไฟล์ของฉัน</h2><p>จัดการข้อมูลส่วนตัว ข้อมูลติดต่อ และความปลอดภัยของบัญชี LAO-EMS</p></div></div>'+
@@ -1493,6 +1543,7 @@ function profileHtml(){
         '<div class="profile-save-bar"><div><strong>ตรวจสอบข้อมูลก่อนบันทึก</strong><span>การเปลี่ยนอีเมลอาจต้องยืนยันอีเมลใหม่ตามการตั้งค่าความปลอดภัย</span></div><button class="primary-btn profile-save-btn" type="submit">บันทึกโปรไฟล์</button></div>'+
       '</form>'+
     '</div>'+
+    teachingWorkloadHtml+
   '</section>';
 }
 
@@ -6436,6 +6487,7 @@ function bindProfile(){
     toast(emailChanged?"บันทึกแล้ว กรุณาตรวจอีเมลเพื่อยืนยันอีเมลใหม่หากระบบร้องขอ":"บันทึกโปรไฟล์แล้ว","success");
     renderRoute();
   });
+  bindTeachingWorkloadControls();
 }
 
 function bindSetup(){
@@ -6593,7 +6645,7 @@ async function renderRoute(){
     }
     else if(route==="membership"){html=membershipHtml();}
     else if(route==="activate"){html=activationHtml();bind=bindActivation;}
-    else if(route==="profile"){html=profileHtml();bind=bindProfile;}
+    else if(route==="profile"){html=await profileHtml();bind=bindProfile;}
     else if(route==="notifications"){html=notificationsHtml();bind=bindNotifications;}
     else if(route==="setup"){html=await setupHtml();bind=bindSetup;}
     else if(route==="organization"){html=await organizationHtml();bind=bindOrganizationForms;}
