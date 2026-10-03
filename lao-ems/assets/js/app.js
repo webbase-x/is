@@ -227,6 +227,7 @@ function setBusy(button,busy,label){
 function routeName(){return (location.hash.replace(/^#\//,"").split("/")[0]||"overview").toLowerCase();}
 function routeBackContext(route){
   const hash=location.hash||("#/"+route);
+  if(route==="academics"&&/^#\/academics\/my-courses\/[0-9a-f-]{36}\/?$/i.test(hash))return {href:"#/academics/my-courses",label:"รายวิชาที่ฉันสอน"};
   if(route==="academics"||route==="assessment")return {href:"#/academic-group",label:"กลุ่มบริหารงานวิชาการ"};
   if(route==="academic-group"&&/^#\/academic-group\//i.test(hash))return {href:"#/academic-group",label:"กลุ่มบริหารงานวิชาการ"};
   if(route==="personnel"&&!/^#\/personnel\/?$/i.test(hash))return {href:"#/personnel",label:"กลุ่มบริหารงานบุคคล"};
@@ -4016,7 +4017,13 @@ function courseCurriculumDetailHtml(data){
   const outcomes=cur&&cur.outcomes||[],units=cur&&cur.units||[],plan=cur&&cur.assessment_plan||[];
   const defaultOutcomes=outcomes.length?outcomes:[{type:"indicator",code:"",description:""}];
   const defaultUnits=units.length?units:[{unit_no:1,term_no:terms[0]&&terms[0].term_no||1,title:"",hours:"",key_concept:"",outcome_codes:[]}];
-  const defaultPlan=plan.length?plan:[{code:"coursework",term_no:terms[0]&&terms[0].term_no||1,category:"coursework",label:"ระหว่างเรียน",max_score:70,method:"",evidence:"",unit_no:""},{code:"final",term_no:terms[0]&&terms[0].term_no||1,category:"final",label:"ปลายภาค",max_score:30,method:"",evidence:"",unit_no:""}];
+  const planTerms=terms.length?terms:[{term_no:1}];
+  const defaultPlan=plan.length?plan:planTerms.flatMap(t=>course.subject_type==="activity"
+    ?[{code:"activity_t"+t.term_no,term_no:t.term_no,category:"activity",label:"ผลการประเมินกิจกรรม",max_score:100,method:"การเข้าร่วม/ปฏิบัติกิจกรรม",evidence:"หลักฐานการเข้าร่วมกิจกรรม",unit_no:""}]
+    :[
+      {code:"coursework_t"+t.term_no,term_no:t.term_no,category:"coursework",label:"ระหว่างเรียน",max_score:70,method:"",evidence:"",unit_no:""},
+      {code:"final_t"+t.term_no,term_no:t.term_no,category:"final",label:"ปลายภาค",max_score:30,method:"",evidence:"",unit_no:""}
+    ]);
   const assignmentText=assignments.length
     ?Array.from(new Set(assignments.map(a=>a.personnel_name+" · "+a.class_short+" · ภาค "+a.term_no))).join(" | ")
     :"ยังไม่พบห้องเรียนที่อนุมัติ";
@@ -7669,6 +7676,12 @@ async function renderRoute(){
   const meta=routeMeta[route]||routeMeta.overview,main=q("#main");
   q("[data-page-title]").textContent=meta[0];
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
+  const courseCurriculumRoute=route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses");
+  if(courseCurriculumRoute){
+    const academicRoot=q('[data-route="academics"]');
+    if(academicRoot)academicRoot.classList.remove("active");
+  }
+  qa("[data-academic-course-menu]").forEach(a=>a.classList.toggle("active",courseCurriculumRoute));
   main.classList.add("route-pending");
   main.setAttribute("aria-busy","true");
 
