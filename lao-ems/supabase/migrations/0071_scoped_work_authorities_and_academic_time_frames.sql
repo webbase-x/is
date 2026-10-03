@@ -1749,6 +1749,8 @@ begin
       'can_manage_classes',public.lao_has_work_permission(p_school_id,'academics.classes','edit'),
       'can_manage_subjects',public.lao_has_work_permission(p_school_id,'academics.subjects','edit'),
       'can_approve_subjects',public.lao_has_work_permission(p_school_id,'academics.subjects','approve'),
+      'can_manage_workload',public.lao_has_work_permission(p_school_id,'academics.workload','edit'),
+      'can_approve_workload',public.lao_has_work_permission(p_school_id,'academics.workload','approve'),
       'can_manage_any_academic',(
         public.lao_has_work_permission(p_school_id,'academics.basic_settings','edit')
         or public.lao_has_work_permission(p_school_id,'academics.programs','edit')
