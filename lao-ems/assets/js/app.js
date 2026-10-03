@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.31";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.32";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1768,11 +1768,11 @@ async function usersHtml(){
   if(invRes.error)throw invRes.error;
 
   const roleOptions=isLocalAdmin
-    ? [["school_admin","ผู้ดูแลสถานศึกษาร่วม"],["school_executive","ผู้บริหารสถานศึกษา"],["registrar","งานทะเบียน"],["academic_officer","งานวิชาการ"],["teacher","ครู"],["staff","บุคลากร"],["student","นักเรียน"],["guardian","ผู้ปกครอง"]]
+    ? [["school_admin","ผู้ดูแลสถานศึกษาร่วม"],["school_executive","ผู้บริหารสถานศึกษา"],["registrar","งานทะเบียน"],["academic_officer","งานวิชาการ"],["teacher","ครู"],["staff","บุคลากร"]]
     : [["school_admin","ผู้ดูแลสถานศึกษาคนแรก"]];
   const canInvite=isLocalAdmin||platformMayInvite;
   const inviteForm=canInvite
-    ? '<article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">Admin-managed account</p><h2>เชิญผู้ใช้เข้า LAO-EMS</h2><p class="panel-sub">'+(state.isPlatformAdmin?'Platform Admin เชิญเฉพาะ School Admin คนแรกของสถานศึกษาที่มีอยู่แล้ว':'กรอกอีเมลและกำหนดบทบาท ระบบจะส่งลิงก์ยืนยันไปยังอีเมล')+'</p></div></div><form id="invite-user-form" class="form-grid" style="margin-top:18px"><label class="field">อีเมลผู้ใช้<input name="email" type="email" autocomplete="off" required placeholder="name@example.com"></label><label class="field">บทบาท<select name="role_code" required>'+roleOptions.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join("")+'</select></label><div class="span-2 notice">ผู้รับยืนยันอีเมล ตั้งค่าโปรไฟล์ และกำหนดรหัสผ่านของตนเองก่อนใช้งาน</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำเชิญทางอีเมล</button></div></form></article>'
+    ? '<article class="panel form-card"><div class="panel-head"><div><p class="eyebrow">PERSONNEL ACCOUNT</p><h2>เชิญบุคลากรเข้า LAO-EMS</h2><p class="panel-sub">'+(state.isPlatformAdmin?'Platform Admin เชิญเฉพาะ School Admin คนแรกของสถานศึกษาที่มีอยู่แล้ว':'ใช้หน้านี้สำหรับผู้บริหาร ครู และบุคลากรของสถานศึกษาเท่านั้น นักเรียนและผู้ปกครองเข้าใช้งานผ่านเว็บไซต์ของโรงเรียน')+'</p></div></div><form id="invite-user-form" class="form-grid" style="margin-top:18px"><label class="field">อีเมลบุคลากร<input name="email" type="email" autocomplete="off" required placeholder="name@example.com"></label><label class="field">บทบาท<select name="role_code" required>'+roleOptions.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join("")+'</select></label><div class="span-2 notice">ผู้รับยืนยันอีเมล ตั้งค่าโปรไฟล์ และกำหนดรหัสผ่านของตนเองก่อนใช้งาน LAO-EMS สำหรับบุคลากร</div><div class="span-2"><button class="primary-btn" type="submit">ส่งคำเชิญทางอีเมล</button></div></form></article>'
     : '<article class="panel"><div class="notice"><strong>'+((state.isPlatformAdmin&&!schoolHasAdmin)?"การแต่งตั้ง School Admin ต้องผ่านลิงก์และเอกสารยืนยัน":"โรงเรียนมี School Admin แล้ว")+'</strong><br>'+((state.isPlatformAdmin&&!schoolHasAdmin)?"กลับไปมุมมองทุกสถานศึกษา แล้วใช้ “ลิงก์รับคำขอ School Admin” เพื่อให้ผู้สมัครแนบเอกสารก่อนอนุมัติ":"การสร้างผู้ใช้และผู้ดูแลร่วมเป็นหน้าที่ของ School Admin โรงเรียนนี้ Platform Admin ตรวจสอบได้แต่ไม่สร้างผู้ใช้แทน")+'</div></article>';
 
   const rows=(invRes.data||[]).map(x=>{
@@ -6776,6 +6776,10 @@ async function showApp(session){
   try{
     await detectPwaInstalled();
     await loadContext();
+    const activeRoleCodes=roleCodes(state.currentMembership);
+    if(state.viewMode==="user"&&activeRoleCodes.length&&activeRoleCodes.every(code=>code==="student"||code==="guardian")){
+      throw new Error("LAO_PERSONNEL_PORTAL_ONLY");
+    }
     if(!location.hash)location.hash=state.pendingInvitation?"#/activate":"#/overview";
     await renderRoute();
     q("#auth-screen").classList.add("hidden");
@@ -6790,9 +6794,16 @@ async function showApp(session){
   }
   catch(e){
     console.error(e);
-    if(e&&(e.message==="LAO_ACCESS_REQUIRED"||e.message==="LAO_EMAIL_NOT_AUTHORIZED")){
+    if(e&&(e.message==="LAO_ACCESS_REQUIRED"||e.message==="LAO_EMAIL_NOT_AUTHORIZED"||e.message==="LAO_PERSONNEL_PORTAL_ONLY")){
       localStorage.setItem("lao_legacy_session_rejected","1");
-      sessionStorage.setItem(e.message==="LAO_EMAIL_NOT_AUTHORIZED"?"lao_email_denied_notice":"lao_access_denied_notice","1");
+      sessionStorage.setItem(
+        e.message==="LAO_EMAIL_NOT_AUTHORIZED"
+          ?"lao_email_denied_notice"
+          :e.message==="LAO_PERSONNEL_PORTAL_ONLY"
+            ?"lao_personnel_portal_only_notice"
+            :"lao_access_denied_notice",
+        "1"
+      );
       try{await supabase.auth.signOut({scope:"local"});}catch(_){}
       clearLaoAuthSession();
       location.reload();
@@ -6875,6 +6886,9 @@ async function init(){
     if(sessionStorage.getItem("lao_email_denied_notice")==="1"){
       sessionStorage.removeItem("lao_email_denied_notice");
       toast("อีเมล Google นี้ยังไม่มีสิทธิ์ใน LAO-EMS กรุณาใช้อีเมลที่ผู้ดูแลบันทึกไว้ในระบบ","error");
+    }else if(sessionStorage.getItem("lao_personnel_portal_only_notice")==="1"){
+      sessionStorage.removeItem("lao_personnel_portal_only_notice");
+      toast("หน้าเข้าสู่ระบบนี้สำหรับบุคลากรเท่านั้น นักเรียนและผู้ปกครองให้เข้าสู่ระบบจากเว็บไซต์ของโรงเรียน","error");
     }else if(sessionStorage.getItem("lao_access_denied_notice")==="1"){
       sessionStorage.removeItem("lao_access_denied_notice");
       toast("บัญชีนี้ยังไม่ได้รับคำเชิญจากผู้ดูแล LAO-EMS","error");
