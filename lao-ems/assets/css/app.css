@@ -7675,3 +7675,74 @@ th,td{line-height:1.45}
     flex-direction:column;
   }
 }
+
+
+/* Visible progress rings + grade hour detail — v0.19.25 */
+.subject-progress-choice{
+  border-radius:14px!important;
+}
+.subject-progress-choice-ring{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  background:conic-gradient(#2e90fa var(--progress),#e4e7ec 0)!important;
+}
+.subject-progress-choice-ring::after{
+  content:"";
+  position:absolute;
+  inset:5px;
+  z-index:0;
+  border-radius:50%;
+  background:#fff;
+}
+.subject-progress-choice.empty .subject-progress-choice-ring{
+  background:conic-gradient(#d0d5dd 0%,#e4e7ec 0)!important;
+}
+.subject-progress-choice.complete .subject-progress-choice-ring{
+  background:conic-gradient(#12b76a 100%,#12b76a 0)!important;
+}
+.subject-progress-choice.complete .subject-progress-choice-ring::after{
+  background:#f6fef9;
+}
+.subject-progress-choice-ring strong{
+  position:relative;
+  z-index:1;
+}
+.subject-progress-choice.active .subject-progress-choice-ring{
+  box-shadow:0 0 0 2px #fff,0 0 0 4px #84adff!important;
+}
+.subject-progress-choice.has-hour-meta{
+  flex:0 0 112px!important;
+  width:112px!important;
+  min-width:112px!important;
+  align-self:stretch;
+}
+.subject-progress-choice.has-hour-meta .subject-progress-choice-ring{
+  margin:0 auto!important;
+}
+.subject-progress-choice-meta{
+  display:grid;
+  gap:1px;
+  margin-top:7px;
+  text-align:center;
+}
+.subject-progress-choice-meta small{
+  display:block!important;
+  color:#667085;
+  font-size:9.5px;
+  line-height:1.3;
+  white-space:nowrap;
+}
+.subject-progress-choice-meta small.gap{color:#b54708}
+.subject-progress-choice-meta small.over{color:#b42318}
+.subject-progress-choice-meta small.done{color:#067647;font-weight:800}
+@media(max-width:720px){
+  .subject-progress-choice.has-hour-meta{
+    flex-basis:106px!important;
+    width:106px!important;
+    min-width:106px!important;
+  }
+  .subject-progress-choice-meta small{
+    font-size:9px;
+  }
+}

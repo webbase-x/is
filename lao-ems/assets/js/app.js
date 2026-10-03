@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.24";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.25";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -4330,27 +4330,46 @@ function academicSubjectsHtml(data,timeline){
 
   const subjectReadiness=state.subjectReadiness||{groups:[],total_groups:0,completed_groups:0,progress_percent:0,coverage_percent:0};
   const readinessGroups=subjectReadiness.groups||[];
-  const averageProgress=list=>list.length?Math.round(list.reduce((sum,g)=>sum+Number(g.completion_percent||0),0)/list.length):0;
-  const targetProgress=programId=>averageProgress(readinessGroups.filter(g=>(g.program_id||"")===(programId||"")));
-  const gradeProgress=(code,programId)=>{
-    const g=readinessGroups.find(x=>x.grade_code===code&&(x.program_id||"")===(programId||""));
-    return g?Number(g.completion_percent||0):0;
+  const groupFor=(code,programId)=>readinessGroups.find(g=>g.grade_code===code&&(g.program_id||"")===(programId||""))||null;
+  const groupHours=g=>{
+    const arranged=Math.max(0,Number(g&&(g.scheduled_hours_total??g.annual_hours_total)||0));
+    const total=Math.max(0,Number(g&&g.schedule_capacity_hours||0));
+    const gap=total-arranged;
+    const progress=total>0?Math.max(0,Math.min(100,arranged*100/total)):0;
+    return {arranged,total,gap,progress};
   };
-  const progressChoice=(attrs,label,sub,pct,active)=>{
+  const targetProgress=programId=>{
+    const groups=readinessGroups.filter(g=>(g.program_id||"")===(programId||""));
+    const sums=groups.reduce((a,g)=>{
+      const h=groupHours(g);
+      a.arranged+=h.arranged;
+      a.total+=h.total;
+      return a;
+    },{arranged:0,total:0});
+    return sums.total>0?Math.max(0,Math.min(100,sums.arranged*100/sums.total)):0;
+  };
+  const progressChoice=(attrs,label,pct,active,metaHtml="")=>{
     const progress=Math.max(0,Math.min(100,Number(pct)||0));
-    const accessible=label+(sub?" · "+sub:"")+" · ความครบถ้วน "+Math.round(progress)+"%";
-    return '<button type="button" class="subject-progress-choice '+(active?"active ":"")+(progress>=100?"complete ":"")+(progress<=0?"empty":"")+'" '+attrs+' aria-label="'+esc(accessible)+'" title="'+esc(accessible)+'">'+
+    const accessible=label+" · ความก้าวหน้า "+Math.round(progress)+"%";
+    return '<button type="button" class="subject-progress-choice '+(metaHtml?"has-hour-meta ":"")+(active?"active ":"")+(progress>=100?"complete ":"")+(progress<=0?"empty":"")+'" '+attrs+' aria-label="'+esc(accessible)+'" title="'+esc(accessible)+'">'+
       '<span class="subject-progress-choice-ring" style="--progress:'+progress+'%"><strong>'+esc(label)+'</strong></span>'+
+      metaHtml+
     '</button>';
   };
+  const hourMeta=h=>{
+    const fmt=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:1});
+    if(h.total<=0)return '<span class="subject-progress-choice-meta"><small>ยังไม่มีกำหนดกรอบ</small></span>';
+    const gapText=h.gap>0.001?'ขาด '+fmt(h.gap):h.gap<-.001?'เกิน '+fmt(Math.abs(h.gap)):'ครบแล้ว';
+    return '<span class="subject-progress-choice-meta"><small>จัด '+fmt(h.arranged)+' ชม.</small><small class="'+(h.gap>0.001?"gap":h.gap<-.001?"over":"done")+'">'+gapText+' · รวม '+fmt(h.total)+'</small></span>';
+  };
   const gradeTabs=targetGrades.map(g=>{
-    const code=academicGradeCode(g)||"",rooms=targetClasses.filter(c=>c.grade_label===g).length;
-    const pct=gradeProgress(code,selectedProgram?selectedProgram.id:"");
-    return progressChoice('data-subject-context-grade="'+esc(code)+'"',shortGrade(g),rooms+" ห้อง",pct,code===gradeCode);
+    const code=academicGradeCode(g)||"";
+    const h=groupHours(groupFor(code,selectedProgram?selectedProgram.id:""));
+    return progressChoice('data-subject-context-grade="'+esc(code)+'"',shortGrade(g),h.progress,code===gradeCode,hourMeta(h));
   }).join("");
   const normalRooms=classes.filter(c=>!c.program_id).length;
-  const targetTabs=progressChoice('data-subject-target=""',"ห้องปกติ",normalRooms+" ห้อง",targetProgress(""),!selectedProgram)+
-    actualPrograms.map(p=>progressChoice('data-subject-target="'+esc(p.id)+'"',programShortName(p),classes.filter(c=>c.program_id===p.id).length+" ห้อง",targetProgress(p.id),Boolean(selectedProgram&&p.id===selectedProgram.id))).join("");
+  const targetTabs=progressChoice('data-subject-target=""',"ห้องปกติ",targetProgress(""),!selectedProgram)+
+    actualPrograms.map(p=>progressChoice('data-subject-target="'+esc(p.id)+'"',programShortName(p),targetProgress(p.id),Boolean(selectedProgram&&p.id===selectedProgram.id))).join("");
   const scopeTabs=[["core","วิชาพื้นฐาน"],["activity","กิจกรรมพัฒนาผู้เรียน"]]
     .map(([v,l])=>'<button type="button" class="'+(scope===v?"active":"")+'" data-subject-catalog-scope="'+v+'">'+l+'</button>').join("");
 
