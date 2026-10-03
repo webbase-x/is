@@ -55,7 +55,7 @@ on conflict(scope_code) do update set
   section_code=excluded.section_code,
   title_th=excluded.title_th,
   parent_scope_code=excluded.parent_scope_code,
-  route=coalesce(excluded.route,public.lao_work_scopes.route),
+  route=coalesce(excluded.route,lao_work_scopes.route),
   sort_order=excluded.sort_order,
   is_active=excluded.is_active,
   updated_at=now();
