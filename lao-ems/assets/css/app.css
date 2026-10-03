@@ -6736,3 +6736,120 @@ th,td{line-height:1.45}
     grid-template-columns:1fr;
   }
 }
+
+
+/* Academic annual time frame — v0.19.12 */
+.academic-time-frame-panel{
+  display:grid;
+  gap:12px;
+}
+.academic-time-frame-panel.needs-setup{
+  border-color:#fedf89;
+}
+.academic-time-frame-summary{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:8px;
+}
+.academic-time-frame-summary article{
+  min-width:0;
+  padding:10px 11px;
+  border:1px solid #e4e7ec;
+  border-radius:10px;
+  background:#f9fafb;
+}
+.academic-time-frame-summary small,
+.academic-time-frame-summary strong,
+.academic-time-frame-summary span{
+  display:block;
+}
+.academic-time-frame-summary small{
+  color:#667085;
+  font-size:10px;
+}
+.academic-time-frame-summary strong{
+  margin-top:2px;
+  color:#101828;
+  font-size:16px;
+}
+.academic-time-frame-summary span{
+  margin-top:1px;
+  color:#667085;
+  font-size:10px;
+}
+.academic-time-frame-warning{
+  display:grid;
+  gap:3px;
+  padding:10px 12px;
+  border:1px solid #fedf89;
+  border-radius:10px;
+  background:#fffcf5;
+}
+.academic-time-frame-warning strong{
+  color:#b54708;
+  font-size:12px;
+}
+.academic-time-frame-warning span{
+  color:#667085;
+  font-size:10.5px;
+  line-height:1.45;
+}
+.academic-time-frame-form{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  padding-top:2px;
+}
+.academic-time-frame-form label{
+  display:grid;
+  gap:5px;
+  color:#344054;
+  font-size:11px;
+  font-weight:700;
+}
+.academic-time-frame-form input{
+  min-width:0;
+}
+.academic-time-frame-preview{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 11px;
+  border:1px solid #d0d5dd;
+  border-radius:9px;
+  background:#f9fafb;
+  color:#475467;
+  font-size:11px;
+}
+.academic-time-frame-preview strong{
+  color:#175cd3;
+}
+.academic-time-frame-note{
+  padding:9px 11px;
+  border-radius:9px;
+  background:#f2f4f7;
+  color:#667085;
+  font-size:10.5px;
+  line-height:1.45;
+}
+@media(max-width:1050px){
+  .academic-time-frame-summary{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .academic-time-frame-form{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:620px){
+  .academic-time-frame-summary{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .academic-time-frame-form{
+    grid-template-columns:1fr;
+  }
+  .academic-time-frame-preview{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
