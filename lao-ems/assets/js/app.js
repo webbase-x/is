@@ -4018,6 +4018,9 @@ function courseCurriculumDetailHtml(data){
   const d=data&&data.detail;
   if(!d)return '<section class="panel"><div class="notice danger">ไม่พบข้อมูลรายวิชา</div></section>';
   const course=d.course||{},cur=d.curriculum||null,validation=d.validation||{},terms=d.terms||[],assignments=d.assignments||[];
+  if(course.subject_type==="activity"){
+    return '<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">🎯</div><h3>กิจกรรมพัฒนาผู้เรียนไม่ต้องจัดทำหลักสูตรรายวิชาในเมนูนี้</h3><p>ระบบคงการประเมินกิจกรรมแบบ ผ/มผ ไว้ในงานวัดผลตามเดิม เพื่อไม่เพิ่มงานซ้ำให้ครู</p><a class="primary-btn" href="#/assessment">ไปวัดผลกิจกรรม →</a></div></section>';
+  }
   const editable=Boolean(d.can_edit),reviewable=Boolean(d.can_review),status=cur&&cur.status||"not_started";
   const outcomes=cur&&cur.outcomes||[],units=cur&&cur.units||[],plan=cur&&cur.assessment_plan||[];
   const defaultOutcomes=outcomes.length?outcomes:[{type:"indicator",code:"",description:""}];
