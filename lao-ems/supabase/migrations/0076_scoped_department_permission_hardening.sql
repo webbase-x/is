@@ -100,7 +100,7 @@ declare
   r record;
   v_base_name text;
   v_call_args text;
-  v_base_reg regprocedure;
+  v_base_exists boolean;
   v_sql text;
 begin
   for r in
@@ -136,11 +136,16 @@ begin
     join pg_namespace n on n.oid=p.pronamespace and n.nspname='public'
   loop
     v_base_name:=r.proname||'_scope_base_v01914';
-    v_base_reg:=to_regprocedure(
-      format('public.%I(%s)',v_base_name,r.identity_args)
-    );
+    select exists(
+      select 1
+      from pg_proc bp
+      join pg_namespace bn on bn.oid=bp.pronamespace
+      where bn.nspname='public'
+        and bp.proname=v_base_name
+        and pg_get_function_identity_arguments(bp.oid)=r.identity_args
+    ) into v_base_exists;
 
-    if v_base_reg is null then
+    if not v_base_exists then
       execute format(
         'alter function public.%I(%s) rename to %I',
         r.proname,r.identity_args,v_base_name
