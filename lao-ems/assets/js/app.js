@@ -4133,19 +4133,19 @@ function academicSubjectsHtml(data,timeline){
   const subjectTimeComplete=Boolean(subjectCompleteness&&subjectCompleteness.time_is_complete);
   const subjectScheduleConfigured=Boolean(subjectCompleteness&&subjectCompleteness.schedule_configured);
   const subjectTimeNumber=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:2});
-  const weeklyUsed=Number(subjectCompleteness&&subjectCompleteness.weekly_periods_total||0);
-  const weeklyCapacity=subjectCompleteness&&subjectCompleteness.periods_per_week_capacity!=null?Number(subjectCompleteness.periods_per_week_capacity):null;
-  const weeklyGap=subjectCompleteness&&subjectCompleteness.periods_per_week_gap!=null?Number(subjectCompleteness.periods_per_week_gap):null;
+  const subjectWeeklyUsed=Number(subjectCompleteness&&subjectCompleteness.weekly_periods_total||0);
+  const subjectWeeklyCapacity=subjectCompleteness&&subjectCompleteness.periods_per_week_capacity!=null?Number(subjectCompleteness.periods_per_week_capacity):null;
+  const subjectWeeklyGap=subjectCompleteness&&subjectCompleteness.periods_per_week_gap!=null?Number(subjectCompleteness.periods_per_week_gap):null;
   const scheduledHours=Number(subjectCompleteness&&subjectCompleteness.scheduled_hours_total||0);
   const capacityHours=subjectCompleteness&&subjectCompleteness.schedule_capacity_hours!=null?Number(subjectCompleteness.schedule_capacity_hours):null;
   const capacityHoursGap=subjectCompleteness&&subjectCompleteness.schedule_capacity_hours_gap!=null?Number(subjectCompleteness.schedule_capacity_hours_gap):null;
   const integratedHours=Number(subjectCompleteness&&subjectCompleteness.integrated_activity_hours||0);
   const weeklyState=!subjectScheduleConfigured
     ?"รอตั้งค่าตาราง"
-    :weeklyGap<-.001
-      ?"เกิน "+subjectTimeNumber(Math.abs(weeklyGap))+" คาบ/สัปดาห์"
-      :weeklyGap>.001
-        ?"เหลือ "+subjectTimeNumber(weeklyGap)+" คาบ/สัปดาห์"
+    :subjectWeeklyGap<-.001
+      ?"เกิน "+subjectTimeNumber(Math.abs(subjectWeeklyGap))+" คาบ/สัปดาห์"
+      :subjectWeeklyGap>.001
+        ?"เหลือ "+subjectTimeNumber(subjectWeeklyGap)+" คาบ/สัปดาห์"
         :"พอดีความจุ";
   const hourState=!subjectScheduleConfigured
     ?"รอตั้งค่าตาราง"
@@ -4160,7 +4160,7 @@ function academicSubjectsHtml(data,timeline){
   if(subjectCompleteness&&subjectCompleteness.history_hours_required!=null)frameworkParts.push("ประวัติศาสตร์ "+subjectTimeNumber(subjectCompleteness.history_hours_actual)+"/"+subjectTimeNumber(subjectCompleteness.history_hours_required));
   const subjectTimeSummaryHtml=subjectCompleteness
     ?'<div class="subject-time-checks">'+
-      '<div class="subject-time-check '+(subjectScheduleConfigured&&Number(subjectCompleteness.periods_per_week_over||0)<=.001?"ok":"attention")+'"><small>คาบที่ใช้จริง</small><strong>'+subjectTimeNumber(weeklyUsed)+(weeklyCapacity!=null?' / '+subjectTimeNumber(weeklyCapacity):'')+' คาบ/สัปดาห์</strong><span>'+esc(weeklyState)+'</span></div>'+
+      '<div class="subject-time-check '+(subjectScheduleConfigured&&Number(subjectCompleteness.periods_per_week_over||0)<=.001?"ok":"attention")+'"><small>คาบที่ใช้จริง</small><strong>'+subjectTimeNumber(subjectWeeklyUsed)+(subjectWeeklyCapacity!=null?' / '+subjectTimeNumber(subjectWeeklyCapacity):'')+' คาบ/สัปดาห์</strong><span>'+esc(weeklyState)+'</span></div>'+
       '<div class="subject-time-check '+(subjectScheduleConfigured&&Number(subjectCompleteness.schedule_capacity_hours_over||0)<=.001?"ok":"attention")+'"><small>ชั่วโมงที่ลงตาราง</small><strong>'+subjectTimeNumber(scheduledHours)+(capacityHours!=null?' / '+subjectTimeNumber(capacityHours):'')+' ชม./ปี</strong><span>'+esc(hourState)+' · ไม่รวมบูรณาการ '+subjectTimeNumber(integratedHours)+' ชม.</span></div>'+
       '<div class="subject-time-check '+(subjectCompleteness.framework_hours_complete?"ok":"attention")+'"><small>ชั่วโมงตามกรอบหลักสูตร</small><strong>'+(subjectCompleteness.framework_hours_complete?"ครบ":"ยังไม่ครบ")+'</strong><span>'+esc(frameworkParts.join(" · ")||(subjectCompleteness.band_framework_deferred?"กรอบช่วงชั้นจะตรวจรวมเมื่อมีระดับครบ":"ไม่มีกรอบที่ต้องตรวจ"))+'</span></div>'+
       '<div class="subject-time-check '+(subjectTimeComplete?"ok":"attention")+'"><small>ความพร้อมด้านเวลาเรียน</small><strong>'+subjectTimePct+'%</strong><span>'+(subjectTimeComplete?"ผ่านทุกเงื่อนไข":subjectTimeIssues.length?"ต้องแก้ "+subjectTimeIssues.length+" จุดก่อนเป็น 100%":"กำลังตรวจเงื่อนไข")+'</span></div>'+
