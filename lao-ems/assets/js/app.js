@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.35";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.36";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1282,7 +1282,7 @@ function workspaceAppItems(unreadCount,pendingJoin,pendingTeaching,assessmentAtt
   if(canViewAcademic())items.push({
     icon:"📚",
     title:"กลุ่มบริหารงานวิชาการ",
-    desc:"โครงสร้างและตั้งค่าวิชาการ · วัดผลและ ปพ. · สมาชิกกลุ่ม",
+    desc:"5 กลุ่มงานวิชาการ · แอปตามสิทธิ์ · สมาชิกกลุ่ม",
     route:"#/academic-group",
     routes:["#/academic-group","#/academics","#/assessment"],
     key:"academic-group",
@@ -1336,7 +1336,7 @@ async function overviewHtml(){
   }
   const assessmentStats=assessmentOverview&&assessmentOverview.stats||{};
   const assessmentAttention=Number(assessmentStats.submitted||0)+Number(assessmentStats.returned||0);
-  const apps=workspaceAppItems(unread.length,pendingJoin,pendingTeaching,assessmentAttention);
+  const apps=workspaceAppItems(unread.length,pendingJoin,Number(academicWork.attention_count||pendingTeaching||0),assessmentAttention);
   const timelines=[];
   const tasks=[];
   const waiting=[];
@@ -6773,27 +6773,114 @@ async function loadAcademicGroupMembers(){
   if(res.error)throw res.error;
   return res.data||{members:[],can_manage_members:false};
 }
+async function loadAcademicGroupAccess(){
+  const school=currentSchool();
+  if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
+  const res=await supabase.rpc("lao_academic_group_access",{p_school_id:school.id});
+  if(res.error)throw res.error;
+  return res.data||{scopes:[],can_use_own_workload:false,can_use_own_assessment:false};
+}
+function academicPermissionLabels(scope){
+  const labels=[];
+  if(scope&&scope.can_view)labels.push("ดู");
+  if(scope&&scope.can_edit)labels.push("แก้ไข");
+  if(scope&&scope.can_approve)labels.push("อนุมัติ");
+  if(scope&&scope.can_delegate)labels.push("มอบหมายต่อ");
+  return labels;
+}
 function academicGroupMemberCard(member){
-  const scopes=(member.scopes||[]).map(s=>s.title).filter(Boolean);
+  const scopes=(member.scopes||[]).filter(s=>s&&s.title);
   const fallback=esc(initials(member.full_name||"สมาชิก").slice(0,2));
   return '<article class="academic-group-member-card">'+
     '<span class="academic-group-member-avatar">'+fallback+'</span>'+
     '<div class="academic-group-member-copy"><strong>'+esc(member.full_name||"สมาชิก")+'</strong>'+
       '<small>'+esc(member.position_title||member.role_label||"สมาชิกกลุ่ม")+'</small>'+
       '<span>'+esc(member.role_label||"สมาชิกกลุ่ม")+'</span>'+
-      (scopes.length?'<p>'+esc(scopes.join(" · "))+'</p>':'')+
+      (scopes.length?'<ul class="academic-group-member-scopes">'+scopes.map(scope=>{
+        const permissions=academicPermissionLabels(scope);
+        return '<li><b>'+esc(scope.title)+'</b>'+(permissions.length?'<small>'+esc(permissions.join(" · "))+'</small>':'')+'</li>';
+      }).join("")+'</ul>':'<p>ยังไม่ระบุขอบเขตงานย่อย</p>')+
     '</div>'+
+  '</article>';
+}
+function academicGroupWorkstreams(access,pendingTeaching,assessmentAttention){
+  const scopes=access&&access.scopes||[];
+  const scopeCodes=new Set(scopes.map(s=>String(s.scope_code||"")));
+  const hasAny=(codes)=>codes.some(code=>scopeCodes.has(code));
+  const hasPrefix=(prefix)=>Array.from(scopeCodes).some(code=>code===prefix||code.startsWith(prefix+"."));
+  const groups=[
+    {
+      no:1,icon:"📘",scope:"academics.curriculum",
+      title:"งานบริหารและพัฒนาหลักสูตรสถานศึกษา",
+      responsibilities:[
+        "จัดทำและปรับปรุงหลักสูตรสถานศึกษา",
+        "วิเคราะห์หลักสูตรแกนกลางและบริบทท้องถิ่น",
+        "ออกแบบโครงสร้างเวลาเรียน",
+        "รายวิชาพื้นฐาน / เพิ่มเติม / กิจกรรมพัฒนาผู้เรียน",
+        "ประเมินและปรับปรุงการใช้หลักสูตร"
+      ],
+      visible:hasAny(["academics.curriculum","academics.basic_settings","academics.programs","academics.classes","academics.subjects","academics.curriculum.review"]),
+      apps:[
+        {title:"โครงสร้างและตั้งค่าวิชาการ",route:"#/academics",icon:"⚙",badge:0,
+          visible:hasAny(["academics.curriculum","academics.basic_settings","academics.programs","academics.classes","academics.subjects"])}
+      ]
+    },
+    {
+      no:2,icon:"🧭",scope:"academics.learning",
+      title:"งานจัดการเรียนรู้และการนิเทศ",
+      responsibilities:["ปฏิทินวิชาการ","ภาระงานสอน","ตารางสอน","แผนการจัดการเรียนรู้","Active Learning","นิเทศภายใน / สังเกตชั้นเรียน","PLC"],
+      visible:hasPrefix("academics.learning")||hasAny(["academics.workload"])||Boolean(access&&access.can_use_own_workload),
+      apps:[
+        {title:"ภาระงานสอน",route:"#/academics/workload",icon:"📚",badge:Number(pendingTeaching||0),
+          visible:hasAny(["academics.learning","academics.workload"])||Boolean(access&&access.can_use_own_workload)}
+      ]
+    },
+    {
+      no:3,icon:"💡",scope:"academics.media",
+      title:"งานสื่อ นวัตกรรม และเทคโนโลยีทางการศึกษา",
+      responsibilities:["สื่อการเรียนรู้","นวัตกรรม / Gamification / Web Application","การประเมินคุณภาพสื่อ","หนังสือเรียน","ห้องสมุด / ห้องปฏิบัติการ","แหล่งเรียนรู้และภูมิปัญญาท้องถิ่น"],
+      visible:hasPrefix("academics.media"),
+      apps:[]
+    },
+    {
+      no:4,icon:"📝",scope:"academics.assessment",
+      title:"งานวัดผล ประเมินผล และงานทะเบียน",
+      responsibilities:["ระเบียบและเกณฑ์วัดผล","คะแนน / ผลการเรียน","สอบกลางภาค / ปลายภาค","เลื่อนชั้น / จบการศึกษา","ปพ.1–ปพ.9","ระเบียนผลการเรียน","เทียบโอนผลการเรียน"],
+      visible:hasPrefix("academics.assessment")||Boolean(access&&access.can_use_own_assessment),
+      apps:[
+        {title:"วัดผลและ ปพ.",route:"#/assessment",icon:"📝",badge:Number(assessmentAttention||0),
+          visible:hasPrefix("academics.assessment")||Boolean(access&&access.can_use_own_assessment)}
+      ]
+    },
+    {
+      no:5,icon:"📊",scope:"academics.research",
+      title:"งานวิจัยและประเมินคุณภาพการศึกษา",
+      responsibilities:["วิจัยในชั้นเรียน","นวัตกรรมเพื่อแก้ปัญหาผู้เรียน","วิเคราะห์ RT / NT / O-NET","วิเคราะห์สถิติผลสัมฤทธิ์","สรุปจุดแข็ง/จุดที่ต้องพัฒนา","ใช้ข้อมูลเพื่อวางแผนปีการศึกษาถัดไป"],
+      visible:hasPrefix("academics.research"),
+      apps:[]
+    }
+  ];
+  return groups.filter(group=>group.visible).map(group=>({...group,apps:group.apps.filter(app=>app.visible)}));
+}
+function academicWorkstreamCard(group){
+  const actions=group.apps||[];
+  return '<article class="academic-workstream-card">'+
+    '<div class="academic-workstream-head"><span class="academic-workstream-no">'+Number(group.no).toLocaleString("th-TH")+'</span><span class="academic-workstream-icon">'+group.icon+'</span><div><small>กลุ่มงานที่ '+Number(group.no).toLocaleString("th-TH")+'</small><h3>'+esc(group.title)+'</h3></div></div>'+
+    '<ul class="academic-workstream-responsibilities">'+group.responsibilities.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>'+
+    (actions.length?'<div class="academic-workstream-actions">'+actions.map(app=>
+      '<a href="'+esc(app.route)+'"><span>'+app.icon+'</span><strong>'+esc(app.title)+'</strong>'+(Number(app.badge||0)>0?'<b>'+Number(app.badge).toLocaleString("th-TH")+'</b>':'')+'<em>เปิด →</em></a>'
+    ).join("")+'</div>':'<p class="academic-workstream-note">โครงสร้างงานพร้อมสำหรับการมอบหมายสิทธิ์ย่อย โดยยังไม่แสดงปุ่มจนกว่าโมดูลของงานนั้นจะเปิดใช้งาน</p>')+
   '</article>';
 }
 async function academicGroupHtml(){
   if(!canViewAcademic())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์เข้าถึงกลุ่มบริหารงานวิชาการ</h3></div></section>';
   const school=currentSchool();
   const mode=academicGroupMode();
-  const membersData=await loadAcademicGroupMembers();
+  const [membersData,access]=await Promise.all([loadAcademicGroupMembers(),loadAcademicGroupAccess()]);
   const members=membersData.members||[];
   if(mode==="members"){
     return '<section class="academic-group-page">'+
-      '<section class="academic-group-hero panel"><div class="academic-group-title"><a class="assessment-back" href="#/academic-group">←</a><div><p class="eyebrow">ACADEMIC GROUP</p><h2>สมาชิกกลุ่มบริหารงานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · สมาชิกที่ได้รับมอบหมายงานในขอบเขตวิชาการ</p></div></div>'+
+      '<section class="academic-group-hero panel"><div class="academic-group-title"><a class="assessment-back" href="#/academic-group">←</a><div><p class="eyebrow">ACADEMIC GROUP</p><h2>สมาชิกกลุ่มบริหารงานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · ใช้รายชื่อและขอบเขตสิทธิ์จากระบบมอบหมายงานเดิมโดยตรง</p></div></div>'+
       (membersData.can_manage_members?'<a class="secondary-btn compact-btn" href="#/work-authorities">จัดการสมาชิก/สิทธิ์</a>':'')+
       '</section>'+
       (members.length
@@ -6816,18 +6903,18 @@ async function academicGroupHtml(){
     }
   }catch(_){}
 
-  const pendingTeaching=Number(state.academicWork&&state.academicWork.pending_teaching_workloads||0);
-  const menu=[
-    {icon:"⚙",title:"โครงสร้างและตั้งค่าวิชาการ",desc:"ปีการศึกษา ภาคเรียน โปรแกรม ชั้น/ห้อง กรอบเวลา รายวิชา และภาระงานสอน",route:"#/academics",badge:pendingTeaching},
-    {icon:"📝",title:"วัดผลและ ปพ.",desc:"บันทึกคะแนน สรุป ปพ.6 ส่งตรวจ อนุมัติ และส่งกลับแก้ไข",route:"#/assessment",badge:assessmentAttention},
-    {icon:"👥",title:"สมาชิกกลุ่ม",desc:"ดูหัวหน้ากลุ่ม หัวหน้างาน และผู้ได้รับมอบหมายงานวิชาการ",route:"#/academic-group/members",badge:members.length}
-  ];
+  const academicAttention=Number(state.academicWork&&state.academicWork.attention_count||0);
+  const workstreams=academicGroupWorkstreams(access,academicAttention,assessmentAttention);
+  const totalAttention=academicAttention+assessmentAttention;
   return '<section class="academic-group-page">'+
-    '<section class="academic-group-hero panel"><div><p class="eyebrow">ACADEMIC MANAGEMENT</p><h2>กลุ่มบริหารงานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · รวมเครื่องมือและบุคลากรของงานวิชาการไว้ในจุดเดียว</p></div><span class="academic-group-count">'+members.length.toLocaleString("th-TH")+' สมาชิก</span></section>'+
-    '<section class="academic-group-menu-grid">'+menu.map(item=>
-      '<a class="academic-group-menu-card" href="'+esc(item.route)+'"><span class="academic-group-menu-icon">'+item.icon+'</span><div><strong>'+esc(item.title)+'</strong><small>'+esc(item.desc)+'</small></div>'+(Number(item.badge||0)>0?'<b>'+Number(item.badge).toLocaleString("th-TH")+'</b>':'')+'<em>เปิด →</em></a>'
-    ).join("")+'</section>'+
-    (members.length?'<section class="panel academic-group-preview"><div class="panel-head"><div><p class="eyebrow">MEMBERS</p><h2>สมาชิกกลุ่ม</h2><p class="panel-sub">แสดงสมาชิกที่ได้รับมอบหมายงานวิชาการในปัจจุบัน</p></div><a class="secondary-btn compact-btn" href="#/academic-group/members">ดูทั้งหมด</a></div><div class="academic-group-preview-list">'+members.slice(0,4).map(academicGroupMemberCard).join("")+'</div></section>':'')+
+    '<section class="academic-group-hero panel"><div><p class="eyebrow">ACADEMIC MANAGEMENT</p><h2>กลุ่มบริหารงานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · ศูนย์รวม 5 กลุ่มงาน แสดงเฉพาะขอบเขตที่บัญชีนี้มีสิทธิ์ใช้งาน</p></div><div class="academic-group-hero-actions">'+
+      (totalAttention>0?'<span class="academic-group-attention">'+totalAttention.toLocaleString("th-TH")+' งานต้องตรวจ/แก้ไข</span>':'')+
+      '<a class="secondary-btn compact-btn" href="#/academic-group/members">👥 สมาชิกกลุ่ม · '+members.length.toLocaleString("th-TH")+'</a>'+
+    '</div></section>'+
+    (workstreams.length
+      ?'<section class="academic-workstream-grid">'+workstreams.map(academicWorkstreamCard).join("")+'</section>'
+      :'<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">🔐</div><h3>ยังไม่มีขอบเขตงานวิชาการที่เปิดให้บัญชีนี้</h3><p>ระบบจะแสดงกลุ่มงานเมื่อได้รับสิทธิ์จาก School Admin หัวหน้ากลุ่ม หรือหัวหน้างานตามขอบเขตที่มอบหมาย</p></div></section>')+
+    (members.length?'<section class="panel academic-group-preview"><div class="panel-head"><div><p class="eyebrow">MEMBERS</p><h2>สมาชิกกลุ่ม</h2><p class="panel-sub">หัวหน้ากลุ่ม หัวหน้างาน และผู้ได้รับมอบหมายจากระบบสิทธิ์เดิม</p></div><a class="secondary-btn compact-btn" href="#/academic-group/members">ดูทั้งหมด</a></div><div class="academic-group-preview-list">'+members.slice(0,4).map(academicGroupMemberCard).join("")+'</div></section>':'')+
   '</section>';
 }
 function bindAcademicGroup(){
