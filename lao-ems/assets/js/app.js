@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.13";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.14";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -12,6 +12,7 @@ const routeMeta={
   setup:["ตั้งค่าสถานศึกษา","ตรวจความพร้อมหลังนำเข้า LEC เชื่อม Google Drive และตั้งค่าการใช้งาน"],
   organization:["อปท. และสถานศึกษา","โครงสร้างองค์กรและโรงเรียนในแพลตฟอร์ม"],
   users:["ผู้ใช้และสิทธิ์","คำขอเข้าใช้งาน บทบาท และขอบเขตสิทธิ์"],
+  "work-authorities":["ผู้รับผิดชอบและการมอบหมายงาน","กำหนดหัวหน้าฝ่าย หัวหน้างาน และผู้ได้รับมอบหมายตามขอบเขตงาน"],
   lec:["นำเข้าข้อมูล LEC","นำเข้า XLS/XLSX โดยระบบเลือกชีตที่มีข้อมูลสถานศึกษาครบและรักษาประวัติทุกปีการศึกษา"],
   personnel:["บุคลากร","ข้อมูลบุคลากรต้นทางสำหรับทุกระบบ"],
   students:["นักเรียน","ค้นหาและดูข้อมูลนักเรียนจาก LEC ตามปีการศึกษา ชั้น และห้อง"],
@@ -307,6 +308,18 @@ function currentSchool(){
 function currentOrg(){
   if(state.isPlatformAdmin&&state.viewMode==="admin")return state.adminSchool&&state.adminSchool.lao_organizations||null;
   return state.currentMembership&&state.currentMembership.lao_organizations||null;
+}
+async function loadWorkAuthorityAccess(){
+  const school=currentSchool();
+  if(!school||state.viewMode!=="user"){
+    state.workAuthorityAccess={can_view:false,can_delegate_any:false,is_school_admin:false};
+    return state.workAuthorityAccess;
+  }
+  const res=await supabase.rpc("lao_my_work_authority_access",{p_school_id:school.id});
+  state.workAuthorityAccess=res.error
+    ?{can_view:isSchoolAdminContext(),can_delegate_any:isSchoolAdminContext(),is_school_admin:isSchoolAdminContext()}
+    :(res.data||{can_view:false,can_delegate_any:false,is_school_admin:false});
+  return state.workAuthorityAccess;
 }
 function canViewStudentDirectory(){
   if(state.isPlatformAdmin&&state.viewMode==="admin")return Boolean(currentSchool());
@@ -666,10 +679,10 @@ function bindStaticUI(){
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
       state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;
-      await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);refreshHeader();renderRoute();return;
+      await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();}
   });
 }
 
@@ -1003,7 +1016,7 @@ async function loadAcademicWorkCounts(){
 async function refreshAttentionState(){
   if(!state.user||personnelJoinToken())return;
   try{
-    await Promise.all([loadNotifications(),loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);
+    await Promise.all([loadNotifications(),loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);
     refreshHeader();
   }catch(_){}
 }
@@ -1057,7 +1070,7 @@ async function loadContext(){
     state.viewMode="user";
   }
   await loadSchoolSetupStatus();
-  await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);
+  await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);
   refreshHeader();
   renderTenants();
 }
@@ -1122,6 +1135,11 @@ function refreshHeader(){
 
   const studentLink=q('[data-route="students"][data-student-menu]');
   if(studentLink)studentLink.classList.toggle("hidden",!canViewStudentDirectory());
+
+  const workAuthorityLink=q('[data-route="work-authorities"][data-work-authority-menu]');
+  if(workAuthorityLink){
+    workAuthorityLink.classList.toggle("hidden",!(state.workAuthorityAccess&&state.workAuthorityAccess.can_view));
+  }
 
   const academicLink=q('[data-route="academics"][data-academic-menu]');
   if(academicLink){
@@ -2748,6 +2766,138 @@ function bindStudents(){
 }
 
 
+function workAuthorityRoleLabel(value){
+  return ({department_head:"หัวหน้าฝ่าย",work_head:"หัวหน้างาน",delegate:"ผู้ได้รับมอบหมาย"})[value]||value||"-";
+}
+async function workAuthoritiesHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  const res=await supabase.rpc("lao_work_authority_matrix",{p_school_id:school.id});
+  if(res.error){
+    return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์จัดการการมอบหมายงาน</h3><p>หน้านี้สำหรับ School Admin หัวหน้าฝ่าย หัวหน้างาน หรือผู้ที่ได้รับสิทธิ์มอบหมายต่อ</p></div></section>';
+  }
+  const d=res.data||{},scopes=d.scopes||[],authorities=(d.authorities||[]).filter(x=>x.is_active!==false),personnel=d.personnel||[];
+  const scopeMap=new Map(scopes.map(x=>[x.scope_code,x]));
+  const delegateScopes=scopes.filter(x=>x.can_delegate);
+  const byDepartment=new Map();
+  authorities.forEach(a=>{
+    const key=a.department_code||"other";
+    if(!byDepartment.has(key))byDepartment.set(key,[]);
+    byDepartment.get(key).push(a);
+  });
+  const departmentLabels={academics:"ฝ่ายวิชาการ",personnel:"งานบุคลากร"};
+  const authoritySections=Array.from(byDepartment.entries()).map(([department,items])=>{
+    return '<section class="work-authority-group"><div class="work-authority-group-head"><div><strong>'+esc(departmentLabels[department]||department)+'</strong><span>'+items.length.toLocaleString("th-TH")+' ผู้รับผิดชอบ/การมอบหมาย</span></div></div>'+
+      '<div class="work-authority-list">'+items.map(a=>{
+        const scope=scopeMap.get(a.scope_code)||{};
+        const canRevoke=Boolean(d.is_school_admin||scope.can_delegate);
+        const permissions=[
+          a.can_view?"ดู":null,
+          a.can_edit?"แก้ไข":null,
+          a.can_approve?"อนุมัติ":null,
+          a.can_delegate?"มอบหมายต่อ":null
+        ].filter(Boolean);
+        const period=(a.starts_on||a.ends_on)?'<small>ช่วงสิทธิ์ '+(a.starts_on?esc(thaiDate(a.starts_on)):"ไม่กำหนด")+' – '+(a.ends_on?esc(thaiDate(a.ends_on)):"จนกว่าจะยกเลิก")+'</small>':'<small>มีผลจนกว่าจะยกเลิก</small>';
+        return '<article class="work-authority-row"><div class="work-authority-person"><strong>'+esc(a.full_name||"-")+'</strong><span>'+esc(a.position_title||"")+'</span>'+period+'</div>'+
+          '<div class="work-authority-scope"><strong>'+esc(a.scope_title||a.scope_code)+'</strong><span>'+esc(workAuthorityRoleLabel(a.authority_role))+'</span></div>'+
+          '<div class="work-authority-permissions">'+permissions.map(x=>'<span>'+esc(x)+'</span>').join("")+'</div>'+
+          (canRevoke?'<button type="button" class="text-btn danger-text" data-deactivate-work-authority="'+esc(a.id)+'">ยกเลิก</button>':'')+
+        '</article>';
+      }).join("")+'</div></section>';
+  }).join("");
+
+  const scopeOptions=delegateScopes.map(s=>'<option value="'+esc(s.scope_code)+'" data-parent-scope="'+esc(s.parent_scope_code||"")+'">'+esc(s.title||s.scope_code)+'</option>').join("");
+  const personnelOptions=personnel.map(p=>'<option value="'+esc(p.personnel_id)+'">'+esc(p.full_name||"-")+(p.position_title?' · '+esc(p.position_title):'')+'</option>').join("");
+  const roleOptions=(d.is_school_admin?'<option value="department_head">หัวหน้าฝ่าย</option>':'')+
+    '<option value="work_head">หัวหน้างาน</option><option value="delegate" selected>ผู้ได้รับมอบหมาย</option>';
+
+  return '<section class="work-authority-page">'+
+    '<section class="panel work-authority-hero"><div><p class="eyebrow">SCOPED WORK AUTHORITY</p><h2>ผู้รับผิดชอบและการมอบหมายงาน</h2><p>กำหนดสิทธิ์ตาม “ฝ่าย → งาน → ส่วนงาน” ผู้มอบหมายให้สิทธิ์ได้ไม่เกินสิทธิ์ของตนเอง และทุกการเปลี่ยนแปลงถูกบันทึกใน Audit Log</p></div><span class="pill '+(d.is_school_admin?"success":"")+'">'+(d.is_school_admin?"School Admin":"สิทธิ์ตามงานที่รับผิดชอบ")+'</span></section>'+
+    (d.can_manage_any&&delegateScopes.length&&personnel.length?'<section class="panel"><div class="panel-head"><div><h2>มอบหมายผู้รับผิดชอบ</h2><p class="panel-sub">เลือกเฉพาะส่วนงานที่คุณมีสิทธิ์มอบหมายต่อ ระบบจะป้องกันการให้สิทธิ์เกินขอบเขตของผู้มอบหมาย</p></div></div>'+
+      '<form class="work-authority-form" data-work-authority-form>'+
+        '<label>บุคลากร <span class="required-mark">*</span><select name="personnel_id" required><option value="">เลือกบุคลากรที่เชื่อมบัญชีแล้ว</option>'+personnelOptions+'</select></label>'+
+        '<label>ฝ่าย / งาน / ส่วนงาน <span class="required-mark">*</span><select name="scope_code" required><option value="">เลือกส่วนงาน</option>'+scopeOptions+'</select></label>'+
+        '<label>ฐานะผู้รับผิดชอบ<select name="authority_role">'+roleOptions+'</select></label>'+
+        '<label>เริ่มมีสิทธิ์<input name="starts_on" type="date"></label>'+
+        '<label>สิ้นสุด<input name="ends_on" type="date"></label>'+
+        '<div class="work-authority-checks span-all">'+
+          '<label><input type="checkbox" checked disabled><span>ดูข้อมูล</span></label>'+
+          '<label><input name="can_edit" type="checkbox" checked><span>เพิ่ม/แก้ไข</span></label>'+
+          '<label><input name="can_approve" type="checkbox"><span>อนุมัติ</span></label>'+
+          '<label><input name="can_delegate" type="checkbox"><span>มอบหมายต่อ</span></label>'+
+        '</div>'+
+        '<div class="academic-form-actions span-all"><button class="primary-btn" type="submit">บันทึกการมอบหมาย</button></div>'+
+      '</form>'+
+    '</section>':'')+
+    '<section class="panel"><div class="panel-head"><div><h2>สิทธิ์ที่กำหนดไว้</h2><p class="panel-sub">สิทธิ์ทำงานจำกัดตามขอบเขต ไม่ขยายเป็นสิทธิ์ทั้งโรงเรียนโดยอัตโนมัติ</p></div></div>'+
+      (authoritySections||'<div class="empty-state compact-empty"><div class="empty-icon">👥</div><h3>ยังไม่มีการมอบหมายสิทธิ์เฉพาะงาน</h3><p>School Admin ยังคงจัดการข้อมูลส่วนกลางของโรงเรียนได้ตามปกติ</p></div>')+
+    '</section>'+
+  '</section>';
+}
+function bindWorkAuthorities(){
+  const form=q("[data-work-authority-form]");
+  if(form){
+    const role=form.elements.authority_role;
+    const scope=form.elements.scope_code;
+    const edit=form.elements.can_edit;
+    const delegate=form.elements.can_delegate;
+    const syncRole=()=>{
+      const value=String(role&&role.value||"delegate");
+      const isHead=value==="department_head"||value==="work_head";
+      if(edit){edit.checked=isHead||edit.checked;edit.disabled=isHead;}
+      if(delegate){delegate.checked=isHead||delegate.checked;delegate.disabled=isHead;}
+      if(scope){
+        Array.from(scope.options).forEach(opt=>{
+          if(!opt.value)return;
+          const parent=String(opt.dataset.parentScope||"");
+          opt.hidden=value==="department_head"?Boolean(parent):value==="work_head"?!parent:false;
+        });
+        const current=scope.options[scope.selectedIndex];
+        if(current&&current.hidden)scope.value="";
+      }
+    };
+    if(role)role.addEventListener("change",syncRole);
+    syncRole();
+    form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const school=currentSchool(),fd=new FormData(form),btn=form.querySelector('button[type="submit"]');
+    const authorityRole=String(fd.get("authority_role")||"delegate");
+    const isHead=authorityRole==="department_head"||authorityRole==="work_head";
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_work_authority",{
+      p_school_id:school.id,
+      p_personnel_id:String(fd.get("personnel_id")||""),
+      p_scope_code:String(fd.get("scope_code")||""),
+      p_authority_role:authorityRole,
+      p_can_view:true,
+      p_can_edit:isHead||fd.get("can_edit")==="on",
+      p_can_approve:fd.get("can_approve")==="on",
+      p_can_delegate:isHead||fd.get("can_delegate")==="on",
+      p_starts_on:String(fd.get("starts_on")||"")||null,
+      p_ends_on:String(fd.get("ends_on")||"")||null
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกการมอบหมายแล้ว","success");
+    await loadWorkAuthorityAccess();
+    refreshHeader();
+    renderRoute();
+  });
+  }
+  qa("[data-deactivate-work-authority]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("ยกเลิกการมอบหมายสิทธิ์นี้?\n\nผู้ใช้จะไม่สามารถปฏิบัติงานด้วยสิทธิ์นี้หลังยืนยัน"))return;
+    setBusy(btn,true,"กำลังยกเลิก...");
+    const res=await supabase.rpc("lao_deactivate_work_authority",{
+      p_school_id:currentSchool().id,
+      p_authority_id:btn.dataset.deactivateWorkAuthority
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("ยกเลิกการมอบหมายแล้ว","success");
+    renderRoute();
+  }));
+}
+
 function personnelTypeOptions(selected){
   const rows=[
     ["executive","ผู้บริหาร"],
@@ -2848,13 +2998,14 @@ function departmentSetupTimelineHtml(timeline){
     const hasStepProgress=annual&&["current","queued"].includes(status)&&rawStepPct!==null&&rawStepPct!==undefined;
     const stepPct=hasStepProgress?Math.max(0,Math.min(99,Number(rawStepPct)||0)):null;
     const stepProgressLabel=String(step.step_progress_label||"").trim();
+    const canManageStep=annual?Boolean(step.can_manage_step):Boolean(timeline.can_manage);
     let action="";
     if(status==="completed"||status==="reused"){
       action='<a class="department-step-link" href="'+esc(step.route)+'">เปิดดู</a>';
     }else if(status==="not_applicable"){
       action='<span class="department-step-muted">ไม่ต้องดำเนินการ</span>';
     }else if(status==="skipped"&&annual){
-      action=timeline.can_manage
+      action=canManageStep
         ?'<button type="button" class="department-step-link department-step-link-button" data-academic-year-setup-action="resume" data-step-code="'+esc(step.step_code)+'" data-academic-year-id="'+esc(timeline.academic_year_id||"")+'" data-step-route="'+esc(step.route)+'">กลับมาทำ</button>'
         :'<span class="department-step-muted">ข้ามไว้</span>';
     }else if(status==="skipped"){
@@ -2863,7 +3014,7 @@ function departmentSetupTimelineHtml(timeline){
         :'<span class="department-step-muted">ข้ามไว้</span>';
     }else if(status==="current"){
       action='<div class="department-step-actions"><a class="department-step-link primary" href="'+esc(step.route)+'">ทำขั้นตอนนี้</a>'+
-        (annual&&timeline.can_manage&&step.is_skippable?'<button type="button" class="department-step-link department-step-link-button" data-academic-year-setup-action="skip" data-step-code="'+esc(step.step_code)+'" data-academic-year-id="'+esc(timeline.academic_year_id||"")+'">ข้ามปีนี้</button>':
+        (annual&&canManageStep&&step.is_skippable?'<button type="button" class="department-step-link department-step-link-button" data-academic-year-setup-action="skip" data-step-code="'+esc(step.step_code)+'" data-academic-year-id="'+esc(timeline.academic_year_id||"")+'">ข้ามปีนี้</button>':
         (!annual&&timeline.can_manage&&step.is_skippable?'<button type="button" class="department-step-link department-step-link-button" data-department-setup-action="skip" data-department-code="'+esc(timeline.department_code)+'" data-step-code="'+esc(step.step_code)+'">ข้ามขั้นนี้</button>':''))+
       '</div>';
     }else{
@@ -2951,7 +3102,7 @@ function personnelNavHtml(active){
     '<a href="#/personnel/registry" class="'+(active==="registry"?"active":"")+'">ทะเบียนบุคลากร</a>'+
     (work.can_review?'<a href="#/personnel/requests" class="'+(active==="requests"?"active":"")+'">คำขอเข้าร่วม'+(pending>0?'<span class="subnav-badge">'+pending+'</span>':'')+'</a>':'')+
     (work.can_manage_intake?'<a href="#/personnel/intake" class="'+(active==="intake"?"active":"")+'">รับบุคลากรเข้าระบบ</a>':'')+
-    (work.can_assign_authority?'<a href="#/personnel/authorities" class="'+(active==="authorities"?"active":"")+'">ผู้รับผิดชอบงานบุคลากร</a>':'')+
+    (state.workAuthorityAccess&&state.workAuthorityAccess.can_delegate_any?'<a href="#/work-authorities">ผู้รับผิดชอบ/มอบหมายงาน</a>':'')+
   '</nav>';
 }
 async function personnelDashboardHtml(){
@@ -2980,7 +3131,7 @@ async function personnelDashboardHtml(){
       '<a class="personnel-action-card" href="#/personnel/registry"><span>🪪</span><div><strong>ทะเบียนบุคลากร</strong><small>ค้นหา ดู และจัดการข้อมูลหลักของบุคลากร</small></div><em>เปิด</em></a>'+
       (work.can_review?'<a class="personnel-action-card '+(pending>0?"priority":"")+'" href="#/personnel/requests"><span>✅</span><div><strong>คำขอเข้าร่วม'+(pending>0?' · '+pending+' รายการ':'')+'</strong><small>ตรวจข้อมูลที่ผู้สมัครระบุ แก้ไขก่อนอนุมัติ และป้องกันรายการซ้ำ</small></div><em>'+(pending>0?"ตรวจสอบ":"เปิด")+'</em></a>':'')+
       (work.can_manage_intake?'<a class="personnel-action-card" href="#/personnel/intake"><span>🔗</span><div><strong>รับบุคลากรเข้าระบบ</strong><small>เปิด/ปิดลิงก์รับสมัครและคัดลอกลิงก์ส่งในกลุ่มโรงเรียน</small></div><em>ตั้งค่า</em></a>':'')+
-      (work.can_assign_authority?'<a class="personnel-action-card" href="#/personnel/authorities"><span>👥</span><div><strong>ผู้รับผิดชอบงานบุคลากร</strong><small>แต่งตั้งหัวหน้างานและเจ้าหน้าที่ พร้อมกำหนดสิทธิ์ที่จำเป็น</small></div><em>จัดการ</em></a>':'')+
+      (state.workAuthorityAccess&&state.workAuthorityAccess.can_delegate_any?'<a class="personnel-action-card" href="#/work-authorities"><span>🧩</span><div><strong>ผู้รับผิดชอบ/มอบหมายงาน</strong><small>กำหนดหัวหน้าฝ่าย หัวหน้างาน และสิทธิ์ย่อยตามขอบเขตงาน</small></div><em>จัดการ</em></a>':'')+
     '</section>'+
     (work.can_review&&pending>0?'<section class="notice warning personnel-attention"><strong>มีงานที่ต้องดำเนินการ '+pending+' รายการ</strong><br>มีผู้ยืนยันอีเมลและส่งคำขอเข้าร่วมโรงเรียนแล้ว กรุณาตรวจสอบก่อนอนุมัติ</section>':'')+
   '</section>';
@@ -3648,7 +3799,7 @@ function academicYearSelectorHtml(data){
 }
 function academicNavHtml(active,data){
   const steps=[
-    {key:"periods",href:"#/academics/periods",label:"ปี/ภาคเรียน",stepCode:"periods"},
+    {key:"periods",href:"#/academics/periods",label:"ตั้งค่าพื้นฐาน",stepCode:"periods"},
     {key:"programs",href:"#/academics/programs",label:"โปรแกรมพิเศษ",stepCode:"programs"},
     {key:"classes",href:"#/academics/classes",label:"ชั้น/ห้อง",stepCode:"classes"},
     {key:"subjects",href:"#/academics/subjects",label:"หลักสูตร/เวลาเรียน",stepCode:"subjects"},
@@ -3704,11 +3855,11 @@ async function loadAcademicStructure(){
   return state.academicData;
 }
 async function academicDashboardHtml(data){
-  const school=currentSchool(),stats=data.stats||{},year=academicSelectedYear(data),canManage=Boolean(data.can_manage);
+  const school=currentSchool(),stats=data.stats||{},year=academicSelectedYear(data),canManage=Boolean(data.can_manage_any_academic||data.can_manage);
   const noYear=!(data.years&&data.years.length);
   const timeline=state.academicTimeline||await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
   return '<section class="academic-page">'+academicNavHtml("dashboard",data)+
-    '<section class="academic-hero"><div><p class="eyebrow">ACADEMIC STRUCTURE</p><h2>งานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · วางข้อมูลต้นทางรายปีเพื่อให้ภาระงานสอน ตารางเรียน และงานวัดผลใช้ข้อมูลชุดเดียวกัน</p></div>'+(canManage?'<a class="primary-btn" href="#/academics/periods">'+(noYear?"เริ่มตั้งค่าปีการศึกษา":"จัดการโครงสร้าง")+'</a>':'')+'</section>'+
+    '<section class="academic-hero"><div><p class="eyebrow">ACADEMIC STRUCTURE</p><h2>งานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · วางข้อมูลต้นทางรายปีเพื่อให้ภาระงานสอน ตารางเรียน และงานวัดผลใช้ข้อมูลชุดเดียวกัน</p></div>'+(canManage?'<a class="primary-btn" href="#/academics/periods">'+(noYear?"เริ่มตั้งค่าพื้นฐาน":"เปิดการตั้งค่าประจำปี")+'</a>':'')+'</section>'+
     departmentSetupTimelineHtml(timeline)+
     '<section class="academic-stats-grid">'+
       '<article><small>ปีการศึกษา</small><strong>'+(year?esc(year.year_be):"-")+'</strong><span>'+(year&&year.is_current?"ปีปัจจุบัน":"ปีที่เลือก")+'</span></article>'+
@@ -3719,7 +3870,7 @@ async function academicDashboardHtml(data){
     '</section>'+
     (noYear?'<section class="notice warning"><strong>ยังไม่มีโครงสร้างปีการศึกษาที่พร้อมใช้งาน</strong><br>เริ่มจากเพิ่มปีการศึกษา ระบบจะสร้างภาคเรียนที่ 1 และ 2 ให้เป็นค่าเริ่มต้น จากนั้นจึงกำหนดชั้น/ห้องและรายวิชา</section>':'')+
     '<section class="academic-flow-grid">'+
-      '<a href="#/academics/periods"><b>01</b><div><strong>ปีการศึกษาและภาคเรียน</strong><small>กำหนดช่วงเวลาและปีปัจจุบัน</small></div></a>'+
+      '<a href="#/academics/periods"><b>01</b><div><strong>ตั้งค่าพื้นฐานงานวิชาการประจำปี</strong><small>ปี/ภาคเรียน ช่วงปฏิทิน และกรอบเวลาเรียนของห้องปกติ/โปรแกรมพิเศษ</small></div></a>'+
       '<a href="#/academics/programs"><b>02</b><div><strong>โปรแกรมพิเศษ</strong><small>ใช้ข้อมูลระดับโรงเรียนเดิม แล้วตรวจสอบสำหรับปีที่เลือก</small></div></a>'+
       '<a href="#/academics/classes"><b>03</b><div><strong>ระดับชั้นและห้อง</strong><small>ห้องจาก LEC ถูกนำมาเป็นฐานโดยไม่ต้องกรอกซ้ำ</small></div></a>'+
       '<a href="#/academics/subjects"><b>04</b><div><strong>โครงสร้างหลักสูตรและเวลาเรียน</strong><small>เลือกรายวิชา กำหนดชั่วโมง/คาบ เทียบกรอบ และยืนยันความครบถ้วนในหน้าเดียว</small></div></a>'+
@@ -3749,40 +3900,92 @@ function academicEndDateAfter100Weekdays(startIso){
   return academicDateAfterWeekdays(startIso,100);
 }
 function academicPeriodsHtml(data){
-  const years=data.years||[],canManage=Boolean(data.can_manage),canDelete=isSchoolAdminContext();
+  const years=data.years||[];
+  const canManage=Boolean(data.can_manage_basic_settings);
+  const canDelete=isSchoolAdminContext();
   const selectedYear=(data.years||[]).find(y=>y.id===data.selected_year_id)||null;
-  const schedule=data.schedule_settings||{configured:false};
-  const scheduleConfigured=Boolean(schedule.configured);
+  const timeFrames=(data.time_frames||[]).filter(x=>x&&x.is_active!==false);
+  const programs=(data.programs||[]).filter(x=>x&&x.is_active!==false);
+  const defaultFrame=timeFrames.find(x=>x.is_default)||null;
+  const specialFrames=timeFrames.filter(x=>!x.is_default);
+  const assignedPrograms=new Set(specialFrames.map(x=>x.program_id).filter(Boolean));
+  const availablePrograms=programs.filter(p=>!assignedPrograms.has(p.id));
   const frameNumber=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:2});
-  const framePeriodsPerWeek=scheduleConfigured?Number(schedule.periods_per_week||Number(schedule.school_days_per_week||0)*Number(schedule.periods_per_day||0)):0;
-  const frameCapacityHours=scheduleConfigured?Number(schedule.capacity_hours_per_year||Number(schedule.school_days_per_week||0)*Number(schedule.periods_per_day||0)*Number(schedule.minutes_per_period||0)/60*Number(schedule.instructional_weeks_per_year||0)):0;
+  const frameCapacity=f=>Number(f&&f.capacity_hours_per_year||Number(f&&f.school_days_per_week||0)*Number(f&&f.periods_per_day||0)*Number(f&&f.minutes_per_period||0)/60*Number(f&&f.instructional_weeks_per_year||0));
+  const frameWeekly=f=>Number(f&&f.periods_per_week||Number(f&&f.school_days_per_week||0)*Number(f&&f.periods_per_day||0));
+
   const yearCards=years.map(y=>{
     const terms=(y.terms||[]).map(t=>'<div class="academic-term-row"><div><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><small>'+(t.starts_on||t.ends_on?esc(thaiDate(t.starts_on))+' – '+esc(thaiDate(t.ends_on)):'ยังไม่กำหนดช่วงวันที่')+'</small></div>'+(t.is_current?'<span class="pill success">ภาคเรียนปัจจุบัน</span>':'')+(canManage?'<div class="academic-period-row-actions"><button type="button" class="text-btn" data-edit-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">แก้ไข</button>'+(canDelete?'<button type="button" class="text-btn danger-text" data-safe-delete-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">ลบ</button>':'')+'</div>':'')+'</div>').join("");
     return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-add-term="'+esc(y.id)+'">＋ เพิ่มภาคเรียน</button><button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+(canDelete?'<button type="button" class="danger-btn compact-btn" data-safe-delete-year="'+esc(y.id)+'">ลบปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
   }).join("");
-  const scheduleFrameHtml=selectedYear?'<section class="panel academic-time-frame-panel '+(scheduleConfigured?"is-configured":"needs-setup")+'">'+
-    '<div class="panel-head"><div><p class="eyebrow">STEP 1.3 · SCHOOL TIME FRAME</p><h2>กรอบเวลาเรียนของปีการศึกษา</h2><p class="panel-sub">กำหนดความจุเวลาเรียนของโรงเรียนสำหรับปี '+esc(selectedYear.year_be)+' ก่อนจัดรายวิชา ระบบใช้ค่านี้ตรวจว่าคาบ/สัปดาห์และชั่วโมงที่ต้องลงตารางไม่เกินเวลาที่มีจริง</p></div><span class="pill '+(scheduleConfigured?"success":"warning")+'">'+(scheduleConfigured?"✓ กำหนดแล้ว":"รอกำหนด")+'</span></div>'+
-    (scheduleConfigured?'<div class="academic-time-frame-summary">'+
-      '<article><small>วันเรียน</small><strong>'+frameNumber(schedule.school_days_per_week)+'</strong><span>วัน/สัปดาห์</span></article>'+
-      '<article><small>คาบต่อวัน</small><strong>'+frameNumber(schedule.periods_per_day)+'</strong><span>คาบ/วัน</span></article>'+
-      '<article><small>ความจุรายสัปดาห์</small><strong>'+frameNumber(framePeriodsPerWeek)+'</strong><span>คาบ/สัปดาห์</span></article>'+
-      '<article><small>เวลาต่อคาบ</small><strong>'+frameNumber(schedule.minutes_per_period)+'</strong><span>นาที/คาบ</span></article>'+
-      '<article><small>สัปดาห์เรียน</small><strong>'+frameNumber(schedule.instructional_weeks_per_year)+'</strong><span>สัปดาห์/ปี</span></article>'+
-      '<article><small>รองรับได้สูงสุด</small><strong>'+frameNumber(frameCapacityHours)+'</strong><span>ชั่วโมง/ปี</span></article>'+
-    '</div>':'<div class="academic-time-frame-warning"><strong>ยังคำนวณรายวิชา 100% จริงไม่ได้</strong><span>กรุณากำหนดวันเรียน คาบต่อวัน นาทีต่อคาบ และจำนวนสัปดาห์เรียนก่อน ระบบจึงจะตรวจความจุตารางของทุกระดับชั้นได้</span></div>')+
-    (canManage?'<form class="academic-time-frame-form" data-schedule-settings-form>'+
-      '<label>วันเรียน/สัปดาห์<input name="school_days_per_week" type="number" min="1" max="7" step="1" required value="'+esc(scheduleConfigured?schedule.school_days_per_week:"5")+'" placeholder="เช่น 5"></label>'+
-      '<label>คาบ/วัน<input name="periods_per_day" type="number" min="0.25" max="20" step="0.25" required value="'+esc(scheduleConfigured?schedule.periods_per_day:"")+'" placeholder="เช่น 6"></label>'+
-      '<label>นาที/คาบ<input name="minutes_per_period" type="number" min="20" max="120" step="1" required value="'+esc(scheduleConfigured?schedule.minutes_per_period:"60")+'" placeholder="เช่น 60"></label>'+
-      '<label>สัปดาห์เรียน/ปี<input name="instructional_weeks_per_year" type="number" min="1" max="60" step="0.5" required value="'+esc(scheduleConfigured?schedule.instructional_weeks_per_year:"40")+'" placeholder="เช่น 40"></label>'+
+
+  const programOptions=(selected,includeUsed=true)=>programs
+    .filter(p=>includeUsed||!assignedPrograms.has(p.id)||p.id===selected)
+    .map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?"selected":"")+'>'+esc(p.name_th)+(p.code?' · '+esc(p.code):'')+'</option>')
+    .join("");
+
+  const timeFrameForm=(frame,isNew=false,isDefaultNew=false)=>{
+    const f=frame||{};
+    const isDefault=Boolean(f.is_default||isDefaultNew);
+    const nameValue=f.name_th||(isDefault?"ห้องเรียนปกติ":"");
+    const codeValue=f.code||(isDefault?"NORMAL":"");
+    const days=f.school_days_per_week||5;
+    const periods=f.periods_per_day||(isDefault?6:"");
+    const minutes=f.minutes_per_period||60;
+    const weeks=f.instructional_weeks_per_year||40;
+    return '<form class="academic-time-frame-form academic-time-frame-edit-form" data-time-frame-form data-id="'+esc(f.id||"")+'" data-default="'+(isDefault?"1":"0")+'">'+
+      '<label>ชื่อกรอบเวลาเรียน<input name="name_th" required maxlength="120" value="'+esc(nameValue)+'" placeholder="'+(isDefault?'เช่น ห้องเรียนปกติ':'เช่น ห้องเรียน MEP')+'"></label>'+
+      '<label>รหัส/อักษรย่อ<input name="code" required maxlength="30" value="'+esc(codeValue)+'" placeholder="'+(isDefault?'NORMAL':'MEP')+'"></label>'+
+      (isDefault
+        ?'<label><span>ใช้กับ</span><div class="academic-frame-fixed-target">ห้องปกติ + โปรแกรมที่ไม่มีกำหนดกรอบเฉพาะ</div><input name="program_id" type="hidden" value=""></label>'
+        :'<label>โปรแกรม / กลุ่มห้อง <select name="program_id" required><option value="">เลือกโปรแกรม</option>'+programOptions(f.program_id||"",!isNew)+'</select></label>')+
+      '<label>วันเรียน/สัปดาห์<input name="school_days_per_week" type="number" min="1" max="7" step="1" required value="'+esc(days)+'"></label>'+
+      '<label>คาบ/วัน<input name="periods_per_day" type="number" min="0.25" max="20" step="0.25" required value="'+esc(periods)+'" placeholder="เช่น 6"></label>'+
+      '<label>นาที/คาบ<input name="minutes_per_period" type="number" min="20" max="120" step="1" required value="'+esc(minutes)+'"></label>'+
+      '<label>สัปดาห์เรียน/ปี<input name="instructional_weeks_per_year" type="number" min="1" max="60" step="0.5" required value="'+esc(weeks)+'"></label>'+
+      '<input name="is_default" type="hidden" value="'+(isDefault?"1":"0")+'">'+
       '<div class="academic-time-frame-preview span-all" data-time-frame-preview>กรอกข้อมูลครบเพื่อดูความจุเวลาเรียน</div>'+
-      '<div class="academic-time-frame-note span-all"><strong>หลักการคำนวณ:</strong> วันเรียน × คาบ/วัน = คาบสูงสุด/สัปดาห์ และคูณ นาที/คาบ × สัปดาห์/ปี เพื่อหาชั่วโมงที่รองรับได้สูงสุด · กิจกรรมบูรณาการไม่นับเป็นคาบที่กินตาราง</div>'+
-      '<div class="academic-form-actions span-all"><button type="submit" class="primary-btn">'+(scheduleConfigured?"บันทึกการแก้ไขกรอบเวลา":"บันทึกกรอบเวลาเรียน")+'</button></div>'+
-    '</form>':'')+
+      '<div class="academic-time-frame-note span-all"><strong>หลักการคำนวณ:</strong> วันเรียน × คาบ/วัน = คาบสูงสุด/สัปดาห์ แล้วคูณเวลาต่อคาบและจำนวนสัปดาห์เพื่อหาชั่วโมงสูงสุด/ปี · ระบบจะใช้กรอบเฉพาะโปรแกรมก่อน และใช้กรอบเริ่มต้นเมื่อไม่มีกรอบเฉพาะ</div>'+
+      '<div class="academic-form-actions span-all">'+
+        (!isDefault&&!isNew?'<button type="button" class="danger-outline-btn" data-disable-time-frame="'+esc(f.id)+'">ปิดใช้กรอบนี้</button>':'')+
+        '<button type="submit" class="primary-btn">'+(isNew?"เพิ่มกรอบเวลาเรียน":"บันทึกการแก้ไข")+'</button>'+
+      '</div>'+
+    '</form>';
+  };
+
+  const frameCards=timeFrames.map(f=>{
+    const programName=f.program_name||programs.find(p=>p.id===f.program_id)?.name_th||"";
+    const target=f.is_default
+      ?'ค่าเริ่มต้นของโรงเรียน · ใช้กับห้องปกติและโปรแกรมที่ไม่มีกำหนดกรอบเฉพาะ'
+      :'ใช้กับ '+(programName||"โปรแกรมพิเศษ");
+    return '<article class="academic-time-frame-card '+(f.is_default?"default-frame":"special-frame")+'">'+
+      '<div class="academic-time-frame-card-head"><div><div class="academic-frame-title-line"><strong>'+esc(f.name_th)+'</strong>'+(f.is_default?'<span class="pill success">ค่าเริ่มต้น</span>':'<span class="pill">กรอบเฉพาะ</span>')+(f.code?'<span class="academic-frame-code">'+esc(f.code)+'</span>':'')+'</div><p>'+esc(target)+' · '+Number(f.room_count||0).toLocaleString("th-TH")+' ห้อง</p></div></div>'+
+      '<div class="academic-time-frame-summary">'+
+        '<article><small>วันเรียน</small><strong>'+frameNumber(f.school_days_per_week)+'</strong><span>วัน/สัปดาห์</span></article>'+
+        '<article><small>คาบต่อวัน</small><strong>'+frameNumber(f.periods_per_day)+'</strong><span>คาบ/วัน</span></article>'+
+        '<article><small>ความจุรายสัปดาห์</small><strong>'+frameNumber(frameWeekly(f))+'</strong><span>คาบ/สัปดาห์</span></article>'+
+        '<article><small>เวลาต่อคาบ</small><strong>'+frameNumber(f.minutes_per_period)+'</strong><span>นาที/คาบ</span></article>'+
+        '<article><small>สัปดาห์เรียน</small><strong>'+frameNumber(f.instructional_weeks_per_year)+'</strong><span>สัปดาห์/ปี</span></article>'+
+        '<article><small>รองรับได้สูงสุด</small><strong>'+frameNumber(frameCapacity(f))+'</strong><span>ชั่วโมง/ปี</span></article>'+
+      '</div>'+
+      (canManage?'<details class="academic-frame-edit"><summary>แก้ไขกรอบเวลาเรียน</summary>'+timeFrameForm(f,false,false)+'</details>':'')+
+    '</article>';
+  }).join("");
+
+  const scheduleFrameHtml=selectedYear?'<section class="panel academic-time-frame-panel '+(defaultFrame?"is-configured":"needs-setup")+'">'+
+    '<div class="panel-head"><div><p class="eyebrow">STEP 1.3 · LEARNING TIME FRAMES</p><h2>กรอบเวลาเรียนตามประเภทห้อง / โปรแกรม</h2><p class="panel-sub">ห้องเรียนปกติและห้องเรียนพิเศษอาจใช้โครงสร้างเวลาไม่เท่ากัน ระบบจะเลือกกรอบตามโปรแกรมของห้องโดยอัตโนมัติ แล้วใช้กรอบเริ่มต้นเป็นค่าทดแทนเมื่อไม่ได้กำหนดกรอบเฉพาะ</p></div><span class="pill '+(defaultFrame?"success":"warning")+'">'+(defaultFrame?"✓ มีกรอบเริ่มต้น":"รอกำหนดกรอบเริ่มต้น")+'</span></div>'+
+    (!defaultFrame?'<div class="academic-time-frame-warning"><strong>ยังคำนวณรายวิชา 100% จริงไม่ได้</strong><span>ต้องมีกรอบเวลาเรียนเริ่มต้นอย่างน้อย 1 กรอบก่อน ระบบจึงจะตรวจคาบ/สัปดาห์และชั่วโมง/ปีได้</span></div>':'')+
+    '<div class="academic-time-frame-list">'+(frameCards||'<div class="empty-state compact-empty"><div class="empty-icon">⏱</div><h3>ยังไม่มีกรอบเวลาเรียน</h3></div>')+'</div>'+
+    (canManage&&!defaultFrame?'<div class="academic-new-frame-box"><h3>สร้างกรอบเวลาเริ่มต้น</h3><p>กรอบนี้เป็นค่าหลักสำหรับห้องเรียนปกติและเป็น fallback ของโปรแกรมพิเศษ</p>'+timeFrameForm(null,true,true)+'</div>':'')+
+    (canManage&&defaultFrame&&availablePrograms.length?'<details class="academic-new-frame-box"><summary>＋ เพิ่มกรอบเวลาเรียนสำหรับโปรแกรมพิเศษ</summary><p>เพิ่มเฉพาะโปรแกรมที่มีจำนวนคาบ/วัน เวลาต่อคาบ หรือจำนวนสัปดาห์ต่างจากกรอบเริ่มต้น</p>'+timeFrameForm(null,true,false)+'</details>':'')+
+    (canManage&&defaultFrame&&!availablePrograms.length&&programs.length?'<div class="academic-time-frame-note"><strong>ครบทุกโปรแกรมแล้ว:</strong> ทุกโปรแกรมพิเศษที่เปิดใช้งานมีกรอบเวลาเฉพาะ หรือสามารถปิดกรอบเฉพาะเพื่อกลับไปใช้กรอบเริ่มต้นได้</div>':'')+
+    (!canManage?'<div class="academic-shared-settings-lock"><strong>ข้อมูลส่วนกลางของโรงเรียน</strong><span>ดูได้ตามสิทธิ์ แต่แก้ไขได้เฉพาะ School Admin หรือผู้ได้รับมอบหมายส่วนงานนี้เท่านั้น</span></div>':'')+
   '</section>':'';
 
   return '<section class="academic-page">'+academicNavHtml("periods",data)+
-    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">STEP 1.1–1.2 · ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">กำหนดปีและภาคเรียนก่อน แล้วดำเนินการต่อที่ขั้นย่อย 1.3 “กรอบเวลาเรียนของปีการศึกษา” ในหน้าเดียวกัน เพื่อให้ขั้นที่ 1 พร้อมใช้จริง</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
+    '<section class="panel academic-basic-settings-head"><div class="panel-head"><div><p class="eyebrow">STEP 1 · ANNUAL ACADEMIC SETTINGS</p><h2>การตั้งค่าพื้นฐานงานวิชาการประจำปี</h2><p class="panel-sub">รวมปีการศึกษา ภาคเรียน ช่วงปฏิทิน และกรอบเวลาเรียนไว้ในขั้นเดียว เพื่อให้รายวิชา ตารางเรียน และภาระงานสอนอ้างอิงข้อมูลกลางชุดเดียวกัน</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
+      '<div class="academic-shared-settings-owner"><span>🔐</span><div><strong>ผู้กำหนดข้อมูลส่วนกลาง</strong><p>School Admin และผู้ได้รับมอบหมายสิทธิ์ “ตั้งค่าพื้นฐานงานวิชาการประจำปี” เท่านั้น · การแก้ไขทุกครั้งมี Audit Log</p></div>'+(data.can_delegate_basic_settings?'<a class="secondary-btn compact-btn" href="#/work-authorities">จัดการผู้รับผิดชอบ</a>':'')+'</div>'+
+      '<div class="academic-settings-section-title"><strong>1.1–1.2 ปีการศึกษา / ภาคเรียน / ช่วงปฏิทิน</strong><span>กำหนดช่วงวันเปิด–ปิดของปีและแต่ละภาคเรียน</span></div>'+
       '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
       (canDelete?'<div class="academic-delete-policy"><strong>การลบแบบปลอดภัย</strong><span>ระบบจะตรวจข้อมูลเชื่อมโยงก่อนทุกครั้ง หากมีนักเรียน LEC ห้องเรียน รายวิชา เวลาเรียน หรือภาระงานสอน ระบบจะบล็อกการลบโดยอัตโนมัติ</span></div><div class="academic-safe-delete-panel hidden" data-academic-safe-delete-panel></div>':'')+
     '</section>'+
@@ -3794,7 +3997,7 @@ function academicPeriodsHtml(data){
   '</section>';
 }
 function academicProgramsHtml(data,timeline){
-  const items=data.programs||[],canManage=Boolean(data.can_manage);
+  const items=data.programs||[],canManage=Boolean(data.can_manage_programs);
   const activeItems=items.filter(p=>p.is_active);
   const programStep=(timeline&&timeline.steps||[]).find(x=>x.step_code==="programs")||null;
   const selectedYear=(data.years||[]).find(y=>y.id===data.selected_year_id)||null;
@@ -3821,7 +4024,7 @@ function academicProgramsHtml(data,timeline){
   '</section>';
 }
 function academicClassesHtml(data){
-  const allItems=data.classes||[],canManage=Boolean(data.can_manage),year=academicSelectedYear(data);
+  const allItems=data.classes||[],canManage=Boolean(data.can_manage_classes),year=academicSelectedYear(data);
   const items=allItems.filter(x=>x.source_type==="lec"&&x.is_active!==false);
   const classStageDefinitions=[
     {key:"K",label:"อนุบาล",match:code=>/^K[1-3]$/.test(code)},
@@ -3901,7 +4104,7 @@ function academicClassesHtml(data){
   '</section>';
 }
 function academicSubjectsHtml(data,timeline){
-  const canManage=Boolean(data.can_manage),canEdit=canManage&&Boolean(state.subjectEditMode),year=academicSelectedYear(data),preset=state.academicPreset||{};
+  const canManage=Boolean(data.can_manage_subjects),canApprove=Boolean(data.can_approve_subjects),canEdit=canManage&&Boolean(state.subjectEditMode),year=academicSelectedYear(data),preset=state.academicPreset||{};
   const readiness=state.curriculumReadiness||{groups:[],exclusions:[],total_groups:0,confirmed_groups:0,groups_with_courses:0};
   const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
   const allCourses=data.courses||[];
@@ -4071,6 +4274,9 @@ function academicSubjectsHtml(data,timeline){
   const subjectCompleteness=subjectWorkspace.subject_completeness
     ||(subjectReadiness.groups||[]).find(g=>g.grade_code===gradeCode&&(g.program_id||"")===(selectedProgram?selectedProgram.id:""))
     ||null;
+  const activeTimeFrame=currentGroup&&currentGroup.time_frame_name?currentGroup:null;
+  const activeTimeFrameLabel=activeTimeFrame?String(activeTimeFrame.time_frame_name):"กรอบเวลาเริ่มต้นของโรงเรียน";
+  const activeTimeFrameSource=activeTimeFrame&&activeTimeFrame.time_frame_source==="program"?"กรอบเฉพาะโปรแกรม":"กรอบเริ่มต้น";
 
   const scheduleSettings=readiness.schedule_settings||{configured:false};
   const totalGroups=Number(readiness.total_groups||0),confirmedGroups=Number(readiness.confirmed_groups||0);
@@ -4226,7 +4432,7 @@ function academicSubjectsHtml(data,timeline){
       '<div class="subject-current-completeness '+(subjectCurrentComplete?"complete":"warning")+'"><strong>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>'+(subjectCompleteness?Number(subjectCompleteness.completion_percent||0):0)+'%</span><small>รายวิชา '+subjectContentPct+'% · เวลา '+subjectTimePct+'%'+(Number(subjectCompleteness&&subjectCompleteness.missing_count||0)?' · ขาดวิชา '+Number(subjectCompleteness.missing_count):'')+(Number(subjectCompleteness&&subjectCompleteness.time_issue_count||0)?' · ปัญหาเวลา '+Number(subjectCompleteness.time_issue_count):'')+'</small></div>'+
     '</div>'+
     '<div class="subject-completeness-groups">'+subjectGroupsHtml+'</div>'+
-    (subjectCompleteness?'<div class="subject-time-status '+(subjectTimeComplete?"ok":"attention")+'"><div><strong>'+(subjectTimeComplete?"✓ เวลาเรียนผ่านเกณฑ์จริง":"เวลาเรียนยังไม่ผ่านเกณฑ์ 100%")+'</strong><span>'+(subjectScheduleConfigured?"ตรวจจากกรอบเวลาเรียนที่กำหนดในขั้นที่ 1":"ยังไม่ได้กำหนดกรอบเวลาเรียนของปีการศึกษาในขั้นที่ 1")+'</span></div>'+(!subjectScheduleConfigured?'<a class="secondary-btn compact-btn" href="#/academics/periods">ไปกำหนดกรอบเวลาเรียน · ขั้น 1</a>':'')+'</div>':'')+
+    (subjectCompleteness?'<div class="subject-time-status '+(subjectTimeComplete?"ok":"attention")+'"><div><strong>'+(subjectTimeComplete?"✓ เวลาเรียนผ่านเกณฑ์จริง":"เวลาเรียนยังไม่ผ่านเกณฑ์ 100%")+'</strong><span>'+(subjectScheduleConfigured?"ตรวจจาก "+esc(activeTimeFrameLabel)+" · "+esc(activeTimeFrameSource):"ยังไม่ได้กำหนดกรอบเวลาเรียนของปีการศึกษาในขั้นที่ 1")+'</span></div>'+(!subjectScheduleConfigured?'<a class="secondary-btn compact-btn" href="#/academics/periods">ไปกำหนดกรอบเวลาเรียน · ขั้น 1</a>':'')+'</div>':'')+
     subjectTimeSummaryHtml+
     ((missingRequirementsHtml||subjectAnomaliesHtml||subjectTimeIssuesHtml)
       ?'<div class="subject-completeness-detail">'+
@@ -4264,7 +4470,7 @@ function academicSubjectsHtml(data,timeline){
   const confirmationHtml=currentStatus==="confirmed"
     ?'<section class="subject-combined-confirmation confirmed"><div><strong>✓ ยืนยันโครงสร้างแล้ว</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านการตรวจและยืนยันรายวิชา/เวลาเรียนแล้ว</span></div></section>'
     :currentStatus==="ready_to_confirm"
-      ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว</span></div>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-confirm-curriculum-structure>ยืนยันโครงสร้างนี้</button>':'')+'</section>'
+      ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว</span></div>'+(canApprove?'<button type="button" class="primary-btn compact-btn" data-confirm-curriculum-structure>ยืนยันโครงสร้างนี้</button>':'')+'</section>'
       :'';
   const schoolGroups=
     selectedGroupHtml("basic","รายวิชาพื้นฐาน","รายวิชาที่ใช้ตามโครงสร้างหลักสูตรของระดับชั้นนี้")+
@@ -4324,7 +4530,7 @@ function academicCurriculumHtml(data,embedded=false){
   const readiness=state.curriculumReadiness||{groups:[]};
   const schoolGradeSet=new Set(academicCurriculumGradeCodes(data));
   const items=(data.courses||[]).filter(c=>schoolGradeSet.has(c.grade_code||academicGradeCode(c.grade_label)));
-  const subjects=(data.subjects||[]).filter(s=>s.is_active),year=academicSelectedYear(data),canManage=Boolean(data.can_manage);
+  const subjects=(data.subjects||[]).filter(s=>s.is_active),year=academicSelectedYear(data),canManage=Boolean(data.can_manage_subjects);
   const f=state.academicFilters||{};
   if(f.grade_label&&!academicGradeValues(data).includes(f.grade_label))state.academicFilters={...f,grade_label:""};
   const currentFilters=state.academicFilters||{};
@@ -4479,7 +4685,7 @@ function workloadItemListHtml(items){
   ).join("")+'</div>';
 }
 function workloadEditorHtml(page,workload,personnel){
-  const canManage=Boolean(page.can_manage);
+  const canManage=Boolean(page.can_manage),canApprove=Boolean(page.can_approve);
   if(!personnel)return canManage
     ?'<section class="panel teaching-editor-panel"><div class="empty-state compact-empty"><div class="empty-icon">👤</div><h3>เลือกบุคลากรเพื่อจัดภาระงานสอน</h3><p>เลือกจากรายชื่อด้านบน ระบบจะแสดงรายการเดิมของภาคเรียนนี้ถ้ามี</p></div></section>'
     :'<section class="panel teaching-editor-panel"><div class="empty-state compact-empty"><div class="empty-icon">🔗</div><h3>ยังไม่เชื่อมบัญชีกับทะเบียนบุคลากร</h3><p>กรุณาติดต่อฝ่ายบุคลากรเพื่อเชื่อมบัญชีก่อนเสนอภาระงานสอน</p></div></section>';
@@ -4505,7 +4711,7 @@ function workloadEditorHtml(page,workload,personnel){
       '<label class="form-field teaching-workload-note"><span>หมายเหตุภาพรวม</span><textarea name="note" rows="2" placeholder="เว้นว่างได้">'+esc(workload&&workload.note||"")+'</textarea></label>'+
       '<div class="teaching-editor-actions">'+
         (canManage
-          ?'<button type="submit" class="primary-btn" data-workload-action="approve">บันทึกและอนุมัติ</button>'
+          ?(canApprove?'<button type="submit" class="primary-btn" data-workload-action="approve">บันทึกและอนุมัติ</button>':'<button type="submit" class="primary-btn" data-workload-action="submit">บันทึกและส่งผู้อนุมัติ</button>')
           :'<button type="submit" class="secondary-btn" data-workload-action="draft">บันทึกฉบับร่าง</button><button type="submit" class="primary-btn" data-workload-action="submit">ส่งให้ฝ่ายวิชาการตรวจสอบ</button>')+
       '</div>'+
     '</form>')+
@@ -4520,7 +4726,7 @@ function teachingWorkloadCardsHtml(page){
       '<div class="teaching-workload-card-head"><div><strong>'+esc(w.personnel_name||"-")+'</strong><small>'+esc(w.position_title||"")+(w.academic_standing?' · '+esc(w.academic_standing):'')+'</small></div><span class="pill '+teachingWorkloadStatusClass(w.status)+'">'+esc(teachingWorkloadStatusLabel(w.status))+'</span></div>'+
       workloadItemListHtml(w.items||[])+
       '<div class="teaching-card-footer"><div><small>รวม</small><strong>'+Number(w.total_weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</strong></div><div class="teaching-card-actions">'+
-        (page.can_manage&&w.status==="submitted"?'<button type="button" class="secondary-btn compact-btn" data-edit-workload-personnel="'+esc(w.personnel_id)+'">ตรวจ/แก้ไข</button><button type="button" class="danger-outline-btn compact-btn" data-return-workload="'+esc(w.id)+'">ส่งกลับแก้ไข</button><button type="button" class="primary-btn compact-btn" data-approve-workload="'+esc(w.id)+'">อนุมัติ</button>':'')+
+        ((page.can_manage||page.can_approve)&&w.status==="submitted"?((page.can_manage?'<button type="button" class="secondary-btn compact-btn" data-edit-workload-personnel="'+esc(w.personnel_id)+'">ตรวจ/แก้ไข</button>':'')+(page.can_approve?'<button type="button" class="danger-outline-btn compact-btn" data-return-workload="'+esc(w.id)+'">ส่งกลับแก้ไข</button><button type="button" class="primary-btn compact-btn" data-approve-workload="'+esc(w.id)+'">อนุมัติ</button>':'')):'')+
         (page.can_manage&&w.status!=="submitted"?'<button type="button" class="secondary-btn compact-btn" data-edit-workload-personnel="'+esc(w.personnel_id)+'">เปิดรายการ</button>':'')+
       '</div></div>'+
       (w.review_note?'<div class="teaching-review-note"><strong>หมายเหตุการตรวจ:</strong> '+esc(w.review_note)+'</div>':'')+
@@ -5338,15 +5544,14 @@ function bindAcademics(){
     refreshSubjects();
   });
 
-  const scheduleForm=q("[data-schedule-settings-form]");
-  const updateTimeFramePreview=()=>{
-    if(!scheduleForm)return;
-    const fd=new FormData(scheduleForm);
+  const updateTimeFramePreview=form=>{
+    if(!form)return;
+    const fd=new FormData(form);
     const days=Number(fd.get("school_days_per_week")||0);
     const periods=Number(fd.get("periods_per_day")||0);
     const minutes=Number(fd.get("minutes_per_period")||0);
     const weeks=Number(fd.get("instructional_weeks_per_year")||0);
-    const preview=q("[data-time-frame-preview]",scheduleForm);
+    const preview=q("[data-time-frame-preview]",form);
     if(!preview)return;
     if(days>0&&periods>0&&minutes>0&&weeks>0){
       const weekly=days*periods;
@@ -5356,28 +5561,51 @@ function bindAcademics(){
       preview.textContent="กรอกข้อมูลครบเพื่อดูความจุเวลาเรียน";
     }
   };
-  if(scheduleForm){
-    scheduleForm.addEventListener("input",updateTimeFramePreview);
-    updateTimeFramePreview();
-  }
-  if(scheduleForm)scheduleForm.addEventListener("submit",async e=>{
-    e.preventDefault();
-    const fd=new FormData(scheduleForm),btn=scheduleForm.querySelector('button[type="submit"]');
-    setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_save_academic_schedule_settings",{
+  qa("[data-time-frame-form]").forEach(form=>{
+    form.addEventListener("input",()=>updateTimeFramePreview(form));
+    updateTimeFramePreview(form);
+    form.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const fd=new FormData(form),btn=form.querySelector('button[type="submit"]');
+      setBusy(btn,true,"กำลังบันทึก...");
+      const res=await supabase.rpc("lao_save_academic_time_frame",{
+        p_school_id:school.id,
+        p_academic_year_id:data.selected_year_id,
+        p_time_frame_id:form.dataset.id||null,
+        p_name_th:String(fd.get("name_th")||"").trim(),
+        p_code:String(fd.get("code")||"").trim(),
+        p_program_id:String(fd.get("program_id")||"").trim()||null,
+        p_is_default:String(fd.get("is_default")||"0")==="1",
+        p_school_days_per_week:Number(fd.get("school_days_per_week")),
+        p_periods_per_day:Number(fd.get("periods_per_day")),
+        p_minutes_per_period:Number(fd.get("minutes_per_period")),
+        p_instructional_weeks_per_year:Number(fd.get("instructional_weeks_per_year"))
+      });
+      setBusy(btn,false);
+      if(res.error){toast(res.error.message,"error");return;}
+      state.curriculumReadiness=null;
+      state.subjectReadiness=null;
+      state.academicData=null;
+      toast(form.dataset.id?"บันทึกการแก้ไขกรอบเวลาเรียนแล้ว":"เพิ่มกรอบเวลาเรียนแล้ว","success");
+      renderRoute();
+    });
+  });
+  qa("[data-disable-time-frame]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("ปิดใช้กรอบเวลาเรียนนี้?\n\nห้องในโปรแกรมนี้จะกลับไปใช้กรอบเวลาเริ่มต้นของโรงเรียนโดยอัตโนมัติ"))return;
+    setBusy(btn,true,"กำลังปิด...");
+    const res=await supabase.rpc("lao_set_academic_time_frame_active",{
       p_school_id:school.id,
-      p_academic_year_id:data.selected_year_id,
-      p_school_days_per_week:Number(fd.get("school_days_per_week")),
-      p_periods_per_day:Number(fd.get("periods_per_day")),
-      p_minutes_per_period:Number(fd.get("minutes_per_period")),
-      p_instructional_weeks_per_year:Number(fd.get("instructional_weeks_per_year"))
+      p_time_frame_id:btn.dataset.disableTimeFrame,
+      p_is_active:false
     });
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
     state.curriculumReadiness=null;
-    toast("บันทึกกรอบเวลาเรียนของปีการศึกษาแล้ว","success");
+    state.subjectReadiness=null;
+    state.academicData=null;
+    toast("ปิดกรอบเวลาเรียนแล้ว · โปรแกรมนี้กลับไปใช้กรอบเริ่มต้น","success");
     renderRoute();
-  });
+  }));
 
   const librarySearch=q("[data-subject-library-search]");
   if(librarySearch)librarySearch.addEventListener("input",()=>{
@@ -6151,6 +6379,7 @@ async function renderRoute(){
     else if(route==="organization"){html=await organizationHtml();bind=bindOrganizationForms;}
     else if(route==="lec"){html=await lecHtml();bind=bindLec;}
     else if(route==="users"){html=await usersHtml();bind=()=>{bindInvites();bindPlatformAdminApplications();};}
+    else if(route==="work-authorities"){html=await workAuthoritiesHtml();bind=bindWorkAuthorities;}
     else if(route==="personnel"){html=await personnelHtml();bind=bindPersonnel;}
     else if(route==="students"){html=await studentsHtml();bind=bindStudents;}
     else if(route==="academics"){html=await academicsHtml();bind=bindAcademics;}
