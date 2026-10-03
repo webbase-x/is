@@ -1016,7 +1016,7 @@ async function loadAcademicWorkCounts(){
 async function refreshAttentionState(){
   if(!state.user||personnelJoinToken())return;
   try{
-    await Promise.all([loadNotifications(),loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);
+    await Promise.all([loadNotifications(),loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);
     refreshHeader();
   }catch(_){}
 }
@@ -3829,7 +3829,7 @@ async function loadAcademicStructure(){
   return state.academicData;
 }
 async function academicDashboardHtml(data){
-  const school=currentSchool(),stats=data.stats||{},year=academicSelectedYear(data),canManage=Boolean(data.can_manage);
+  const school=currentSchool(),stats=data.stats||{},year=academicSelectedYear(data),canManage=Boolean(data.can_manage_any_academic||data.can_manage);
   const noYear=!(data.years&&data.years.length);
   const timeline=state.academicTimeline||await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
   return '<section class="academic-page">'+academicNavHtml("dashboard",data)+
@@ -3971,7 +3971,7 @@ function academicPeriodsHtml(data){
   '</section>';
 }
 function academicProgramsHtml(data,timeline){
-  const items=data.programs||[],canManage=Boolean(data.can_manage);
+  const items=data.programs||[],canManage=Boolean(data.can_manage_programs);
   const activeItems=items.filter(p=>p.is_active);
   const programStep=(timeline&&timeline.steps||[]).find(x=>x.step_code==="programs")||null;
   const selectedYear=(data.years||[]).find(y=>y.id===data.selected_year_id)||null;
@@ -3998,7 +3998,7 @@ function academicProgramsHtml(data,timeline){
   '</section>';
 }
 function academicClassesHtml(data){
-  const allItems=data.classes||[],canManage=Boolean(data.can_manage),year=academicSelectedYear(data);
+  const allItems=data.classes||[],canManage=Boolean(data.can_manage_classes),year=academicSelectedYear(data);
   const items=allItems.filter(x=>x.source_type==="lec"&&x.is_active!==false);
   const classStageDefinitions=[
     {key:"K",label:"อนุบาล",match:code=>/^K[1-3]$/.test(code)},
@@ -4078,7 +4078,7 @@ function academicClassesHtml(data){
   '</section>';
 }
 function academicSubjectsHtml(data,timeline){
-  const canManage=Boolean(data.can_manage),canEdit=canManage&&Boolean(state.subjectEditMode),year=academicSelectedYear(data),preset=state.academicPreset||{};
+  const canManage=Boolean(data.can_manage_subjects),canEdit=canManage&&Boolean(state.subjectEditMode),year=academicSelectedYear(data),preset=state.academicPreset||{};
   const readiness=state.curriculumReadiness||{groups:[],exclusions:[],total_groups:0,confirmed_groups:0,groups_with_courses:0};
   const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
   const allCourses=data.courses||[];
@@ -4501,7 +4501,7 @@ function academicCurriculumHtml(data,embedded=false){
   const readiness=state.curriculumReadiness||{groups:[]};
   const schoolGradeSet=new Set(academicCurriculumGradeCodes(data));
   const items=(data.courses||[]).filter(c=>schoolGradeSet.has(c.grade_code||academicGradeCode(c.grade_label)));
-  const subjects=(data.subjects||[]).filter(s=>s.is_active),year=academicSelectedYear(data),canManage=Boolean(data.can_manage);
+  const subjects=(data.subjects||[]).filter(s=>s.is_active),year=academicSelectedYear(data),canManage=Boolean(data.can_manage_subjects);
   const f=state.academicFilters||{};
   if(f.grade_label&&!academicGradeValues(data).includes(f.grade_label))state.academicFilters={...f,grade_label:""};
   const currentFilters=state.academicFilters||{};
