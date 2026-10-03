@@ -3894,7 +3894,7 @@ function courseCurriculumTermSummary(validation){
 }
 function courseCurriculumListHtml(data){
   const school=currentSchool();
-  const rows=data&&data.courses||[];
+  const rows=(data&&data.courses||[]).filter(row=>row.subject_type!=="activity");
   const counts={not_started:0,draft:0,submitted:0,returned:0,approved:0};
   rows.forEach(row=>{const s=row.curriculum_status||"not_started";counts[s]=(counts[s]||0)+1;});
   const cards=rows.map(row=>{
@@ -7023,6 +7023,7 @@ function assessmentListHtml(data){
         const curriculum=curriculumByCourse.get(item.course_id)||null;
         const curriculumStatus=curriculum&&curriculum.curriculum_status||"not_started";
         if(item.book_id)return '<div class="assessment-course-actions"><a class="primary-btn compact-btn" href="#/assessment/'+esc(item.book_id)+'">'+(status==="approved"?"ดู ปพ.6":status==="submitted"?"ตรวจ/ดูรายการ":"เปิดบันทึกคะแนน")+'</a></div>';
+        if(item.subject_type==="activity")return '<div class="assessment-course-source"><span>✓ กิจกรรมพัฒนาผู้เรียนใช้เกณฑ์กิจกรรม (ผ/มผ)</span></div><div class="assessment-course-actions"><button type="button" class="primary-btn compact-btn" data-assessment-start="'+esc(item.workload_item_id)+'">เริ่มบันทึกผลกิจกรรม</button></div>';
         if(curriculumStatus==="approved")return '<div class="assessment-course-source"><span>✓ ใช้โครงสร้างคะแนนจากหลักสูตรรายวิชาที่อนุมัติแล้ว</span></div><div class="assessment-course-actions"><button type="button" class="primary-btn compact-btn" data-assessment-start="'+esc(item.workload_item_id)+'">เริ่มบันทึกคะแนน</button></div>';
         const label=curriculumStatus==="submitted"?"หลักสูตรรายวิชารอตรวจ":curriculumStatus==="returned"?"หลักสูตรรายวิชาถูกส่งกลับ":curriculumStatus==="draft"?"หลักสูตรรายวิชายังเป็นร่าง":"ยังไม่ได้จัดทำหลักสูตรรายวิชา";
         const actionLabel=curriculumStatus==="submitted"?"เปิดดู":curriculumStatus==="returned"?"แก้ไขหลักสูตร":curriculumStatus==="draft"?"ทำต่อ":"จัดทำหลักสูตร";
