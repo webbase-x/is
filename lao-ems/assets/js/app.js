@@ -2806,7 +2806,7 @@ async function workAuthoritiesHtml(){
       }).join("")+'</div></section>';
   }).join("");
 
-  const scopeOptions=delegateScopes.map(s=>'<option value="'+esc(s.scope_code)+'">'+esc(s.title||s.scope_code)+'</option>').join("");
+  const scopeOptions=delegateScopes.map(s=>'<option value="'+esc(s.scope_code)+'" data-parent-scope="'+esc(s.parent_scope_code||"")+'">'+esc(s.title||s.scope_code)+'</option>').join("");
   const personnelOptions=personnel.map(p=>'<option value="'+esc(p.personnel_id)+'">'+esc(p.full_name||"-")+(p.position_title?' · '+esc(p.position_title):'')+'</option>').join("");
   const roleOptions=(d.is_school_admin?'<option value="department_head">หัวหน้าฝ่าย</option>':'')+
     '<option value="work_head">หัวหน้างาน</option><option value="delegate" selected>ผู้ได้รับมอบหมาย</option>';
@@ -2836,19 +2836,43 @@ async function workAuthoritiesHtml(){
 }
 function bindWorkAuthorities(){
   const form=q("[data-work-authority-form]");
-  if(form)form.addEventListener("submit",async e=>{
+  if(form){
+    const role=form.elements.authority_role;
+    const scope=form.elements.scope_code;
+    const edit=form.elements.can_edit;
+    const delegate=form.elements.can_delegate;
+    const syncRole=()=>{
+      const value=String(role&&role.value||"delegate");
+      const isHead=value==="department_head"||value==="work_head";
+      if(edit){edit.checked=isHead||edit.checked;edit.disabled=isHead;}
+      if(delegate){delegate.checked=isHead||delegate.checked;delegate.disabled=isHead;}
+      if(scope){
+        Array.from(scope.options).forEach(opt=>{
+          if(!opt.value)return;
+          const parent=String(opt.dataset.parentScope||"");
+          opt.hidden=value==="department_head"?Boolean(parent):value==="work_head"?!parent:false;
+        });
+        const current=scope.options[scope.selectedIndex];
+        if(current&&current.hidden)scope.value="";
+      }
+    };
+    if(role)role.addEventListener("change",syncRole);
+    syncRole();
+    form.addEventListener("submit",async e=>{
     e.preventDefault();
     const school=currentSchool(),fd=new FormData(form),btn=form.querySelector('button[type="submit"]');
+    const authorityRole=String(fd.get("authority_role")||"delegate");
+    const isHead=authorityRole==="department_head"||authorityRole==="work_head";
     setBusy(btn,true,"กำลังบันทึก...");
     const res=await supabase.rpc("lao_save_work_authority",{
       p_school_id:school.id,
       p_personnel_id:String(fd.get("personnel_id")||""),
       p_scope_code:String(fd.get("scope_code")||""),
-      p_authority_role:String(fd.get("authority_role")||"delegate"),
+      p_authority_role:authorityRole,
       p_can_view:true,
-      p_can_edit:fd.get("can_edit")==="on",
+      p_can_edit:isHead||fd.get("can_edit")==="on",
       p_can_approve:fd.get("can_approve")==="on",
-      p_can_delegate:fd.get("can_delegate")==="on",
+      p_can_delegate:isHead||fd.get("can_delegate")==="on",
       p_starts_on:String(fd.get("starts_on")||"")||null,
       p_ends_on:String(fd.get("ends_on")||"")||null
     });
@@ -2859,6 +2883,7 @@ function bindWorkAuthorities(){
     refreshHeader();
     renderRoute();
   });
+  }
   qa("[data-deactivate-work-authority]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!confirm("ยกเลิกการมอบหมายสิทธิ์นี้?\n\nผู้ใช้จะไม่สามารถปฏิบัติงานด้วยสิทธิ์นี้หลังยืนยัน"))return;
     setBusy(btn,true,"กำลังยกเลิก...");
