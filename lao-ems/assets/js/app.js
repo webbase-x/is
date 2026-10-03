@@ -1268,14 +1268,14 @@ function rememberRecentWorkspaceRoute(route){
     localStorage.setItem(workspaceRecentStorageKey(),JSON.stringify({hash,label:info.label,icon:info.icon,at:Date.now()}));
   }catch(_){}
 }
-function workspaceAppItems(unreadCount,pendingJoin,pendingTeaching){
+function workspaceAppItems(unreadCount,pendingJoin,pendingTeaching,assessmentAttention=0){
   const school=currentSchool();
   const schoolAdmin=isSchoolAdminContext();
   const items=[
     {icon:"👤",title:"โปรไฟล์ของฉัน",desc:"ข้อมูลส่วนตัวและภาระงานสอนของฉัน",route:"#/profile",key:"profile"}
   ];
   if(canViewAcademic())items.push({icon:"📚",title:"งานวิชาการ",desc:"หลักสูตร เวลาเรียน และภาระงานสอน",route:"#/academics",key:"academics",badge:Number(pendingTeaching||0)});
-  if(canViewAcademic())items.push({icon:"📝",title:"วัดผลและ ปพ.",desc:"บันทึกคะแนน สรุป ปพ.6 และส่งผลให้ฝ่ายวิชาการ",route:"#/assessment",key:"assessment"});
+  if(canViewAcademic())items.push({icon:"📝",title:"วัดผลและ ปพ.",desc:"บันทึกคะแนน สรุป ปพ.6 และส่งผลให้ฝ่ายวิชาการ",route:"#/assessment",key:"assessment",badge:Number(assessmentAttention||0)});
   if(canViewStudentDirectory())items.push({icon:"🎓",title:"นักเรียน",desc:"ค้นหาและดูข้อมูลนักเรียนตามสิทธิ์",route:"#/students",key:"students"});
   if(canViewPersonnel())items.push({icon:"👥",title:"บุคลากร",desc:"ทะเบียนและงานบุคลากรที่ได้รับสิทธิ์",route:"#/personnel",key:"personnel",badge:Number(pendingJoin||0)});
   if(state.workAuthorityAccess&&state.workAuthorityAccess.can_view)items.push({icon:"🛡",title:"ผู้รับผิดชอบและการมอบหมาย",desc:"ดูขอบเขตงานและสิทธิ์ที่ได้รับมอบหมาย",route:"#/work-authorities",key:"work-authorities"});
@@ -1307,7 +1307,21 @@ async function overviewHtml(){
   const unread=(state.notifications||[]).filter(n=>!n.read_at&&(!school||!n.school_id||n.school_id===school.id));
   const pendingJoin=Number(personnelWork.pending_join_requests||0);
   const pendingTeaching=Number(academicWork.pending_teaching_workloads||0);
-  const apps=workspaceAppItems(unread.length,pendingJoin,pendingTeaching);
+  let assessmentOverview=null;
+  if(school&&canViewAcademic()){
+    try{
+      const res=await supabase.rpc("lao_assessment_page",{
+        p_school_id:school.id,
+        p_academic_year_id:null,
+        p_term_id:null,
+        p_book_id:null
+      });
+      if(!res.error)assessmentOverview=res.data||null;
+    }catch(e){console.warn("overview assessment",e);}
+  }
+  const assessmentStats=assessmentOverview&&assessmentOverview.stats||{};
+  const assessmentAttention=Number(assessmentStats.submitted||0)+Number(assessmentStats.returned||0);
+  const apps=workspaceAppItems(unread.length,pendingJoin,pendingTeaching,assessmentAttention);
   const timelines=[];
   const tasks=[];
   const waiting=[];
@@ -1344,6 +1358,28 @@ async function overviewHtml(){
   }
   if(pendingTeaching>0&&academicWork.can_manage){
     tasks.push({icon:"📚",title:"ภาระงานสอนรออนุมัติ "+pendingTeaching+" รายการ",desc:"ครูส่งภาระงานสอนเข้ามาและรอฝ่ายวิชาการตรวจสอบ",route:"#/academics/workload",label:"ตรวจสอบ",tone:"warning"});
+  }
+
+  if(assessmentOverview){
+    const submitted=Number(assessmentStats.submitted||0);
+    const returned=Number(assessmentStats.returned||0);
+    const assessmentItems=assessmentOverview.items||[];
+    if(returned>0){
+      tasks.unshift({icon:"↩",title:"ผลการเรียนถูกส่งกลับ "+returned+" รายการ",desc:"ตรวจคะแนนหรือข้อมูล ปพ.6 ที่ฝ่ายวิชาการส่งกลับ แล้วส่งใหม่",route:"#/assessment",label:"แก้ไข",tone:"danger"});
+    }
+    if(assessmentOverview.can_approve&&submitted>0){
+      tasks.push({icon:"📝",title:"ผลการเรียนรอตรวจสอบ "+submitted+" รายการ",desc:"ครูส่งคะแนนและ ปพ.6 มาให้ฝ่ายวิชาการตรวจสอบ",route:"#/assessment",label:"ตรวจสอบ",tone:"warning"});
+    }
+    if(roleCodes().includes("teacher")){
+      const ownPending=assessmentItems.filter(item=>item.personnel_id===assessmentOverview.own_personnel_id&&["not_started","draft"].includes(item.status)).length;
+      const ownSubmitted=assessmentItems.filter(item=>item.personnel_id===assessmentOverview.own_personnel_id&&item.status==="submitted").length;
+      if(ownPending>0){
+        tasks.push({icon:"📝",title:"วัดผลยังไม่เสร็จ "+ownPending+" รายวิชา/ห้อง",desc:"บันทึกคะแนนให้ครบและส่งฝ่ายวิชาการจากแอปวัดผลและ ปพ.",route:"#/assessment",label:"ทำต่อ",tone:"primary"});
+      }
+      if(ownSubmitted>0){
+        waiting.push({tone:"waiting",icon:"⏳",title:"ผลการเรียนรอฝ่ายวิชาการ "+ownSubmitted+" รายการ",desc:"ส่งแล้วและถูกล็อกไว้จนกว่าจะอนุมัติหรือส่งกลับ"});
+      }
+    }
   }
 
   if(school&&roleCodes().includes("teacher")){
