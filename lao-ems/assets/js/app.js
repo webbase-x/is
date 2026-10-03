@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.22";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.23";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -4336,10 +4336,13 @@ function academicSubjectsHtml(data,timeline){
     const g=readinessGroups.find(x=>x.grade_code===code&&(x.program_id||"")===(programId||""));
     return g?Number(g.completion_percent||0):0;
   };
-  const progressChoice=(attrs,label,sub,pct,active)=>'<button type="button" class="subject-progress-choice '+(active?"active ":"")+(pct>=100?"complete":"")+'" '+attrs+'>'+
-    '<span class="subject-progress-choice-ring" style="--progress:'+Math.max(0,Math.min(100,pct))+'%"><b>'+Math.round(pct)+'%</b></span>'+
-    '<strong>'+esc(label)+'</strong>'+(sub?'<small>'+esc(sub)+'</small>':'')+
-  '</button>';
+  const progressChoice=(attrs,label,sub,pct,active)=>{
+    const progress=Math.max(0,Math.min(100,Number(pct)||0));
+    const accessible=label+(sub?" · "+sub:"")+" · ความครบถ้วน "+Math.round(progress)+"%";
+    return '<button type="button" class="subject-progress-choice '+(active?"active ":"")+(progress>=100?"complete ":"")+(progress<=0?"empty":"")+'" '+attrs+' aria-label="'+esc(accessible)+'" title="'+esc(accessible)+'">'+
+      '<span class="subject-progress-choice-ring" style="--progress:'+progress+'%"><strong>'+esc(label)+'</strong></span>'+
+    '</button>';
+  };
   const gradeTabs=targetGrades.map(g=>{
     const code=academicGradeCode(g)||"",rooms=targetClasses.filter(c=>c.grade_label===g).length;
     const pct=gradeProgress(code,selectedProgram?selectedProgram.id:"");
@@ -4572,7 +4575,6 @@ function academicSubjectsHtml(data,timeline){
       '<div class="subjects-v2-context-row"><div><strong>ห้อง / โปรแกรม</strong></div><div class="subject-target-tabs subject-progress-tabs">'+targetTabs+'</div></div>'+
       '<div class="subjects-v2-context-row"><div><strong>ระดับชั้น</strong></div><div class="subject-grade-tabs subject-progress-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับชั้น</span>')+'</div></div>'+
     '</section>'+
-    subjectCompletenessHtml+
     editGuardHtml+
     copyYearHtml+
     curriculumFrameworkHtml+
