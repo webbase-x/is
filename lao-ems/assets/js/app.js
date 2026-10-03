@@ -1602,7 +1602,7 @@ async function profileHtml(){
   return '<section class="profile-page profile-clean-page">'+
     '<section class="profile-clean-hero">'+
       '<div class="profile-clean-avatar">'+avatarHtml(name,"profile-avatar-media")+'</div>'+
-      '<div class="profile-clean-identity"><p class="eyebrow">MY PROFILE</p><h2>'+esc(name)+'</h2><p>'+esc(email)+'</p>'+
+      '<div class="profile-clean-identity"><p class="eyebrow">MY PROFILE</p><h2>'+esc(name)+'</h2>'+
         '<div class="profile-clean-chips">'+
           '<span>🏫 '+esc(school&&school.name_th||"ยังไม่เลือกสถานศึกษา")+'</span>'+
           '<span>🪪 '+esc(roles)+'</span>'+
