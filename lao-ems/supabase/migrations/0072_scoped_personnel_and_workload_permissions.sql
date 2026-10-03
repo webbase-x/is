@@ -297,8 +297,8 @@ end;
 $function$;
 
 alter function public.lao_teaching_workload_page(uuid,uuid,uuid,text,uuid)
-  rename to lao_teaching_workload_page_base_v01915;
-revoke all on function public.lao_teaching_workload_page_base_v01915(uuid,uuid,uuid,text,uuid)
+  rename to lao_teaching_workload_page_base_v01914_scope;
+revoke all on function public.lao_teaching_workload_page_base_v01914_scope(uuid,uuid,uuid,text,uuid)
   from public,anon,authenticated;
 
 create function public.lao_teaching_workload_page(
@@ -318,15 +318,15 @@ begin
      or public.lao_has_work_permission(p_school_id,'academics.workload','approve') then
     perform set_config('lao.work_scope_override','academics.workload',true);
   end if;
-  return public.lao_teaching_workload_page_base_v01915(
+  return public.lao_teaching_workload_page_base_v01914_scope(
     p_school_id,p_academic_year_id,p_term_id,p_status,p_personnel_id
   );
 end;
 $function$;
 
 alter function public.lao_save_teaching_workload(uuid,uuid,uuid,uuid,text,jsonb,text)
-  rename to lao_save_teaching_workload_base_v01915;
-revoke all on function public.lao_save_teaching_workload_base_v01915(uuid,uuid,uuid,uuid,text,jsonb,text)
+  rename to lao_save_teaching_workload_base_v01914_scope;
+revoke all on function public.lao_save_teaching_workload_base_v01914_scope(uuid,uuid,uuid,uuid,text,jsonb,text)
   from public,anon,authenticated;
 
 create function public.lao_save_teaching_workload(
@@ -353,7 +353,7 @@ begin
     perform set_config('lao.work_scope_override','academics.workload',true);
   end if;
 
-  v_result:=public.lao_save_teaching_workload_base_v01915(
+  v_result:=public.lao_save_teaching_workload_base_v01914_scope(
     p_school_id,p_workload_id,p_personnel_id,p_term_id,p_note,p_items,p_action
   );
 
@@ -395,8 +395,8 @@ end;
 $function$;
 
 alter function public.lao_review_teaching_workload(uuid,text,text)
-  rename to lao_review_teaching_workload_base_v01915;
-revoke all on function public.lao_review_teaching_workload_base_v01915(uuid,text,text)
+  rename to lao_review_teaching_workload_base_v01914_scope;
+revoke all on function public.lao_review_teaching_workload_base_v01914_scope(uuid,text,text)
   from public,anon,authenticated;
 
 create function public.lao_review_teaching_workload(
@@ -423,7 +423,7 @@ begin
   end if;
 
   perform set_config('lao.work_scope_override','academics.workload',true);
-  return public.lao_review_teaching_workload_base_v01915(p_workload_id,p_decision,p_review_note);
+  return public.lao_review_teaching_workload_base_v01914_scope(p_workload_id,p_decision,p_review_note);
 end;
 $function$;
 
