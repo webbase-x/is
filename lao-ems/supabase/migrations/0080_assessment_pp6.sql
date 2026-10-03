@@ -209,8 +209,10 @@ declare
   v_manage boolean;
   v_approve boolean;
   v_book public.lao_assessment_books;
-  v_can_open_book boolean:=false;
-  v_result jsonb;
+  v_years jsonb:='[]'::jsonb;
+  v_items jsonb:='[]'::jsonb;
+  v_stats jsonb:='{}'::jsonb;
+  v_book_json jsonb:=null;
 begin
   if v_uid is null then raise exception 'Authentication required'; end if;
   if not public.lao_can_view_academic(p_school_id) then raise exception 'Access denied'; end if;
@@ -239,75 +241,74 @@ begin
     limit 1;
   end if;
 
-  if p_book_id is not null then
-    select * into v_book
-    from public.lao_assessment_books
-    where id=p_book_id and school_id=p_school_id;
-    if not found then raise exception 'ไม่พบสมุดวัดผล'; end if;
-    v_can_open_book:=v_manage or v_approve or v_book.personnel_id=v_own;
-    if not v_can_open_book then raise exception 'Access denied'; end if;
-  end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id',ay.id,'year_be',ay.year_be,'is_current',ay.is_current,
+    'terms',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',t.id,'term_no',t.term_no,
+        'name',coalesce(t.name,'ภาคเรียนที่ '||t.term_no),
+        'is_current',t.is_current
+      ) order by t.term_no)
+      from public.lao_terms t where t.academic_year_id=ay.id
+    ),'[]'::jsonb)
+  ) order by ay.year_be desc),'[]'::jsonb)
+  into v_years
+  from public.lao_academic_years ay
+  where ay.school_id=p_school_id;
 
-  select jsonb_build_object(
-    'can_manage',v_manage,
-    'can_approve',v_approve,
-    'own_personnel_id',v_own,
-    'selected_year_id',v_year_id,
-    'selected_term_id',v_term_id,
-    'years',coalesce((
-      select jsonb_agg(jsonb_build_object(
-        'id',ay.id,'year_be',ay.year_be,'is_current',ay.is_current,
-        'terms',coalesce((
-          select jsonb_agg(jsonb_build_object(
-            'id',t.id,'term_no',t.term_no,
-            'name',coalesce(t.name,'ภาคเรียนที่ '||t.term_no),
-            'is_current',t.is_current
-          ) order by t.term_no)
-          from public.lao_terms t where t.academic_year_id=ay.id
-        ),'[]'::jsonb)
-      ) order by ay.year_be desc)
-      from public.lao_academic_years ay
-      where ay.school_id=p_school_id
-    ),'[]'::jsonb),
-    'items',case when v_term_id is null then '[]'::jsonb else coalesce((
-      select jsonb_agg(jsonb_build_object(
-        'workload_item_id',i.id,
-        'workload_id',w.id,
-        'personnel_id',w.personnel_id,
-        'personnel_name',concat_ws(' ',p.prefix,p.first_name_th,p.last_name_th),
-        'course_id',i.course_id,
-        'class_section_id',i.class_section_id,
-        'subject_code',s.subject_code,
-        'subject_name',s.name_th,
-        'subject_type',s.subject_type,
-        'grade_label',cs.grade_label,
-        'class_label',cs.section_label,
-        'class_short',case
-          when cs.grade_label ~ '^อนุบาล[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^อนุบาล[[:space:]]*([0-9]+)$','อ.\1')||'/'||cs.section_label
-          when cs.grade_label ~ '^ประถมศึกษาปีที่[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^ประถมศึกษาปีที่[[:space:]]*([0-9]+)$','ป.\1')||'/'||cs.section_label
-          when cs.grade_label ~ '^มัธยมศึกษาปีที่[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^มัธยมศึกษาปีที่[[:space:]]*([0-9]+)$','ม.\1')||'/'||cs.section_label
-          else cs.grade_label||'/'||cs.section_label
-        end,
-        'program_code',ap.code,
-        'program_name',ap.name_th,
-        'book_id',b.id,
-        'status',coalesce(b.status,'not_started'),
-        'review_note',b.review_note,
-        'updated_at',b.updated_at,
-        'student_count',(
-          select count(*)
-          from public.lao_student_term_enrollments e
-          where e.school_id=p_school_id
-            and e.academic_year_id=v_year_id
-            and e.term_id=v_term_id
-            and e.grade_level=cs.grade_label
-            and e.classroom=cs.section_label
-            and e.lec_presence_status='present'
-        ),
-        'completed_student_count',case when b.id is null then 0 else (
-          select count(*)
-          from (
-            select e.student_id
+  if v_term_id is not null then
+    select coalesce(jsonb_agg(x.payload order by x.status_order,x.grade_label,x.class_label,x.subject_code,x.subject_name),'[]'::jsonb)
+    into v_items
+    from (
+      select
+        case coalesce(b.status,'not_started')
+          when 'returned' then 0
+          when 'submitted' then 1
+          when 'draft' then 2
+          when 'not_started' then 3
+          when 'approved' then 4
+          else 5
+        end as status_order,
+        cs.grade_label,
+        cs.section_label as class_label,
+        coalesce(s.subject_code,'') as subject_code,
+        s.name_th as subject_name,
+        jsonb_build_object(
+          'workload_item_id',i.id,
+          'workload_id',w.id,
+          'personnel_id',w.personnel_id,
+          'personnel_name',concat_ws(' ',p.prefix,p.first_name_th,p.last_name_th),
+          'course_id',i.course_id,
+          'class_section_id',i.class_section_id,
+          'subject_code',s.subject_code,
+          'subject_name',s.name_th,
+          'subject_type',s.subject_type,
+          'grade_label',cs.grade_label,
+          'class_label',cs.section_label,
+          'class_short',case
+            when cs.grade_label ~ '^อนุบาล[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^อนุบาล[[:space:]]*([0-9]+)$','อ.\1')||'/'||cs.section_label
+            when cs.grade_label ~ '^ประถมศึกษาปีที่[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^ประถมศึกษาปีที่[[:space:]]*([0-9]+)$','ป.\1')||'/'||cs.section_label
+            when cs.grade_label ~ '^มัธยมศึกษาปีที่[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^มัธยมศึกษาปีที่[[:space:]]*([0-9]+)$','ม.\1')||'/'||cs.section_label
+            else cs.grade_label||'/'||cs.section_label
+          end,
+          'program_code',ap.code,
+          'program_name',ap.name_th,
+          'book_id',b.id,
+          'status',coalesce(b.status,'not_started'),
+          'review_note',b.review_note,
+          'updated_at',b.updated_at,
+          'student_count',(
+            select count(*)
+            from public.lao_student_term_enrollments e
+            where e.school_id=p_school_id
+              and e.academic_year_id=v_year_id
+              and e.term_id=v_term_id
+              and e.grade_level=cs.grade_label
+              and e.classroom=cs.section_label
+              and e.lec_presence_status='present'
+          ),
+          'completed_student_count',case when b.id is null then 0 else (
+            select count(*)
             from public.lao_student_term_enrollments e
             where e.school_id=p_school_id
               and e.academic_year_id=v_year_id
@@ -320,21 +321,16 @@ begin
                 from public.lao_assessment_components ac
                 where ac.book_id=b.id
                   and not exists(
-                    select 1 from public.lao_assessment_scores sc
+                    select 1
+                    from public.lao_assessment_scores sc
                     where sc.book_id=b.id
                       and sc.component_id=ac.id
                       and sc.student_id=e.student_id
                       and sc.score is not null
                   )
               )
-          ) q
-        )
-      ) order by
-        case coalesce(b.status,'not_started')
-          when 'returned' then 0 when 'submitted' then 1 when 'draft' then 2
-          when 'not_started' then 3 when 'approved' then 4 else 5 end,
-        cs.grade_label,cs.section_label,coalesce(s.subject_code,''),s.name_th
-      )
+          )
+        ) as payload
       from public.lao_teaching_workloads w
       join public.lao_teaching_workload_items i on i.workload_id=w.id
       join public.lao_personnel p on p.id=w.personnel_id
@@ -347,103 +343,129 @@ begin
         and w.term_id=v_term_id
         and w.status='approved'
         and (v_manage or v_approve or w.personnel_id=v_own)
-    ),'[]'::jsonb) end,
-    'stats',jsonb_build_object(
-      'submitted',case when v_approve and v_term_id is not null then (
-        select count(*) from public.lao_assessment_books
-        where school_id=p_school_id and term_id=v_term_id and status='submitted'
-      ) else 0 end,
-      'returned',case when v_own is not null and v_term_id is not null then (
-        select count(*) from public.lao_assessment_books
-        where school_id=p_school_id and term_id=v_term_id
-          and personnel_id=v_own and status='returned'
-      ) else 0 end,
-      'approved',case when (v_manage or v_approve) and v_term_id is not null then (
-        select count(*) from public.lao_assessment_books
-        where school_id=p_school_id and term_id=v_term_id and status='approved'
-      ) else 0 end
-    ),
-    'book',case when p_book_id is null then null else (
-      select jsonb_build_object(
-        'id',b.id,
-        'status',b.status,
-        'grading_type',b.grading_type,
-        'note',b.note,
-        'review_note',b.review_note,
-        'submitted_at',b.submitted_at,
-        'reviewed_at',b.reviewed_at,
-        'personnel_id',b.personnel_id,
-        'personnel_name',concat_ws(' ',p.prefix,p.first_name_th,p.last_name_th),
-        'subject_code',s.subject_code,
-        'subject_name',s.name_th,
-        'subject_type',s.subject_type,
-        'grade_label',cs.grade_label,
-        'class_label',cs.section_label,
-        'class_short',case
-          when cs.grade_label ~ '^อนุบาล[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^อนุบาล[[:space:]]*([0-9]+)$','อ.\1')||'/'||cs.section_label
-          when cs.grade_label ~ '^ประถมศึกษาปีที่[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^ประถมศึกษาปีที่[[:space:]]*([0-9]+)$','ป.\1')||'/'||cs.section_label
-          when cs.grade_label ~ '^มัธยมศึกษาปีที่[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^มัธยมศึกษาปีที่[[:space:]]*([0-9]+)$','ม.\1')||'/'||cs.section_label
-          else cs.grade_label||'/'||cs.section_label
-        end,
-        'program_code',ap.code,
-        'program_name',ap.name_th,
-        'components',coalesce((
-          select jsonb_agg(jsonb_build_object(
-            'id',ac.id,'code',ac.code,'label',ac.label,
-            'max_score',ac.max_score,'sort_order',ac.sort_order
-          ) order by ac.sort_order)
-          from public.lao_assessment_components ac
-          where ac.book_id=b.id
-        ),'[]'::jsonb),
-        'students',coalesce((
-          select jsonb_agg(jsonb_build_object(
-            'student_id',e.student_id,
-            'student_no',sr.student_no,
-            'prefix',st.prefix,
-            'first_name_th',st.first_name_th,
-            'last_name_th',st.last_name_th,
-            'full_name',concat_ws('',st.prefix,st.first_name_th,' ',st.last_name_th),
-            'scores',coalesce((
-              select jsonb_agg(jsonb_build_object(
-                'component_id',ac.id,
-                'score',sc.score
-              ) order by ac.sort_order)
-              from public.lao_assessment_components ac
-              left join public.lao_assessment_scores sc
-                on sc.book_id=b.id and sc.component_id=ac.id and sc.student_id=e.student_id
-              where ac.book_id=b.id
-            ),'[]'::jsonb),
-            'total_score',coalesce((
-              select sum(sc.score)
-              from public.lao_assessment_scores sc
-              where sc.book_id=b.id and sc.student_id=e.student_id
-            ),0),
-            'result',case
-              when exists(
-                select 1 from public.lao_assessment_components ac
+    ) x;
+  end if;
+
+  v_stats:=jsonb_build_object(
+    'submitted',case when v_approve and v_term_id is not null then (
+      select count(*) from public.lao_assessment_books
+      where school_id=p_school_id and term_id=v_term_id and status='submitted'
+    ) else 0 end,
+    'returned',case when v_own is not null and v_term_id is not null then (
+      select count(*) from public.lao_assessment_books
+      where school_id=p_school_id and term_id=v_term_id
+        and personnel_id=v_own and status='returned'
+    ) else 0 end,
+    'approved',case when (v_manage or v_approve) and v_term_id is not null then (
+      select count(*) from public.lao_assessment_books
+      where school_id=p_school_id and term_id=v_term_id and status='approved'
+    ) else 0 end
+  );
+
+  if p_book_id is not null then
+    select * into v_book
+    from public.lao_assessment_books
+    where id=p_book_id and school_id=p_school_id;
+    if not found then raise exception 'ไม่พบสมุดวัดผล'; end if;
+    if not (v_manage or v_approve or v_book.personnel_id=v_own) then
+      raise exception 'Access denied';
+    end if;
+
+    select jsonb_build_object(
+      'id',b.id,
+      'status',b.status,
+      'grading_type',b.grading_type,
+      'note',b.note,
+      'review_note',b.review_note,
+      'submitted_at',b.submitted_at,
+      'reviewed_at',b.reviewed_at,
+      'personnel_id',b.personnel_id,
+      'personnel_name',concat_ws(' ',p.prefix,p.first_name_th,p.last_name_th),
+      'subject_code',s.subject_code,
+      'subject_name',s.name_th,
+      'subject_type',s.subject_type,
+      'grade_label',cs.grade_label,
+      'class_label',cs.section_label,
+      'class_short',case
+        when cs.grade_label ~ '^อนุบาล[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^อนุบาล[[:space:]]*([0-9]+)$','อ.\1')||'/'||cs.section_label
+        when cs.grade_label ~ '^ประถมศึกษาปีที่[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^ประถมศึกษาปีที่[[:space:]]*([0-9]+)$','ป.\1')||'/'||cs.section_label
+        when cs.grade_label ~ '^มัธยมศึกษาปีที่[[:space:]]*([0-9]+)$' then regexp_replace(cs.grade_label,'^มัธยมศึกษาปีที่[[:space:]]*([0-9]+)$','ม.\1')||'/'||cs.section_label
+        else cs.grade_label||'/'||cs.section_label
+      end,
+      'program_code',ap.code,
+      'program_name',ap.name_th,
+      'components',coalesce((
+        select jsonb_agg(jsonb_build_object(
+          'id',ac.id,'code',ac.code,'label',ac.label,
+          'max_score',ac.max_score,'sort_order',ac.sort_order
+        ) order by ac.sort_order)
+        from public.lao_assessment_components ac
+        where ac.book_id=b.id
+      ),'[]'::jsonb),
+      'students',coalesce((
+        select jsonb_agg(student_payload order by student_no_num nulls last,student_no,first_name_th,last_name_th)
+        from (
+          select
+            sr.student_no,
+            case when sr.student_no ~ '^\d+$' then sr.student_no::bigint else null end as student_no_num,
+            st.first_name_th,
+            st.last_name_th,
+            jsonb_build_object(
+              'student_id',e.student_id,
+              'student_no',sr.student_no,
+              'prefix',st.prefix,
+              'first_name_th',st.first_name_th,
+              'last_name_th',st.last_name_th,
+              'full_name',concat_ws('',st.prefix,st.first_name_th,' ',st.last_name_th),
+              'scores',coalesce((
+                select jsonb_agg(jsonb_build_object(
+                  'component_id',ac.id,
+                  'score',sc.score
+                ) order by ac.sort_order)
+                from public.lao_assessment_components ac
+                left join public.lao_assessment_scores sc
+                  on sc.book_id=b.id
+                 and sc.component_id=ac.id
+                 and sc.student_id=e.student_id
                 where ac.book_id=b.id
-                  and not exists(
-                    select 1 from public.lao_assessment_scores sc
-                    where sc.book_id=b.id and sc.component_id=ac.id
-                      and sc.student_id=e.student_id and sc.score is not null
-                  )
-              ) then null
-              when b.grading_type='pass_fail' then
-                case when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=50 then 'ผ' else 'มผ' end
-              else case
-                when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=80 then '4'
-                when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=75 then '3.5'
-                when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=70 then '3'
-                when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=65 then '2.5'
-                when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=60 then '2'
-                when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=55 then '1.5'
-                when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=50 then '1'
-                else '0'
+              ),'[]'::jsonb),
+              'total_score',coalesce((
+                select sum(sc.score)
+                from public.lao_assessment_scores sc
+                where sc.book_id=b.id and sc.student_id=e.student_id
+              ),0),
+              'result',case
+                when exists(
+                  select 1
+                  from public.lao_assessment_components ac
+                  where ac.book_id=b.id
+                    and not exists(
+                      select 1
+                      from public.lao_assessment_scores sc
+                      where sc.book_id=b.id
+                        and sc.component_id=ac.id
+                        and sc.student_id=e.student_id
+                        and sc.score is not null
+                    )
+                ) then null
+                when b.grading_type='pass_fail' then
+                  case
+                    when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=50 then 'ผ'
+                    else 'มผ'
+                  end
+                else
+                  case
+                    when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=80 then '4'
+                    when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=75 then '3.5'
+                    when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=70 then '3'
+                    when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=65 then '2.5'
+                    when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=60 then '2'
+                    when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=55 then '1.5'
+                    when coalesce((select sum(sc.score) from public.lao_assessment_scores sc where sc.book_id=b.id and sc.student_id=e.student_id),0)>=50 then '1'
+                    else '0'
+                  end
               end
-            end
-          ) order by
-            case when sr.student_no ~ '^\d+$' then sr.student_no::bigint else null end nulls last,
-            sr.student_no,st.first_name_th,st.last_name_th)
+            ) as student_payload
           from public.lao_student_term_enrollments e
           join public.lao_students st on st.id=e.student_id
           join public.lao_student_school_records sr
@@ -454,19 +476,30 @@ begin
             and e.grade_level=cs.grade_label
             and e.classroom=cs.section_label
             and e.lec_presence_status='present'
-        ),'[]'::jsonb)
-      )
-      from public.lao_assessment_books b
-      join public.lao_personnel p on p.id=b.personnel_id
-      join public.lao_curriculum_courses c on c.id=b.course_id
-      join public.lao_subjects s on s.id=c.subject_id
-      join public.lao_class_sections cs on cs.id=b.class_section_id
-      left join public.lao_academic_programs ap on ap.id=cs.program_id
-      where b.id=p_book_id
-    ) end
-  ) into v_result;
+        ) roster
+      ),'[]'::jsonb)
+    )
+    into v_book_json
+    from public.lao_assessment_books b
+    join public.lao_personnel p on p.id=b.personnel_id
+    join public.lao_curriculum_courses c on c.id=b.course_id
+    join public.lao_subjects s on s.id=c.subject_id
+    join public.lao_class_sections cs on cs.id=b.class_section_id
+    left join public.lao_academic_programs ap on ap.id=cs.program_id
+    where b.id=p_book_id;
+  end if;
 
-  return v_result;
+  return jsonb_build_object(
+    'can_manage',v_manage,
+    'can_approve',v_approve,
+    'own_personnel_id',v_own,
+    'selected_year_id',v_year_id,
+    'selected_term_id',v_term_id,
+    'years',v_years,
+    'items',v_items,
+    'stats',v_stats,
+    'book',v_book_json
+  );
 end;
 $function$;
 
