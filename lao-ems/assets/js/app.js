@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.25";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.26";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -4358,9 +4358,18 @@ function academicSubjectsHtml(data,timeline){
   };
   const hourMeta=h=>{
     const fmt=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:1});
-    if(h.total<=0)return '<span class="subject-progress-choice-meta"><small>ยังไม่มีกำหนดกรอบ</small></span>';
-    const gapText=h.gap>0.001?'ขาด '+fmt(h.gap):h.gap<-.001?'เกิน '+fmt(Math.abs(h.gap)):'ครบแล้ว';
-    return '<span class="subject-progress-choice-meta"><small>จัด '+fmt(h.arranged)+' ชม.</small><small class="'+(h.gap>0.001?"gap":h.gap<-.001?"over":"done")+'">'+gapText+' · รวม '+fmt(h.total)+'</small></span>';
+    if(h.total<=0)return '<span class="subject-progress-choice-meta"><small>ยังไม่กำหนดกรอบเวลา</small></span>';
+    const stateClass=h.gap>0.001?"gap":h.gap<-.001?"over":"done";
+    const gapText=h.gap>0.001
+      ?'ขาด '+fmt(h.gap)+' ชม.'
+      :h.gap<-.001
+        ?'เกิน '+fmt(Math.abs(h.gap))+' ชม.'
+        :'ครบแล้ว';
+    return '<span class="subject-progress-choice-meta">'+
+      '<small class="required">ต้องเรียน '+fmt(h.total)+' ชม.</small>'+
+      '<small>นำเข้าแล้ว '+fmt(h.arranged)+' ชม.</small>'+
+      '<small class="'+stateClass+'">'+gapText+'</small>'+
+    '</span>';
   };
   const gradeTabs=targetGrades.map(g=>{
     const code=academicGradeCode(g)||"";
