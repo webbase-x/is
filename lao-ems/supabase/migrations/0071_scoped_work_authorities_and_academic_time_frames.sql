@@ -647,7 +647,7 @@ begin
   if v_name is null then raise exception 'กรุณาระบุชื่อกรอบเวลาเรียน'; end if;
 
   if p_time_frame_id is not null then
-    select to_jsonb(f),f.* into v_before,v_row
+    select to_jsonb(f),f into v_before,v_row
     from public.lao_academic_time_frames f
     where f.id=p_time_frame_id and f.school_id=p_school_id and f.academic_year_id=p_academic_year_id
     for update;
