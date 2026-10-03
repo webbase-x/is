@@ -3076,7 +3076,7 @@ function personnelNavHtml(active){
     '<a href="#/personnel/registry" class="'+(active==="registry"?"active":"")+'">ทะเบียนบุคลากร</a>'+
     (work.can_review?'<a href="#/personnel/requests" class="'+(active==="requests"?"active":"")+'">คำขอเข้าร่วม'+(pending>0?'<span class="subnav-badge">'+pending+'</span>':'')+'</a>':'')+
     (work.can_manage_intake?'<a href="#/personnel/intake" class="'+(active==="intake"?"active":"")+'">รับบุคลากรเข้าระบบ</a>':'')+
-    (work.can_assign_authority?'<a href="#/personnel/authorities" class="'+(active==="authorities"?"active":"")+'">ผู้รับผิดชอบงานบุคลากร</a>':'')+
+    (work.can_assign_authority?'<a href="#/work-authorities">ผู้รับผิดชอบ/มอบหมายงาน</a>':'')+
   '</nav>';
 }
 async function personnelDashboardHtml(){
@@ -3105,7 +3105,7 @@ async function personnelDashboardHtml(){
       '<a class="personnel-action-card" href="#/personnel/registry"><span>🪪</span><div><strong>ทะเบียนบุคลากร</strong><small>ค้นหา ดู และจัดการข้อมูลหลักของบุคลากร</small></div><em>เปิด</em></a>'+
       (work.can_review?'<a class="personnel-action-card '+(pending>0?"priority":"")+'" href="#/personnel/requests"><span>✅</span><div><strong>คำขอเข้าร่วม'+(pending>0?' · '+pending+' รายการ':'')+'</strong><small>ตรวจข้อมูลที่ผู้สมัครระบุ แก้ไขก่อนอนุมัติ และป้องกันรายการซ้ำ</small></div><em>'+(pending>0?"ตรวจสอบ":"เปิด")+'</em></a>':'')+
       (work.can_manage_intake?'<a class="personnel-action-card" href="#/personnel/intake"><span>🔗</span><div><strong>รับบุคลากรเข้าระบบ</strong><small>เปิด/ปิดลิงก์รับสมัครและคัดลอกลิงก์ส่งในกลุ่มโรงเรียน</small></div><em>ตั้งค่า</em></a>':'')+
-      (work.can_assign_authority?'<a class="personnel-action-card" href="#/personnel/authorities"><span>👥</span><div><strong>ผู้รับผิดชอบงานบุคลากร</strong><small>แต่งตั้งหัวหน้างานและเจ้าหน้าที่ พร้อมกำหนดสิทธิ์ที่จำเป็น</small></div><em>จัดการ</em></a>':'')+
+      (work.can_assign_authority?'<a class="personnel-action-card" href="#/work-authorities"><span>🧩</span><div><strong>ผู้รับผิดชอบ/มอบหมายงาน</strong><small>กำหนดหัวหน้าฝ่าย หัวหน้างาน และสิทธิ์ย่อยตามขอบเขตงาน</small></div><em>จัดการ</em></a>':'')+
     '</section>'+
     (work.can_review&&pending>0?'<section class="notice warning personnel-attention"><strong>มีงานที่ต้องดำเนินการ '+pending+' รายการ</strong><br>มีผู้ยืนยันอีเมลและส่งคำขอเข้าร่วมโรงเรียนแล้ว กรุณาตรวจสอบก่อนอนุมัติ</section>':'')+
   '</section>';
