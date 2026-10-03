@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.8";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.9";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -2819,6 +2819,10 @@ function departmentSetupTimelineHtml(timeline){
   const rows=timeline.steps.map(step=>{
     const status=step.status||"queued";
     const icon=status==="completed"?"✓":status==="reused"?"↻":status==="skipped"?"↷":status==="not_applicable"?"–":status==="current"?"●":"○";
+    const rawStepPct=step.step_progress_percent;
+    const hasStepProgress=annual&&["current","queued"].includes(status)&&rawStepPct!==null&&rawStepPct!==undefined;
+    const stepPct=hasStepProgress?Math.max(0,Math.min(99,Number(rawStepPct)||0)):null;
+    const stepProgressLabel=String(step.step_progress_label||"").trim();
     let action="";
     if(status==="completed"||status==="reused"){
       action='<a class="department-step-link" href="'+esc(step.route)+'">เปิดดู</a>';
@@ -2845,10 +2849,13 @@ function departmentSetupTimelineHtml(timeline){
       :(status==="skipped"
         ?'<span class="department-step-kind optional">ข้ามได้ · ไม่นับร้อยละ</span>'
         :'<span class="department-step-kind '+(step.is_required?"required":"optional")+'">'+(step.is_required?"จำเป็น":"ข้ามได้")+'</span>');
+    const statusHtml=hasStepProgress
+      ?'<div class="department-step-progress-state '+esc(status)+'"><span class="department-step-mini-ring" style="--step-progress:'+stepPct+'%" aria-label="'+esc(step.title)+' '+stepPct+' เปอร์เซ็นต์"><b>'+stepPct+'%</b></span><div><span class="department-step-status '+esc(status)+'">'+esc(departmentSetupStatusLabel(status))+'</span>'+(stepProgressLabel?'<small>'+esc(stepProgressLabel)+'</small>':'')+'</div></div>'
+      :'<span class="department-step-status '+esc(status)+'">'+esc(departmentSetupStatusLabel(status))+'</span>';
     return '<article class="department-setup-step '+esc(status)+'">'+
       '<div class="department-step-marker"><span>'+icon+'</span><i></i></div>'+
       '<div class="department-step-copy"><div class="department-step-title"><b>'+esc(step.sequence_no)+'</b><strong>'+esc(step.title)+'</strong>'+kind+'</div><p>'+esc(step.description||"")+'</p></div>'+
-      '<span class="department-step-status '+esc(status)+'">'+esc(departmentSetupStatusLabel(status))+'</span>'+
+      statusHtml+
       '<div class="department-step-control">'+action+'</div>'+
     '</article>';
   }).join("");
@@ -3624,7 +3631,7 @@ function academicNavHtml(active,data){
     {key:"workload",href:"#/academics/workload",label:"ภาระงานสอน",stepCode:"workload"}
   ];
   const timeline=state.academicTimeline||null;
-  const statusByStep=new Map(((timeline&&timeline.steps)||[]).map(x=>[x.step_code,x.status]));
+  const stepInfoByCode=new Map(((timeline&&timeline.steps)||[]).map(x=>[x.step_code,x]));
   const attention=Number(state.academicWork&&state.academicWork.attention_count||0);
   const pct=Number(timeline&&timeline.progress_percent||0);
   const complete=Boolean(timeline&&timeline.is_complete);
@@ -3632,10 +3639,14 @@ function academicNavHtml(active,data){
     '<a href="#/academics" class="academic-overview-link '+(active==="dashboard"?"active":"")+'"><span class="academic-overview-mini-ring '+(complete?"complete":"")+'" style="--progress:'+Math.max(0,Math.min(100,pct))+'%">'+(complete?"✓":pct+"%")+'</span><span>ภาพรวม</span></a>'+
     '<nav class="academic-subnav academic-step-nav" aria-label="ลำดับขั้นตอนงานวิชาการรายปี">'+
       steps.map((step,index)=>{
-        const status=statusByStep.get(step.stepCode)||"queued";
-        const node=status==="completed"?"✓":status==="reused"?"↻":status==="not_applicable"?"–":status==="skipped"?"↷":String(index+1);
+        const info=stepInfoByCode.get(step.stepCode)||{};
+        const status=info.status||"queued";
+        const rawPct=info.step_progress_percent;
+        const hasPct=["current","queued"].includes(status)&&rawPct!==null&&rawPct!==undefined;
+        const stepPct=hasPct?Math.max(0,Math.min(99,Number(rawPct)||0)):null;
+        const node=status==="completed"?"✓":status==="reused"?"↻":status==="not_applicable"?"–":status==="skipped"?"↷":hasPct?stepPct+"%":String(index+1);
         return '<a href="'+step.href+'" class="academic-step-link '+(active===step.key?"active ":"")+'status-'+esc(status)+'" '+(active===step.key?'aria-current="page"':'')+'>'+
-          '<span class="academic-step-node">'+node+'</span>'+
+          '<span class="academic-step-node '+(hasPct?"has-progress":"")+'" '+(hasPct?'style="--step-progress:'+stepPct+'%" title="'+esc(info.step_progress_label||step.label)+'"':'')+'>'+node+'</span>'+
           '<span class="academic-step-title">'+esc(step.label)+(step.key==="workload"&&attention>0?'<span class="subnav-badge">'+attention+'</span>':'')+'</span>'+
         '</a>';
       }).join("")+
