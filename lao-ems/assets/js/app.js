@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.17";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.18";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3985,11 +3985,11 @@ function academicTimeFramesHtml(data){
     const minutes=f.minutes_per_period||60;
     const weeks=f.instructional_weeks_per_year||40;
     return '<form class="academic-time-frame-form academic-time-frame-edit-form" data-time-frame-form data-id="'+esc(f.id||"")+'" data-default="'+(isDefault?"1":"0")+'">'+
-      '<label>ชื่อกรอบเวลาเรียน<input name="name_th" required maxlength="120" value="'+esc(nameValue)+'" placeholder="'+(isDefault?'เช่น ห้องเรียนปกติ':'เช่น ห้องเรียน MEP')+'"></label>'+
-      '<label>รหัส/อักษรย่อ<input name="code" required maxlength="30" value="'+esc(codeValue)+'" placeholder="'+(isDefault?'NORMAL':'MEP')+'"></label>'+
       (isDefault
-        ?'<label><span>ใช้กับ</span><div class="academic-frame-fixed-target">ห้องปกติ + โปรแกรมปีนี้ที่ไม่มีกำหนดกรอบเฉพาะ</div><input name="program_id" type="hidden" value=""></label>'
-        :'<label>โปรแกรมที่ใช้ในปีนี้ <select name="program_id" required><option value="">เลือกโปรแกรม</option>'+programOptions(f.program_id||"")+'</select></label>')+
+        ?'<label>ชื่อกรอบเวลาเรียน<input name="name_th" required maxlength="120" value="'+esc(nameValue)+'" placeholder="เช่น ห้องเรียนปกติ"></label>'+
+          '<label>รหัส/อักษรย่อ<input name="code" required maxlength="30" value="'+esc(codeValue)+'" placeholder="NORMAL"></label>'+
+          '<label><span>ใช้กับ</span><div class="academic-frame-fixed-target">ห้องปกติ + โปรแกรมปีนี้ที่ไม่มีกำหนดกรอบเฉพาะ</div><input name="program_id" type="hidden" value=""></label>'
+        :'<label class="span-all">โปรแกรมที่ใช้ในปีนี้ <select name="program_id" required><option value="">เลือกโปรแกรม</option>'+programOptions(f.program_id||"")+'</select><small>ชื่อกรอบและอักษรย่อใช้ข้อมูลจากโปรแกรมที่เลือกโดยอัตโนมัติ</small></label>')+
       '<label>วันเรียน/สัปดาห์<input name="school_days_per_week" type="number" min="1" max="7" step="1" required value="'+esc(days)+'"></label>'+
       '<label>คาบ/วัน<input name="periods_per_day" type="number" min="0.25" max="20" step="0.25" required value="'+esc(periods)+'" placeholder="เช่น 6"></label>'+
       '<label>นาที/คาบ<input name="minutes_per_period" type="number" min="20" max="120" step="1" required value="'+esc(minutes)+'"></label>'+
@@ -5661,15 +5661,30 @@ function bindAcademics(){
     form.addEventListener("submit",async e=>{
       e.preventDefault();
       const fd=new FormData(form),btn=form.querySelector('button[type="submit"]');
+      const isDefault=String(fd.get("is_default")||"0")==="1";
+      const programId=String(fd.get("program_id")||"").trim()||null;
+      const selectedProgram=!isDefault&&programId
+        ?(data.year_programs||[]).find(p=>p.id===programId)
+        :null;
+      const frameName=isDefault
+        ?String(fd.get("name_th")||"").trim()
+        :String(selectedProgram&&selectedProgram.name_th||"").trim();
+      const frameCode=isDefault
+        ?String(fd.get("code")||"").trim()
+        :String(selectedProgram&&selectedProgram.code||("PROGRAM_"+String(programId||"").slice(0,8))).trim();
+      if(!isDefault&&!selectedProgram){
+        toast("กรุณาเลือกโปรแกรมที่ใช้ในปีนี้","error");
+        return;
+      }
       setBusy(btn,true,"กำลังบันทึก...");
       const res=await supabase.rpc("lao_save_academic_time_frame",{
         p_school_id:school.id,
         p_academic_year_id:data.selected_year_id,
         p_time_frame_id:form.dataset.id||null,
-        p_name_th:String(fd.get("name_th")||"").trim(),
-        p_code:String(fd.get("code")||"").trim(),
-        p_program_id:String(fd.get("program_id")||"").trim()||null,
-        p_is_default:String(fd.get("is_default")||"0")==="1",
+        p_name_th:frameName,
+        p_code:frameCode,
+        p_program_id:programId,
+        p_is_default:isDefault,
         p_school_days_per_week:Number(fd.get("school_days_per_week")),
         p_periods_per_day:Number(fd.get("periods_per_day")),
         p_minutes_per_period:Number(fd.get("minutes_per_period")),
