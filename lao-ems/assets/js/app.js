@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.13";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["ภาพรวมระบบ","ภาพรวมการเชื่อมข้อมูลและลำดับการพัฒนา"],
@@ -12,6 +12,7 @@ const routeMeta={
   setup:["ตั้งค่าสถานศึกษา","ตรวจความพร้อมหลังนำเข้า LEC เชื่อม Google Drive และตั้งค่าการใช้งาน"],
   organization:["อปท. และสถานศึกษา","โครงสร้างองค์กรและโรงเรียนในแพลตฟอร์ม"],
   users:["ผู้ใช้และสิทธิ์","คำขอเข้าใช้งาน บทบาท และขอบเขตสิทธิ์"],
+  "work-authorities":["ผู้รับผิดชอบและการมอบหมายงาน","กำหนดหัวหน้าฝ่าย หัวหน้างาน และผู้ได้รับมอบหมายตามขอบเขตงาน"],
   lec:["นำเข้าข้อมูล LEC","นำเข้า XLS/XLSX โดยระบบเลือกชีตที่มีข้อมูลสถานศึกษาครบและรักษาประวัติทุกปีการศึกษา"],
   personnel:["บุคลากร","ข้อมูลบุคลากรต้นทางสำหรับทุกระบบ"],
   students:["นักเรียน","ค้นหาและดูข้อมูลนักเรียนจาก LEC ตามปีการศึกษา ชั้น และห้อง"],
@@ -307,6 +308,18 @@ function currentSchool(){
 function currentOrg(){
   if(state.isPlatformAdmin&&state.viewMode==="admin")return state.adminSchool&&state.adminSchool.lao_organizations||null;
   return state.currentMembership&&state.currentMembership.lao_organizations||null;
+}
+async function loadWorkAuthorityAccess(){
+  const school=currentSchool();
+  if(!school||state.viewMode!=="user"){
+    state.workAuthorityAccess={can_view:false,can_delegate_any:false,is_school_admin:false};
+    return state.workAuthorityAccess;
+  }
+  const res=await supabase.rpc("lao_my_work_authority_access",{p_school_id:school.id});
+  state.workAuthorityAccess=res.error
+    ?{can_view:isSchoolAdminContext(),can_delegate_any:isSchoolAdminContext(),is_school_admin:isSchoolAdminContext()}
+    :(res.data||{can_view:false,can_delegate_any:false,is_school_admin:false});
+  return state.workAuthorityAccess;
 }
 function canViewStudentDirectory(){
   if(state.isPlatformAdmin&&state.viewMode==="admin")return Boolean(currentSchool());
@@ -666,10 +679,10 @@ function bindStaticUI(){
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
       state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;
-      await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);refreshHeader();renderRoute();return;
+      await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts()]);refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();}
   });
 }
 
@@ -1122,6 +1135,11 @@ function refreshHeader(){
 
   const studentLink=q('[data-route="students"][data-student-menu]');
   if(studentLink)studentLink.classList.toggle("hidden",!canViewStudentDirectory());
+
+  const workAuthorityLink=q('[data-route="work-authorities"][data-work-authority-menu]');
+  if(workAuthorityLink){
+    workAuthorityLink.classList.toggle("hidden",!(state.workAuthorityAccess&&state.workAuthorityAccess.can_view));
+  }
 
   const academicLink=q('[data-route="academics"][data-academic-menu]');
   if(academicLink){
@@ -2747,6 +2765,113 @@ function bindStudents(){
   }
 }
 
+
+function workAuthorityRoleLabel(value){
+  return ({department_head:"หัวหน้าฝ่าย",work_head:"หัวหน้างาน",delegate:"ผู้ได้รับมอบหมาย"})[value]||value||"-";
+}
+async function workAuthoritiesHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  const res=await supabase.rpc("lao_work_authority_matrix",{p_school_id:school.id});
+  if(res.error){
+    return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์จัดการการมอบหมายงาน</h3><p>หน้านี้สำหรับ School Admin หัวหน้าฝ่าย หัวหน้างาน หรือผู้ที่ได้รับสิทธิ์มอบหมายต่อ</p></div></section>';
+  }
+  const d=res.data||{},scopes=d.scopes||[],authorities=(d.authorities||[]).filter(x=>x.is_active!==false),personnel=d.personnel||[];
+  const scopeMap=new Map(scopes.map(x=>[x.scope_code,x]));
+  const delegateScopes=scopes.filter(x=>x.can_delegate);
+  const byDepartment=new Map();
+  authorities.forEach(a=>{
+    const key=a.department_code||"other";
+    if(!byDepartment.has(key))byDepartment.set(key,[]);
+    byDepartment.get(key).push(a);
+  });
+  const departmentLabels={academics:"ฝ่ายวิชาการ",personnel:"งานบุคลากร"};
+  const authoritySections=Array.from(byDepartment.entries()).map(([department,items])=>{
+    return '<section class="work-authority-group"><div class="work-authority-group-head"><div><strong>'+esc(departmentLabels[department]||department)+'</strong><span>'+items.length.toLocaleString("th-TH")+' ผู้รับผิดชอบ/การมอบหมาย</span></div></div>'+
+      '<div class="work-authority-list">'+items.map(a=>{
+        const scope=scopeMap.get(a.scope_code)||{};
+        const canRevoke=Boolean(d.is_school_admin||scope.can_delegate);
+        const permissions=[
+          a.can_view?"ดู":null,
+          a.can_edit?"แก้ไข":null,
+          a.can_approve?"อนุมัติ":null,
+          a.can_delegate?"มอบหมายต่อ":null
+        ].filter(Boolean);
+        const period=(a.starts_on||a.ends_on)?'<small>ช่วงสิทธิ์ '+(a.starts_on?esc(thaiDate(a.starts_on)):"ไม่กำหนด")+' – '+(a.ends_on?esc(thaiDate(a.ends_on)):"จนกว่าจะยกเลิก")+'</small>':'<small>มีผลจนกว่าจะยกเลิก</small>';
+        return '<article class="work-authority-row"><div class="work-authority-person"><strong>'+esc(a.full_name||"-")+'</strong><span>'+esc(a.position_title||"")+'</span>'+period+'</div>'+
+          '<div class="work-authority-scope"><strong>'+esc(a.scope_title||a.scope_code)+'</strong><span>'+esc(workAuthorityRoleLabel(a.authority_role))+'</span></div>'+
+          '<div class="work-authority-permissions">'+permissions.map(x=>'<span>'+esc(x)+'</span>').join("")+'</div>'+
+          (canRevoke?'<button type="button" class="text-btn danger-text" data-deactivate-work-authority="'+esc(a.id)+'">ยกเลิก</button>':'')+
+        '</article>';
+      }).join("")+'</div></section>';
+  }).join("");
+
+  const scopeOptions=delegateScopes.map(s=>'<option value="'+esc(s.scope_code)+'">'+esc(s.title||s.scope_code)+'</option>').join("");
+  const personnelOptions=personnel.map(p=>'<option value="'+esc(p.personnel_id)+'">'+esc(p.full_name||"-")+(p.position_title?' · '+esc(p.position_title):'')+'</option>').join("");
+  const roleOptions=(d.is_school_admin?'<option value="department_head">หัวหน้าฝ่าย</option>':'')+
+    '<option value="work_head">หัวหน้างาน</option><option value="delegate" selected>ผู้ได้รับมอบหมาย</option>';
+
+  return '<section class="work-authority-page">'+
+    '<section class="panel work-authority-hero"><div><p class="eyebrow">SCOPED WORK AUTHORITY</p><h2>ผู้รับผิดชอบและการมอบหมายงาน</h2><p>กำหนดสิทธิ์ตาม “ฝ่าย → งาน → ส่วนงาน” ผู้มอบหมายให้สิทธิ์ได้ไม่เกินสิทธิ์ของตนเอง และทุกการเปลี่ยนแปลงถูกบันทึกใน Audit Log</p></div><span class="pill '+(d.is_school_admin?"success":"")+'">'+(d.is_school_admin?"School Admin":"สิทธิ์ตามงานที่รับผิดชอบ")+'</span></section>'+
+    (d.can_manage_any&&delegateScopes.length&&personnel.length?'<section class="panel"><div class="panel-head"><div><h2>มอบหมายผู้รับผิดชอบ</h2><p class="panel-sub">เลือกเฉพาะส่วนงานที่คุณมีสิทธิ์มอบหมายต่อ ระบบจะป้องกันการให้สิทธิ์เกินขอบเขตของผู้มอบหมาย</p></div></div>'+
+      '<form class="work-authority-form" data-work-authority-form>'+
+        '<label>บุคลากร <span class="required-mark">*</span><select name="personnel_id" required><option value="">เลือกบุคลากรที่เชื่อมบัญชีแล้ว</option>'+personnelOptions+'</select></label>'+
+        '<label>ฝ่าย / งาน / ส่วนงาน <span class="required-mark">*</span><select name="scope_code" required><option value="">เลือกส่วนงาน</option>'+scopeOptions+'</select></label>'+
+        '<label>ฐานะผู้รับผิดชอบ<select name="authority_role">'+roleOptions+'</select></label>'+
+        '<label>เริ่มมีสิทธิ์<input name="starts_on" type="date"></label>'+
+        '<label>สิ้นสุด<input name="ends_on" type="date"></label>'+
+        '<div class="work-authority-checks span-all">'+
+          '<label><input type="checkbox" checked disabled><span>ดูข้อมูล</span></label>'+
+          '<label><input name="can_edit" type="checkbox" checked><span>เพิ่ม/แก้ไข</span></label>'+
+          '<label><input name="can_approve" type="checkbox"><span>อนุมัติ</span></label>'+
+          '<label><input name="can_delegate" type="checkbox"><span>มอบหมายต่อ</span></label>'+
+        '</div>'+
+        '<div class="academic-form-actions span-all"><button class="primary-btn" type="submit">บันทึกการมอบหมาย</button></div>'+
+      '</form>'+
+    '</section>':'')+
+    '<section class="panel"><div class="panel-head"><div><h2>สิทธิ์ที่กำหนดไว้</h2><p class="panel-sub">สิทธิ์ทำงานจำกัดตามขอบเขต ไม่ขยายเป็นสิทธิ์ทั้งโรงเรียนโดยอัตโนมัติ</p></div></div>'+
+      (authoritySections||'<div class="empty-state compact-empty"><div class="empty-icon">👥</div><h3>ยังไม่มีการมอบหมายสิทธิ์เฉพาะงาน</h3><p>School Admin ยังคงจัดการข้อมูลส่วนกลางของโรงเรียนได้ตามปกติ</p></div>')+
+    '</section>'+
+  '</section>';
+}
+function bindWorkAuthorities(){
+  const form=q("[data-work-authority-form]");
+  if(form)form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const school=currentSchool(),fd=new FormData(form),btn=form.querySelector('button[type="submit"]');
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_work_authority",{
+      p_school_id:school.id,
+      p_personnel_id:String(fd.get("personnel_id")||""),
+      p_scope_code:String(fd.get("scope_code")||""),
+      p_authority_role:String(fd.get("authority_role")||"delegate"),
+      p_can_view:true,
+      p_can_edit:fd.get("can_edit")==="on",
+      p_can_approve:fd.get("can_approve")==="on",
+      p_can_delegate:fd.get("can_delegate")==="on",
+      p_starts_on:String(fd.get("starts_on")||"")||null,
+      p_ends_on:String(fd.get("ends_on")||"")||null
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกการมอบหมายแล้ว","success");
+    await loadWorkAuthorityAccess();
+    refreshHeader();
+    renderRoute();
+  });
+  qa("[data-deactivate-work-authority]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("ยกเลิกการมอบหมายสิทธิ์นี้?\n\nผู้ใช้จะไม่สามารถปฏิบัติงานด้วยสิทธิ์นี้หลังยืนยัน"))return;
+    setBusy(btn,true,"กำลังยกเลิก...");
+    const res=await supabase.rpc("lao_deactivate_work_authority",{
+      p_school_id:currentSchool().id,
+      p_authority_id:btn.dataset.deactivateWorkAuthority
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("ยกเลิกการมอบหมายแล้ว","success");
+    renderRoute();
+  }));
+}
 
 function personnelTypeOptions(selected){
   const rows=[
@@ -6225,6 +6350,7 @@ async function renderRoute(){
     else if(route==="organization"){html=await organizationHtml();bind=bindOrganizationForms;}
     else if(route==="lec"){html=await lecHtml();bind=bindLec;}
     else if(route==="users"){html=await usersHtml();bind=()=>{bindInvites();bindPlatformAdminApplications();};}
+    else if(route==="work-authorities"){html=await workAuthoritiesHtml();bind=bindWorkAuthorities;}
     else if(route==="personnel"){html=await personnelHtml();bind=bindPersonnel;}
     else if(route==="students"){html=await studentsHtml();bind=bindStudents;}
     else if(route==="academics"){html=await academicsHtml();bind=bindAcademics;}
