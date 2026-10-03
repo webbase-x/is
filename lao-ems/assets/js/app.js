@@ -6585,6 +6585,7 @@ function assessmentBookHtml(data){
   const b=data.book;
   if(!b)return '<section class="panel"><div class="notice danger">ไม่พบสมุดวัดผล</div></section>';
   const comps=b.components||[],students=b.students||[];
+  const year=assessmentSelectedYear(data),term=assessmentSelectedTerm(data),school=currentSchool();
   const editable=(b.status==="draft"||b.status==="returned")&&(b.personnel_id===data.own_personnel_id||data.can_manage);
   const reviewable=b.status==="submitted"&&data.can_approve;
   const compHeads=comps.map(c=>'<th><span>'+esc(c.label)+'</span><small>เต็ม '+Number(c.max_score).toLocaleString("th-TH")+'</small></th>').join("");
@@ -6612,7 +6613,9 @@ function assessmentBookHtml(data){
       '<td>'+(editable?'<input type="text" maxlength="500" value="'+esc(outcome.teacher_comment||"")+'" data-assessment-comment data-student="'+esc(s.student_id)+'" placeholder="ถ้ามี">':'<span>'+esc(outcome.teacher_comment||"—")+'</span>')+'</td></tr>';
   }).join("");
   const outcomesHtml=b.subject_type==="activity"?"":'<details class="panel assessment-outcomes" '+(b.status==="returned"?"open":"")+'><summary><div><strong>อ่าน คิดวิเคราะห์ และเขียน · คุณลักษณะอันพึงประสงค์</strong><small>ข้อมูลประกอบ ปพ.6 · ระบุเฉพาะที่โรงเรียนใช้</small></div><span>เปิดรายการ</span></summary><div class="assessment-outcomes-wrap"><table><thead><tr><th>เลขที่</th><th>ชื่อ–สกุล</th><th>อ่าน คิดวิเคราะห์ และเขียน</th><th>คุณลักษณะอันพึงประสงค์</th><th>ความเห็นครู</th></tr></thead><tbody>'+outcomeRows+'</tbody></table></div></details>';
+  const printHeading='<header class="assessment-print-heading"><h1>แบบบันทึกผลการเรียนประจำรายวิชา (ปพ.6)</h1><p>'+esc(school&&school.name_th||"")+'</p><div><span>ปีการศึกษา '+esc(year&&year.year_be||"—")+'</span><span>'+esc(term&&term.name||"")+'</span><span>'+esc(b.class_short)+'</span></div><strong>'+esc((b.subject_code?b.subject_code+" · ":"")+b.subject_name)+'</strong><small>ครูผู้สอน '+esc(b.personnel_name||"")+'</small></header>';
   return '<section class="assessment-page assessment-book-page">'+
+    printHeading+
     '<section class="assessment-book-head panel"><div class="assessment-book-title"><a class="assessment-back" href="#/assessment">←</a><div><p class="eyebrow">ปพ.6 · บันทึกผลการเรียนรายวิชา</p><h2>'+esc((b.subject_code?b.subject_code+" · ":"")+b.subject_name)+'</h2><p>'+esc(b.class_short)+(program?' · '+program:'')+' · ครูผู้สอน '+esc(b.personnel_name||"")+'</p></div></div><div class="assessment-book-head-actions"><span class="pill '+assessmentStatusClass(b.status)+'">'+esc(assessmentStatusLabel(b.status))+'</span><button type="button" class="secondary-btn compact-btn" data-assessment-print>พิมพ์ ปพ.6</button></div></section>'+
     statusInfo+
     '<form id="assessment-book-form" class="assessment-book-form" data-book-id="'+esc(b.id)+'" data-grading-type="'+esc(b.grading_type)+'">'+
@@ -6739,7 +6742,11 @@ function bindAssessment(){
     toast(decision==="approved"?"อนุมัติผลการเรียนแล้ว":"ส่งกลับให้ครูแก้ไขแล้ว","success");
     renderRoute();
   }));
-  q("[data-assessment-print]")?.addEventListener("click",()=>window.print());
+  q("[data-assessment-print]")?.addEventListener("click",()=>{
+    const outcomes=q(".assessment-outcomes");
+    if(outcomes)outcomes.open=true;
+    window.print();
+  });
 }
 function placeholderHtml(route){
   const meta=routeMeta[route]||routeMeta.overview;
