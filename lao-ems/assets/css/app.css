@@ -7832,3 +7832,109 @@ th,td{line-height:1.45}
     font-size:13px;
   }
 }
+
+
+/* Teacher self-service workload in profile + mobile profile avatar — v0.19.29 */
+.profile-workload-shell{
+  display:grid;
+  gap:12px;
+  margin-top:18px;
+  min-width:0;
+}
+.profile-workload-intro{
+  padding:18px 20px;
+}
+.profile-workload-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+}
+.profile-workload-head h2{
+  margin:0;
+}
+.profile-workload-head p:not(.eyebrow){
+  margin:5px 0 0;
+  color:var(--muted);
+  line-height:1.55;
+}
+.profile-workload-context{
+  display:flex;
+  align-items:end;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid #eaecf0;
+}
+.profile-workload-context>div{
+  min-width:120px;
+}
+.profile-workload-context small,
+.profile-workload-context strong{
+  display:block;
+}
+.profile-workload-context small{
+  color:var(--muted);
+}
+.profile-workload-context strong{
+  margin-top:2px;
+}
+.profile-workload-term{
+  margin-left:auto;
+}
+.profile-workload-flow{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+.profile-workload-flow span{
+  padding:6px 9px;
+  border:1px solid #d0d5dd;
+  border-radius:999px;
+  background:#f9fafb;
+  color:#475467;
+  font-size:12px;
+  font-weight:800;
+}
+.profile-workload-shell .teaching-editor-panel{
+  margin:0;
+}
+@media(max-width:720px){
+  .profile-workload-head{
+    flex-direction:column;
+  }
+  .profile-workload-context{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .profile-workload-term{
+    margin-left:0;
+    width:100%;
+  }
+  .profile-workload-term select{
+    width:100%;
+  }
+}
+@media(max-width:480px){
+  .profile-btn{
+    display:flex!important;
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    padding:1px!important;
+    border:1px solid #d0d5dd;
+    border-radius:13px;
+    background:#fff;
+  }
+  .profile-btn .avatar{
+    width:36px;
+    height:36px;
+    flex:0 0 36px;
+    border-radius:11px;
+  }
+  .profile-btn .profile-copy{
+    display:none!important;
+  }
+}
