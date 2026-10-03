@@ -7712,9 +7712,9 @@ th,td{line-height:1.45}
   box-shadow:0 0 0 2px #fff,0 0 0 4px #84adff!important;
 }
 .subject-progress-choice.has-hour-meta{
-  flex:0 0 112px!important;
-  width:112px!important;
-  min-width:112px!important;
+  flex:0 0 126px!important;
+  width:126px!important;
+  min-width:126px!important;
   align-self:stretch;
 }
 .subject-progress-choice.has-hour-meta .subject-progress-choice-ring{
@@ -7722,7 +7722,7 @@ th,td{line-height:1.45}
 }
 .subject-progress-choice-meta{
   display:grid;
-  gap:1px;
+  gap:2px;
   margin-top:7px;
   text-align:center;
 }
@@ -7733,14 +7733,15 @@ th,td{line-height:1.45}
   line-height:1.3;
   white-space:nowrap;
 }
-.subject-progress-choice-meta small.gap{color:#b54708}
-.subject-progress-choice-meta small.over{color:#b42318}
+.subject-progress-choice-meta small.required{color:#344054;font-weight:800}
+.subject-progress-choice-meta small.gap{color:#b54708;font-weight:800}
+.subject-progress-choice-meta small.over{color:#b42318;font-weight:800}
 .subject-progress-choice-meta small.done{color:#067647;font-weight:800}
 @media(max-width:720px){
   .subject-progress-choice.has-hour-meta{
-    flex-basis:106px!important;
-    width:106px!important;
-    min-width:106px!important;
+    flex-basis:122px!important;
+    width:122px!important;
+    min-width:122px!important;
   }
   .subject-progress-choice-meta small{
     font-size:9px;
