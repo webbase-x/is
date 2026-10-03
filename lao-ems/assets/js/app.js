@@ -3077,7 +3077,7 @@ function personnelNavHtml(active){
     '<a href="#/personnel/registry" class="'+(active==="registry"?"active":"")+'">ทะเบียนบุคลากร</a>'+
     (work.can_review?'<a href="#/personnel/requests" class="'+(active==="requests"?"active":"")+'">คำขอเข้าร่วม'+(pending>0?'<span class="subnav-badge">'+pending+'</span>':'')+'</a>':'')+
     (work.can_manage_intake?'<a href="#/personnel/intake" class="'+(active==="intake"?"active":"")+'">รับบุคลากรเข้าระบบ</a>':'')+
-    (work.can_assign_authority?'<a href="#/work-authorities">ผู้รับผิดชอบ/มอบหมายงาน</a>':'')+
+    (state.workAuthorityAccess&&state.workAuthorityAccess.can_delegate_any?'<a href="#/work-authorities">ผู้รับผิดชอบ/มอบหมายงาน</a>':'')+
   '</nav>';
 }
 async function personnelDashboardHtml(){
@@ -3106,7 +3106,7 @@ async function personnelDashboardHtml(){
       '<a class="personnel-action-card" href="#/personnel/registry"><span>🪪</span><div><strong>ทะเบียนบุคลากร</strong><small>ค้นหา ดู และจัดการข้อมูลหลักของบุคลากร</small></div><em>เปิด</em></a>'+
       (work.can_review?'<a class="personnel-action-card '+(pending>0?"priority":"")+'" href="#/personnel/requests"><span>✅</span><div><strong>คำขอเข้าร่วม'+(pending>0?' · '+pending+' รายการ':'')+'</strong><small>ตรวจข้อมูลที่ผู้สมัครระบุ แก้ไขก่อนอนุมัติ และป้องกันรายการซ้ำ</small></div><em>'+(pending>0?"ตรวจสอบ":"เปิด")+'</em></a>':'')+
       (work.can_manage_intake?'<a class="personnel-action-card" href="#/personnel/intake"><span>🔗</span><div><strong>รับบุคลากรเข้าระบบ</strong><small>เปิด/ปิดลิงก์รับสมัครและคัดลอกลิงก์ส่งในกลุ่มโรงเรียน</small></div><em>ตั้งค่า</em></a>':'')+
-      (work.can_assign_authority?'<a class="personnel-action-card" href="#/work-authorities"><span>🧩</span><div><strong>ผู้รับผิดชอบ/มอบหมายงาน</strong><small>กำหนดหัวหน้าฝ่าย หัวหน้างาน และสิทธิ์ย่อยตามขอบเขตงาน</small></div><em>จัดการ</em></a>':'')+
+      (state.workAuthorityAccess&&state.workAuthorityAccess.can_delegate_any?'<a class="personnel-action-card" href="#/work-authorities"><span>🧩</span><div><strong>ผู้รับผิดชอบ/มอบหมายงาน</strong><small>กำหนดหัวหน้าฝ่าย หัวหน้างาน และสิทธิ์ย่อยตามขอบเขตงาน</small></div><em>จัดการ</em></a>':'')+
     '</section>'+
     (work.can_review&&pending>0?'<section class="notice warning personnel-attention"><strong>มีงานที่ต้องดำเนินการ '+pending+' รายการ</strong><br>มีผู้ยืนยันอีเมลและส่งคำขอเข้าร่วมโรงเรียนแล้ว กรุณาตรวจสอบก่อนอนุมัติ</section>':'')+
   '</section>';
@@ -4079,7 +4079,7 @@ function academicClassesHtml(data){
   '</section>';
 }
 function academicSubjectsHtml(data,timeline){
-  const canManage=Boolean(data.can_manage_subjects),canEdit=canManage&&Boolean(state.subjectEditMode),year=academicSelectedYear(data),preset=state.academicPreset||{};
+  const canManage=Boolean(data.can_manage_subjects),canApprove=Boolean(data.can_approve_subjects),canEdit=canManage&&Boolean(state.subjectEditMode),year=academicSelectedYear(data),preset=state.academicPreset||{};
   const readiness=state.curriculumReadiness||{groups:[],exclusions:[],total_groups:0,confirmed_groups:0,groups_with_courses:0};
   const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
   const allCourses=data.courses||[];
@@ -4445,7 +4445,7 @@ function academicSubjectsHtml(data,timeline){
   const confirmationHtml=currentStatus==="confirmed"
     ?'<section class="subject-combined-confirmation confirmed"><div><strong>✓ ยืนยันโครงสร้างแล้ว</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านการตรวจและยืนยันรายวิชา/เวลาเรียนแล้ว</span></div></section>'
     :currentStatus==="ready_to_confirm"
-      ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว</span></div>'+(canManage?'<button type="button" class="primary-btn compact-btn" data-confirm-curriculum-structure>ยืนยันโครงสร้างนี้</button>':'')+'</section>'
+      ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว</span></div>'+(canApprove?'<button type="button" class="primary-btn compact-btn" data-confirm-curriculum-structure>ยืนยันโครงสร้างนี้</button>':'')+'</section>'
       :'';
   const schoolGroups=
     selectedGroupHtml("basic","รายวิชาพื้นฐาน","รายวิชาที่ใช้ตามโครงสร้างหลักสูตรของระดับชั้นนี้")+
@@ -4660,7 +4660,7 @@ function workloadItemListHtml(items){
   ).join("")+'</div>';
 }
 function workloadEditorHtml(page,workload,personnel){
-  const canManage=Boolean(page.can_manage);
+  const canManage=Boolean(page.can_manage),canApprove=Boolean(page.can_approve);
   if(!personnel)return canManage
     ?'<section class="panel teaching-editor-panel"><div class="empty-state compact-empty"><div class="empty-icon">👤</div><h3>เลือกบุคลากรเพื่อจัดภาระงานสอน</h3><p>เลือกจากรายชื่อด้านบน ระบบจะแสดงรายการเดิมของภาคเรียนนี้ถ้ามี</p></div></section>'
     :'<section class="panel teaching-editor-panel"><div class="empty-state compact-empty"><div class="empty-icon">🔗</div><h3>ยังไม่เชื่อมบัญชีกับทะเบียนบุคลากร</h3><p>กรุณาติดต่อฝ่ายบุคลากรเพื่อเชื่อมบัญชีก่อนเสนอภาระงานสอน</p></div></section>';
@@ -4686,7 +4686,7 @@ function workloadEditorHtml(page,workload,personnel){
       '<label class="form-field teaching-workload-note"><span>หมายเหตุภาพรวม</span><textarea name="note" rows="2" placeholder="เว้นว่างได้">'+esc(workload&&workload.note||"")+'</textarea></label>'+
       '<div class="teaching-editor-actions">'+
         (canManage
-          ?'<button type="submit" class="primary-btn" data-workload-action="approve">บันทึกและอนุมัติ</button>'
+          ?(canApprove?'<button type="submit" class="primary-btn" data-workload-action="approve">บันทึกและอนุมัติ</button>':'<button type="submit" class="primary-btn" data-workload-action="submit">บันทึกและส่งผู้อนุมัติ</button>')
           :'<button type="submit" class="secondary-btn" data-workload-action="draft">บันทึกฉบับร่าง</button><button type="submit" class="primary-btn" data-workload-action="submit">ส่งให้ฝ่ายวิชาการตรวจสอบ</button>')+
       '</div>'+
     '</form>')+
@@ -4701,7 +4701,7 @@ function teachingWorkloadCardsHtml(page){
       '<div class="teaching-workload-card-head"><div><strong>'+esc(w.personnel_name||"-")+'</strong><small>'+esc(w.position_title||"")+(w.academic_standing?' · '+esc(w.academic_standing):'')+'</small></div><span class="pill '+teachingWorkloadStatusClass(w.status)+'">'+esc(teachingWorkloadStatusLabel(w.status))+'</span></div>'+
       workloadItemListHtml(w.items||[])+
       '<div class="teaching-card-footer"><div><small>รวม</small><strong>'+Number(w.total_weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</strong></div><div class="teaching-card-actions">'+
-        (page.can_manage&&w.status==="submitted"?'<button type="button" class="secondary-btn compact-btn" data-edit-workload-personnel="'+esc(w.personnel_id)+'">ตรวจ/แก้ไข</button><button type="button" class="danger-outline-btn compact-btn" data-return-workload="'+esc(w.id)+'">ส่งกลับแก้ไข</button><button type="button" class="primary-btn compact-btn" data-approve-workload="'+esc(w.id)+'">อนุมัติ</button>':'')+
+        ((page.can_manage||page.can_approve)&&w.status==="submitted"?((page.can_manage?'<button type="button" class="secondary-btn compact-btn" data-edit-workload-personnel="'+esc(w.personnel_id)+'">ตรวจ/แก้ไข</button>':'')+(page.can_approve?'<button type="button" class="danger-outline-btn compact-btn" data-return-workload="'+esc(w.id)+'">ส่งกลับแก้ไข</button><button type="button" class="primary-btn compact-btn" data-approve-workload="'+esc(w.id)+'">อนุมัติ</button>':'')):'')+
         (page.can_manage&&w.status!=="submitted"?'<button type="button" class="secondary-btn compact-btn" data-edit-workload-personnel="'+esc(w.personnel_id)+'">เปิดรายการ</button>':'')+
       '</div></div>'+
       (w.review_note?'<div class="teaching-review-note"><strong>หมายเหตุการตรวจ:</strong> '+esc(w.review_note)+'</div>':'')+
