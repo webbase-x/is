@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.16";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.17";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3968,8 +3968,10 @@ function academicTimeFramesHtml(data){
   const frameCapacity=f=>Number(f&&f.capacity_hours_per_year||Number(f&&f.school_days_per_week||0)*Number(f&&f.periods_per_day||0)*Number(f&&f.minutes_per_period||0)/60*Number(f&&f.instructional_weeks_per_year||0));
   const frameWeekly=f=>Number(f&&f.periods_per_week||Number(f&&f.school_days_per_week||0)*Number(f&&f.periods_per_day||0));
 
-  const programOptions=(selected,includeUsed=true)=>programs
-    .filter(p=>includeUsed||!assignedPrograms.has(p.id)||p.id===selected)
+  // Never offer a program that already has another active special frame.
+  // While editing, keep only the frame's current program visible alongside unused programs.
+  const programOptions=selected=>programs
+    .filter(p=>!assignedPrograms.has(p.id)||p.id===selected)
     .map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?"selected":"")+'>'+esc(p.name_th)+(p.code?' · '+esc(p.code):'')+'</option>')
     .join("");
 
@@ -3987,7 +3989,7 @@ function academicTimeFramesHtml(data){
       '<label>รหัส/อักษรย่อ<input name="code" required maxlength="30" value="'+esc(codeValue)+'" placeholder="'+(isDefault?'NORMAL':'MEP')+'"></label>'+
       (isDefault
         ?'<label><span>ใช้กับ</span><div class="academic-frame-fixed-target">ห้องปกติ + โปรแกรมปีนี้ที่ไม่มีกำหนดกรอบเฉพาะ</div><input name="program_id" type="hidden" value=""></label>'
-        :'<label>โปรแกรมที่ใช้ในปีนี้ <select name="program_id" required><option value="">เลือกโปรแกรม</option>'+programOptions(f.program_id||"",!isNew)+'</select></label>')+
+        :'<label>โปรแกรมที่ใช้ในปีนี้ <select name="program_id" required><option value="">เลือกโปรแกรม</option>'+programOptions(f.program_id||"")+'</select></label>')+
       '<label>วันเรียน/สัปดาห์<input name="school_days_per_week" type="number" min="1" max="7" step="1" required value="'+esc(days)+'"></label>'+
       '<label>คาบ/วัน<input name="periods_per_day" type="number" min="0.25" max="20" step="0.25" required value="'+esc(periods)+'" placeholder="เช่น 6"></label>'+
       '<label>นาที/คาบ<input name="minutes_per_period" type="number" min="20" max="120" step="1" required value="'+esc(minutes)+'"></label>'+
@@ -4033,7 +4035,7 @@ function academicTimeFramesHtml(data){
       '<div class="academic-time-frame-list">'+(frameCards||'<div class="empty-state compact-empty"><div class="empty-icon">⏱</div><h3>ยังไม่มีกรอบเวลาเรียน</h3></div>')+'</div>'+
       (canManage&&!defaultFrame?'<div class="academic-new-frame-box"><h3>สร้างกรอบเวลาเริ่มต้น</h3><p>กรอบนี้เป็นค่าหลักสำหรับห้องปกติ และเป็น fallback ของทุกโปรแกรมในปีนี้</p>'+timeFrameForm(null,true,true)+'</div>':'')+
       (canManage&&defaultFrame&&availablePrograms.length?'<details class="academic-new-frame-box"><summary>＋ เพิ่มกรอบเฉพาะโปรแกรม</summary><p>เลือกเฉพาะโปรแกรมที่เวลาเรียนต่างจากกรอบปกติ</p>'+timeFrameForm(null,true,false)+'</details>':'')+
-      (canManage&&defaultFrame&&!availablePrograms.length&&programs.length?'<div class="academic-time-frame-note"><strong>กำหนดครบแล้ว:</strong> โปรแกรมปีนี้ทุกโปรแกรมมีกรอบเฉพาะ หรือสามารถปิดกรอบเฉพาะเพื่อให้กลับมาใช้กรอบปกติได้</div>':'')+
+      (canManage&&defaultFrame&&!availablePrograms.length&&programs.length?'<div class="academic-time-frame-note"><strong>✓ กำหนดกรอบเฉพาะโปรแกรมครบแล้ว</strong><span>โปรแกรมที่เลือกใช้ในปีนี้มีกรอบเฉพาะครบทุกโปรแกรม จึงไม่มีรายการให้เลือกเพิ่ม</span></div>':'')+
       (!canManage?'<div class="academic-shared-settings-lock"><strong>ข้อมูลส่วนกลางของปีการศึกษา</strong><span>ดูได้ตามสิทธิ์ แต่แก้ไขได้เฉพาะ School Admin หรือผู้ได้รับมอบหมายส่วนตั้งค่าพื้นฐานงานวิชาการ</span></div>':'')+
       (defaultFrame?'<div class="academic-next-step-card"><div><span>ขั้นถัดไป</span><strong>ผูกโปรแกรมกับชั้น/ห้อง</strong><p>เมื่อกรอบปกติพร้อมแล้ว ไปกำหนดว่าห้องใดใช้โปรแกรมใด ระบบจะเลือกกรอบเวลาที่ถูกต้องให้อัตโนมัติ</p></div><a class="primary-btn" href="#/academics/classes">ไปชั้น/ห้อง →</a></div>':'')+
     '</section>'+
