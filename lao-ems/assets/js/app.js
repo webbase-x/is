@@ -4166,6 +4166,7 @@ function academicClassesHtml(data){
     '</section>'+
     (!activePrograms.length&&canManage?'<section class="notice"><strong>ยังไม่มีโปรแกรมพิเศษที่ใช้งาน</strong><br>ปีนี้ยังไม่ได้เลือกโปรแกรมพิเศษ หากมี MEP / MLP / ห้องพิเศษ ให้ย้อนหนึ่งขั้นไป “โปรแกรมปีนี้” แล้วเลือกก่อนกำหนดห้อง</section>':'')+
     (!items.length?'<section class="notice warning"><strong>ยังไม่พบชั้น/ห้องจาก LEC ในปีการศึกษานี้</strong><br>ให้นำเข้าข้อมูลนักเรียนจาก LEC ก่อน ระบบจะสร้างรายการห้องจากข้อมูลนักเรียนโดยอัตโนมัติ</section>':'')+
+    (items.length?'<div class="academic-next-step-card"><div><span>ขั้นถัดไป</span><strong>จัดรายวิชาและเวลาเรียน</strong><p>เมื่อชั้น/ห้องพร้อมแล้ว ไปกำหนดรายวิชา ชั่วโมง/ปี และคาบ/สัปดาห์ของแต่ละระดับชั้น/โปรแกรมให้ครบตามกรอบเวลาเรียน</p></div><a class="primary-btn" href="#/academics/subjects">ไปหลักสูตร/เวลาเรียน →</a></div>':'')+
   '</section>';
 }
 function academicSubjectsHtml(data,timeline){
