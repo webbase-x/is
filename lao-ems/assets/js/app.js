@@ -2973,13 +2973,14 @@ function departmentSetupTimelineHtml(timeline){
     const hasStepProgress=annual&&["current","queued"].includes(status)&&rawStepPct!==null&&rawStepPct!==undefined;
     const stepPct=hasStepProgress?Math.max(0,Math.min(99,Number(rawStepPct)||0)):null;
     const stepProgressLabel=String(step.step_progress_label||"").trim();
+    const canManageStep=annual?Boolean(step.can_manage_step):Boolean(timeline.can_manage);
     let action="";
     if(status==="completed"||status==="reused"){
       action='<a class="department-step-link" href="'+esc(step.route)+'">เปิดดู</a>';
     }else if(status==="not_applicable"){
       action='<span class="department-step-muted">ไม่ต้องดำเนินการ</span>';
     }else if(status==="skipped"&&annual){
-      action=timeline.can_manage
+      action=canManageStep
         ?'<button type="button" class="department-step-link department-step-link-button" data-academic-year-setup-action="resume" data-step-code="'+esc(step.step_code)+'" data-academic-year-id="'+esc(timeline.academic_year_id||"")+'" data-step-route="'+esc(step.route)+'">กลับมาทำ</button>'
         :'<span class="department-step-muted">ข้ามไว้</span>';
     }else if(status==="skipped"){
@@ -2988,7 +2989,7 @@ function departmentSetupTimelineHtml(timeline){
         :'<span class="department-step-muted">ข้ามไว้</span>';
     }else if(status==="current"){
       action='<div class="department-step-actions"><a class="department-step-link primary" href="'+esc(step.route)+'">ทำขั้นตอนนี้</a>'+
-        (annual&&timeline.can_manage&&step.is_skippable?'<button type="button" class="department-step-link department-step-link-button" data-academic-year-setup-action="skip" data-step-code="'+esc(step.step_code)+'" data-academic-year-id="'+esc(timeline.academic_year_id||"")+'">ข้ามปีนี้</button>':
+        (annual&&canManageStep&&step.is_skippable?'<button type="button" class="department-step-link department-step-link-button" data-academic-year-setup-action="skip" data-step-code="'+esc(step.step_code)+'" data-academic-year-id="'+esc(timeline.academic_year_id||"")+'">ข้ามปีนี้</button>':
         (!annual&&timeline.can_manage&&step.is_skippable?'<button type="button" class="department-step-link department-step-link-button" data-department-setup-action="skip" data-department-code="'+esc(timeline.department_code)+'" data-step-code="'+esc(step.step_code)+'">ข้ามขั้นนี้</button>':''))+
       '</div>';
     }else{
