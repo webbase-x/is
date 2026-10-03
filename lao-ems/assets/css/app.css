@@ -6524,3 +6524,94 @@ th,td{line-height:1.45}
     width:100%;
   }
 }
+
+/* Pending timeline step progress rings — v0.19.9 */
+.department-step-progress-state{
+  display:grid;
+  grid-template-columns:46px minmax(112px,1fr);
+  align-items:center;
+  gap:8px;
+  min-width:170px;
+  max-width:235px;
+}
+.department-step-progress-state>div{
+  min-width:0;
+}
+.department-step-progress-state>div>.department-step-status{
+  width:max-content;
+  max-width:100%;
+}
+.department-step-progress-state small{
+  display:block;
+  margin-top:3px;
+  color:#667085;
+  font-size:10.5px;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+.department-step-mini-ring{
+  --step-progress:0%;
+  --step-ring:#98a2b3;
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at center,#fff 61%,transparent 63%),
+    conic-gradient(var(--step-ring) var(--step-progress),#e4e7ec 0);
+}
+.department-step-progress-state.current .department-step-mini-ring{
+  --step-ring:#2e90fa;
+}
+.department-step-progress-state.queued .department-step-mini-ring{
+  --step-ring:#98a2b3;
+}
+.department-step-mini-ring b{
+  color:#475467;
+  font-size:10px;
+  font-weight:900;
+  line-height:1;
+}
+.department-step-progress-state.current .department-step-mini-ring b{
+  color:#175cd3;
+}
+.academic-step-node.has-progress{
+  --step-progress:0%;
+  --step-ring:#98a2b3;
+  border:0;
+  background:
+    radial-gradient(circle at center,var(--surface) 58%,transparent 60%),
+    conic-gradient(var(--step-ring) var(--step-progress),#e4e7ec 0);
+  color:#667085;
+  font-size:9.5px;
+  font-weight:900;
+  box-shadow:none;
+}
+.academic-step-link.status-current .academic-step-node.has-progress{
+  --step-ring:#2e90fa;
+  color:#175cd3;
+}
+.academic-step-link.status-queued .academic-step-node.has-progress{
+  --step-ring:#98a2b3;
+  color:#667085;
+}
+.academic-step-link.active .academic-step-node.has-progress{
+  box-shadow:0 0 0 5px var(--primary-soft);
+}
+@media(max-width:900px){
+  .department-step-progress-state{grid-area:status}
+}
+@media(max-width:620px){
+  .department-step-progress-state{
+    grid-area:status;
+    max-width:none;
+    width:100%;
+    grid-template-columns:42px minmax(0,1fr);
+  }
+  .department-step-mini-ring{
+    width:40px;
+    height:40px;
+  }
+}
