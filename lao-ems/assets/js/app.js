@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.37";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.38";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -227,6 +227,7 @@ function setBusy(button,busy,label){
 function routeName(){return (location.hash.replace(/^#\//,"").split("/")[0]||"overview").toLowerCase();}
 function routeBackContext(route){
   const hash=location.hash||("#/"+route);
+  if(route==="academics"&&/^#\/academics\/my-courses\/[0-9a-f-]{36}\/?$/i.test(hash))return {href:"#/academics/my-courses",label:"รายวิชาที่ฉันสอน"};
   if(route==="academics"||route==="assessment")return {href:"#/academic-group",label:"กลุ่มบริหารงานวิชาการ"};
   if(route==="academic-group"&&/^#\/academic-group\//i.test(hash))return {href:"#/academic-group",label:"กลุ่มบริหารงานวิชาการ"};
   if(route==="personnel"&&!/^#\/personnel\/?$/i.test(hash))return {href:"#/personnel",label:"กลุ่มบริหารงานบุคคล"};
@@ -692,11 +693,11 @@ function bindStaticUI(){
       state.adminSchool=state.adminSchools.find(s=>s.id===id)||null;
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
-      state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;
+      state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;
       await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();}
   });
 }
 
@@ -1156,9 +1157,10 @@ function refreshHeader(){
     workAuthorityLink.classList.toggle("hidden",!(state.workAuthorityAccess&&state.workAuthorityAccess.can_view));
   }
 
+  const academicLinks=qa('[data-academic-menu]');
+  academicLinks.forEach(link=>link.classList.toggle("hidden",!canViewAcademic()));
   const academicLink=q('[data-route="academics"][data-academic-menu]');
   if(academicLink){
-    academicLink.classList.toggle("hidden",!canViewAcademic());
     const badge=q("[data-academic-badge]",academicLink);
     const attention=Number(state.academicWork&&state.academicWork.attention_count||0);
     if(badge){
@@ -1256,6 +1258,7 @@ function workspaceRecentRouteInfo(hash){
   const h=String(hash||"");
   const rules=[
     ["#/academic-group","กลุ่มบริหารงานวิชาการ","📚"],
+    ["#/academics/my-courses","หลักสูตรรายวิชาที่ฉันสอน","📘"],
     ["#/academics/workload","ภาระงานสอน","📚"],
     ["#/academics/subjects","โครงสร้างหลักสูตรและเวลาเรียน","📘"],
     ["#/academics/classes","ระดับชั้นและห้อง","🏫"],
@@ -1385,6 +1388,14 @@ async function overviewHtml(){
   }
   if(pendingTeaching>0&&academicWork.can_manage){
     tasks.push({icon:"📚",title:"ภาระงานสอนรออนุมัติ "+pendingTeaching+" รายการ",desc:"ครูส่งภาระงานสอนเข้ามาและรอฝ่ายวิชาการตรวจสอบ",route:"#/academics/workload",label:"ตรวจสอบ",tone:"warning"});
+  }
+  const pendingCourseCurricula=Number(academicWork.pending_course_curricula||0);
+  const returnedCourseCurricula=Number(academicWork.my_returned_course_curricula||0);
+  if(pendingCourseCurricula>0){
+    tasks.push({icon:"📘",title:"หลักสูตรรายวิชารอตรวจ "+pendingCourseCurricula+" รายการ",desc:"ครูผู้สอนส่งหลักสูตรรายวิชา โครงสร้างหน่วย และโครงสร้างคะแนนให้ตรวจสอบ",route:"#/academics/my-courses",label:"ตรวจสอบ",tone:"warning"});
+  }
+  if(returnedCourseCurricula>0){
+    tasks.unshift({icon:"↩",title:"หลักสูตรรายวิชาถูกส่งกลับ "+returnedCourseCurricula+" รายการ",desc:"เปิดดูหมายเหตุ แก้ไข แล้วส่งฝ่ายวิชาการตรวจใหม่",route:"#/academics/my-courses",label:"แก้ไข",tone:"danger"});
   }
 
   if(assessmentOverview){
@@ -3836,8 +3847,382 @@ function bindPersonnel(){
 }
 
 
+
+function courseCurriculumStatusLabel(value){
+  return ({
+    not_started:"ยังไม่เริ่ม",
+    draft:"ฉบับร่าง",
+    submitted:"รอตรวจ",
+    returned:"ส่งกลับแก้ไข",
+    approved:"อนุมัติแล้ว",
+    cancelled:"ยกเลิก"
+  })[value]||value||"ยังไม่เริ่ม";
+}
+function courseCurriculumStatusClass(value){
+  return value==="approved"?"success":value==="submitted"?"warning":value==="returned"?"danger":value==="draft"?"neutral":"neutral";
+}
+async function loadCourseCurriculumPage(courseId=null,yearIdOverride=undefined){
+  const school=currentSchool();
+  if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
+  const yearId=yearIdOverride!==undefined?yearIdOverride:(state.courseCurriculumYearId||state.academicYearId||null);
+  const res=await academicReadWithRetry(()=>supabase.rpc("lao_course_curriculum_page",{
+    p_school_id:school.id,
+    p_academic_year_id:yearId,
+    p_course_id:courseId||null
+  }));
+  if(res.error)throw res.error;
+  state.courseCurriculumData=res.data||{};
+  state.courseCurriculumYearId=state.courseCurriculumData.selected_year_id||yearId||null;
+  return state.courseCurriculumData;
+}
+function courseCurriculumYearSelectHtml(data){
+  const years=data&&data.years||[];
+  if(!years.length)return "";
+  return '<label class="course-curriculum-year"><span>ปีการศึกษา</span><select data-course-curriculum-year>'+
+    years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+(y.is_current?" · ปัจจุบัน":"")+'</option>').join("")+
+  '</select></label>';
+}
+function courseCurriculumTermSummary(validation){
+  const terms=validation&&validation.terms||[];
+  if(!terms.length)return '<span class="course-ready-chip neutral">ยังไม่มีข้อมูลภาคเรียน</span>';
+  return terms.map(t=>{
+    const ok=Boolean(t.score_ok)&&Boolean(t.hours_ok);
+    const hourText=t.target_hours==null
+      ?Number(t.unit_hours||0).toLocaleString("th-TH",{maximumFractionDigits:2})+" ชม."
+      :Number(t.unit_hours||0).toLocaleString("th-TH",{maximumFractionDigits:2})+"/"+Number(t.target_hours||0).toLocaleString("th-TH",{maximumFractionDigits:2})+" ชม.";
+    return '<span class="course-ready-chip '+(ok?"ok":"attention")+'">ภาค '+esc(t.term_no)+' · '+hourText+' · '+Number(t.score_total||0).toLocaleString("th-TH",{maximumFractionDigits:2})+'/100 คะแนน</span>';
+  }).join("");
+}
+function courseCurriculumListHtml(data){
+  const school=currentSchool();
+  const statusPriority={returned:0,submitted:1,draft:2,not_started:3,approved:4,cancelled:5};
+  const rows=(data&&data.courses||[]).filter(row=>row.subject_type!=="activity").sort((a,b)=>
+    (statusPriority[a.curriculum_status||"not_started"]??9)-(statusPriority[b.curriculum_status||"not_started"]??9)||
+    String(a.subject_name||"").localeCompare(String(b.subject_name||""),"th")
+  );
+  const counts={not_started:0,draft:0,submitted:0,returned:0,approved:0};
+  rows.forEach(row=>{const s=row.curriculum_status||"not_started";counts[s]=(counts[s]||0)+1;});
+  const cards=rows.map(row=>{
+    const validation=row.validation||{};
+    const status=row.curriculum_status||"not_started";
+    const classes=(row.classes||[]).filter(Boolean);
+    const teachers=(row.teachers||[]).filter(Boolean);
+    const action=status==="not_started"?"เริ่มจัดทำ":status==="approved"?"ดูหลักสูตร":status==="submitted"?"เปิดตรวจ/ดู":"ทำต่อ";
+    return '<article class="course-curriculum-card '+esc(status)+'">'+
+      '<div class="course-curriculum-card-head"><div class="course-curriculum-card-title"><span>📘</span><div><strong>'+esc((row.subject_code?row.subject_code+" · ":"")+row.subject_name)+'</strong><small>'+esc(shortGrade(row.grade_label))+(row.program_code?' · '+esc(row.program_code):'')+(row.learning_area?' · '+esc(row.learning_area):'')+'</small></div></div><span class="pill '+courseCurriculumStatusClass(status)+'">'+esc(courseCurriculumStatusLabel(status))+'</span></div>'+
+      '<div class="course-curriculum-meta">'+
+        '<span><b>'+Number(validation.outcome_count||0).toLocaleString("th-TH")+'</b><small>ตัวชี้วัด/ผลลัพธ์</small></span>'+
+        '<span><b>'+Number(validation.unit_count||0).toLocaleString("th-TH")+'</b><small>หน่วยเรียน</small></span>'+
+        '<span><b>'+Number(validation.unit_hours_total||0).toLocaleString("th-TH",{maximumFractionDigits:2})+'</b><small>ชม.ในหน่วย</small></span>'+
+        '<span><b>'+Number(validation.assessment_count||0).toLocaleString("th-TH")+'</b><small>รายการประเมิน</small></span>'+
+      '</div>'+
+      '<div class="course-curriculum-context">'+
+        (classes.length?'<span>ห้อง '+classes.map(esc).join(", ")+'</span>':'')+
+        (teachers.length?'<span>ครู '+teachers.map(esc).join(", ")+'</span>':'')+
+      '</div>'+
+      (row.review_note?'<div class="course-curriculum-return">↩ '+esc(row.review_note)+'</div>':'')+
+      '<div class="course-curriculum-readiness">'+courseCurriculumTermSummary(validation)+'</div>'+
+      '<div class="course-curriculum-card-actions"><a class="primary-btn compact-btn" href="#/academics/my-courses/'+esc(row.course_id)+'">'+esc(action)+' →</a></div>'+
+    '</article>';
+  }).join("");
+  return '<section class="course-curriculum-page">'+
+    '<section class="course-curriculum-hero panel"><div><p class="eyebrow">TEACHER COURSE CURRICULUM</p><h2>หลักสูตรรายวิชาที่ฉันสอน</h2><p>'+esc(school&&school.name_th||"")+' · ครูผู้สอนเป็นผู้จัดทำร่วมกันตามรายวิชาที่ได้รับมอบหมาย ฝ่ายวิชาการตรวจและอนุมัติก่อนนำโครงสร้างคะแนนไปใช้</p></div>'+courseCurriculumYearSelectHtml(data)+'</section>'+
+    '<section class="course-curriculum-kpis">'+
+      '<article><small>รายวิชาที่แสดง</small><strong>'+rows.length.toLocaleString("th-TH")+'</strong></article>'+
+      '<article><small>กำลังจัดทำ/ส่งกลับ</small><strong>'+Number((counts.draft||0)+(counts.returned||0)+(counts.not_started||0)).toLocaleString("th-TH")+'</strong></article>'+
+      '<article><small>รอตรวจ</small><strong>'+Number(counts.submitted||0).toLocaleString("th-TH")+'</strong></article>'+
+      '<article><small>อนุมัติแล้ว</small><strong>'+Number(counts.approved||0).toLocaleString("th-TH")+'</strong></article>'+
+    '</section>'+
+    (rows.length
+      ?'<section class="course-curriculum-grid">'+cards+'</section>'
+      :'<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายวิชาที่ได้รับมอบหมาย</h3><p>รายวิชาจะปรากฏเมื่อภาระงานสอนได้รับการอนุมัติแล้ว ครูไม่ต้องสร้างรายวิชาหรือห้องเรียนซ้ำ</p><a class="secondary-btn" href="#/academics/workload">ดูภาระงานสอน</a></div></section>')+
+  '</section>';
+}
+function courseOutcomeRowHtml(item,index,editable){
+  const lock=editable?"":" disabled";
+  return '<div class="course-editor-row course-outcome-row" data-course-outcome-row>'+
+    '<label><span>ประเภท</span><select data-field="type"'+lock+'>'+
+      '<option value="indicator" '+((item&&item.type)==="indicator"?"selected":"")+'>ตัวชี้วัด</option>'+
+      '<option value="standard" '+((item&&item.type)==="standard"?"selected":"")+'>มาตรฐาน</option>'+
+      '<option value="learning_outcome" '+((item&&item.type)==="learning_outcome"?"selected":"")+'>ผลการเรียนรู้</option>'+
+    '</select></label>'+
+    '<label><span>รหัส</span><input data-field="code" value="'+esc(item&&item.code||"")+'" placeholder="เช่น ท 1.1 ป.2/1" '+(editable?"":"readonly")+'></label>'+
+    '<label class="course-grow"><span>รายละเอียด</span><input data-field="description" value="'+esc(item&&item.description||"")+'" placeholder="ระบุสิ่งที่ผู้เรียนต้องรู้หรือทำได้" '+(editable?"":"readonly")+'></label>'+
+    (editable?'<button type="button" class="course-remove-row" data-remove-course-row aria-label="ลบรายการ">×</button>':'')+
+  '</div>';
+}
+function courseOutcomePickerHtml(selected,outcomes,editable){
+  const chosen=new Set((selected||[]).map(x=>String(x)));
+  const codes=(outcomes||[]).map(o=>String(o&&o.code||"").trim()).filter(Boolean);
+  if(!codes.length)return '<small class="course-empty-picks">เพิ่มรหัสตัวชี้วัด/ผลการเรียนรู้ในขั้นที่ 2 ก่อน</small>';
+  return codes.map(code=>'<label class="course-outcome-pick"><input type="checkbox" value="'+esc(code)+'" '+(chosen.has(code)?"checked":"")+' '+(editable?"":"disabled")+'><span>'+esc(code)+'</span></label>').join("");
+}
+function courseUnitRowHtml(item,index,terms,outcomes,editable){
+  const lock=editable?"":" disabled";
+  const termOptions=(terms||[]).map(t=>'<option value="'+esc(t.term_no)+'" '+(Number(item&&item.term_no||1)===Number(t.term_no)?"selected":"")+'>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</option>').join("");
+  return '<article class="course-unit-card" data-course-unit-row>'+
+    '<div class="course-unit-head"><strong>หน่วยการเรียนรู้</strong>'+(editable?'<button type="button" class="course-remove-row" data-remove-course-row aria-label="ลบหน่วย">×</button>':'')+'</div>'+
+    '<div class="course-unit-fields">'+
+      '<label><span>ลำดับ</span><input type="number" min="1" step="1" data-field="unit_no" value="'+esc(item&&item.unit_no||index+1)+'" '+(editable?"":"readonly")+'></label>'+
+      '<label><span>ภาคเรียน</span><select data-field="term_no"'+lock+'>'+termOptions+'</select></label>'+
+      '<label class="course-grow"><span>ชื่อหน่วย</span><input data-field="title" value="'+esc(item&&item.title||"")+'" placeholder="ชื่อหน่วยการเรียนรู้" '+(editable?"":"readonly")+'></label>'+
+      '<label><span>ชั่วโมง</span><input type="number" min="0.5" step="0.5" data-field="hours" value="'+esc(item&&item.hours||"")+'" placeholder="0" '+(editable?"":"readonly")+'></label>'+
+    '</div>'+
+    '<label class="course-block-field"><span>สาระสำคัญ/แนวคิดของหน่วย</span><textarea rows="2" data-field="key_concept" '+(editable?"":"readonly")+' placeholder="สรุปสาระสำคัญของหน่วย">'+esc(item&&item.key_concept||"")+'</textarea></label>'+
+    '<div class="course-unit-outcomes"><span>ตัวชี้วัด/ผลการเรียนรู้ที่หน่วยนี้ครอบคลุม</span><div data-course-outcome-picks>'+courseOutcomePickerHtml(item&&item.outcome_codes||[],outcomes,editable)+'</div></div>'+
+  '</article>';
+}
+function courseAssessmentRowHtml(item,index,terms,editable){
+  const lock=editable?"":" disabled";
+  const termOptions=(terms||[]).map(t=>'<option value="'+esc(t.term_no)+'" '+(Number(item&&item.term_no||1)===Number(t.term_no)?"selected":"")+'>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</option>').join("");
+  const category=item&&item.category||"coursework";
+  return '<div class="course-editor-row course-assessment-row" data-course-assessment-row>'+
+    '<label><span>ภาคเรียน</span><select data-field="term_no"'+lock+'>'+termOptions+'</select></label>'+
+    '<label><span>ประเภท</span><select data-field="category"'+lock+'>'+
+      '<option value="coursework" '+(category==="coursework"?"selected":"")+'>ระหว่างเรียน</option>'+
+      '<option value="midterm" '+(category==="midterm"?"selected":"")+'>กลางภาค</option>'+
+      '<option value="final" '+(category==="final"?"selected":"")+'>ปลายภาค</option>'+
+      '<option value="performance" '+(category==="performance"?"selected":"")+'>ภาระงาน/ปฏิบัติ</option>'+
+      '<option value="activity" '+(category==="activity"?"selected":"")+'>กิจกรรม</option>'+
+      '<option value="other" '+(category==="other"?"selected":"")+'>อื่น ๆ</option>'+
+    '</select></label>'+
+    '<label class="course-grow"><span>รายการประเมิน</span><input data-field="label" value="'+esc(item&&item.label||"")+'" placeholder="เช่น งานระหว่างเรียน" '+(editable?"":"readonly")+'></label>'+
+    '<label><span>คะแนนเต็ม</span><input type="number" min="0.5" max="100" step="0.5" data-field="max_score" value="'+esc(item&&item.max_score||"")+'" '+(editable?"":"readonly")+'></label>'+
+    '<label><span>หน่วยที่</span><input type="number" min="1" step="1" data-field="unit_no" value="'+esc(item&&item.unit_no||"")+'" placeholder="ถ้ามี" '+(editable?"":"readonly")+'></label>'+
+    '<label><span>วิธีวัด</span><input data-field="method" value="'+esc(item&&item.method||"")+'" placeholder="เช่น แบบทดสอบ" '+(editable?"":"readonly")+'></label>'+
+    '<label class="course-grow"><span>หลักฐาน/ชิ้นงาน</span><input data-field="evidence" value="'+esc(item&&item.evidence||"")+'" placeholder="เช่น ใบงาน ชิ้นงาน แบบทดสอบ" '+(editable?"":"readonly")+'></label>'+
+    '<input type="hidden" data-field="code" value="'+esc(item&&item.code||("item_"+(index+1)))+'">'+
+    (editable?'<button type="button" class="course-remove-row" data-remove-course-row aria-label="ลบรายการ">×</button>':'')+
+  '</div>';
+}
+function courseCurriculumFlowStrip(cur,validation){
+  const hasBasic=Boolean(cur&&String(cur.course_description||"").trim());
+  const hasStructure=Number(validation&&validation.outcome_count||0)>0&&Number(validation&&validation.unit_count||0)>0;
+  const hasAssessment=Number(validation&&validation.assessment_count||0)>0;
+  const done=[hasBasic,hasStructure,hasAssessment,Boolean(validation&&validation.ready)||Boolean(cur&&cur.status==="approved")];
+  const labels=["หลักสูตรรายวิชา","โครงสร้างหน่วย","แผนวัดผล","ตรวจและส่ง"];
+  return '<nav class="course-flow" aria-label="ขั้นตอนจัดทำหลักสูตรรายวิชา">'+labels.map((label,i)=>
+    '<span class="'+(done[i]?"done":(!done.slice(0,i).includes(false)?"current":""))+'"><b>'+(done[i]?"✓":i+1)+'</b><small>'+esc(label)+'</small></span>'
+  ).join("")+'</nav>';
+}
+function courseCurriculumValidationHtml(validation){
+  const v=validation||{},issues=v.issues||[];
+  const ready=Boolean(v.ready);
+  return '<section class="course-validation '+(ready?"ready":"attention")+'" data-course-validation>'+
+    '<div class="course-validation-head"><span>'+(ready?"✓":"!")+'</span><div><strong>'+(ready?"พร้อมส่งตรวจ":"ยังมีข้อมูลที่ต้องตรวจ")+'</strong><small>'+(ready?"ชั่วโมง หน่วยการเรียน และคะแนนสอดคล้องกับกรอบรายวิชา":"บันทึกร่างได้ตลอด ระบบจะตรวจอีกครั้งก่อนส่ง")+'</small></div></div>'+
+    '<div class="course-validation-terms">'+courseCurriculumTermSummary(v)+'</div>'+
+    (issues.length?'<details '+(issues.length<=3?"open":"")+'><summary>รายการที่ต้องแก้ '+issues.length+' จุด</summary><ul>'+issues.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul></details>':'')+
+  '</section>';
+}
+function courseCurriculumDetailHtml(data){
+  const d=data&&data.detail;
+  if(!d)return '<section class="panel"><div class="notice danger">ไม่พบข้อมูลรายวิชา</div></section>';
+  const course=d.course||{},cur=d.curriculum||null,validation=d.validation||{},terms=d.terms||[],assignments=d.assignments||[];
+  if(course.subject_type==="activity"){
+    return '<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">🎯</div><h3>กิจกรรมพัฒนาผู้เรียนไม่ต้องจัดทำหลักสูตรรายวิชาในเมนูนี้</h3><p>ระบบคงการประเมินกิจกรรมแบบ ผ/มผ ไว้ในงานวัดผลตามเดิม เพื่อไม่เพิ่มงานซ้ำให้ครู</p><a class="primary-btn" href="#/assessment">ไปวัดผลกิจกรรม →</a></div></section>';
+  }
+  const editable=Boolean(d.can_edit),reviewable=Boolean(d.can_review),status=cur&&cur.status||"not_started";
+  const outcomes=cur&&cur.outcomes||[],units=cur&&cur.units||[],plan=cur&&cur.assessment_plan||[];
+  const defaultOutcomes=outcomes.length?outcomes:[{type:"indicator",code:"",description:""}];
+  const defaultUnits=units.length?units:[{unit_no:1,term_no:terms[0]&&terms[0].term_no||1,title:"",hours:"",key_concept:"",outcome_codes:[]}];
+  const planTerms=terms.length?terms:[{term_no:1}];
+  const defaultPlan=plan.length?plan:planTerms.flatMap(t=>course.subject_type==="activity"
+    ?[{code:"activity_t"+t.term_no,term_no:t.term_no,category:"activity",label:"ผลการประเมินกิจกรรม",max_score:100,method:"การเข้าร่วม/ปฏิบัติกิจกรรม",evidence:"หลักฐานการเข้าร่วมกิจกรรม",unit_no:""}]
+    :[
+      {code:"coursework_t"+t.term_no,term_no:t.term_no,category:"coursework",label:"ระหว่างเรียน",max_score:70,method:"",evidence:"",unit_no:""},
+      {code:"final_t"+t.term_no,term_no:t.term_no,category:"final",label:"ปลายภาค",max_score:30,method:"",evidence:"",unit_no:""}
+    ]);
+  const assignmentText=assignments.length
+    ?Array.from(new Set(assignments.map(a=>a.personnel_name+" · "+a.class_short+" · ภาค "+a.term_no))).join(" | ")
+    :"ยังไม่พบห้องเรียนที่อนุมัติ";
+  const firstIncomplete=!String(cur&&cur.course_description||"").trim()?"basic":!outcomes.length?"outcomes":!units.length?"units":!plan.length?"assessment":"review";
+  const lockNote=status==="submitted"
+    ?'<div class="notice warning"><strong>ส่งตรวจแล้ว</strong><br>เอกสารถูกล็อกชั่วคราวจนกว่าฝ่ายวิชาการจะอนุมัติหรือส่งกลับ</div>'
+    :status==="approved"
+      ?'<div class="notice success"><strong>อนุมัติแล้ว</strong><br>โครงสร้างคะแนนรุ่น '+Number(cur&&cur.revision_no||1).toLocaleString("th-TH")+' พร้อมส่งต่อไปยังงานวัดผลและ ปพ.</div>'
+      :status==="returned"
+        ?'<div class="notice danger"><strong>ส่งกลับให้แก้ไข</strong><br>'+esc(cur&&cur.review_note||"กรุณาตรวจรายการที่ฝ่ายวิชาการแจ้ง")+'</div>'
+        :"";
+  return '<section class="course-curriculum-page course-curriculum-detail">'+
+    '<section class="course-detail-head panel"><div><p class="eyebrow">COURSE CURRICULUM</p><h2>'+esc((course.subject_code?course.subject_code+" · ":"")+course.subject_name)+'</h2><p>'+esc(shortGrade(course.grade_label))+(course.program_code?' · '+esc(course.program_code):'')+' · '+Number(course.annual_hours||0).toLocaleString("th-TH",{maximumFractionDigits:2})+' ชม./ปี'+(course.credits!=null?' · '+Number(course.credits).toLocaleString("th-TH",{maximumFractionDigits:2})+' หน่วยกิต':'')+'</p><small>'+esc(assignmentText)+'</small></div><div class="course-detail-status"><span class="pill '+courseCurriculumStatusClass(status)+'">'+esc(courseCurriculumStatusLabel(status))+'</span>'+(cur?'<small>ฉบับที่ '+Number(cur.revision_no||1).toLocaleString("th-TH")+'</small>':'')+'</div></section>'+
+    courseCurriculumFlowStrip(cur,validation)+lockNote+
+    '<form id="course-curriculum-form" data-course-id="'+esc(course.course_id)+'" data-curriculum-id="'+esc(cur&&cur.id||"")+'" data-updated-at="'+esc(cur&&cur.updated_at||"")+'" data-editable="'+String(editable)+'">'+
+      '<details class="panel course-section" '+(firstIncomplete==="basic"?"open":"")+'><summary><div><b>1</b><span><strong>หลักสูตรรายวิชา</strong><small>คำอธิบาย สาระสำคัญ สมรรถนะ และคุณลักษณะ</small></span></div><em>เปิด/ปิด</em></summary><div class="course-section-body">'+
+        '<label class="course-block-field"><span>คำอธิบายรายวิชา <i>*</i></span><textarea name="course_description" rows="5" '+(editable?"":"readonly")+' placeholder="เขียนคำอธิบายรายวิชาตามหลักสูตรของสถานศึกษา">'+esc(cur&&cur.course_description||"")+'</textarea></label>'+
+        '<div class="course-two-col"><label class="course-block-field"><span>สาระสำคัญ / แนวคิดหลัก</span><textarea name="key_concepts" rows="3" '+(editable?"":"readonly")+'>'+esc(cur&&cur.key_concepts||"")+'</textarea></label><label class="course-block-field"><span>สมรรถนะที่เน้น</span><textarea name="competencies" rows="3" '+(editable?"":"readonly")+'>'+esc(cur&&cur.competencies||"")+'</textarea></label></div>'+
+        '<label class="course-block-field"><span>คุณลักษณะอันพึงประสงค์ที่เกี่ยวข้อง</span><textarea name="desirable_characteristics" rows="3" '+(editable?"":"readonly")+'>'+esc(cur&&cur.desirable_characteristics||"")+'</textarea></label>'+
+      '</div></details>'+
+      '<details class="panel course-section" '+(firstIncomplete==="outcomes"?"open":"")+'><summary><div><b>2</b><span><strong>มาตรฐาน / ตัวชี้วัด / ผลการเรียนรู้</strong><small>กำหนดสิ่งที่ผู้เรียนต้องบรรลุ แล้วนำไปผูกกับหน่วยเรียน</small></span></div><em>เปิด/ปิด</em></summary><div class="course-section-body"><div class="course-editor-list" data-course-outcomes>'+defaultOutcomes.map((o,i)=>courseOutcomeRowHtml(o,i,editable)).join("")+'</div>'+(editable?'<button type="button" class="secondary-btn compact-btn" data-course-add-outcome>+ เพิ่มตัวชี้วัด/ผลการเรียนรู้</button>':'')+'</div></details>'+
+      '<details class="panel course-section" '+(firstIncomplete==="units"?"open":"")+'><summary><div><b>3</b><span><strong>โครงสร้างรายวิชา / หน่วยการเรียนรู้</strong><small>เวลาเรียนรวมต้องสอดคล้องกับชั่วโมงรายวิชา</small></span></div><em>เปิด/ปิด</em></summary><div class="course-section-body"><div class="course-unit-list" data-course-units>'+defaultUnits.map((u,i)=>courseUnitRowHtml(u,i,terms,defaultOutcomes,editable)).join("")+'</div>'+(editable?'<button type="button" class="secondary-btn compact-btn" data-course-add-unit>+ เพิ่มหน่วยการเรียนรู้</button>':'')+'</div></details>'+
+      '<details class="panel course-section" '+(firstIncomplete==="assessment"?"open":"")+'><summary><div><b>4</b><span><strong>แผนการวัดและโครงสร้างคะแนน</strong><small>แต่ละภาคเรียนรวม 100 คะแนน และจะส่งต่อไปยังสมุดวัดผลอัตโนมัติ</small></span></div><em>เปิด/ปิด</em></summary><div class="course-section-body"><div class="course-editor-list" data-course-assessments>'+defaultPlan.map((a,i)=>courseAssessmentRowHtml(a,i,terms,editable)).join("")+'</div>'+(editable?'<button type="button" class="secondary-btn compact-btn" data-course-add-assessment>+ เพิ่มรายการประเมิน</button>':'')+'<div class="course-live-totals" data-course-live-totals></div></div></details>'+
+      '<details class="panel course-section course-review-section" '+(firstIncomplete==="review"?"open":"")+'><summary><div><b>5</b><span><strong>ตรวจความพร้อมและส่ง</strong><small>ระบบตรวจชั่วโมง ตัวชี้วัด และคะแนนก่อนส่งฝ่ายวิชาการ</small></span></div><em>เปิด/ปิด</em></summary><div class="course-section-body">'+courseCurriculumValidationHtml(validation)+
+        (editable?'<div class="course-submit-help"><span>💡</span><p><strong>บันทึกร่างได้แม้ยังไม่ครบ</strong><br>เมื่อข้อมูลครบและคะแนนแต่ละภาครวม 100 จึงกด “ส่งตรวจ”</p></div>':'')+
+      '</div></details>'+
+      (editable?'<div class="course-sticky-actions"><span>ครูผู้สอนเป็นผู้จัดทำ · ระบบเก็บฉบับและผู้แก้ไข</span><div><button type="button" class="secondary-btn" data-course-save="draft">บันทึกร่าง</button><button type="button" class="primary-btn" data-course-save="submit">ส่งฝ่ายวิชาการตรวจ</button></div></div>':'')+
+    '</form>'+
+    (reviewable?'<section class="panel course-review-actions"><div><strong>รายการนี้รอการตรวจสอบ</strong><p>ตรวจความสอดคล้องของหลักสูตร หน่วย เวลาเรียน และโครงสร้างคะแนนก่อนอนุมัติ</p></div><div><button type="button" class="secondary-btn danger-text" data-course-review="returned">ส่งกลับแก้ไข</button><button type="button" class="primary-btn" data-course-review="approved">อนุมัติหลักสูตรรายวิชา</button></div></section>':'')+
+    (status==="approved"?'<section class="course-next-step panel"><div><span>✓</span><div><strong>พร้อมเข้าสู่งานวัดผล</strong><p>เมื่อครูเปิดสมุดวัดผล ระบบจะสร้างหัวข้อคะแนนจากโครงสร้างที่อนุมัตินี้โดยอัตโนมัติ</p></div></div><a class="primary-btn" href="#/assessment">ไปวัดผลและ ปพ. →</a></section>':'')+
+  '</section>';
+}
+function courseCurriculumReadOutcomeRows(root){
+  return qa("[data-course-outcome-row]",root).map(row=>({
+    type:q('[data-field="type"]',row)?.value||"indicator",
+    code:String(q('[data-field="code"]',row)?.value||"").trim(),
+    description:String(q('[data-field="description"]',row)?.value||"").trim()
+  })).filter(x=>x.code||x.description);
+}
+function courseCurriculumRefreshOutcomePicks(){
+  const form=q("#course-curriculum-form");if(!form)return;
+  const editable=form.dataset.editable==="true";
+  const outcomes=courseCurriculumReadOutcomeRows(form);
+  qa("[data-course-unit-row]",form).forEach(row=>{
+    const box=q("[data-course-outcome-picks]",row);if(!box)return;
+    const selected=qa('input[type="checkbox"]:checked',box).map(x=>x.value);
+    box.innerHTML=courseOutcomePickerHtml(selected,outcomes,editable);
+  });
+}
+function courseCurriculumCollectPayload(form){
+  const fd=new FormData(form);
+  const outcomes=courseCurriculumReadOutcomeRows(form);
+  const units=qa("[data-course-unit-row]",form).map(row=>({
+    unit_no:Number(q('[data-field="unit_no"]',row)?.value||0),
+    term_no:Number(q('[data-field="term_no"]',row)?.value||0),
+    title:String(q('[data-field="title"]',row)?.value||"").trim(),
+    hours:String(q('[data-field="hours"]',row)?.value||"").trim(),
+    key_concept:String(q('[data-field="key_concept"]',row)?.value||"").trim(),
+    outcome_codes:qa('[data-course-outcome-picks] input[type="checkbox"]:checked',row).map(x=>x.value)
+  })).filter(x=>x.title||x.hours||x.outcome_codes.length);
+  const assessment_plan=qa("[data-course-assessment-row]",form).map((row,index)=>({
+    code:String(q('[data-field="code"]',row)?.value||("item_"+(index+1))).trim(),
+    term_no:Number(q('[data-field="term_no"]',row)?.value||0),
+    category:String(q('[data-field="category"]',row)?.value||"coursework"),
+    label:String(q('[data-field="label"]',row)?.value||"").trim(),
+    max_score:String(q('[data-field="max_score"]',row)?.value||"").trim(),
+    method:String(q('[data-field="method"]',row)?.value||"").trim(),
+    evidence:String(q('[data-field="evidence"]',row)?.value||"").trim(),
+    unit_no:String(q('[data-field="unit_no"]',row)?.value||"").trim()
+  })).filter(x=>x.label||x.max_score);
+  return {
+    course_description:String(fd.get("course_description")||"").trim(),
+    key_concepts:String(fd.get("key_concepts")||"").trim(),
+    competencies:String(fd.get("competencies")||"").trim(),
+    desirable_characteristics:String(fd.get("desirable_characteristics")||"").trim(),
+    outcomes,units,assessment_plan
+  };
+}
+function courseCurriculumRefreshLiveTotals(){
+  const form=q("#course-curriculum-form"),box=q("[data-course-live-totals]");if(!form||!box)return;
+  const data=state.courseCurriculumData&&state.courseCurriculumData.detail||{};
+  const terms=data.terms||[];
+  const units=qa("[data-course-unit-row]",form);
+  const assessments=qa("[data-course-assessment-row]",form);
+  box.innerHTML=terms.map(t=>{
+    const termNo=Number(t.term_no);
+    const hours=units.filter(r=>Number(q('[data-field="term_no"]',r)?.value||0)===termNo)
+      .reduce((sum,r)=>sum+(Number(q('[data-field="hours"]',r)?.value)||0),0);
+    const score=assessments.filter(r=>Number(q('[data-field="term_no"]',r)?.value||0)===termNo)
+      .reduce((sum,r)=>sum+(Number(q('[data-field="max_score"]',r)?.value)||0),0);
+    const target=t.target_hours;
+    const scoreOk=Math.abs(score-100)<0.01;
+    const hourOk=target==null||Number(target)<=0||Math.abs(hours-Number(target))<0.01;
+    return '<div class="'+(scoreOk&&hourOk?"ok":"attention")+'"><strong>ภาคเรียนที่ '+esc(termNo)+'</strong><span>เวลา '+hours.toLocaleString("th-TH",{maximumFractionDigits:2})+(target!=null?'/'+Number(target).toLocaleString("th-TH",{maximumFractionDigits:2}):'')+' ชม.</span><span>คะแนน '+score.toLocaleString("th-TH",{maximumFractionDigits:2})+'/100</span></div>';
+  }).join("");
+}
+function bindCourseCurriculumControls(){
+  const year=q("[data-course-curriculum-year]");
+  if(year)year.addEventListener("change",()=>{
+    state.courseCurriculumYearId=year.value||null;
+    state.courseCurriculumData=null;
+    location.hash="#/academics/my-courses";
+    renderRoute();
+  });
+  const form=q("#course-curriculum-form");
+  if(!form)return;
+  const detail=state.courseCurriculumData&&state.courseCurriculumData.detail||{};
+  const terms=detail.terms||[];
+  const editable=form.dataset.editable==="true";
+  const outcomeContainer=q("[data-course-outcomes]",form);
+  const unitContainer=q("[data-course-units]",form);
+  const assessmentContainer=q("[data-course-assessments]",form);
+  q("[data-course-add-outcome]",form)?.addEventListener("click",()=>{
+    outcomeContainer.insertAdjacentHTML("beforeend",courseOutcomeRowHtml({type:"indicator",code:"",description:""},qa("[data-course-outcome-row]",form).length,true));
+  });
+  q("[data-course-add-unit]",form)?.addEventListener("click",()=>{
+    const outcomes=courseCurriculumReadOutcomeRows(form);
+    unitContainer.insertAdjacentHTML("beforeend",courseUnitRowHtml({unit_no:qa("[data-course-unit-row]",form).length+1,term_no:terms[0]&&terms[0].term_no||1,title:"",hours:"",key_concept:"",outcome_codes:[]},qa("[data-course-unit-row]",form).length,terms,outcomes,true));
+    courseCurriculumRefreshLiveTotals();
+  });
+  q("[data-course-add-assessment]",form)?.addEventListener("click",()=>{
+    assessmentContainer.insertAdjacentHTML("beforeend",courseAssessmentRowHtml({code:"item_"+(qa("[data-course-assessment-row]",form).length+1),term_no:terms[0]&&terms[0].term_no||1,category:"coursework",label:"",max_score:"",method:"",evidence:"",unit_no:""},qa("[data-course-assessment-row]",form).length,terms,true));
+    courseCurriculumRefreshLiveTotals();
+  });
+  form.addEventListener("click",event=>{
+    const btn=event.target.closest("[data-remove-course-row]");
+    if(!btn)return;
+    const row=btn.closest("[data-course-outcome-row],[data-course-unit-row],[data-course-assessment-row]");
+    if(!row)return;
+    row.remove();
+    courseCurriculumRefreshOutcomePicks();
+    courseCurriculumRefreshLiveTotals();
+  });
+  form.addEventListener("input",event=>{
+    if(event.target.matches('[data-course-outcome-row] [data-field="code"]'))courseCurriculumRefreshOutcomePicks();
+    if(event.target.closest("[data-course-unit-row],[data-course-assessment-row]"))courseCurriculumRefreshLiveTotals();
+  });
+  form.addEventListener("change",event=>{
+    if(event.target.closest("[data-course-unit-row],[data-course-assessment-row]"))courseCurriculumRefreshLiveTotals();
+  });
+  qa("[data-course-save]",form).forEach(btn=>btn.addEventListener("click",async()=>{
+    const action=btn.dataset.courseSave;
+    if(action==="submit"&&!confirm("ยืนยันส่งหลักสูตรรายวิชาให้ฝ่ายวิชาการตรวจสอบ? หลังส่งแล้วเอกสารจะถูกล็อกจนกว่าจะอนุมัติหรือส่งกลับ"))return;
+    const school=currentSchool();if(!school)return;
+    setBusy(btn,true,action==="submit"?"กำลังตรวจและส่ง...":"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_course_curriculum",{
+      p_school_id:school.id,
+      p_course_id:form.dataset.courseId,
+      p_payload:courseCurriculumCollectPayload(form),
+      p_action:action,
+      p_expected_updated_at:form.dataset.updatedAt||null
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast(action==="submit"?"ส่งหลักสูตรรายวิชาให้ฝ่ายวิชาการแล้ว":"บันทึกร่างแล้ว","success");
+    state.courseCurriculumData=null;
+    renderRoute();
+  }));
+  courseCurriculumRefreshLiveTotals();
+  if(editable)courseCurriculumRefreshOutcomePicks();
+
+  qa("[data-course-review]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const decision=btn.dataset.courseReview;
+    let note=null;
+    if(decision==="returned"){
+      note=prompt("ระบุสิ่งที่ครูต้องแก้ไข")||"";
+      if(!note.trim())return;
+    }else if(!confirm("ยืนยันอนุมัติหลักสูตรรายวิชาและโครงสร้างคะแนนนี้? เมื่ออนุมัติแล้วครูจะนำไปเปิดสมุดวัดผลได้"))return;
+    setBusy(btn,true,decision==="approved"?"กำลังอนุมัติ...":"กำลังส่งกลับ...");
+    const res=await supabase.rpc("lao_review_course_curriculum",{
+      p_curriculum_id:form.dataset.curriculumId,
+      p_decision:decision,
+      p_review_note:note
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast(decision==="approved"?"อนุมัติหลักสูตรรายวิชาแล้ว":"ส่งกลับให้ครูแก้ไขแล้ว","success");
+    state.courseCurriculumData=null;
+    renderRoute();
+  }));
+}
+async function courseCurriculumHtml(courseId=null){
+  const data=await loadCourseCurriculumPage(courseId);
+  return courseId?courseCurriculumDetailHtml(data):courseCurriculumListHtml(data);
+}
+
 function academicRouteState(){
   const hash=location.hash||"#/academics";
+  const courseCurriculum=hash.match(/^#\/academics\/my-courses\/([0-9a-f-]{36})\/?$/i);
+  if(courseCurriculum)return {mode:"course-curriculum",courseId:courseCurriculum[1]};
+  if(/^#\/academics\/my-courses\/?$/i.test(hash))return {mode:"my-courses",courseId:null};
   if(/^#\/academics\/periods\/?$/i.test(hash))return {mode:"periods"};
   if(/^#\/academics\/programs\/?$/i.test(hash))return {mode:"programs"};
   if(/^#\/academics\/time-frames\/?$/i.test(hash))return {mode:"time-frames"};
@@ -5260,7 +5645,10 @@ async function academicsHtml(){
   if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>เลือกโรงเรียนเพื่อเปิดงานวิชาการ</p></div></section>';
   if(!canViewAcademic())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ดูงานวิชาการ</h3></div></section>';
   let data=await loadAcademicStructure();
-  const mode=academicRouteState().mode;
+  const routeState=academicRouteState();
+  const mode=routeState.mode;
+  if(mode==="my-courses")return await courseCurriculumHtml(null);
+  if(mode==="course-curriculum")return await courseCurriculumHtml(routeState.courseId);
   try{
     state.academicTimeline=await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
   }catch(e){
@@ -5332,6 +5720,7 @@ function academicScrollToForm(form){
 }
 function bindAcademics(){
   bindDepartmentSetupTimeline();
+  bindCourseCurriculumControls();
   const data=state.academicData||{};
   const school=currentSchool();
   bindTeachingWorkloadControls();
@@ -6572,6 +6961,14 @@ async function loadAssessmentPage(bookId=null){
   });
   if(res.error)throw res.error;
   state.assessmentData=res.data||{};
+  if(!bookId){
+    const curriculumRes=await supabase.rpc("lao_course_curriculum_page",{
+      p_school_id:school.id,
+      p_academic_year_id:state.assessmentData.selected_year_id||state.assessmentYearId||null,
+      p_course_id:null
+    });
+    state.assessmentData.course_curricula=curriculumRes.error?[]:(curriculumRes.data&&curriculumRes.data.courses||[]);
+  }
   if(bookId&&state.assessmentData.book){
     const outcomeRes=await supabase.rpc("lao_assessment_outcomes_page",{p_book_id:bookId});
     if(!outcomeRes.error){
@@ -6617,6 +7014,7 @@ function assessmentOutcomeOptions(value){
 function assessmentListHtml(data){
   const year=assessmentSelectedYear(data),term=assessmentSelectedTerm(data);
   const years=data.years||[],items=data.items||[],stats=data.stats||{};
+  const curriculumByCourse=new Map((data.course_curricula||[]).map(x=>[x.course_id,x]));
   const yearOptions=years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+(y.is_current?" · ปัจจุบัน":"")+'</option>').join("");
   const termOptions=(year&&year.terms||[]).map(t=>'<option value="'+esc(t.id)+'" '+(t.id===data.selected_term_id?"selected":"")+'>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+(t.is_current?" · ปัจจุบัน":"")+'</option>').join("");
   const cards=items.map(item=>{
@@ -6629,15 +7027,20 @@ function assessmentListHtml(data){
       '<span class="pill '+assessmentStatusClass(status)+'">'+esc(assessmentStatusLabel(status))+'</span></div>'+
       '<div class="assessment-progress"><div><span>ความครบถ้วนคะแนน</span><strong>'+done+'/'+total+' คน</strong></div><div><i style="width:'+pct+'%"></i></div></div>'+
       (item.review_note?'<div class="assessment-return-note">↩ '+esc(item.review_note)+'</div>':'')+
-      '<div class="assessment-course-actions">'+
-        (item.book_id
-          ?'<a class="primary-btn compact-btn" href="#/assessment/'+esc(item.book_id)+'">'+(status==="approved"?"ดู ปพ.6":status==="submitted"?"ตรวจ/ดูรายการ":"เปิดบันทึกคะแนน")+'</a>'
-          :'<button type="button" class="primary-btn compact-btn" data-assessment-start="'+esc(item.workload_item_id)+'">เริ่มบันทึกคะแนน</button>')+
-      '</div>'+
+      (()=>{
+        const curriculum=curriculumByCourse.get(item.course_id)||null;
+        const curriculumStatus=curriculum&&curriculum.curriculum_status||"not_started";
+        if(item.book_id)return '<div class="assessment-course-actions"><a class="primary-btn compact-btn" href="#/assessment/'+esc(item.book_id)+'">'+(status==="approved"?"ดู ปพ.6":status==="submitted"?"ตรวจ/ดูรายการ":"เปิดบันทึกคะแนน")+'</a></div>';
+        if(item.subject_type==="activity")return '<div class="assessment-course-source"><span>✓ กิจกรรมพัฒนาผู้เรียนใช้เกณฑ์กิจกรรม (ผ/มผ)</span></div><div class="assessment-course-actions"><button type="button" class="primary-btn compact-btn" data-assessment-start="'+esc(item.workload_item_id)+'">เริ่มบันทึกผลกิจกรรม</button></div>';
+        if(curriculumStatus==="approved")return '<div class="assessment-course-source"><span>✓ ใช้โครงสร้างคะแนนจากหลักสูตรรายวิชาที่อนุมัติแล้ว</span></div><div class="assessment-course-actions"><button type="button" class="primary-btn compact-btn" data-assessment-start="'+esc(item.workload_item_id)+'">เริ่มบันทึกคะแนน</button></div>';
+        const label=curriculumStatus==="submitted"?"หลักสูตรรายวิชารอตรวจ":curriculumStatus==="returned"?"หลักสูตรรายวิชาถูกส่งกลับ":curriculumStatus==="draft"?"หลักสูตรรายวิชายังเป็นร่าง":"ยังไม่ได้จัดทำหลักสูตรรายวิชา";
+        const actionLabel=curriculumStatus==="submitted"?"เปิดดู":curriculumStatus==="returned"?"แก้ไขหลักสูตร":curriculumStatus==="draft"?"ทำต่อ":"จัดทำหลักสูตร";
+        return '<div class="assessment-course-source attention"><span>! '+esc(label)+'</span><small>ต้องอนุมัติโครงสร้างรายวิชาและคะแนนก่อนเริ่มบันทึกคะแนน</small></div><div class="assessment-course-actions"><a class="secondary-btn compact-btn" href="#/academics/my-courses/'+esc(item.course_id)+'">'+esc(actionLabel)+' →</a></div>';
+      })()+
     '</article>';
   }).join("");
   return '<section class="assessment-page">'+
-    '<section class="assessment-hero panel"><div><p class="eyebrow">ASSESSMENT & PP.6</p><h2>วัดผลและ ปพ.</h2><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นต้นทาง ครูไม่ต้องเลือกห้องหรือรายวิชาใหม่</p></div><div class="assessment-period-controls"><label>ปีการศึกษา<select data-assessment-year>'+yearOptions+'</select></label><label>ภาคเรียน<select data-assessment-term>'+termOptions+'</select></label></div></section>'+
+    '<section class="assessment-hero panel"><div><p class="eyebrow">ASSESSMENT & PP.6</p><h2>วัดผลและ ปพ.</h2><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นต้นทาง และใช้โครงสร้างคะแนนจากหลักสูตรรายวิชาที่ผ่านการอนุมัติ ครูไม่ต้องสร้างคะแนนตั้งต้นซ้ำ</p></div><div class="assessment-period-controls"><label>ปีการศึกษา<select data-assessment-year>'+yearOptions+'</select></label><label>ภาคเรียน<select data-assessment-term>'+termOptions+'</select></label></div></section>'+
     '<section class="assessment-kpis">'+
       '<article><small>รายวิชา/ห้องที่แสดง</small><strong>'+items.length.toLocaleString("th-TH")+'</strong></article>'+
       '<article><small>รอตรวจสอบ</small><strong>'+Number(stats.submitted||0).toLocaleString("th-TH")+'</strong></article>'+
@@ -6831,7 +7234,7 @@ async function loadAcademicGroupAccess(){
   if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
   const res=await supabase.rpc("lao_academic_group_access",{p_school_id:school.id});
   if(res.error)throw res.error;
-  return res.data||{scopes:[],can_use_own_workload:false,can_use_own_assessment:false};
+  return res.data||{scopes:[],can_use_own_workload:false,can_use_own_course_curriculum:false,can_use_own_assessment:false};
 }
 function academicPermissionLabels(scope){
   const labels=[];
@@ -6856,7 +7259,7 @@ function academicGroupMemberCard(member){
     '</div>'+
   '</article>';
 }
-function academicGroupWorkstreams(access,pendingTeaching,assessmentAttention){
+function academicGroupWorkstreams(access,pendingTeaching,assessmentAttention,pendingCurriculum=0){
   const scopes=access&&access.scopes||[];
   const scopeCodes=new Set(scopes.map(s=>String(s.scope_code||"")));
   const hasAny=(codes)=>codes.some(code=>scopeCodes.has(code));
@@ -6881,11 +7284,13 @@ function academicGroupWorkstreams(access,pendingTeaching,assessmentAttention){
     {
       no:2,icon:"🧭",scope:"academics.learning",
       title:"งานจัดการเรียนรู้และการนิเทศ",
-      responsibilities:["ปฏิทินวิชาการ","ภาระงานสอน","ตารางสอน","แผนการจัดการเรียนรู้","Active Learning","นิเทศภายใน / สังเกตชั้นเรียน","PLC"],
-      visible:hasPrefix("academics.learning")||hasAny(["academics.workload"])||Boolean(access&&access.can_use_own_workload),
+      responsibilities:["ปฏิทินวิชาการ","ภาระงานสอน","หลักสูตรรายวิชา / โครงสร้างรายวิชา / แผนวัดผล","ตารางสอน","แผนการจัดการเรียนรู้","Active Learning","นิเทศภายใน / สังเกตชั้นเรียน","PLC"],
+      visible:hasPrefix("academics.learning")||hasAny(["academics.workload","academics.course_curriculum"])||Boolean(access&&access.can_use_own_workload)||Boolean(access&&access.can_use_own_course_curriculum),
       apps:[
         {title:"ภาระงานสอน",route:"#/academics/workload",icon:"📚",badge:Number(pendingTeaching||0),
-          visible:hasAny(["academics.learning","academics.workload"])||Boolean(access&&access.can_use_own_workload)}
+          visible:hasAny(["academics.learning","academics.workload"])||Boolean(access&&access.can_use_own_workload)},
+        {title:"หลักสูตรรายวิชาที่ฉันสอน",route:"#/academics/my-courses",icon:"📘",badge:Number(pendingCurriculum||0),
+          visible:hasAny(["academics.learning","academics.course_curriculum"])||Boolean(access&&access.can_use_own_course_curriculum)}
       ]
     },
     {
@@ -6957,7 +7362,9 @@ async function academicGroupHtml(){
   }catch(_){}
 
   const academicAttention=Number(state.academicWork&&state.academicWork.attention_count||0);
-  const workstreams=academicGroupWorkstreams(access,academicAttention,assessmentAttention);
+  const pendingTeaching=Number(state.academicWork&&state.academicWork.pending_teaching_workloads||0)+Number(state.academicWork&&state.academicWork.my_returned_workloads||0);
+  const pendingCurriculum=Number(state.academicWork&&state.academicWork.pending_course_curricula||0)+Number(state.academicWork&&state.academicWork.my_returned_course_curricula||0);
+  const workstreams=academicGroupWorkstreams(access,pendingTeaching,assessmentAttention,pendingCurriculum);
   const totalAttention=academicAttention+assessmentAttention;
   return '<section class="academic-group-page">'+
     '<section class="academic-group-hero panel"><div><p class="eyebrow">ACADEMIC MANAGEMENT</p><h2>กลุ่มบริหารงานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · ศูนย์รวม 5 กลุ่มงาน แสดงเฉพาะขอบเขตที่บัญชีนี้มีสิทธิ์ใช้งาน</p></div><div class="academic-group-hero-actions">'+
@@ -7275,9 +7682,19 @@ async function renderRoute(){
     toast("กรุณาตั้งค่าสถานศึกษาและ Google Drive ให้ครบก่อนเชิญผู้ใช้","error");
   }
 
-  const meta=routeMeta[route]||routeMeta.overview,main=q("#main");
+  let meta=routeMeta[route]||routeMeta.overview;
+  if(route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses")){
+    meta=["หลักสูตรรายวิชาที่ฉันสอน","ครูผู้สอนจัดทำโครงสร้างรายวิชาและคะแนนก่อนส่งฝ่ายวิชาการตรวจ"];
+  }
+  const main=q("#main");
   q("[data-page-title]").textContent=meta[0];
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
+  const courseCurriculumRoute=route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses");
+  if(courseCurriculumRoute){
+    const academicRoot=q('[data-route="academics"]');
+    if(academicRoot)academicRoot.classList.remove("active");
+  }
+  qa("[data-academic-course-menu]").forEach(a=>a.classList.toggle("active",courseCurriculumRoute));
   main.classList.add("route-pending");
   main.setAttribute("aria-busy","true");
 
