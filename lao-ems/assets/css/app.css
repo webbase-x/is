@@ -7747,3 +7747,88 @@ th,td{line-height:1.45}
     font-size:9px;
   }
 }
+
+/* Grade hours belong to the selected school curriculum, not the grade selector — v0.19.27 */
+.subject-school-hour-summary{
+  margin:14px 0 18px;
+  padding:14px;
+  border:1px solid #d0d5dd;
+  border-radius:16px;
+  background:#fff;
+}
+.subject-school-hour-summary.has-gap{border-color:#fedf89;background:#fffcf5}
+.subject-school-hour-summary.has-over{border-color:#fecdca;background:#fffbfa}
+.subject-school-hour-summary.complete{border-color:#abefc6;background:#f6fef9}
+.subject-school-hour-summary.no-frame{background:#f9fafb}
+.subject-school-hour-summary-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.subject-school-hour-summary-head strong,
+.subject-school-hour-summary-head small{
+  display:block;
+}
+.subject-school-hour-summary-head strong{
+  color:#101828;
+  font-size:15px;
+}
+.subject-school-hour-summary-head small{
+  margin-top:2px;
+  color:#667085;
+  font-size:12px;
+}
+.subject-school-hour-summary-head>span{
+  color:#b54708;
+  font-size:12px;
+  font-weight:800;
+}
+.subject-school-hour-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  margin-top:12px;
+}
+.subject-school-hour-summary-grid>div{
+  min-width:0;
+  padding:10px 12px;
+  border:1px solid #eaecf0;
+  border-radius:12px;
+  background:#fff;
+}
+.subject-school-hour-summary-grid small,
+.subject-school-hour-summary-grid strong{
+  display:block;
+}
+.subject-school-hour-summary-grid small{
+  color:#667085;
+  font-size:11px;
+}
+.subject-school-hour-summary-grid strong{
+  margin-top:3px;
+  color:#344054;
+  font-size:16px;
+  line-height:1.25;
+}
+.subject-school-hour-summary-grid .gap strong{color:#b54708}
+.subject-school-hour-summary-grid .over strong{color:#b42318}
+.subject-school-hour-summary-grid .done strong{color:#067647}
+@media(max-width:560px){
+  .subject-school-hour-summary{
+    padding:12px;
+  }
+  .subject-school-hour-summary-grid{
+    gap:6px;
+  }
+  .subject-school-hour-summary-grid>div{
+    padding:9px 7px;
+    text-align:center;
+  }
+  .subject-school-hour-summary-grid small{
+    font-size:10px;
+  }
+  .subject-school-hour-summary-grid strong{
+    font-size:13px;
+  }
+}
