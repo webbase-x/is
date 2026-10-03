@@ -6615,3 +6615,124 @@ th,td{line-height:1.45}
     height:40px;
   }
 }
+
+
+/* Real subject time completeness — v0.19.10 */
+.subject-time-status{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border:1px solid #fedf89;
+  border-radius:11px;
+  background:#fffcf5;
+}
+.subject-time-status.ok{
+  border-color:#abefc6;
+  background:#f6fef9;
+}
+.subject-time-status>div{
+  min-width:0;
+}
+.subject-time-status strong,
+.subject-time-status span{
+  display:block;
+}
+.subject-time-status strong{
+  color:#b54708;
+  font-size:12px;
+}
+.subject-time-status.ok strong{
+  color:#067647;
+}
+.subject-time-status span{
+  margin-top:2px;
+  color:#667085;
+  font-size:10.5px;
+  line-height:1.4;
+}
+.subject-time-status a{
+  flex:0 0 auto;
+}
+.subject-time-checks{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+}
+.subject-time-check{
+  min-width:0;
+  padding:9px 10px;
+  border:1px solid #fedf89;
+  border-radius:10px;
+  background:#fffcf5;
+}
+.subject-time-check.ok{
+  border-color:#d1fadf;
+  background:#f6fef9;
+}
+.subject-time-check small,
+.subject-time-check strong,
+.subject-time-check span{
+  display:block;
+}
+.subject-time-check small{
+  color:#667085;
+  font-size:10px;
+}
+.subject-time-check strong{
+  margin-top:2px;
+  color:#b54708;
+  font-size:12px;
+  line-height:1.35;
+}
+.subject-time-check.ok strong{
+  color:#067647;
+}
+.subject-time-check span{
+  margin-top:3px;
+  color:#667085;
+  font-size:10px;
+  line-height:1.4;
+}
+.subject-time-issue-list{
+  padding:9px 10px;
+  border:1px solid #fedf89;
+  border-radius:10px;
+  background:#fffdf8;
+}
+.subject-time-issue-list>strong{
+  color:#b54708;
+  font-size:11.5px;
+}
+.subject-time-issue-list ul{
+  display:grid;
+  gap:5px;
+  margin:7px 0 0;
+  padding-left:18px;
+}
+.subject-time-issue-list li{
+  color:#475467;
+  font-size:10.5px;
+}
+.subject-time-issue-list li strong{
+  margin-right:5px;
+  color:#b54708;
+}
+@media(max-width:1050px){
+  .subject-time-checks{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:620px){
+  .subject-time-status{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .subject-time-status a{
+    width:100%;
+  }
+  .subject-time-checks{
+    grid-template-columns:1fr;
+  }
+}
