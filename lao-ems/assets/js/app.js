@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.11";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.12";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -3752,15 +3752,43 @@ function academicEndDateAfter100Weekdays(startIso){
 }
 function academicPeriodsHtml(data){
   const years=data.years||[],canManage=Boolean(data.can_manage),canDelete=isSchoolAdminContext();
+  const selectedYear=(data.years||[]).find(y=>y.id===data.selected_year_id)||null;
+  const schedule=data.schedule_settings||{configured:false};
+  const scheduleConfigured=Boolean(schedule.configured);
+  const frameNumber=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:2});
+  const framePeriodsPerWeek=scheduleConfigured?Number(schedule.periods_per_week||Number(schedule.school_days_per_week||0)*Number(schedule.periods_per_day||0)):0;
+  const frameCapacityHours=scheduleConfigured?Number(schedule.capacity_hours_per_year||Number(schedule.school_days_per_week||0)*Number(schedule.periods_per_day||0)*Number(schedule.minutes_per_period||0)/60*Number(schedule.instructional_weeks_per_year||0)):0;
   const yearCards=years.map(y=>{
     const terms=(y.terms||[]).map(t=>'<div class="academic-term-row"><div><strong>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</strong><small>'+(t.starts_on||t.ends_on?esc(thaiDate(t.starts_on))+' – '+esc(thaiDate(t.ends_on)):'ยังไม่กำหนดช่วงวันที่')+'</small></div>'+(t.is_current?'<span class="pill success">ภาคเรียนปัจจุบัน</span>':'')+(canManage?'<div class="academic-period-row-actions"><button type="button" class="text-btn" data-edit-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">แก้ไข</button>'+(canDelete?'<button type="button" class="text-btn danger-text" data-safe-delete-term="'+esc(t.id)+'" data-year-id="'+esc(y.id)+'">ลบ</button>':'')+'</div>':'')+'</div>').join("");
     return '<article class="academic-year-card '+(y.id===data.selected_year_id?"selected":"")+'"><div class="academic-year-head"><div><small>ปีการศึกษา</small><strong>'+esc(y.year_be)+'</strong></div><div class="academic-year-tags">'+(y.is_current?'<span class="pill success">ปีปัจจุบัน</span>':'')+(canManage?'<button type="button" class="secondary-btn compact-btn" data-add-term="'+esc(y.id)+'">＋ เพิ่มภาคเรียน</button><button type="button" class="secondary-btn compact-btn" data-edit-year="'+esc(y.id)+'">แก้ไขปี</button>':'')+(canDelete?'<button type="button" class="danger-btn compact-btn" data-safe-delete-year="'+esc(y.id)+'">ลบปี</button>':'')+'</div></div><div class="academic-year-dates">'+(y.starts_on||y.ends_on?'<span>'+esc(thaiDate(y.starts_on))+' – '+esc(thaiDate(y.ends_on))+'</span>':'<span>ยังไม่กำหนดวันเปิด–ปิดปีการศึกษา</span>')+'</div><div class="academic-term-list">'+(terms||'<div class="academic-empty-line">ยังไม่มีภาคเรียน</div>')+'</div></article>';
   }).join("");
+  const scheduleFrameHtml=selectedYear?'<section class="panel academic-time-frame-panel '+(scheduleConfigured?"is-configured":"needs-setup")+'">'+
+    '<div class="panel-head"><div><p class="eyebrow">STEP 1.3 · SCHOOL TIME FRAME</p><h2>กรอบเวลาเรียนของปีการศึกษา</h2><p class="panel-sub">กำหนดความจุเวลาเรียนของโรงเรียนสำหรับปี '+esc(selectedYear.year_be)+' ก่อนจัดรายวิชา ระบบใช้ค่านี้ตรวจว่าคาบ/สัปดาห์และชั่วโมงที่ต้องลงตารางไม่เกินเวลาที่มีจริง</p></div><span class="pill '+(scheduleConfigured?"success":"warning")+'">'+(scheduleConfigured?"✓ กำหนดแล้ว":"รอกำหนด")+'</span></div>'+
+    (scheduleConfigured?'<div class="academic-time-frame-summary">'+
+      '<article><small>วันเรียน</small><strong>'+frameNumber(schedule.school_days_per_week)+'</strong><span>วัน/สัปดาห์</span></article>'+
+      '<article><small>คาบต่อวัน</small><strong>'+frameNumber(schedule.periods_per_day)+'</strong><span>คาบ/วัน</span></article>'+
+      '<article><small>ความจุรายสัปดาห์</small><strong>'+frameNumber(framePeriodsPerWeek)+'</strong><span>คาบ/สัปดาห์</span></article>'+
+      '<article><small>เวลาต่อคาบ</small><strong>'+frameNumber(schedule.minutes_per_period)+'</strong><span>นาที/คาบ</span></article>'+
+      '<article><small>สัปดาห์เรียน</small><strong>'+frameNumber(schedule.instructional_weeks_per_year)+'</strong><span>สัปดาห์/ปี</span></article>'+
+      '<article><small>รองรับได้สูงสุด</small><strong>'+frameNumber(frameCapacityHours)+'</strong><span>ชั่วโมง/ปี</span></article>'+
+    '</div>':'<div class="academic-time-frame-warning"><strong>ยังคำนวณรายวิชา 100% จริงไม่ได้</strong><span>กรุณากำหนดวันเรียน คาบต่อวัน นาทีต่อคาบ และจำนวนสัปดาห์เรียนก่อน ระบบจึงจะตรวจความจุตารางของทุกระดับชั้นได้</span></div>')+
+    (canManage?'<form class="academic-time-frame-form" data-schedule-settings-form>'+
+      '<label>วันเรียน/สัปดาห์<input name="school_days_per_week" type="number" min="1" max="7" step="1" required value="'+esc(scheduleConfigured?schedule.school_days_per_week:"5")+'" placeholder="เช่น 5"></label>'+
+      '<label>คาบ/วัน<input name="periods_per_day" type="number" min="0.25" max="20" step="0.25" required value="'+esc(scheduleConfigured?schedule.periods_per_day:"")+'" placeholder="เช่น 6"></label>'+
+      '<label>นาที/คาบ<input name="minutes_per_period" type="number" min="20" max="120" step="1" required value="'+esc(scheduleConfigured?schedule.minutes_per_period:"60")+'" placeholder="เช่น 60"></label>'+
+      '<label>สัปดาห์เรียน/ปี<input name="instructional_weeks_per_year" type="number" min="1" max="60" step="0.5" required value="'+esc(scheduleConfigured?schedule.instructional_weeks_per_year:"40")+'" placeholder="เช่น 40"></label>'+
+      '<div class="academic-time-frame-preview span-all" data-time-frame-preview>กรอกข้อมูลครบเพื่อดูความจุเวลาเรียน</div>'+
+      '<div class="academic-time-frame-note span-all"><strong>หลักการคำนวณ:</strong> วันเรียน × คาบ/วัน = คาบสูงสุด/สัปดาห์ และคูณ นาที/คาบ × สัปดาห์/ปี เพื่อหาชั่วโมงที่รองรับได้สูงสุด · กิจกรรมบูรณาการไม่นับเป็นคาบที่กินตาราง</div>'+
+      '<div class="academic-form-actions span-all"><button type="submit" class="primary-btn">'+(scheduleConfigured?"บันทึกการแก้ไขกรอบเวลา":"บันทึกกรอบเวลาเรียน")+'</button></div>'+
+    '</form>':'')+
+  '</section>':'';
+
   return '<section class="academic-page">'+academicNavHtml("periods",data)+
-    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">ฝ่ายวิชาการเพิ่มปีการศึกษาได้เองก่อนข้อมูล LEC จะออก เมื่อกำหนดวันเริ่ม ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ โดยตั้งต้นภาคเรียนละ 100 วันเรียน จ.–ศ. รวม 200 วัน และแก้ไขช่วงวันที่ภายหลังได้</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
+    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">STEP 1.1–1.2 · ACADEMIC PERIODS</p><h2>ปีการศึกษาและภาคเรียน</h2><p class="panel-sub">กำหนดปีและภาคเรียนก่อน แล้วดำเนินการต่อที่ขั้นย่อย 1.3 “กรอบเวลาเรียนของปีการศึกษา” ในหน้าเดียวกัน เพื่อให้ขั้นที่ 1 พร้อมใช้จริง</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-year-form>＋ เพิ่มปีใหม่</button>':'')+'</div>'+
       '<div class="academic-year-list">'+(yearCards||'<div class="empty-state compact-empty"><div class="empty-icon">📅</div><h3>ยังไม่มีปีการศึกษา</h3></div>')+'</div>'+
       (canDelete?'<div class="academic-delete-policy"><strong>การลบแบบปลอดภัย</strong><span>ระบบจะตรวจข้อมูลเชื่อมโยงก่อนทุกครั้ง หากมีนักเรียน LEC ห้องเรียน รายวิชา เวลาเรียน หรือภาระงานสอน ระบบจะบล็อกการลบโดยอัตโนมัติ</span></div><div class="academic-safe-delete-panel hidden" data-academic-safe-delete-panel></div>':'')+
     '</section>'+
+    scheduleFrameHtml+
     (canManage?'<section class="academic-edit-grid">'+
       '<article class="panel hidden" data-year-form-panel><div class="panel-head"><div><h2 data-year-form-title>เพิ่มปีการศึกษา</h2><p class="panel-sub">สร้างได้ก่อน LEC เปิดปีใหม่ · ระบบสร้างภาคเรียนที่ 1 และ 2 ให้อัตโนมัติ ภาคเรียนละ 100 วันเรียน · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-year-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><input name="year_be" type="number" min="2400" max="2800" required placeholder="เช่น 2570"></label><label>วันเริ่มปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุดปีการศึกษา (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><div class="academic-year-auto-note span-all"><strong>ตั้งต้นอัตโนมัติ:</strong> ภาคเรียนที่ 1 = 100 วันเรียน และภาคเรียนที่ 2 = 100 วันเรียน โดยนับวันจันทร์–ศุกร์เบื้องต้น ไม่หักวันหยุดราชการ ช่วงวันที่ของแต่ละภาคเรียนแก้ไขได้ภายหลัง</div><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นปีการศึกษาปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-year-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกปีการศึกษา</button></div></form></article>'+
       '<article class="panel hidden" data-term-form-panel><div class="panel-head"><div><h2 data-term-form-title>เพิ่ม/แก้ไขภาคเรียน</h2><p class="panel-sub">รองรับภาคเรียนที่ 1–4 สำหรับสถานศึกษาที่มีรูปแบบแตกต่างกัน · เมื่อกำหนดวันเริ่ม ระบบเติมวันสิ้นสุดที่ 100 วันเรียนให้อัตโนมัติ และแก้ไขภายหลังได้ · วันที่ทุกช่องใช้ พ.ศ.</p></div></div><form id="academic-term-form" class="academic-form" data-id=""><label>ปีการศึกษา (พ.ศ.) <span class="required-mark">*</span><select name="academic_year_id" required>'+years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><label>ภาคเรียนที่ <span class="required-mark">*</span><select name="term_no" required><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><label>ชื่อภาคเรียน<input name="name" placeholder="เช่น ภาคเรียนที่ 1"></label><label>วันเริ่ม (พ.ศ.)'+buddhistDateControlHtml("starts_on","")+'</label><label>วันสิ้นสุด (พ.ศ.)'+buddhistDateControlHtml("ends_on","")+'</label><label class="check-row"><input name="is_current" type="checkbox"><span>กำหนดเป็นภาคเรียนปัจจุบัน</span></label><div class="academic-form-actions"><button type="button" class="secondary-btn" data-reset-term-form>ล้าง</button><button type="submit" class="primary-btn" '+(years.length?"":"disabled")+'>บันทึกภาคเรียน</button></div></form></article>'+
@@ -4060,7 +4088,7 @@ function academicSubjectsHtml(data,timeline){
   const currentStatusLabel={
     confirmed:"ยืนยันครบแล้ว",
     ready_to_confirm:"คาบครบ · พร้อมยืนยัน",
-    needs_schedule_settings:"ยังไม่กำหนดเวลาเรียนของโรงเรียน",
+    needs_schedule_settings:"รอกำหนดกรอบเวลาเรียนในขั้นที่ 1",
     needs_time:"ยังมีรายวิชาที่ไม่กำหนดคาบ",
     parallel_time_mismatch:"วิชาทางเลือกกำหนดคาบไม่เท่ากัน",
     needs_periods:"คาบต่อสัปดาห์ยังไม่ครบ",
@@ -4151,7 +4179,7 @@ function academicSubjectsHtml(data,timeline){
 
   const subjectTimeIssues=subjectCompleteness&&subjectCompleteness.time_issues||[];
   const subjectTimeIssuesHtml=subjectTimeIssues.map(x=>
-    '<li><strong>'+esc(x.type==="schedule_settings"?"ตั้งค่าตาราง":x.type==="period_capacity"?"ความจุคาบ":x.type==="hour_capacity"?"ความจุชั่วโมง":"เวลาเรียน")+'</strong><span>'+esc(x.message||"กรุณาตรวจสอบเวลาเรียน")+'</span></li>'
+    '<li><strong>'+esc(x.type==="schedule_settings"?"กรอบเวลาเรียน":x.type==="period_capacity"?"ความจุคาบ":x.type==="hour_capacity"?"ความจุชั่วโมง":"เวลาเรียน")+'</strong><span>'+esc(x.message||"กรุณาตรวจสอบเวลาเรียน")+'</span></li>'
   ).join("");
   const subjectCurrentComplete=Boolean(subjectCompleteness&&subjectCompleteness.is_complete);
   const subjectContentPct=Number(subjectCompleteness&&subjectCompleteness.content_completion_percent||0);
@@ -4200,7 +4228,7 @@ function academicSubjectsHtml(data,timeline){
       '<div class="subject-current-completeness '+(subjectCurrentComplete?"complete":"warning")+'"><strong>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>'+(subjectCompleteness?Number(subjectCompleteness.completion_percent||0):0)+'%</span><small>รายวิชา '+subjectContentPct+'% · เวลา '+subjectTimePct+'%'+(Number(subjectCompleteness&&subjectCompleteness.missing_count||0)?' · ขาดวิชา '+Number(subjectCompleteness.missing_count):'')+(Number(subjectCompleteness&&subjectCompleteness.time_issue_count||0)?' · ปัญหาเวลา '+Number(subjectCompleteness.time_issue_count):'')+'</small></div>'+
     '</div>'+
     '<div class="subject-completeness-groups">'+subjectGroupsHtml+'</div>'+
-    (subjectCompleteness?'<div class="subject-time-status '+(subjectTimeComplete?"ok":"attention")+'"><div><strong>'+(subjectTimeComplete?"✓ เวลาเรียนผ่านเกณฑ์จริง":"เวลาเรียนยังไม่ผ่านเกณฑ์ 100%")+'</strong><span>'+(subjectScheduleConfigured?"ตรวจจากวันเรียน × คาบ/วัน × นาที/คาบ × สัปดาห์/ปีของโรงเรียน":"ยังไม่ได้กำหนดความจุตารางจริงของปีการศึกษานี้")+'</span></div>'+(!subjectScheduleConfigured?'<a class="secondary-btn compact-btn" href="#/academics/curriculum">ไปตั้งค่าความจุตาราง</a>':'')+'</div>':'')+
+    (subjectCompleteness?'<div class="subject-time-status '+(subjectTimeComplete?"ok":"attention")+'"><div><strong>'+(subjectTimeComplete?"✓ เวลาเรียนผ่านเกณฑ์จริง":"เวลาเรียนยังไม่ผ่านเกณฑ์ 100%")+'</strong><span>'+(subjectScheduleConfigured?"ตรวจจากกรอบเวลาเรียนที่กำหนดในขั้นที่ 1":"ยังไม่ได้กำหนดกรอบเวลาเรียนของปีการศึกษาในขั้นที่ 1")+'</span></div>'+(!subjectScheduleConfigured?'<a class="secondary-btn compact-btn" href="#/academics/periods">ไปกำหนดกรอบเวลาเรียน · ขั้น 1</a>':'')+'</div>':'')+
     subjectTimeSummaryHtml+
     ((missingRequirementsHtml||subjectAnomaliesHtml||subjectTimeIssuesHtml)
       ?'<div class="subject-completeness-detail">'+
@@ -4230,7 +4258,9 @@ function academicSubjectsHtml(data,timeline){
 
   const centralOnlyCount=centralCatalog.length;
   const centralRowsOnly=centralRows;
-  const compactReadiness='<section class="subject-readiness-strip '+currentStatusClass+'"><div><strong>ขั้นถัดไป · โครงสร้างเวลาเรียน</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · '+esc(currentStatusLabel)+(weeklyCapacity!=null?' · '+weeklyTotal.toLocaleString("th-TH")+' / '+weeklyCapacity.toLocaleString("th-TH")+' คาบ/สัปดาห์':'')+'</span></div><a href="#/academics/curriculum">ตรวจเวลาเรียน →</a></section>';
+  const compactReadiness=currentStatus==="needs_schedule_settings"
+    ?'<section class="subject-readiness-strip warning"><div><strong>รอกำหนดกรอบเวลาเรียน · ขั้นที่ 1</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · ยังไม่สามารถตรวจคาบและชั่วโมงเทียบความจุจริงได้</span></div><a href="#/academics/periods">กำหนดกรอบเวลา →</a></section>'
+    :'<section class="subject-readiness-strip '+currentStatusClass+'"><div><strong>ขั้นถัดไป · โครงสร้างเวลาเรียน</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · '+esc(currentStatusLabel)+(weeklyCapacity!=null?' · '+weeklyTotal.toLocaleString("th-TH")+' / '+weeklyCapacity.toLocaleString("th-TH")+' คาบ/สัปดาห์':'')+'</span></div><a href="#/academics/curriculum">ตรวจเวลาเรียน →</a></section>';
   const curriculumFrameworkHtml=academicCurriculumTimeFrameworkHtml(currentGroup,gradeLabel);
   const schoolGroups=
     selectedGroupHtml("basic","รายวิชาพื้นฐาน","รายวิชาที่ใช้ตามโครงสร้างหลักสูตรของระดับชั้นนี้")+
@@ -5303,9 +5333,27 @@ function bindAcademics(){
   });
 
   const scheduleForm=q("[data-schedule-settings-form]");
-  const showScheduleForm=()=>scheduleForm?.classList.remove("hidden");
-  qa("[data-toggle-schedule-settings]").forEach(btn=>btn.addEventListener("click",showScheduleForm));
-  qa("[data-close-schedule-settings]").forEach(btn=>btn.addEventListener("click",()=>scheduleForm?.classList.add("hidden")));
+  const updateTimeFramePreview=()=>{
+    if(!scheduleForm)return;
+    const fd=new FormData(scheduleForm);
+    const days=Number(fd.get("school_days_per_week")||0);
+    const periods=Number(fd.get("periods_per_day")||0);
+    const minutes=Number(fd.get("minutes_per_period")||0);
+    const weeks=Number(fd.get("instructional_weeks_per_year")||0);
+    const preview=q("[data-time-frame-preview]",scheduleForm);
+    if(!preview)return;
+    if(days>0&&periods>0&&minutes>0&&weeks>0){
+      const weekly=days*periods;
+      const hours=weekly*minutes/60*weeks;
+      preview.innerHTML='<strong>'+weekly.toLocaleString("th-TH",{maximumFractionDigits:2})+' คาบ/สัปดาห์</strong><span>รองรับได้สูงสุด '+hours.toLocaleString("th-TH",{maximumFractionDigits:2})+' ชั่วโมง/ปี</span>';
+    }else{
+      preview.textContent="กรอกข้อมูลครบเพื่อดูความจุเวลาเรียน";
+    }
+  };
+  if(scheduleForm){
+    scheduleForm.addEventListener("input",updateTimeFramePreview);
+    updateTimeFramePreview();
+  }
   if(scheduleForm)scheduleForm.addEventListener("submit",async e=>{
     e.preventDefault();
     const fd=new FormData(scheduleForm),btn=scheduleForm.querySelector('button[type="submit"]');
@@ -5321,7 +5369,7 @@ function bindAcademics(){
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
     state.curriculumReadiness=null;
-    toast("บันทึกโครงสร้างเวลาเรียนแล้ว","success");
+    toast("บันทึกกรอบเวลาเรียนของปีการศึกษาแล้ว","success");
     renderRoute();
   });
 
