@@ -33,7 +33,7 @@ revoke all on public.lao_academic_year_programs from public,anon,authenticated;
 insert into public.lao_academic_year_programs(
   school_id,academic_year_id,program_id,is_active,created_by,updated_by
 )
-select distinct x.school_id,x.academic_year_id,x.program_id,true,null,null
+select distinct x.school_id,x.academic_year_id,x.program_id,true,null::uuid,null::uuid
 from (
   select c.school_id,c.academic_year_id,c.program_id
   from public.lao_class_sections c
