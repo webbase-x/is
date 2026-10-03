@@ -3416,7 +3416,7 @@ function academicRouteState(){
   if(/^#\/academics\/programs\/?$/i.test(hash))return {mode:"programs"};
   if(/^#\/academics\/classes\/?$/i.test(hash))return {mode:"classes"};
   if(/^#\/academics\/subjects\/?$/i.test(hash))return {mode:"subjects"};
-  if(/^#\/academics\/curriculum\/?$/i.test(hash))return {mode:"curriculum"};
+  if(/^#\/academics\/curriculum\/?$/i.test(hash))return {mode:"subjects",legacy_curriculum:true};
   if(/^#\/academics\/workload\/?$/i.test(hash))return {mode:"workload"};
   return {mode:"dashboard"};
 }
