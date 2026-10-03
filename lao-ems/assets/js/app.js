@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.27";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.28";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -4764,11 +4764,21 @@ async function loadTeachingWorkloadPage(){
   state.academicTermId=state.teachingWorkloadData.selected_term_id||null;
   return state.teachingWorkloadData;
 }
+function teachingProgramAbbreviation(page,row){
+  if(!row||!row.program_name&&!row.program_id)return "";
+  const programs=page&&page._programs||[];
+  const matched=programs.find(p=>
+    (row.program_id&&p.id===row.program_id)
+    ||(row.program_name&&String(p.name_th||"").trim()===String(row.program_name||"").trim())
+  );
+  return String(matched&&matched.code||row.program_code||row.program_name||"").trim();
+}
 function teachingOfferingOptions(page,selectedKey){
   const rows=page.offerings||[];
   return '<option value="">เลือกรายวิชาและห้อง</option>'+rows.map(o=>{
     const subject=(o.subject_code?o.subject_code+" · ":"")+o.subject_name;
-    const tail=(o.program_name?" · "+o.program_name:"")+(o.suggested_weekly_periods!=null?" · โครงสร้าง "+Number(o.suggested_weekly_periods).toLocaleString("th-TH")+" คาบ/สัปดาห์":"");
+    const programLabel=teachingProgramAbbreviation(page,o);
+    const tail=(programLabel?" · "+programLabel:"")+(o.suggested_weekly_periods!=null?" · โครงสร้าง "+Number(o.suggested_weekly_periods).toLocaleString("th-TH")+" คาบ/สัปดาห์":"");
     return '<option value="'+esc(o.key)+'" data-periods="'+esc(o.suggested_weekly_periods==null?"":o.suggested_weekly_periods)+'" '+(o.key===selectedKey?"selected":"")+'>'+esc(subject+" · "+o.class_short+tail)+'</option>';
   }).join("");
 }
@@ -4783,11 +4793,12 @@ function teachingWorkloadRowHtml(page,item,index){
     '<button type="button" class="icon-btn teaching-remove-btn" data-remove-teaching-row aria-label="ลบรายการ" title="ลบรายการ">×</button>'+
   '</div>';
 }
-function workloadItemListHtml(items){
+function workloadItemListHtml(items,page){
   if(!items||!items.length)return '<div class="academic-empty-line">ยังไม่มีรายการสอน</div>';
-  return '<div class="teaching-item-list">'+items.map(i=>
-    '<div class="teaching-item"><div><strong>'+esc((i.subject_code?i.subject_code+" · ":"")+i.subject_name)+'</strong><small>'+esc(i.class_short)+(i.program_name?' · '+esc(i.program_name):'')+' · '+esc(teachingRoleLabel(i.teaching_role))+'</small></div><span>'+Number(i.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span></div>'
-  ).join("")+'</div>';
+  return '<div class="teaching-item-list">'+items.map(i=>{
+    const programLabel=teachingProgramAbbreviation(page,i);
+    return '<div class="teaching-item"><div><strong>'+esc((i.subject_code?i.subject_code+" · ":"")+i.subject_name)+'</strong><small>'+esc(i.class_short)+(programLabel?' · '+esc(programLabel):'')+' · '+esc(teachingRoleLabel(i.teaching_role))+'</small></div><span>'+Number(i.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span></div>';
+  }).join("")+'</div>';
 }
 function workloadEditorHtml(page,workload,personnel){
   const canManage=Boolean(page.can_manage),canApprove=Boolean(page.can_approve);
@@ -4799,7 +4810,7 @@ function workloadEditorHtml(page,workload,personnel){
   const locked=!canManage&&["submitted","approved"].includes(status);
   if(locked){
     return '<section class="panel teaching-editor-panel"><div class="panel-head"><div><p class="eyebrow">MY TEACHING LOAD</p><h2>'+esc(personnel.full_name||workload.personnel_name||"ภาระงานสอน")+'</h2><p class="panel-sub">สถานะ: '+esc(teachingWorkloadStatusLabel(status))+'</p></div><span class="pill '+teachingWorkloadStatusClass(status)+'">'+esc(teachingWorkloadStatusLabel(status))+'</span></div>'+
-      workloadItemListHtml(workload.items||[])+
+      workloadItemListHtml(workload.items||[],page)+
       '<div class="teaching-total-bar"><span>รวมภาระงานสอน</span><strong>'+Number(workload.total_weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</strong></div>'+
       (status==="submitted"?'<div class="notice warning">ส่งให้ฝ่ายวิชาการตรวจสอบแล้ว ระหว่างนี้ไม่สามารถแก้ไขได้</div>':'<div class="notice success">รายการนี้ได้รับการอนุมัติแล้ว หากต้องแก้ไขให้ติดต่อฝ่ายวิชาการ</div>')+
     '</section>';
@@ -4829,7 +4840,7 @@ function teachingWorkloadCardsHtml(page){
   const cards=visible.map(w=>
     '<article class="teaching-workload-card '+(w.status==="submitted"?"needs-review":"")+'" data-workload-card="'+esc(w.id)+'">'+
       '<div class="teaching-workload-card-head"><div><strong>'+esc(w.personnel_name||"-")+'</strong><small>'+esc(w.position_title||"")+(w.academic_standing?' · '+esc(w.academic_standing):'')+'</small></div><span class="pill '+teachingWorkloadStatusClass(w.status)+'">'+esc(teachingWorkloadStatusLabel(w.status))+'</span></div>'+
-      workloadItemListHtml(w.items||[])+
+      workloadItemListHtml(w.items||[],page)+
       '<div class="teaching-card-footer"><div><small>รวม</small><strong>'+Number(w.total_weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</strong></div><div class="teaching-card-actions">'+
         ((page.can_manage||page.can_approve)&&w.status==="submitted"?((page.can_manage?'<button type="button" class="secondary-btn compact-btn" data-edit-workload-personnel="'+esc(w.personnel_id)+'">ตรวจ/แก้ไข</button>':'')+(page.can_approve?'<button type="button" class="danger-outline-btn compact-btn" data-return-workload="'+esc(w.id)+'">ส่งกลับแก้ไข</button><button type="button" class="primary-btn compact-btn" data-approve-workload="'+esc(w.id)+'">อนุมัติ</button>':'')):'')+
         (page.can_manage&&w.status!=="submitted"?'<button type="button" class="secondary-btn compact-btn" data-edit-workload-personnel="'+esc(w.personnel_id)+'">เปิดรายการ</button>':'')+
@@ -4843,6 +4854,7 @@ function teachingWorkloadCardsHtml(page){
 }
 async function academicWorkloadHtml(data){
   const page=await loadTeachingWorkloadPage();
+  page._programs=(data&&data.year_programs||data&&data.programs||[]).filter(p=>p&&p.is_active!==false);
   const year=workloadSelectedYear(page),term=workloadSelectedTerm(page);
   const personnel=page.can_manage
     ?(page.personnel||[]).find(p=>p.id===state.teachingWorkloadPersonnelId)||null
