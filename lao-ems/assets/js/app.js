@@ -1496,6 +1496,23 @@ function profileHtml(){
   '</section>';
 }
 
+function schoolProgramLibraryPanelHtml(library){
+  const d=library||{},items=d.items||[],canManage=Boolean(d.can_manage);
+  const rows=items.map(p=>
+    '<article class="school-program-master-row '+(!p.is_active?"muted-row":"")+'">'+
+      '<div class="school-program-master-code">'+esc(p.code||"—")+'</div>'+
+      '<div class="school-program-master-copy"><strong>'+esc(p.name_th)+'</strong><small>'+esc(p.name_en||"")+'</small></div>'+
+      '<div class="school-program-master-use"><span class="pill '+(p.is_active?"success":"warning")+'">'+(p.is_active?"เปิดใช้":"ปิดใช้")+'</span><small>ถูกเลือกใช้ '+Number(p.annual_use_count||0).toLocaleString("th-TH")+' ปี</small></div>'+
+      (canManage?'<button type="button" class="secondary-btn compact-btn" data-edit-school-program="'+esc(p.id)+'">แก้ไข</button>':'')+
+    '</article>'
+  ).join("");
+  return '<section class="panel school-program-master-panel"><div class="panel-head"><div><p class="eyebrow">SCHOOL MASTER DATA</p><h2>คลังโปรแกรม / หลักสูตรพิเศษของโรงเรียน</h2><p class="panel-sub">กำหนดอักษรย่อ ชื่อภาษาไทย และชื่อภาษาอังกฤษเพียงครั้งเดียว แล้วงานวิชาการแต่ละปีเลือกว่าจะใช้รายการใด ไม่สร้างชื่อซ้ำทุกปี</p></div>'+(canManage?'<button type="button" class="secondary-btn" data-new-school-program>＋ เพิ่มโปรแกรม</button>':'')+'</div>'+
+    '<div class="school-program-master-rule"><span>ข้อมูลแม่แบบของโรงเรียน</span><b>≠</b><span>การเลือกใช้รายปี</span><p>การเปิดใช้โปรแกรมในคลังไม่ได้หมายความว่าทุกปีต้องใช้ โปรแกรมที่ใช้จริงเลือกใน “งานวิชาการ → โปรแกรมปีนี้”</p></div>'+
+    (rows?'<div class="school-program-master-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">⭐</div><h3>ยังไม่มีโปรแกรมพิเศษ</h3><p>หากโรงเรียนมีเฉพาะห้องปกติ ไม่ต้องเพิ่มรายการ</p></div>')+
+    (canManage?'<form class="academic-form academic-form-3 hidden" data-school-program-master-form data-id=""><label>อักษรย่อ<input name="code" maxlength="30" placeholder="เช่น MEP"></label><label>ชื่อภาษาไทย <span class="required-mark">*</span><input name="name_th" required></label><label>ชื่อภาษาอังกฤษ<input name="name_en" placeholder="เช่น Mini English Program"></label><label class="check-row span-all"><input name="is_active" type="checkbox" checked><span>เปิดใช้งานในคลังโรงเรียน</span></label><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-cancel-school-program>ยกเลิก</button><button type="submit" class="primary-btn">บันทึกโปรแกรม</button></div></form>':'')+
+  '</section>';
+}
+
 async function setupHtml(){
   const school=currentSchool();
   if(isPlatformAdminMode()){
@@ -1505,9 +1522,14 @@ async function setupHtml(){
     return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>สำหรับ School Admin เท่านั้น</h3><p>ต้องมีสิทธิ์ผู้ดูแลสถานศึกษาและนำเข้า LEC สำเร็จก่อนตั้งค่าโรงเรียน</p></div></section>';
   }
 
-  const setupRes=await supabase.rpc("lao_ensure_school_settings",{p_school_id:school.id});
+  const [setupRes,programRes]=await Promise.all([
+    supabase.rpc("lao_ensure_school_settings",{p_school_id:school.id}),
+    supabase.rpc("lao_school_program_library",{p_school_id:school.id})
+  ]);
   if(setupRes.error)throw setupRes.error;
+  if(programRes.error)throw programRes.error;
   state.schoolSetup=setupRes.data||{};
+  const programLibrary=programRes.data||{items:[],can_manage:false};
   const s=state.schoolSetup;
   const status=(ok)=>'<span class="pill '+(ok?"success":"warning")+'">'+(ok?"เสร็จแล้ว":"ต้องดำเนินการ")+'</span>';
   const driveLabel=s.drive_connected?"เชื่อมแล้ว":"ยังไม่เชื่อม";
@@ -1522,6 +1544,7 @@ async function setupHtml(){
   '</section>'+
   '<section class="content-grid"><article class="panel"><div class="panel-head"><div><p class="eyebrow">ค่าการใช้งาน</p><h2>ตั้งค่าพื้นฐานของโรงเรียน</h2><p class="panel-sub">ข้อมูลชื่อโรงเรียน ที่อยู่ และข้อมูลทางราชการไม่แก้ที่หน้านี้ เพราะมาจาก LEC</p></div></div><form id="school-settings-form" class="form-grid compact-settings"><label class="field">เขตเวลา<select name="timezone"><option value="Asia/Bangkok" selected>ประเทศไทย (Asia/Bangkok)</option></select></label><label class="field">ภาษาหลัก<select name="locale"><option value="th-TH" '+(s.locale!=="en-US"?"selected":"")+'>ไทย</option><option value="en-US" '+(s.locale==="en-US"?"selected":"")+'>English</option></select></label><label class="field span-2">การมองเห็นไฟล์เริ่มต้น<select name="default_file_visibility"><option value="internal" '+(s.default_file_visibility==="internal"?"selected":"")+'>ภายในโรงเรียน</option><option value="private" '+(s.default_file_visibility==="private"?"selected":"")+'>เฉพาะผู้เกี่ยวข้อง</option><option value="public" '+(s.default_file_visibility==="public"?"selected":"")+'>สาธารณะ (เฉพาะไฟล์ที่อนุญาต)</option></select><small>สามารถกำหนดเป็นรายไฟล์ได้ภายหลัง</small></label><div class="span-2"><button class="primary-btn" type="submit">บันทึกการตั้งค่า</button></div></form></article>'+
   '<article class="panel drive-setup-card"><div class="panel-head"><div><p class="eyebrow">Google Drive</p><h2>พื้นที่จัดเก็บของสถานศึกษา</h2><p class="panel-sub">หนึ่งโรงเรียนเชื่อม Google Drive หนึ่งบัญชี/Shared Drive เพื่อเก็บไฟล์จริง ส่วน LAO-EMS เก็บ metadata และสิทธิ์การเข้าถึง</p></div>'+status(s.drive_connected)+'</div><div class="drive-root-preview"><span class="drive-icon">▣</span><div><small>โฟลเดอร์หลักของระบบ</small><strong>'+root+'</strong><p>เมื่อเชื่อมสำเร็จ ระบบจะใช้โฟลเดอร์นี้เป็นราก และจะสร้างโฟลเดอร์ย่อยตามโมดูลเมื่อเปิดใช้งานในระยะต่อไป</p></div></div>'+(s.drive_connected?'<div class="drive-connected"><strong>'+esc(s.drive_account_email||"Google Drive")+'</strong><small>เชื่อมเมื่อ '+(s.drive_connected_at?thaiDateTime(s.drive_connected_at):"-")+'</small></div>':'<div class="notice warning"><strong>ยังไม่ได้เชื่อม Google Drive</strong><br>กด “เชื่อม Google Drive” เพื่อเลือกบัญชี Google ของสถานศึกษา ระบบจะขอสิทธิ์เฉพาะไฟล์ที่ LAO-EMS สร้าง และสร้าง '+root+' อัตโนมัติ</div>')+'<div class="action-row">'+(s.drive_connected?'<button class="secondary-btn" type="button" data-drive-refresh>ตรวจสอบสถานะอีกครั้ง</button>':'<button class="primary-btn" type="button" data-drive-connect>เชื่อม Google Drive</button>')+'</div></article></section>'+
+  schoolProgramLibraryPanelHtml(programLibrary)+
   (s.can_invite_users?'<section class="panel"><div class="notice success"><strong>ตั้งค่าครบแล้ว</strong><br>โรงเรียนพร้อมเชิญผู้ใช้และกำหนดสิทธิ์</div><div class="action-row"><a class="primary-btn" href="#/users">ไปที่ผู้ใช้และสิทธิ์</a></div></section>':'');
 }
 
@@ -6382,7 +6405,53 @@ function bindSetup(){
     }catch(e){toast(e.message||String(e),"error");}
     finally{setBusy(refresh,false);}
   });
+
+
+  const programForm=q("[data-school-program-master-form]");
+  const openProgramForm=(item=null)=>{
+    if(!programForm)return;
+    programForm.classList.remove("hidden");
+    programForm.dataset.id=item&&item.id||"";
+    academicSetFormValue(programForm,"code",item&&item.code||"");
+    academicSetFormValue(programForm,"name_th",item&&item.name_th||"");
+    academicSetFormValue(programForm,"name_en",item&&item.name_en||"");
+    academicSetFormValue(programForm,"is_active",item?item.is_active:true);
+    programForm.scrollIntoView({behavior:"smooth",block:"center"});
+  };
+  q("[data-new-school-program]")?.addEventListener("click",()=>openProgramForm(null));
+  qa("[data-edit-school-program]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const lib=await supabase.rpc("lao_school_program_library",{p_school_id:currentSchool().id});
+    if(lib.error){toast(lib.error.message,"error");return;}
+    const item=(lib.data&&lib.data.items||[]).find(x=>x.id===btn.dataset.editSchoolProgram);
+    if(item)openProgramForm(item);
+  }));
+  q("[data-cancel-school-program]")?.addEventListener("click",()=>{
+    programForm?.classList.add("hidden");
+  });
+  if(programForm)programForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const school=currentSchool();if(!school)return;
+    const fd=new FormData(programForm),btn=programForm.querySelector('button[type="submit"]');
+    const lib=await supabase.rpc("lao_school_program_library",{p_school_id:school.id});
+    const current=(lib.data&&lib.data.items||[]).find(x=>x.id===programForm.dataset.id)||null;
+    setBusy(btn,true,"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_save_academic_program",{
+      p_school_id:school.id,
+      p_program_id:programForm.dataset.id||null,
+      p_code:String(fd.get("code")||"").trim()||null,
+      p_name_th:String(fd.get("name_th")||"").trim(),
+      p_name_en:String(fd.get("name_en")||"").trim()||null,
+      p_description:current&&current.description||null,
+      p_is_active:fd.get("is_active")==="on",
+      p_sort_order:current?Number(current.sort_order||0):0
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("บันทึกคลังโปรแกรมของโรงเรียนแล้ว","success");
+    renderRoute();
+  });
 }
+
 function bindNotifications(){
   qa("[data-notification-read]").forEach(btn=>btn.addEventListener("click",async()=>{
     setBusy(btn,true,"กำลังบันทึก...");
