@@ -3833,7 +3833,7 @@ async function academicDashboardHtml(data){
   const noYear=!(data.years&&data.years.length);
   const timeline=state.academicTimeline||await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
   return '<section class="academic-page">'+academicNavHtml("dashboard",data)+
-    '<section class="academic-hero"><div><p class="eyebrow">ACADEMIC STRUCTURE</p><h2>งานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · วางข้อมูลต้นทางรายปีเพื่อให้ภาระงานสอน ตารางเรียน และงานวัดผลใช้ข้อมูลชุดเดียวกัน</p></div>'+(canManage?'<a class="primary-btn" href="#/academics/periods">'+(noYear?"เริ่มตั้งค่าปีการศึกษา":"จัดการโครงสร้าง")+'</a>':'')+'</section>'+
+    '<section class="academic-hero"><div><p class="eyebrow">ACADEMIC STRUCTURE</p><h2>งานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · วางข้อมูลต้นทางรายปีเพื่อให้ภาระงานสอน ตารางเรียน และงานวัดผลใช้ข้อมูลชุดเดียวกัน</p></div>'+(canManage?'<a class="primary-btn" href="#/academics/periods">'+(noYear?"เริ่มตั้งค่าพื้นฐาน":"เปิดการตั้งค่าประจำปี")+'</a>':'')+'</section>'+
     departmentSetupTimelineHtml(timeline)+
     '<section class="academic-stats-grid">'+
       '<article><small>ปีการศึกษา</small><strong>'+(year?esc(year.year_be):"-")+'</strong><span>'+(year&&year.is_current?"ปีปัจจุบัน":"ปีที่เลือก")+'</span></article>'+
@@ -3844,7 +3844,7 @@ async function academicDashboardHtml(data){
     '</section>'+
     (noYear?'<section class="notice warning"><strong>ยังไม่มีโครงสร้างปีการศึกษาที่พร้อมใช้งาน</strong><br>เริ่มจากเพิ่มปีการศึกษา ระบบจะสร้างภาคเรียนที่ 1 และ 2 ให้เป็นค่าเริ่มต้น จากนั้นจึงกำหนดชั้น/ห้องและรายวิชา</section>':'')+
     '<section class="academic-flow-grid">'+
-      '<a href="#/academics/periods"><b>01</b><div><strong>ปีการศึกษาและภาคเรียน</strong><small>กำหนดช่วงเวลาและปีปัจจุบัน</small></div></a>'+
+      '<a href="#/academics/periods"><b>01</b><div><strong>ตั้งค่าพื้นฐานงานวิชาการประจำปี</strong><small>ปี/ภาคเรียน ช่วงปฏิทิน และกรอบเวลาเรียนของห้องปกติ/โปรแกรมพิเศษ</small></div></a>'+
       '<a href="#/academics/programs"><b>02</b><div><strong>โปรแกรมพิเศษ</strong><small>ใช้ข้อมูลระดับโรงเรียนเดิม แล้วตรวจสอบสำหรับปีที่เลือก</small></div></a>'+
       '<a href="#/academics/classes"><b>03</b><div><strong>ระดับชั้นและห้อง</strong><small>ห้องจาก LEC ถูกนำมาเป็นฐานโดยไม่ต้องกรอกซ้ำ</small></div></a>'+
       '<a href="#/academics/subjects"><b>04</b><div><strong>โครงสร้างหลักสูตรและเวลาเรียน</strong><small>เลือกรายวิชา กำหนดชั่วโมง/คาบ เทียบกรอบ และยืนยันความครบถ้วนในหน้าเดียว</small></div></a>'+
