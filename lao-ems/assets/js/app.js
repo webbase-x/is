@@ -4248,6 +4248,9 @@ function academicSubjectsHtml(data,timeline){
   const subjectCompleteness=subjectWorkspace.subject_completeness
     ||(subjectReadiness.groups||[]).find(g=>g.grade_code===gradeCode&&(g.program_id||"")===(selectedProgram?selectedProgram.id:""))
     ||null;
+  const activeTimeFrame=currentGroup&&currentGroup.time_frame_name?currentGroup:null;
+  const activeTimeFrameLabel=activeTimeFrame?String(activeTimeFrame.time_frame_name):"กรอบเวลาเริ่มต้นของโรงเรียน";
+  const activeTimeFrameSource=activeTimeFrame&&activeTimeFrame.time_frame_source==="program"?"กรอบเฉพาะโปรแกรม":"กรอบเริ่มต้น";
 
   const scheduleSettings=readiness.schedule_settings||{configured:false};
   const totalGroups=Number(readiness.total_groups||0),confirmedGroups=Number(readiness.confirmed_groups||0);
@@ -4403,7 +4406,7 @@ function academicSubjectsHtml(data,timeline){
       '<div class="subject-current-completeness '+(subjectCurrentComplete?"complete":"warning")+'"><strong>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>'+(subjectCompleteness?Number(subjectCompleteness.completion_percent||0):0)+'%</span><small>รายวิชา '+subjectContentPct+'% · เวลา '+subjectTimePct+'%'+(Number(subjectCompleteness&&subjectCompleteness.missing_count||0)?' · ขาดวิชา '+Number(subjectCompleteness.missing_count):'')+(Number(subjectCompleteness&&subjectCompleteness.time_issue_count||0)?' · ปัญหาเวลา '+Number(subjectCompleteness.time_issue_count):'')+'</small></div>'+
     '</div>'+
     '<div class="subject-completeness-groups">'+subjectGroupsHtml+'</div>'+
-    (subjectCompleteness?'<div class="subject-time-status '+(subjectTimeComplete?"ok":"attention")+'"><div><strong>'+(subjectTimeComplete?"✓ เวลาเรียนผ่านเกณฑ์จริง":"เวลาเรียนยังไม่ผ่านเกณฑ์ 100%")+'</strong><span>'+(subjectScheduleConfigured?"ตรวจจากกรอบเวลาเรียนที่กำหนดในขั้นที่ 1":"ยังไม่ได้กำหนดกรอบเวลาเรียนของปีการศึกษาในขั้นที่ 1")+'</span></div>'+(!subjectScheduleConfigured?'<a class="secondary-btn compact-btn" href="#/academics/periods">ไปกำหนดกรอบเวลาเรียน · ขั้น 1</a>':'')+'</div>':'')+
+    (subjectCompleteness?'<div class="subject-time-status '+(subjectTimeComplete?"ok":"attention")+'"><div><strong>'+(subjectTimeComplete?"✓ เวลาเรียนผ่านเกณฑ์จริง":"เวลาเรียนยังไม่ผ่านเกณฑ์ 100%")+'</strong><span>'+(subjectScheduleConfigured?"ตรวจจาก "+esc(activeTimeFrameLabel)+" · "+esc(activeTimeFrameSource):"ยังไม่ได้กำหนดกรอบเวลาเรียนของปีการศึกษาในขั้นที่ 1")+'</span></div>'+(!subjectScheduleConfigured?'<a class="secondary-btn compact-btn" href="#/academics/periods">ไปกำหนดกรอบเวลาเรียน · ขั้น 1</a>':'')+'</div>':'')+
     subjectTimeSummaryHtml+
     ((missingRequirementsHtml||subjectAnomaliesHtml||subjectTimeIssuesHtml)
       ?'<div class="subject-completeness-detail">'+
