@@ -10579,3 +10579,96 @@ html.is-touch-device [data-manual-refresh]{
   .homeroom-assign-form{grid-template-columns:1fr}
   .homeroom-assign-form button{width:100%}
 }
+
+
+/* v0.19.49 — homeroom assignment by school stage */
+.homeroom-assignment-controls{
+  display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap
+}
+.homeroom-stage-tabs{
+  display:flex;align-items:center;gap:7px;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px
+}
+.homeroom-stage-tabs button{
+  border:1px solid #d0d5dd;background:#fff;color:#475467;border-radius:999px;
+  min-height:38px;padding:7px 11px;display:inline-flex;align-items:center;gap:7px;
+  font-weight:800;white-space:nowrap;cursor:pointer
+}
+.homeroom-stage-tabs button b{
+  min-width:22px;height:22px;border-radius:999px;background:#f2f4f7;color:#475467;
+  display:grid;place-items:center;font-size:10px
+}
+.homeroom-stage-tabs button.active{
+  border-color:#84adff;background:#eff4ff;color:#1849a9
+}
+.homeroom-stage-tabs button.active b{background:#dbeafe;color:#1849a9}
+.homeroom-stage-summary{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;
+  border-radius:11px;background:#f8fafc
+}
+.homeroom-stage-summary strong{font-size:13px}
+.homeroom-stage-summary span{font-size:11.5px;color:#667085;font-weight:700}
+.homeroom-class-row{
+  grid-template-columns:170px minmax(0,1fr) auto
+}
+.homeroom-class-row.assigned{background:#fbfdfc}
+.homeroom-class-row.unassigned{border-style:dashed}
+.homeroom-assigned{min-width:0}
+.homeroom-person-chip{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 7px;border-radius:999px;
+  background:#f2f4f7;font-size:10.5px;max-width:100%
+}
+.homeroom-person-chip.primary{background:#eff8ff}
+.homeroom-person-chip b{color:#175cd3;white-space:nowrap}
+.homeroom-person-chip strong{
+  font-size:10.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.homeroom-unassigned{font-size:11.5px;color:#98a2b3}
+.homeroom-row-action{display:flex;justify-content:flex-end;align-items:center}
+.homeroom-add-button{
+  border:1px dashed #84adff;background:#fff;color:#175cd3;border-radius:10px;
+  min-height:34px;padding:6px 9px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap
+}
+.homeroom-add-button:hover,.homeroom-add-button[aria-expanded="true"]{
+  background:#eff4ff;border-style:solid
+}
+.homeroom-all-assigned{font-size:10.5px;color:#98a2b3}
+.homeroom-inline-add{
+  grid-column:1/-1;border-top:1px solid #eaecf0;padding-top:9px;margin-top:1px
+}
+.homeroom-assign-form.homeroom-inline-add{
+  grid-template-columns:minmax(220px,1fr) auto auto;gap:8px
+}
+.homeroom-person-select{display:grid;gap:5px}
+.homeroom-person-select>span{font-size:11px;font-weight:800;color:#475467}
+.homeroom-primary-check{
+  display:flex;align-items:center;gap:6px;padding-top:20px;font-size:11px;font-weight:800;color:#475467;white-space:nowrap
+}
+.homeroom-form-actions{display:flex;align-items:end;gap:6px;padding-top:18px}
+
+@media(max-width:980px){
+  .homeroom-class-row{grid-template-columns:130px minmax(0,1fr) auto}
+  .homeroom-assign-form.homeroom-inline-add{grid-template-columns:minmax(180px,1fr) auto auto}
+}
+@media(max-width:640px){
+  .homeroom-assignment-controls{display:grid;grid-template-columns:1fr;align-items:stretch}
+  .homeroom-year-select{max-width:none}
+  .homeroom-stage-tabs{width:100%;padding-bottom:4px}
+  .homeroom-stage-tabs button{flex:0 0 auto}
+  .homeroom-stage-summary{padding:7px 9px}
+  .homeroom-class-row{grid-template-columns:minmax(0,1fr) auto;gap:7px}
+  .homeroom-class-name{grid-column:1}
+  .homeroom-row-action{grid-column:2;grid-row:1}
+  .homeroom-assigned{grid-column:1/-1}
+  .homeroom-inline-add{grid-column:1/-1}
+  .homeroom-assign-form.homeroom-inline-add{grid-template-columns:1fr}
+  .homeroom-primary-check,.homeroom-form-actions{padding-top:0}
+  .homeroom-form-actions{justify-content:stretch}
+  .homeroom-form-actions button{flex:1}
+}
+@media(max-width:420px){
+  .homeroom-stage-tabs button{min-height:36px;padding:6px 9px}
+  .homeroom-add-button{width:34px;padding:0;font-size:0;border-radius:50%}
+  .homeroom-add-button::before{content:"+";font-size:20px;line-height:1}
+  .homeroom-person-chip{width:100%;border-radius:10px}
+  .homeroom-person-chip strong{flex:1}
+}
