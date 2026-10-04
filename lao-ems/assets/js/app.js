@@ -7078,6 +7078,185 @@ function assessmentOutcomeOptions(value){
     ["fail","ไม่ผ่าน"]
   ].map(([v,label])=>'<option value="'+v+'" '+(v===(value||"")?"selected":"")+'>'+label+'</option>').join("");
 }
+
+function assessmentWorkflowStepsHtml(activeStep=1,options={}){
+  const steps=[
+    [1,"รายวิชาที่ฉันสอน"],
+    [2,"โครงสร้างคะแนน"],
+    [3,"กิจกรรม/เครื่องมือ"],
+    [4,"บันทึกคะแนน"],
+    [5,"ตรวจคะแนนขาด"],
+    [6,"แก้ตัว/ประเมินซ้ำ"],
+    [7,"สรุปผล"],
+    [8,"ส่งฝ่ายวิชาการ"],
+    [9,"อนุมัติ"]
+  ];
+  const done=new Set(options.done||[]);
+  const attention=new Set(options.attention||[]);
+  const locked=new Set(options.locked||[]);
+  return '<nav class="assessment-workflow" aria-label="ขั้นตอนการวัดผลและประเมินผล">'+
+    steps.map(([no,label])=>{
+      const cls=[
+        no===activeStep?"current":"",
+        done.has(no)?"done":"",
+        attention.has(no)?"attention":"",
+        locked.has(no)?"locked":""
+      ].filter(Boolean).join(" ");
+      if(options.listMode&&no===1){
+        return '<span class="assessment-workflow-step '+cls+'"><b>'+no+'</b><small>'+esc(label)+'</small></span>';
+      }
+      if(options.listMode){
+        return '<span class="assessment-workflow-step locked"><b>'+no+'</b><small>'+esc(label)+'</small></span>';
+      }
+      return '<button type="button" class="assessment-workflow-step '+cls+'" data-assessment-go-step="'+no+'"><b>'+(done.has(no)&&no!==activeStep?"✓":no)+'</b><small>'+esc(label)+'</small></button>';
+    }).join("")+
+  '</nav>';
+}
+function assessmentComponentCategoryLabel(value){
+  return ({
+    coursework:"ระหว่างเรียน",
+    midterm:"กลางภาค",
+    final:"ปลายภาค",
+    performance:"ภาระงาน/ปฏิบัติ",
+    activity:"กิจกรรม",
+    other:"อื่น ๆ"
+  })[value]||"รายการประเมิน";
+}
+function assessmentBookMetrics(book){
+  const comps=book&&book.components||[],students=book&&book.students||[];
+  const missing=[];
+  const results={};
+  let filledCells=0,totalCells=students.length*comps.length,completedStudents=0,totalOfCompleted=0;
+  students.forEach(student=>{
+    let total=0,complete=true;
+    const missingLabels=[];
+    comps.forEach(comp=>{
+      const value=assessmentScoreValue(student,comp.id);
+      if(value==null){
+        complete=false;
+        missingLabels.push(comp.label);
+      }else{
+        filledCells++;
+        total+=value;
+      }
+    });
+    if(complete){
+      completedStudents++;
+      totalOfCompleted+=total;
+      const result=assessmentResult(total,true,book.grading_type);
+      results[result]=(results[result]||0)+1;
+    }else{
+      missing.push({
+        student_id:student.student_id,
+        student_no:student.student_no,
+        full_name:student.full_name,
+        missing_labels:missingLabels
+      });
+    }
+  });
+  return {
+    totalStudents:students.length,
+    completedStudents,
+    missingStudents:missing.length,
+    filledCells,totalCells,
+    scorePercent:totalCells?Math.round(filledCells*100/totalCells):0,
+    average:completedStudents?totalOfCompleted/completedStudents:null,
+    results,
+    ready:students.length>0&&missing.length===0
+  };
+}
+function assessmentStructurePanelHtml(comps,subjectType){
+  const total=comps.reduce((sum,c)=>sum+Number(c.max_score||0),0);
+  return '<details class="panel assessment-workflow-panel" id="assessment-step-2">'+
+    '<summary><div><b>2</b><span><strong>โครงสร้างคะแนน</strong><small>ดูโครงสร้างที่อนุมัติแล้วก่อนเริ่มเก็บคะแนน</small></span></div><em>'+Number(total).toLocaleString("th-TH",{maximumFractionDigits:2})+' คะแนน</em></summary>'+
+    '<div class="assessment-workflow-panel-body">'+
+      '<div class="assessment-structure-grid">'+comps.map(c=>{
+        const codes=(c.outcome_codes||[]).filter(Boolean);
+        return '<article><div><strong>'+esc(c.label)+'</strong><span>'+Number(c.max_score||0).toLocaleString("th-TH",{maximumFractionDigits:2})+' คะแนน</span></div>'+
+          '<small>'+esc(assessmentComponentCategoryLabel(c.component_category))+(c.unit_no?' · หน่วย '+esc(c.unit_no):'')+'</small>'+
+          (codes.length?'<p>ตชว./ผล '+codes.map(esc).join(" · ")+'</p>':'')+
+        '</article>';
+      }).join("")+'</div>'+
+      '<div class="assessment-structure-total"><span>รวม</span><strong>'+Number(total).toLocaleString("th-TH",{maximumFractionDigits:2})+' คะแนน</strong><small>'+(subjectType==="activity"?"กิจกรรมพัฒนาผู้เรียน":"มาจากหลักสูตรรายวิชาที่ผ่านการอนุมัติ")+'</small></div>'+
+    '</div>'+
+  '</details>';
+}
+function assessmentActivityPanelHtml(comps){
+  return '<details class="panel assessment-workflow-panel" id="assessment-step-3">'+
+    '<summary><div><b>3</b><span><strong>กิจกรรม / เครื่องมือ</strong><small>แต่ละคะแนนมาจากกิจกรรมหรือเครื่องมือใด และวัดตัวชี้วัดอะไร</small></span></div><em>'+comps.length.toLocaleString("th-TH")+' รายการ</em></summary>'+
+    '<div class="assessment-workflow-panel-body"><div class="assessment-tool-list">'+
+      comps.map((c,index)=>{
+        const codes=(c.outcome_codes||[]).filter(Boolean);
+        return '<article><span class="assessment-tool-no">'+(index+1).toLocaleString("th-TH")+'</span><div><strong>'+esc(c.label)+'</strong>'+
+          '<small>'+esc(c.assessment_method||assessmentComponentCategoryLabel(c.component_category))+(c.evidence?' · หลักฐาน: '+esc(c.evidence):'')+'</small>'+
+          (codes.length?'<div class="assessment-tool-outcomes">'+codes.map(code=>'<span>'+esc(code)+'</span>').join("")+'</div>':'')+
+        '</div><b>'+Number(c.max_score||0).toLocaleString("th-TH",{maximumFractionDigits:2})+'</b></article>';
+      }).join("")+
+    '</div></div>'+
+  '</details>';
+}
+function assessmentMissingPanelHtml(metrics){
+  return '<details class="panel assessment-workflow-panel '+(metrics.missingStudents?"attention":"ready")+'" id="assessment-step-5" '+(metrics.missingStudents?"open":"")+'>'+
+    '<summary><div><b>5</b><span><strong>ตรวจคะแนนขาด</strong><small>'+(metrics.missingStudents?"ยังมีนักเรียนที่คะแนนไม่ครบ":"คะแนนครบทุกคนแล้ว")+'</small></span></div><em>'+metrics.missingStudents.toLocaleString("th-TH")+' คน</em></summary>'+
+    '<div class="assessment-workflow-panel-body">'+
+      (metrics.missingStudents
+        ?'<div class="assessment-missing-list">'+metrics.missing.map(row=>
+          '<article><span>'+esc(row.student_no||"—")+'</span><div><strong>'+esc(row.full_name)+'</strong><small>ขาด '+row.missing_labels.length.toLocaleString("th-TH")+' รายการ</small><p>'+row.missing_labels.map(x=>'<em>'+esc(x)+'</em>').join("")+'</p></div></article>'
+        ).join("")+'</div>'
+        :'<div class="assessment-workflow-ok"><span>✓</span><div><strong>คะแนนครบแล้ว</strong><p>สามารถตรวจสรุปผลและเตรียมส่งฝ่ายวิชาการได้</p></div></div>')+
+    '</div>'+
+  '</details>';
+}
+function assessmentReassessmentPanelHtml(metrics){
+  return '<details class="panel assessment-workflow-panel" id="assessment-step-6">'+
+    '<summary><div><b>6</b><span><strong>แก้ตัว / ประเมินซ้ำ</strong><small>ใช้เมื่อมีผู้เรียนต้องได้รับการประเมินเพิ่มเติมหลังตรวจคะแนนครบ</small></span></div><em>ตามกรณี</em></summary>'+
+    '<div class="assessment-workflow-panel-body">'+
+      '<div class="assessment-reassessment-empty"><span>↻</span><div><strong>ยังไม่มีรายการแก้ตัวหรือประเมินซ้ำ</strong><p>ขั้นนี้ไม่บังคับสำหรับทุกคน และจะใช้เฉพาะกรณีที่ครูต้องประเมินผู้เรียนเพิ่มเติม โดยไม่ถือว่าคะแนนว่างคือคะแนนศูนย์</p></div></div>'+
+      (metrics.missingStudents?'<div class="notice warning">กรุณาจัดการ “คะแนนขาด” ในขั้นที่ 5 ให้ครบก่อนพิจารณาแก้ตัว/ประเมินซ้ำ</div>':'')+
+    '</div>'+
+  '</details>';
+}
+function assessmentSummaryPanelHtml(book,metrics){
+  const resultEntries=Object.entries(metrics.results);
+  return '<details class="panel assessment-workflow-panel '+(metrics.ready?"ready":"")+'" id="assessment-step-7" '+(metrics.ready?"open":"")+'>'+
+    '<summary><div><b>7</b><span><strong>สรุปผล</strong><small>ตรวจภาพรวมก่อนส่งฝ่ายวิชาการ</small></span></div><em>'+metrics.completedStudents.toLocaleString("th-TH")+'/'+metrics.totalStudents.toLocaleString("th-TH")+' คน</em></summary>'+
+    '<div class="assessment-workflow-panel-body">'+
+      '<div class="assessment-summary-kpis">'+
+        '<article><small>คะแนนครบ</small><strong>'+metrics.completedStudents.toLocaleString("th-TH")+'/'+metrics.totalStudents.toLocaleString("th-TH")+'</strong></article>'+
+        '<article><small>ความครบถ้วนช่องคะแนน</small><strong>'+metrics.scorePercent.toLocaleString("th-TH")+'%</strong></article>'+
+        '<article><small>คะแนนเฉลี่ย*</small><strong>'+(metrics.average==null?"—":metrics.average.toLocaleString("th-TH",{maximumFractionDigits:2}))+'</strong></article>'+
+        '<article><small>พร้อมส่ง</small><strong>'+(metrics.ready?"พร้อม":"ยัง")+'</strong></article>'+
+      '</div>'+
+      (resultEntries.length?'<div class="assessment-result-summary">'+resultEntries.map(([label,count])=>'<span><b>'+esc(label)+'</b>'+Number(count).toLocaleString("th-TH")+' คน</span>').join("")+'</div>':'')+
+      '<small class="assessment-summary-footnote">* คำนวณจากนักเรียนที่มีคะแนนครบทุกองค์ประกอบแล้ว</small>'+
+    '</div>'+
+  '</details>';
+}
+function assessmentSubmitPanelHtml(book,metrics,editable){
+  const sent=book.status==="submitted"||book.status==="approved";
+  return '<details class="panel assessment-workflow-panel '+(sent?"ready":"")+'" id="assessment-step-8" '+(book.status==="submitted"?"open":"")+'>'+
+    '<summary><div><b>8</b><span><strong>ส่งฝ่ายวิชาการ</strong><small>ยืนยันผลหลังตรวจความครบถ้วนแล้ว</small></span></div><em>'+(sent?"ส่งแล้ว":metrics.ready?"พร้อมส่ง":"ยังไม่พร้อม")+'</em></summary>'+
+    '<div class="assessment-workflow-panel-body">'+
+      (sent
+        ?'<div class="assessment-workflow-ok"><span>✓</span><div><strong>ส่งฝ่ายวิชาการแล้ว</strong><p>ข้อมูลถูกล็อกเพื่อรอการตรวจสอบ</p></div></div>'
+        :metrics.ready&&editable
+          ?'<div class="assessment-submit-card"><div><strong>ตรวจครบแล้ว พร้อมส่งผล</strong><p>หลังส่ง ครูจะไม่สามารถแก้คะแนนจนกว่าฝ่ายวิชาการจะส่งกลับ</p></div><button type="button" class="primary-btn" data-assessment-save="submit">ส่งฝ่ายวิชาการ</button></div>'
+          :'<div class="notice warning">ยังส่งไม่ได้ กรุณาตรวจคะแนนขาดในขั้นที่ 5 ให้ครบก่อน</div>')+
+    '</div>'+
+  '</details>';
+}
+function assessmentApprovalPanelHtml(book,reviewable){
+  return '<details class="panel assessment-workflow-panel '+(book.status==="approved"?"ready":"")+'" id="assessment-step-9" '+((reviewable||book.status==="approved")?"open":"")+'>'+
+    '<summary><div><b>9</b><span><strong>อนุมัติ</strong><small>ฝ่ายวิชาการตรวจและอนุมัติผลการเรียน</small></span></div><em>'+esc(assessmentStatusLabel(book.status))+'</em></summary>'+
+    '<div class="assessment-workflow-panel-body">'+
+      (book.status==="approved"
+        ?'<div class="assessment-workflow-ok"><span>✓</span><div><strong>อนุมัติผลการเรียนแล้ว</strong><p>ผลการเรียนพร้อมนำไปใช้ในเอกสารและรายงานที่เกี่ยวข้อง</p></div></div>'
+        :reviewable
+          ?'<div class="assessment-approval-card"><div><strong>รอการตัดสินใจของฝ่ายวิชาการ</strong><p>ตรวจคะแนน ผลรวม และข้อมูลประกอบก่อนอนุมัติหรือส่งกลับ</p></div><div><button type="button" class="secondary-btn danger-text" data-assessment-review="returned">ส่งกลับแก้ไข</button><button type="button" class="primary-btn" data-assessment-review="approved">อนุมัติผลการเรียน</button></div></div>'
+          :'<div class="assessment-reassessment-empty"><span>🔒</span><div><strong>ยังไม่ถึงขั้นอนุมัติ</strong><p>ต้องส่งฝ่ายวิชาการในขั้นที่ 8 ก่อน</p></div></div>')+
+    '</div>'+
+  '</details>';
+}
 function assessmentListHtml(data){
   const year=assessmentSelectedYear(data),term=assessmentSelectedTerm(data);
   const years=data.years||[],items=data.items||[],stats=data.stats||{};
@@ -7090,33 +7269,35 @@ function assessmentListHtml(data){
     const status=item.status||"not_started";
     const program=item.program_code||"";
     return '<article class="assessment-course-card '+esc(status)+'">'+
-      '<div class="assessment-course-main"><div class="assessment-course-title"><span class="assessment-course-icon">📝</span><div><strong>'+esc((item.subject_code?item.subject_code+" · ":"")+item.subject_name)+'</strong><small>'+esc(item.class_short)+(program?' · '+esc(program):'')+' · '+esc(item.personnel_name||"")+'</small></div></div>'+
+      '<div class="assessment-course-main"><div class="assessment-course-title"><span class="assessment-course-icon">📘</span><div><strong>'+esc((item.subject_code?item.subject_code+" · ":"")+item.subject_name)+'</strong><small>'+esc(item.class_short)+(program?' · '+esc(program):'')+' · '+esc(item.personnel_name||"")+'</small></div></div>'+
       '<span class="pill '+assessmentStatusClass(status)+'">'+esc(assessmentStatusLabel(status))+'</span></div>'+
-      '<div class="assessment-progress"><div><span>ความครบถ้วนคะแนน</span><strong>'+done+'/'+total+' คน</strong></div><div><i style="width:'+pct+'%"></i></div></div>'+
+      '<div class="assessment-progress"><div><span>ความพร้อมของคะแนน</span><strong>'+done+'/'+total+' คน</strong></div><div><i style="width:'+pct+'%"></i></div></div>'+
       (item.review_note?'<div class="assessment-return-note">↩ '+esc(item.review_note)+'</div>':'')+
       (()=>{
         const curriculum=curriculumByCourse.get(item.course_id)||null;
         const curriculumStatus=curriculum&&curriculum.curriculum_status||"not_started";
-        if(item.book_id)return '<div class="assessment-course-actions"><a class="primary-btn compact-btn" href="#/assessment/'+esc(item.book_id)+'">'+(status==="approved"?"ดู ปพ.6":status==="submitted"?"ตรวจ/ดูรายการ":"เปิดบันทึกคะแนน")+'</a></div>';
-        if(item.subject_type==="activity")return '<div class="assessment-course-source"><span>✓ กิจกรรมพัฒนาผู้เรียนใช้เกณฑ์กิจกรรม (ผ/มผ)</span></div><div class="assessment-course-actions"><button type="button" class="primary-btn compact-btn" data-assessment-start="'+esc(item.workload_item_id)+'">เริ่มบันทึกผลกิจกรรม</button></div>';
-        if(curriculumStatus==="approved")return '<div class="assessment-course-source"><span>✓ ใช้โครงสร้างคะแนนจากหลักสูตรรายวิชาที่อนุมัติแล้ว</span></div><div class="assessment-course-actions"><button type="button" class="primary-btn compact-btn" data-assessment-start="'+esc(item.workload_item_id)+'">เริ่มบันทึกคะแนน</button></div>';
-        const label=curriculumStatus==="submitted"?"หลักสูตรรายวิชารอตรวจ":curriculumStatus==="returned"?"หลักสูตรรายวิชาถูกส่งกลับ":curriculumStatus==="draft"?"หลักสูตรรายวิชายังเป็นร่าง":"ยังไม่ได้จัดทำหลักสูตรรายวิชา";
-        const actionLabel=curriculumStatus==="submitted"?"เปิดดู":curriculumStatus==="returned"?"แก้ไขหลักสูตร":curriculumStatus==="draft"?"ทำต่อ":"จัดทำหลักสูตร";
-        return '<div class="assessment-course-source attention"><span>! '+esc(label)+'</span><small>ต้องอนุมัติโครงสร้างรายวิชาและคะแนนก่อนเริ่มบันทึกคะแนน</small></div><div class="assessment-course-actions"><a class="secondary-btn compact-btn" href="#/academics/my-courses/'+esc(item.course_id)+'">'+esc(actionLabel)+' →</a></div>';
+        if(item.book_id)return '<div class="assessment-course-actions"><a class="primary-btn compact-btn" href="#/assessment/'+esc(item.book_id)+'">'+(status==="approved"?"ดูผลที่อนุมัติ":"เปิดขั้นตอนการวัดผล")+' →</a></div>';
+        if(item.subject_type==="activity")return '<div class="assessment-course-source"><span>✓ กิจกรรมพัฒนาผู้เรียนใช้เกณฑ์กิจกรรม (ผ/มผ)</span></div><div class="assessment-course-actions"><button type="button" class="primary-btn compact-btn" data-assessment-start="'+esc(item.workload_item_id)+'">เริ่มขั้นตอนการประเมิน →</button></div>';
+        if(curriculumStatus==="approved")return '<div class="assessment-course-source"><span>✓ โครงสร้างคะแนนผ่านการอนุมัติแล้ว</span></div><div class="assessment-course-actions"><button type="button" class="primary-btn compact-btn" data-assessment-start="'+esc(item.workload_item_id)+'">เริ่มขั้นตอนการวัดผล →</button></div>';
+        const label=curriculumStatus==="submitted"?"โครงสร้างรายวิชารอตรวจ":curriculumStatus==="returned"?"โครงสร้างรายวิชาถูกส่งกลับ":curriculumStatus==="draft"?"โครงสร้างรายวิชายังเป็นร่าง":"ยังไม่ได้จัดทำโครงสร้างรายวิชา";
+        const actionLabel=curriculumStatus==="submitted"?"เปิดดู":curriculumStatus==="returned"?"แก้ไข":"จัดทำ";
+        return '<div class="assessment-course-source attention"><span>! '+esc(label)+'</span><small>ต้องอนุมัติโครงสร้างคะแนนก่อนเข้าสู่ขั้นตอนบันทึกคะแนน</small></div><div class="assessment-course-actions"><a class="secondary-btn compact-btn" href="#/academics/my-courses/'+esc(item.course_id)+'">'+esc(actionLabel)+'โครงสร้าง →</a></div>';
       })()+
     '</article>';
   }).join("");
-  return '<section class="assessment-page">'+
-    '<section class="assessment-hero panel"><div><p class="eyebrow">ASSESSMENT & PP.6</p><h2>วัดผลและ ปพ.</h2><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นต้นทาง และใช้โครงสร้างคะแนนจากหลักสูตรรายวิชาที่ผ่านการอนุมัติ ครูไม่ต้องสร้างคะแนนตั้งต้นซ้ำ</p></div><div class="assessment-period-controls"><label>ปีการศึกษา<select data-assessment-year>'+yearOptions+'</select></label><label>ภาคเรียน<select data-assessment-term>'+termOptions+'</select></label></div></section>'+
+  return '<section class="assessment-page assessment-workflow-page">'+
+    '<section class="assessment-hero panel"><div><p class="eyebrow">TEACHER ASSESSMENT WORKFLOW</p><h2>การวัดผลรายวิชา</h2><p>ทำตามลำดับจากรายวิชาที่สอนจนถึงอนุมัติผล ระบบจะพาไปทีละขั้นและตรวจความครบถ้วนให้</p></div><div class="assessment-period-controls"><label>ปีการศึกษา<select data-assessment-year>'+yearOptions+'</select></label><label>ภาคเรียน<select data-assessment-term>'+termOptions+'</select></label></div></section>'+
+    assessmentWorkflowStepsHtml(1,{listMode:true})+
     '<section class="assessment-kpis">'+
-      '<article><small>รายวิชา/ห้องที่แสดง</small><strong>'+items.length.toLocaleString("th-TH")+'</strong></article>'+
-      '<article><small>รอตรวจสอบ</small><strong>'+Number(stats.submitted||0).toLocaleString("th-TH")+'</strong></article>'+
-      '<article><small>ส่งกลับให้ฉัน</small><strong>'+Number(stats.returned||0).toLocaleString("th-TH")+'</strong></article>'+
+      '<article><small>รายวิชา/ห้อง</small><strong>'+items.length.toLocaleString("th-TH")+'</strong></article>'+
+      '<article><small>รอฝ่ายวิชาการ</small><strong>'+Number(stats.submitted||0).toLocaleString("th-TH")+'</strong></article>'+
+      '<article><small>ส่งกลับแก้ไข</small><strong>'+Number(stats.returned||0).toLocaleString("th-TH")+'</strong></article>'+
       '<article><small>อนุมัติแล้ว</small><strong>'+Number(stats.approved||0).toLocaleString("th-TH")+'</strong></article>'+
     '</section>'+
+    '<section class="assessment-list-heading"><div><strong>① รายวิชาที่ฉันสอน</strong><small>เลือกรายวิชาหรือห้องที่ต้องการดำเนินการ</small></div></section>'+
     (items.length
       ?'<section class="assessment-course-grid">'+cards+'</section>'
-      :'<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">📝</div><h3>ยังไม่มีรายวิชาที่พร้อมบันทึกผล</h3><p>รายการจะปรากฏเมื่อภาระงานสอนของภาคเรียนนี้ได้รับการอนุมัติแล้ว</p><a class="secondary-btn" href="#/academics/workload">ดูภาระงานสอน</a></div></section>')+
+      :'<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">📘</div><h3>ยังไม่มีรายวิชาที่พร้อมดำเนินการ</h3><p>รายการจะปรากฏเมื่อภาระงานสอนของภาคเรียนนี้ได้รับการอนุมัติแล้ว</p><a class="secondary-btn" href="#/academics/workload">ดูภาระงานสอน</a></div></section>')+
   '</section>';
 }
 function assessmentBookHtml(data){
@@ -7126,6 +7307,17 @@ function assessmentBookHtml(data){
   const year=assessmentSelectedYear(data),term=assessmentSelectedTerm(data),school=currentSchool();
   const editable=(b.status==="draft"||b.status==="returned")&&(b.personnel_id===data.own_personnel_id||data.can_manage);
   const reviewable=b.status==="submitted"&&data.can_approve;
+  const metrics=assessmentBookMetrics(b);
+  const activeStep=reviewable?9:b.status==="approved"?9:b.status==="submitted"?8:4;
+  const doneSteps=[1];
+  if(comps.length)doneSteps.push(2,3);
+  if(metrics.filledCells>0)doneSteps.push(4);
+  if(metrics.ready)doneSteps.push(5,7);
+  if(b.status==="submitted"||b.status==="approved")doneSteps.push(8);
+  if(b.status==="approved")doneSteps.push(9);
+  const attentionSteps=[];
+  if(metrics.missingStudents)attentionSteps.push(5);
+  if(b.status==="returned")attentionSteps.push(8);
   const compHeads=comps.map(c=>{
     const codes=(c.outcome_codes||[]).filter(Boolean);
     const shown=codes.slice(0,3);
@@ -7158,22 +7350,28 @@ function assessmentBookHtml(data){
       '<td>'+(editable?'<select data-assessment-attribute data-student="'+esc(s.student_id)+'">'+assessmentOutcomeOptions(outcome.attribute_level)+'</select>':'<strong>'+assessmentOutcomeLabel(outcome.attribute_level)+'</strong>')+'</td>'+
       '<td>'+(editable?'<input type="text" maxlength="500" value="'+esc(outcome.teacher_comment||"")+'" data-assessment-comment data-student="'+esc(s.student_id)+'" placeholder="ถ้ามี">':'<span>'+esc(outcome.teacher_comment||"—")+'</span>')+'</td></tr>';
   }).join("");
-  const outcomesHtml=b.subject_type==="activity"?"":'<details class="panel assessment-outcomes" '+(b.status==="returned"?"open":"")+'><summary><div><strong>อ่าน คิดวิเคราะห์ และเขียน · คุณลักษณะอันพึงประสงค์</strong><small>ข้อมูลประกอบ ปพ.6 · ระบุเฉพาะที่โรงเรียนใช้</small></div><span>เปิดรายการ</span></summary><div class="assessment-outcomes-wrap"><table><thead><tr><th>เลขที่</th><th>ชื่อ–สกุล</th><th>อ่าน คิดวิเคราะห์ และเขียน</th><th>คุณลักษณะอันพึงประสงค์</th><th>ความเห็นครู</th></tr></thead><tbody>'+outcomeRows+'</tbody></table></div></details>';
+  const outcomesHtml=b.subject_type==="activity"?"":'<details class="panel assessment-outcomes"><summary><div><strong>ข้อมูลประกอบผลการเรียน</strong><small>อ่าน คิดวิเคราะห์ และเขียน · คุณลักษณะอันพึงประสงค์</small></div><span>เปิดรายการ</span></summary><div class="assessment-outcomes-wrap"><table><thead><tr><th>เลขที่</th><th>ชื่อ–สกุล</th><th>อ่าน คิดวิเคราะห์ และเขียน</th><th>คุณลักษณะอันพึงประสงค์</th><th>ความเห็นครู</th></tr></thead><tbody>'+outcomeRows+'</tbody></table></div></details>';
   const printHeading='<header class="assessment-print-heading"><h1>แบบบันทึกผลการเรียนประจำรายวิชา (ปพ.6)</h1><p>'+esc(school&&school.name_th||"")+'</p><div><span>ปีการศึกษา '+esc(year&&year.year_be||"—")+'</span><span>'+esc(term&&term.name||"")+'</span><span>'+esc(b.class_short)+'</span></div><strong>'+esc((b.subject_code?b.subject_code+" · ":"")+b.subject_name)+'</strong><small>ครูผู้สอน '+esc(b.personnel_name||"")+'</small></header>';
-  return '<section class="assessment-page assessment-book-page">'+
+  return '<section class="assessment-page assessment-book-page assessment-workflow-page">'+
     printHeading+
-    '<section class="assessment-book-head panel"><div class="assessment-book-title"><a class="assessment-back" href="#/assessment">←</a><div><p class="eyebrow">ปพ.6 · บันทึกผลการเรียนรายวิชา</p><h2>'+esc((b.subject_code?b.subject_code+" · ":"")+b.subject_name)+'</h2><p>'+esc(b.class_short)+(program?' · '+program:'')+' · ครูผู้สอน '+esc(b.personnel_name||"")+'</p></div></div><div class="assessment-book-head-actions"><span class="pill '+assessmentStatusClass(b.status)+'">'+esc(assessmentStatusLabel(b.status))+'</span><button type="button" class="secondary-btn compact-btn" data-assessment-print>พิมพ์ ปพ.6</button></div></section>'+
+    '<section class="assessment-book-head panel"><div class="assessment-book-title"><a class="assessment-back" href="#/assessment">←</a><div><p class="eyebrow">ASSESSMENT WORKSPACE</p><h2>'+esc((b.subject_code?b.subject_code+" · ":"")+b.subject_name)+'</h2><p>'+esc(b.class_short)+(program?' · '+program:'')+' · ครูผู้สอน '+esc(b.personnel_name||"")+'</p></div></div><div class="assessment-book-head-actions"><span class="pill '+assessmentStatusClass(b.status)+'">'+esc(assessmentStatusLabel(b.status))+'</span><button type="button" class="secondary-btn compact-btn" data-assessment-print>พิมพ์ ปพ.6</button></div></section>'+
+    assessmentWorkflowStepsHtml(activeStep,{done:doneSteps,attention:attentionSteps})+
     statusInfo+
     '<form id="assessment-book-form" class="assessment-book-form" data-book-id="'+esc(b.id)+'" data-grading-type="'+esc(b.grading_type)+'">'+
-      '<section class="panel assessment-table-panel"><div class="assessment-table-head"><div><h3>คะแนนนักเรียน</h3><p>'+(b.grading_type==="pass_fail"?"กิจกรรมพัฒนาผู้เรียน · ผ่านเมื่อคะแนนรวมตั้งแต่ 50":"คะแนนรวม 100 คะแนน · ระบบคำนวณผลการเรียนอัตโนมัติ")+'</p></div><span>'+students.length.toLocaleString("th-TH")+' คน</span></div>'+
-      '<div class="assessment-table-wrap"><table class="assessment-score-table"><thead><tr><th>เลขที่</th><th>ชื่อ–สกุล</th>'+compHeads+'<th>รวม</th><th>ผล</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>'+
+      assessmentStructurePanelHtml(comps,b.subject_type)+
+      assessmentActivityPanelHtml(comps)+
+      '<details class="panel assessment-workflow-panel assessment-score-workspace" id="assessment-step-4" open><summary><div><b>4</b><span><strong>บันทึกคะแนน</strong><small>กรอกคะแนนตามกิจกรรม/เครื่องมือที่กำหนดไว้</small></span></div><em>'+metrics.scorePercent.toLocaleString("th-TH")+'%</em></summary><div class="assessment-workflow-panel-body">'+
+        '<div class="assessment-table-head"><div><h3>คะแนนนักเรียน</h3><p>'+(b.grading_type==="pass_fail"?"กิจกรรมพัฒนาผู้เรียน · ผ่านเมื่อคะแนนรวมตั้งแต่ 50":"คะแนนตามโครงสร้างที่อนุมัติแล้ว · ช่องว่างหมายถึงยังไม่มีคะแนน ไม่ใช่ศูนย์")+'</p></div><span>'+students.length.toLocaleString("th-TH")+' คน</span></div>'+
+        '<div class="assessment-table-wrap"><table class="assessment-score-table"><thead><tr><th>เลขที่</th><th>ชื่อ–สกุล</th>'+compHeads+'<th>รวม</th><th>ผล</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+        (editable?'<div class="assessment-draft-action"><span>บันทึกร่างได้ตลอด แล้วระบบจะอัปเดตขั้นตรวจคะแนนขาดให้</span><button type="button" class="secondary-btn" data-assessment-save="draft">บันทึกร่าง</button></div>':'')+
+      '</div></details>'+
+      assessmentMissingPanelHtml(metrics)+
+      assessmentReassessmentPanelHtml(metrics)+
+      assessmentSummaryPanelHtml(b,metrics)+
       outcomesHtml+
-      '<section class="panel assessment-note-panel"><label>หมายเหตุ<textarea name="note" rows="2" '+(editable?"":"readonly")+' placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)">'+esc(b.note||"")+'</textarea></label>'+
-        '<div class="assessment-form-actions">'+
-          (editable?'<button type="button" class="secondary-btn" data-assessment-save="draft">บันทึกร่าง</button><button type="button" class="primary-btn" data-assessment-save="submit">ส่งฝ่ายวิชาการ</button>':'')+
-          (reviewable?'<button type="button" class="secondary-btn danger-text" data-assessment-review="returned">ส่งกลับแก้ไข</button><button type="button" class="primary-btn" data-assessment-review="approved">อนุมัติผลการเรียน</button>':'')+
-        '</div>'+
-      '</section>'+
+      '<details class="panel assessment-workflow-panel assessment-note-workflow"><summary><div><span class="assessment-note-icon">✎</span><span><strong>หมายเหตุประกอบ</strong><small>ข้อมูลเพิ่มเติมสำหรับฝ่ายวิชาการ (ถ้ามี)</small></span></div><em>ไม่บังคับ</em></summary><div class="assessment-workflow-panel-body"><label class="assessment-note-field">หมายเหตุ<textarea name="note" rows="2" '+(editable?"":"readonly")+' placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)">'+esc(b.note||"")+'</textarea></label></div></details>'+
+      assessmentSubmitPanelHtml(b,metrics,editable)+
+      assessmentApprovalPanelHtml(b,reviewable)+
     '</form>'+
   '</section>';
 }
