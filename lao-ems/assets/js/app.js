@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.40";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.41";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -18,7 +18,7 @@ const routeMeta={
   students:["นักเรียน","ค้นหาและดูข้อมูลนักเรียนจาก LEC ตามปีการศึกษา ชั้น และห้อง"],
   "academic-group":["กลุ่มบริหารงานวิชาการ","รวมแอป งาน และสมาชิกของกลุ่มบริหารงานวิชาการ"],
   academics:["โครงสร้างและตั้งค่าวิชาการ","ปีการศึกษา ชั้นเรียน รายวิชา โครงสร้างเวลาเรียน และภาระงานสอน"],
-  assessment:["วัดผลและ ปพ.","บันทึกคะแนน สรุปผล ปพ.6 และส่งฝ่ายวิชาการ"],
+  assessment:["การวัดผลรายวิชา","9 ขั้นตั้งแต่รายวิชาที่ฉันสอน โครงสร้างคะแนน บันทึกคะแนน จนถึงส่งและอนุมัติผล"],
   documents:["เอกสารและไฟล์","Google Drive แยกตามสถานศึกษา พร้อม metadata กลาง"],
   website:["เว็บไซต์สถานศึกษา","เว็บไซต์แต่ละโรงเรียนจากข้อมูลชุดเดียวกัน"],
   forms:["แบบฟอร์มและงาน","แบบประเมิน แบบสอบถาม แบบทดสอบ และ Workflow"],
@@ -1266,7 +1266,7 @@ function workspaceRecentRouteInfo(hash){
     ["#/academics/programs","โปรแกรมที่ใช้ในปีนี้","⭐"],
     ["#/academics/periods","ปีการศึกษา / ภาคเรียน","🗓"],
     ["#/academics","โครงสร้างและตั้งค่าวิชาการ","📚"],
-    ["#/assessment","วัดผลและ ปพ.","📝"],
+    ["#/assessment","การวัดผลรายวิชา","📝"],
     ["#/personnel/requests","คำขอบุคลากร","👥"],
     ["#/personnel/registry","ทะเบียนบุคลากร","👥"],
     ["#/personnel","กลุ่มบริหารงานบุคคล","👥"],
@@ -1412,7 +1412,7 @@ async function overviewHtml(){
       const ownPending=assessmentItems.filter(item=>item.personnel_id===assessmentOverview.own_personnel_id&&["not_started","draft"].includes(item.status)).length;
       const ownSubmitted=assessmentItems.filter(item=>item.personnel_id===assessmentOverview.own_personnel_id&&item.status==="submitted").length;
       if(ownPending>0){
-        tasks.push({icon:"📝",title:"วัดผลยังไม่เสร็จ "+ownPending+" รายวิชา/ห้อง",desc:"บันทึกคะแนนให้ครบและส่งฝ่ายวิชาการจากแอปวัดผลและ ปพ.",route:"#/assessment",label:"ทำต่อ",tone:"primary"});
+        tasks.push({icon:"📝",title:"วัดผลยังไม่เสร็จ "+ownPending+" รายวิชา/ห้อง",desc:"ดำเนินการตาม 9 ขั้นในเมนูการวัดผลรายวิชาให้ครบแล้วส่งฝ่ายวิชาการ",route:"#/assessment",label:"ทำต่อ",tone:"primary"});
       }
       if(ownSubmitted>0){
         waiting.push({tone:"waiting",icon:"⏳",title:"ผลการเรียนรอฝ่ายวิชาการ "+ownSubmitted+" รายการ",desc:"ส่งแล้วและถูกล็อกไว้จนกว่าจะอนุมัติหรือส่งกลับ"});
@@ -4066,7 +4066,7 @@ function courseCurriculumDetailHtml(data){
   const lockNote=status==="submitted"
     ?'<div class="notice warning"><strong>ส่งตรวจแล้ว</strong><br>เอกสารถูกล็อกชั่วคราวจนกว่าฝ่ายวิชาการจะอนุมัติหรือส่งกลับ</div>'
     :status==="approved"
-      ?'<div class="notice success"><strong>อนุมัติแล้ว</strong><br>โครงสร้างคะแนนรุ่น '+Number(cur&&cur.revision_no||1).toLocaleString("th-TH")+' พร้อมส่งต่อไปยังงานวัดผลและ ปพ.</div>'
+      ?'<div class="notice success"><strong>อนุมัติแล้ว</strong><br>โครงสร้างคะแนนรุ่น '+Number(cur&&cur.revision_no||1).toLocaleString("th-TH")+' พร้อมส่งต่อไปยังการวัดผลรายวิชา</div>'
       :status==="returned"
         ?'<div class="notice danger"><strong>ส่งกลับให้แก้ไข</strong><br>'+esc(cur&&cur.review_note||"กรุณาตรวจรายการที่ฝ่ายวิชาการแจ้ง")+'</div>'
         :"";
@@ -4088,7 +4088,7 @@ function courseCurriculumDetailHtml(data){
       (editable?'<div class="course-sticky-actions"><span>ครูผู้สอนเป็นผู้จัดทำ · ระบบเก็บฉบับและผู้แก้ไข</span><div><button type="button" class="secondary-btn" data-course-save="draft">บันทึกร่าง</button><button type="button" class="primary-btn" data-course-save="submit">ส่งฝ่ายวิชาการตรวจ</button></div></div>':'')+
     '</form>'+
     (reviewable?'<section class="panel course-review-actions"><div><strong>รายการนี้รอการตรวจสอบ</strong><p>ตรวจความสอดคล้องของหลักสูตร หน่วย เวลาเรียน และโครงสร้างคะแนนก่อนอนุมัติ</p></div><div><button type="button" class="secondary-btn danger-text" data-course-review="returned">ส่งกลับแก้ไข</button><button type="button" class="primary-btn" data-course-review="approved">อนุมัติหลักสูตรรายวิชา</button></div></section>':'')+
-    (status==="approved"?'<section class="course-next-step panel"><div><span>✓</span><div><strong>พร้อมเข้าสู่งานวัดผล</strong><p>เมื่อครูเปิดสมุดวัดผล ระบบจะสร้างหัวข้อคะแนนจากโครงสร้างที่อนุมัตินี้โดยอัตโนมัติ</p></div></div><a class="primary-btn" href="#/assessment">ไปวัดผลและ ปพ. →</a></section>':'')+
+    (status==="approved"?'<section class="course-next-step panel"><div><span>✓</span><div><strong>พร้อมเข้าสู่งานวัดผล</strong><p>เมื่อครูเปิดสมุดวัดผล ระบบจะสร้างหัวข้อคะแนนจากโครงสร้างที่อนุมัตินี้โดยอัตโนมัติ</p></div></div><a class="primary-btn" href="#/assessment">ไปการวัดผลรายวิชา →</a></section>':'')+
   '</section>';
 }
 function courseCurriculumReadOutcomeRows(root){
@@ -7587,7 +7587,7 @@ function academicGroupWorkstreams(access,pendingTeaching,assessmentAttention,pen
       responsibilities:["ระเบียบและเกณฑ์วัดผล","คะแนน / ผลการเรียน","สอบกลางภาค / ปลายภาค","เลื่อนชั้น / จบการศึกษา","ปพ.1–ปพ.9","ระเบียนผลการเรียน","เทียบโอนผลการเรียน"],
       visible:hasPrefix("academics.assessment")||Boolean(access&&access.can_use_own_assessment),
       apps:[
-        {title:"วัดผลและ ปพ.",route:"#/assessment",icon:"📝",badge:Number(assessmentAttention||0),
+        {title:"การวัดผลรายวิชา · 9 ขั้น",route:"#/assessment",icon:"📝",badge:Number(assessmentAttention||0),
           visible:hasPrefix("academics.assessment")||Boolean(access&&access.can_use_own_assessment)}
       ]
     },
