@@ -1165,14 +1165,16 @@ function refreshHeader(){
   const usersLink=q('[data-route="users"]');
   if(usersLink)usersLink.classList.toggle("hidden",!(adminMode||(schoolMode&&schoolSetupReady())));
 
+  const personnelGroupVisible=hasPersonnelGroupResponsibility();
+  const personnelLinks=qa("[data-personnel-menu]");
+  personnelLinks.forEach(item=>item.classList.toggle("hidden",!personnelGroupVisible));
   const personnelLink=q('[data-route="personnel"][data-personnel-menu]');
   if(personnelLink){
-    personnelLink.classList.toggle("hidden",!canViewPersonnel());
     const personnelBadge=q("[data-personnel-badge]",personnelLink);
     const pending=Number(state.personnelWork&&state.personnelWork.pending_join_requests||0);
     if(personnelBadge){
       personnelBadge.textContent=String(pending);
-      personnelBadge.classList.toggle("hidden",!(state.personnelWork&&state.personnelWork.can_review&&pending>0));
+      personnelBadge.classList.toggle("hidden",!(personnelGroupVisible&&state.personnelWork&&state.personnelWork.can_review&&pending>0));
     }
   }
 
@@ -1184,23 +1186,24 @@ function refreshHeader(){
     workAuthorityLink.classList.toggle("hidden",!(state.workAuthorityAccess&&state.workAuthorityAccess.can_view));
   }
 
+  const academicGroupVisible=hasAcademicGroupResponsibility();
   const academicLinks=qa('[data-academic-menu]');
-  academicLinks.forEach(link=>link.classList.toggle("hidden",!canViewAcademic()));
+  academicLinks.forEach(link=>link.classList.toggle("hidden",!academicGroupVisible));
   const academicLink=q('[data-route="academics"][data-academic-menu]');
   if(academicLink){
     const badge=q("[data-academic-badge]",academicLink);
     const attention=Number(state.academicWork&&state.academicWork.attention_count||0);
     if(badge){
       badge.textContent=String(attention);
-      badge.classList.toggle("hidden",attention<=0);
+      badge.classList.toggle("hidden",!(academicGroupVisible&&attention>0));
     }
   }
 
-  const assessmentLink=q('[data-route="assessment"][data-assessment-menu]');
-  if(assessmentLink)assessmentLink.classList.toggle("hidden",!canViewAcademic());
-
   const academicGroup=q("[data-academic-group]");
-  if(academicGroup)academicGroup.classList.toggle("hidden",!canViewAcademic());
+  if(academicGroup)academicGroup.classList.toggle("hidden",!academicGroupVisible);
+
+  const teacherWorkLink=q('[data-route="teacher-work"][data-teacher-work-menu]');
+  if(teacherWorkLink)teacherWorkLink.classList.toggle("hidden",!hasTeacherWorkspace());
 
   const setupLink=q('[data-route="setup"]');
   if(setupLink)setupLink.textContent=adminMode?"⚙ ตั้งค่าระบบ":"⚙ ตั้งค่าสถานศึกษา";
@@ -3458,7 +3461,7 @@ function personnelGroupWorkstreams(work,pending,stats){
 async function personnelDashboardHtml(){
   const school=currentSchool();
   if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
-  if(!canViewPersonnel())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์ดูกลุ่มบริหารงานบุคคล</h3></div></section>';
+  if(!hasPersonnelGroupResponsibility())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>เมนูนี้สำหรับผู้รับผิดชอบกลุ่มบริหารงานบุคคล</h3><p>ข้อมูลส่วนบุคคลและงานของตนเองให้ดำเนินการจากโปรไฟล์/งานของฉัน ไม่ต้องเข้าพื้นที่ข้อมูลกลางของฝ่าย</p><a class="primary-btn" href="#/overview">กลับงานของฉัน</a></div></section>';
 
   await loadPersonnelWorkCounts();
   const dir=await supabase.rpc("lao_personnel_directory",{p_school_id:school.id,p_search:null,p_personnel_type:null,p_status:null});
@@ -7696,7 +7699,7 @@ function academicWorkstreamCard(group){
   '</article>';
 }
 async function academicGroupHtml(){
-  if(!canViewAcademic())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์เข้าถึงกลุ่มบริหารงานวิชาการ</h3></div></section>';
+  if(!hasAcademicGroupResponsibility())return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>เมนูนี้สำหรับผู้รับผิดชอบกลุ่มบริหารงานวิชาการ</h3><p>ครูผู้สอนและครูประจำชั้นให้ทำงานจาก “งานครูผู้สอน / ครูประจำชั้น” เพื่อไม่ปะปนกับข้อมูลกลางของฝ่าย</p>'+(hasTeacherWorkspace()?'<a class="primary-btn" href="#/teacher-work">ไปงานของครู</a>':'')+'</div></section>';
   const school=currentSchool();
   const mode=academicGroupMode();
   const [membersData,access]=await Promise.all([loadAcademicGroupMembers(),loadAcademicGroupAccess()]);
