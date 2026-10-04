@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.44";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.45";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -169,7 +169,7 @@ async function forceRefreshCurrentPage(){
   location.replace(url.toString());
 }
 function bindPullToRefresh(){
-  if(!("ontouchstart" in window)&&!(navigator.maxTouchPoints>0))return;
+  if(!applyInputDeviceUi())return;
   const indicator=ensurePullRefreshIndicator();
   let startY=0,startX=0,pulling=false,armed=false;
   const threshold=82;
@@ -658,7 +658,26 @@ async function signInWithGoogle(){
   }
 }
 
+function isTouchDevice(){
+  return Boolean(
+    ("ontouchstart" in window)
+    || Number(navigator.maxTouchPoints||0)>0
+    || (window.matchMedia&&window.matchMedia("(any-pointer: coarse)").matches)
+  );
+}
+function applyInputDeviceUi(){
+  const touch=isTouchDevice();
+  document.documentElement.classList.toggle("is-touch-device",touch);
+  qa("[data-manual-refresh]").forEach(btn=>{
+    btn.hidden=touch;
+    btn.setAttribute("aria-hidden",touch?"true":"false");
+    if(touch)btn.tabIndex=-1;
+    else btn.removeAttribute("tabindex");
+  });
+  return touch;
+}
 function bindManualRefresh(){
+  if(applyInputDeviceUi())return;
   qa("[data-manual-refresh]").forEach(btn=>{
     if(btn.dataset.bound==="1")return;
     btn.dataset.bound="1";
@@ -8190,6 +8209,7 @@ document.addEventListener("click",event=>{
 async function init(){
   renderAppVersion();
   void checkLatestVersion();
+  applyInputDeviceUi();
   bindStaticUI();
   bindManualRefresh();
   bindPullToRefresh();
