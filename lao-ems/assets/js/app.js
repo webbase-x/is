@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.46";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -1951,12 +1951,49 @@ async function profileTeachingWorkloadHtml(){
   '</section>';
 }
 
+
+function profileAssignmentRoleLabel(value){
+  return value==="advisor"?"ครูที่ปรึกษา":"ครูประจำชั้น";
+}
+async function profileAssignmentSummaryHtml(){
+  const school=currentSchool();
+  if(!school||state.viewMode!=="user")return "";
+  try{
+    const res=await supabase.rpc("lao_my_profile_assignments",{p_school_id:school.id});
+    if(res.error)throw res.error;
+    const d=res.data||{},homerooms=d.homerooms||[],teaching=d.teaching||[],groups=d.subject_groups||[];
+    const teachingShown=teaching.slice(0,6);
+    const groupShown=groups.slice(0,6);
+    return '<section class="profile-assignment-card">'+
+      '<div class="profile-assignment-head"><div><p class="eyebrow">MY ASSIGNMENTS</p><h3>บทบาทและงานที่ได้รับมอบหมาย</h3><p>ดึงจากงานบุคคล ภาระงานสอน และกลุ่มสาระโดยอัตโนมัติ ไม่ต้องกรอกซ้ำในโปรไฟล์</p></div><span>ปีการศึกษา '+esc(d.year_be||"—")+'</span></div>'+
+      '<div class="profile-assignment-grid">'+
+        '<article><div class="profile-assignment-title"><span>🏫</span><strong>ครูประจำชั้น / ครูที่ปรึกษา</strong></div>'+
+          (homerooms.length?'<div class="profile-assignment-chips">'+homerooms.map(x=>'<span class="important">'+esc(profileAssignmentRoleLabel(x.assignment_role))+' · '+esc(x.class_short)+(x.program_code?' · '+esc(x.program_code):'')+(x.is_primary?' · หลัก':'')+'</span>').join("")+'</div>':'<small>ยังไม่มีการมอบหมายในปีการศึกษานี้</small>')+
+        '</article>'+
+        '<article><div class="profile-assignment-title"><span>📘</span><strong>รายวิชาที่สอน</strong></div>'+
+          (teaching.length?'<div class="profile-assignment-chips">'+teachingShown.map(x=>'<span>'+esc((x.subject_code?x.subject_code+" · ":"")+x.subject_name)+' · '+esc(x.class_short)+' · ภาค '+esc(x.term_no)+'</span>').join("")+(teaching.length>teachingShown.length?'<span class="more">+'+(teaching.length-teachingShown.length).toLocaleString("th-TH")+' รายการ</span>':'')+'</div>':'<small>ยังไม่มีภาระงานสอนที่อนุมัติ</small>')+
+        '</article>'+
+        '<article><div class="profile-assignment-title"><span>👥</span><strong>กลุ่มสาระและงานกลุ่มสาระ</strong></div>'+
+          (groups.length?'<div class="profile-assignment-chips">'+groupShown.map(x=>'<span class="'+(x.is_head?"head":"")+'">'+(x.is_head?'หัวหน้า · ':'')+esc(x.learning_area)+(Number(x.my_open_tasks||0)?' · งาน '+Number(x.my_open_tasks).toLocaleString("th-TH"):'')+(Number(x.pending_confirmations||0)&&x.is_head?' · รอตรวจ '+Number(x.pending_confirmations).toLocaleString("th-TH"):'')+'</span>').join("")+(groups.length>groupShown.length?'<span class="more">+'+(groups.length-groupShown.length).toLocaleString("th-TH")+' กลุ่ม</span>':'')+'</div>':'<small>ยังไม่พบกลุ่มสาระจากภาระงานสอน</small>')+
+        '</article>'+
+      '</div>'+
+      '<div class="profile-assignment-actions"><a class="secondary-btn compact-btn" href="#/teacher-work">เปิดงานของฉัน →</a></div>'+
+    '</section>';
+  }catch(e){
+    console.warn("profile assignments",e);
+    return "";
+  }
+}
+
 async function profileHtml(){
   const name=displayName(),school=currentSchool();
   const email=state.user&&state.user.email||"-";
   const roles=state.currentMembership?roleNames():(state.isPlatformAdmin?"ผู้ดูแลแพลตฟอร์ม":"ยังไม่มีสิทธิ์");
   const authMethod=isGoogleAuthUser()?"Google":"อีเมลและรหัสผ่าน";
-  const teachingWorkloadHtml=await profileTeachingWorkloadHtml();
+  const [teachingWorkloadHtml,assignmentSummaryHtml]=await Promise.all([
+    profileTeachingWorkloadHtml(),
+    profileAssignmentSummaryHtml()
+  ]);
 
   return '<section class="profile-page profile-clean-page">'+
     '<section class="profile-clean-hero">'+
@@ -1969,6 +2006,7 @@ async function profileHtml(){
       '</div>'+
       '<div class="profile-clean-actions"><a class="secondary-btn compact-btn" href="#/overview">← หน้าหลัก</a><button class="profile-signout-btn" type="button" data-signout>ออกจากระบบ</button></div>'+
     '</section>'+
+    assignmentSummaryHtml+
     '<form id="profile-form" class="profile-clean-form">'+
       '<section class="profile-clean-card">'+
         '<div class="profile-clean-card-head"><span class="profile-clean-card-icon">👤</span><div><h3>ข้อมูลส่วนตัว</h3><p>ชื่อและข้อมูลติดต่อที่ใช้ภายใน LAO-EMS</p></div></div>'+
@@ -3762,12 +3800,48 @@ async function personnelRequestsHtml(){
 }
 
 
+
+function homeroomDefaultRole(gradeLabel){
+  return /^มัธยม/.test(String(gradeLabel||""))?"advisor":"homeroom";
+}
+function homeroomAssignmentPanelHtml(data){
+  const d=data||{},years=d.years||[],classes=d.classes||[],people=d.personnel||[],canManage=Boolean(d.can_manage);
+  const yearOptions=years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===d.selected_year_id?"selected":"")+'>'+esc(y.year_be)+(y.is_current?" · ปัจจุบัน":"")+'</option>').join("");
+  const personOptions=people.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.full_name)+(p.position_title?' · '+esc(p.position_title):'')+'</option>').join("");
+  const rows=classes.map(cls=>{
+    const assignments=cls.assignments||[],role=homeroomDefaultRole(cls.grade_label);
+    return '<article class="homeroom-class-row">'+
+      '<div class="homeroom-class-name"><strong>'+esc(shortGrade(cls.grade_label))+'/'+esc(cls.section_label)+(cls.program_code?' · '+esc(cls.program_code):'')+'</strong><small>'+esc(cls.room_name||cls.grade_label)+'</small></div>'+
+      '<div class="homeroom-assigned">'+
+        (assignments.length?assignments.map(a=>'<span><b>'+esc(profileAssignmentRoleLabel(a.assignment_role))+(a.is_primary?'หลัก':'')+'</b>'+esc(a.full_name)+(canManage?'<button type="button" data-homeroom-remove="'+esc(a.id)+'" data-class="'+esc(cls.class_section_id)+'" data-personnel="'+esc(a.personnel_id)+'" data-role="'+esc(a.assignment_role)+'" data-primary="'+String(Boolean(a.is_primary))+'" aria-label="ยกเลิกการมอบหมาย">×</button>':'')+'</span>').join(""):'<small>ยังไม่ได้มอบหมาย</small>')+
+      '</div>'+
+      (canManage?'<form class="homeroom-assign-form" data-homeroom-form data-class="'+esc(cls.class_section_id)+'">'+
+        '<select name="personnel_id" required><option value="">เลือกครู</option>'+personOptions+'</select>'+
+        '<select name="assignment_role"><option value="homeroom" '+(role==="homeroom"?"selected":"")+'>ครูประจำชั้น</option><option value="advisor" '+(role==="advisor"?"selected":"")+'>ครูที่ปรึกษา</option></select>'+
+        '<label><input type="checkbox" name="is_primary" checked><span>ครูหลัก</span></label>'+
+        '<button class="secondary-btn compact-btn" type="submit">มอบหมาย</button>'+
+      '</form>':'')+
+    '</article>';
+  }).join("");
+  return '<details class="panel homeroom-assignment-panel" open>'+
+    '<summary><div><p class="eyebrow">HOMEROOM / ADVISOR</p><h2>ครูประจำชั้น / ครูที่ปรึกษา</h2><p>งานบุคคลเป็นผู้มอบหมายจากห้องเรียนที่ฝ่ายวิชาการกำหนดไว้ ข้อมูลนี้จะแสดงในโปรไฟล์และ “งานของฉัน” ของครูโดยอัตโนมัติ</p></div><span>'+classes.reduce((n,x)=>n+(x.assignments||[]).length,0).toLocaleString("th-TH")+' มอบหมาย</span></summary>'+
+    '<div class="homeroom-assignment-body">'+
+      '<label class="homeroom-year-select"><span>ปีการศึกษา</span><select data-homeroom-year>'+yearOptions+'</select></label>'+
+      (classes.length?'<div class="homeroom-class-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">🏫</div><h3>ยังไม่มีห้องเรียนในปีนี้</h3></div>')+
+    '</div>'+
+  '</details>';
+}
 async function personnelAuthoritiesHtml(){
   const school=currentSchool();
   if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
-  const res=await supabase.rpc("lao_personnel_authority_settings",{p_school_id:school.id});
-  if(res.error)return '<section class="personnel-page">'+personnelNavHtml("authorities")+'<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>เฉพาะ School Admin</h3><p>การแต่งตั้งผู้รับผิดชอบงานบุคลากรต้องดำเนินการโดยผู้ดูแลสถานศึกษา</p></div></section></section>';
-  const items=res.data&&res.data.items||[];
+  const [authorityRes,homeroomRes]=await Promise.all([
+    supabase.rpc("lao_personnel_authority_settings",{p_school_id:school.id}),
+    supabase.rpc("lao_homeroom_assignment_settings",{p_school_id:school.id,p_academic_year_id:state.homeroomAssignmentYearId||null})
+  ]);
+  if(homeroomRes.error)throw homeroomRes.error;
+  const homeroom=homeroomRes.data||{};
+  state.homeroomAssignmentYearId=homeroom.selected_year_id||state.homeroomAssignmentYearId||null;
+  const items=authorityRes.error?[]:(authorityRes.data&&authorityRes.data.items||[]);
   const rows=items.map(p=>{
     const code=p.is_active?p.authority_code||"none":"none";
     return '<form class="personnel-authority-row" data-authority-personnel="'+esc(p.personnel_id)+'">'+
@@ -3778,12 +3852,13 @@ async function personnelAuthoritiesHtml(){
       '<button class="secondary-btn compact-btn" type="submit">บันทึก</button>'+
     '</form>';
   }).join("");
-  return '<section class="personnel-page">'+personnelNavHtml("authorities")+
-    '<section class="panel"><div class="panel-head"><div><p class="eyebrow">PERSONNEL RESPONSIBILITY</p><h2>ผู้รับผิดชอบงานบุคลากร</h2><p class="panel-sub">หน้าที่นี้แยกจากตำแหน่งราชการ บุคลากรหนึ่งคนสามารถรับผิดชอบหลายฝ่ายได้ในอนาคต</p></div></div>'+
-      '<div class="notice"><strong>หลักการสิทธิ์</strong><br>School Admin กำหนดหัวหน้างานหรือเจ้าหน้าที่จากบุคลากรที่เชื่อมบัญชีแล้ว หัวหน้างานบุคลากรจะมีสิทธิ์จัดการทะเบียน เปิด/ปิดรับสมัคร และตรวจคำขอ ส่วนเจ้าหน้าที่กำหนดสิทธิ์ย่อยได้</div>'+
-      (items.length?'<div class="personnel-authority-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">👥</div><h3>ยังไม่มีบุคลากรที่เชื่อมบัญชี</h3><p>ต้องเชื่อมบัญชี LAO-EMS กับทะเบียนบุคลากรก่อนจึงมอบหมายหน้าที่ได้</p></div>')+
-    '</section>'+
-  '</section>';
+  const authorityPanel=authorityRes.error
+    ?'<section class="panel"><div class="notice"><strong>การแต่งตั้งหัวหน้า/เจ้าหน้าที่งานบุคคล</strong><br>ส่วนนี้แก้ไขได้เฉพาะ School Admin ส่วนการมอบหมายครูประจำชั้นด้านล่างใช้สิทธิ์งานบุคคลตามที่ได้รับมอบหมาย</div></section>'
+    :'<section class="panel"><div class="panel-head"><div><p class="eyebrow">PERSONNEL RESPONSIBILITY</p><h2>ผู้รับผิดชอบงานบุคลากร</h2><p class="panel-sub">หน้าที่นี้แยกจากตำแหน่งราชการ บุคลากรหนึ่งคนสามารถรับผิดชอบหลายฝ่ายได้</p></div></div>'+
+      '<div class="notice"><strong>หลักการสิทธิ์</strong><br>School Admin กำหนดหัวหน้างานหรือเจ้าหน้าที่จากบุคลากรที่เชื่อมบัญชีแล้ว</div>'+
+      (items.length?'<div class="personnel-authority-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">👥</div><h3>ยังไม่มีบุคลากรที่เชื่อมบัญชี</h3></div>')+
+    '</section>';
+  return '<section class="personnel-page">'+personnelNavHtml("authorities")+authorityPanel+homeroomAssignmentPanelHtml(homeroom)+'</section>';
 }
 
 async function personnelListHtml(){
@@ -4078,6 +4153,49 @@ function bindPersonnel(){
       renderRoute();
     });
   });
+
+
+  const homeroomYear=q("[data-homeroom-year]");
+  if(homeroomYear)homeroomYear.addEventListener("change",()=>{
+    state.homeroomAssignmentYearId=homeroomYear.value||null;
+    renderRoute();
+  });
+  qa("[data-homeroom-form]").forEach(assignForm=>assignForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(assignForm),btn=assignForm.querySelector('button[type="submit"]');
+    const school=currentSchool();
+    setBusy(btn,true,"กำลังมอบหมาย...");
+    const res=await supabase.rpc("lao_save_homeroom_assignment",{
+      p_school_id:school.id,
+      p_academic_year_id:state.homeroomAssignmentYearId,
+      p_class_section_id:assignForm.dataset.class,
+      p_personnel_id:String(fd.get("personnel_id")||""),
+      p_assignment_role:String(fd.get("assignment_role")||"homeroom"),
+      p_is_primary:fd.get("is_primary")==="on",
+      p_starts_on:null,p_ends_on:null,p_assignment_id:null,p_is_active:true
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("มอบหมายครูประจำชั้น/ครูที่ปรึกษาแล้ว","success");
+    renderRoute();
+  }));
+  qa("[data-homeroom-remove]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("ยืนยันยกเลิกการมอบหมายรายการนี้?"))return;
+    setBusy(btn,true,"...");
+    const res=await supabase.rpc("lao_save_homeroom_assignment",{
+      p_school_id:currentSchool().id,
+      p_academic_year_id:state.homeroomAssignmentYearId,
+      p_class_section_id:btn.dataset.class,
+      p_personnel_id:btn.dataset.personnel,
+      p_assignment_role:btn.dataset.role||"homeroom",
+      p_is_primary:btn.dataset.primary==="true",
+      p_starts_on:null,p_ends_on:null,p_assignment_id:btn.dataset.homeroomRemove,p_is_active:false
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("ยกเลิกการมอบหมายแล้ว","success");
+    renderRoute();
+  }));
 
   const form=q("#personnel-form");
   if(form){
