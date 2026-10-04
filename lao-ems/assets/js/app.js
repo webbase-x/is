@@ -169,7 +169,7 @@ async function forceRefreshCurrentPage(){
   location.replace(url.toString());
 }
 function bindPullToRefresh(){
-  if(!("ontouchstart" in window)&&!(navigator.maxTouchPoints>0))return;
+  if(!applyInputDeviceUi())return;
   const indicator=ensurePullRefreshIndicator();
   let startY=0,startX=0,pulling=false,armed=false;
   const threshold=82;
@@ -658,7 +658,26 @@ async function signInWithGoogle(){
   }
 }
 
+function isTouchDevice(){
+  return Boolean(
+    ("ontouchstart" in window)
+    || Number(navigator.maxTouchPoints||0)>0
+    || (window.matchMedia&&window.matchMedia("(any-pointer: coarse)").matches)
+  );
+}
+function applyInputDeviceUi(){
+  const touch=isTouchDevice();
+  document.documentElement.classList.toggle("is-touch-device",touch);
+  qa("[data-manual-refresh]").forEach(btn=>{
+    btn.hidden=touch;
+    btn.setAttribute("aria-hidden",touch?"true":"false");
+    if(touch)btn.tabIndex=-1;
+    else btn.removeAttribute("tabindex");
+  });
+  return touch;
+}
 function bindManualRefresh(){
+  if(applyInputDeviceUi())return;
   qa("[data-manual-refresh]").forEach(btn=>{
     if(btn.dataset.bound==="1")return;
     btn.dataset.bound="1";
@@ -8190,6 +8209,7 @@ document.addEventListener("click",event=>{
 async function init(){
   renderAppVersion();
   void checkLatestVersion();
+  applyInputDeviceUi();
   bindStaticUI();
   bindManualRefresh();
   bindPullToRefresh();
