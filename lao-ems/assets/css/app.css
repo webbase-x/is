@@ -10111,3 +10111,40 @@ th,td{line-height:1.45}
   .course-section>summary{padding:13px}
   .course-section-body{padding:13px}
 }
+
+
+/* v0.19.39 — assessment items linked to standards/indicators */
+.course-assessment-outcomes{
+  grid-column:1/-1;border-top:1px solid #e4e7ec;margin-top:2px;padding-top:8px
+}
+.course-assessment-outcomes>summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  min-height:38px;padding:4px 2px;color:#344054
+}
+.course-assessment-outcomes>summary::-webkit-details-marker{display:none}
+.course-assessment-outcomes>summary span{font-size:12px;font-weight:800}
+.course-assessment-outcomes>summary strong{
+  font-size:11px;padding:4px 8px;border-radius:999px;background:#eef4ff;color:#1849a9;white-space:nowrap
+}
+.course-assessment-outcome-body{display:grid;gap:8px;padding:7px 0 2px}
+.course-assessment-outcome-body>[data-assessment-outcome-picks]{
+  display:flex;flex-wrap:wrap;gap:6px
+}
+.course-assessment-outcome-pick span{gap:5px}
+.course-assessment-outcome-pick span b{
+  font-size:9px;line-height:1;padding:3px 4px;border-radius:5px;background:#f2f4f7;color:#475467
+}
+.course-assessment-outcome-pick input:checked+span b{background:#dbeafe;color:#1849a9}
+.course-use-unit-outcomes{
+  justify-self:start;border:0;background:transparent;padding:3px 0;color:#175cd3;font-weight:800;font-size:11px;cursor:pointer
+}
+.course-use-unit-outcomes:hover{text-decoration:underline}
+.assessment-component-outcomes{
+  display:block;margin-top:4px;max-width:170px;white-space:normal;font-style:normal;
+  font-size:10px;line-height:1.3;color:#175cd3;font-weight:700
+}
+@media (max-width:760px){
+  .course-assessment-outcomes{grid-column:auto}
+  .course-assessment-outcomes>summary{align-items:flex-start}
+  .assessment-component-outcomes{max-width:130px}
+}
