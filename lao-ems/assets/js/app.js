@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.41";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.42";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -7158,6 +7158,7 @@ function assessmentBookMetrics(book){
     totalStudents:students.length,
     completedStudents,
     missingStudents:missing.length,
+    missing,
     filledCells,totalCells,
     scorePercent:totalCells?Math.round(filledCells*100/totalCells):0,
     average:completedStudents?totalOfCompleted/completedStudents:null,
@@ -7196,13 +7197,16 @@ function assessmentActivityPanelHtml(comps){
   '</details>';
 }
 function assessmentMissingPanelHtml(metrics){
-  return '<details class="panel assessment-workflow-panel '+(metrics.missingStudents?"attention":"ready")+'" id="assessment-step-5" '+(metrics.missingStudents?"open":"")+'>'+
-    '<summary><div><b>5</b><span><strong>ตรวจคะแนนขาด</strong><small>'+(metrics.missingStudents?"ยังมีนักเรียนที่คะแนนไม่ครบ":"คะแนนครบทุกคนแล้ว")+'</small></span></div><em>'+metrics.missingStudents.toLocaleString("th-TH")+' คน</em></summary>'+
+  const missing=Array.isArray(metrics&&metrics.missing)?metrics.missing:[];
+  const missingStudents=Number(metrics&&metrics.missingStudents||missing.length||0);
+  return '<details class="panel assessment-workflow-panel '+(missingStudents?"attention":"ready")+'" id="assessment-step-5" '+(missingStudents?"open":"")+'>'+
+    '<summary><div><b>5</b><span><strong>ตรวจคะแนนขาด</strong><small>'+(missingStudents?"ยังมีนักเรียนที่คะแนนไม่ครบ":"คะแนนครบทุกคนแล้ว")+'</small></span></div><em>'+missingStudents.toLocaleString("th-TH")+' คน</em></summary>'+
     '<div class="assessment-workflow-panel-body">'+
-      (metrics.missingStudents
-        ?'<div class="assessment-missing-list">'+metrics.missing.map(row=>
-          '<article><span>'+esc(row.student_no||"—")+'</span><div><strong>'+esc(row.full_name)+'</strong><small>ขาด '+row.missing_labels.length.toLocaleString("th-TH")+' รายการ</small><p>'+row.missing_labels.map(x=>'<em>'+esc(x)+'</em>').join("")+'</p></div></article>'
-        ).join("")+'</div>'
+      (missingStudents
+        ?'<div class="assessment-missing-list">'+missing.map(row=>{
+          const labels=Array.isArray(row&&row.missing_labels)?row.missing_labels:[];
+          return '<article><span>'+esc(row&&row.student_no||"—")+'</span><div><strong>'+esc(row&&row.full_name||"—")+'</strong><small>ขาด '+labels.length.toLocaleString("th-TH")+' รายการ</small><p>'+labels.map(x=>'<em>'+esc(x)+'</em>').join("")+'</p></div></article>';
+        }).join("")+'</div>'
         :'<div class="assessment-workflow-ok"><span>✓</span><div><strong>คะแนนครบแล้ว</strong><p>สามารถตรวจสรุปผลและเตรียมส่งฝ่ายวิชาการได้</p></div></div>')+
     '</div>'+
   '</details>';
