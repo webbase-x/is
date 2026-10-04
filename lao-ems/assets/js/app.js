@@ -1,14 +1,14 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.45";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.46";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
   membership:["สิทธิ์การเข้าใช้งาน","ดูสถานศึกษาและบทบาทที่ผู้ดูแลกำหนดให้"],
   activate:["ตั้งค่าบัญชี","ยืนยันโปรไฟล์และกำหนดรหัสผ่านสำหรับบัญชีที่ผู้ดูแลเชิญ"],
   profile:["โปรไฟล์ของฉัน","ข้อมูลส่วนตัว ความปลอดภัย และภาระงานสอนของฉัน"],
-  "teacher-work":["งานครูผู้สอน / ครูประจำชั้น","พื้นที่บันทึกข้อมูลจากการปฏิบัติงานจริงของครู แยกจากข้อมูลกลางของกลุ่มบริหาร"],
+  "teacher-work":["งานของฉัน","งานตามบทบาทของผู้ใช้ เช่น ครูผู้สอน ครูประจำชั้น และงานกลุ่มสาระ"],
   notifications:["การแจ้งเตือน","คำขอ การอนุมัติ และการเปลี่ยนแปลงที่เกี่ยวข้องกับบัญชีของคุณ"],
   setup:["ตั้งค่าสถานศึกษา","ตรวจความพร้อมหลังนำเข้า LEC เชื่อม Google Drive และตั้งค่าการใช้งาน"],
   organization:["อปท. และสถานศึกษา","โครงสร้างองค์กรและโรงเรียนในแพลตฟอร์ม"],
@@ -229,8 +229,9 @@ function routeName(){return (location.hash.replace(/^#\//,"").split("/")[0]||"ov
 function routeBackContext(route){
   const hash=location.hash||("#/"+route);
   if(route==="academics"&&/^#\/academics\/my-courses\/[0-9a-f-]{36}\/?$/i.test(hash))return {href:"#/academics/my-courses",label:"รายวิชาและโครงสร้างคะแนนของฉัน"};
-  if(route==="academics"&&/^#\/academics\/my-courses\/?$/i.test(hash)&&hasTeacherWorkspace())return {href:"#/teacher-work",label:"งานครูผู้สอน / ครูประจำชั้น"};
-  if(route==="assessment"&&hasTeacherWorkspace())return {href:"#/teacher-work",label:"งานครูผู้สอน / ครูประจำชั้น"};
+  if(route==="teacher-work"&&/^#\/teacher-work\/subject-group/i.test(hash))return {href:"#/teacher-work",label:"งานของฉัน"};
+  if(route==="academics"&&/^#\/academics\/my-courses\/?$/i.test(hash)&&hasTeacherWorkspace())return {href:"#/teacher-work",label:"งานของฉัน"};
+  if(route==="assessment"&&hasTeacherWorkspace())return {href:"#/teacher-work",label:"งานของฉัน"};
   if(route==="academics"||route==="assessment")return {href:"#/academic-group",label:"กลุ่มบริหารงานวิชาการ"};
   if(route==="academic-group"&&/^#\/academic-group\//i.test(hash))return {href:"#/academic-group",label:"กลุ่มบริหารงานวิชาการ"};
   if(route==="personnel"&&!/^#\/personnel\/?$/i.test(hash))return {href:"#/personnel",label:"กลุ่มบริหารงานบุคคล"};
@@ -356,6 +357,12 @@ function canViewAcademic(){
 }
 function hasTeacherWorkspace(){
   return Boolean(currentSchool())&&state.viewMode==="user"&&roleCodes().includes("teacher");
+}
+function hasMyWorkWorkspace(){
+  return Boolean(currentSchool())&&state.viewMode==="user"&&(
+    roleCodes().includes("teacher")||
+    Boolean(state.workAuthorityAccess&&state.workAuthorityAccess.can_view)
+  );
 }
 function hasAcademicGroupResponsibility(){
   if(isPlatformAdminMode()||isSchoolAdminContext())return Boolean(currentSchool());
@@ -739,11 +746,11 @@ function bindStaticUI(){
       state.adminSchool=state.adminSchools.find(s=>s.id===id)||null;
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
-      state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;
+      state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;state.subjectGroupData=null;state.subjectGroupYearId=null;
       await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;state.subjectGroupData=null;state.subjectGroupYearId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();}
   });
 }
 
@@ -1222,7 +1229,7 @@ function refreshHeader(){
   if(academicGroup)academicGroup.classList.toggle("hidden",!academicGroupVisible);
 
   const teacherWorkLink=q('[data-route="teacher-work"][data-teacher-work-menu]');
-  if(teacherWorkLink)teacherWorkLink.classList.toggle("hidden",!hasTeacherWorkspace());
+  if(teacherWorkLink)teacherWorkLink.classList.toggle("hidden",!hasMyWorkWorkspace());
 
   const setupLink=q('[data-route="setup"]');
   if(setupLink)setupLink.textContent=adminMode?"⚙ ตั้งค่าระบบ":"⚙ ตั้งค่าสถานศึกษา";
@@ -1306,7 +1313,8 @@ function workspaceRecentStorageKey(){
 function workspaceRecentRouteInfo(hash){
   const h=String(hash||"");
   const rules=[
-    ["#/teacher-work","งานครูผู้สอน / ครูประจำชั้น","👩‍🏫"],
+    ["#/teacher-work/subject-group","งานกลุ่มสาระ","🧩"],
+    ["#/teacher-work","งานของฉัน","👩‍🏫"],
     ["#/academic-group","กลุ่มบริหารงานวิชาการ","📚"],
     ["#/academics/my-courses","หลักสูตรรายวิชาที่ฉันสอน","📘"],
     ["#/academics/workload","ภาระงานสอน","📚"],
@@ -1345,10 +1353,10 @@ function workspaceAppItems(unreadCount,pendingJoin,pendingTeaching,assessmentAtt
   const items=[
     {icon:"👤",title:"โปรไฟล์ของฉัน",desc:"ข้อมูลส่วนตัวและภาระงานสอนของฉัน",route:"#/profile",key:"profile"}
   ];
-  if(hasTeacherWorkspace())items.push({
+  if(hasMyWorkWorkspace())items.push({
     icon:"👩‍🏫",
-    title:"งานครูผู้สอน / ครูประจำชั้น",
-    desc:"โครงสร้างคะแนน · คะแนนผู้เรียน · งานประจำชั้นของฉัน",
+    title:"งานของฉัน",
+    desc:"งานครูผู้สอน · ครูประจำชั้น · งานกลุ่มสาระตามบทบาทที่ได้รับ",
     route:"#/teacher-work",
     routes:["#/teacher-work","#/academics/my-courses","#/assessment"],
     key:"teacher-work"
@@ -1385,33 +1393,219 @@ function workspaceRecentItem(apps){
 }
 
 
+
+function teacherWorkRouteState(){
+  const hash=location.hash||"#/teacher-work";
+  if(/^#\/teacher-work\/subject-group/i.test(hash)){
+    const raw=hash.includes("?")?hash.slice(hash.indexOf("?")+1):"";
+    const params=new URLSearchParams(raw);
+    return {mode:"subject-group",learningArea:params.get("area")||null};
+  }
+  return {mode:"dashboard",learningArea:null};
+}
 function teacherWorkDutyCard(icon,title,desc,route,status){
   if(route){
     return '<a class="teacher-duty-card active" href="'+esc(route)+'"><span class="teacher-duty-icon">'+icon+'</span><div><strong>'+esc(title)+'</strong><p>'+esc(desc)+'</p></div><em>เปิด →</em></a>';
   }
   return '<article class="teacher-duty-card planned"><span class="teacher-duty-icon">'+icon+'</span><div><strong>'+esc(title)+'</strong><p>'+esc(desc)+'</p></div><em>'+esc(status||"เตรียมเชื่อม")+'</em></article>';
 }
-async function teacherWorkHtml(){
-  if(!hasTeacherWorkspace()){
-    return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีหน้าที่ครูในบริบทนี้</h3><p>พื้นที่นี้จะแสดงเมื่อบัญชีได้รับบทบาทครูของสถานศึกษา</p></div></section>';
-  }
+function subjectGroupRoleLabel(group){
+  return group&&group.is_head?"หัวหน้ากลุ่มสาระ":"สมาชิกกลุ่มสาระ";
+}
+function subjectGroupTaskStatusLabel(status){
+  return ({
+    assigned:"มอบหมายแล้ว",
+    in_progress:"กำลังดำเนินการ",
+    submitted:"รอตรวจยืนยัน",
+    returned:"ส่งกลับแก้ไข",
+    confirmed:"ยืนยันแล้ว",
+    cancelled:"ยกเลิก"
+  })[status]||status||"-";
+}
+function subjectGroupTaskStatusClass(status){
+  return status==="confirmed"?"success":status==="submitted"?"warning":status==="returned"?"danger":status==="in_progress"?"primary":"neutral";
+}
+async function loadSubjectGroupWorkspace(learningArea=null,yearIdOverride=undefined){
   const school=currentSchool();
-  return '<section class="teacher-work-page">'+
-    '<section class="teacher-work-hero panel"><div><p class="eyebrow">MY TEACHING & HOMEROOM WORK</p><h2>งานครูผู้สอน / ครูประจำชั้น</h2><p>'+esc(school&&school.name_th||"")+' · พื้นที่สำหรับข้อมูลที่เกิดจากการปฏิบัติงานจริงของครู แยกจากข้อมูลกลางที่ฝ่ายรับผิดชอบเป็นผู้กำหนด</p></div><span class="pill success">งานของฉัน</span></section>'+
-    '<section class="teacher-work-principle panel"><div><span>✓</span><div><strong>หลักการแบ่งหน้าที่</strong><p>ฝ่าย/กลุ่มงานกำหนดข้อมูลตั้งต้นและกติกา ส่วนครูบันทึกข้อมูลเฉพาะรายวิชา ห้อง และนักเรียนที่ตนรับผิดชอบ ระบบไม่ให้ครูเลือกข้อมูลนอกขอบเขตเอง</p></div></div></section>'+
-    '<section class="teacher-duty-section"><div class="workspace-section-head"><div><p class="eyebrow">TEACHER</p><h2>งานครูผู้สอน</h2><p>ระบบผูกกับภาระงานสอนที่ได้รับอนุมัติ</p></div></div><div class="teacher-duty-grid">'+
-      teacherWorkDutyCard("📘","รายวิชาและโครงสร้างคะแนนของฉัน","จัดทำหลักสูตรรายวิชา หน่วยการเรียนรู้ ตัวชี้วัด และโครงสร้างคะแนน แล้วส่งฝ่ายวิชาการตรวจ","#/academics/my-courses")+
-      teacherWorkDutyCard("📝","บันทึกคะแนนและผลการเรียน","ดำเนินการวัดผล 9 ขั้น ตั้งแต่กิจกรรม/เครื่องมือ บันทึกคะแนน ตรวจคะแนนขาด จนส่งฝ่ายวิชาการ","#/assessment")+
-      teacherWorkDutyCard("⏱","เวลาเรียนรายวิชา","ครูผู้สอนบันทึกเวลาเรียนตามคาบ/รายวิชา โดยระบบจะดึงห้องและนักเรียนจากตารางสอน/ภาระงานสอน",null,"เตรียมโมดูล")+
-    '</div></section>'+
-    '<section class="teacher-duty-section"><div class="workspace-section-head"><div><p class="eyebrow">HOMEROOM</p><h2>งานครูประจำชั้น</h2><p>จะแสดงเฉพาะห้องที่โรงเรียนมอบหมายให้เป็นครูประจำชั้น</p></div></div><div class="teacher-duty-grid">'+
-      teacherWorkDutyCard("📅","เวลาเรียนประจำวัน","ตรวจภาพรวมมาเรียน ขาด ลา สาย และติดตามข้อมูลที่ครูผู้สอนบันทึก",null,"เตรียมโมดูล")+
-      teacherWorkDutyCard("📏","น้ำหนักและส่วนสูง","บันทึกตามรอบที่โรงเรียนกำหนด โดยเก็บประวัติแต่ละครั้ง ไม่เขียนทับค่าก่อนหน้า",null,"เตรียมโมดูล")+
-      teacherWorkDutyCard("🤝","ข้อมูลดูแลนักเรียน","ข้อมูลประจำชั้นและการติดตามผู้เรียนที่อยู่ในความรับผิดชอบ โดยแยกสิทธิ์รายห้อง",null,"เตรียมโมดูล")+
-    '</div></section>'+
-    '<section class="teacher-boundary-note panel"><strong>สิ่งที่ครูไม่ต้องตั้งค่าเอง</strong><p>ปีการศึกษา ภาคเรียน ห้องเรียน รายวิชากลาง กรอบเวลาเรียน เกณฑ์วัดผล รอบชั่งน้ำหนัก/วัดส่วนสูง และผู้รับผิดชอบห้อง เป็นข้อมูลกลางที่กลุ่มงานกำหนดก่อน แล้วระบบส่งต่อมาให้ครูใช้งาน</p></section>'+
+  if(!school)return null;
+  const yearId=yearIdOverride!==undefined?yearIdOverride:(state.subjectGroupYearId||state.academicYearId||null);
+  const res=await academicReadWithRetry(()=>supabase.rpc("lao_my_subject_group_workspace",{
+    p_school_id:school.id,
+    p_academic_year_id:yearId,
+    p_learning_area:learningArea||null
+  }));
+  if(res.error)throw res.error;
+  state.subjectGroupData=res.data||{};
+  state.subjectGroupYearId=state.subjectGroupData.selected_year_id||yearId||null;
+  return state.subjectGroupData;
+}
+function subjectGroupDashboardCardsHtml(data){
+  const groups=data&&data.groups||[];
+  if(!groups.length)return "";
+  return '<section class="teacher-duty-section subject-group-dashboard-section">'+
+    '<div class="workspace-section-head"><div><p class="eyebrow">SUBJECT GROUP</p><h2>งานกลุ่มสาระ</h2><p>สมาชิกมาจากภาระงานสอนที่อนุมัติแล้ว หัวหน้ากลุ่มสาระมีเครื่องมือตรวจยืนยันและมอบหมายงานเพิ่มตามสิทธิ์</p></div></div>'+
+    '<div class="subject-group-grid">'+groups.map(group=>{
+      const qarea=encodeURIComponent(group.learning_area||"");
+      const attention=Number(group.pending_confirmations||0);
+      const mine=Number(group.my_open_tasks||0);
+      return '<a class="subject-group-card '+(group.is_head?"head":"member")+'" href="#/teacher-work/subject-group?area='+qarea+'">'+
+        '<div class="subject-group-card-head"><span>🧩</span><div><strong>'+esc(group.learning_area)+'</strong><small>'+esc(subjectGroupRoleLabel(group))+'</small></div>'+
+          (attention?'<b>'+attention.toLocaleString("th-TH")+'</b>':'')+
+        '</div>'+
+        '<div class="subject-group-card-stats"><span><b>'+Number(group.member_count||0).toLocaleString("th-TH")+'</b><small>สมาชิก</small></span>'+
+          '<span><b>'+mine.toLocaleString("th-TH")+'</b><small>งานของฉัน</small></span>'+
+          '<span><b>'+attention.toLocaleString("th-TH")+'</b><small>รอตรวจ</small></span></div>'+
+        '<em>เปิดงานกลุ่มสาระ →</em>'+
+      '</a>';
+    }).join("")+'</div>'+
   '</section>';
 }
+function subjectGroupYearSelectHtml(data){
+  const years=data&&data.years||[];
+  if(!years.length)return "";
+  return '<label class="subject-group-year-select"><span>ปีการศึกษา</span><select data-subject-group-year>'+
+    years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===data.selected_year_id?"selected":"")+'>'+esc(y.year_be)+(y.is_current?" · ปัจจุบัน":"")+'</option>').join("")+
+  '</select></label>';
+}
+function subjectGroupTaskCardHtml(task,detail){
+  const mine=Boolean(task.is_mine),head=Boolean(detail&&detail.can_confirm);
+  const due=task.due_on?thaiDate(task.due_on):"ไม่กำหนดวันส่ง";
+  let actions="";
+  if(mine&&["assigned","returned"].includes(task.status)){
+    actions+='<button type="button" class="secondary-btn compact-btn" data-subject-task-action="start" data-task-id="'+esc(task.id)+'">เริ่มทำ</button>';
+    actions+='<button type="button" class="primary-btn compact-btn" data-subject-task-action="submit" data-task-id="'+esc(task.id)+'">ส่งให้หัวหน้าตรวจ</button>';
+  }else if(mine&&task.status==="in_progress"){
+    actions+='<button type="button" class="primary-btn compact-btn" data-subject-task-action="submit" data-task-id="'+esc(task.id)+'">ส่งให้หัวหน้าตรวจ</button>';
+  }
+  if(head&&task.status==="submitted"){
+    actions+='<button type="button" class="secondary-btn compact-btn danger-text" data-subject-task-action="return" data-task-id="'+esc(task.id)+'">ส่งกลับแก้ไข</button>';
+    actions+='<button type="button" class="primary-btn compact-btn" data-subject-task-action="confirm" data-task-id="'+esc(task.id)+'">ยืนยันงาน</button>';
+  }
+  if(detail&&detail.can_delegate&&!["confirmed","cancelled"].includes(task.status)){
+    actions+='<button type="button" class="text-btn danger-text" data-subject-task-action="cancel" data-task-id="'+esc(task.id)+'">ยกเลิกงาน</button>';
+  }
+  return '<article class="subject-group-task-card '+esc(task.status||"")+'">'+
+    '<div class="subject-group-task-head"><div><strong>'+esc(task.title)+'</strong><small>'+esc(task.assigned_name||"")+' · '+esc(due)+'</small></div><span class="pill '+subjectGroupTaskStatusClass(task.status)+'">'+esc(subjectGroupTaskStatusLabel(task.status))+'</span></div>'+
+    (task.details?'<p>'+esc(task.details)+'</p>':'')+
+    (task.submission_note?'<div class="subject-task-note submitted"><strong>ข้อความจากสมาชิก</strong><span>'+esc(task.submission_note)+'</span></div>':'')+
+    (task.review_note?'<div class="subject-task-note returned"><strong>ผลการตรวจ</strong><span>'+esc(task.review_note)+'</span></div>':'')+
+    (actions?'<div class="subject-group-task-actions">'+actions+'</div>':'')+
+  '</article>';
+}
+function subjectGroupWorkspaceHtml(data){
+  const d=data&&data.detail;
+  if(!d)return '<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">🧩</div><h3>ยังไม่มีงานกลุ่มสาระในปีการศึกษานี้</h3><p>ระบบจะแสดงเมื่อมีภาระงานสอนที่อนุมัติแล้ว หรือได้รับแต่งตั้งเป็นหัวหน้ากลุ่มสาระ</p></div></section>';
+  const groups=data.groups||[],tasks=d.tasks||[],members=d.members||[],stats=d.stats||{};
+  const groupTabs=groups.map(g=>'<a class="'+(g.learning_area===d.learning_area?"active":"")+'" href="#/teacher-work/subject-group?area='+encodeURIComponent(g.learning_area||"")+'">'+esc(g.learning_area)+(g.is_head?' <b>หัวหน้า</b>':'')+'</a>').join("");
+  const memberOptions=members.map(m=>'<option value="'+esc(m.personnel_id)+'">'+esc(m.full_name)+(m.position_title?' · '+esc(m.position_title):'')+'</option>').join("");
+  return '<section class="teacher-work-page subject-group-workspace">'+
+    '<section class="teacher-work-hero panel"><div><p class="eyebrow">MY SUBJECT GROUP WORK</p><h2>'+esc(d.learning_area)+'</h2><p>งานกลุ่มสาระเป็นพื้นที่ทำงานของสมาชิก ไม่ใช่หน้าตั้งค่ากลางของฝ่ายวิชาการ หัวหน้ากลุ่มสาระใช้มอบหมาย ติดตาม และยืนยันงานของสมาชิก</p></div><div class="subject-group-hero-side"><span class="pill '+(d.is_head?"success":"neutral")+'">'+esc(d.is_head?"หัวหน้ากลุ่มสาระ":"สมาชิกกลุ่มสาระ")+'</span>'+subjectGroupYearSelectHtml(data)+'</div></section>'+
+    '<nav class="subject-group-tabs" aria-label="กลุ่มสาระของฉัน">'+groupTabs+'</nav>'+
+    '<section class="subject-group-kpis">'+
+      '<article><small>สมาชิก</small><strong>'+Number(stats.member_count||0).toLocaleString("th-TH")+'</strong><span>คน</span></article>'+
+      '<article><small>งานของฉันที่ต้องทำ</small><strong>'+Number(stats.my_open_count||0).toLocaleString("th-TH")+'</strong><span>งาน</span></article>'+
+      '<article class="'+(Number(stats.submitted_count||0)>0&&d.can_confirm?"needs-action":"")+'"><small>รอตรวจยืนยัน</small><strong>'+Number(stats.submitted_count||0).toLocaleString("th-TH")+'</strong><span>งาน</span></article>'+
+      '<article><small>ยืนยันแล้ว</small><strong>'+Number(stats.confirmed_count||0).toLocaleString("th-TH")+'</strong><span>งาน</span></article>'+
+    '</section>'+
+    (d.can_delegate?'<details class="panel subject-group-assign-panel"><summary><div><strong>＋ มอบหมายงานสมาชิก</strong><small>เลือกได้เฉพาะสมาชิกที่มีภาระสอนในกลุ่มสาระนี้</small></div><span>เปิดแบบฟอร์ม</span></summary><form class="subject-group-task-form" data-subject-group-task-form>'+
+      '<label><span>สมาชิก <i>*</i></span><select name="assigned_to" required><option value="">เลือกสมาชิก</option>'+memberOptions+'</select></label>'+
+      '<label class="subject-task-title"><span>ชื่องาน <i>*</i></span><input name="title" maxlength="180" required placeholder="เช่น จัดทำข้อสอบกลางภาค"></label>'+
+      '<label><span>กำหนดส่ง</span>'+buddhistDateControlHtml("due_on","")+'</label>'+
+      '<label class="subject-task-details"><span>รายละเอียด</span><textarea name="details" rows="3" maxlength="1200" placeholder="ระบุสิ่งที่ต้องดำเนินการหรือหลักฐานที่ต้องส่ง"></textarea></label>'+
+      '<div class="subject-task-form-actions"><button type="submit" class="primary-btn">มอบหมายงาน</button></div>'+
+    '</form></details>':'')+
+    '<section class="panel subject-group-task-section"><div class="panel-head"><div><h2>'+(d.can_confirm?"งานของสมาชิก":"งานที่ได้รับมอบหมาย")+'</h2><p class="panel-sub">'+(d.can_confirm?"งานที่สมาชิกส่งตรวจจะถูกดันขึ้นด้านบนอัตโนมัติ":"แสดงเฉพาะงานของคุณในกลุ่มสาระนี้")+'</p></div><span class="pill neutral">'+tasks.length.toLocaleString("th-TH")+' งาน</span></div>'+
+      (tasks.length?'<div class="subject-group-task-list">'+tasks.map(t=>subjectGroupTaskCardHtml(t,d)).join("")+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ยังไม่มีงานค้าง</h3><p>เมื่อหัวหน้ากลุ่มสาระมอบหมายงาน รายการจะปรากฏที่นี่</p></div>')+
+    '</section>'+
+    (d.can_delegate?'<section class="panel subject-group-member-section"><div class="panel-head"><div><h2>สมาชิกกลุ่มสาระ</h2><p class="panel-sub">รายชื่อมาจากภาระงานสอนที่อนุมัติแล้ว ไม่ต้องเพิ่มสมาชิกซ้ำ</p></div><span>'+members.length.toLocaleString("th-TH")+' คน</span></div><div class="subject-group-member-grid">'+members.map(m=>
+      '<article><div><strong>'+esc(m.full_name)+'</strong><small>'+esc(m.position_title||"ครู")+'</small></div><div><span>'+Number(m.subject_count||0).toLocaleString("th-TH")+' วิชา</span><span>'+Number(m.class_count||0).toLocaleString("th-TH")+' ห้อง</span><span class="'+(Number(m.submitted_task_count||0)>0?"attention":"")+'">'+Number(m.submitted_task_count||0).toLocaleString("th-TH")+' รอตรวจ</span></div></article>'
+    ).join("")+'</div></section>':'')+
+  '</section>';
+}
+async function teacherWorkHtml(){
+  if(!hasMyWorkWorkspace()){
+    return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ยังไม่มีงานส่วนบุคคลในบริบทนี้</h3><p>ระบบจะแสดงงานตามบทบาทและขอบเขตที่ได้รับมอบหมาย</p></div></section>';
+  }
+  const school=currentSchool(),route=teacherWorkRouteState();
+  let subjectData=null;
+  try{subjectData=await loadSubjectGroupWorkspace(route.learningArea);}catch(e){console.warn("subject group workspace",e);}
+  if(route.mode==="subject-group")return subjectGroupWorkspaceHtml(subjectData||{});
+
+  const teacher=hasTeacherWorkspace();
+  return '<section class="teacher-work-page">'+
+    '<section class="teacher-work-hero panel"><div><p class="eyebrow">MY WORK</p><h2>งานของฉัน</h2><p>'+esc(school&&school.name_th||"")+' · ระบบแสดงเฉพาะงานตามบทบาทและขอบเขตที่คุณได้รับ ไม่ปะปนกับข้อมูลพื้นฐานที่กลุ่มงานเป็นผู้กำหนด</p></div><span class="pill success">งานของฉัน</span></section>'+
+    '<section class="teacher-work-principle panel"><div><span>✓</span><div><strong>งานส่วนบุคคลแยกจากงานตั้งค่าของฝ่าย</strong><p>กลุ่มงานกำหนดข้อมูลพื้นฐานและกติกา ส่วนผู้ใช้งานบันทึกข้อมูลที่เกิดจากงานจริง เช่น คะแนน เวลาเรียน ข้อมูลประจำชั้น และงานที่ได้รับมอบหมายจากกลุ่มสาระ</p></div></div></section>'+
+    (teacher?'<section class="teacher-duty-section"><div class="workspace-section-head"><div><p class="eyebrow">TEACHER</p><h2>งานครูผู้สอน</h2><p>ระบบผูกกับภาระงานสอนที่ได้รับอนุมัติ</p></div></div><div class="teacher-duty-grid">'+
+      teacherWorkDutyCard("📘","รายวิชาและโครงสร้างคะแนนของฉัน","จัดทำหลักสูตรรายวิชา หน่วยการเรียนรู้ ตัวชี้วัด และโครงสร้างคะแนน แล้วส่งตรวจ","#/academics/my-courses")+
+      teacherWorkDutyCard("📝","บันทึกคะแนนและผลการเรียน","ดำเนินการวัดผลตั้งแต่กิจกรรม/เครื่องมือ บันทึกคะแนน ตรวจคะแนนขาด จนส่งฝ่ายวิชาการ","#/assessment")+
+      teacherWorkDutyCard("⏱","เวลาเรียนรายวิชา","บันทึกเวลาเรียนตามคาบ/รายวิชา โดยใช้ห้องและนักเรียนจากภาระงานสอน",null,"เตรียมโมดูล")+
+    '</div></section>':'')+
+    (teacher?'<section class="teacher-duty-section"><div class="workspace-section-head"><div><p class="eyebrow">HOMEROOM</p><h2>งานครูประจำชั้น</h2><p>จะแสดงการบันทึกจริงเมื่อโรงเรียนกำหนดครูประจำชั้นให้ห้อง</p></div></div><div class="teacher-duty-grid">'+
+      teacherWorkDutyCard("📅","เวลาเรียนประจำวัน","บันทึกและตรวจภาพรวมมาเรียน ขาด ลา สายของนักเรียนในห้องที่รับผิดชอบ",null,"เตรียมโมดูล")+
+      teacherWorkDutyCard("📏","น้ำหนักและส่วนสูง","บันทึกตามรอบที่โรงเรียนกำหนด เก็บประวัติทุกครั้ง ไม่เขียนทับข้อมูลเดิม",null,"เตรียมโมดูล")+
+      teacherWorkDutyCard("🤝","ข้อมูลดูแลนักเรียน","ข้อมูลประจำชั้น การติดตาม และการช่วยเหลือนักเรียนในห้องที่รับผิดชอบ",null,"เตรียมโมดูล")+
+    '</div></section>':'')+
+    subjectGroupDashboardCardsHtml(subjectData||{})+
+    '<section class="teacher-boundary-note panel"><strong>ข้อมูลที่ผู้ใช้ไม่ต้องสร้างซ้ำ</strong><p>ปีการศึกษา ภาคเรียน ห้องเรียน รายวิชากลาง กรอบเวลาเรียน เกณฑ์วัดผล รอบชั่งน้ำหนัก/วัดส่วนสูง และขอบเขตผู้รับผิดชอบ เป็นข้อมูลกลางที่กลุ่มงานกำหนด แล้วระบบส่งต่อมาให้งานของฉัน</p></section>'+
+  '</section>';
+}
+function bindTeacherWork(){
+  const year=q("[data-subject-group-year]");
+  if(year)year.addEventListener("change",()=>{
+    state.subjectGroupYearId=year.value||null;
+    state.subjectGroupData=null;
+    renderRoute();
+  });
+  const form=q("[data-subject-group-task-form]");
+  if(form)form.addEventListener("submit",async event=>{
+    event.preventDefault();
+    const data=state.subjectGroupData||{},detail=data.detail||{},fd=new FormData(form);
+    const btn=form.querySelector('button[type="submit"]');
+    const school=currentSchool();
+    setBusy(btn,true,"กำลังมอบหมาย...");
+    const res=await supabase.rpc("lao_save_subject_group_task",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_learning_area:detail.learning_area,
+      p_assigned_to:String(fd.get("assigned_to")||""),
+      p_title:String(fd.get("title")||"").trim(),
+      p_details:String(fd.get("details")||"").trim()||null,
+      p_due_on:String(fd.get("due_on")||"")||null,
+      p_task_id:null
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("มอบหมายงานแล้ว","success");
+    state.subjectGroupData=null;
+    renderRoute();
+  });
+  qa("[data-subject-task-action]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const action=btn.dataset.subjectTaskAction,taskId=btn.dataset.taskId;
+    let note=null;
+    if(action==="submit"){
+      note=prompt("ข้อความถึงหัวหน้ากลุ่มสาระ (ถ้ามี)")||null;
+    }else if(action==="return"){
+      note=prompt("ระบุสิ่งที่สมาชิกต้องแก้ไข")||"";
+      if(!note.trim())return;
+    }else if(action==="confirm"){
+      if(!confirm("ยืนยันงานนี้ว่าดำเนินการเรียบร้อยแล้ว?"))return;
+      note=prompt("หมายเหตุการยืนยัน (ถ้ามี)")||null;
+    }else if(action==="cancel"){
+      if(!confirm("ยกเลิกงานที่มอบหมายนี้?"))return;
+      note=prompt("เหตุผลที่ยกเลิก (ถ้ามี)")||null;
+    }
+    setBusy(btn,true,action==="confirm"?"กำลังยืนยัน...":action==="return"?"กำลังส่งกลับ...":action==="submit"?"กำลังส่ง...":"กำลังบันทึก...");
+    const res=await supabase.rpc("lao_subject_group_task_action",{
+      p_task_id:taskId,p_action:action,p_note:note
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast(action==="confirm"?"ยืนยันงานแล้ว":action==="return"?"ส่งกลับให้แก้ไขแล้ว":action==="submit"?"ส่งให้หัวหน้าตรวจแล้ว":action==="cancel"?"ยกเลิกงานแล้ว":"อัปเดตสถานะแล้ว","success");
+    state.subjectGroupData=null;
+    renderRoute();
+  }));
+}
+
 async function overviewHtml(){
   const school=currentSchool();
   const tenant=(school&&school.name_th)||(currentOrg()&&currentOrg().name_th)||"ยังไม่ได้ผูกสถานศึกษา";
@@ -3130,7 +3324,7 @@ async function workAuthoritiesHtml(){
         ].filter(Boolean);
         const period=(a.starts_on||a.ends_on)?'<small>ช่วงสิทธิ์ '+(a.starts_on?esc(thaiDate(a.starts_on)):"ไม่กำหนด")+' – '+(a.ends_on?esc(thaiDate(a.ends_on)):"จนกว่าจะยกเลิก")+'</small>':'<small>มีผลจนกว่าจะยกเลิก</small>';
         return '<article class="work-authority-row"><div class="work-authority-person"><strong>'+esc(a.full_name||"-")+'</strong><span>'+esc(a.position_title||"")+'</span>'+period+'</div>'+
-          '<div class="work-authority-scope"><strong>'+esc(a.scope_title||a.scope_code)+'</strong><span>'+esc(workAuthorityRoleLabel(a.authority_role))+'</span></div>'+
+          '<div class="work-authority-scope"><strong>'+esc(a.scope_title||a.scope_code)+'</strong><span>'+esc(a.scope_code&&a.scope_code.startsWith("academics.subject_groups.")&&a.authority_role==="work_head"?"หัวหน้ากลุ่มสาระ":workAuthorityRoleLabel(a.authority_role))+'</span></div>'+
           '<div class="work-authority-permissions">'+permissions.map(x=>'<span>'+esc(x)+'</span>').join("")+'</div>'+
           (canRevoke?'<button type="button" class="text-btn danger-text" data-deactivate-work-authority="'+esc(a.id)+'">ยกเลิก</button>':'')+
         '</article>';
@@ -3172,11 +3366,16 @@ function bindWorkAuthorities(){
     const scope=form.elements.scope_code;
     const edit=form.elements.can_edit;
     const delegate=form.elements.can_delegate;
+    const approve=form.elements.can_approve;
     const syncRole=()=>{
       const value=String(role&&role.value||"delegate");
       const isHead=value==="department_head"||value==="work_head";
+      const subjectGroup=Boolean(scope&&String(scope.value||"").startsWith("academics.subject_groups."));
+      const workHeadOption=role&&role.querySelector('option[value="work_head"]');
+      if(workHeadOption)workHeadOption.textContent=subjectGroup?"หัวหน้ากลุ่มสาระ":"หัวหน้างาน";
       if(edit){edit.checked=isHead||edit.checked;edit.disabled=isHead;}
       if(delegate){delegate.checked=isHead||delegate.checked;delegate.disabled=isHead;}
+      if(approve&&subjectGroup&&value==="work_head")approve.checked=true;
       if(scope){
         Array.from(scope.options).forEach(opt=>{
           if(!opt.value)return;
@@ -3188,6 +3387,7 @@ function bindWorkAuthorities(){
       }
     };
     if(role)role.addEventListener("change",syncRole);
+    if(scope)scope.addEventListener("change",syncRole);
     syncRole();
     form.addEventListener("submit",async e=>{
     e.preventDefault();
@@ -8077,7 +8277,7 @@ async function renderRoute(){
   q("[data-page-title]").textContent=meta[0];
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
   const courseCurriculumRoute=route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses");
-  const teacherOperationalRoute=hasTeacherWorkspace()&&(courseCurriculumRoute||route==="assessment");
+  const teacherOperationalRoute=hasMyWorkWorkspace()&&(courseCurriculumRoute||route==="assessment"||route==="teacher-work");
   if(courseCurriculumRoute){
     const academicRoot=q('[data-route="academics"]');
     if(academicRoot)academicRoot.classList.remove("active");
@@ -8096,7 +8296,7 @@ async function renderRoute(){
     else if(route==="membership"){html=membershipHtml();}
     else if(route==="activate"){html=activationHtml();bind=bindActivation;}
     else if(route==="profile"){html=await profileHtml();bind=bindProfile;}
-    else if(route==="teacher-work"){html=await teacherWorkHtml();}
+    else if(route==="teacher-work"){html=await teacherWorkHtml();bind=bindTeacherWork;}
     else if(route==="notifications"){html=notificationsHtml();bind=bindNotifications;}
     else if(route==="setup"){html=await setupHtml();bind=bindSetup;}
     else if(route==="organization"){html=await organizationHtml();bind=bindOrganizationForms;}
