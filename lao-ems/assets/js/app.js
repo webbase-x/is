@@ -8,6 +8,7 @@ const routeMeta={
   membership:["สิทธิ์การเข้าใช้งาน","ดูสถานศึกษาและบทบาทที่ผู้ดูแลกำหนดให้"],
   activate:["ตั้งค่าบัญชี","ยืนยันโปรไฟล์และกำหนดรหัสผ่านสำหรับบัญชีที่ผู้ดูแลเชิญ"],
   profile:["โปรไฟล์ของฉัน","ข้อมูลส่วนตัว ความปลอดภัย และภาระงานสอนของฉัน"],
+  "teacher-work":["งานครูผู้สอน / ครูประจำชั้น","พื้นที่บันทึกข้อมูลจากการปฏิบัติงานจริงของครู แยกจากข้อมูลกลางของกลุ่มบริหาร"],
   notifications:["การแจ้งเตือน","คำขอ การอนุมัติ และการเปลี่ยนแปลงที่เกี่ยวข้องกับบัญชีของคุณ"],
   setup:["ตั้งค่าสถานศึกษา","ตรวจความพร้อมหลังนำเข้า LEC เชื่อม Google Drive และตั้งค่าการใช้งาน"],
   organization:["อปท. และสถานศึกษา","โครงสร้างองค์กรและโรงเรียนในแพลตฟอร์ม"],
@@ -227,7 +228,9 @@ function setBusy(button,busy,label){
 function routeName(){return (location.hash.replace(/^#\//,"").split("/")[0]||"overview").toLowerCase();}
 function routeBackContext(route){
   const hash=location.hash||("#/"+route);
-  if(route==="academics"&&/^#\/academics\/my-courses\/[0-9a-f-]{36}\/?$/i.test(hash))return {href:"#/academics/my-courses",label:"รายวิชาที่ฉันสอน"};
+  if(route==="academics"&&/^#\/academics\/my-courses\/[0-9a-f-]{36}\/?$/i.test(hash))return {href:"#/academics/my-courses",label:"รายวิชาและโครงสร้างคะแนนของฉัน"};
+  if(route==="academics"&&/^#\/academics\/my-courses\/?$/i.test(hash)&&hasTeacherWorkspace())return {href:"#/teacher-work",label:"งานครูผู้สอน / ครูประจำชั้น"};
+  if(route==="assessment"&&hasTeacherWorkspace())return {href:"#/teacher-work",label:"งานครูผู้สอน / ครูประจำชั้น"};
   if(route==="academics"||route==="assessment")return {href:"#/academic-group",label:"กลุ่มบริหารงานวิชาการ"};
   if(route==="academic-group"&&/^#\/academic-group\//i.test(hash))return {href:"#/academic-group",label:"กลุ่มบริหารงานวิชาการ"};
   if(route==="personnel"&&!/^#\/personnel\/?$/i.test(hash))return {href:"#/personnel",label:"กลุ่มบริหารงานบุคคล"};
@@ -350,6 +353,30 @@ function canViewAcademic(){
   if(state.isPlatformAdmin&&state.viewMode==="admin")return Boolean(currentSchool());
   const allowed=["organization_admin","organization_viewer","school_admin","school_executive","registrar","academic_officer","teacher","staff"];
   return Boolean(currentSchool())&&roleCodes().some(code=>allowed.includes(code));
+}
+function hasTeacherWorkspace(){
+  return Boolean(currentSchool())&&state.viewMode==="user"&&roleCodes().includes("teacher");
+}
+function hasAcademicGroupResponsibility(){
+  if(isPlatformAdminMode()||isSchoolAdminContext())return Boolean(currentSchool());
+  const roles=roleCodes();
+  return Boolean(currentSchool())&&(
+    roles.includes("school_executive")||
+    roles.includes("academic_officer")||
+    roles.includes("registrar")||
+    Boolean(state.academicWork&&state.academicWork.can_manage)
+  );
+}
+function hasPersonnelGroupResponsibility(){
+  if(isPlatformAdminMode()||isSchoolAdminContext())return Boolean(currentSchool());
+  const roles=roleCodes();
+  const work=state.personnelWork||{};
+  return Boolean(currentSchool())&&(
+    roles.includes("school_executive")||
+    Boolean(work.can_review)||
+    Boolean(work.can_manage_intake)||
+    Boolean(work.can_assign_authority)
+  );
 }
 function personnelTypeLabel(value){
   return ({
@@ -1257,6 +1284,7 @@ function workspaceRecentStorageKey(){
 function workspaceRecentRouteInfo(hash){
   const h=String(hash||"");
   const rules=[
+    ["#/teacher-work","งานครูผู้สอน / ครูประจำชั้น","👩‍🏫"],
     ["#/academic-group","กลุ่มบริหารงานวิชาการ","📚"],
     ["#/academics/my-courses","หลักสูตรรายวิชาที่ฉันสอน","📘"],
     ["#/academics/workload","ภาระงานสอน","📚"],
@@ -1295,17 +1323,25 @@ function workspaceAppItems(unreadCount,pendingJoin,pendingTeaching,assessmentAtt
   const items=[
     {icon:"👤",title:"โปรไฟล์ของฉัน",desc:"ข้อมูลส่วนตัวและภาระงานสอนของฉัน",route:"#/profile",key:"profile"}
   ];
-  if(canViewAcademic())items.push({
+  if(hasTeacherWorkspace())items.push({
+    icon:"👩‍🏫",
+    title:"งานครูผู้สอน / ครูประจำชั้น",
+    desc:"โครงสร้างคะแนน · คะแนนผู้เรียน · งานประจำชั้นของฉัน",
+    route:"#/teacher-work",
+    routes:["#/teacher-work","#/academics/my-courses","#/assessment"],
+    key:"teacher-work"
+  });
+  if(hasAcademicGroupResponsibility())items.push({
     icon:"📚",
     title:"กลุ่มบริหารงานวิชาการ",
-    desc:"5 กลุ่มงานวิชาการ · แอปตามสิทธิ์ · สมาชิกกลุ่ม",
+    desc:"ข้อมูลกลาง กรอบงาน การตรวจสอบ และการอนุมัติของฝ่ายวิชาการ",
     route:"#/academic-group",
-    routes:["#/academic-group","#/academics","#/assessment"],
+    routes:["#/academic-group","#/academics"],
     key:"academic-group",
     badge:Number(pendingTeaching||0)+Number(assessmentAttention||0)
   });
   if(canViewStudentDirectory())items.push({icon:"🎓",title:"นักเรียน",desc:"ค้นหาและดูข้อมูลนักเรียนตามสิทธิ์",route:"#/students",key:"students"});
-  if(canViewPersonnel())items.push({icon:"👥",title:"กลุ่มบริหารงานบุคคล",desc:"5 กลุ่มงานบุคคล · แอปตามสิทธิ์ · สมาชิกและการมอบหมาย",route:"#/personnel",routes:["#/personnel"],key:"personnel",badge:Number(pendingJoin||0)});
+  if(hasPersonnelGroupResponsibility())items.push({icon:"👥",title:"กลุ่มบริหารงานบุคคล",desc:"ข้อมูลกลางบุคลากร กรอบอัตรากำลัง การรับเข้า และงานอนุมัติ",route:"#/personnel",routes:["#/personnel"],key:"personnel",badge:Number(pendingJoin||0)});
   if(schoolAdmin)items.push({icon:"🏛",title:"อปท. และสถานศึกษา",desc:"ข้อมูลโครงสร้างองค์กรและสถานศึกษาที่เกี่ยวข้อง",route:"#/organization",key:"organization"});
   if(schoolAdmin&&schoolSetupReady())items.push({icon:"🔐",title:"ผู้ใช้และสิทธิ์",desc:"จัดการบัญชีและสิทธิ์ภายในโรงเรียน",route:"#/users",key:"users"});
   if(schoolAdmin)items.push({icon:"⚙",title:"ตั้งค่าสถานศึกษา",desc:"ข้อมูลกลางและการเชื่อมบริการของโรงเรียน",route:"#/setup",key:"setup"});
@@ -1326,6 +1362,34 @@ function workspaceRecentItem(apps){
   return {...workspaceRecentRouteInfo(recent.hash),...recent};
 }
 
+
+function teacherWorkDutyCard(icon,title,desc,route,status){
+  if(route){
+    return '<a class="teacher-duty-card active" href="'+esc(route)+'"><span class="teacher-duty-icon">'+icon+'</span><div><strong>'+esc(title)+'</strong><p>'+esc(desc)+'</p></div><em>เปิด →</em></a>';
+  }
+  return '<article class="teacher-duty-card planned"><span class="teacher-duty-icon">'+icon+'</span><div><strong>'+esc(title)+'</strong><p>'+esc(desc)+'</p></div><em>'+esc(status||"เตรียมเชื่อม")+'</em></article>';
+}
+async function teacherWorkHtml(){
+  if(!hasTeacherWorkspace()){
+    return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ไม่มีหน้าที่ครูในบริบทนี้</h3><p>พื้นที่นี้จะแสดงเมื่อบัญชีได้รับบทบาทครูของสถานศึกษา</p></div></section>';
+  }
+  const school=currentSchool();
+  return '<section class="teacher-work-page">'+
+    '<section class="teacher-work-hero panel"><div><p class="eyebrow">MY TEACHING & HOMEROOM WORK</p><h2>งานครูผู้สอน / ครูประจำชั้น</h2><p>'+esc(school&&school.name_th||"")+' · พื้นที่สำหรับข้อมูลที่เกิดจากการปฏิบัติงานจริงของครู แยกจากข้อมูลกลางที่ฝ่ายรับผิดชอบเป็นผู้กำหนด</p></div><span class="pill success">งานของฉัน</span></section>'+
+    '<section class="teacher-work-principle panel"><div><span>✓</span><div><strong>หลักการแบ่งหน้าที่</strong><p>ฝ่าย/กลุ่มงานกำหนดข้อมูลตั้งต้นและกติกา ส่วนครูบันทึกข้อมูลเฉพาะรายวิชา ห้อง และนักเรียนที่ตนรับผิดชอบ ระบบไม่ให้ครูเลือกข้อมูลนอกขอบเขตเอง</p></div></div></section>'+
+    '<section class="teacher-duty-section"><div class="workspace-section-head"><div><p class="eyebrow">TEACHER</p><h2>งานครูผู้สอน</h2><p>ระบบผูกกับภาระงานสอนที่ได้รับอนุมัติ</p></div></div><div class="teacher-duty-grid">'+
+      teacherWorkDutyCard("📘","รายวิชาและโครงสร้างคะแนนของฉัน","จัดทำหลักสูตรรายวิชา หน่วยการเรียนรู้ ตัวชี้วัด และโครงสร้างคะแนน แล้วส่งฝ่ายวิชาการตรวจ","#/academics/my-courses")+
+      teacherWorkDutyCard("📝","บันทึกคะแนนและผลการเรียน","ดำเนินการวัดผล 9 ขั้น ตั้งแต่กิจกรรม/เครื่องมือ บันทึกคะแนน ตรวจคะแนนขาด จนส่งฝ่ายวิชาการ","#/assessment")+
+      teacherWorkDutyCard("⏱","เวลาเรียนรายวิชา","ครูผู้สอนบันทึกเวลาเรียนตามคาบ/รายวิชา โดยระบบจะดึงห้องและนักเรียนจากตารางสอน/ภาระงานสอน",null,"เตรียมโมดูล")+
+    '</div></section>'+
+    '<section class="teacher-duty-section"><div class="workspace-section-head"><div><p class="eyebrow">HOMEROOM</p><h2>งานครูประจำชั้น</h2><p>จะแสดงเฉพาะห้องที่โรงเรียนมอบหมายให้เป็นครูประจำชั้น</p></div></div><div class="teacher-duty-grid">'+
+      teacherWorkDutyCard("📅","เวลาเรียนประจำวัน","ตรวจภาพรวมมาเรียน ขาด ลา สาย และติดตามข้อมูลที่ครูผู้สอนบันทึก",null,"เตรียมโมดูล")+
+      teacherWorkDutyCard("📏","น้ำหนักและส่วนสูง","บันทึกตามรอบที่โรงเรียนกำหนด โดยเก็บประวัติแต่ละครั้ง ไม่เขียนทับค่าก่อนหน้า",null,"เตรียมโมดูล")+
+      teacherWorkDutyCard("🤝","ข้อมูลดูแลนักเรียน","ข้อมูลประจำชั้นและการติดตามผู้เรียนที่อยู่ในความรับผิดชอบ โดยแยกสิทธิ์รายห้อง",null,"เตรียมโมดูล")+
+    '</div></section>'+
+    '<section class="teacher-boundary-note panel"><strong>สิ่งที่ครูไม่ต้องตั้งค่าเอง</strong><p>ปีการศึกษา ภาคเรียน ห้องเรียน รายวิชากลาง กรอบเวลาเรียน เกณฑ์วัดผล รอบชั่งน้ำหนัก/วัดส่วนสูง และผู้รับผิดชอบห้อง เป็นข้อมูลกลางที่กลุ่มงานกำหนดก่อน แล้วระบบส่งต่อมาให้ครูใช้งาน</p></section>'+
+  '</section>';
+}
 async function overviewHtml(){
   const school=currentSchool();
   const tenant=(school&&school.name_th)||(currentOrg()&&currentOrg().name_th)||"ยังไม่ได้ผูกสถานศึกษา";
@@ -3407,7 +3471,7 @@ async function personnelDashboardHtml(){
   const totalAttention=work.can_review?pending:0;
 
   return '<section class="personnel-page personnel-group-page academic-group-page">'+
-    '<section class="academic-group-hero panel"><div><p class="eyebrow">PERSONNEL MANAGEMENT</p><h2>กลุ่มบริหารงานบุคคล</h2><p>'+esc(school.name_th||"")+' · ศูนย์รวม 5 กลุ่มงาน แสดงแอปตามสิทธิ์และใช้ข้อมูลบุคลากรชุดเดิมร่วมกันทั้งระบบ</p></div><div class="academic-group-hero-actions">'+
+    '<section class="academic-group-hero panel"><div><p class="eyebrow">PERSONNEL MANAGEMENT</p><h2>กลุ่มบริหารงานบุคคล</h2><p>'+esc(school.name_th||"")+' · สำหรับผู้รับผิดชอบฝ่าย ใช้ดูแลข้อมูลกลางบุคลากร กรอบอัตรากำลัง การรับเข้า สิทธิ์ และงานอนุมัติ ไม่ใช่พื้นที่ทำงานส่วนบุคคลของครู</p></div><div class="academic-group-hero-actions">'+
       (totalAttention>0?'<span class="academic-group-attention">'+totalAttention.toLocaleString("th-TH")+' งานต้องตรวจ</span>':'')+
       ((state.workAuthorityAccess&&state.workAuthorityAccess.can_view)?'<a class="secondary-btn compact-btn" href="#/work-authorities">👥 สมาชิกกลุ่ม / สิทธิ์</a>':'')+
     '</div></section>'+
@@ -7549,56 +7613,72 @@ function academicGroupWorkstreams(access,pendingTeaching,assessmentAttention,pen
   const scopeCodes=new Set(scopes.map(s=>String(s.scope_code||"")));
   const hasAny=(codes)=>codes.some(code=>scopeCodes.has(code));
   const hasPrefix=(prefix)=>Array.from(scopeCodes).some(code=>code===prefix||code.startsWith(prefix+"."));
+  const hasPermission=(prefix,permission)=>scopes.some(s=>{
+    const code=String(s.scope_code||"");
+    return (code===prefix||code.startsWith(prefix+"."))&&Boolean(s["can_"+permission]);
+  });
   const groups=[
     {
       no:1,icon:"📘",scope:"academics.curriculum",
       title:"งานบริหารและพัฒนาหลักสูตรสถานศึกษา",
       responsibilities:[
-        "จัดทำและปรับปรุงหลักสูตรสถานศึกษา",
-        "วิเคราะห์หลักสูตรแกนกลางและบริบทท้องถิ่น",
-        "ออกแบบโครงสร้างเวลาเรียน",
-        "รายวิชาพื้นฐาน / เพิ่มเติม / กิจกรรมพัฒนาผู้เรียน",
-        "ประเมินและปรับปรุงการใช้หลักสูตร"
+        "กำหนดและปรับปรุงหลักสูตรสถานศึกษา",
+        "กำหนดกรอบเวลาเรียนและโครงสร้างหลักสูตรกลางของโรงเรียน",
+        "ดูแลคลังรายวิชา โปรแกรม และกิจกรรมพัฒนาผู้เรียน",
+        "กำหนดหลักเกณฑ์กลางที่ครูต้องใช้ร่วมกัน",
+        "ติดตามและประเมินการใช้หลักสูตร"
       ],
       visible:hasAny(["academics.curriculum","academics.basic_settings","academics.programs","academics.classes","academics.subjects","academics.curriculum.review"]),
       apps:[
-        {title:"โครงสร้างและตั้งค่าวิชาการ",route:"#/academics",icon:"⚙",badge:0,
+        {title:"ข้อมูลกลางและโครงสร้างวิชาการ",route:"#/academics",icon:"⚙",badge:0,
           visible:hasAny(["academics.curriculum","academics.basic_settings","academics.programs","academics.classes","academics.subjects"])}
       ]
     },
     {
       no:2,icon:"🧭",scope:"academics.learning",
       title:"งานจัดการเรียนรู้และการนิเทศ",
-      responsibilities:["ปฏิทินวิชาการ","ภาระงานสอน","หลักสูตรรายวิชา / โครงสร้างรายวิชา / แผนวัดผล","ตารางสอน","แผนการจัดการเรียนรู้","Active Learning","นิเทศภายใน / สังเกตชั้นเรียน","PLC"],
-      visible:hasPrefix("academics.learning")||hasAny(["academics.workload","academics.course_curriculum"])||Boolean(access&&access.can_use_own_workload)||Boolean(access&&access.can_use_own_course_curriculum),
+      responsibilities:[
+        "กำหนดปฏิทินวิชาการและกรอบการจัดการเรียนรู้",
+        "จัดและอนุมัติภาระงานสอน / ผู้สอน / ห้องเรียน",
+        "กำหนดแนวทางแผนการจัดการเรียนรู้และการนิเทศ",
+        "ตรวจหลักสูตรรายวิชาและโครงสร้างคะแนนที่ครูส่ง",
+        "ติดตาม Active Learning / PLC / การนิเทศภายใน"
+      ],
+      visible:hasPrefix("academics.learning")||hasAny(["academics.workload","academics.course_curriculum"]),
       apps:[
-        {title:"ภาระงานสอน",route:"#/academics/workload",icon:"📚",badge:Number(pendingTeaching||0),
-          visible:hasAny(["academics.learning","academics.workload"])||Boolean(access&&access.can_use_own_workload)},
-        {title:"หลักสูตรรายวิชาที่ฉันสอน",route:"#/academics/my-courses",icon:"📘",badge:Number(pendingCurriculum||0),
-          visible:hasAny(["academics.learning","academics.course_curriculum"])||Boolean(access&&access.can_use_own_course_curriculum)}
+        {title:"ภาระงานสอนและการมอบหมาย",route:"#/academics/workload",icon:"📚",badge:Number(pendingTeaching||0),
+          visible:hasPermission("academics.workload","edit")||hasPermission("academics.workload","approve")||hasPermission("academics.learning","edit")||hasPermission("academics.learning","approve")},
+        {title:"ตรวจหลักสูตรรายวิชา / โครงสร้างคะแนน",route:"#/academics/my-courses",icon:"📘",badge:Number(pendingCurriculum||0),
+          visible:hasPermission("academics.course_curriculum","approve")||hasPermission("academics.learning","approve")}
       ]
     },
     {
       no:3,icon:"💡",scope:"academics.media",
       title:"งานสื่อ นวัตกรรม และเทคโนโลยีทางการศึกษา",
-      responsibilities:["สื่อการเรียนรู้","นวัตกรรม / Gamification / Web Application","การประเมินคุณภาพสื่อ","หนังสือเรียน","ห้องสมุด / ห้องปฏิบัติการ","แหล่งเรียนรู้และภูมิปัญญาท้องถิ่น"],
+      responsibilities:["กำหนดระบบ/คลังสื่อของโรงเรียน","ดูแลนวัตกรรมและเทคโนโลยีทางการศึกษา","กำหนดและติดตามการประเมินคุณภาพสื่อ","ดูแลหนังสือเรียน ห้องสมุด และห้องปฏิบัติการ","จัดการข้อมูลแหล่งเรียนรู้และภูมิปัญญาท้องถิ่น"],
       visible:hasPrefix("academics.media"),
       apps:[]
     },
     {
       no:4,icon:"📝",scope:"academics.assessment",
       title:"งานวัดผล ประเมินผล และงานทะเบียน",
-      responsibilities:["ระเบียบและเกณฑ์วัดผล","คะแนน / ผลการเรียน","สอบกลางภาค / ปลายภาค","เลื่อนชั้น / จบการศึกษา","ปพ.1–ปพ.9","ระเบียนผลการเรียน","เทียบโอนผลการเรียน"],
-      visible:hasPrefix("academics.assessment")||Boolean(access&&access.can_use_own_assessment),
+      responsibilities:[
+        "กำหนดระเบียบและเกณฑ์วัดผลกลางของโรงเรียน",
+        "กำหนดรอบสอบและหลักเกณฑ์การตัดสินผล",
+        "ตรวจความครบถ้วนและอนุมัติผลการเรียนที่ครูส่ง",
+        "ดูแล ปพ.1–ปพ.9 ระเบียนผลการเรียน และการเทียบโอน",
+        "ติดตามการเลื่อนชั้นและจบการศึกษา"
+      ],
+      visible:hasPrefix("academics.assessment"),
       apps:[
-        {title:"การวัดผลรายวิชา · 9 ขั้น",route:"#/assessment",icon:"📝",badge:Number(assessmentAttention||0),
-          visible:hasPrefix("academics.assessment")||Boolean(access&&access.can_use_own_assessment)}
+        {title:"ตรวจ/อนุมัติผลการเรียน",route:"#/assessment",icon:"📝",badge:Number(assessmentAttention||0),
+          visible:hasPermission("academics.assessment","approve")}
       ]
     },
     {
       no:5,icon:"📊",scope:"academics.research",
       title:"งานวิจัยและประเมินคุณภาพการศึกษา",
-      responsibilities:["วิจัยในชั้นเรียน","นวัตกรรมเพื่อแก้ปัญหาผู้เรียน","วิเคราะห์ RT / NT / O-NET","วิเคราะห์สถิติผลสัมฤทธิ์","สรุปจุดแข็ง/จุดที่ต้องพัฒนา","ใช้ข้อมูลเพื่อวางแผนปีการศึกษาถัดไป"],
+      responsibilities:["กำหนดกรอบและรวบรวมข้อมูลวิจัยในชั้นเรียน","รวบรวมนวัตกรรมเพื่อแก้ปัญหาผู้เรียน","วิเคราะห์ RT / NT / O-NET","วิเคราะห์สถิติผลสัมฤทธิ์","สรุปข้อมูลเพื่อวางแผนพัฒนาปีถัดไป"],
       visible:hasPrefix("academics.research"),
       apps:[]
     }
@@ -7652,7 +7732,7 @@ async function academicGroupHtml(){
   const workstreams=academicGroupWorkstreams(access,pendingTeaching,assessmentAttention,pendingCurriculum);
   const totalAttention=academicAttention+assessmentAttention;
   return '<section class="academic-group-page">'+
-    '<section class="academic-group-hero panel"><div><p class="eyebrow">ACADEMIC MANAGEMENT</p><h2>กลุ่มบริหารงานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · ศูนย์รวม 5 กลุ่มงาน แสดงเฉพาะขอบเขตที่บัญชีนี้มีสิทธิ์ใช้งาน</p></div><div class="academic-group-hero-actions">'+
+    '<section class="academic-group-hero panel"><div><p class="eyebrow">ACADEMIC MANAGEMENT</p><h2>กลุ่มบริหารงานวิชาการ</h2><p>'+esc(school&&school.name_th||"")+' · สำหรับผู้รับผิดชอบฝ่าย ใช้จัดทำข้อมูลกลาง กำหนดกรอบ ตรวจสอบ และอนุมัติ ไม่ใช่พื้นที่กรอกคะแนนหรือข้อมูลรายวันของครู</p></div><div class="academic-group-hero-actions">'+
       (totalAttention>0?'<span class="academic-group-attention">'+totalAttention.toLocaleString("th-TH")+' งานต้องตรวจ/แก้ไข</span>':'')+
       '<a class="secondary-btn compact-btn" href="#/academic-group/members">👥 สมาชิกกลุ่ม · '+members.length.toLocaleString("th-TH")+'</a>'+
     '</div></section>'+
@@ -7992,6 +8072,7 @@ async function renderRoute(){
     else if(route==="membership"){html=membershipHtml();}
     else if(route==="activate"){html=activationHtml();bind=bindActivation;}
     else if(route==="profile"){html=await profileHtml();bind=bindProfile;}
+    else if(route==="teacher-work"){html=await teacherWorkHtml();}
     else if(route==="notifications"){html=notificationsHtml();bind=bindNotifications;}
     else if(route==="setup"){html=await setupHtml();bind=bindSetup;}
     else if(route==="organization"){html=await organizationHtml();bind=bindOrganizationForms;}
