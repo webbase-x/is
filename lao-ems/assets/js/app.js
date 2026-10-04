@@ -8058,11 +8058,13 @@ async function renderRoute(){
   q("[data-page-title]").textContent=meta[0];
   qa("[data-route]").forEach(a=>a.classList.toggle("active",a.dataset.route===route));
   const courseCurriculumRoute=route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses");
+  const teacherOperationalRoute=hasTeacherWorkspace()&&(courseCurriculumRoute||route==="assessment");
   if(courseCurriculumRoute){
     const academicRoot=q('[data-route="academics"]');
     if(academicRoot)academicRoot.classList.remove("active");
   }
-  qa("[data-academic-course-menu]").forEach(a=>a.classList.toggle("active",courseCurriculumRoute));
+  const teacherWorkNav=q('[data-route="teacher-work"]');
+  if(teacherWorkNav&&teacherOperationalRoute)teacherWorkNav.classList.add("active");
   main.classList.add("route-pending");
   main.setAttribute("aria-busy","true");
 
