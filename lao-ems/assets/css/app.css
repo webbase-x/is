@@ -10343,3 +10343,22 @@ button.assessment-workflow-step{cursor:pointer}
   .teacher-duty-grid{grid-template-columns:1fr}
   .teacher-duty-card{min-height:0}
 }
+
+
+/* v0.19.44 — compact workstream cards on small screens */
+@media(max-width:600px){
+  .academic-group-page .academic-workstream-responsibilities,
+  .personnel-group-page .academic-workstream-responsibilities,
+  .academic-group-page .academic-workstream-note,
+  .personnel-group-page .academic-workstream-note{
+    display:none;
+  }
+  .academic-group-page .academic-workstream-card,
+  .personnel-group-page .academic-workstream-card{
+    gap:8px;
+  }
+  .academic-group-page .academic-workstream-actions,
+  .personnel-group-page .academic-workstream-actions{
+    padding-top:0;
+  }
+}
