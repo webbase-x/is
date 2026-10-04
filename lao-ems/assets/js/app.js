@@ -3852,7 +3852,7 @@ async function personnelHomeroomHtml(){
   state.homeroomAssignmentYearId=homeroom.selected_year_id||state.homeroomAssignmentYearId||null;
   return '<section class="personnel-page personnel-homeroom-page">'+
     personnelNavHtml("homeroom")+
-    '<section class="panel homeroom-direct-hero"><div><p class="eyebrow">HOMEROOM ASSIGNMENT</p><h2>แต่งตั้งครูประจำชั้น / ครูที่ปรึกษา</h2><p>เลือกห้องเรียนที่ฝ่ายวิชาการจัดไว้ แล้วมอบหมายครูประจำชั้นหรือครูที่ปรึกษา ข้อมูลจะส่งต่อไปยัง “งานของฉัน” ของครูโดยอัตโนมัติ</p></div><a class="secondary-btn compact-btn" href="#/academics/classes">ดูห้องเรียน</a></section>'+
+    '<section class="academic-group-hero panel homeroom-direct-hero"><div><p class="eyebrow">HOMEROOM ASSIGNMENT</p><h2>แต่งตั้งครูประจำชั้น / ครูที่ปรึกษา</h2><p>เลือกห้องเรียนที่ฝ่ายวิชาการจัดไว้ แล้วมอบหมายครูประจำชั้นหรือครูที่ปรึกษา ข้อมูลจะส่งต่อไปยัง “งานของฉัน” ของครูโดยอัตโนมัติ</p></div><a class="secondary-btn compact-btn" href="#/academics/classes">ดูห้องเรียน</a></section>'+
     homeroomAssignmentPanelHtml(homeroom)+
   '</section>';
 }
@@ -8410,6 +8410,9 @@ async function renderRoute(){
   let meta=routeMeta[route]||routeMeta.overview;
   if(route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses")){
     meta=["หลักสูตรรายวิชาที่ฉันสอน","ครูผู้สอนจัดทำโครงสร้างรายวิชาและคะแนนก่อนส่งฝ่ายวิชาการตรวจ"];
+  }
+  if(route==="personnel"&&(location.hash||"").startsWith("#/personnel/homeroom")){
+    meta=["แต่งตั้งครูประจำชั้น/ครูที่ปรึกษา","มอบหมายครูตามห้องเรียนและปีการศึกษา"];
   }
   const main=q("#main");
   q("[data-page-title]").textContent=meta[0];
