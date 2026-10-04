@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.45";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.46";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -746,11 +746,11 @@ function bindStaticUI(){
       state.adminSchool=state.adminSchools.find(s=>s.id===id)||null;
       if(state.adminSchool)localStorage.setItem("lao_admin_school",state.adminSchool.id);
       else localStorage.removeItem("lao_admin_school");
-      state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;
+      state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;state.subjectGroupData=null;state.subjectGroupYearId=null;
       await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();return;
     }
     const m=state.memberships.find(x=>x.id===value&&x.status==="active");
-    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();}
+    if(m){state.currentMembership=m;localStorage.setItem("lao_current_membership",m.id);state.academicYearId=null;state.academicTermId=null;state.academicData=null;state.teachingWorkloadData=null;state.teachingWorkloadPersonnelId=null;state.courseCurriculumData=null;state.courseCurriculumYearId=null;state.subjectGroupData=null;state.subjectGroupYearId=null;await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);refreshHeader();renderRoute();}
   });
 }
 
@@ -1313,7 +1313,8 @@ function workspaceRecentStorageKey(){
 function workspaceRecentRouteInfo(hash){
   const h=String(hash||"");
   const rules=[
-    ["#/teacher-work","งานครูผู้สอน / ครูประจำชั้น","👩‍🏫"],
+    ["#/teacher-work/subject-group","งานกลุ่มสาระ","🧩"],
+    ["#/teacher-work","งานของฉัน","👩‍🏫"],
     ["#/academic-group","กลุ่มบริหารงานวิชาการ","📚"],
     ["#/academics/my-courses","หลักสูตรรายวิชาที่ฉันสอน","📘"],
     ["#/academics/workload","ภาระงานสอน","📚"],
