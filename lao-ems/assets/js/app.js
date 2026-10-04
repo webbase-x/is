@@ -3972,10 +3972,29 @@ function courseUnitRowHtml(item,index,terms,outcomes,editable){
     '<div class="course-unit-outcomes"><span>ตัวชี้วัด/ผลการเรียนรู้ที่หน่วยนี้ครอบคลุม</span><div data-course-outcome-picks>'+courseOutcomePickerHtml(item&&item.outcome_codes||[],outcomes,editable)+'</div></div>'+
   '</article>';
 }
-function courseAssessmentRowHtml(item,index,terms,editable){
+function courseOutcomeTypeShort(type){
+  return ({standard:"มฐ.",indicator:"ตชว.",learning_outcome:"ผล"})[type]||"ผล";
+}
+function courseAssessmentOutcomePickerHtml(selected,outcomes,editable){
+  const chosen=new Set((selected||[]).map(x=>String(x)));
+  const rows=(outcomes||[]).map(o=>({
+    code:String(o&&o.code||"").trim(),
+    type:String(o&&o.type||""),
+    description:String(o&&o.description||"").trim()
+  })).filter(o=>o.code);
+  if(!rows.length)return '<small class="course-empty-picks">เพิ่มมาตรฐาน/ตัวชี้วัด/ผลการเรียนรู้ในขั้นที่ 2 ก่อน</small>';
+  return rows.map(o=>
+    '<label class="course-outcome-pick course-assessment-outcome-pick" title="'+esc(o.description)+'">'+
+      '<input type="checkbox" value="'+esc(o.code)+'" '+(chosen.has(o.code)?"checked":"")+' '+(editable?"":"disabled")+'>'+
+      '<span><b>'+esc(courseOutcomeTypeShort(o.type))+'</b>'+esc(o.code)+'</span>'+
+    '</label>'
+  ).join("");
+}
+function courseAssessmentRowHtml(item,index,terms,outcomes,editable){
   const lock=editable?"":" disabled";
   const termOptions=(terms||[]).map(t=>'<option value="'+esc(t.term_no)+'" '+(Number(item&&item.term_no||1)===Number(t.term_no)?"selected":"")+'>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+'</option>').join("");
   const category=item&&item.category||"coursework";
+  const selectedOutcomes=item&&item.outcome_codes||[];
   return '<div class="course-editor-row course-assessment-row" data-course-assessment-row>'+
     '<label><span>ภาคเรียน</span><select data-field="term_no"'+lock+'>'+termOptions+'</select></label>'+
     '<label><span>ประเภท</span><select data-field="category"'+lock+'>'+
@@ -3993,6 +4012,13 @@ function courseAssessmentRowHtml(item,index,terms,editable){
     '<label class="course-grow"><span>หลักฐาน/ชิ้นงาน</span><input data-field="evidence" value="'+esc(item&&item.evidence||"")+'" placeholder="เช่น ใบงาน ชิ้นงาน แบบทดสอบ" '+(editable?"":"readonly")+'></label>'+
     '<input type="hidden" data-field="code" value="'+esc(item&&item.code||("item_"+(index+1)))+'">'+
     (editable?'<button type="button" class="course-remove-row" data-remove-course-row aria-label="ลบรายการ">×</button>':'')+
+    '<details class="course-assessment-outcomes" '+(!selectedOutcomes.length?"open":"")+'>'+
+      '<summary><span>ตัวชี้วัด/มาตรฐานที่วัด</span><strong data-assessment-outcome-count>'+selectedOutcomes.length.toLocaleString("th-TH")+' รายการ</strong></summary>'+
+      '<div class="course-assessment-outcome-body">'+
+        (editable?'<button type="button" class="course-use-unit-outcomes" data-use-unit-outcomes>ใช้ตัวชี้วัดจากหน่วยนี้</button>':'')+
+        '<div data-assessment-outcome-picks>'+courseAssessmentOutcomePickerHtml(selectedOutcomes,outcomes,editable)+'</div>'+
+      '</div>'+
+    '</details>'+
   '</div>';
 }
 function courseCurriculumFlowStrip(cur,validation){
@@ -4008,9 +4034,10 @@ function courseCurriculumFlowStrip(cur,validation){
 function courseCurriculumValidationHtml(validation){
   const v=validation||{},issues=v.issues||[];
   const ready=Boolean(v.ready);
+  const required=Number(v.required_outcome_count||0),assessed=Number(v.assessed_outcome_count||0);
   return '<section class="course-validation '+(ready?"ready":"attention")+'" data-course-validation>'+
-    '<div class="course-validation-head"><span>'+(ready?"✓":"!")+'</span><div><strong>'+(ready?"พร้อมส่งตรวจ":"ยังมีข้อมูลที่ต้องตรวจ")+'</strong><small>'+(ready?"ชั่วโมง หน่วยการเรียน และคะแนนสอดคล้องกับกรอบรายวิชา":"บันทึกร่างได้ตลอด ระบบจะตรวจอีกครั้งก่อนส่ง")+'</small></div></div>'+
-    '<div class="course-validation-terms">'+courseCurriculumTermSummary(v)+'</div>'+
+    '<div class="course-validation-head"><span>'+(ready?"✓":"!")+'</span><div><strong>'+(ready?"พร้อมส่งตรวจ":"ยังมีข้อมูลที่ต้องตรวจ")+'</strong><small>'+(ready?"ชั่วโมง หน่วยการเรียน คะแนน และตัวชี้วัดสอดคล้องครบแล้ว":"บันทึกร่างได้ตลอด ระบบจะตรวจอีกครั้งก่อนส่ง")+'</small></div></div>'+
+    '<div class="course-validation-terms">'+courseCurriculumTermSummary(v)+(required?'<span class="course-ready-chip '+(assessed===required?"ok":"attention")+'">ตัวชี้วัดที่ประเมิน '+assessed.toLocaleString("th-TH")+'/'+required.toLocaleString("th-TH")+'</span>':'')+'</div>'+
     (issues.length?'<details '+(issues.length<=3?"open":"")+'><summary>รายการที่ต้องแก้ '+issues.length+' จุด</summary><ul>'+issues.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul></details>':'')+
   '</section>';
 }
@@ -4029,8 +4056,8 @@ function courseCurriculumDetailHtml(data){
   const defaultPlan=plan.length?plan:planTerms.flatMap(t=>course.subject_type==="activity"
     ?[{code:"activity_t"+t.term_no,term_no:t.term_no,category:"activity",label:"ผลการประเมินกิจกรรม",max_score:100,method:"การเข้าร่วม/ปฏิบัติกิจกรรม",evidence:"หลักฐานการเข้าร่วมกิจกรรม",unit_no:""}]
     :[
-      {code:"coursework_t"+t.term_no,term_no:t.term_no,category:"coursework",label:"ระหว่างเรียน",max_score:70,method:"",evidence:"",unit_no:""},
-      {code:"final_t"+t.term_no,term_no:t.term_no,category:"final",label:"ปลายภาค",max_score:30,method:"",evidence:"",unit_no:""}
+      {code:"coursework_t"+t.term_no,term_no:t.term_no,category:"coursework",label:"ระหว่างเรียน",max_score:70,method:"",evidence:"",unit_no:"",outcome_codes:[]},
+      {code:"final_t"+t.term_no,term_no:t.term_no,category:"final",label:"ปลายภาค",max_score:30,method:"",evidence:"",unit_no:"",outcome_codes:[]}
     ]);
   const assignmentText=assignments.length
     ?Array.from(new Set(assignments.map(a=>a.personnel_name+" · "+a.class_short+" · ภาค "+a.term_no))).join(" | ")
@@ -4054,7 +4081,7 @@ function courseCurriculumDetailHtml(data){
       '</div></details>'+
       '<details class="panel course-section" '+(firstIncomplete==="outcomes"?"open":"")+'><summary><div><b>2</b><span><strong>มาตรฐาน / ตัวชี้วัด / ผลการเรียนรู้</strong><small>กำหนดสิ่งที่ผู้เรียนต้องบรรลุ แล้วนำไปผูกกับหน่วยเรียน</small></span></div><em>เปิด/ปิด</em></summary><div class="course-section-body"><div class="course-editor-list" data-course-outcomes>'+defaultOutcomes.map((o,i)=>courseOutcomeRowHtml(o,i,editable)).join("")+'</div>'+(editable?'<button type="button" class="secondary-btn compact-btn" data-course-add-outcome>+ เพิ่มตัวชี้วัด/ผลการเรียนรู้</button>':'')+'</div></details>'+
       '<details class="panel course-section" '+(firstIncomplete==="units"?"open":"")+'><summary><div><b>3</b><span><strong>โครงสร้างรายวิชา / หน่วยการเรียนรู้</strong><small>เวลาเรียนรวมต้องสอดคล้องกับชั่วโมงรายวิชา</small></span></div><em>เปิด/ปิด</em></summary><div class="course-section-body"><div class="course-unit-list" data-course-units>'+defaultUnits.map((u,i)=>courseUnitRowHtml(u,i,terms,defaultOutcomes,editable)).join("")+'</div>'+(editable?'<button type="button" class="secondary-btn compact-btn" data-course-add-unit>+ เพิ่มหน่วยการเรียนรู้</button>':'')+'</div></details>'+
-      '<details class="panel course-section" '+(firstIncomplete==="assessment"?"open":"")+'><summary><div><b>4</b><span><strong>แผนการวัดและโครงสร้างคะแนน</strong><small>แต่ละภาคเรียนรวม 100 คะแนน และจะส่งต่อไปยังสมุดวัดผลอัตโนมัติ</small></span></div><em>เปิด/ปิด</em></summary><div class="course-section-body"><div class="course-editor-list" data-course-assessments>'+defaultPlan.map((a,i)=>courseAssessmentRowHtml(a,i,terms,editable)).join("")+'</div>'+(editable?'<button type="button" class="secondary-btn compact-btn" data-course-add-assessment>+ เพิ่มรายการประเมิน</button>':'')+'<div class="course-live-totals" data-course-live-totals></div></div></details>'+
+      '<details class="panel course-section" '+(firstIncomplete==="assessment"?"open":"")+'><summary><div><b>4</b><span><strong>แผนการวัดและโครงสร้างคะแนน</strong><small>คะแนนทุกส่วนต้องระบุตัวชี้วัด/มาตรฐานที่วัด และแต่ละภาคเรียนรวม 100 คะแนน</small></span></div><em>เปิด/ปิด</em></summary><div class="course-section-body"><div class="course-editor-list" data-course-assessments>'+defaultPlan.map((a,i)=>courseAssessmentRowHtml(a,i,terms,defaultOutcomes,editable)).join("")+'</div>'+(editable?'<button type="button" class="secondary-btn compact-btn" data-course-add-assessment>+ เพิ่มรายการประเมิน</button>':'')+'<div class="course-live-totals" data-course-live-totals></div></div></details>'+
       '<details class="panel course-section course-review-section" '+(firstIncomplete==="review"?"open":"")+'><summary><div><b>5</b><span><strong>ตรวจความพร้อมและส่ง</strong><small>ระบบตรวจชั่วโมง ตัวชี้วัด และคะแนนก่อนส่งฝ่ายวิชาการ</small></span></div><em>เปิด/ปิด</em></summary><div class="course-section-body">'+courseCurriculumValidationHtml(validation)+
         (editable?'<div class="course-submit-help"><span>💡</span><p><strong>บันทึกร่างได้แม้ยังไม่ครบ</strong><br>เมื่อข้อมูลครบและคะแนนแต่ละภาครวม 100 จึงกด “ส่งตรวจ”</p></div>':'')+
       '</div></details>'+
@@ -4071,6 +4098,13 @@ function courseCurriculumReadOutcomeRows(root){
     description:String(q('[data-field="description"]',row)?.value||"").trim()
   })).filter(x=>x.code||x.description);
 }
+function courseCurriculumRefreshAssessmentOutcomeCounts(root=document){
+  qa("[data-course-assessment-row]",root).forEach(row=>{
+    const count=qa('[data-assessment-outcome-picks] input[type="checkbox"]:checked',row).length;
+    const label=q("[data-assessment-outcome-count]",row);
+    if(label)label.textContent=count.toLocaleString("th-TH")+" รายการ";
+  });
+}
 function courseCurriculumRefreshOutcomePicks(){
   const form=q("#course-curriculum-form");if(!form)return;
   const editable=form.dataset.editable==="true";
@@ -4080,6 +4114,12 @@ function courseCurriculumRefreshOutcomePicks(){
     const selected=qa('input[type="checkbox"]:checked',box).map(x=>x.value);
     box.innerHTML=courseOutcomePickerHtml(selected,outcomes,editable);
   });
+  qa("[data-course-assessment-row]",form).forEach(row=>{
+    const box=q("[data-assessment-outcome-picks]",row);if(!box)return;
+    const selected=qa('input[type="checkbox"]:checked',box).map(x=>x.value);
+    box.innerHTML=courseAssessmentOutcomePickerHtml(selected,outcomes,editable);
+  });
+  courseCurriculumRefreshAssessmentOutcomeCounts(form);
 }
 function courseCurriculumCollectPayload(form){
   const fd=new FormData(form);
@@ -4100,7 +4140,8 @@ function courseCurriculumCollectPayload(form){
     max_score:String(q('[data-field="max_score"]',row)?.value||"").trim(),
     method:String(q('[data-field="method"]',row)?.value||"").trim(),
     evidence:String(q('[data-field="evidence"]',row)?.value||"").trim(),
-    unit_no:String(q('[data-field="unit_no"]',row)?.value||"").trim()
+    unit_no:String(q('[data-field="unit_no"]',row)?.value||"").trim(),
+    outcome_codes:qa('[data-assessment-outcome-picks] input[type="checkbox"]:checked',row).map(x=>x.value)
   })).filter(x=>x.label||x.max_score);
   return {
     course_description:String(fd.get("course_description")||"").trim(),
@@ -4153,10 +4194,25 @@ function bindCourseCurriculumControls(){
     courseCurriculumRefreshLiveTotals();
   });
   q("[data-course-add-assessment]",form)?.addEventListener("click",()=>{
-    assessmentContainer.insertAdjacentHTML("beforeend",courseAssessmentRowHtml({code:"item_"+(qa("[data-course-assessment-row]",form).length+1),term_no:terms[0]&&terms[0].term_no||1,category:"coursework",label:"",max_score:"",method:"",evidence:"",unit_no:""},qa("[data-course-assessment-row]",form).length,terms,true));
+    const outcomes=courseCurriculumReadOutcomeRows(form);
+    assessmentContainer.insertAdjacentHTML("beforeend",courseAssessmentRowHtml({code:"item_"+(qa("[data-course-assessment-row]",form).length+1),term_no:terms[0]&&terms[0].term_no||1,category:"coursework",label:"",max_score:"",method:"",evidence:"",unit_no:"",outcome_codes:[]},qa("[data-course-assessment-row]",form).length,terms,outcomes,true));
     courseCurriculumRefreshLiveTotals();
+    courseCurriculumRefreshAssessmentOutcomeCounts(form);
   });
   form.addEventListener("click",event=>{
+    const unitOutcomeBtn=event.target.closest("[data-use-unit-outcomes]");
+    if(unitOutcomeBtn){
+      const assessmentRow=unitOutcomeBtn.closest("[data-course-assessment-row]");
+      const unitNo=Number(q('[data-field="unit_no"]',assessmentRow)?.value||0);
+      if(!unitNo){toast("กรุณาระบุหน่วยที่ก่อน","error");return;}
+      const unitRow=qa("[data-course-unit-row]",form).find(row=>Number(q('[data-field="unit_no"]',row)?.value||0)===unitNo);
+      if(!unitRow){toast("ไม่พบหน่วยการเรียนรู้หมายเลข "+unitNo,"error");return;}
+      const unitCodes=new Set(qa('[data-course-outcome-picks] input[type="checkbox"]:checked',unitRow).map(x=>x.value));
+      if(!unitCodes.size){toast("หน่วยนี้ยังไม่ได้ระบุตัวชี้วัด/ผลการเรียนรู้","error");return;}
+      qa('[data-assessment-outcome-picks] input[type="checkbox"]',assessmentRow).forEach(input=>{input.checked=unitCodes.has(input.value);});
+      courseCurriculumRefreshAssessmentOutcomeCounts(form);
+      return;
+    }
     const btn=event.target.closest("[data-remove-course-row]");
     if(!btn)return;
     const row=btn.closest("[data-course-outcome-row],[data-course-unit-row],[data-course-assessment-row]");
@@ -4171,6 +4227,7 @@ function bindCourseCurriculumControls(){
   });
   form.addEventListener("change",event=>{
     if(event.target.closest("[data-course-unit-row],[data-course-assessment-row]"))courseCurriculumRefreshLiveTotals();
+    if(event.target.matches('[data-assessment-outcome-picks] input[type="checkbox"]'))courseCurriculumRefreshAssessmentOutcomeCounts(form);
   });
   qa("[data-course-save]",form).forEach(btn=>btn.addEventListener("click",async()=>{
     const action=btn.dataset.courseSave;
@@ -6970,12 +7027,22 @@ async function loadAssessmentPage(bookId=null){
     state.assessmentData.course_curricula=curriculumRes.error?[]:(curriculumRes.data&&curriculumRes.data.courses||[]);
   }
   if(bookId&&state.assessmentData.book){
-    const outcomeRes=await supabase.rpc("lao_assessment_outcomes_page",{p_book_id:bookId});
+    const [outcomeRes,componentOutcomeRes]=await Promise.all([
+      supabase.rpc("lao_assessment_outcomes_page",{p_book_id:bookId}),
+      supabase.rpc("lao_assessment_component_outcomes",{p_book_id:bookId})
+    ]);
     if(!outcomeRes.error){
       const outcomeMap=new Map((outcomeRes.data&&outcomeRes.data.items||[]).map(x=>[x.student_id,x]));
       state.assessmentData.book.students=(state.assessmentData.book.students||[]).map(student=>({
         ...student,
         outcome:outcomeMap.get(student.student_id)||null
+      }));
+    }
+    if(!componentOutcomeRes.error){
+      const componentMap=new Map((componentOutcomeRes.data&&componentOutcomeRes.data.items||[]).map(x=>[x.component_id,x]));
+      state.assessmentData.book.components=(state.assessmentData.book.components||[]).map(component=>({
+        ...component,
+        ...(componentMap.get(component.id)||{})
       }));
     }
   }
@@ -7059,7 +7126,15 @@ function assessmentBookHtml(data){
   const year=assessmentSelectedYear(data),term=assessmentSelectedTerm(data),school=currentSchool();
   const editable=(b.status==="draft"||b.status==="returned")&&(b.personnel_id===data.own_personnel_id||data.can_manage);
   const reviewable=b.status==="submitted"&&data.can_approve;
-  const compHeads=comps.map(c=>'<th><span>'+esc(c.label)+'</span><small>เต็ม '+Number(c.max_score).toLocaleString("th-TH")+'</small></th>').join("");
+  const compHeads=comps.map(c=>{
+    const codes=(c.outcome_codes||[]).filter(Boolean);
+    const shown=codes.slice(0,3);
+    const extra=Math.max(0,codes.length-shown.length);
+    const detail=(c.outcomes||[]).map(o=>(o.code||"")+(o.description?": "+o.description:"")).join("\n");
+    return '<th><span>'+esc(c.label)+'</span><small>เต็ม '+Number(c.max_score).toLocaleString("th-TH")+'</small>'+
+      (codes.length?'<em class="assessment-component-outcomes" title="'+esc(detail)+'">ตชว. '+shown.map(esc).join(" · ")+(extra?" +"+extra:"")+'</em>':'')+
+    '</th>';
+  }).join("");
   const rows=students.map((s,idx)=>{
     let total=0,complete=true;
     const cells=comps.map(c=>{
