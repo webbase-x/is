@@ -10148,3 +10148,150 @@ th,td{line-height:1.45}
   .course-assessment-outcomes>summary{align-items:flex-start}
   .assessment-component-outcomes{max-width:130px}
 }
+
+
+/* v0.19.40 — nine-step teacher assessment workflow */
+.assessment-workflow-page{display:grid;gap:16px}
+.assessment-workflow{
+  display:grid;grid-template-columns:repeat(9,minmax(108px,1fr));gap:7px;overflow-x:auto;
+  padding:2px 0 6px;scrollbar-width:thin
+}
+.assessment-workflow-step{
+  min-width:108px;min-height:64px;border:1px solid #e4e7ec;border-radius:14px;background:#fff;
+  display:flex;align-items:center;gap:8px;padding:9px 10px;text-align:left;color:#475467
+}
+button.assessment-workflow-step{cursor:pointer}
+.assessment-workflow-step b{
+  width:29px;height:29px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  background:#f2f4f7;color:#475467;font-size:12px
+}
+.assessment-workflow-step small{font-size:11px;line-height:1.25;font-weight:800}
+.assessment-workflow-step.done{border-color:#b7dcc8;background:#f6fef9}
+.assessment-workflow-step.done b{background:#dcfae6;color:#067647}
+.assessment-workflow-step.current{border-color:#84adff;background:#eff4ff;box-shadow:0 0 0 2px rgba(47,102,218,.08)}
+.assessment-workflow-step.current b{background:#2f66da;color:#fff}
+.assessment-workflow-step.attention{border-color:#fedf89;background:#fffaeb}
+.assessment-workflow-step.attention b{background:#fef0c7;color:#b54708}
+.assessment-workflow-step.locked{opacity:.55}
+.assessment-list-heading{display:flex;align-items:center;justify-content:space-between}
+.assessment-list-heading>div{display:grid;gap:3px}
+.assessment-list-heading strong{font-size:17px}
+.assessment-list-heading small{color:#667085}
+.assessment-workflow-panel{padding:0;overflow:hidden;scroll-margin-top:88px}
+.assessment-workflow-panel>summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px
+}
+.assessment-workflow-panel>summary::-webkit-details-marker{display:none}
+.assessment-workflow-panel>summary>div{display:flex;align-items:center;gap:10px;min-width:0}
+.assessment-workflow-panel>summary>div>b{
+  width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#eef4ff;color:#175cd3;flex:0 0 auto
+}
+.assessment-workflow-panel>summary strong{display:block}
+.assessment-workflow-panel>summary small{display:block;margin-top:2px;color:#667085;line-height:1.35}
+.assessment-workflow-panel>summary em{font-style:normal;font-size:12px;font-weight:800;color:#475467;white-space:nowrap}
+.assessment-workflow-panel[open]>summary{border-bottom:1px solid #e4e7ec}
+.assessment-workflow-panel.ready>summary>div>b{background:#dcfae6;color:#067647}
+.assessment-workflow-panel.attention>summary>div>b{background:#fef0c7;color:#b54708}
+.assessment-workflow-panel-body{padding:14px 16px;display:grid;gap:12px}
+.assessment-structure-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.assessment-structure-grid article{
+  border:1px solid #e4e7ec;border-radius:12px;padding:10px;background:#fbfcfd;display:grid;gap:6px
+}
+.assessment-structure-grid article>div{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.assessment-structure-grid article strong{line-height:1.35}
+.assessment-structure-grid article>div>span{font-size:12px;font-weight:900;white-space:nowrap}
+.assessment-structure-grid article small{color:#667085}
+.assessment-structure-grid article p{margin:0;font-size:11px;color:#175cd3;line-height:1.45}
+.assessment-structure-total{
+  display:flex;align-items:center;gap:10px;border-top:1px solid #e4e7ec;padding-top:10px
+}
+.assessment-structure-total span{font-weight:800}
+.assessment-structure-total strong{font-size:18px}
+.assessment-structure-total small{margin-left:auto;color:#667085}
+.assessment-tool-list{display:grid;gap:8px}
+.assessment-tool-list article{
+  display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:start;
+  border:1px solid #e4e7ec;border-radius:12px;padding:10px;background:#fff
+}
+.assessment-tool-no{
+  width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#f2f4f7;font-weight:900;font-size:12px
+}
+.assessment-tool-list strong{display:block}
+.assessment-tool-list small{display:block;color:#667085;margin-top:2px;line-height:1.4}
+.assessment-tool-list article>b{font-size:16px}
+.assessment-tool-outcomes{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.assessment-tool-outcomes span{
+  padding:3px 6px;border-radius:999px;background:#eff4ff;color:#1849a9;font-size:10px;font-weight:800
+}
+.assessment-score-workspace .assessment-workflow-panel-body{padding:0}
+.assessment-score-workspace .assessment-table-head{padding:14px 16px 8px}
+.assessment-score-workspace .assessment-table-wrap{border-top:1px solid #eef1f5}
+.assessment-draft-action{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;border-top:1px solid #e4e7ec;background:#fbfcfd
+}
+.assessment-draft-action span{font-size:12px;color:#667085}
+.assessment-missing-list{display:grid;gap:8px}
+.assessment-missing-list article{
+  display:grid;grid-template-columns:42px minmax(0,1fr);gap:10px;padding:10px;border:1px solid #fedf89;border-radius:12px;background:#fffcf5
+}
+.assessment-missing-list article>span{
+  width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:#fff;font-weight:900
+}
+.assessment-missing-list strong{display:block}
+.assessment-missing-list small{display:block;color:#b54708;margin-top:2px}
+.assessment-missing-list p{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 0}
+.assessment-missing-list em{
+  font-style:normal;padding:3px 6px;border-radius:999px;background:#fff2cc;color:#934a00;font-size:10px;font-weight:800
+}
+.assessment-workflow-ok,.assessment-reassessment-empty{
+  display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:12px;background:#f6fef9
+}
+.assessment-workflow-ok>span,.assessment-reassessment-empty>span{
+  width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#dcfae6;color:#067647;font-weight:900;flex:0 0 auto
+}
+.assessment-workflow-ok p,.assessment-reassessment-empty p{margin:2px 0 0;color:#667085}
+.assessment-reassessment-empty{background:#f8fafc}
+.assessment-reassessment-empty>span{background:#eef2f6;color:#475467}
+.assessment-summary-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.assessment-summary-kpis article{
+  border:1px solid #e4e7ec;border-radius:12px;padding:10px;background:#fbfcfd;display:grid;gap:3px
+}
+.assessment-summary-kpis small{color:#667085}
+.assessment-summary-kpis strong{font-size:20px}
+.assessment-result-summary{display:flex;flex-wrap:wrap;gap:6px}
+.assessment-result-summary span{
+  display:inline-flex;gap:6px;align-items:center;padding:6px 9px;border-radius:999px;background:#f2f4f7;font-size:12px
+}
+.assessment-result-summary b{font-size:13px}
+.assessment-summary-footnote{color:#98a2b3}
+.assessment-submit-card,.assessment-approval-card{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 12px;border-radius:12px;background:#f8fafc
+}
+.assessment-submit-card p,.assessment-approval-card p{margin:3px 0 0;color:#667085}
+.assessment-approval-card>div:last-child{display:flex;gap:8px}
+.assessment-note-icon{
+  width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#f2f4f7;color:#475467;font-weight:900
+}
+.assessment-note-field{display:grid;gap:6px;font-size:12px;font-weight:800;color:#475467}
+.assessment-note-field textarea{resize:vertical}
+@media (max-width:1080px){
+  .assessment-workflow{grid-template-columns:repeat(9,126px)}
+  .assessment-structure-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  .assessment-workflow{
+    grid-template-columns:repeat(9,138px);margin-left:-2px;margin-right:-2px;padding-bottom:8px
+  }
+  .assessment-workflow-step{min-width:138px}
+  .assessment-structure-grid,.assessment-summary-kpis{grid-template-columns:1fr 1fr}
+  .assessment-structure-total,.assessment-draft-action,.assessment-submit-card,.assessment-approval-card{
+    align-items:stretch;flex-direction:column
+  }
+  .assessment-structure-total small{margin-left:0}
+  .assessment-approval-card>div:last-child{display:grid;grid-template-columns:1fr;width:100%}
+}
+@media (max-width:480px){
+  .assessment-structure-grid,.assessment-summary-kpis{grid-template-columns:1fr}
+  .assessment-workflow-panel>summary{align-items:flex-start}
+  .assessment-workflow-panel>summary em{white-space:normal;text-align:right}
+}
