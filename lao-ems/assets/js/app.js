@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.47";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.48";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -415,6 +415,7 @@ function personnelRouteState(){
   if(/^#\/personnel\/registry\/?$/i.test(hash))return {mode:"registry",id:null};
   if(/^#\/personnel\/requests\/?$/i.test(hash))return {mode:"requests",id:null};
   if(/^#\/personnel\/intake\/?$/i.test(hash))return {mode:"intake",id:null};
+  if(/^#\/personnel\/homeroom\/?$/i.test(hash))return {mode:"homeroom",id:null};
   if(/^#\/personnel\/authorities\/?$/i.test(hash))return {mode:"authorities",id:null};
   if(/^#\/personnel\/new\/?$/i.test(hash))return {mode:"new",id:null};
   const edit=hash.match(/^#\/personnel\/([0-9a-f-]{36})\/edit\/?$/i);
@@ -1325,6 +1326,7 @@ function workspaceRecentRouteInfo(hash){
     ["#/academics/periods","ปีการศึกษา / ภาคเรียน","🗓"],
     ["#/academics","โครงสร้างและตั้งค่าวิชาการ","📚"],
     ["#/assessment","การวัดผลรายวิชา","📝"],
+    ["#/personnel/homeroom","แต่งตั้งครูประจำชั้น/ครูที่ปรึกษา","🏫"],
     ["#/personnel/requests","คำขอบุคลากร","👥"],
     ["#/personnel/registry","ทะเบียนบุคลากร","👥"],
     ["#/personnel","กลุ่มบริหารงานบุคคล","👥"],
@@ -3671,7 +3673,8 @@ function personnelNavHtml(active){
     '<a href="#/personnel/registry" class="'+(active==="registry"?"active":"")+'">ทะเบียนบุคลากร</a>'+
     (work.can_review?'<a href="#/personnel/requests" class="'+(active==="requests"?"active":"")+'">คำขอเข้าร่วม'+(pending>0?'<span class="subnav-badge">'+pending+'</span>':'')+'</a>':'')+
     (work.can_manage_intake?'<a href="#/personnel/intake" class="'+(active==="intake"?"active":"")+'">รับบุคลากรเข้าระบบ</a>':'')+
-    (hasPersonnelGroupResponsibility()?'<a href="#/personnel/authorities" class="'+(active==="authorities"?"active":"")+'">หน้าที่/ครูประจำชั้น</a>':'')+
+    (hasPersonnelGroupResponsibility()?'<a href="#/personnel/homeroom" class="'+(active==="homeroom"?"active":"")+'">ครูประจำชั้น/ครูที่ปรึกษา</a>':'')+
+    (hasPersonnelGroupResponsibility()?'<a href="#/personnel/authorities" class="'+(active==="authorities"?"active":"")+'">ผู้รับผิดชอบงานบุคคล</a>':'')+
     (state.workAuthorityAccess&&state.workAuthorityAccess.can_delegate_any?'<a href="#/work-authorities">ผู้รับผิดชอบ/มอบหมายงาน</a>':'')+
   '</nav>';
 }
@@ -3687,7 +3690,8 @@ function personnelGroupWorkstreams(work,pending,stats){
       visible:true,
       apps:[
         {title:"ทะเบียนบุคลากร",route:"#/personnel/registry",icon:"🪪",badge:0,visible:true},
-        {title:"หน้าที่/ครูประจำชั้น",route:"#/personnel/authorities",icon:"🏫",badge:0,visible:true}
+        {title:"แต่งตั้งครูประจำชั้น/ครูที่ปรึกษา",route:"#/personnel/homeroom",icon:"🏫",badge:0,visible:true},
+        {title:"ผู้รับผิดชอบงานบุคคล",route:"#/personnel/authorities",icon:"🛡",badge:0,visible:true}
       ]
     },
     {
@@ -3828,23 +3832,34 @@ function homeroomAssignmentPanelHtml(data){
     '</article>';
   }).join("");
   return '<details class="panel homeroom-assignment-panel" open>'+
-    '<summary><div><p class="eyebrow">HOMEROOM / ADVISOR</p><h2>ครูประจำชั้น / ครูที่ปรึกษา</h2><p>งานบุคคลเป็นผู้มอบหมายจากห้องเรียนที่ฝ่ายวิชาการกำหนดไว้ ข้อมูลนี้จะแสดงในโปรไฟล์และ “งานของฉัน” ของครูโดยอัตโนมัติ</p></div><span>'+classes.reduce((n,x)=>n+(x.assignments||[]).length,0).toLocaleString("th-TH")+' มอบหมาย</span></summary>'+
+    '<summary><div><p class="eyebrow">HOMEROOM / ADVISOR</p><h2>รายการแต่งตั้งครูประจำชั้น / ครูที่ปรึกษา</h2><p>งานบุคคลเป็นผู้มอบหมายจากห้องเรียนที่ฝ่ายวิชาการกำหนดไว้ ข้อมูลนี้จะแสดงในโปรไฟล์และ “งานของฉัน” ของครูโดยอัตโนมัติ</p></div><span>'+classes.reduce((n,x)=>n+(x.assignments||[]).length,0).toLocaleString("th-TH")+' มอบหมาย</span></summary>'+
     '<div class="homeroom-assignment-body">'+
       '<label class="homeroom-year-select"><span>ปีการศึกษา</span><select data-homeroom-year>'+yearOptions+'</select></label>'+
       (classes.length?'<div class="homeroom-class-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">🏫</div><h3>ยังไม่มีห้องเรียนในปีนี้</h3></div>')+
     '</div>'+
   '</details>';
 }
+async function personnelHomeroomHtml(){
+  const school=currentSchool();
+  if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
+  if(!hasPersonnelGroupResponsibility())return '<section class="personnel-page">'+personnelNavHtml("homeroom")+'<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">🔒</div><h3>ไม่มีสิทธิ์แต่งตั้งครูประจำชั้น</h3><p>รายการนี้สำหรับผู้รับผิดชอบกลุ่มบริหารงานบุคคลหรือ School Admin</p></div></section></section>';
+  const res=await supabase.rpc("lao_homeroom_assignment_settings",{
+    p_school_id:school.id,
+    p_academic_year_id:state.homeroomAssignmentYearId||null
+  });
+  if(res.error)throw res.error;
+  const homeroom=res.data||{};
+  state.homeroomAssignmentYearId=homeroom.selected_year_id||state.homeroomAssignmentYearId||null;
+  return '<section class="personnel-page personnel-homeroom-page">'+
+    personnelNavHtml("homeroom")+
+    '<section class="academic-group-hero panel homeroom-direct-hero"><div><p class="eyebrow">HOMEROOM ASSIGNMENT</p><h2>แต่งตั้งครูประจำชั้น / ครูที่ปรึกษา</h2><p>เลือกห้องเรียนที่ฝ่ายวิชาการจัดไว้ แล้วมอบหมายครูประจำชั้นหรือครูที่ปรึกษา ข้อมูลจะส่งต่อไปยัง “งานของฉัน” ของครูโดยอัตโนมัติ</p></div><a class="secondary-btn compact-btn" href="#/academics/classes">ดูห้องเรียน</a></section>'+
+    homeroomAssignmentPanelHtml(homeroom)+
+  '</section>';
+}
 async function personnelAuthoritiesHtml(){
   const school=currentSchool();
   if(!school)return '<section class="panel"><div class="empty-state"><h3>เลือกสถานศึกษาก่อน</h3></div></section>';
-  const [authorityRes,homeroomRes]=await Promise.all([
-    supabase.rpc("lao_personnel_authority_settings",{p_school_id:school.id}),
-    supabase.rpc("lao_homeroom_assignment_settings",{p_school_id:school.id,p_academic_year_id:state.homeroomAssignmentYearId||null})
-  ]);
-  if(homeroomRes.error)throw homeroomRes.error;
-  const homeroom=homeroomRes.data||{};
-  state.homeroomAssignmentYearId=homeroom.selected_year_id||state.homeroomAssignmentYearId||null;
+  const authorityRes=await supabase.rpc("lao_personnel_authority_settings",{p_school_id:school.id});
   const items=authorityRes.error?[]:(authorityRes.data&&authorityRes.data.items||[]);
   const rows=items.map(p=>{
     const code=p.is_active?p.authority_code||"none":"none";
@@ -3862,7 +3877,7 @@ async function personnelAuthoritiesHtml(){
       '<div class="notice"><strong>หลักการสิทธิ์</strong><br>School Admin กำหนดหัวหน้างานหรือเจ้าหน้าที่จากบุคลากรที่เชื่อมบัญชีแล้ว</div>'+
       (items.length?'<div class="personnel-authority-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">👥</div><h3>ยังไม่มีบุคลากรที่เชื่อมบัญชี</h3></div>')+
     '</section>';
-  return '<section class="personnel-page">'+personnelNavHtml("authorities")+authorityPanel+homeroomAssignmentPanelHtml(homeroom)+'</section>';
+  return '<section class="personnel-page">'+personnelNavHtml("authorities")+authorityPanel+'</section>';
 }
 
 async function personnelListHtml(){
@@ -3992,6 +4007,7 @@ async function personnelHtml(){
   if(stateRoute.mode==="registry")return await personnelListHtml();
   if(stateRoute.mode==="requests")return await personnelRequestsHtml();
   if(stateRoute.mode==="intake")return await personnelIntakeHtml();
+  if(stateRoute.mode==="homeroom")return await personnelHomeroomHtml();
   if(stateRoute.mode==="authorities")return await personnelAuthoritiesHtml();
   return await personnelDashboardHtml();
 }
@@ -8394,6 +8410,9 @@ async function renderRoute(){
   let meta=routeMeta[route]||routeMeta.overview;
   if(route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses")){
     meta=["หลักสูตรรายวิชาที่ฉันสอน","ครูผู้สอนจัดทำโครงสร้างรายวิชาและคะแนนก่อนส่งฝ่ายวิชาการตรวจ"];
+  }
+  if(route==="personnel"&&(location.hash||"").startsWith("#/personnel/homeroom")){
+    meta=["แต่งตั้งครูประจำชั้น/ครูที่ปรึกษา","มอบหมายครูตามห้องเรียนและปีการศึกษา"];
   }
   const main=q("#main");
   q("[data-page-title]").textContent=meta[0];
