@@ -10362,3 +10362,14 @@ button.assessment-workflow-step{cursor:pointer}
     padding-top:0;
   }
 }
+
+
+/* v0.19.45 — touch devices use pull-to-refresh only */
+html.is-touch-device [data-manual-refresh]{
+  display:none!important;
+}
+@media (any-pointer:coarse){
+  [data-manual-refresh]{
+    display:none!important;
+  }
+}
