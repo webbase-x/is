@@ -7397,6 +7397,15 @@ function assessmentRefreshRow(row){
   if(resultEl)resultEl.textContent=assessmentResult(total,complete,grading);
 }
 function bindAssessment(){
+  qa("[data-assessment-go-step]").forEach(btn=>btn.addEventListener("click",()=>{
+    const step=Number(btn.dataset.assessmentGoStep||0);
+    if(step===1){location.hash="#/assessment";return;}
+    const target=q("#assessment-step-"+step);
+    if(!target)return;
+    if(target.tagName==="DETAILS")target.open=true;
+    target.scrollIntoView({behavior:"smooth",block:"start"});
+    qa("[data-assessment-go-step]").forEach(x=>x.classList.toggle("current",x===btn));
+  }));
   q("[data-assessment-year]")?.addEventListener("change",e=>{
     state.assessmentYearId=e.currentTarget.value||null;
     state.assessmentTermId=null;
@@ -7487,8 +7496,7 @@ function bindAssessment(){
     renderRoute();
   }));
   q("[data-assessment-print]")?.addEventListener("click",()=>{
-    const outcomes=q(".assessment-outcomes");
-    if(outcomes)outcomes.open=true;
+    qa(".assessment-workflow-panel,.assessment-outcomes").forEach(panel=>{if(panel.tagName==="DETAILS")panel.open=true;});
     window.print();
   });
 }
