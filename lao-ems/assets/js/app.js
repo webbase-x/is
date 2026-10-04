@@ -7,7 +7,7 @@ const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
   membership:["สิทธิ์การเข้าใช้งาน","ดูสถานศึกษาและบทบาทที่ผู้ดูแลกำหนดให้"],
   activate:["ตั้งค่าบัญชี","ยืนยันโปรไฟล์และกำหนดรหัสผ่านสำหรับบัญชีที่ผู้ดูแลเชิญ"],
-  profile:["โปรไฟล์ของฉัน","ข้อมูลส่วนตัว ความปลอดภัย และภาระงานสอนของฉัน"],
+  profile:["โปรไฟล์ของฉัน","ข้อมูลส่วนตัว บทบาท งานที่ได้รับมอบหมาย และความปลอดภัย"],
   "teacher-work":["งานของฉัน","งานตามบทบาทของผู้ใช้ เช่น ครูผู้สอน ครูประจำชั้น และงานกลุ่มสาระ"],
   notifications:["การแจ้งเตือน","คำขอ การอนุมัติ และการเปลี่ยนแปลงที่เกี่ยวข้องกับบัญชีของคุณ"],
   setup:["ตั้งค่าสถานศึกษา","ตรวจความพร้อมหลังนำเข้า LEC เชื่อม Google Drive และตั้งค่าการใช้งาน"],
@@ -3671,6 +3671,7 @@ function personnelNavHtml(active){
     '<a href="#/personnel/registry" class="'+(active==="registry"?"active":"")+'">ทะเบียนบุคลากร</a>'+
     (work.can_review?'<a href="#/personnel/requests" class="'+(active==="requests"?"active":"")+'">คำขอเข้าร่วม'+(pending>0?'<span class="subnav-badge">'+pending+'</span>':'')+'</a>':'')+
     (work.can_manage_intake?'<a href="#/personnel/intake" class="'+(active==="intake"?"active":"")+'">รับบุคลากรเข้าระบบ</a>':'')+
+    (hasPersonnelGroupResponsibility()?'<a href="#/personnel/authorities" class="'+(active==="authorities"?"active":"")+'">หน้าที่/ครูประจำชั้น</a>':'')+
     (state.workAuthorityAccess&&state.workAuthorityAccess.can_delegate_any?'<a href="#/work-authorities">ผู้รับผิดชอบ/มอบหมายงาน</a>':'')+
   '</nav>';
 }
@@ -3684,7 +3685,10 @@ function personnelGroupWorkstreams(work,pending,stats){
       no:1,icon:"🪪",title:"งานวางแผนอัตรากำลังและทะเบียนประวัติ",
       responsibilities:["วางแผนอัตรากำลังและกรอบตำแหน่ง","ทะเบียนประวัติบุคลากร","ข้อมูลตำแหน่งและวิทยฐานะ","ข้อมูลการปฏิบัติงานและสถานะการจ้าง","ตรวจสอบความครบถ้วนของข้อมูลบุคลากร"],
       visible:true,
-      apps:[{title:"ทะเบียนบุคลากร",route:"#/personnel/registry",icon:"🪪",badge:0,visible:true}]
+      apps:[
+        {title:"ทะเบียนบุคลากร",route:"#/personnel/registry",icon:"🪪",badge:0,visible:true},
+        {title:"หน้าที่/ครูประจำชั้น",route:"#/personnel/authorities",icon:"🏫",badge:0,visible:true}
+      ]
     },
     {
       no:2,icon:"🤝",title:"งานสรรหา บรรจุ แต่งตั้ง และรับบุคลากร",
