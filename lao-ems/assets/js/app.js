@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.48";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -3809,33 +3809,97 @@ async function personnelRequestsHtml(){
 
 
 
+const homeroomStageDefinitions=[
+  {key:"K",label:"อนุบาล",match:code=>/^K[1-3]$/.test(code)},
+  {key:"P",label:"ประถม",match:code=>/^P[1-6]$/.test(code)},
+  {key:"MLOW",label:"ม.ต้น",match:code=>/^M[1-3]$/.test(code)},
+  {key:"MUP",label:"ม.ปลาย",match:code=>/^M[4-6]$/.test(code)}
+];
+function homeroomStageKey(item){
+  const code=String(item&&item.grade_code||academicGradeCode(item&&item.grade_label)||"").trim().toUpperCase();
+  const stage=homeroomStageDefinitions.find(x=>x.match(code));
+  return stage?stage.key:"";
+}
 function homeroomDefaultRole(gradeLabel){
   return /^มัธยม/.test(String(gradeLabel||""))?"advisor":"homeroom";
 }
 function homeroomAssignmentPanelHtml(data){
   const d=data||{},years=d.years||[],classes=d.classes||[],people=d.personnel||[],canManage=Boolean(d.can_manage);
   const yearOptions=years.map(y=>'<option value="'+esc(y.id)+'" '+(y.id===d.selected_year_id?"selected":"")+'>'+esc(y.year_be)+(y.is_current?" · ปัจจุบัน":"")+'</option>').join("");
-  const personOptions=people.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.full_name)+(p.position_title?' · '+esc(p.position_title):'')+'</option>').join("");
-  const rows=classes.map(cls=>{
+
+  const stageStats={};
+  classes.forEach(cls=>{
+    const key=homeroomStageKey(cls);
+    if(!key)return;
+    if(!stageStats[key])stageStats[key]={total:0,assigned:0};
+    stageStats[key].total++;
+    if((cls.assignments||[]).length)stageStats[key].assigned++;
+  });
+  const availableStages=homeroomStageDefinitions.filter(stage=>stageStats[stage.key]&&stageStats[stage.key].total>0);
+  if(!state.homeroomStageFilter||!stageStats[state.homeroomStageFilter]){
+    state.homeroomStageFilter=availableStages[0]&&availableStages[0].key||"";
+  }
+  const activeStage=availableStages.find(stage=>stage.key===state.homeroomStageFilter)||availableStages[0]||null;
+  const visibleClasses=activeStage?classes.filter(cls=>homeroomStageKey(cls)===activeStage.key):classes;
+  const assignedRoomCount=classes.filter(cls=>(cls.assignments||[]).length>0).length;
+  const activeStats=activeStage&&stageStats[activeStage.key]||{total:visibleClasses.length,assigned:visibleClasses.filter(cls=>(cls.assignments||[]).length>0).length};
+
+  const tabs=availableStages.length?'<nav class="homeroom-stage-tabs" aria-label="เลือกช่วงชั้น">'+
+    availableStages.map(stage=>{
+      const stats=stageStats[stage.key]||{total:0,assigned:0};
+      return '<button type="button" class="'+(activeStage&&activeStage.key===stage.key?"active":"")+'" data-homeroom-stage="'+esc(stage.key)+'">'+
+        '<span>'+esc(stage.label)+'</span><b>'+stats.total.toLocaleString("th-TH")+'</b>'+
+      '</button>';
+    }).join("")+
+  '</nav>':"";
+
+  const rows=visibleClasses.map(cls=>{
     const assignments=cls.assignments||[],role=homeroomDefaultRole(cls.grade_label);
-    return '<article class="homeroom-class-row">'+
+    const roleLabel=role==="advisor"?"ครูที่ปรึกษา":"ครูประจำชั้น";
+    const assignedIds=new Set(assignments.map(a=>a.personnel_id));
+    const availablePeople=people.filter(p=>!assignedIds.has(p.id));
+    const personOptions=availablePeople.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.full_name)+(p.position_title?' · '+esc(p.position_title):'')+'</option>').join("");
+    const hasAssignment=assignments.length>0;
+    const addLabel=hasAssignment?("+ เพิ่ม"+roleLabel):("+ แต่งตั้ง"+roleLabel);
+    const assignmentHtml=hasAssignment
+      ?assignments.map(a=>
+        '<span class="homeroom-person-chip '+(a.is_primary?"primary":"")+'">'+
+          '<b>'+esc(profileAssignmentRoleLabel(a.assignment_role))+(a.is_primary?' · หลัก':'')+'</b>'+
+          '<strong>'+esc(a.full_name)+'</strong>'+
+          (canManage?'<button type="button" data-homeroom-remove="'+esc(a.id)+'" data-class="'+esc(cls.class_section_id)+'" data-personnel="'+esc(a.personnel_id)+'" data-role="'+esc(a.assignment_role)+'" data-primary="'+String(Boolean(a.is_primary))+'" aria-label="ยกเลิกการมอบหมาย '+esc(a.full_name)+'">×</button>':'')+
+        '</span>'
+      ).join("")
+      :'<span class="homeroom-unassigned">ยังไม่ได้แต่งตั้ง</span>';
+
+    const addControl=canManage
+      ?(availablePeople.length
+        ?'<button type="button" class="homeroom-add-button" data-homeroom-add-toggle="'+esc(cls.class_section_id)+'" aria-expanded="false" aria-controls="homeroom-add-'+esc(cls.class_section_id)+'">'+esc(addLabel)+'</button>'
+        :'<span class="homeroom-all-assigned">ไม่มีครูที่เพิ่มได้</span>')
+      :"";
+
+    const form=canManage&&availablePeople.length
+      ?'<form id="homeroom-add-'+esc(cls.class_section_id)+'" class="homeroom-assign-form homeroom-inline-add hidden" data-homeroom-form data-class="'+esc(cls.class_section_id)+'">'+
+        '<input type="hidden" name="assignment_role" value="'+esc(role)+'">'+
+        '<label class="homeroom-person-select"><span>เลือก'+esc(roleLabel)+'</span><select name="personnel_id" required><option value="">เลือกครู</option>'+personOptions+'</select></label>'+
+        '<label class="homeroom-primary-check"><input type="checkbox" name="is_primary" '+(!hasAssignment?"checked":"")+'><span>กำหนดเป็นครูหลัก</span></label>'+
+        '<div class="homeroom-form-actions"><button type="button" class="secondary-btn compact-btn" data-homeroom-cancel-add="'+esc(cls.class_section_id)+'">ยกเลิก</button><button class="primary-btn compact-btn" type="submit">บันทึก</button></div>'+
+      '</form>'
+      :"";
+
+    return '<article class="homeroom-class-row '+(hasAssignment?"assigned":"unassigned")+'" data-homeroom-class="'+esc(cls.class_section_id)+'">'+
       '<div class="homeroom-class-name"><strong>'+esc(shortGrade(cls.grade_label))+'/'+esc(cls.section_label)+(cls.program_code?' · '+esc(cls.program_code):'')+'</strong><small>'+esc(cls.room_name||cls.grade_label)+'</small></div>'+
-      '<div class="homeroom-assigned">'+
-        (assignments.length?assignments.map(a=>'<span><b>'+esc(profileAssignmentRoleLabel(a.assignment_role))+(a.is_primary?'หลัก':'')+'</b>'+esc(a.full_name)+(canManage?'<button type="button" data-homeroom-remove="'+esc(a.id)+'" data-class="'+esc(cls.class_section_id)+'" data-personnel="'+esc(a.personnel_id)+'" data-role="'+esc(a.assignment_role)+'" data-primary="'+String(Boolean(a.is_primary))+'" aria-label="ยกเลิกการมอบหมาย">×</button>':'')+'</span>').join(""):'<small>ยังไม่ได้มอบหมาย</small>')+
-      '</div>'+
-      (canManage?'<form class="homeroom-assign-form" data-homeroom-form data-class="'+esc(cls.class_section_id)+'">'+
-        '<select name="personnel_id" required><option value="">เลือกครู</option>'+personOptions+'</select>'+
-        '<select name="assignment_role"><option value="homeroom" '+(role==="homeroom"?"selected":"")+'>ครูประจำชั้น</option><option value="advisor" '+(role==="advisor"?"selected":"")+'>ครูที่ปรึกษา</option></select>'+
-        '<label><input type="checkbox" name="is_primary" checked><span>ครูหลัก</span></label>'+
-        '<button class="secondary-btn compact-btn" type="submit">มอบหมาย</button>'+
-      '</form>':'')+
+      '<div class="homeroom-assigned">'+assignmentHtml+'</div>'+
+      '<div class="homeroom-row-action">'+addControl+'</div>'+
+      form+
     '</article>';
   }).join("");
+
   return '<details class="panel homeroom-assignment-panel" open>'+
-    '<summary><div><p class="eyebrow">HOMEROOM / ADVISOR</p><h2>รายการแต่งตั้งครูประจำชั้น / ครูที่ปรึกษา</h2><p>งานบุคคลเป็นผู้มอบหมายจากห้องเรียนที่ฝ่ายวิชาการกำหนดไว้ ข้อมูลนี้จะแสดงในโปรไฟล์และ “งานของฉัน” ของครูโดยอัตโนมัติ</p></div><span>'+classes.reduce((n,x)=>n+(x.assignments||[]).length,0).toLocaleString("th-TH")+' มอบหมาย</span></summary>'+
+    '<summary><div><p class="eyebrow">HOMEROOM / ADVISOR</p><h2>แต่งตั้งครูประจำชั้น / ครูที่ปรึกษา</h2><p>แสดงเฉพาะช่วงชั้นที่โรงเรียนเปิดสอน ห้องที่แต่งตั้งแล้วจะแสดงชื่อครูแทนช่องเลือก และกด + เมื่อต้องการเพิ่มครูร่วม</p></div><span>'+assignedRoomCount.toLocaleString("th-TH")+'/'+classes.length.toLocaleString("th-TH")+' ห้อง</span></summary>'+
     '<div class="homeroom-assignment-body">'+
-      '<label class="homeroom-year-select"><span>ปีการศึกษา</span><select data-homeroom-year>'+yearOptions+'</select></label>'+
-      (classes.length?'<div class="homeroom-class-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">🏫</div><h3>ยังไม่มีห้องเรียนในปีนี้</h3></div>')+
+      '<div class="homeroom-assignment-controls"><label class="homeroom-year-select"><span>ปีการศึกษา</span><select data-homeroom-year>'+yearOptions+'</select></label>'+tabs+'</div>'+
+      (activeStage?'<div class="homeroom-stage-summary"><strong>'+esc(activeStage.label)+'</strong><span>แต่งตั้งแล้ว '+activeStats.assigned.toLocaleString("th-TH")+'/'+activeStats.total.toLocaleString("th-TH")+' ห้อง</span></div>':'')+
+      (visibleClasses.length?'<div class="homeroom-class-list">'+rows+'</div>':'<div class="empty-state compact-empty"><div class="empty-icon">🏫</div><h3>ยังไม่มีห้องเรียนในช่วงชั้นนี้</h3></div>')+
     '</div>'+
   '</details>';
 }
@@ -4178,8 +4242,31 @@ function bindPersonnel(){
   const homeroomYear=q("[data-homeroom-year]");
   if(homeroomYear)homeroomYear.addEventListener("change",()=>{
     state.homeroomAssignmentYearId=homeroomYear.value||null;
+    state.homeroomStageFilter="";
     renderRoute();
   });
+  qa("[data-homeroom-stage]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.homeroomStageFilter=btn.dataset.homeroomStage||"";
+    renderRoute();
+  }));
+  qa("[data-homeroom-add-toggle]").forEach(btn=>btn.addEventListener("click",()=>{
+    const classId=btn.dataset.homeroomAddToggle;
+    const form=q("#homeroom-add-"+CSS.escape(classId));
+    if(!form)return;
+    const opening=form.classList.contains("hidden");
+    qa(".homeroom-inline-add").forEach(x=>x.classList.add("hidden"));
+    qa("[data-homeroom-add-toggle]").forEach(x=>x.setAttribute("aria-expanded","false"));
+    if(opening){
+      form.classList.remove("hidden");
+      btn.setAttribute("aria-expanded","true");
+      q('select[name="personnel_id"]',form)?.focus();
+    }
+  }));
+  qa("[data-homeroom-cancel-add]").forEach(btn=>btn.addEventListener("click",()=>{
+    const classId=btn.dataset.homeroomCancelAdd;
+    q("#homeroom-add-"+CSS.escape(classId))?.classList.add("hidden");
+    q('[data-homeroom-add-toggle="'+CSS.escape(classId)+'"]')?.setAttribute("aria-expanded","false");
+  }));
   qa("[data-homeroom-form]").forEach(assignForm=>assignForm.addEventListener("submit",async e=>{
     e.preventDefault();
     const fd=new FormData(assignForm),btn=assignForm.querySelector('button[type="submit"]');
