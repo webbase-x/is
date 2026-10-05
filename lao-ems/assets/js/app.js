@@ -6893,12 +6893,13 @@ function bindTimetableSlotControls(){
     el.addEventListener("dragstart",event=>{
       const payload=timetableDragPayloadFromElement(el);
       if(!payload){event.preventDefault();return;}
+      state.timetableNativeDragPayload=payload;
       event.dataTransfer.effectAllowed=payload.kind==="entry"?"move":"copy";
       event.dataTransfer.setData("text/plain",JSON.stringify(payload));
-      el.classList.add("dragging");
       timetableMarkDropTargets(payload);
+      el.classList.add("dragging");
     });
-    el.addEventListener("dragend",()=>timetableClearDropHighlights());
+    el.addEventListener("dragend",()=>{state.timetableNativeDragPayload=null;timetableClearDropHighlights();});
     el.addEventListener("pointerdown",event=>{
       if(event.pointerType==="mouse"||event.target.closest("[data-timetable-remove-entry]"))return;
       timetableBeginPointerDrag(el,event);
@@ -6917,8 +6918,8 @@ function bindTimetableSlotControls(){
 
   qa("[data-timetable-drop]").forEach(drop=>{
     drop.addEventListener("dragover",event=>{
-      let payload=null;
-      try{payload=JSON.parse(event.dataTransfer.getData("text/plain")||"null");}catch(_){}
+      let payload=state.timetableNativeDragPayload||null;
+      if(!payload){try{payload=JSON.parse(event.dataTransfer.getData("text/plain")||"null");}catch(_){}}
       if(!payload)return;
       event.preventDefault();
       const r=timetableValidateDrop(payload,drop.dataset.classId,Number(drop.dataset.day),Number(drop.dataset.period));
@@ -6928,8 +6929,9 @@ function bindTimetableSlotControls(){
     drop.addEventListener("dragleave",()=>drop.classList.remove("drop-hover"));
     drop.addEventListener("drop",event=>{
       event.preventDefault();
-      let payload=null;
-      try{payload=JSON.parse(event.dataTransfer.getData("text/plain")||"null");}catch(_){}
+      let payload=state.timetableNativeDragPayload||null;
+      if(!payload){try{payload=JSON.parse(event.dataTransfer.getData("text/plain")||"null");}catch(_){}}
+      state.timetableNativeDragPayload=null;
       drop.classList.remove("drop-hover");
       if(payload)timetableApplyDrop(payload,drop.dataset.classId,Number(drop.dataset.day),Number(drop.dataset.period));
     });
