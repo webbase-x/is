@@ -6733,7 +6733,7 @@ function timetableActivitiesPaneHtml(){
         '<em>'+esc(o.criticality.label)+(o.criticality.slots?' · '+o.criticality.slots+' ช่อง':'')+'</em>'+
       '</article>'
     ).join(""):'<div class="timetable-drag-complete"><span>✓</span><strong>จัดครบแล้ว</strong><small>ไม่มีรายการคงเหลือในมุมมองนี้</small></div>')+'</div>'+
-    '<div class="timetable-drag-help"><span>🖱️ ลากเพื่อวาง/ย้ายคาบ</span><span>👆 จอสัมผัส: แตะกิจกรรม แล้วแตะช่องสีเขียว</span><span>▧ ช่องลายแดง = มีข้อขัดแย้งหรือผิดห้อง</span></div></aside>';
+    '<div class="timetable-drag-help"><span>🖱️ ลากเพื่อวาง/ย้ายคาบ</span><span>🔒 ล็อกคาบ = ห้ามเคลื่อนย้าย/ลบ</span><span>⊘ ช่องว่าง = กำหนดห้ามวาง</span><span>👆 จอสัมผัส: แตะกิจกรรม แล้วแตะช่องสีเขียว</span><span>▧ ช่องลายแดง = มีข้อขัดแย้งหรือผิดห้อง</span></div></aside>';
 }
 function timetableClassGridHtml(){
   const data=state.timetableData||{},draft=state.timetableDraft||[],cls=timetableSelectedClass();
