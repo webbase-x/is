@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.60";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.61";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -6335,7 +6335,9 @@ function timetableEntryOffering(entry){
   )||null;
 }
 function timetableSetDirty(value=true){
-  state.timetableDirty=Boolean(value);
+  const dirty=Boolean(value);
+  if(dirty)state.timetableEditRevision=Number(state.timetableEditRevision||0)+1;
+  state.timetableDirty=dirty;
   const badge=q("[data-timetable-dirty]");
   if(badge)badge.classList.toggle("hidden",!state.timetableDirty);
 }
@@ -6840,7 +6842,7 @@ function timetableWorkspaceHtml(){
   else if(state.timetableViewMode==="day")main=timetableDayGridHtml();
   else if(state.timetableViewMode==="week")main=timetableWeekGridHtml();
   else main=timetableClassGridHtml();
-  return timetableSlotLegendHtml()+'<div class="timetable-dnd-layout timetable-lantiv-layout"><div class="timetable-dnd-board">'+main+'</div>'+timetableActivitiesPaneHtml()+'</div>';
+  return '<div class="timetable-dnd-layout timetable-lantiv-layout"><div class="timetable-dnd-board">'+main+'</div>'+timetableActivitiesPaneHtml()+'</div>';
 }
 function timetableStatsHtml(data){
   const draft=timetableScopedDraft(),classes=timetableScopedClasses(data),offerings=timetableScopedOfferings(data);
@@ -7059,6 +7061,60 @@ function timetableMarkDropTargets(payload){
   });
 }
 
+async function timetableAutosavePlacement(){
+  if(state.timetableAutosaveInFlight){
+    state.timetableAutosaveQueued=true;
+    return;
+  }
+  const page=state.timetableData||{},version=timetableSelectedVersion(),school=currentSchool(),form=q("[data-timetable-meta-form]");
+  if(!version||!form||!school)return;
+  const gradeCodes=timetableGradeCodesFromForm(form);
+  if(!gradeCodes.length||timetableScopeHasOrphanEntries(gradeCodes))return;
+
+  state.timetableAutosaveInFlight=true;
+  const revision=Number(state.timetableEditRevision||0);
+  const fd=new FormData(form);
+  const entries=JSON.parse(JSON.stringify(state.timetableDraft||[]));
+  const blockedSlots=JSON.parse(JSON.stringify(state.timetableBlockedSlots||[]));
+  const badge=q("[data-timetable-dirty]");
+  if(badge){
+    badge.classList.remove("hidden");
+    badge.textContent="กำลังบันทึก...";
+  }
+
+  const res=await supabase.rpc("lao_save_timetable_version_v3",{
+    p_school_id:school.id,
+    p_term_id:page.selected_term_id,
+    p_version_id:version.id,
+    p_version_date:String(fd.get("version_date")||version.version_date),
+    p_title:String(fd.get("title")||"").trim()||null,
+    p_note:String(fd.get("note")||"").trim()||null,
+    p_entries:entries,
+    p_activate:false,
+    p_grade_codes:gradeCodes,
+    p_blocked_slots:blockedSlots
+  });
+
+  state.timetableAutosaveInFlight=false;
+  if(res.error){
+    if(badge){
+      badge.textContent="บันทึกอัตโนมัติไม่สำเร็จ";
+      badge.classList.remove("hidden");
+    }
+    toast("บันทึกคาบอัตโนมัติไม่สำเร็จ · "+res.error.message,"error");
+  }else{
+    state.timetableVersionId=res.data&&res.data.id||version.id;
+    if(Number(state.timetableEditRevision||0)===revision){
+      timetableSetDirty(false);
+      if(badge)badge.textContent="มีการแก้ไขยังไม่บันทึก";
+    }
+  }
+
+  if(state.timetableAutosaveQueued){
+    state.timetableAutosaveQueued=false;
+    void timetableAutosavePlacement();
+  }
+}
 function timetableApplyDrop(payload,classId,day,period){
   const check=timetableValidateDrop(payload,classId,day,period);
   if(!check.ok){toast(check.reason||"วางคาบนี้ไม่ได้","error");return false;}
@@ -7081,6 +7137,7 @@ function timetableApplyDrop(payload,classId,day,period){
   timetableSetDirty(true);
   timetableClearDropHighlights();
   timetableRenderLive();
+  void timetableAutosavePlacement();
   return true;
 }
 function timetableRemoveEntry(classId,day,period){
@@ -7391,6 +7448,7 @@ async function timetableSaveCurrent(activate=false){
   if(res.error){toast(res.error.message,"error");return false;}
   state.timetableVersionId=res.data&&res.data.id||version.id;
   state.timetableData=null;state.timetableBlockedSlots=[];timetableSetDirty(false);
+  const dirtyBadge=q("[data-timetable-dirty]");if(dirtyBadge)dirtyBadge.textContent="มีการแก้ไขยังไม่บันทึก";
   toast(activate?"บันทึกและกำหนดเป็นเวอร์ชันใช้งานแล้ว":"บันทึกตารางสอนแล้ว","success");
   await renderRoute();
   return true;
