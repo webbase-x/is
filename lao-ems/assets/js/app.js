@@ -5641,6 +5641,7 @@ function academicSubjectsHtml(data,timeline){
         (sourceKind==="shared_catalog"?'<span class="subject-origin shared-catalog">คลังร่วม'+(sourceInfo.shared_source_school?' · '+esc(sourceInfo.shared_source_school):'')+(Number(sourceInfo.shared_usage_count||0)>0?' · '+Number(sourceInfo.shared_usage_count).toLocaleString("th-TH")+' รร.':'')+'</span>':'')+
         (sourceKind==="school_local"?'<span class="subject-origin school-local">โรงเรียนสร้างเอง'+(sourceInfo.source_shared_subject_id?' · เผยแพร่คลังร่วม':'')+'</span>':'')+
         (pg?'<span class="subject-origin grouped">กลุ่ม '+esc(pg.name)+' · นับ '+Number(pg.weekly_periods||0).toLocaleString("th-TH")+' คาบ</span>':'')+
+        (pg&&canEdit&&!inherited?'<button type="button" class="text-btn compact-btn parallel-leave-btn" data-remove-parallel-course="'+esc(c.id)+'" data-parallel-group-id="'+esc(pg.id)+'" data-parallel-group-name="'+esc(pg.name)+'" data-parallel-member-count="'+Number((pg.members||[]).length)+'">ออกจากกลุ่ม</button>':'')+
         (!pg&&c.subject_type==="activity"&&c.subject_code&&(activityCodeCounts.get(String(c.subject_code).trim().toLowerCase())||0)>1?'<span class="subject-origin grouped">รหัสเดียวกัน · นับรวม 1 ช่องเวลา</span>':'')+
         (inherited?'<span class="subject-origin inherited">รับจากห้องปกติ</span>':'')+
         (canEdit&&!inherited&&standard?'<button type="button" class="secondary-btn compact-btn subject-time-btn" data-edit-subject-time="'+esc(c.id)+'">แก้เวลาเรียน</button>':'')+
@@ -5762,11 +5763,27 @@ function academicSubjectsHtml(data,timeline){
     empty:"ยังไม่มีรายวิชา"
   }[currentStatus]||"รอตรวจ";
   const currentStatusClass=currentStatus==="confirmed"?"success":currentStatus==="ready_to_confirm"?"info":"warning";
-  const parallelGroupCards=parallelGroups.map(g=>
-    '<article class="parallel-group-card"><div><strong>'+esc(g.name)+'</strong><small>'+(g.members||[]).map(m=>esc(m.subject_name)).join(' · ')+'</small></div><span>'+Number(g.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span>'+(canEdit?'<button type="button" class="text-btn danger" data-delete-parallel-group="'+esc(g.id)+'">ยกเลิกกลุ่ม</button>':'')+'</article>'
+  const parallelJoinOptions='<option value="">เลือกวิชาเพิ่มเข้ากลุ่ม…</option>'+groupEligibleCourses.map(c=>
+    '<option value="'+esc(c.id)+'">'+esc((c.subject_code?c.subject_code+' · ':'')+c.subject_name)+'</option>'
   ).join("");
+  const parallelGroupCards=parallelGroups.map(g=>{
+    const members=g.members||[];
+    const memberRows=members.map(m=>
+      '<span class="parallel-member-chip"><b>'+esc((m.subject_code?m.subject_code+' · ':'')+m.subject_name)+'</b>'+
+        (canEdit?'<button type="button" class="parallel-member-remove" data-remove-parallel-course="'+esc(m.course_id)+'" data-parallel-group-id="'+esc(g.id)+'" data-parallel-group-name="'+esc(g.name)+'" data-parallel-member-count="'+members.length+'" aria-label="นำ '+esc(m.subject_name)+' ออกจากกลุ่ม">×</button>':'')+
+      '</span>'
+    ).join("");
+    const addForm=canEdit&&groupEligibleCourses.length
+      ?'<form class="parallel-group-add-form" data-parallel-group-add-form="'+esc(g.id)+'"><label><span>เข้าร่วมกลุ่มเพิ่มเติม</span><select name="course_id" required>'+parallelJoinOptions+'</select></label><button type="submit" class="secondary-btn compact-btn">＋ เพิ่มเข้ากลุ่ม</button></form>'
+      :'';
+    return '<article class="parallel-group-card parallel-group-card--manage">'+
+      '<div class="parallel-group-card-head"><div><strong>'+esc(g.name)+'</strong><small>'+(members.length)+' วิชา · นับเวลาเพียงครั้งเดียว</small></div><span>'+Number(g.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span></div>'+
+      '<div class="parallel-group-members">'+memberRows+'</div>'+
+      (canEdit?'<div class="parallel-group-manage-actions">'+addForm+'<button type="button" class="text-btn danger" data-delete-parallel-group="'+esc(g.id)+'" data-parallel-group-name="'+esc(g.name)+'">ยกเลิกจับกลุ่ม</button></div>':'')+
+    '</article>';
+  }).join("");
   const parallelTools=canEdit&&shownCourses.length>1
-    ?'<section class="subject-parallel-tools '+(state.subjectParallelSelectionMode?"is-selecting":"")+'"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>'+(state.subjectParallelSelectionMode?"เลือกอย่างน้อย 2 รายวิชาที่เรียนในช่วงเวลาเดียวกัน แล้วกดรวมเป็นกลุ่ม":"หลายรหัสที่เรียนในช่วงเดียวกันให้นับเวลาเพียงครั้งเดียว")+'</small></div>'+
+    ?'<section class="subject-parallel-tools '+(state.subjectParallelSelectionMode?"is-selecting":"")+'"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>'+(state.subjectParallelSelectionMode?"เลือกอย่างน้อย 2 รายวิชาที่เรียนในช่วงเวลาเดียวกัน แล้วกดรวมเป็นกลุ่ม":"สร้างกลุ่มใหม่ หรือเพิ่ม/นำรายวิชาออกจากกลุ่มเดิมได้ โดยระบบนับเวลาเพียงครั้งเดียวต่อกลุ่ม")+'</small></div>'+
       (groupEligibleCourses.length>1
         ?(state.subjectParallelSelectionMode
           ?'<div class="parallel-selection-actions"><button type="button" class="secondary-btn compact-btn" data-cancel-parallel-selection>ยกเลิกจับกลุ่ม</button><button type="button" class="secondary-btn compact-btn" data-open-subject-finder>＋ นำเข้าเพิ่มเติม</button><button type="button" class="primary-btn compact-btn" data-open-parallel-group disabled>รวมวิชาที่เลือก <span data-parallel-selected-count>0</span></button></div>'
@@ -8761,9 +8778,47 @@ function bindAcademics(){
     toast("สร้างกลุ่มเวลาเดียวกันแล้ว · ระบบนับคาบเพียงครั้งเดียว","success");
     refreshSubjects(true);
   });
-  qa("[data-delete-parallel-group]").forEach(btn=>btn.addEventListener("click",async()=>{
+  qa("[data-parallel-group-add-form]").forEach(form=>form.addEventListener("submit",async e=>{
+    e.preventDefault();
     if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
-    if(!confirm("ยกเลิกการรวมเวลาในกลุ่มนี้? รายวิชายังคงอยู่ตามเดิม"))return;
+    const fd=new FormData(form);
+    const courseId=String(fd.get("course_id")||"");
+    if(!courseId){toast("กรุณาเลือกรายวิชาที่ต้องการเพิ่มเข้ากลุ่ม","error");return;}
+    const btn=form.querySelector('button[type="submit"]');
+    setBusy(btn,true,"กำลังเพิ่ม...");
+    const res=await supabase.rpc("lao_add_curriculum_parallel_group_course",{
+      p_school_id:school.id,
+      p_group_id:form.dataset.parallelGroupAddForm,
+      p_course_id:courseId
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("เพิ่มรายวิชาเข้ากลุ่มเวลาเดียวกันแล้ว","success");
+    refreshSubjects(true);
+  }));
+  qa("[data-remove-parallel-course]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+    const count=Number(btn.dataset.parallelMemberCount||0);
+    const groupName=btn.dataset.parallelGroupName||"กลุ่มนี้";
+    const message=count<=2
+      ?"นำรายวิชานี้ออกจาก “"+groupName+"” ?\n\nกลุ่มเหลือไม่ถึง 2 วิชา ระบบจะยกเลิกกลุ่มนี้อัตโนมัติ แต่รายวิชายังคงอยู่ในหลักสูตร"
+      :"นำรายวิชานี้ออกจาก “"+groupName+"” ?\n\nรายวิชายังคงอยู่ในหลักสูตร และวิชาอื่นในกลุ่มไม่เปลี่ยน";
+    if(!confirm(message))return;
+    setBusy(btn,true,"กำลังนำออก...");
+    const res=await supabase.rpc("lao_remove_curriculum_parallel_group_course",{
+      p_school_id:school.id,
+      p_group_id:btn.dataset.parallelGroupId,
+      p_course_id:btn.dataset.removeParallelCourse
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast(res.data?.group_deleted?"นำออกแล้ว · ยกเลิกกลุ่มอัตโนมัติเพราะเหลือน้อยกว่า 2 วิชา":"นำรายวิชาออกจากกลุ่มแล้ว","success");
+    refreshSubjects(true);
+  }));
+
+    qa("[data-delete-parallel-group]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+    if(!confirm("ยกเลิกจับกลุ่ม “"+(btn.dataset.parallelGroupName||"กลุ่มนี้")+"” ?\n\nรายวิชาทุกวิชายังคงอยู่ในหลักสูตร แต่จะกลับมานับเวลาแยกกัน"))return;
     setBusy(btn,true,"กำลังยกเลิก...");
     const res=await supabase.rpc("lao_delete_curriculum_parallel_group",{p_school_id:school.id,p_group_id:btn.dataset.deleteParallelGroup});
     setBusy(btn,false);
