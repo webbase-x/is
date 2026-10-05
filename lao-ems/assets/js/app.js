@@ -6004,6 +6004,26 @@ function academicSubjectsHtml(data,timeline){
     '</section>'+
   '</section>';
 }
+function renderAcademicSubjectsCached(preservePosition=false){
+  const main=q("#main");
+  if(!main||!state.academicData)return renderRoute();
+  const scrollTop=preservePosition?window.scrollY:null;
+  const renderId=++state.routeRenderId;
+  main.innerHTML=routeBackNavigationHtml("academics")+academicSubjectsHtml(state.academicData,state.academicTimeline);
+  bindBuddhistDatePickers(main);
+  bindAcademics();
+  focusActiveAcademicTimeline();
+  main.classList.remove("route-pending");
+  main.removeAttribute("aria-busy");
+  if(scrollTop!=null){
+    window.requestAnimationFrame(()=>{
+      if(renderId===state.routeRenderId)window.scrollTo({top:scrollTop,behavior:"auto"});
+    });
+  }
+  return Promise.resolve();
+}
+
+
 function academicCurriculumHtml(data,embedded=false){
   const courseTimeById=new Map(((data.course_time_overview&&data.course_time_overview.items)||[]).map(x=>[x.course_id,x]));
   const readiness=state.curriculumReadiness||{groups:[]};
