@@ -8522,43 +8522,60 @@ function bindAcademics(){
     return rendered;
   };
 
-  qa("[data-edit-subject-time]").forEach(btn=>btn.addEventListener("click",()=>{
-    const form=q('[data-subject-time-form="'+btn.dataset.editSubjectTime+'"]');
-    if(form)form.classList.toggle("hidden");
-  }));
-  qa("[data-close-subject-time]").forEach(btn=>btn.addEventListener("click",()=>{
-    const form=q('[data-subject-time-form="'+btn.dataset.closeSubjectTime+'"]');
-    if(form)form.classList.add("hidden");
-  }));
-  qa("[data-subject-time-form]").forEach(form=>form.addEventListener("submit",async e=>{
-    e.preventDefault();
-    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
-    const fd=new FormData(form),btn=form.querySelector('button[type="submit"]');
-    const numOrNull=v=>String(v??"").trim()===""?null:Number(v);
-    setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_update_course_time_override",{
-      p_school_id:school.id,
-      p_course_id:form.dataset.subjectTimeForm,
-      p_annual_hours:numOrNull(fd.get("annual_hours")),
-      p_term_hours:numOrNull(fd.get("term_hours")),
-      p_weekly_periods:numOrNull(fd.get("weekly_periods")),
-      p_credits:numOrNull(fd.get("credits")),
-      p_note:String(fd.get("note")||"").trim()||null
+  const courseTimeInfoById=new Map(((data.course_time_overview&&data.course_time_overview.items)||[]).map(x=>[x.course_id,x]));
+  const bindLazySubjectTimeForm=form=>{
+    if(!form||form.dataset.bound==="1")return;
+    form.dataset.bound="1";
+    form.addEventListener("submit",async e=>{
+      e.preventDefault();
+      if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+      const fd=new FormData(form),btn=form.querySelector('button[type="submit"]');
+      const numOrNull=v=>String(v??"").trim()===""?null:Number(v);
+      setBusy(btn,true,"กำลังบันทึก...");
+      const res=await supabase.rpc("lao_update_course_time_override",{
+        p_school_id:school.id,
+        p_course_id:form.dataset.subjectTimeForm,
+        p_annual_hours:numOrNull(fd.get("annual_hours")),
+        p_term_hours:numOrNull(fd.get("term_hours")),
+        p_weekly_periods:numOrNull(fd.get("weekly_periods")),
+        p_credits:numOrNull(fd.get("credits")),
+        p_note:String(fd.get("note")||"").trim()||null
+      });
+      setBusy(btn,false);
+      if(res.error){toast(res.error.message,"error");return;}
+      toast("บันทึกเวลาเรียนของโรงเรียนแล้ว · ฐานมาตรฐานกลางไม่เปลี่ยน","success");
+      refreshSubjects(true);
     });
-    setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    toast("บันทึกเวลาเรียนของโรงเรียนแล้ว · ฐานมาตรฐานกลางไม่เปลี่ยน","success");
-    refreshSubjects(true);
-  }));
-  qa("[data-reset-subject-time-standard]").forEach(btn=>btn.addEventListener("click",async()=>{
-    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
-    if(!confirm("คืนเวลาเรียนของรายวิชานี้เป็นค่ามาตรฐานกลางปัจจุบัน?\n\nค่าที่โรงเรียนปรับไว้จะถูกแทนที่เฉพาะรายวิชานี้"))return;
-    setBusy(btn,true,"กำลังคืนค่า...");
-    const res=await supabase.rpc("lao_reset_course_time_to_standard",{p_school_id:school.id,p_course_id:btn.dataset.resetSubjectTimeStandard});
-    setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    toast("คืนค่าเวลาเรียนตามมาตรฐานกลางแล้ว","success");
-    refreshSubjects(true);
+    const closeBtn=form.querySelector("[data-close-subject-time]");
+    if(closeBtn)closeBtn.addEventListener("click",()=>form.classList.add("hidden"));
+    const resetBtn=form.querySelector("[data-reset-subject-time-standard]");
+    if(resetBtn)resetBtn.addEventListener("click",async()=>{
+      if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+      if(!confirm("คืนเวลาเรียนของรายวิชานี้เป็นค่ามาตรฐานกลางปัจจุบัน?\n\nค่าที่โรงเรียนปรับไว้จะถูกแทนที่เฉพาะรายวิชานี้"))return;
+      setBusy(resetBtn,true,"กำลังคืนค่า...");
+      const res=await supabase.rpc("lao_reset_course_time_to_standard",{p_school_id:school.id,p_course_id:resetBtn.dataset.resetSubjectTimeStandard});
+      setBusy(resetBtn,false);
+      if(res.error){toast(res.error.message,"error");return;}
+      toast("คืนค่าเวลาเรียนตามมาตรฐานกลางแล้ว","success");
+      refreshSubjects(true);
+    });
+  };
+  const ensureSubjectTimeForm=courseId=>{
+    let form=q('[data-subject-time-form="'+courseId+'"]');
+    if(form)return {form,created:false};
+    const slot=q('[data-subject-time-slot="'+courseId+'"]');
+    const course=(data.courses||[]).find(x=>x.id===courseId);
+    if(!slot||!course)return {form:null,created:false};
+    slot.innerHTML=academicTimeEditorHtml(course,courseTimeInfoById.get(courseId)||null);
+    form=q('[data-subject-time-form="'+courseId+'"]');
+    bindLazySubjectTimeForm(form);
+    return {form,created:true};
+  };
+  qa("[data-edit-subject-time]").forEach(btn=>btn.addEventListener("click",()=>{
+    const {form,created}=ensureSubjectTimeForm(btn.dataset.editSubjectTime);
+    if(!form)return;
+    if(created)form.classList.remove("hidden");
+    else form.classList.toggle("hidden");
   }));
 
   qa("[data-add-central-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
