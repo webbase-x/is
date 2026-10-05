@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.50";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.51";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"class",timetableClassId:null,timetablePersonnelId:null,timetableDraft:null,timetableDirty:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -1318,6 +1318,7 @@ function workspaceRecentRouteInfo(hash){
     ["#/teacher-work","งานของฉัน","👩‍🏫"],
     ["#/academic-group","กลุ่มบริหารงานวิชาการ","📚"],
     ["#/academics/my-courses","หลักสูตรรายวิชาที่ฉันสอน","📘"],
+    ["#/academics/timetable","จัดตารางสอน","🗓"],
     ["#/academics/workload","ภาระงานสอน","📚"],
     ["#/academics/subjects","โครงสร้างหลักสูตรและเวลาเรียน","📘"],
     ["#/academics/classes","ระดับชั้นและห้อง","🏫"],
@@ -4833,6 +4834,7 @@ function academicRouteState(){
   if(/^#\/academics\/subjects\/?$/i.test(hash))return {mode:"subjects"};
   if(/^#\/academics\/curriculum\/?$/i.test(hash))return {mode:"subjects",legacy_curriculum:true};
   if(/^#\/academics\/workload\/?$/i.test(hash))return {mode:"workload"};
+  if(/^#\/academics\/timetable\/?$/i.test(hash))return {mode:"timetable"};
   return {mode:"dashboard"};
 }
 function academicGradeCode(label){
@@ -5091,6 +5093,7 @@ function academicNavHtml(active,data){
         '</a>';
       }).join("")+
     '</nav>'+
+    '<a href="#/academics/timetable" class="academic-timetable-link '+(active==="timetable"?"active":"")+'"><span>🗓</span><span>ตารางสอน</span></a>'+
     academicYearSelectorHtml(data)+
   '</div>';
 }
@@ -5154,8 +5157,8 @@ async function academicDashboardHtml(data){
       '<a href="#/academics/classes"><b>04</b><div><strong>ระดับชั้นและห้อง</strong><small>ผูกห้องจาก LEC กับโปรแกรมที่เลือกใช้ในปีนี้</small></div></a>'+
       '<a href="#/academics/subjects"><b>05</b><div><strong>โครงสร้างหลักสูตรและเวลาเรียน</strong><small>เลือกรายวิชา กำหนดชั่วโมง/คาบ เทียบกรอบ และยืนยันความครบถ้วน</small></div></a>'+
       '<a href="#/academics/workload"><b>06</b><div><strong>ภาระงานสอน</strong><small>จัดครูผู้สอนและอนุมัติภาระงานของปีการศึกษานี้</small></div></a>'+
+      '<a href="#/academics/timetable"><b>07</b><div><strong>จัดตารางสอน</strong><small>ใช้ภาระงานสอนที่อนุมัติแล้ว ตรวจครูชนคาบ เก็บเวอร์ชันตามวันที่ และส่งออก</small></div></a>'+
     '</section>'+
-    '<section class="academic-next-note"><span>ขั้นถัดไป</span><div><strong>ตารางเรียน / ตารางสอน</strong><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นฐานในการจัดตาราง เพื่อลดการกรอกชื่อครู รายวิชา และห้องเรียนซ้ำ</p></div></section>'+
   '</section>';
 }
 function academicDateAfterWeekdays(startIso,totalDays){
@@ -6252,6 +6255,7 @@ async function academicsHtml(){
   const mode=routeState.mode;
   if(mode==="my-courses")return await courseCurriculumHtml(null);
   if(mode==="course-curriculum")return await courseCurriculumHtml(routeState.courseId);
+  if(mode==="timetable")return await academicTimetableHtml(data);
   try{
     state.academicTimeline=await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
   }catch(e){
@@ -6327,12 +6331,14 @@ function bindAcademics(){
   const data=state.academicData||{};
   const school=currentSchool();
   bindTeachingWorkloadControls();
+  bindTimetableControls();
   const yearSelect=q("[data-academic-year-select]");
   if(yearSelect)yearSelect.addEventListener("change",()=>{
     state.academicYearId=yearSelect.value||null;
     state.academicTermId=null;
     state.teachingWorkloadData=null;
     state.teachingWorkloadPersonnelId=null;
+    state.timetableData=null;state.timetableTermId=null;state.timetableVersionId=null;state.timetableDraft=null;state.timetableDirty=false;
     state.academicFilters={grade_label:"",program_id:""};
     state.subjectEditMode=false;
     state.subjectCopyYearId="";
@@ -6488,6 +6494,7 @@ function bindAcademics(){
     curriculum_courses:"โครงสร้างรายวิชา",
     teaching_workloads:"ภาระงานสอน",
     schedule_settings:"การตั้งค่าเวลาเรียน",
+    timetable_versions:"เวอร์ชันตารางสอน",
     default_initializations:"ข้อมูลตั้งต้นหลักสูตร",
     grade_initializations:"ข้อมูลตั้งต้นระดับชั้น",
     program_exclusions:"ข้อยกเว้นรายวิชา",
@@ -8126,10 +8133,12 @@ function academicGroupWorkstreams(access,pendingTeaching,assessmentAttention,pen
         "ตรวจหลักสูตรรายวิชาและโครงสร้างคะแนนที่ครูส่ง",
         "ติดตาม Active Learning / PLC / การนิเทศภายใน"
       ],
-      visible:hasPrefix("academics.learning")||hasAny(["academics.workload","academics.course_curriculum"]),
+      visible:hasPrefix("academics.learning")||hasAny(["academics.workload","academics.course_curriculum","academics.timetable"]),
       apps:[
         {title:"ภาระงานสอนและการมอบหมาย",route:"#/academics/workload",icon:"📚",badge:Number(pendingTeaching||0),
           visible:hasPermission("academics.workload","edit")||hasPermission("academics.workload","approve")||hasPermission("academics.learning","edit")||hasPermission("academics.learning","approve")},
+        {title:"จัดตารางสอน",route:"#/academics/timetable",icon:"🗓",badge:0,
+          visible:hasPermission("academics.timetable","view")||hasPermission("academics.timetable","edit")||hasPermission("academics.timetable","approve")},
         {title:"ตรวจหลักสูตรรายวิชา / โครงสร้างคะแนน",route:"#/academics/my-courses",icon:"📘",badge:Number(pendingCurriculum||0),
           visible:hasPermission("academics.course_curriculum","approve")||hasPermission("academics.learning","approve")}
       ]
@@ -8533,6 +8542,9 @@ async function renderRoute(){
   if(route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses")){
     meta=["หลักสูตรรายวิชาที่ฉันสอน","ครูผู้สอนจัดทำโครงสร้างรายวิชาและคะแนนก่อนส่งฝ่ายวิชาการตรวจ"];
   }
+  if(route==="academics"&&(location.hash||"").startsWith("#/academics/timetable")){
+    meta=["จัดตารางสอน","จัดคาบเรียนจากภาระงานสอนที่อนุมัติ เก็บเวอร์ชันตามวันที่ และส่งออก"];
+  }
   if(route==="personnel"&&(location.hash||"").startsWith("#/personnel/homeroom")){
     meta=["แต่งตั้งครูประจำชั้น/ครูที่ปรึกษา","มอบหมายครูตามห้องเรียนและปีการศึกษา"];
   }
@@ -8656,17 +8668,27 @@ function showAuth(){
 }
 
 window.addEventListener("beforeunload",event=>{
-  if(!state.lecImporting)return;
+  if(!state.lecImporting&&!state.timetableDirty)return;
   event.preventDefault();
   event.returnValue="";
 });
 document.addEventListener("click",event=>{
-  if(!state.lecImporting)return;
   const target=event.target&&event.target.closest?event.target.closest("a[href^='#/'],[data-view-mode],[data-signout]"):null;
   if(!target)return;
-  event.preventDefault();
-  event.stopPropagation();
-  toast("กำลังนำเข้า LEC กรุณารอจนกว่าระบบจะแจ้งว่าเสร็จ","error");
+  if(state.lecImporting){
+    event.preventDefault();
+    event.stopPropagation();
+    toast("กำลังนำเข้า LEC กรุณารอจนกว่าระบบจะแจ้งว่าเสร็จ","error");
+    return;
+  }
+  if(state.timetableDirty&&routeName()==="academics"&&academicRouteState().mode==="timetable"){
+    const href=target.getAttribute&&target.getAttribute("href");
+    if(href==="#/academics/timetable")return;
+    if(!confirm("มีการแก้ไขตารางสอนที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?")){
+      event.preventDefault();event.stopPropagation();return;
+    }
+    state.timetableDirty=false;
+  }
 },true);
 
 async function init(){
