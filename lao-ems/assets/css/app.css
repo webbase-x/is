@@ -10908,3 +10908,12 @@ html.is-touch-device [data-manual-refresh]{
 @media print{
   .timetable-source-panel,.timetable-grade-scope{display:none!important}
 }
+
+.timetable-progress-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.timetable-progress-summary>span{border:1px solid #e4e7ec;border-radius:11px;background:#fff;padding:8px 10px;display:flex;align-items:baseline;gap:7px}
+.timetable-progress-summary b{font-size:17px}
+.timetable-progress-summary small{color:#667085;font-size:10px}
+.timetable-progress-summary>span.danger{border-color:#fecdca;background:#fffafa}
+.timetable-progress-summary>span.danger b{color:#b42318}
+.timetable-progress-summary>span.ok{border-color:#abefc6;background:#f6fef9}
+@media(max-width:640px){.timetable-progress-summary{grid-template-columns:1fr}.timetable-progress-summary>span{justify-content:space-between}}
