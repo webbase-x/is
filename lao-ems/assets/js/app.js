@@ -5533,6 +5533,8 @@ function academicSubjectsHtml(data,timeline){
   const scope=["core","additional","activity"].includes(state.subjectCatalogScope)?state.subjectCatalogScope:"core";
   state.subjectCatalogScope=scope;
   const scopeLabel=({core:"รายวิชาพื้นฐาน",additional:"รายวิชาเพิ่มเติม",activity:"กิจกรรมพัฒนาผู้เรียน"})[scope]||"รายวิชาพื้นฐาน";
+  const workspaceView=["selected","library"].includes(state.subjectWorkspaceView)?state.subjectWorkspaceView:"selected";
+  state.subjectWorkspaceView=workspaceView;
   const setupTab=["target","grade","type"].includes(state.subjectSetupTab)?state.subjectSetupTab:"target";
   state.subjectSetupTab=setupTab;
   const targetRooms=targetClasses.filter(c=>c.grade_label===gradeLabel)
@@ -5782,8 +5784,6 @@ function academicSubjectsHtml(data,timeline){
     empty:"ยังไม่มีรายวิชา"
   }[currentStatus]||"รอตรวจ";
   const currentStatusClass=currentStatus==="confirmed"?"success":currentStatus==="ready_to_confirm"?"info":"warning";
-  const workspaceView=["selected","library"].includes(state.subjectWorkspaceView)?state.subjectWorkspaceView:"selected";
-  state.subjectWorkspaceView=workspaceView;
   const timelineSteps=timeline&&timeline.steps||[];
   const stepChip=code=>{
     const x=timelineSteps.find(v=>v.step_code===code);
