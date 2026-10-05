@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.59";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.60";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -6597,6 +6597,18 @@ function timetableProgressHtml(){
   '</div>';
 }
 
+function timetableLockIconHtml(){
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2h1.2A1.8 1.8 0 0 1 20 11.8v7.4a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 19.2v-7.4A1.8 1.8 0 0 1 5.8 10H7Zm2 0h6V8a3 3 0 0 0-6 0v2Zm3 3.2a1.6 1.6 0 0 0-1 2.84V18h2v-1.96a1.6 1.6 0 0 0-1-2.84Z" fill="currentColor"/></svg>';
+}
+function timetableNoPlaceIconHtml(){
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a7.96 7.96 0 0 1 5.07 1.82L5.82 17.07A8 8 0 0 1 12 4Zm0 16a7.96 7.96 0 0 1-5.07-1.82L18.18 6.93A8 8 0 0 1 12 20Z" fill="currentColor"/></svg>';
+}
+function timetableSlotLegendHtml(){
+  return '<div class="timetable-slot-legend" aria-label="คำอธิบายสัญลักษณ์ในตาราง">'+
+    '<span><i class="legend-icon lock">'+timetableLockIconHtml()+'</i><b>ล็อกคาบ</b><em>= ห้ามเคลื่อนย้าย/ลบ</em></span>'+
+    '<span><i class="legend-icon no-place">'+timetableNoPlaceIconHtml()+'</i><b>ห้ามวาง</b><em>= ช่องนี้ไม่รับกิจกรรม</em></span>'+
+  '</div>';
+}
 function timetableScheduledCardHtml(entry,{showClass=false,compact=false}={}){
   const o=timetableEntryOffering(entry)||{},cls=(state.timetableData&&state.timetableData.classes||[]).find(c=>c.id===entry.class_section_id);
   const subject=(o.subject_code?o.subject_code+" · ":"")+(o.subject_name||entry.subject_name||"-");
@@ -6605,7 +6617,7 @@ function timetableScheduledCardHtml(entry,{showClass=false,compact=false}={}){
   const dragAttrs=locked?"":' draggable="true" data-timetable-drag="entry" data-offering-id="'+esc(o.workload_item_id||"")+'" data-source-class="'+esc(entry.class_section_id)+'" data-source-day="'+Number(entry.day_no)+'" data-source-period="'+Number(entry.period_no)+'" tabindex="0" role="button"';
   return '<article class="timetable-scheduled-card '+(compact?"compact ":"")+(locked?"locked":"")+'"'+dragAttrs+'>'+
     '<div><strong>'+esc(subject)+'</strong><small>'+esc(tail)+'</small></div>'+
-    '<button type="button" class="timetable-lock-entry '+(locked?"active":"")+'" data-timetable-toggle-lock data-class-id="'+esc(entry.class_section_id)+'" data-day="'+Number(entry.day_no)+'" data-period="'+Number(entry.period_no)+'" aria-pressed="'+(locked?"true":"false")+'" title="'+(locked?"ปลดล็อกคาบ":"ล็อกคาบ ห้ามเคลื่อนย้าย")+'" aria-label="'+(locked?"ปลดล็อกคาบ":"ล็อกคาบ ห้ามเคลื่อนย้าย")+'">'+(locked?"🔒":"🔓")+'</button>'+
+    '<button type="button" class="timetable-lock-entry '+(locked?"active":"")+'" data-timetable-toggle-lock data-class-id="'+esc(entry.class_section_id)+'" data-day="'+Number(entry.day_no)+'" data-period="'+Number(entry.period_no)+'" aria-pressed="'+(locked?"true":"false")+'" title="'+(locked?"ปลดล็อกคาบ":"ล็อกคาบ ห้ามเคลื่อนย้าย")+'" aria-label="'+(locked?"ปลดล็อกคาบ":"ล็อกคาบ ห้ามเคลื่อนย้าย")+'">'+timetableLockIconHtml()+'</button>'+
     '<button type="button" class="timetable-remove-entry" data-timetable-remove-entry data-class-id="'+esc(entry.class_section_id)+'" data-day="'+Number(entry.day_no)+'" data-period="'+Number(entry.period_no)+'" aria-label="นำคาบนี้ออก" '+(locked?'disabled title="คาบนี้ถูกล็อก"':"")+'>×</button>'+
   '</article>';
 }
@@ -6614,7 +6626,7 @@ function timetableEmptySlotHtml(kind,id,day,period,{compact=false,label="ลา�
   return '<div class="timetable-empty-slot '+(compact?"compact ":"")+(blocked?"no-place":"")+'">'+
     '<span>'+(blocked?"ห้ามวาง":(compact?"ว่าง":"คาบ "+period))+'</span>'+
     '<em>'+(blocked?"ช่องนี้ถูกปิดการวาง":(compact?"":esc(label)))+'</em>'+
-    '<button type="button" class="timetable-no-place-toggle '+(blocked?"active":"")+'" data-timetable-toggle-block data-resource-kind="'+esc(kind)+'" data-resource-id="'+esc(id)+'" data-day="'+Number(day)+'" data-period="'+Number(period)+'" aria-pressed="'+(blocked?"true":"false")+'" title="'+(blocked?"ยกเลิกห้ามวาง":"กำหนดห้ามวาง")+'" aria-label="'+(blocked?"ยกเลิกห้ามวาง":"กำหนดห้ามวาง")+'">'+(blocked?"⛔":"⊘")+'</button>'+
+    '<button type="button" class="timetable-no-place-toggle '+(blocked?"active":"")+'" data-timetable-toggle-block data-resource-kind="'+esc(kind)+'" data-resource-id="'+esc(id)+'" data-day="'+Number(day)+'" data-period="'+Number(period)+'" aria-pressed="'+(blocked?"true":"false")+'" title="'+(blocked?"ยกเลิกห้ามวาง":"กำหนดห้ามวาง")+'" aria-label="'+(blocked?"ยกเลิกห้ามวาง":"กำหนดห้ามวาง")+'">'+timetableNoPlaceIconHtml()+'</button>'+
   '</div>';
 }
 function timetableClassDropHtml(cls,draft,day,period,{compact=false,showClass=false}={}){
@@ -6733,7 +6745,7 @@ function timetableActivitiesPaneHtml(){
         '<em>'+esc(o.criticality.label)+(o.criticality.slots?' · '+o.criticality.slots+' ช่อง':'')+'</em>'+
       '</article>'
     ).join(""):'<div class="timetable-drag-complete"><span>✓</span><strong>จัดครบแล้ว</strong><small>ไม่มีรายการคงเหลือในมุมมองนี้</small></div>')+'</div>'+
-    '<div class="timetable-drag-help"><span>🖱️ ลากเพื่อวาง/ย้ายคาบ</span><span>🔒 ล็อกคาบ = ห้ามเคลื่อนย้าย/ลบ</span><span>⊘ ช่องว่าง = กำหนดห้ามวาง</span><span>👆 จอสัมผัส: แตะกิจกรรม แล้วแตะช่องสีเขียว</span><span>▧ ช่องลายแดง = มีข้อขัดแย้งหรือผิดห้อง</span></div></aside>';
+    '<div class="timetable-drag-help"><span>🖱️ ลากเพื่อวาง/ย้ายคาบ</span><span>👆 จอสัมผัส: แตะกิจกรรม แล้วแตะช่องสีเขียว</span><span>▧ ช่องลายแดง = มีข้อขัดแย้งหรือผิดห้อง</span></div></aside>';
 }
 function timetableClassGridHtml(){
   const data=state.timetableData||{},draft=state.timetableDraft||[],cls=timetableSelectedClass();
@@ -6828,7 +6840,7 @@ function timetableWorkspaceHtml(){
   else if(state.timetableViewMode==="day")main=timetableDayGridHtml();
   else if(state.timetableViewMode==="week")main=timetableWeekGridHtml();
   else main=timetableClassGridHtml();
-  return '<div class="timetable-dnd-layout timetable-lantiv-layout"><div class="timetable-dnd-board">'+main+'</div>'+timetableActivitiesPaneHtml()+'</div>';
+  return timetableSlotLegendHtml()+'<div class="timetable-dnd-layout timetable-lantiv-layout"><div class="timetable-dnd-board">'+main+'</div>'+timetableActivitiesPaneHtml()+'</div>';
 }
 function timetableStatsHtml(data){
   const draft=timetableScopedDraft(),classes=timetableScopedClasses(data),offerings=timetableScopedOfferings(data);
