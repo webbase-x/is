@@ -6677,14 +6677,23 @@ function timetableRenderLive(){
   bindTimetableSlotControls();
   bindTimetableWorkspaceLinks();
 }
+function timetableApplyViewMode(mode){
+  state.timetableViewMode=mode||"overview";
+  qa("[data-timetable-view]").forEach(btn=>btn.classList.toggle("active",btn.dataset.timetableView===state.timetableViewMode));
+  q("[data-timetable-grade-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="grade");
+  q("[data-timetable-class-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="class");
+  q("[data-timetable-teacher-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="teacher");
+  q("[data-timetable-day-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="day");
+  timetableRenderLive();
+}
 function bindTimetableWorkspaceLinks(){
   qa("[data-timetable-open-grade]").forEach(btn=>btn.addEventListener("click",()=>{
     state.timetableGradeCode=btn.dataset.timetableOpenGrade||null;
-    state.timetableViewMode="grade";renderRoute();
+    timetableApplyViewMode("grade");
   }));
   qa("[data-timetable-open-class]").forEach(btn=>btn.addEventListener("click",()=>{
     state.timetableClassId=btn.dataset.timetableOpenClass||null;
-    state.timetableViewMode="class";renderRoute();
+    timetableApplyViewMode("class");
   }));
 }
 function bindTimetableSlotControls(){
@@ -6722,26 +6731,50 @@ function bindTimetableSlotControls(){
   }));
 }
 function timetableAutoFillRemaining(){
-  const data=state.timetableData||{},offerings=timetableScopedOfferings(data);
-  let draft=JSON.parse(JSON.stringify(state.timetableDraft||[])),added=0,guard=0;
-  while(guard++<5000){
-    const pending=offerings.map(o=>({
-      o,
-      remaining:Math.max(0,Math.round(Number(o.weekly_periods||0))-timetableOfferingCount(o,draft)),
-      candidates:timetableCandidateSlotsForOffering(o,draft)
-    })).filter(x=>x.remaining>0);
-    if(!pending.length)break;
-    const workable=pending.filter(x=>x.candidates.length>0).sort((a,b)=>a.candidates.length-b.candidates.length||b.remaining-a.remaining||String(a.o.subject_name).localeCompare(String(b.o.subject_name),"th"));
-    if(!workable.length)break;
-    const pick=workable[0],slot=pick.candidates[0],o=pick.o;
-    draft.push({
-      id:null,version_id:data.selected_version_id,day_no:slot.day,period_no:slot.period,
-      class_section_id:o.class_section_id,course_id:o.course_id,personnel_id:o.personnel_id,
-      room_label:null,note:null
-    });
-    added++;
-  }
-  const unresolved=offerings.reduce((sum,o)=>sum+Math.max(0,Math.round(Number(o.weekly_periods||0))-timetableOfferingCount(o,draft)),0);
+  const data=state.timetableData||{},offerings=timetableScopedOfferings(data),classMap=new Map((data.classes||[]).map(c=>[c.id,c]));
+  const draft=JSON.parse(JSON.stringify(state.timetableDraft||[]));
+  const classSlots=new Set(),teacherSlots=new Set(),offerCounts=new Map(),offerDayCounts=new Map(),teacherDayCounts=new Map(),classDayCounts=new Map(),classCourseSlots=new Set();
+  const offerKey=o=>o.class_section_id+"|"+o.course_id+"|"+o.personnel_id;
+  const inc=(map,key,n=1)=>map.set(key,(map.get(key)||0)+n);
+  draft.forEach(e=>{
+    classSlots.add(e.class_section_id+"|"+e.day_no+"|"+e.period_no);
+    teacherSlots.add(e.personnel_id+"|"+e.day_no+"|"+e.period_no);
+    const k=e.class_section_id+"|"+e.course_id+"|"+e.personnel_id;
+    inc(offerCounts,k);inc(offerDayCounts,k+"|"+e.day_no);inc(teacherDayCounts,e.personnel_id+"|"+e.day_no);inc(classDayCounts,e.class_section_id+"|"+e.day_no);
+    classCourseSlots.add(e.class_section_id+"|"+e.course_id+"|"+e.day_no+"|"+e.period_no);
+  });
+  const slotsFor=o=>{
+    const cls=classMap.get(o.class_section_id);if(!cls)return [];
+    const days=Math.max(1,Math.min(7,Number(cls.school_days_per_week||data.settings&&data.settings.school_days_per_week||5)));
+    const periods=Math.max(1,Math.min(30,Number(cls.periods_per_day||data.settings&&data.settings.periods_per_day||8)));
+    const k=offerKey(o),out=[];
+    for(let day=1;day<=days;day++)for(let period=1;period<=periods;period++){
+      if(classSlots.has(o.class_section_id+"|"+day+"|"+period)||teacherSlots.has(o.personnel_id+"|"+day+"|"+period))continue;
+      const adjacent=classCourseSlots.has(o.class_section_id+"|"+o.course_id+"|"+day+"|"+(period-1))||classCourseSlots.has(o.class_section_id+"|"+o.course_id+"|"+day+"|"+(period+1));
+      const score=(offerDayCounts.get(k+"|"+day)||0)*100+(adjacent?25:0)+(teacherDayCounts.get(o.personnel_id+"|"+day)||0)*4+(classDayCounts.get(o.class_section_id+"|"+day)||0)*2+period*0.05;
+      out.push({day,period,score});
+    }
+    return out.sort((a,b)=>a.score-b.score||a.day-b.day||a.period-b.period);
+  };
+  const pending=offerings.map(o=>{
+    const target=Math.max(0,Math.round(Number(o.weekly_periods||0))),remaining=Math.max(0,target-(offerCounts.get(offerKey(o))||0));
+    return {o,remaining,initialSlots:slotsFor(o).length};
+  }).filter(x=>x.remaining>0).sort((a,b)=>a.initialSlots-b.initialSlots||b.remaining-a.remaining||String(a.o.subject_name).localeCompare(String(b.o.subject_name),"th"));
+  let added=0;
+  pending.forEach(item=>{
+    const o=item.o,k=offerKey(o);
+    for(let i=0;i<item.remaining;i++){
+      const candidates=slotsFor(o);if(!candidates.length)break;
+      const slot=candidates[0];
+      draft.push({id:null,version_id:data.selected_version_id,day_no:slot.day,period_no:slot.period,class_section_id:o.class_section_id,course_id:o.course_id,personnel_id:o.personnel_id,room_label:null,note:null});
+      classSlots.add(o.class_section_id+"|"+slot.day+"|"+slot.period);
+      teacherSlots.add(o.personnel_id+"|"+slot.day+"|"+slot.period);
+      inc(offerCounts,k);inc(offerDayCounts,k+"|"+slot.day);inc(teacherDayCounts,o.personnel_id+"|"+slot.day);inc(classDayCounts,o.class_section_id+"|"+slot.day);
+      classCourseSlots.add(o.class_section_id+"|"+o.course_id+"|"+slot.day+"|"+slot.period);
+      added++;
+    }
+  });
+  const unresolved=offerings.reduce((sum,o)=>sum+Math.max(0,Math.round(Number(o.weekly_periods||0))-(offerCounts.get(offerKey(o))||0)),0);
   state.timetableDraft=draft;
   if(added)timetableSetDirty(true);
   timetableRenderLive();
@@ -6762,17 +6795,21 @@ function timetableBindGradeScope(scopeEl,{live=false}={}){
     const input=q('input[name="grade_codes"]',label);label.classList.toggle("selected",Boolean(input&&input.checked));
   });
   qa("[data-timetable-stage]",scopeEl).forEach(btn=>btn.addEventListener("click",()=>{
-    const stage=btn.dataset.timetableStage;
+    const before=timetableGradeCodesFromForm(scopeEl),stage=btn.dataset.timetableStage;
     qa('input[name="grade_codes"]',scopeEl).forEach(input=>{
       if(input.disabled)return;
-      const match=stage==="all"||timetableGradeStage(input.value)===stage;
-      input.checked=match;
+      input.checked=stage==="all"||timetableGradeStage(input.value)===stage;
     });
     syncLabels();
     if(live){
       const codes=timetableGradeCodesFromForm(scopeEl);
-      if(!codes.length){toast("ต้องเลือกอย่างน้อย 1 ระดับชั้น","error");return;}
-      if(timetableScopeHasOrphanEntries(codes)){toast("ยังมีคาบของระดับชั้นที่ถูกนำออก กรุณาลบคาบของระดับนั้นก่อน","error");return;}
+      if(!codes.length||timetableScopeHasOrphanEntries(codes)){
+        const old=new Set(before);
+        qa('input[name="grade_codes"]',scopeEl).forEach(input=>{if(!input.disabled)input.checked=old.has(input.value);});
+        syncLabels();
+        toast(!codes.length?"ต้องเลือกอย่างน้อย 1 ระดับชั้น":"ยังมีคาบของระดับชั้นที่ถูกนำออก กรุณาลบคาบของระดับนั้นก่อน","error");
+        return;
+      }
       state.timetableGradeCodes=codes;timetableSetDirty(true);timetableRenderLive();
     }
   }));
@@ -6917,8 +6954,7 @@ function bindTimetableControls(){
     toast("ลบเวอร์ชันตารางสอนแล้ว","success");renderRoute();
   });
   qa("[data-timetable-view]").forEach(btn=>btn.addEventListener("click",()=>{
-    state.timetableViewMode=btn.dataset.timetableView||"overview";
-    renderRoute();
+    timetableApplyViewMode(btn.dataset.timetableView||"overview");
   }));
   q("[data-timetable-grade]")?.addEventListener("change",e=>{state.timetableGradeCode=e.target.value||null;timetableRenderLive();});
   q("[data-timetable-class]")?.addEventListener("change",e=>{state.timetableClassId=e.target.value||null;timetableRenderLive();});
