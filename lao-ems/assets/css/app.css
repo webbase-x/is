@@ -11827,3 +11827,66 @@ html.is-touch-device [data-manual-refresh]{
   font-weight:700;
   line-height:1.4;
 }
+
+
+/* Curriculum classification + automatic standard ordering — v0.19.71 */
+.academic-course-classification{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:5px;
+  min-width:0;
+}
+.subject-type-chip,
+.subject-subtype-chip{
+  display:inline-flex;
+  align-items:center;
+  min-height:22px;
+  padding:3px 7px;
+  border-radius:999px;
+  font-size:10.5px;
+  line-height:1.2;
+  font-weight:900;
+  white-space:nowrap;
+}
+.subject-type-chip.basic{background:#eff4ff;color:#175cd3}
+.subject-type-chip.additional{background:#f4f3ff;color:#5925dc}
+.subject-type-chip.activity{background:#ecfdf3;color:#027a48}
+.subject-type-chip.other{background:#f2f4f7;color:#475467}
+.subject-subtype-chip{background:#fff7ed;color:#c4320a}
+.subject-area-text{
+  min-width:0;
+  color:#667085;
+  font-size:11px;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+.academic-auto-order-note{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  min-height:42px;
+  padding:8px 10px;
+  border:1px solid #d1e0ff;
+  border-radius:10px;
+  background:#f8fbff;
+}
+.academic-auto-order-note strong{
+  color:#1849a9;
+  font-size:11.5px;
+}
+.academic-auto-order-note span{
+  margin-top:2px;
+  color:#667085;
+  font-size:10.5px;
+  line-height:1.35;
+}
+.academic-course-actions .secondary-btn{
+  min-width:92px;
+}
+@media(max-width:640px){
+  .academic-course-classification{align-items:flex-start}
+  .subject-area-text{flex-basis:100%}
+  .academic-course-actions .secondary-btn{width:100%}
+}
