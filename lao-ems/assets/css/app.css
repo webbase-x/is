@@ -11890,3 +11890,14 @@ html.is-touch-device [data-manual-refresh]{
   .subject-area-text{flex-basis:100%}
   .academic-course-actions .secondary-btn{width:100%}
 }
+
+
+/* Subject workspace rendering containment — v0.19.74 */
+.subjects-v2-content .subject-selected-card,
+.subject-library-content .subject-library-card{
+  content-visibility:auto;
+  contain-intrinsic-size:220px;
+}
+.subject-time-editor-slot:empty{
+  display:none;
+}
