@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.62";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.63";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -6613,12 +6613,14 @@ function timetableSlotLegendHtml(){
 }
 function timetableScheduledCardHtml(entry,{showClass=false,compact=false}={}){
   const o=timetableEntryOffering(entry)||{},cls=(state.timetableData&&state.timetableData.classes||[]).find(c=>c.id===entry.class_section_id);
-  const subject=(o.subject_code?o.subject_code+" · ":"")+(o.subject_name||entry.subject_name||"-");
-  const tail=[o.teacher_name||entry.teacher_name||"-",showClass?timetableClassLabel(cls):""].filter(Boolean).join(" · ");
+  const code=o.subject_code||entry.subject_code||"—";
+  const name=o.subject_name||entry.subject_name||"-";
+  const teacher=o.teacher_name||entry.teacher_name||"-";
+  const classText=showClass&&cls?timetableClassLabel(cls):"";
   const locked=Boolean(entry.is_locked);
   const dragAttrs=locked?"":' draggable="true" data-timetable-drag="entry" data-offering-id="'+esc(o.workload_item_id||"")+'" data-source-class="'+esc(entry.class_section_id)+'" data-source-day="'+Number(entry.day_no)+'" data-source-period="'+Number(entry.period_no)+'" tabindex="0" role="button"';
   return '<article class="timetable-scheduled-card '+(compact?"compact ":"")+(locked?"locked":"")+'"'+dragAttrs+'>'+
-    '<div><strong>'+esc(subject)+'</strong><small>'+esc(tail)+'</small></div>'+
+    '<div class="timetable-card-copy"><b class="timetable-card-code">'+esc(code)+'</b><strong class="timetable-card-subject">'+esc(name)+'</strong><small class="timetable-card-teacher">'+esc(teacher)+(classText?' · '+esc(classText):'')+'</small></div>'+
     '<button type="button" class="timetable-lock-entry '+(locked?"active":"")+'" data-timetable-toggle-lock data-class-id="'+esc(entry.class_section_id)+'" data-day="'+Number(entry.day_no)+'" data-period="'+Number(entry.period_no)+'" aria-pressed="'+(locked?"true":"false")+'" title="'+(locked?"ปลดล็อกคาบ":"ล็อกคาบ ห้ามเคลื่อนย้าย")+'" aria-label="'+(locked?"ปลดล็อกคาบ":"ล็อกคาบ ห้ามเคลื่อนย้าย")+'">'+timetableLockIconHtml()+'</button>'+
     '<button type="button" class="timetable-remove-entry" data-timetable-remove-entry data-class-id="'+esc(entry.class_section_id)+'" data-day="'+Number(entry.day_no)+'" data-period="'+Number(entry.period_no)+'" aria-label="นำคาบนี้ออก" '+(locked?'disabled title="คาบนี้ถูกล็อก"':"")+'>×</button>'+
   '</article>';
@@ -6742,7 +6744,7 @@ function timetableActivitiesPaneHtml(){
     '<div class="timetable-drag-source-head"><div><strong>กิจกรรมที่ยังจัดไม่ครบ</strong><small>แบบ Lantiv: ลากจากรายการด้านขวาไปยังช่องตาราง ช่องที่วางได้จะถูกไฮไลต์</small></div><span>'+pending.length.toLocaleString("th-TH")+'</span></div>'+
     '<div class="timetable-drag-list">'+(pending.length?pending.map(o=>
       '<article class="timetable-drag-card '+esc(o.criticality.level)+'" draggable="true" data-timetable-drag="offering" data-offering-id="'+esc(o.workload_item_id)+'" tabindex="0" role="button">'+
-        '<div><strong>'+esc((o.subject_code?o.subject_code+" · ":"")+o.subject_name)+'</strong><small>'+esc(o.teacher_name)+' · '+esc(o.grade_label||"")+'/'+esc(o.section_label||"")+'</small></div>'+
+        '<div class="timetable-drag-card-copy"><b class="timetable-card-code">'+esc(o.subject_code||"—")+'</b><strong>'+esc(o.subject_name||"-")+'</strong><small>'+esc(o.teacher_name||"-")+' · '+esc(o.grade_label||"")+'/'+esc(o.section_label||"")+'</small></div>'+
         '<span><b>เหลือ '+o.remaining.toLocaleString("th-TH")+'</b><small>จาก '+o.target.toLocaleString("th-TH")+' คาบ</small></span>'+
         '<em>'+esc(o.criticality.label)+(o.criticality.slots?' · '+o.criticality.slots+' ช่อง':'')+'</em>'+
       '</article>'
