@@ -11829,7 +11829,7 @@ html.is-touch-device [data-manual-refresh]{
 }
 
 
-/* Curriculum classification + automatic standard ordering — v0.19.71 */
+/* Curriculum classification + automatic standard ordering — v0.19.73 */
 .academic-course-classification{
   display:flex;
   align-items:center;
@@ -11889,71 +11889,4 @@ html.is-touch-device [data-manual-refresh]{
   .academic-course-classification{align-items:flex-start}
   .subject-area-text{flex-basis:100%}
   .academic-course-actions .secondary-btn{width:100%}
-}
-
-
-/* Curriculum autosave status — v0.19.72 */
-.autosave-status{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  min-height:34px;
-  margin-right:auto;
-  padding:6px 10px;
-  border:1px solid #d0d5dd;
-  border-radius:999px;
-  background:#f9fafb;
-  color:#475467;
-  font-size:11.5px;
-  font-weight:850;
-  line-height:1.2;
-}
-.autosave-status::before{
-  content:"●";
-  font-size:8px;
-  color:#98a2b3;
-}
-.autosave-status[data-state="pending"]{
-  border-color:#fedf89;
-  background:#fffaeb;
-  color:#b54708;
-}
-.autosave-status[data-state="pending"]::before{color:#f79009}
-.autosave-status[data-state="saving"]{
-  border-color:#b2ccff;
-  background:#eff4ff;
-  color:#175cd3;
-}
-.autosave-status[data-state="saving"]::before{color:#2e90fa}
-.autosave-status[data-state="saved"]{
-  border-color:#abefc6;
-  background:#ecfdf3;
-  color:#027a48;
-}
-.autosave-status[data-state="saved"]::before{content:"✓";font-size:11px;color:#12b76a}
-.autosave-status[data-state="waiting"]{
-  border-color:#fedf89;
-  background:#fffaeb;
-  color:#b54708;
-}
-.autosave-status[data-state="waiting"]::before{content:"!";font-size:11px;color:#f79009}
-.autosave-status[data-state="error"]{
-  border-color:#fecdca;
-  background:#fef3f2;
-  color:#b42318;
-}
-.autosave-status[data-state="error"]::before{content:"!";font-size:11px;color:#f04438}
-.subject-time-editor-actions .autosave-status,
-.subject-custom-actions .autosave-status,
-.academic-form-actions .autosave-status{
-  flex:0 1 auto;
-}
-@media(max-width:640px){
-  .subject-time-editor-actions .autosave-status,
-  .subject-custom-actions .autosave-status,
-  .academic-form-actions .autosave-status{
-    width:100%;
-    justify-content:center;
-    margin-right:0;
-  }
 }
