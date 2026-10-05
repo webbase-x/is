@@ -5651,7 +5651,7 @@ function academicSubjectsHtml(data,timeline){
         (canEdit&&c.subject_type!=="basic"?'<button type="button" class="secondary-btn compact-btn" data-edit-school-library-subject="'+esc(c.subject_id)+'" data-school-subject-code="'+esc(c.subject_code||"")+'" data-school-subject-name="'+esc(c.subject_name||"")+'" data-school-subject-area="'+esc(c.learning_area||"")+'" data-school-subject-type="'+esc(c.subject_type||"")+'" data-school-subject-subtype="'+esc(sourceInfo.subject_subtype||"")+'">แก้ไขในคลัง รร.</button>':'')+
         (canEdit?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+
       '</div>'+
-      (!inherited?academicTimeEditorHtml(c,timeInfo):'')+
+      (!inherited?'<div class="subject-time-editor-slot" data-subject-time-slot="'+esc(c.id)+'"></div>':'')+
     '</article>';
   };
   const selectedByType={
@@ -5664,7 +5664,7 @@ function academicSubjectsHtml(data,timeline){
     (selectedByType[type].length?'<div class="subject-selected-list">'+selectedByType[type].map(selectedCardHtml).join("")+'</div>':'<div class="subject-type-empty">ยังไม่มีรายการในหมวดนี้</div>')+
   '</section>';
 
-  const centralRows=centralCatalog.map(x=>{
+  const centralRows=workspaceView==="library"?centralCatalog.map(x=>{
     const isSelected=false;
     const activityCode=String(x.subject_code||"").trim().toLowerCase();
     const isMultiActivity=x.subject_type==="activity"&&activityCode&&(centralActivityCodeCounts.get(activityCode)||0)>1;
@@ -5676,7 +5676,7 @@ function academicSubjectsHtml(data,timeline){
         ?'<span class="subject-library-used">✓ อยู่ในหลักสูตรแล้ว</span>'
         :canEdit?'<button type="button" class="subject-add-btn" data-add-central-subject="'+esc(x.id||'')+'">＋ เพิ่ม</button>':'')+
     '</article>';
-  }).join("");
+  }).join(""):"";
 
   const subjectReadiness=state.subjectReadiness||{groups:[],total_groups:0,completed_groups:0,progress_percent:0,coverage_percent:0};
   const readinessGroups=subjectReadiness.groups||[];
@@ -5953,11 +5953,12 @@ function academicSubjectsHtml(data,timeline){
     :currentStatus==="ready_to_confirm"
       ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว</span></div>'+(canApprove?'<button type="button" class="primary-btn compact-btn" data-confirm-curriculum-structure>ยืนยันโครงสร้างนี้</button>':'')+'</section>'
       :'';
-  const schoolGroups=
-    selectedGroupHtml("basic","รายวิชาพื้นฐาน","รายวิชาที่ใช้ตามโครงสร้างหลักสูตรของระดับชั้นนี้")+
-    selectedGroupHtml("additional","รายวิชาเพิ่มเติม","รายวิชาที่สถานศึกษากำหนดเพิ่มเติมตามหลักสูตรสถานศึกษา")+
-    selectedGroupHtml("activity","กิจกรรมพัฒนาผู้เรียน","แนะแนว กิจกรรมนักเรียน ชุมนุม และกิจกรรมเพื่อสังคมฯ")+
-    (selectedByType.other.length?selectedGroupHtml("other","อื่น ๆ","รายการเฉพาะที่โรงเรียนกำหนด"):"");
+  const schoolGroups=workspaceView==="selected"
+    ?selectedGroupHtml("basic","รายวิชาพื้นฐาน","รายวิชาที่ใช้ตามโครงสร้างหลักสูตรของระดับชั้นนี้")+
+      selectedGroupHtml("additional","รายวิชาเพิ่มเติม","รายวิชาที่สถานศึกษากำหนดเพิ่มเติมตามหลักสูตรสถานศึกษา")+
+      selectedGroupHtml("activity","กิจกรรมพัฒนาผู้เรียน","แนะแนว กิจกรรมนักเรียน ชุมนุม และกิจกรรมเพื่อสังคมฯ")+
+      (selectedByType.other.length?selectedGroupHtml("other","อื่น ๆ","รายการเฉพาะที่โรงเรียนกำหนด"):"")
+    :"";
 
   const editGuardHtml=canManage?'<section class="subject-edit-toolbar"><div><strong>แก้ไขรายวิชา</strong><small>'+(canEdit?"กำลังเปิดแก้ไข":"ข้อมูลถูกป้องกันการแก้ไข")+'</small></div><label class="academic-edit-switch subject-edit-switch compact"><input type="checkbox" data-subject-edit-switch '+(canEdit?"checked":"")+'><span class="switch-track"><i></i></span><b>'+(canEdit?"เปิด":"ปิด")+'</b></label></section>':'';
 
