@@ -82,31 +82,49 @@ async function academicReadWithRetry(task){
 
 async function checkLatestVersion(){
   try{
-    const res=await fetch("./VERSION?t="+Date.now(),{cache:"no-store"});
-    if(!res.ok)return;
+    const res=await fetch("./VERSION?t="+Date.now(),{
+      cache:"no-store",
+      headers:{"cache-control":"no-cache","pragma":"no-cache"}
+    });
+    if(!res.ok)return false;
     const latest=(await res.text()).trim();
-    if(!/^\d+\.\d+\.\d+$/.test(latest))return;
+    if(!/^\d+\.\d+\.\d+$/.test(latest))return false;
+    const attemptKey="lao_version_refresh_target";
     if(latest===APP_VERSION){
+      sessionStorage.removeItem(attemptKey);
       qa("[data-app-version]").forEach(el=>{
         el.classList.remove("is-outdated");
         el.title="รุ่นปัจจุบัน "+APP_VERSION_LABEL;
       });
-      return;
+      return false;
     }
     qa("[data-app-version]").forEach(el=>{
       el.classList.add("is-outdated");
       el.title="กำลังใช้ "+APP_VERSION_LABEL+" · รุ่นล่าสุด v"+latest;
     });
+
+    if(sessionStorage.getItem(attemptKey)!==latest){
+      sessionStorage.setItem(attemptKey,latest);
+      await forceRefreshCurrentPage();
+      return true;
+    }
+
     if(!q("#version-update-notice")){
       const notice=document.createElement("button");
       notice.id="version-update-notice";
       notice.type="button";
       notice.className="version-update-notice";
-      notice.innerHTML='<strong>มีรุ่นใหม่ v'+esc(latest)+'</strong><span>กำลังใช้ '+esc(APP_VERSION_LABEL)+' · แตะเพื่อโหลดรุ่นล่าสุด</span>';
-      notice.addEventListener("click",()=>location.reload());
+      notice.innerHTML='<strong>มีรุ่นใหม่ v'+esc(latest)+'</strong><span>กำลังใช้ '+esc(APP_VERSION_LABEL)+' · กดเพื่อบังคับโหลดไฟล์ล่าสุด</span>';
+      notice.addEventListener("click",async()=>{
+        sessionStorage.removeItem(attemptKey);
+        await forceRefreshCurrentPage();
+      });
       document.body.appendChild(notice);
     }
-  }catch(_){}
+    return false;
+  }catch(_){
+    return false;
+  }
 }
 
 function ensurePullRefreshIndicator(){
@@ -667,22 +685,22 @@ async function signInWithGoogle(){
 }
 
 function isTouchDevice(){
-  return Boolean(
-    ("ontouchstart" in window)
-    || Number(navigator.maxTouchPoints||0)>0
-    || (window.matchMedia&&window.matchMedia("(any-pointer: coarse)").matches)
-  );
+  const hasTouch=("ontouchstart" in window)||Number(navigator.maxTouchPoints||0)>0;
+  const coarse=Boolean(window.matchMedia&&window.matchMedia("(any-pointer: coarse)").matches);
+  const fine=Boolean(window.matchMedia&&window.matchMedia("(any-pointer: fine)").matches);
+  const compactViewport=Math.min(window.innerWidth||9999,window.innerHeight||9999)<=900;
+  return Boolean(hasTouch&&coarse&&!fine&&compactViewport);
 }
 function applyInputDeviceUi(){
-  const touch=isTouchDevice();
-  document.documentElement.classList.toggle("is-touch-device",touch);
+  const touchOnly=isTouchDevice();
+  document.documentElement.classList.toggle("is-touch-device",touchOnly);
   qa("[data-manual-refresh]").forEach(btn=>{
-    btn.hidden=touch;
-    btn.setAttribute("aria-hidden",touch?"true":"false");
-    if(touch)btn.tabIndex=-1;
+    btn.hidden=touchOnly;
+    btn.setAttribute("aria-hidden",touchOnly?"true":"false");
+    if(touchOnly)btn.tabIndex=-1;
     else btn.removeAttribute("tabindex");
   });
-  return touch;
+  return touchOnly;
 }
 function bindManualRefresh(){
   if(applyInputDeviceUi())return;
@@ -9812,7 +9830,7 @@ document.addEventListener("click",event=>{
 
 async function init(){
   renderAppVersion();
-  void checkLatestVersion();
+  if(await checkLatestVersion())return;
   applyInputDeviceUi();
   bindStaticUI();
   bindManualRefresh();
