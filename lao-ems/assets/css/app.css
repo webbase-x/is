@@ -10674,7 +10674,7 @@ html.is-touch-device [data-manual-refresh]{
 }
 
 
-/* v0.19.51 — timetable scheduler */
+/* v0.19.52 — timetable scheduler */
 .academic-timetable-link{
   flex:0 0 auto;min-height:42px;padding:7px 10px;border:1px solid #d0d5dd;border-radius:12px;
   background:#fff;color:#344054;text-decoration:none;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:900
@@ -10830,3 +10830,90 @@ html.is-touch-device [data-manual-refresh]{
   .timetable-slot-no{width:6mm;height:6mm;font-size:8pt}
   .timetable-grid-heading{margin-bottom:3mm!important}
 }
+
+
+/* v0.19.52 — smart timetable grade scope, source readiness and multi-view workspace */
+.timetable-source-panel{display:grid;gap:12px}
+.timetable-source-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.timetable-source-grid article{border:1px solid #e4e7ec;border-radius:14px;background:#fff;padding:11px;display:grid;grid-template-columns:auto 1fr;gap:2px 9px;align-items:center}
+.timetable-source-grid article>span{grid-row:1/4;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#f2f4f7}
+.timetable-source-grid small{color:#667085;font-size:10.5px}
+.timetable-source-grid strong{font-size:19px;line-height:1.15}
+.timetable-source-grid em{font-style:normal;color:#98a2b3;font-size:9.5px}
+.timetable-grade-readiness{display:flex;gap:6px;flex-wrap:wrap}
+.timetable-grade-readiness span{display:inline-flex;align-items:center;gap:5px;padding:6px 8px;border-radius:999px;font-size:10px;font-weight:800;background:#f2f4f7;color:#475467}
+.timetable-grade-readiness span.ready{background:#ecfdf3;color:#067647}
+.timetable-grade-readiness span.pending{background:#fffaeb;color:#b54708}
+.timetable-grade-scope{display:grid;gap:9px;padding:10px;border:1px solid #e4e7ec;border-radius:14px;background:#fbfcfe}
+.timetable-scope-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.timetable-scope-head>div:first-child{display:grid;gap:2px}
+.timetable-scope-head strong{font-size:12px}
+.timetable-scope-head small{color:#667085;font-size:10px;line-height:1.45}
+.timetable-stage-actions{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.timetable-stage-actions button{font-size:10.5px}
+.timetable-grade-picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px}
+.timetable-grade-pick{border:1px solid #e4e7ec;border-radius:11px;background:#fff;padding:8px;display:grid;grid-template-columns:auto 1fr auto;gap:7px;align-items:center;cursor:pointer;min-width:0}
+.timetable-grade-pick.selected{border-color:#84adff;background:#f5f8ff}
+.timetable-grade-pick.not-ready{opacity:.68}
+.timetable-grade-pick input{margin:0}
+.timetable-grade-pick span{min-width:0}
+.timetable-grade-pick b{display:block;font-size:11px}
+.timetable-grade-pick small{display:block;color:#667085;font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timetable-grade-pick em{font-style:normal;font-size:9px;font-weight:800;color:#667085;white-space:nowrap}
+.timetable-grade-pick.ready em{color:#067647}
+.timetable-scope-empty{padding:10px;border-radius:10px;background:#fff6ed;color:#b54708;font-size:11px}
+.timetable-progress-grid .criticality{display:inline-flex;margin-left:5px;padding:2px 5px;border-radius:999px;font-style:normal;font-size:9px;font-weight:800;background:#f2f4f7;color:#475467}
+.timetable-progress-grid .criticality.warning{background:#fffaeb;color:#b54708}
+.timetable-progress-grid .criticality.danger{background:#fef3f2;color:#b42318}
+.timetable-progress-grid .criticality.ok{background:#ecfdf3;color:#067647}
+.timetable-actions .smart{border-color:#84adff;background:#eff4ff;color:#1849a9}
+.timetable-grade-overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.timetable-grade-overview-card,.timetable-grade-class-grid button{border:1px solid #e4e7ec;border-radius:13px;background:#fff;padding:10px;text-align:left;display:grid;grid-template-columns:1fr auto;gap:4px 9px;cursor:pointer;color:inherit}
+.timetable-grade-overview-card:hover,.timetable-grade-class-grid button:hover{border-color:#84adff;background:#f8fbff}
+.timetable-grade-overview-card span,.timetable-grade-class-grid button span{min-width:0}
+.timetable-grade-overview-card strong,.timetable-grade-class-grid strong{display:block;font-size:12px}
+.timetable-grade-overview-card small,.timetable-grade-class-grid small{display:block;color:#667085;font-size:9.5px;margin-top:2px}
+.timetable-grade-overview-card>b,.timetable-grade-class-grid button>b{font-size:11px;white-space:nowrap}
+.timetable-grade-overview-card>em,.timetable-grade-class-grid button>em{grid-column:1/-1;font-style:normal;color:#667085;font-size:9.5px}
+.timetable-grade-class-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.timetable-matrix-wrap{overflow:auto;border:1px solid #e4e7ec;border-radius:13px}
+.timetable-matrix{width:100%;border-collapse:separate;border-spacing:0;min-width:760px;background:#fff}
+.timetable-matrix th,.timetable-matrix td{padding:7px 8px;border-right:1px solid #eaecf0;border-bottom:1px solid #eaecf0;vertical-align:top;text-align:left;font-size:10px;min-width:92px}
+.timetable-matrix th{position:sticky;top:0;background:#f8fafc;z-index:2;font-weight:900;color:#344054}
+.timetable-matrix tbody th{position:sticky;left:0;z-index:1;min-width:110px}
+.timetable-matrix td.filled{background:#f8fbff}
+.timetable-matrix td.blocked{background:#f2f4f7;color:#98a2b3;text-align:center}
+.timetable-matrix td strong{display:block;font-size:10px}
+.timetable-matrix td small{display:block;margin-top:2px;color:#667085;font-size:8.8px}
+.timetable-matrix td span{color:#98a2b3}
+.timetable-matrix.week td{text-align:center}
+.timetable-matrix.week td strong{font-size:13px}
+.timetable-workspace-toolbar .timetable-view-switch{display:flex;flex-wrap:wrap}
+.timetable-workspace-toolbar .timetable-view-switch button{flex:0 0 auto}
+@media(max-width:980px){
+  .timetable-source-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .timetable-scope-head{display:grid}
+  .timetable-stage-actions{justify-content:flex-start}
+}
+@media(max-width:640px){
+  .timetable-source-grid{grid-template-columns:1fr 1fr}
+  .timetable-source-grid article{padding:9px}
+  .timetable-grade-picks{grid-template-columns:1fr}
+  .timetable-grade-pick{grid-template-columns:auto 1fr}
+  .timetable-grade-pick em{grid-column:2}
+  .timetable-workspace-toolbar .timetable-view-switch{display:grid;grid-template-columns:repeat(3,1fr)}
+  .timetable-workspace-toolbar .timetable-view-switch button{padding:7px 4px;font-size:10.5px}
+  .timetable-actions{grid-template-columns:1fr}
+}
+@media print{
+  .timetable-source-panel,.timetable-grade-scope{display:none!important}
+}
+
+.timetable-progress-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.timetable-progress-summary>span{border:1px solid #e4e7ec;border-radius:11px;background:#fff;padding:8px 10px;display:flex;align-items:baseline;gap:7px}
+.timetable-progress-summary b{font-size:17px}
+.timetable-progress-summary small{color:#667085;font-size:10px}
+.timetable-progress-summary>span.danger{border-color:#fecdca;background:#fffafa}
+.timetable-progress-summary>span.danger b{color:#b42318}
+.timetable-progress-summary>span.ok{border-color:#abefc6;background:#f6fef9}
+@media(max-width:640px){.timetable-progress-summary{grid-template-columns:1fr}.timetable-progress-summary>span{justify-content:space-between}}
