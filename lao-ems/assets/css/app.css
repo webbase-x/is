@@ -10917,3 +10917,68 @@ html.is-touch-device [data-manual-refresh]{
 .timetable-progress-summary>span.danger b{color:#b42318}
 .timetable-progress-summary>span.ok{border-color:#abefc6;background:#f6fef9}
 @media(max-width:640px){.timetable-progress-summary{grid-template-columns:1fr}.timetable-progress-summary>span{justify-content:space-between}}
+
+
+/* v0.19.54 — timetable drag & drop workspace */
+.timetable-dnd-layout{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:12px;align-items:start}
+.timetable-drag-source{position:sticky;top:12px;border:1px solid #e4e7ec;border-radius:14px;background:#f8fafc;padding:10px;display:grid;gap:9px;max-height:calc(100vh - 170px);overflow:auto}
+.timetable-drag-source-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.timetable-drag-source-head>div{display:grid;gap:2px}
+.timetable-drag-source-head strong{font-size:12px}
+.timetable-drag-source-head small{font-size:9.5px;color:#667085;line-height:1.4}
+.timetable-drag-source-head>span{flex:0 0 auto;padding:4px 7px;border-radius:999px;background:#eef2f6;color:#344054;font-size:9.5px;font-weight:900}
+.timetable-drag-list{display:grid;gap:7px}
+.timetable-drag-card{border:1px solid #d0d5dd;border-radius:11px;background:#fff;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.timetable-drag-card:active,.timetable-scheduled-card:active{cursor:grabbing}
+.timetable-drag-card:hover{border-color:#84adff;box-shadow:0 3px 10px rgba(16,24,40,.08)}
+.timetable-drag-card>div{min-width:0}
+.timetable-drag-card strong{display:block;font-size:11px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timetable-drag-card small{display:block;font-size:9px;color:#667085;margin-top:2px}
+.timetable-drag-card>span{text-align:right;white-space:nowrap}
+.timetable-drag-card>span b{display:block;font-size:10px}
+.timetable-drag-card>em{grid-column:1/-1;font-style:normal;font-size:8.5px;font-weight:800;color:#475467}
+.timetable-drag-card.warning{border-color:#fedf89;background:#fffcf5}
+.timetable-drag-card.danger{border-color:#fecdca;background:#fffafa}
+.timetable-drag-card.drag-picked,.timetable-drag-card.dragging,.timetable-scheduled-card.drag-picked,.timetable-scheduled-card.dragging{outline:2px solid #528bff;outline-offset:2px;opacity:.8}
+.timetable-drag-complete{padding:16px 8px;display:grid;place-items:center;text-align:center;gap:3px;color:#067647}
+.timetable-drag-complete>span{font-size:22px}
+.timetable-drag-complete strong{font-size:12px}
+.timetable-drag-complete small{font-size:9.5px;color:#667085}
+.timetable-drag-help{border-top:1px solid #e4e7ec;padding-top:7px;display:grid;gap:3px;color:#667085;font-size:8.8px}
+.timetable-dnd-board{min-width:0}
+.timetable-dnd-grid{align-items:start}
+.timetable-dnd-day>div{display:grid;gap:6px}
+.timetable-drop-zone{min-height:58px;border:1.5px dashed #d0d5dd;border-radius:10px;background:#fff;position:relative;transition:border-color .12s ease,background .12s ease,transform .12s ease}
+.timetable-drop-zone.empty{cursor:pointer}
+.timetable-drop-zone.drop-valid{border-color:#75e0a7;background:#f6fef9}
+.timetable-drop-zone.drop-invalid{opacity:.5}
+.timetable-drop-zone.drop-hover{border-color:#175cd3;background:#eff8ff;transform:scale(1.015);box-shadow:0 0 0 2px rgba(23,92,211,.08)}
+.timetable-empty-slot{min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:7px;padding:7px 8px;color:#98a2b3}
+.timetable-empty-slot span{font-size:9.5px;font-weight:800}
+.timetable-empty-slot em{font-size:8.5px;font-style:normal}
+.timetable-scheduled-card{min-height:56px;padding:7px 30px 7px 8px;border-radius:9px;background:#eff4ff;border:1px solid #b2ccff;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;position:relative;display:flex;align-items:center}
+.timetable-scheduled-card>div{min-width:0}
+.timetable-scheduled-card strong{display:block;font-size:10.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timetable-scheduled-card small{display:block;font-size:8.8px;color:#475467;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timetable-remove-entry{position:absolute;right:5px;top:5px;width:22px;height:22px;border:0;border-radius:7px;background:rgba(255,255,255,.8);color:#b42318;font-size:17px;line-height:1;display:grid;place-items:center;cursor:pointer}
+.timetable-drag-ghost{position:fixed!important;left:0;top:0;z-index:10000;width:min(240px,70vw);pointer-events:none!important;margin:0!important;opacity:.9;box-shadow:0 10px 30px rgba(16,24,40,.18);transform:translate3d(-9999px,-9999px,0)}
+@media(max-width:900px){
+  .timetable-dnd-layout{grid-template-columns:1fr}
+  .timetable-drag-source{position:static;max-height:none}
+  .timetable-drag-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+  .timetable-drag-source{padding:8px}
+  .timetable-drag-list{display:flex;overflow-x:auto;gap:7px;padding-bottom:2px;scroll-snap-type:x proximity}
+  .timetable-drag-card{flex:0 0 min(230px,78vw);scroll-snap-align:start}
+  .timetable-drag-help{grid-template-columns:1fr}
+  .timetable-drop-zone{min-height:54px}
+  .timetable-empty-slot,.timetable-scheduled-card{min-height:52px}
+}
+@media print{
+  .timetable-drag-source{display:none!important}
+  .timetable-dnd-layout{display:block}
+  .timetable-drop-zone{border-style:solid}
+  .timetable-empty-slot{display:none}
+  .timetable-remove-entry{display:none!important}
+}
