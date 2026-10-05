@@ -6558,28 +6558,42 @@ function timetableClassGridHtml(){
     (classOfferings.length?timetableClassAxisGridHtml(cls,draft,days,periods):'<div class="notice warning"><strong>ยังไม่มีภาระงานสอนที่อนุมัติสำหรับห้องนี้</strong><br>อนุมัติภาระงานสอนก่อนจึงจะลากรายวิชาลงตารางได้</div>')+
     '</div></div>';
 }
+function timetableTeacherCellHtml(pid,draft,classMap,day,period){
+  const entry=draft.find(e=>e.personnel_id===pid&&Number(e.day_no)===day&&Number(e.period_no)===period)||null;
+  const offering=entry&&timetableEntryOffering(entry),cls=entry&&classMap.get(entry.class_section_id);
+  return '<div class="timetable-teacher-axis-cell '+(entry?"filled":"empty")+'">'+(entry
+    ?'<strong>'+esc(offering&&offering.subject_name||entry.subject_name||"-")+'</strong><small>'+esc(timetableClassLabel(cls))+'</small>'
+    :'<span>ว่าง</span>')+'</div>';
+}
 function timetableTeacherGridHtml(){
   const data=state.timetableData||{},draft=state.timetableDraft||[],pid=state.timetablePersonnelId;
   const offerings=timetableScopedOfferings(data).filter(o=>o.personnel_id===pid);
   if(!pid||!offerings.length)return '<div class="empty-state compact-empty"><div class="empty-icon">👩‍🏫</div><h3>ยังไม่มีครูจากภาระงานสอนที่อนุมัติ</h3></div>';
-  const teacher=offerings[0].teacher_name;
-  const classMap=new Map((data.classes||[]).map(c=>[c.id,c]));
+  const teacher=offerings[0].teacher_name,classMap=new Map((data.classes||[]).map(c=>[c.id,c]));
   const relevantClasses=offerings.map(o=>classMap.get(o.class_section_id)).filter(Boolean);
   const days=Math.max(1,...relevantClasses.map(c=>Number(c.school_days_per_week||5)));
   const periods=Math.max(1,...relevantClasses.map(c=>Number(c.periods_per_day||8)));
-  const cards=[];
-  for(let day=1;day<=days;day++){
-    let slots="";
+  const axis=state.timetableAxisMode==="period-columns"?"period-columns":"day-columns";
+  let head="",body="";
+  if(axis==="day-columns"){
+    head='<th class="axis-corner">คาบ \\ วัน</th>';
+    for(let day=1;day<=days;day++)head+='<th>'+esc(timetableDayLabels[day]||("วัน "+day))+'</th>';
     for(let period=1;period<=periods;period++){
-      const entry=draft.find(e=>e.personnel_id===pid&&Number(e.day_no)===day&&Number(e.period_no)===period)||null;
-      const offering=entry&&timetableEntryOffering(entry),cls=entry&&classMap.get(entry.class_section_id);
-      slots+='<div class="timetable-teacher-slot '+(entry?"filled":"")+'"><span>'+period+'</span>'+(entry
-        ?'<div><strong>'+esc(offering&&offering.subject_name||entry.subject_name||"-")+'</strong><small>'+esc(timetableClassLabel(cls))+'</small></div>'
-        :'<em>ว่าง</em>')+'</div>';
+      let row='<th>คาบ '+period+'</th>';
+      for(let day=1;day<=days;day++)row+='<td>'+timetableTeacherCellHtml(pid,draft,classMap,day,period)+'</td>';
+      body+='<tr>'+row+'</tr>';
     }
-    cards.push('<article class="timetable-day-card teacher"><header><strong>'+esc(timetableDayLabels[day]||("วันที่ "+day))+'</strong><span>'+periods+' คาบ</span></header><div>'+slots+'</div></article>');
+  }else{
+    head='<th class="axis-corner">วัน \\ คาบ</th>';
+    for(let period=1;period<=periods;period++)head+='<th>คาบ '+period+'</th>';
+    for(let day=1;day<=days;day++){
+      let row='<th>'+esc(timetableDayLabels[day]||("วัน "+day))+'</th>';
+      for(let period=1;period<=periods;period++)row+='<td>'+timetableTeacherCellHtml(pid,draft,classMap,day,period)+'</td>';
+      body+='<tr>'+row+'</tr>';
+    }
   }
-  return '<div class="timetable-grid-heading"><div><strong>'+esc(teacher)+'</strong><span>ตารางรายสัปดาห์ของครู · แก้ไขคาบจากมุมมองรายห้อง</span></div><span>'+draft.filter(e=>e.personnel_id===pid).length.toLocaleString("th-TH")+' คาบที่จัดแล้ว</span></div><div class="timetable-days-grid">'+cards.join("")+'</div>';
+  return '<div class="timetable-grid-heading"><div><strong>'+esc(teacher)+'</strong><span>ตารางรายสัปดาห์ของครู · สลับแนววัน/คาบได้</span></div><span>'+draft.filter(e=>e.personnel_id===pid).length.toLocaleString("th-TH")+' คาบที่จัดแล้ว</span></div>'+
+    '<div class="timetable-axis-wrap teacher '+axis+'"><table class="timetable-axis-table"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 function timetableOverviewHtml(){
   const data=state.timetableData||{},scope=timetableScopeData(),draft=state.timetableDraft||[],codes=new Set(timetableEffectiveGradeCodes());
@@ -6773,6 +6787,7 @@ function timetableApplyViewMode(mode){
   q("[data-timetable-class-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="class");
   q("[data-timetable-teacher-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="teacher");
   q("[data-timetable-day-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="day");
+  q("[data-timetable-axis-controls]")?.classList.toggle("hidden",!["class","teacher"].includes(state.timetableViewMode));
   const grade=q("[data-timetable-grade]"),cls=q("[data-timetable-class]"),teacher=q("[data-timetable-teacher]"),day=q("[data-timetable-day]");
   if(grade&&state.timetableGradeCode)grade.value=state.timetableGradeCode;
   if(cls&&state.timetableClassId)cls.value=state.timetableClassId;
@@ -7131,7 +7146,7 @@ async function academicTimetableHtml(data){
       '<span class="timetable-action-spacer"></span><button type="button" class="secondary-btn" data-timetable-export-xlsx>Excel</button><button type="button" class="secondary-btn" data-timetable-export-csv>CSV</button><button type="button" class="secondary-btn" data-timetable-print>พิมพ์ / PDF</button>'+
     '</div></form>':'')+
     (version?'<section data-timetable-stats>'+timetableStatsHtml(page)+'</section>':'')+
-    (version?'<section class="panel timetable-workspace-shell"><div class="timetable-workspace-toolbar"><div class="timetable-view-switch"><button type="button" data-timetable-view="overview" class="'+(state.timetableViewMode==="overview"?"active":"")+'">ภาพรวม</button><button type="button" data-timetable-view="grade" class="'+(state.timetableViewMode==="grade"?"active":"")+'">ระดับชั้น</button><button type="button" data-timetable-view="class" class="'+(state.timetableViewMode==="class"?"active":"")+'">รายห้อง</button><button type="button" data-timetable-view="teacher" class="'+(state.timetableViewMode==="teacher"?"active":"")+'">รายครู</button><button type="button" data-timetable-view="day" class="'+(state.timetableViewMode==="day"?"active":"")+'">รายวัน</button><button type="button" data-timetable-view="week" class="'+(state.timetableViewMode==="week"?"active":"")+'">รายสัปดาห์</button></div><div class="timetable-display-switch"><button type="button" data-timetable-axis="day-columns" class="'+(state.timetableAxisMode!=="period-columns"?"active":"")+'" title="วันเป็นคอลัมน์ คาบเป็นแถว">วัน ↔ คาบ</button><button type="button" data-timetable-axis="period-columns" class="'+(state.timetableAxisMode==="period-columns"?"active":"")+'" title="คาบเป็นคอลัมน์ วันเป็นแถว">คาบ ↔ วัน</button><button type="button" data-timetable-fullscreen aria-pressed="false">⛶ เต็มจอ</button></div>'+
+    (version?'<section class="panel timetable-workspace-shell"><div class="timetable-workspace-toolbar"><div class="timetable-view-switch"><button type="button" data-timetable-view="overview" class="'+(state.timetableViewMode==="overview"?"active":"")+'">ภาพรวม</button><button type="button" data-timetable-view="grade" class="'+(state.timetableViewMode==="grade"?"active":"")+'">ระดับชั้น</button><button type="button" data-timetable-view="class" class="'+(state.timetableViewMode==="class"?"active":"")+'">รายห้อง</button><button type="button" data-timetable-view="teacher" class="'+(state.timetableViewMode==="teacher"?"active":"")+'">รายครู</button><button type="button" data-timetable-view="day" class="'+(state.timetableViewMode==="day"?"active":"")+'">รายวัน</button><button type="button" data-timetable-view="week" class="'+(state.timetableViewMode==="week"?"active":"")+'">รายสัปดาห์</button></div><div class="timetable-display-switch"><span class="timetable-axis-controls '+(["class","teacher"].includes(state.timetableViewMode)?"":"hidden")+'" data-timetable-axis-controls><button type="button" data-timetable-axis="day-columns" class="'+(state.timetableAxisMode!=="period-columns"?"active":"")+'" title="วันเป็นคอลัมน์ คาบเป็นแถว">วันแนวนอน</button><button type="button" data-timetable-axis="period-columns" class="'+(state.timetableAxisMode==="period-columns"?"active":"")+'" title="คาบเป็นคอลัมน์ วันเป็นแถว">คาบแนวนอน</button></span><button type="button" data-timetable-fullscreen aria-pressed="false">⛶ เต็มจอ</button></div>'+
       '<label class="'+(state.timetableViewMode==="grade"?"":"hidden")+'" data-timetable-grade-filter>ระดับชั้น<select data-timetable-grade>'+timetableGradeOptionsHtml()+'</select></label>'+
       '<label class="'+(state.timetableViewMode==="class"?"":"hidden")+'" data-timetable-class-filter>ห้อง<select data-timetable-class>'+timetableClassOptionsHtml(page)+'</select></label>'+
       '<label class="'+(state.timetableViewMode==="teacher"?"":"hidden")+'" data-timetable-teacher-filter>ครู<select data-timetable-teacher>'+timetableTeacherOptionsHtml(page)+'</select></label>'+
