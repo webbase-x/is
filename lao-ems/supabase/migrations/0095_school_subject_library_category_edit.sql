@@ -135,10 +135,17 @@ begin
         learning_area=v_area,
         subject_type=v_type,
         subject_subtype=v_subtype,
+        source_kind=case when v_type_changed then 'school_local' else source_kind end,
+        source_catalog_item_id=case when v_type_changed then null else source_catalog_item_id end,
+        source_shared_subject_id=case when v_type_changed then null else source_shared_subject_id end,
         updated_by=v_uid,
         updated_at=now()
     where id=p_subject_id
     returning id into v_new_id;
+
+    if v_type_changed and v_old.source_shared_subject_id is not null then
+      perform public.lao_refresh_shared_subject_usage(v_old.source_shared_subject_id);
+    end if;
 
     insert into public.lao_audit_logs(
       organization_id,school_id,actor_user_id,action,entity_type,entity_id,before_data,after_data
@@ -185,6 +192,10 @@ begin
     v_old.curriculum_framework,v_old.aliases,v_uid,v_uid
   )
   returning id into v_new_id;
+
+  if v_old.source_shared_subject_id is not null then
+    perform public.lao_refresh_shared_subject_usage(v_old.source_shared_subject_id);
+  end if;
 
   v_versioned:=true;
 
