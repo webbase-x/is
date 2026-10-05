@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.65";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.66";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -5028,6 +5028,53 @@ function academicGradeLabelFromCode(code){
   if(m[1]==="P")return "ประถมศึกษาปีที่ "+n;
   return "มัธยมศึกษาปีที่ "+n;
 }
+function academicSubjectGradeCodeFromCourseCode(value){
+  const code=String(value||"").trim().replace(/\s+/g,"");
+  const m=code.match(/^[^0-9]*([123])([1-6])\d{3}$/);
+  if(!m)return "";
+  const stage=m[1],level=Number(m[2]);
+  if(stage==="1"&&level>=1&&level<=6)return "P"+level;
+  if(stage==="2"&&level>=1&&level<=3)return "M"+level;
+  if(stage==="3"&&level>=1&&level<=3)return "M"+(level+3);
+  return "";
+}
+function academicSubjectGradeCodes(subject,data){
+  const grades=new Set();
+  if(!subject)return grades;
+  const add=v=>{
+    const code=String(v||"").trim().toUpperCase();
+    if(/^([PM])[1-6]$/.test(code))grades.add(code);
+  };
+  add(subject.grade_code);
+  (Array.isArray(subject.grade_codes)?subject.grade_codes:[]).forEach(add);
+  const inferred=academicSubjectGradeCodeFromCourseCode(subject.subject_code);
+  if(inferred)grades.add(inferred);
+  (data&&data.courses||[]).forEach(c=>{
+    if(c.subject_id===subject.id)add(c.grade_code||academicGradeCode(c.grade_label));
+  });
+  const subjectCode=String(subject.subject_code||"").trim().toLowerCase();
+  const subjectName=String(subject.name_th||subject.subject_name||"").trim().toLowerCase();
+  ((state.academicPreset&&state.academicPreset.items)||[]).forEach(item=>{
+    const sameId=item.subject_id&&item.subject_id===subject.id;
+    const itemCode=String(item.subject_code||"").trim().toLowerCase();
+    const itemName=String(item.subject_name||item.name_th||"").trim().toLowerCase();
+    if(sameId||(subjectCode&&itemCode===subjectCode)||(!subjectCode&&subjectName&&itemName===subjectName))add(item.grade_code);
+  });
+  return grades;
+}
+function academicCourseSubjectOptionsHtml(data,gradeLabel,selectedId=""){
+  const gradeCode=academicGradeCode(gradeLabel);
+  if(!gradeCode)return '<option value="">เลือกระดับชั้นก่อน</option>';
+  const rows=(data&&data.subjects||[])
+    .filter(subject=>subject&&(subject.is_active!==false||subject.id===selectedId))
+    .filter(subject=>academicSubjectGradeCodes(subject,data).has(gradeCode)||subject.id===selectedId)
+    .sort((a,b)=>String(a.subject_code||"").localeCompare(String(b.subject_code||""),"th",{numeric:true})||String(a.name_th||a.subject_name||"").localeCompare(String(b.name_th||b.subject_name||""),"th"));
+  const placeholder=rows.length?"เลือกรายวิชา":"ไม่มีรายวิชาของระดับชั้นนี้ในทะเบียน";
+  return '<option value="">'+placeholder+'</option>'+rows.map(subject=>{
+    const label=subject.subject_code?subject.subject_code+" · "+(subject.name_th||subject.subject_name||""):(subject.name_th||subject.subject_name||"-");
+    return '<option value="'+esc(subject.id)+'" '+(subject.id===selectedId?"selected":"")+'>'+esc(label)+'</option>';
+  }).join("");
+}
 async function loadAcademicCurriculumPreset(data,programIdOverride){
   const school=currentSchool(),year=academicSelectedYear(data);
   if(!school||!year){
@@ -5987,7 +6034,7 @@ function academicCurriculumHtml(data,embedded=false){
       '</form>'+
     '</section>':'')+
     (canManage&&year?'<section class="panel academic-form-panel curriculum-existing-subject-panel"><div class="panel-head"><div><h2 data-course-form-title>เลือกจากทะเบียนรายวิชา</h2><p class="panel-sub">สำหรับรายวิชาที่มีในทะเบียนอยู่แล้ว สามารถเลือกมาเพิ่มในระดับชั้นได้โดยไม่ต้องพิมพ์รหัสและชื่อใหม่</p></div></div>'+
-      (subjects.length?'<form id="academic-course-form" class="academic-form academic-course-form" data-id=""><input type="hidden" name="academic_year_id" value="'+esc(year.id)+'"><label>โปรแกรม<select name="program_id">'+academicProgramOptions(data,currentFilters.program_id||"",false)+'</select></label><label>ระดับชั้น <span class="required-mark">*</span><select name="grade_label" required>'+academicGradeOptionsHtml(data,currentFilters.grade_label||activeSchoolGrade&&activeSchoolGrade.grade_label||gradeOptions[0]||"",false)+'</select></label><label>รายวิชา <span class="required-mark">*</span><select name="subject_id" required><option value="">เลือกรายวิชา</option>'+subjects.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.subject_code?s.subject_code+" · "+s.name_th:s.name_th)+'</option>').join("")+'</select></label><label>ชั่วโมง/ปี<input name="annual_hours" type="number" min="0" step="0.5" placeholder="เช่น 200"></label><label>หน่วยกิต<input name="credits" type="number" min="0" step="0.5" placeholder="ใช้เมื่อหลักสูตรกำหนด"></label><label>ลำดับ<input name="sort_order" type="number" value="0"></label><label class="check-row"><input name="is_active" type="checkbox" checked><span>ใช้งาน</span></label><label class="span-all">หมายเหตุ<textarea name="notes" rows="2"></textarea></label><div class="span-all"><div class="academic-term-plan-title">คาบ/ชั่วโมงแยกตามภาคเรียน</div><div class="academic-term-plan-grid">'+(termInputs||'<div class="notice warning">ปีการศึกษานี้ยังไม่มีภาคเรียน กรุณาเพิ่มภาคเรียนก่อน</div>')+'</div></div><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-course-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกโครงสร้างรายวิชา</button></div></form>':'<div class="notice warning"><strong>ยังไม่มีทะเบียนรายวิชา</strong><br>เพิ่มวิชาใหม่จากแบบฟอร์มด้านบนได้ทันที</div>')+
+      (subjects.length?'<form id="academic-course-form" class="academic-form academic-course-form" data-id=""><input type="hidden" name="academic_year_id" value="'+esc(year.id)+'"><label>โปรแกรม<select name="program_id">'+academicProgramOptions(data,currentFilters.program_id||"",false)+'</select></label><label>ระดับชั้น <span class="required-mark">*</span><select name="grade_label" required>'+academicGradeOptionsHtml(data,currentFilters.grade_label||activeSchoolGrade&&activeSchoolGrade.grade_label||gradeOptions[0]||"",false)+'</select></label><label>รายวิชา <span class="required-mark">*</span><select name="subject_id" required>'+academicCourseSubjectOptionsHtml(data,currentFilters.grade_label||activeSchoolGrade&&activeSchoolGrade.grade_label||gradeOptions[0]||"")+'</select></label><label>ชั่วโมง/ปี<input name="annual_hours" type="number" min="0" step="0.5" placeholder="เช่น 200"></label><label>หน่วยกิต<input name="credits" type="number" min="0" step="0.5" placeholder="ใช้เมื่อหลักสูตรกำหนด"></label><label>ลำดับ<input name="sort_order" type="number" value="0"></label><label class="check-row"><input name="is_active" type="checkbox" checked><span>ใช้งาน</span></label><label class="span-all">หมายเหตุ<textarea name="notes" rows="2"></textarea></label><div class="span-all"><div class="academic-term-plan-title">คาบ/ชั่วโมงแยกตามภาคเรียน</div><div class="academic-term-plan-grid">'+(termInputs||'<div class="notice warning">ปีการศึกษานี้ยังไม่มีภาคเรียน กรุณาเพิ่มภาคเรียนก่อน</div>')+'</div></div><div class="academic-form-actions span-all"><button type="button" class="secondary-btn" data-reset-course-form>ล้าง</button><button type="submit" class="primary-btn">บันทึกโครงสร้างรายวิชา</button></div></form>':'<div class="notice warning"><strong>ยังไม่มีทะเบียนรายวิชา</strong><br>เพิ่มวิชาใหม่จากแบบฟอร์มด้านบนได้ทันที</div>')+
     '</section>':'')+
   '</section>';
 }
@@ -8793,14 +8840,27 @@ function bindAcademics(){
 
   const courseForm=q("#academic-course-form");
   const selectedYear=academicSelectedYear(data);
+  const refreshCourseSubjectOptions=(selectedId="")=>{
+    if(!courseForm)return;
+    const gradeSelect=courseForm.querySelector('[name="grade_label"]');
+    const subjectSelect=courseForm.querySelector('[name="subject_id"]');
+    if(!gradeSelect||!subjectSelect)return;
+    subjectSelect.innerHTML=academicCourseSubjectOptionsHtml(data,gradeSelect.value,selectedId);
+    subjectSelect.value=selectedId||"";
+  };
   const resetCourse=()=>{
     academicResetForm(courseForm,"[data-course-form-title]","เพิ่มรายวิชาในโครงสร้าง");
     if(courseForm){
       academicSetFormValue(courseForm,"academic_year_id",data.selected_year_id);
       academicSetFormValue(courseForm,"sort_order",0);
       academicSetFormValue(courseForm,"is_active",true);
+      refreshCourseSubjectOptions();
     }
   };
+  if(courseForm){
+    const gradeSelect=courseForm.querySelector('[name="grade_label"]');
+    if(gradeSelect)gradeSelect.addEventListener("change",()=>refreshCourseSubjectOptions());
+  }
   qa("[data-reset-course-form]").forEach(btn=>btn.addEventListener("click",()=>{resetCourse();academicScrollToForm(courseForm);}));
   qa("[data-reset-course-time-standard]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!confirm("คืนเวลาเรียนของรายวิชานี้เป็นมาตรฐานกลางปัจจุบัน?\n\nค่าที่โรงเรียนเคยปรับจะถูกแทนที่เฉพาะรายวิชานี้"))return;
@@ -8814,7 +8874,8 @@ function bindAcademics(){
   qa("[data-edit-course]").forEach(btn=>btn.addEventListener("click",()=>{
     const c=(data.courses||[]).find(x=>x.id===btn.dataset.editCourse);if(!c||!courseForm)return;
     courseForm.dataset.id=c.id;
-    ["academic_year_id","program_id","grade_label","subject_id","annual_hours","credits","notes","sort_order"].forEach(k=>academicSetFormValue(courseForm,k,c[k]));
+    ["academic_year_id","program_id","grade_label","annual_hours","credits","notes","sort_order"].forEach(k=>academicSetFormValue(courseForm,k,c[k]));
+    refreshCourseSubjectOptions(c.subject_id||"");
     academicSetFormValue(courseForm,"is_active",c.is_active);
     (selectedYear&&selectedYear.terms||[]).forEach(t=>{
       const plan=(c.term_plans||[]).find(p=>p.term_id===t.id)||{};
