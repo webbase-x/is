@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.63";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.64";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -4949,25 +4949,25 @@ function academicSchoolTimeSummary(course,standard){
   return parts.join(" · ")||"ยังไม่กำหนด";
 }
 function academicTimeEditorHtml(course,info){
-  const standard=info&&(info.standard_current||info.standard_snapshot);
-  if(!standard)return "";
-  const plan=standard.period_scope==="term"
+  const safeInfo=info||{};
+  const standard=safeInfo.standard_current||safeInfo.standard_snapshot||null;
+  const plan=standard&&standard.period_scope==="term"
     ?(course.term_plans||[]).find(x=>Number(x.term_no)===Number(standard.term_no))||{}
-    :(course.term_plans||[]).find(x=>x.weekly_periods!=null)||{};
+    :(course.term_plans||[]).find(x=>x.weekly_periods!=null)||(course.term_plans||[])[0]||{};
   const standardText=academicStandardTimeSummary(standard);
   const schoolText=academicSchoolTimeSummary(course,standard);
-  const flexible=standard.is_flexible?'<span class="subject-time-flex-note">ปรับตามบริบท/แผนการเรียนได้</span>':'';
-  const fields=standard.period_scope==="term"
+  const flexible=standard&&standard.is_flexible?'<span class="subject-time-flex-note">ปรับตามบริบท/แผนการเรียนได้</span>':'';
+  const fields=standard&&standard.period_scope==="term"
     ?'<label>ชั่วโมง/ภาค<input name="term_hours" type="number" min="0" step="0.5" value="'+esc(plan.term_hours??"")+'" placeholder="'+esc(standard.term_hours??"")+'"></label>'+
       '<label>หน่วยกิต<input name="credits" type="number" min="0" step="0.5" value="'+esc(course.credits??"")+'" placeholder="'+esc(standard.credits??"")+'"></label>'+
       '<label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25" value="'+esc(plan.weekly_periods??"")+'" placeholder="'+(standard.time_mode==="integrated"?"บูรณาการ":esc(standard.weekly_periods??""))+'"></label>'
-    :'<label>ชั่วโมง/ปี<input name="annual_hours" type="number" min="0" step="0.5" value="'+esc(course.annual_hours??"")+'" placeholder="'+esc(standard.annual_hours??"")+'"></label>'+
-      '<label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25" value="'+esc(plan.weekly_periods??"")+'" placeholder="'+(standard.time_mode==="integrated"?"บูรณาการ":esc(standard.weekly_periods??""))+'"></label>';
+    :'<label>ชั่วโมง/ปี<input name="annual_hours" type="number" min="0" step="0.5" value="'+esc(course.annual_hours??"")+'" placeholder="เช่น 40"></label>'+
+      '<label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25" value="'+esc(plan.weekly_periods??"")+'" placeholder="เช่น 1"></label>';
   return '<form class="subject-time-editor hidden" data-subject-time-form="'+esc(course.id)+'">'+
-    '<div class="subject-time-editor-head"><div><strong>แก้เวลาเรียนของโรงเรียน</strong><small>แก้เฉพาะโครงสร้างของโรงเรียน ไม่แก้ฐานมาตรฐานกลาง</small></div>'+flexible+'</div>'+
-    '<div class="subject-time-compare compact"><div><small>มาตรฐานกลางขั้นต่ำ</small><strong>'+esc(standardText||"ไม่กำหนด")+'</strong></div><div><small>โรงเรียนใช้</small><strong>'+esc(schoolText)+'</strong></div></div>'+
-    '<div class="subject-time-fields">'+fields+'<label class="subject-time-note">หมายเหตุ<input name="note" value="'+esc(info.time_override_note||"")+'" placeholder="เหตุผล/บริบทของโรงเรียน (ถ้ามี)"></label></div>'+
-    '<div class="subject-time-editor-actions"><button type="button" class="secondary-btn compact-btn" data-close-subject-time="'+esc(course.id)+'">ปิด</button>'+(standard.standard_kind==="three_year_band_allocation"?'':'<button type="button" class="secondary-btn compact-btn" data-reset-subject-time-standard="'+esc(course.id)+'">คืนค่ามาตรฐานกลาง</button>')+'<button type="submit" class="primary-btn compact-btn">บันทึกเวลาเรียน</button></div>'+
+    '<div class="subject-time-editor-head"><div><strong>'+(standard?"แก้":"กำหนด")+'เวลาเรียนของโรงเรียน</strong><small>'+(standard?"แก้เฉพาะโครงสร้างของโรงเรียน ไม่แก้ฐานมาตรฐานกลาง":"กำหนดชั่วโมงและคาบที่โรงเรียนใช้จริงสำหรับรายวิชานี้")+'</small></div>'+flexible+'</div>'+
+    (standard?'<div class="subject-time-compare compact"><div><small>มาตรฐานกลางขั้นต่ำ</small><strong>'+esc(standardText||"ไม่กำหนด")+'</strong></div><div><small>โรงเรียนใช้</small><strong>'+esc(schoolText)+'</strong></div></div>':'<div class="subject-time-no-standard">ไม่มีมาตรฐานเวลากลางสำหรับรายวิชานี้ · โรงเรียนกำหนดเวลาเรียนได้เอง</div>')+
+    '<div class="subject-time-fields">'+fields+'<label class="subject-time-note">หมายเหตุ<input name="note" value="'+esc(safeInfo.time_override_note||"")+'" placeholder="เหตุผล/บริบทของโรงเรียน (ถ้ามี)"></label></div>'+
+    '<div class="subject-time-editor-actions"><button type="button" class="secondary-btn compact-btn" data-close-subject-time="'+esc(course.id)+'">ปิด</button>'+(standard&&standard.standard_kind!=="three_year_band_allocation"?'<button type="button" class="secondary-btn compact-btn" data-reset-subject-time-standard="'+esc(course.id)+'">คืนค่ามาตรฐานกลาง</button>':'')+'<button type="submit" class="primary-btn compact-btn">บันทึกเวลาเรียน</button></div>'+
   '</form>';
 }
 function academicProgramOptions(data,selected,includeAll=false){
@@ -5546,10 +5546,12 @@ function academicSubjectsHtml(data,timeline){
     const standard=timeInfo&&(timeInfo.standard_current||timeInfo.standard_snapshot)||null;
     const standardText=academicStandardTimeSummary(standard);
     const schoolText=academicSchoolTimeSummary(c,standard);
+    const schoolTimeMissing=schoolText==="ยังไม่กำหนด";
+    const schoolTimeLink=canEdit&&!inherited&&schoolTimeMissing?'<button type="button" class="subject-time-inline-link" data-edit-subject-time="'+esc(c.id)+'">กำหนดเวลาเรียน →</button>':'';
     return '<article class="subject-selected-card '+(pg?"in-parallel-group":"")+' '+(timeInfo&&timeInfo.time_customized?"time-customized":"")+'">'+
       (canGroup&&state.subjectParallelSelectionMode?'<label class="subject-group-check" title="เลือกเพื่อรวมเป็นกลุ่มเวลาเดียวกัน"><input type="checkbox" data-parallel-course="'+esc(c.id)+'"><span></span></label>':'')+
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(c.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(c.subject_name)+'</strong><small>'+(c.learning_area?esc(c.learning_area):esc(typeLabel[c.subject_type]||"อื่น ๆ"))+(subtypeText?' · '+esc(subtypeText):'')+'</small></div></div>'+
-      (standard?'<div class="subject-time-compare"><div><small>มาตรฐานกลางขั้นต่ำ</small><strong>'+esc(standardText||"ไม่กำหนด")+'</strong></div><div><small>โรงเรียนใช้</small><strong>'+esc(schoolText)+'</strong></div></div>':'<div class="subject-time-compare single"><div><small>เวลาเรียนของโรงเรียน</small><strong>'+esc(schoolText)+'</strong></div></div>')+
+      (standard?'<div class="subject-time-compare"><div><small>มาตรฐานกลางขั้นต่ำ</small><strong>'+esc(standardText||"ไม่กำหนด")+'</strong></div><div><small>โรงเรียนใช้</small><strong>'+esc(schoolText)+'</strong>'+schoolTimeLink+'</div></div>':'<div class="subject-time-compare single"><div><small>เวลาเรียนของโรงเรียน</small><strong>'+esc(schoolText)+'</strong>'+schoolTimeLink+'</div></div>')+
       '<div class="subject-card-action">'+
         (sourceKind==="official_central"?'<span class="subject-origin central-core">มาตรฐานกลาง</span>':'')+
         (academicTimeTemplateDiffers(timeInfo)?'<span class="subject-origin time-revision">มาตรฐานกลางมีการปรับ</span>':'')+
@@ -5562,7 +5564,7 @@ function academicSubjectsHtml(data,timeline){
         (canEdit&&!inherited&&standard?'<button type="button" class="secondary-btn compact-btn subject-time-btn" data-edit-subject-time="'+esc(c.id)+'">แก้เวลาเรียน</button>':'')+
         (canEdit?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+
       '</div>'+
-      (!inherited&&standard?academicTimeEditorHtml(c,timeInfo):'')+
+      (!inherited?academicTimeEditorHtml(c,timeInfo):'')+
     '</article>';
   };
   const selectedByType={
