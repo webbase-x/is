@@ -11549,3 +11549,58 @@ html.is-touch-device [data-manual-refresh]{
 .timetable-drop-zone.compact .timetable-empty-slot{
   padding-right:23px!important;
 }
+
+
+/* v0.19.62 — delete icon footprint matches glyph */
+.timetable-remove-entry{
+  width:12px!important;
+  height:12px!important;
+  min-width:12px!important;
+  min-height:12px!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  display:grid!important;
+  place-items:center!important;
+  right:7px!important;
+  top:10px!important;
+  color:#d92d20!important;
+  font-size:15px!important;
+  font-weight:500!important;
+  line-height:12px!important;
+  opacity:.78!important;
+  overflow:visible!important;
+}
+.timetable-remove-entry:hover,
+.timetable-remove-entry:focus-visible{
+  opacity:1!important;
+  background:transparent!important;
+  outline:1px solid currentColor!important;
+  outline-offset:2px!important;
+}
+.timetable-remove-entry:disabled{
+  opacity:.24!important;
+  background:transparent!important;
+  outline:none!important;
+}
+.timetable-scheduled-card{
+  padding-right:54px!important;
+}
+.timetable-drop-zone.compact .timetable-remove-entry{
+  width:11px!important;
+  height:11px!important;
+  min-width:11px!important;
+  min-height:11px!important;
+  right:5px!important;
+  top:6px!important;
+  border-radius:0!important;
+  background:transparent!important;
+  font-size:13px!important;
+  line-height:11px!important;
+}
+.timetable-drop-zone.compact .timetable-scheduled-card{
+  padding-right:43px!important;
+}
