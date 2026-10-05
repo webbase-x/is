@@ -8705,6 +8705,12 @@ function bindAcademics(){
     syncSchoolSubjectSubtype(btn.dataset.schoolSubjectSubtype||"");
     subjectFinder?.classList.add("hidden");
     customSubjectForm?.classList.add("hidden");
+    schoolSubjectEditForm._autoSaveController?.cancel();
+    schoolSubjectEditForm.dataset.autosaved="";
+    schoolSubjectEditForm.dataset.autosavePending="";
+    setAutoSaveStatus(schoolSubjectEditForm,"idle","เปลี่ยนแล้วบันทึกอัตโนมัติ");
+    const subtypeSelect=schoolSubjectEditForm.querySelector("[data-school-subject-subtype]");
+    if(subtypeSelect)subtypeSelect.disabled=!["additional","activity"].includes(String(schoolSubjectEditForm.elements.namedItem("subject_type")?.value||""));
     schoolSubjectEditForm.classList.remove("hidden");
     schoolSubjectEditForm.scrollIntoView({behavior:"smooth",block:"center"});
     schoolSubjectEditForm.querySelector('select[name="subject_type"]')?.focus();
@@ -8717,35 +8723,56 @@ function bindAcademics(){
     });
   };
   bindSchoolLibraryEditButtons();
-  schoolSubjectEditForm?.querySelector('select[name="subject_type"]')?.addEventListener("change",()=>syncSchoolSubjectSubtype(""));
-  qa("[data-close-school-subject-edit]").forEach(btn=>btn.addEventListener("click",()=>schoolSubjectEditForm?.classList.add("hidden")));
-  if(schoolSubjectEditForm)schoolSubjectEditForm.addEventListener("submit",async e=>{
-    e.preventDefault();
-    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
-    const fd=new FormData(schoolSubjectEditForm),btn=schoolSubjectEditForm.querySelector('button[type="submit"]');
-    const type=String(fd.get("subject_type")||"");
-    const subtype=String(fd.get("subject_subtype")||"");
-    if(type==="activity"&&!subtype){toast("กรุณาเลือกประเภทกิจกรรม เช่น ชุมนุม","error");return;}
-    setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_update_school_subject_library",{
-      p_school_id:school.id,
-      p_subject_id:String(fd.get("subject_id")||""),
-      p_subject_code:String(fd.get("subject_code")||"").trim()||null,
-      p_name_th:String(fd.get("subject_name")||"").trim(),
-      p_learning_area:String(fd.get("learning_area")||"").trim()||null,
-      p_subject_type:type,
-      p_subject_subtype:subtype||null
+  let schoolSubjectAutoSave=null;
+  if(schoolSubjectEditForm){
+    const typeSelect=schoolSubjectEditForm.querySelector('select[name="subject_type"]');
+    typeSelect?.addEventListener("change",()=>{
+      syncSchoolSubjectSubtype("");
+      const subtypeSelect=schoolSubjectEditForm.querySelector("[data-school-subject-subtype]");
+      if(subtypeSelect)subtypeSelect.disabled=!["additional","activity"].includes(typeSelect.value);
     });
-    setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    schoolSubjectEditForm.classList.add("hidden");
-    if(res.data&&res.data.versioned){
-      toast("บันทึกเป็นรุ่นปัจจุบันของคลังโรงเรียนแล้ว · ข้อมูลปีเดิมไม่เปลี่ยน","success");
-    }else{
-      toast("แก้ไขรายการในคลังโรงเรียนแล้ว","success");
+    schoolSubjectAutoSave=bindFormAutoSave(schoolSubjectEditForm,async()=>{
+      if(!state.subjectEditMode)return {ok:false,state:"error",message:"กรุณาเปิดสวิตช์การแก้ไขก่อน"};
+      const fd=new FormData(schoolSubjectEditForm);
+      const type=String(fd.get("subject_type")||"");
+      const subtype=String(fd.get("subject_subtype")||"");
+      const name=String(fd.get("subject_name")||"").trim();
+      if(!name)return {ok:false,state:"waiting",message:"กรุณาระบุชื่อรายการ"};
+      if(type==="activity"&&!subtype)return {ok:false,state:"waiting",message:"เลือกประเภทกิจกรรมก่อน เช่น ชุมนุม"};
+      const res=await supabase.rpc("lao_update_school_subject_library",{
+        p_school_id:school.id,
+        p_subject_id:String(fd.get("subject_id")||""),
+        p_subject_code:String(fd.get("subject_code")||"").trim()||null,
+        p_name_th:name,
+        p_learning_area:String(fd.get("learning_area")||"").trim()||null,
+        p_subject_type:type,
+        p_subject_subtype:subtype||null
+      });
+      if(res.error){
+        toast(res.error.message,"error");
+        return {ok:false,state:"error",message:"บันทึกไม่สำเร็จ"};
+      }
+      if(res.data?.subject_id){
+        const hidden=schoolSubjectEditForm.elements.namedItem("subject_id");
+        if(hidden)hidden.value=res.data.subject_id;
+      }
+      return {
+        ok:true,
+        message:res.data?.versioned?"บันทึกแล้ว · ข้อมูลปีเดิมคงเดิม":"บันทึกแล้ว"
+      };
+    },{delay:350,enabled:()=>state.subjectEditMode&&!schoolSubjectEditForm.classList.contains("hidden")});
+    schoolSubjectEditForm._autoSaveController=schoolSubjectAutoSave;
+    schoolSubjectEditForm.addEventListener("submit",e=>{e.preventDefault();void schoolSubjectAutoSave?.run();});
+  }
+  qa("[data-close-school-subject-edit]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!schoolSubjectEditForm)return;
+    if(schoolSubjectEditForm.dataset.autosavePending==="1")await schoolSubjectAutoSave?.flush();
+    if(schoolSubjectEditForm.dataset.autosaved==="1"){
+      await refreshSubjects(true);
+      return;
     }
-    refreshSubjects(true);
-  });
+    schoolSubjectEditForm.classList.add("hidden");
+  }));
 
   const finderForm=q("#subject-finder-form");
   const finderResults=q("[data-subject-finder-results]");
