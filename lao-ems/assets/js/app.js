@@ -243,6 +243,78 @@ function setBusy(button,busy,label){
   if(busy){button.dataset.oldLabel=button.textContent;button.disabled=true;button.innerHTML='<span class="spinner"></span>'+(label||"กำลังดำเนินการ...");}
   else{button.disabled=false;button.textContent=button.dataset.oldLabel||button.textContent;}
 }
+function setAutoSaveStatus(form,stateName,message){
+  if(!form)return;
+  const el=form.querySelector("[data-autosave-status]");
+  if(!el)return;
+  el.dataset.state=stateName||"idle";
+  el.textContent=message||({
+    pending:"รอบันทึก…",
+    saving:"กำลังบันทึก…",
+    saved:"บันทึกแล้ว",
+    waiting:"รอข้อมูลให้ครบ",
+    error:"บันทึกไม่สำเร็จ"
+  })[stateName]||"บันทึกอัตโนมัติ";
+}
+function bindFormAutoSave(form,saveFn,options={}){
+  if(!form||typeof saveFn!=="function")return null;
+  let timer=null,saving=false,pendingWhileSaving=false;
+  const delay=Math.max(0,Number(options.delay??350));
+  const isEnabled=()=>typeof options.enabled==="function"?Boolean(options.enabled()):options.enabled!==false;
+  const run=async()=>{
+    if(!isEnabled())return {skipped:true};
+    if(timer){clearTimeout(timer);timer=null;}
+    form.dataset.autosavePending="";
+    if(saving){pendingWhileSaving=true;return {queued:true};}
+    saving=true;
+    setAutoSaveStatus(form,"saving");
+    let result;
+    try{
+      result=await saveFn();
+    }catch(error){
+      console.error(error);
+      result={ok:false,state:"error",message:error&&error.message?error.message:"บันทึกไม่สำเร็จ"};
+    }
+    saving=false;
+    if(result&&result.ok===false){
+      setAutoSaveStatus(form,result.state||"error",result.message);
+    }else if(!(result&&result.skipped)){
+      form.dataset.autosaved="1";
+      setAutoSaveStatus(form,"saved",result&&result.message||"บันทึกแล้ว");
+    }
+    if(pendingWhileSaving){
+      pendingWhileSaving=false;
+      return run();
+    }
+    return result;
+  };
+  const schedule=event=>{
+    if(!isEnabled())return;
+    const target=event&&event.target;
+    if(target&&target.closest&&target.closest("[data-no-autosave]"))return;
+    form.dataset.autosavePending="1";
+    setAutoSaveStatus(form,"pending");
+    if(timer)clearTimeout(timer);
+    const immediate=event&&event.type==="change"&&target&&(
+      target.tagName==="SELECT"||
+      target.type==="checkbox"||
+      target.type==="radio"
+    );
+    if(immediate)void run();
+    else timer=setTimeout(()=>void run(),delay);
+  };
+  form.addEventListener("input",schedule);
+  form.addEventListener("change",schedule);
+  return {
+    run,
+    flush:run,
+    cancel(){
+      if(timer)clearTimeout(timer);
+      timer=null;
+      form.dataset.autosavePending="";
+    }
+  };
+}
 function routeName(){return (location.hash.replace(/^#\//,"").split("/")[0]||"overview").toLowerCase();}
 function routeBackContext(route){
   const hash=location.hash||("#/"+route);
