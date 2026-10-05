@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.50";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.51";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"class",timetableClassId:null,timetablePersonnelId:null,timetableDraft:null,timetableDirty:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -1318,6 +1318,7 @@ function workspaceRecentRouteInfo(hash){
     ["#/teacher-work","งานของฉัน","👩‍🏫"],
     ["#/academic-group","กลุ่มบริหารงานวิชาการ","📚"],
     ["#/academics/my-courses","หลักสูตรรายวิชาที่ฉันสอน","📘"],
+    ["#/academics/timetable","จัดตารางสอน","🗓"],
     ["#/academics/workload","ภาระงานสอน","📚"],
     ["#/academics/subjects","โครงสร้างหลักสูตรและเวลาเรียน","📘"],
     ["#/academics/classes","ระดับชั้นและห้อง","🏫"],
@@ -4833,6 +4834,7 @@ function academicRouteState(){
   if(/^#\/academics\/subjects\/?$/i.test(hash))return {mode:"subjects"};
   if(/^#\/academics\/curriculum\/?$/i.test(hash))return {mode:"subjects",legacy_curriculum:true};
   if(/^#\/academics\/workload\/?$/i.test(hash))return {mode:"workload"};
+  if(/^#\/academics\/timetable\/?$/i.test(hash))return {mode:"timetable"};
   return {mode:"dashboard"};
 }
 function academicGradeCode(label){
@@ -5091,6 +5093,7 @@ function academicNavHtml(active,data){
         '</a>';
       }).join("")+
     '</nav>'+
+    '<a href="#/academics/timetable" class="academic-timetable-link '+(active==="timetable"?"active":"")+'"><span>🗓</span><span>ตารางสอน</span></a>'+
     academicYearSelectorHtml(data)+
   '</div>';
 }
@@ -5154,8 +5157,8 @@ async function academicDashboardHtml(data){
       '<a href="#/academics/classes"><b>04</b><div><strong>ระดับชั้นและห้อง</strong><small>ผูกห้องจาก LEC กับโปรแกรมที่เลือกใช้ในปีนี้</small></div></a>'+
       '<a href="#/academics/subjects"><b>05</b><div><strong>โครงสร้างหลักสูตรและเวลาเรียน</strong><small>เลือกรายวิชา กำหนดชั่วโมง/คาบ เทียบกรอบ และยืนยันความครบถ้วน</small></div></a>'+
       '<a href="#/academics/workload"><b>06</b><div><strong>ภาระงานสอน</strong><small>จัดครูผู้สอนและอนุมัติภาระงานของปีการศึกษานี้</small></div></a>'+
+      '<a href="#/academics/timetable"><b>07</b><div><strong>จัดตารางสอน</strong><small>ใช้ภาระงานสอนที่อนุมัติแล้ว ตรวจครูชนคาบ เก็บเวอร์ชันตามวันที่ และส่งออก</small></div></a>'+
     '</section>'+
-    '<section class="academic-next-note"><span>ขั้นถัดไป</span><div><strong>ตารางเรียน / ตารางสอน</strong><p>ใช้ภาระงานสอนที่อนุมัติแล้วเป็นฐานในการจัดตาราง เพื่อลดการกรอกชื่อครู รายวิชา และห้องเรียนซ้ำ</p></div></section>'+
   '</section>';
 }
 function academicDateAfterWeekdays(startIso,totalDays){
@@ -6243,6 +6246,383 @@ function bindTeachingWorkloadControls(){
   }));
 }
 
+
+const timetableDayLabels=["","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"];
+function timetableTodayIso(){
+  const d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
+  return y+"-"+m+"-"+day;
+}
+function timetableClassLabel(cls){
+  if(!cls)return "-";
+  return shortGrade(cls.grade_label)+"/"+String(cls.section_label||"").trim()+(cls.program_code?" · "+cls.program_code:"");
+}
+function timetableVersionLabel(v){
+  if(!v)return "-";
+  return (v.version_date?thaiDate(v.version_date):"-")+" · v"+Number(v.version_no||1).toLocaleString("th-TH")+(v.status==="active"?" · ใช้งาน":"");
+}
+function timetableSelectedVersion(){
+  const d=state.timetableData||{};
+  return (d.versions||[]).find(v=>v.id===d.selected_version_id)||null;
+}
+function timetableSelectedClass(){
+  const d=state.timetableData||{};
+  return (d.classes||[]).find(x=>x.id===state.timetableClassId)||null;
+}
+function timetableEntryOffering(entry){
+  const d=state.timetableData||{};
+  return (d.offerings||[]).find(o=>
+    o.class_section_id===entry.class_section_id&&o.course_id===entry.course_id&&o.personnel_id===entry.personnel_id
+  )||null;
+}
+function timetableSetDirty(value=true){
+  state.timetableDirty=Boolean(value);
+  const badge=q("[data-timetable-dirty]");
+  if(badge)badge.classList.toggle("hidden",!state.timetableDirty);
+}
+async function loadTimetablePage(){
+  const school=currentSchool();
+  if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
+  const res=await academicReadWithRetry(()=>supabase.rpc("lao_timetable_page",{
+    p_school_id:school.id,
+    p_academic_year_id:state.academicYearId||null,
+    p_term_id:state.timetableTermId||state.academicTermId||null,
+    p_version_id:state.timetableVersionId||null
+  }));
+  if(res.error)throw res.error;
+  state.timetableData=res.data||{};
+  state.academicYearId=state.timetableData.selected_year_id||state.academicYearId||null;
+  state.timetableTermId=state.timetableData.selected_term_id||null;
+  state.timetableVersionId=state.timetableData.selected_version_id||null;
+  state.timetableDraft=JSON.parse(JSON.stringify(state.timetableData.entries||[]));
+  const offeredClassIds=new Set((state.timetableData.offerings||[]).map(x=>x.class_section_id));
+  const classes=state.timetableData.classes||[];
+  if(!classes.some(x=>x.id===state.timetableClassId)){
+    state.timetableClassId=(classes.find(x=>offeredClassIds.has(x.id))||classes[0]||{}).id||null;
+  }
+  const teacherIds=Array.from(new Set((state.timetableData.offerings||[]).map(x=>x.personnel_id).filter(Boolean)));
+  if(!teacherIds.includes(state.timetablePersonnelId))state.timetablePersonnelId=teacherIds[0]||null;
+  timetableSetDirty(false);
+  return state.timetableData;
+}
+function timetableVersionOptionsHtml(data){
+  const rows=data&&data.versions||[];
+  if(!rows.length)return '<option value="">ยังไม่มีเวอร์ชัน</option>';
+  return rows.map(v=>
+    '<option value="'+esc(v.id)+'" '+(v.id===data.selected_version_id?"selected":"")+'>'+esc(timetableVersionLabel(v))+'</option>'
+  ).join("");
+}
+function timetableTermOptionsHtml(data){
+  return (data&&data.terms||[]).map(t=>
+    '<option value="'+esc(t.id)+'" '+(t.id===data.selected_term_id?"selected":"")+'>'+esc(t.name||("ภาคเรียนที่ "+t.term_no))+(t.is_current?" · ปัจจุบัน":"")+'</option>'
+  ).join("");
+}
+function timetableClassOptionsHtml(data){
+  return (data&&data.classes||[]).map(cls=>
+    '<option value="'+esc(cls.id)+'" '+(cls.id===state.timetableClassId?"selected":"")+'>'+esc(timetableClassLabel(cls))+'</option>'
+  ).join("");
+}
+function timetableTeacherOptionsHtml(data){
+  const map=new Map();
+  (data&&data.offerings||[]).forEach(o=>{
+    if(!map.has(o.personnel_id))map.set(o.personnel_id,{id:o.personnel_id,name:o.teacher_name,position:o.position_title});
+  });
+  return Array.from(map.values()).sort((a,b)=>String(a.name).localeCompare(String(b.name),"th")).map(p=>
+    '<option value="'+esc(p.id)+'" '+(p.id===state.timetablePersonnelId?"selected":"")+'>'+esc(p.name)+(p.position?" · "+esc(p.position):"")+'</option>'
+  ).join("");
+}
+function timetableProgressRows(){
+  const data=state.timetableData||{},draft=state.timetableDraft||[];
+  const rows=state.timetableViewMode==="teacher"
+    ?(data.offerings||[]).filter(o=>o.personnel_id===state.timetablePersonnelId)
+    :(data.offerings||[]).filter(o=>o.class_section_id===state.timetableClassId);
+  return rows.map(o=>{
+    const scheduled=draft.filter(e=>e.class_section_id===o.class_section_id&&e.course_id===o.course_id&&e.personnel_id===o.personnel_id).length;
+    const target=Number(o.weekly_periods||0);
+    return {...o,scheduled,target,diff:target-scheduled};
+  });
+}
+function timetableProgressHtml(){
+  const data=state.timetableData||{},rows=timetableProgressRows();
+  if(!rows.length)return '<div class="timetable-progress-empty">ยังไม่มีภาระงานสอนที่อนุมัติสำหรับบริบทนี้</div>';
+  return '<div class="timetable-progress-grid">'+rows.map(x=>{
+    const status=x.diff===0?"ok":x.diff<0?"over":"pending";
+    const cls=(data.classes||[]).find(c=>c.id===x.class_section_id);
+    const classTail=state.timetableViewMode==="teacher"?' · '+timetableClassLabel(cls):"";
+    return '<article class="'+status+'"><div><strong>'+esc((x.subject_code?x.subject_code+" · ":"")+x.subject_name)+'</strong><small>'+esc(x.teacher_name+classTail)+'</small></div><span><b>'+Number(x.scheduled).toLocaleString("th-TH")+'</b> / '+Number(x.target).toLocaleString("th-TH",{maximumFractionDigits:2})+' คาบ</span></article>';
+  }).join("")+'</div>';
+}
+function timetableClassGridHtml(){
+  const data=state.timetableData||{},draft=state.timetableDraft||[],cls=timetableSelectedClass();
+  if(!cls)return '<div class="empty-state compact-empty"><div class="empty-icon">🏫</div><h3>ยังไม่มีห้องเรียน</h3></div>';
+  const classOfferings=(data.offerings||[]).filter(o=>o.class_section_id===cls.id);
+  const days=Math.max(1,Math.min(7,Number(cls.school_days_per_week||data.settings&&data.settings.school_days_per_week||5)));
+  const periods=Math.max(1,Math.min(30,Number(cls.periods_per_day||data.settings&&data.settings.periods_per_day||8)));
+  const cards=[];
+  for(let day=1;day<=days;day++){
+    let slots="";
+    for(let period=1;period<=periods;period++){
+      const entry=draft.find(e=>e.class_section_id===cls.id&&Number(e.day_no)===day&&Number(e.period_no)===period)||null;
+      const selected=entry&&classOfferings.find(o=>o.course_id===entry.course_id&&o.personnel_id===entry.personnel_id);
+      const options='<option value="">— ว่าง —</option>'+classOfferings.map(o=>
+        '<option value="'+esc(o.workload_item_id)+'" '+(selected&&selected.workload_item_id===o.workload_item_id?"selected":"")+'>'+esc((o.subject_code?o.subject_code+" · ":"")+o.subject_name+" · "+o.teacher_name)+'</option>'
+      ).join("");
+      slots+='<div class="timetable-slot-row '+(entry?"filled":"")+'"><span class="timetable-slot-no">'+period+'</span><select class="timetable-slot-select" data-timetable-slot data-class-id="'+esc(cls.id)+'" data-day="'+day+'" data-period="'+period+'" '+(!data.can_edit||!data.selected_version_id?"disabled":"")+'>'+options+'</select></div>';
+    }
+    cards.push('<article class="timetable-day-card"><header><strong>'+esc(timetableDayLabels[day]||("วันที่ "+day))+'</strong><span>'+periods+' คาบ</span></header><div>'+slots+'</div></article>');
+  }
+  return '<div class="timetable-grid-heading"><div><strong>'+esc(timetableClassLabel(cls))+'</strong><span>'+esc(cls.grade_label)+(cls.room_name?' · '+esc(cls.room_name):'')+'</span></div><span>'+days+' วัน · '+periods+' คาบ/วัน</span></div>'+
+    (classOfferings.length?'<div class="timetable-days-grid">'+cards.join("")+'</div>':'<div class="notice warning"><strong>ยังไม่มีภาระงานสอนที่อนุมัติสำหรับห้องนี้</strong><br>อนุมัติภาระงานสอนก่อนจึงจะเลือกรายวิชา/ครูลงคาบได้</div>');
+}
+function timetableTeacherGridHtml(){
+  const data=state.timetableData||{},draft=state.timetableDraft||[],pid=state.timetablePersonnelId;
+  const offerings=(data.offerings||[]).filter(o=>o.personnel_id===pid);
+  if(!pid||!offerings.length)return '<div class="empty-state compact-empty"><div class="empty-icon">👩‍🏫</div><h3>ยังไม่มีครูจากภาระงานสอนที่อนุมัติ</h3></div>';
+  const teacher=offerings[0].teacher_name;
+  const classMap=new Map((data.classes||[]).map(c=>[c.id,c]));
+  const relevantClasses=offerings.map(o=>classMap.get(o.class_section_id)).filter(Boolean);
+  const days=Math.max(1,...relevantClasses.map(c=>Number(c.school_days_per_week||5)));
+  const periods=Math.max(1,...relevantClasses.map(c=>Number(c.periods_per_day||8)));
+  const cards=[];
+  for(let day=1;day<=days;day++){
+    let slots="";
+    for(let period=1;period<=periods;period++){
+      const entry=draft.find(e=>e.personnel_id===pid&&Number(e.day_no)===day&&Number(e.period_no)===period)||null;
+      const offering=entry&&timetableEntryOffering(entry),cls=entry&&classMap.get(entry.class_section_id);
+      slots+='<div class="timetable-teacher-slot '+(entry?"filled":"")+'"><span>'+period+'</span>'+(entry
+        ?'<div><strong>'+esc(offering&&offering.subject_name||entry.subject_name||"-")+'</strong><small>'+esc(timetableClassLabel(cls))+'</small></div>'
+        :'<em>ว่าง</em>')+'</div>';
+    }
+    cards.push('<article class="timetable-day-card teacher"><header><strong>'+esc(timetableDayLabels[day]||("วันที่ "+day))+'</strong><span>'+periods+' คาบ</span></header><div>'+slots+'</div></article>');
+  }
+  return '<div class="timetable-grid-heading"><div><strong>'+esc(teacher)+'</strong><span>มุมมองตารางสอนรายครู · แก้ไขคาบจากมุมมองห้องเรียน</span></div><span>'+draft.filter(e=>e.personnel_id===pid).length.toLocaleString("th-TH")+' คาบที่จัดแล้ว</span></div><div class="timetable-days-grid">'+cards.join("")+'</div>';
+}
+function timetableWorkspaceHtml(){
+  return state.timetableViewMode==="teacher"?timetableTeacherGridHtml():timetableClassGridHtml();
+}
+function timetableStatsHtml(data){
+  const draft=state.timetableDraft||[];
+  const rooms=new Set(draft.map(e=>e.class_section_id));
+  const teachers=new Set(draft.map(e=>e.personnel_id));
+  const targets=(data.offerings||[]).reduce((sum,o)=>sum+Number(o.weekly_periods||0),0);
+  return '<section class="timetable-stat-grid"><article><small>คาบที่จัดแล้ว</small><strong>'+draft.length.toLocaleString("th-TH")+'</strong><span>คาบ/สัปดาห์</span></article><article><small>ห้องที่มีตาราง</small><strong>'+rooms.size.toLocaleString("th-TH")+'</strong><span>จาก '+Number((data.classes||[]).length).toLocaleString("th-TH")+' ห้อง</span></article><article><small>ครูในตาราง</small><strong>'+teachers.size.toLocaleString("th-TH")+'</strong><span>คน</span></article><article><small>ภาระงานเป้าหมาย</small><strong>'+targets.toLocaleString("th-TH",{maximumFractionDigits:2})+'</strong><span>คาบ/สัปดาห์</span></article></section>';
+}
+function timetableExportRows(){
+  const data=state.timetableData||{},classMap=new Map((data.classes||[]).map(c=>[c.id,c]));
+  return (state.timetableDraft||[]).slice().sort((a,b)=>Number(a.day_no)-Number(b.day_no)||Number(a.period_no)-Number(b.period_no)||String(a.class_section_id).localeCompare(String(b.class_section_id))).map(e=>{
+    const o=timetableEntryOffering(e)||{},cls=classMap.get(e.class_section_id)||{};
+    return {
+      "วัน":timetableDayLabels[Number(e.day_no)]||e.day_no,
+      "คาบ":Number(e.period_no),
+      "ชั้น/ห้อง":timetableClassLabel(cls),
+      "ระดับชั้น":cls.grade_label||o.grade_label||"",
+      "โปรแกรม":cls.program_code||cls.program_name||"",
+      "รหัสวิชา":o.subject_code||"",
+      "รายวิชา":o.subject_name||"",
+      "ครูผู้สอน":o.teacher_name||"",
+      "กลุ่มสาระ":o.learning_area||"",
+      "ห้องเรียน/สถานที่":e.room_label||cls.room_name||"",
+      "หมายเหตุ":e.note||""
+    };
+  });
+}
+function timetableExportSummaryRows(){
+  const data=state.timetableData||{};
+  return (data.offerings||[]).map(o=>{
+    const scheduled=(state.timetableDraft||[]).filter(e=>e.class_section_id===o.class_section_id&&e.course_id===o.course_id&&e.personnel_id===o.personnel_id).length;
+    const cls=(data.classes||[]).find(c=>c.id===o.class_section_id);
+    return {
+      "ครูผู้สอน":o.teacher_name,
+      "ชั้น/ห้อง":timetableClassLabel(cls),
+      "รหัสวิชา":o.subject_code||"",
+      "รายวิชา":o.subject_name,
+      "เป้าหมายคาบ/สัปดาห์":Number(o.weekly_periods||0),
+      "จัดแล้ว":scheduled,
+      "คงเหลือ":Number(o.weekly_periods||0)-scheduled
+    };
+  });
+}
+function timetableDownloadBlob(text,type,filename){
+  const blob=new Blob([text],{type});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function timetableCsvText(rows){
+  const headers=rows.length?Object.keys(rows[0]):["วัน","คาบ","ชั้น/ห้อง","รายวิชา","ครูผู้สอน"];
+  const quote=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  return "\uFEFF"+headers.map(quote).join(",")+"\r\n"+rows.map(r=>headers.map(h=>quote(r[h])).join(",")).join("\r\n");
+}
+function timetableFileBase(){
+  const data=state.timetableData||{},version=timetableSelectedVersion();
+  const year=(data.years||[]).find(y=>y.id===data.selected_year_id);
+  const term=(data.terms||[]).find(t=>t.id===data.selected_term_id);
+  return "ตารางสอน_"+(year&&year.year_be||"ปี")+"_"+(term&&term.term_no||"ภาค")+"_"+(version&&version.version_date||timetableTodayIso())+"_v"+(version&&version.version_no||1);
+}
+function timetableRenderLive(){
+  const workspace=q("[data-timetable-workspace]");if(workspace)workspace.innerHTML=timetableWorkspaceHtml();
+  const progress=q("[data-timetable-progress]");if(progress)progress.innerHTML=timetableProgressHtml();
+  const stats=q("[data-timetable-stats]");if(stats)stats.innerHTML=timetableStatsHtml(state.timetableData||{});
+  timetableSetDirty(state.timetableDirty);
+  bindTimetableSlotControls();
+}
+function bindTimetableSlotControls(){
+  qa("[data-timetable-slot]").forEach(select=>select.addEventListener("change",()=>{
+    const data=state.timetableData||{},draft=state.timetableDraft||[];
+    const clsId=select.dataset.classId,day=Number(select.dataset.day),period=Number(select.dataset.period);
+    const oldEntry=draft.find(e=>e.class_section_id===clsId&&Number(e.day_no)===day&&Number(e.period_no)===period)||null;
+    const base=draft.filter(e=>!(e.class_section_id===clsId&&Number(e.day_no)===day&&Number(e.period_no)===period));
+    const value=select.value;
+    if(!value){
+      state.timetableDraft=base;timetableSetDirty(true);timetableRenderLive();return;
+    }
+    const o=(data.offerings||[]).find(x=>x.workload_item_id===value);
+    if(!o){timetableRenderLive();return;}
+    const conflict=base.find(e=>e.personnel_id===o.personnel_id&&Number(e.day_no)===day&&Number(e.period_no)===period);
+    if(conflict){
+      const otherClass=(data.classes||[]).find(c=>c.id===conflict.class_section_id);
+      toast("ครู "+o.teacher_name+" มีคาบสอน "+timetableClassLabel(otherClass)+" ในวัน/คาบเดียวกันแล้ว","error");
+      timetableRenderLive();return;
+    }
+    const sameLoadCount=base.filter(e=>e.class_section_id===clsId&&e.course_id===o.course_id&&e.personnel_id===o.personnel_id).length+1;
+    if(sameLoadCount>Number(o.weekly_periods||0)){
+      toast((o.subject_name||"รายวิชา")+" · "+o.teacher_name+" เกินภาระงาน "+Number(o.weekly_periods||0).toLocaleString("th-TH",{maximumFractionDigits:2})+" คาบ/สัปดาห์","error");
+      timetableRenderLive();return;
+    }
+    state.timetableDraft=base.concat([{
+      id:oldEntry&&oldEntry.id||null,
+      version_id:data.selected_version_id,
+      day_no:day,period_no:period,class_section_id:clsId,
+      course_id:o.course_id,personnel_id:o.personnel_id,
+      room_label:oldEntry&&oldEntry.room_label||null,note:oldEntry&&oldEntry.note||null
+    }]);
+    timetableSetDirty(true);
+    timetableRenderLive();
+  }));
+}
+async function academicTimetableHtml(data){
+  const page=await loadTimetablePage();
+  const version=timetableSelectedVersion();
+  const school=currentSchool();
+  const hasTerm=Boolean(page.selected_term_id);
+  const hasOfferings=(page.offerings||[]).length>0;
+  const canEdit=Boolean(page.can_edit);
+  return '<section class="academic-page timetable-page">'+academicNavHtml("timetable",data)+
+    '<section class="panel timetable-hero"><div><p class="eyebrow">TIMETABLE SCHEDULER</p><h2>จัดตารางสอน</h2><p>'+esc(school&&school.name_th||"")+' · ดึงครู รายวิชา ระดับชั้น ห้องเรียน และจำนวนคาบจากภาระงานสอนที่อนุมัติแล้ว</p></div><div class="timetable-hero-status"><span class="pill '+(version&&version.status==="active"?"success":"neutral")+'">'+(version&&version.status==="active"?"เวอร์ชันใช้งาน":"ฉบับร่าง")+'</span><span class="pill warning hidden" data-timetable-dirty>มีการแก้ไขยังไม่บันทึก</span></div></section>'+
+    '<section class="panel timetable-context"><div class="timetable-context-controls">'+
+      '<label>ภาคเรียน<select data-timetable-term '+(!hasTerm?"disabled":"")+'>'+timetableTermOptionsHtml(page)+'</select></label>'+
+      '<label>เวอร์ชัน<select data-timetable-version>'+timetableVersionOptionsHtml(page)+'</select></label>'+
+      (canEdit&&hasTerm?'<button type="button" class="secondary-btn" data-timetable-new-version>＋ เวอร์ชันใหม่</button>':'')+
+    '</div>'+
+    (canEdit&&hasTerm?'<form class="timetable-version-create hidden" data-timetable-new-form><label>วันที่เวอร์ชัน<input name="version_date" type="date" required value="'+esc(timetableTodayIso())+'"></label><label>ชื่อเวอร์ชัน<input name="title" maxlength="120" placeholder="เช่น ตารางสอนปรับครั้งที่ 1"></label><label class="wide">หมายเหตุ<input name="note" maxlength="500" placeholder="เว้นว่างได้"></label><label class="check-row"><input name="clone_current" type="checkbox" '+(version?"checked":"")+'><span>คัดลอกตารางจากเวอร์ชันที่กำลังเปิด</span></label><div class="timetable-new-actions"><button type="button" class="secondary-btn" data-timetable-cancel-new>ยกเลิก</button><button type="submit" class="primary-btn">สร้างเวอร์ชัน</button></div></form>':'')+
+    (!hasTerm?'<div class="notice warning">ยังไม่มีภาคเรียนในปีการศึกษานี้ กรุณากำหนดภาคเรียนก่อน</div>':'')+
+    (!hasOfferings&&hasTerm?'<div class="notice warning"><strong>ยังไม่มีภาระงานสอนที่อนุมัติในภาคเรียนนี้</strong><br>ไปที่ “ภาระงานสอน” เพื่อจัดครู/รายวิชา/ห้องและอนุมัติก่อน แล้วข้อมูลจะมาให้เลือกที่นี่อัตโนมัติ</div>':'')+
+    '</section>'+
+    (version?'<form class="panel timetable-version-meta" data-timetable-meta-form><div class="panel-head"><div><p class="eyebrow">VERSION</p><h2>'+esc(timetableVersionLabel(version))+'</h2><p class="panel-sub">บันทึกวันที่ ชื่อ และหมายเหตุพร้อมกับการแก้ไขตาราง</p></div><span>'+Number(version.entry_count||0).toLocaleString("th-TH")+' คาบที่บันทึก</span></div><div class="timetable-meta-fields"><label>วันที่เวอร์ชัน<input type="date" name="version_date" required value="'+esc(version.version_date||timetableTodayIso())+'" '+(!canEdit?"disabled":"")+'></label><label>ชื่อเวอร์ชัน<input name="title" maxlength="120" value="'+esc(version.title||"")+'" '+(!canEdit?"disabled":"")+'></label><label class="wide">หมายเหตุ<input name="note" maxlength="500" value="'+esc(version.note||"")+'" '+(!canEdit?"disabled":"")+'></label></div><div class="timetable-actions">'+
+      (canEdit?'<button type="submit" class="primary-btn">บันทึกการแก้ไข</button>':'')+
+      (page.can_activate&&version.status!=="active"?'<button type="button" class="secondary-btn" data-timetable-activate>✓ ใช้เวอร์ชันนี้</button>':'')+
+      (canEdit?'<button type="button" class="danger-outline-btn" data-timetable-delete>ลบเวอร์ชัน</button>':'')+
+      '<span class="timetable-action-spacer"></span><button type="button" class="secondary-btn" data-timetable-export-xlsx>Excel</button><button type="button" class="secondary-btn" data-timetable-export-csv>CSV</button><button type="button" class="secondary-btn" data-timetable-print>พิมพ์ / PDF</button>'+
+    '</div></form>':'')+
+    (version?'<section data-timetable-stats>'+timetableStatsHtml(page)+'</section>':'')+
+    (version?'<section class="panel timetable-workspace-shell"><div class="timetable-workspace-toolbar"><div class="timetable-view-switch"><button type="button" data-timetable-view="class" class="'+(state.timetableViewMode==="class"?"active":"")+'">ตามห้องเรียน</button><button type="button" data-timetable-view="teacher" class="'+(state.timetableViewMode==="teacher"?"active":"")+'">ตามครูผู้สอน</button></div><label class="'+(state.timetableViewMode==="class"?"":"hidden")+'" data-timetable-class-filter>ห้อง<select data-timetable-class>'+timetableClassOptionsHtml(page)+'</select></label><label class="'+(state.timetableViewMode==="teacher"?"":"hidden")+'" data-timetable-teacher-filter>ครู<select data-timetable-teacher>'+timetableTeacherOptionsHtml(page)+'</select></label></div><div data-timetable-progress>'+timetableProgressHtml()+'</div><div class="timetable-print-header"><strong>ตารางสอน</strong><span>'+esc(school&&school.name_th||"")+' · '+esc(timetableVersionLabel(version))+'</span></div><div class="timetable-workspace" data-timetable-workspace>'+timetableWorkspaceHtml()+'</div></section>':'<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">🗓</div><h3>ยังไม่มีเวอร์ชันตารางสอน</h3><p>สร้างเวอร์ชันใหม่โดยกำหนดวันที่ แล้วเริ่มจัดคาบจากภาระงานสอนที่อนุมัติ</p></div></section>')+
+  '</section>';
+}
+async function timetableSaveCurrent(activate=false){
+  const page=state.timetableData||{},version=timetableSelectedVersion(),school=currentSchool();
+  const form=q("[data-timetable-meta-form]");
+  if(!version||!form||!school)return false;
+  const fd=new FormData(form);
+  const button=activate?q("[data-timetable-activate]"):form.querySelector('button[type="submit"]');
+  setBusy(button,true,activate?"กำลังบันทึกและเปิดใช้...":"กำลังบันทึก...");
+  const res=await supabase.rpc("lao_save_timetable_version",{
+    p_school_id:school.id,p_term_id:page.selected_term_id,p_version_id:version.id,
+    p_version_date:String(fd.get("version_date")||version.version_date),
+    p_title:String(fd.get("title")||"").trim()||null,
+    p_note:String(fd.get("note")||"").trim()||null,
+    p_entries:state.timetableDraft||[],p_activate:Boolean(activate)
+  });
+  setBusy(button,false);
+  if(res.error){toast(res.error.message,"error");return false;}
+  state.timetableVersionId=res.data&&res.data.id||version.id;
+  state.timetableData=null;timetableSetDirty(false);
+  toast(activate?"บันทึกและกำหนดเป็นเวอร์ชันใช้งานแล้ว":"บันทึกตารางสอนแล้ว","success");
+  await renderRoute();
+  return true;
+}
+function bindTimetableControls(){
+  const page=state.timetableData;
+  if(!page)return;
+  const school=currentSchool();
+  const term=q("[data-timetable-term]");
+  if(term)term.addEventListener("change",()=>{
+    if(state.timetableDirty&&!confirm("มีการแก้ไขที่ยังไม่ได้บันทึก ต้องการเปลี่ยนภาคเรียนหรือไม่?")){term.value=page.selected_term_id||"";return;}
+    state.timetableTermId=term.value||null;state.timetableVersionId=null;state.timetableData=null;state.timetableDraft=null;timetableSetDirty(false);renderRoute();
+  });
+  const version=q("[data-timetable-version]");
+  if(version)version.addEventListener("change",()=>{
+    if(state.timetableDirty&&!confirm("มีการแก้ไขที่ยังไม่ได้บันทึก ต้องการเปลี่ยนเวอร์ชันหรือไม่?")){version.value=page.selected_version_id||"";return;}
+    state.timetableVersionId=version.value||null;state.timetableData=null;state.timetableDraft=null;timetableSetDirty(false);renderRoute();
+  });
+  const newBtn=q("[data-timetable-new-version]"),newForm=q("[data-timetable-new-form]");
+  if(newBtn&&newForm)newBtn.addEventListener("click",()=>{newForm.classList.remove("hidden");newForm.querySelector('input[name="version_date"]')?.focus();});
+  q("[data-timetable-cancel-new]")?.addEventListener("click",()=>newForm?.classList.add("hidden"));
+  if(newForm)newForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(newForm),btn=newForm.querySelector('button[type="submit"]');
+    setBusy(btn,true,"กำลังสร้าง...");
+    const res=await supabase.rpc("lao_save_timetable_version",{
+      p_school_id:school.id,p_term_id:page.selected_term_id,p_version_id:null,
+      p_version_date:String(fd.get("version_date")||timetableTodayIso()),
+      p_title:String(fd.get("title")||"").trim()||null,p_note:String(fd.get("note")||"").trim()||null,
+      p_entries:fd.get("clone_current")==="on"?(state.timetableDraft||[]):[],p_activate:false
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    state.timetableVersionId=res.data&&res.data.id||null;state.timetableData=null;state.timetableDraft=null;timetableSetDirty(false);
+    toast("สร้างเวอร์ชันตารางสอนแล้ว","success");renderRoute();
+  });
+  const meta=q("[data-timetable-meta-form]");
+  if(meta){
+    meta.addEventListener("input",()=>timetableSetDirty(true));
+    meta.addEventListener("submit",async e=>{e.preventDefault();await timetableSaveCurrent(false);});
+  }
+  q("[data-timetable-activate]")?.addEventListener("click",async()=>{
+    if(!confirm("กำหนดเวอร์ชันนี้เป็นตารางสอนที่ใช้งานปัจจุบัน?"))return;
+    await timetableSaveCurrent(true);
+  });
+  q("[data-timetable-delete]")?.addEventListener("click",async()=>{
+    const v=timetableSelectedVersion();if(!v)return;
+    if(!confirm("ลบ "+timetableVersionLabel(v)+" ?\n\nคาบทั้งหมดในเวอร์ชันนี้จะถูกลบด้วย"))return;
+    const btn=q("[data-timetable-delete]");setBusy(btn,true,"กำลังลบ...");
+    const res=await supabase.rpc("lao_delete_timetable_version",{p_school_id:school.id,p_version_id:v.id});
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    state.timetableVersionId=null;state.timetableData=null;state.timetableDraft=null;timetableSetDirty(false);
+    toast("ลบเวอร์ชันตารางสอนแล้ว","success");renderRoute();
+  });
+  qa("[data-timetable-view]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.timetableViewMode=btn.dataset.timetableView||"class";
+    timetableRenderLive();
+    qa("[data-timetable-view]").forEach(x=>x.classList.toggle("active",x===btn));
+    q("[data-timetable-class-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="class");
+    q("[data-timetable-teacher-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="teacher");
+  }));
+  q("[data-timetable-class]")?.addEventListener("change",e=>{state.timetableClassId=e.target.value||null;timetableRenderLive();});
+  q("[data-timetable-teacher]")?.addEventListener("change",e=>{state.timetablePersonnelId=e.target.value||null;timetableRenderLive();});
+  bindTimetableSlotControls();
+  q("[data-timetable-export-xlsx]")?.addEventListener("click",()=>{
+    if(!window.XLSX){toast("ไม่พบเครื่องมือส่งออก Excel","error");return;}
+    const rows=timetableExportRows(),summary=timetableExportSummaryRows();
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"ตารางรวม");
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summary),"สรุปภาระงาน");
+    XLSX.writeFile(wb,timetableFileBase()+".xlsx");
+  });
+  q("[data-timetable-export-csv]")?.addEventListener("click",()=>{
+    timetableDownloadBlob(timetableCsvText(timetableExportRows()),"text/csv;charset=utf-8",timetableFileBase()+".csv");
+  });
+  q("[data-timetable-print]")?.addEventListener("click",()=>window.print());
+}
 async function academicsHtml(){
   const school=currentSchool();
   if(!school)return '<section class="panel"><div class="empty-state"><div class="empty-icon">🏫</div><h3>เลือกสถานศึกษาก่อน</h3><p>เลือกโรงเรียนเพื่อเปิดงานวิชาการ</p></div></section>';
@@ -6252,6 +6632,7 @@ async function academicsHtml(){
   const mode=routeState.mode;
   if(mode==="my-courses")return await courseCurriculumHtml(null);
   if(mode==="course-curriculum")return await courseCurriculumHtml(routeState.courseId);
+  if(mode==="timetable")return await academicTimetableHtml(data);
   try{
     state.academicTimeline=await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
   }catch(e){
@@ -6327,12 +6708,14 @@ function bindAcademics(){
   const data=state.academicData||{};
   const school=currentSchool();
   bindTeachingWorkloadControls();
+  bindTimetableControls();
   const yearSelect=q("[data-academic-year-select]");
   if(yearSelect)yearSelect.addEventListener("change",()=>{
     state.academicYearId=yearSelect.value||null;
     state.academicTermId=null;
     state.teachingWorkloadData=null;
     state.teachingWorkloadPersonnelId=null;
+    state.timetableData=null;state.timetableTermId=null;state.timetableVersionId=null;state.timetableDraft=null;state.timetableDirty=false;
     state.academicFilters={grade_label:"",program_id:""};
     state.subjectEditMode=false;
     state.subjectCopyYearId="";
@@ -6488,6 +6871,7 @@ function bindAcademics(){
     curriculum_courses:"โครงสร้างรายวิชา",
     teaching_workloads:"ภาระงานสอน",
     schedule_settings:"การตั้งค่าเวลาเรียน",
+    timetable_versions:"เวอร์ชันตารางสอน",
     default_initializations:"ข้อมูลตั้งต้นหลักสูตร",
     grade_initializations:"ข้อมูลตั้งต้นระดับชั้น",
     program_exclusions:"ข้อยกเว้นรายวิชา",
@@ -8126,10 +8510,12 @@ function academicGroupWorkstreams(access,pendingTeaching,assessmentAttention,pen
         "ตรวจหลักสูตรรายวิชาและโครงสร้างคะแนนที่ครูส่ง",
         "ติดตาม Active Learning / PLC / การนิเทศภายใน"
       ],
-      visible:hasPrefix("academics.learning")||hasAny(["academics.workload","academics.course_curriculum"]),
+      visible:hasPrefix("academics.learning")||hasAny(["academics.workload","academics.course_curriculum","academics.timetable"]),
       apps:[
         {title:"ภาระงานสอนและการมอบหมาย",route:"#/academics/workload",icon:"📚",badge:Number(pendingTeaching||0),
           visible:hasPermission("academics.workload","edit")||hasPermission("academics.workload","approve")||hasPermission("academics.learning","edit")||hasPermission("academics.learning","approve")},
+        {title:"จัดตารางสอน",route:"#/academics/timetable",icon:"🗓",badge:0,
+          visible:hasPermission("academics.timetable","view")||hasPermission("academics.timetable","edit")||hasPermission("academics.timetable","approve")},
         {title:"ตรวจหลักสูตรรายวิชา / โครงสร้างคะแนน",route:"#/academics/my-courses",icon:"📘",badge:Number(pendingCurriculum||0),
           visible:hasPermission("academics.course_curriculum","approve")||hasPermission("academics.learning","approve")}
       ]
@@ -8533,6 +8919,9 @@ async function renderRoute(){
   if(route==="academics"&&(location.hash||"").startsWith("#/academics/my-courses")){
     meta=["หลักสูตรรายวิชาที่ฉันสอน","ครูผู้สอนจัดทำโครงสร้างรายวิชาและคะแนนก่อนส่งฝ่ายวิชาการตรวจ"];
   }
+  if(route==="academics"&&(location.hash||"").startsWith("#/academics/timetable")){
+    meta=["จัดตารางสอน","จัดคาบเรียนจากภาระงานสอนที่อนุมัติ เก็บเวอร์ชันตามวันที่ และส่งออก"];
+  }
   if(route==="personnel"&&(location.hash||"").startsWith("#/personnel/homeroom")){
     meta=["แต่งตั้งครูประจำชั้น/ครูที่ปรึกษา","มอบหมายครูตามห้องเรียนและปีการศึกษา"];
   }
@@ -8656,17 +9045,27 @@ function showAuth(){
 }
 
 window.addEventListener("beforeunload",event=>{
-  if(!state.lecImporting)return;
+  if(!state.lecImporting&&!state.timetableDirty)return;
   event.preventDefault();
   event.returnValue="";
 });
 document.addEventListener("click",event=>{
-  if(!state.lecImporting)return;
   const target=event.target&&event.target.closest?event.target.closest("a[href^='#/'],[data-view-mode],[data-signout]"):null;
   if(!target)return;
-  event.preventDefault();
-  event.stopPropagation();
-  toast("กำลังนำเข้า LEC กรุณารอจนกว่าระบบจะแจ้งว่าเสร็จ","error");
+  if(state.lecImporting){
+    event.preventDefault();
+    event.stopPropagation();
+    toast("กำลังนำเข้า LEC กรุณารอจนกว่าระบบจะแจ้งว่าเสร็จ","error");
+    return;
+  }
+  if(state.timetableDirty&&routeName()==="academics"&&academicRouteState().mode==="timetable"){
+    const href=target.getAttribute&&target.getAttribute("href");
+    if(href==="#/academics/timetable")return;
+    if(!confirm("มีการแก้ไขตารางสอนที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?")){
+      event.preventDefault();event.stopPropagation();return;
+    }
+    state.timetableDirty=false;
+  }
 },true);
 
 async function init(){
