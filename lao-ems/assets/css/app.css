@@ -11925,3 +11925,116 @@ html.is-touch-device [data-manual-refresh]{
 .subject-time-editor-slot:empty{
   display:none;
 }
+
+
+/* Parallel group membership controls — v0.19.76 */
+.parallel-group-card--manage{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:9px;
+  padding:10px;
+}
+.parallel-group-card-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.parallel-group-card-head>div{min-width:0}
+.parallel-group-card-head>span{
+  flex:0 0 auto;
+  color:#1849a9;
+  font-size:12px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.parallel-group-members{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.parallel-member-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  max-width:100%;
+  min-height:30px;
+  padding:5px 7px 5px 9px;
+  border:1px solid #d0d5dd;
+  border-radius:999px;
+  background:#f9fafb;
+}
+.parallel-member-chip b{
+  min-width:0;
+  color:#344054;
+  font-size:11px;
+  font-weight:800;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.parallel-member-remove{
+  display:grid;
+  place-items:center;
+  width:22px;
+  height:22px;
+  padding:0;
+  border:0;
+  border-radius:999px;
+  background:#fff1f0;
+  color:#b42318;
+  font-size:16px;
+  line-height:1;
+  cursor:pointer;
+}
+.parallel-group-manage-actions{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:9px;
+  padding-top:8px;
+  border-top:1px solid #eaecf0;
+}
+.parallel-group-add-form{
+  display:flex;
+  align-items:flex-end;
+  gap:7px;
+  min-width:0;
+  flex:1 1 auto;
+}
+.parallel-group-add-form label{
+  display:grid;
+  gap:4px;
+  min-width:0;
+  flex:1 1 260px;
+  color:#667085;
+  font-size:10.5px;
+  font-weight:800;
+}
+.parallel-group-add-form select{
+  width:100%;
+  min-height:38px;
+}
+.parallel-leave-btn{
+  color:#b54708;
+}
+@media(max-width:700px){
+  .parallel-group-card-head,
+  .parallel-group-manage-actions,
+  .parallel-group-add-form{
+    display:grid;
+    grid-template-columns:1fr;
+    align-items:stretch;
+  }
+  .parallel-group-card-head>span{
+    justify-self:start;
+  }
+  .parallel-group-manage-actions .text-btn,
+  .parallel-group-add-form .secondary-btn{
+    width:100%;
+    justify-content:center;
+  }
+  .parallel-member-chip{
+    max-width:100%;
+  }
+}
