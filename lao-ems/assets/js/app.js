@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.53";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.54";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableDirty:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -6500,27 +6500,46 @@ function timetableClassGridHtml(){
   const classOfferings=timetableScopedOfferings(data).filter(o=>o.class_section_id===cls.id);
   const days=Math.max(1,Math.min(7,Number(cls.school_days_per_week||data.settings&&data.settings.school_days_per_week||5)));
   const periods=Math.max(1,Math.min(30,Number(cls.periods_per_day||data.settings&&data.settings.periods_per_day||8)));
+  const pending=classOfferings.map(o=>{
+    const scheduled=timetableOfferingCount(o,draft),target=Math.max(0,Math.round(Number(o.weekly_periods||0)));
+    return {...o,scheduled,target,remaining:Math.max(0,target-scheduled),criticality:timetableCriticality(o,draft)};
+  }).filter(o=>o.remaining>0).sort((a,b)=>{
+    const rank={danger:0,warning:1,neutral:2,ok:3};
+    return (rank[a.criticality.level]??9)-(rank[b.criticality.level]??9)||a.criticality.slots-b.criticality.slots||String(a.subject_name).localeCompare(String(b.subject_name),"th");
+  });
+
+  const sourcePanel='<aside class="timetable-drag-source">'+
+    '<div class="timetable-drag-source-head"><div><strong>กิจกรรมที่ยังไม่ได้จัดครบ</strong><small>ลากการ์ดไปวางในวัน–คาบที่ต้องการ</small></div><span>'+pending.length.toLocaleString("th-TH")+' รายการ</span></div>'+
+    '<div class="timetable-drag-list">'+(pending.length?pending.map(o=>
+      '<article class="timetable-drag-card '+esc(o.criticality.level)+'" draggable="true" data-timetable-drag="offering" data-offering-id="'+esc(o.workload_item_id)+'" tabindex="0" role="button" aria-label="ลาก '+esc(o.subject_name)+' ไปวางในตาราง">'+
+        '<div><strong>'+esc((o.subject_code?o.subject_code+" · ":"")+o.subject_name)+'</strong><small>'+esc(o.teacher_name)+'</small></div>'+
+        '<span><b>เหลือ '+o.remaining.toLocaleString("th-TH")+'</b><small>จาก '+o.target.toLocaleString("th-TH")+' คาบ</small></span>'+
+        '<em>'+esc(o.criticality.label)+(o.criticality.slots?' · '+o.criticality.slots+' ช่อง':'')+'</em>'+
+      '</article>'
+    ).join(""):'<div class="timetable-drag-complete"><span>✓</span><strong>จัดครบแล้ว</strong><small>กิจกรรมของห้องนี้ครบตามภาระงานสอน</small></div>')+'</div>'+
+    '<div class="timetable-drag-help"><span>🖱️ คอมพิวเตอร์: ลากแล้ววาง</span><span>👆 จอสัมผัส: แตะแล้วลาก หรือแตะการ์ดแล้วแตะช่อง</span></div>'+
+  '</aside>';
+
   const cards=[];
   for(let day=1;day<=days;day++){
     let slots="";
     for(let period=1;period<=periods;period++){
       const entry=draft.find(e=>e.class_section_id===cls.id&&Number(e.day_no)===day&&Number(e.period_no)===period)||null;
-      const selected=entry&&classOfferings.find(o=>o.course_id===entry.course_id&&o.personnel_id===entry.personnel_id);
-      const base=draft.filter(e=>!(e.class_section_id===cls.id&&Number(e.day_no)===day&&Number(e.period_no)===period));
-      const options='<option value="">— ว่าง —</option>'+classOfferings.map(o=>{
-        const isSelected=Boolean(selected&&selected.workload_item_id===o.workload_item_id);
-        const teacherBusy=base.some(e=>e.personnel_id===o.personnel_id&&Number(e.day_no)===day&&Number(e.period_no)===period);
-        const reached=timetableOfferingCount(o,base)>=Math.round(Number(o.weekly_periods||0));
-        const disabled=!isSelected&&(teacherBusy||reached);
-        const tail=teacherBusy?" · ครูไม่ว่าง":reached?" · ครบคาบแล้ว":"";
-        return '<option value="'+esc(o.workload_item_id)+'" '+(isSelected?"selected ":"")+(disabled?"disabled":"")+'>'+esc((o.subject_code?o.subject_code+" · ":"")+o.subject_name+" · "+o.teacher_name+tail)+'</option>';
-      }).join("");
-      slots+='<div class="timetable-slot-row '+(entry?"filled":"")+'"><span class="timetable-slot-no">'+period+'</span><select class="timetable-slot-select" data-timetable-slot data-class-id="'+esc(cls.id)+'" data-day="'+day+'" data-period="'+period+'" '+(!data.can_edit||!data.selected_version_id?"disabled":"")+'>'+options+'</select></div>';
+      const offering=entry&&timetableEntryOffering(entry);
+      const content=entry
+        ?'<article class="timetable-scheduled-card" draggable="true" data-timetable-drag="entry" data-offering-id="'+esc(offering&&offering.workload_item_id||"")+'" data-source-class="'+esc(cls.id)+'" data-source-day="'+day+'" data-source-period="'+period+'" tabindex="0" role="button">'+
+          '<div><strong>'+esc((offering&&offering.subject_code?offering.subject_code+" · ":"")+(offering&&offering.subject_name||entry.subject_name||"-"))+'</strong><small>'+esc(offering&&offering.teacher_name||entry.teacher_name||"-")+'</small></div>'+
+          '<button type="button" class="timetable-remove-entry" data-timetable-remove-entry data-class-id="'+esc(cls.id)+'" data-day="'+day+'" data-period="'+period+'" aria-label="นำคาบนี้ออก">×</button>'+
+        '</article>'
+        :'<div class="timetable-empty-slot"><span>คาบ '+period+'</span><em>ลากมาวาง</em></div>';
+      slots+='<div class="timetable-drop-zone '+(entry?"filled":"empty")+'" data-timetable-drop data-class-id="'+esc(cls.id)+'" data-day="'+day+'" data-period="'+period+'" aria-label="'+esc((timetableDayLabels[day]||("วัน "+day))+" คาบ "+period)+'">'+content+'</div>';
     }
-    cards.push('<article class="timetable-day-card"><header><strong>'+esc(timetableDayLabels[day]||("วันที่ "+day))+'</strong><span>'+periods+' คาบ</span></header><div>'+slots+'</div></article>');
+    cards.push('<article class="timetable-day-card timetable-dnd-day"><header><strong>'+esc(timetableDayLabels[day]||("วันที่ "+day))+'</strong><span>'+periods+' คาบ</span></header><div>'+slots+'</div></article>');
   }
-  return '<div class="timetable-grid-heading"><div><strong>'+esc(timetableClassLabel(cls))+'</strong><span>'+esc(cls.grade_label)+(cls.room_name?' · '+esc(cls.room_name):'')+'</span></div><span>'+days+' วัน · '+periods+' คาบ/วัน</span></div>'+
-    (classOfferings.length?'<div class="timetable-days-grid">'+cards.join("")+'</div>':'<div class="notice warning"><strong>ยังไม่มีภาระงานสอนที่อนุมัติสำหรับห้องนี้</strong><br>อนุมัติภาระงานสอนก่อนจึงจะเลือกรายวิชา/ครูลงคาบได้</div>');
+  return '<div class="timetable-dnd-layout">'+sourcePanel+
+    '<div class="timetable-dnd-board"><div class="timetable-grid-heading"><div><strong>'+esc(timetableClassLabel(cls))+'</strong><span>'+esc(cls.grade_label)+(cls.room_name?' · '+esc(cls.room_name):'')+' · ลาก–วางเพื่อจัดหรือย้ายคาบ</span></div><span>'+days+' วัน · '+periods+' คาบ/วัน</span></div>'+
+    (classOfferings.length?'<div class="timetable-days-grid timetable-dnd-grid">'+cards.join("")+'</div>':'<div class="notice warning"><strong>ยังไม่มีภาระงานสอนที่อนุมัติสำหรับห้องนี้</strong><br>อนุมัติภาระงานสอนก่อนจึงจะลากรายวิชาลงตารางได้</div>')+
+    '</div></div>';
 }
 function timetableTeacherGridHtml(){
   const data=state.timetableData||{},draft=state.timetableDraft||[],pid=state.timetablePersonnelId;
@@ -6705,38 +6724,226 @@ function bindTimetableWorkspaceLinks(){
     timetableApplyViewMode("class");
   }));
 }
+let timetablePointerDrag=null;
+let timetablePointerEventsBound=false;
+function timetableDragPayloadFromElement(el){
+  if(!el)return null;
+  const kind=el.dataset.timetableDrag,offeringId=el.dataset.offeringId||null;
+  if(!kind||!offeringId)return null;
+  if(kind==="entry"){
+    return {
+      kind,offeringId,
+      sourceClassId:el.dataset.sourceClass||null,
+      sourceDay:Number(el.dataset.sourceDay||0),
+      sourcePeriod:Number(el.dataset.sourcePeriod||0)
+    };
+  }
+  return {kind:"offering",offeringId};
+}
+function timetableDragOffering(payload){
+  return payload&&timetableScopedOfferings().find(o=>o.workload_item_id===payload.offeringId)||null;
+}
+function timetableDraftWithoutDragSource(payload){
+  const draft=state.timetableDraft||[];
+  if(!payload||payload.kind!=="entry")return draft.slice();
+  return draft.filter(e=>!(
+    e.class_section_id===payload.sourceClassId&&
+    Number(e.day_no)===Number(payload.sourceDay)&&
+    Number(e.period_no)===Number(payload.sourcePeriod)
+  ));
+}
+function timetableValidateDrop(payload,classId,day,period){
+  const data=state.timetableData||{},o=timetableDragOffering(payload);
+  if(!o)return {ok:false,reason:"ไม่พบรายการสอน"};
+  if(o.class_section_id!==classId)return {ok:false,reason:"กิจกรรมนี้เป็นของห้องอื่น"};
+  const base=timetableDraftWithoutDragSource(payload);
+  const occupied=base.find(e=>e.class_section_id===classId&&Number(e.day_no)===Number(day)&&Number(e.period_no)===Number(period));
+  if(occupied)return {ok:false,reason:"คาบนี้มีรายวิชาแล้ว"};
+  const conflict=base.find(e=>e.personnel_id===o.personnel_id&&Number(e.day_no)===Number(day)&&Number(e.period_no)===Number(period));
+  if(conflict){
+    const otherClass=(data.classes||[]).find(c=>c.id===conflict.class_section_id);
+    return {ok:false,reason:"ครู "+o.teacher_name+" มีคาบ "+timetableClassLabel(otherClass)+" อยู่แล้ว"};
+  }
+  const target=Math.max(0,Math.round(Number(o.weekly_periods||0)));
+  if(timetableOfferingCount(o,base)>=target)return {ok:false,reason:"รายวิชานี้จัดครบจำนวนคาบแล้ว"};
+  return {ok:true,reason:"วางได้",offering:o,base};
+}
+function timetableClearDropHighlights(){
+  qa("[data-timetable-drop]").forEach(el=>el.classList.remove("drop-valid","drop-invalid","drop-hover"));
+  qa("[data-timetable-drag]").forEach(el=>el.classList.remove("drag-picked","dragging"));
+}
+function timetableMarkDropTargets(payload){
+  timetableClearDropHighlights();
+  qa("[data-timetable-drop]").forEach(el=>{
+    const r=timetableValidateDrop(payload,el.dataset.classId,Number(el.dataset.day),Number(el.dataset.period));
+    el.classList.add(r.ok?"drop-valid":"drop-invalid");
+    el.title=r.reason||"";
+  });
+}
+function timetableApplyDrop(payload,classId,day,period){
+  const check=timetableValidateDrop(payload,classId,day,period);
+  if(!check.ok){toast(check.reason||"วางคาบนี้ไม่ได้","error");return false;}
+  const o=check.offering,base=check.base;
+  let oldEntry=null;
+  if(payload.kind==="entry"){
+    oldEntry=(state.timetableDraft||[]).find(e=>
+      e.class_section_id===payload.sourceClassId&&Number(e.day_no)===Number(payload.sourceDay)&&Number(e.period_no)===Number(payload.sourcePeriod)
+    )||null;
+  }
+  state.timetableDraft=base.concat([{
+    id:oldEntry&&oldEntry.id||null,
+    version_id:(state.timetableData||{}).selected_version_id,
+    day_no:Number(day),period_no:Number(period),class_section_id:classId,
+    course_id:o.course_id,personnel_id:o.personnel_id,
+    room_label:oldEntry&&oldEntry.room_label||null,note:oldEntry&&oldEntry.note||null
+  }]);
+  state.timetablePickedDrag=null;
+  timetableSetDirty(true);
+  timetableClearDropHighlights();
+  timetableRenderLive();
+  return true;
+}
+function timetableRemoveEntry(classId,day,period){
+  const draft=state.timetableDraft||[],next=draft.filter(e=>!(
+    e.class_section_id===classId&&Number(e.day_no)===Number(day)&&Number(e.period_no)===Number(period)
+  ));
+  if(next.length===draft.length)return;
+  state.timetableDraft=next;
+  state.timetablePickedDrag=null;
+  timetableSetDirty(true);
+  timetableClearDropHighlights();
+  timetableRenderLive();
+}
+function timetableBeginPointerDrag(source,event){
+  const payload=timetableDragPayloadFromElement(source);
+  if(!payload)return;
+  timetablePointerDrag={
+    pointerId:event.pointerId,
+    source,payload,
+    startX:event.clientX,startY:event.clientY,
+    dragging:false,ghost:null,hover:null
+  };
+}
+function timetableStartPointerGhost(drag,x,y){
+  if(drag.dragging)return;
+  drag.dragging=true;
+  drag.source.classList.add("dragging");
+  const ghost=drag.source.cloneNode(true);
+  ghost.classList.add("timetable-drag-ghost");
+  ghost.removeAttribute("draggable");
+  ghost.querySelectorAll("button").forEach(b=>b.remove());
+  document.body.appendChild(ghost);
+  drag.ghost=ghost;
+  timetableMarkDropTargets(drag.payload);
+  timetableMovePointerGhost(drag,x,y);
+}
+function timetableMovePointerGhost(drag,x,y){
+  if(drag.ghost){
+    drag.ghost.style.transform="translate3d("+(x+14)+"px,"+(y+14)+"px,0)";
+  }
+  if(drag.hover)drag.hover.classList.remove("drop-hover");
+  const under=document.elementFromPoint(x,y),drop=under&&under.closest&&under.closest("[data-timetable-drop]");
+  drag.hover=drop||null;
+  if(drop&&drop.classList.contains("drop-valid"))drop.classList.add("drop-hover");
+}
+function timetableFinishPointerDrag(event,cancelled=false){
+  const drag=timetablePointerDrag;
+  if(!drag||drag.pointerId!==event.pointerId)return;
+  if(drag.dragging&&!cancelled){
+    const under=document.elementFromPoint(event.clientX,event.clientY),drop=under&&under.closest&&under.closest("[data-timetable-drop]");
+    if(drop){
+      timetableApplyDrop(drag.payload,drop.dataset.classId,Number(drop.dataset.day),Number(drop.dataset.period));
+    }else{
+      timetableClearDropHighlights();
+    }
+  }else if(!drag.dragging&&!cancelled){
+    const same=state.timetablePickedDrag&&JSON.stringify(state.timetablePickedDrag)===JSON.stringify(drag.payload);
+    state.timetablePickedDrag=same?null:drag.payload;
+    timetableClearDropHighlights();
+    if(state.timetablePickedDrag){
+      timetableMarkDropTargets(state.timetablePickedDrag);
+      drag.source.classList.add("drag-picked");
+      toast("เลือกกิจกรรมแล้ว · แตะช่องสีเขียวเพื่อวาง","success");
+    }
+  }
+  if(drag.ghost)drag.ghost.remove();
+  drag.source&&drag.source.classList.remove("dragging");
+  timetablePointerDrag=null;
+}
+function timetableEnsurePointerEvents(){
+  if(timetablePointerEventsBound)return;
+  timetablePointerEventsBound=true;
+  document.addEventListener("pointermove",event=>{
+    const drag=timetablePointerDrag;
+    if(!drag||drag.pointerId!==event.pointerId)return;
+    const distance=Math.hypot(event.clientX-drag.startX,event.clientY-drag.startY);
+    if(distance>8&&!drag.dragging)timetableStartPointerGhost(drag,event.clientX,event.clientY);
+    if(drag.dragging){
+      event.preventDefault();
+      timetableMovePointerGhost(drag,event.clientX,event.clientY);
+    }
+  },{passive:false});
+  document.addEventListener("pointerup",event=>timetableFinishPointerDrag(event,false));
+  document.addEventListener("pointercancel",event=>timetableFinishPointerDrag(event,true));
+}
 function bindTimetableSlotControls(){
-  qa("[data-timetable-slot]").forEach(select=>select.addEventListener("change",()=>{
-    const data=state.timetableData||{},draft=state.timetableDraft||[];
-    const clsId=select.dataset.classId,day=Number(select.dataset.day),period=Number(select.dataset.period);
-    const oldEntry=draft.find(e=>e.class_section_id===clsId&&Number(e.day_no)===day&&Number(e.period_no)===period)||null;
-    const base=draft.filter(e=>!(e.class_section_id===clsId&&Number(e.day_no)===day&&Number(e.period_no)===period));
-    const value=select.value;
-    if(!value){
-      state.timetableDraft=base;timetableSetDirty(true);timetableRenderLive();return;
-    }
-    const o=timetableScopedOfferings(data).find(x=>x.workload_item_id===value);
-    if(!o){timetableRenderLive();return;}
-    const conflict=base.find(e=>e.personnel_id===o.personnel_id&&Number(e.day_no)===day&&Number(e.period_no)===period);
-    if(conflict){
-      const otherClass=(data.classes||[]).find(c=>c.id===conflict.class_section_id);
-      toast("ครู "+o.teacher_name+" มีคาบสอน "+timetableClassLabel(otherClass)+" ในวัน/คาบเดียวกันแล้ว","error");
-      timetableRenderLive();return;
-    }
-    const sameLoadCount=timetableOfferingCount(o,base)+1;
-    if(sameLoadCount>Math.round(Number(o.weekly_periods||0))){
-      toast((o.subject_name||"รายวิชา")+" · "+o.teacher_name+" เกินภาระงาน "+Number(o.weekly_periods||0).toLocaleString("th-TH",{maximumFractionDigits:2})+" คาบ/สัปดาห์","error");
-      timetableRenderLive();return;
-    }
-    state.timetableDraft=base.concat([{
-      id:oldEntry&&oldEntry.id||null,
-      version_id:data.selected_version_id,
-      day_no:day,period_no:period,class_section_id:clsId,
-      course_id:o.course_id,personnel_id:o.personnel_id,
-      room_label:oldEntry&&oldEntry.room_label||null,note:oldEntry&&oldEntry.note||null
-    }]);
-    timetableSetDirty(true);
-    timetableRenderLive();
+  timetableEnsurePointerEvents();
+
+  qa("[data-timetable-drag]").forEach(el=>{
+    el.addEventListener("dragstart",event=>{
+      const payload=timetableDragPayloadFromElement(el);
+      if(!payload){event.preventDefault();return;}
+      event.dataTransfer.effectAllowed=payload.kind==="entry"?"move":"copy";
+      event.dataTransfer.setData("text/plain",JSON.stringify(payload));
+      el.classList.add("dragging");
+      timetableMarkDropTargets(payload);
+    });
+    el.addEventListener("dragend",()=>timetableClearDropHighlights());
+    el.addEventListener("pointerdown",event=>{
+      if(event.pointerType==="mouse"||event.target.closest("[data-timetable-remove-entry]"))return;
+      timetableBeginPointerDrag(el,event);
+    });
+    el.addEventListener("keydown",event=>{
+      if(event.key!=="Enter"&&event.key!==" ")return;
+      event.preventDefault();
+      const payload=timetableDragPayloadFromElement(el);
+      if(!payload)return;
+      state.timetablePickedDrag=payload;
+      timetableMarkDropTargets(payload);
+      el.classList.add("drag-picked");
+      toast("เลือกกิจกรรมแล้ว · เลือกช่องที่ต้องการวาง","success");
+    });
+  });
+
+  qa("[data-timetable-drop]").forEach(drop=>{
+    drop.addEventListener("dragover",event=>{
+      let payload=null;
+      try{payload=JSON.parse(event.dataTransfer.getData("text/plain")||"null");}catch(_){}
+      if(!payload)return;
+      event.preventDefault();
+      const r=timetableValidateDrop(payload,drop.dataset.classId,Number(drop.dataset.day),Number(drop.dataset.period));
+      event.dataTransfer.dropEffect=r.ok?(payload.kind==="entry"?"move":"copy"):"none";
+      drop.classList.toggle("drop-hover",r.ok);
+    });
+    drop.addEventListener("dragleave",()=>drop.classList.remove("drop-hover"));
+    drop.addEventListener("drop",event=>{
+      event.preventDefault();
+      let payload=null;
+      try{payload=JSON.parse(event.dataTransfer.getData("text/plain")||"null");}catch(_){}
+      drop.classList.remove("drop-hover");
+      if(payload)timetableApplyDrop(payload,drop.dataset.classId,Number(drop.dataset.day),Number(drop.dataset.period));
+    });
+    drop.addEventListener("click",event=>{
+      if(event.target.closest("[data-timetable-drag],[data-timetable-remove-entry]"))return;
+      const payload=state.timetablePickedDrag;
+      if(!payload)return;
+      timetableApplyDrop(payload,drop.dataset.classId,Number(drop.dataset.day),Number(drop.dataset.period));
+    });
+  });
+
+  qa("[data-timetable-remove-entry]").forEach(btn=>btn.addEventListener("click",event=>{
+    event.stopPropagation();
+    timetableRemoveEntry(btn.dataset.classId,Number(btn.dataset.day),Number(btn.dataset.period));
   }));
 }
 function timetableAutoFillRemaining(){
