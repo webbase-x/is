@@ -11245,3 +11245,36 @@ html.is-touch-device [data-manual-refresh]{
   .timetable-overview-split>section{margin-bottom:8px}
   .lantiv-week{max-height:none;overflow:visible!important}
 }
+
+
+/* v0.19.57 — compact timetable summary; activities live only in side pane */
+.timetable-compact-summary{
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  padding:7px 8px;border:1px solid #e4e7ec;border-radius:12px;background:#f8fafc
+}
+.timetable-summary-context{
+  min-width:0;max-width:min(330px,36vw);padding:0 7px 0 2px;
+  font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#101828
+}
+.timetable-compact-summary>span{
+  display:inline-flex;align-items:baseline;gap:4px;padding:5px 8px;
+  border:1px solid #e4e7ec;border-radius:9px;background:#fff;white-space:nowrap
+}
+.timetable-compact-summary>span b{font-size:11px;color:#101828}
+.timetable-compact-summary>span small{font-size:9px;color:#667085}
+.timetable-compact-summary>span.ok{border-color:#abefc6;background:#f6fef9}
+.timetable-compact-summary>span.ok b{color:#067647}
+.timetable-compact-summary>span.danger{border-color:#fecdca;background:#fffafa}
+.timetable-compact-summary>span.danger b{color:#b42318}
+.timetable-workspace-toolbar + [data-timetable-progress]{margin-top:-2px}
+@media(max-width:760px){
+  .timetable-compact-summary{gap:5px}
+  .timetable-summary-context{flex:1 0 100%;max-width:none;padding:0 2px 2px}
+  .timetable-compact-summary>span{padding:4px 6px}
+}
+@media(max-width:480px){
+  .timetable-compact-summary>span{flex:1 1 calc(50% - 5px);justify-content:space-between}
+}
+@media print{
+  .timetable-compact-summary{display:none!important}
+}
