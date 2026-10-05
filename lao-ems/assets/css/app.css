@@ -11460,3 +11460,92 @@ html.is-touch-device [data-manual-refresh]{
 @media print{
   .timetable-slot-legend{display:none!important}
 }
+
+
+/* v0.19.61 — tight timetable icons + no legend */
+/* Hide the explanatory legend; controls are self-explanatory in-cell. */
+.timetable-slot-legend{display:none!important}
+
+/* Lock and no-place controls occupy only the icon footprint. */
+.timetable-lock-entry,
+.timetable-no-place-toggle{
+  width:16px!important;
+  height:16px!important;
+  min-width:16px!important;
+  min-height:16px!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  display:grid!important;
+  place-items:center!important;
+  line-height:1!important;
+  opacity:.72!important;
+}
+.timetable-lock-entry svg,
+.timetable-no-place-toggle svg{
+  width:16px!important;
+  height:16px!important;
+  display:block!important;
+}
+.timetable-lock-entry{
+  right:33px!important;
+  top:9px!important;
+  color:#667085!important;
+}
+.timetable-lock-entry.active{
+  color:#b54708!important;
+  background:transparent!important;
+}
+.timetable-no-place-toggle{
+  right:7px!important;
+  top:9px!important;
+  color:#667085!important;
+}
+.timetable-no-place-toggle.active{
+  color:#b42318!important;
+  background:transparent!important;
+}
+.timetable-lock-entry:hover,
+.timetable-lock-entry:focus-visible,
+.timetable-no-place-toggle:hover,
+.timetable-no-place-toggle:focus-visible{
+  opacity:1!important;
+  outline:1px solid currentColor!important;
+  outline-offset:2px!important;
+}
+.timetable-scheduled-card{
+  padding-right:57px!important;
+}
+.timetable-empty-slot{
+  padding-right:29px!important;
+}
+
+/* Compact multi-room/day/week cells use the same tight footprint. */
+.timetable-drop-zone.compact .timetable-lock-entry,
+.timetable-drop-zone.compact .timetable-no-place-toggle{
+  width:14px!important;
+  height:14px!important;
+  min-width:14px!important;
+  min-height:14px!important;
+  top:5px!important;
+}
+.timetable-drop-zone.compact .timetable-lock-entry svg,
+.timetable-drop-zone.compact .timetable-no-place-toggle svg{
+  width:14px!important;
+  height:14px!important;
+}
+.timetable-drop-zone.compact .timetable-lock-entry{
+  right:24px!important;
+}
+.timetable-drop-zone.compact .timetable-no-place-toggle{
+  right:5px!important;
+}
+.timetable-drop-zone.compact .timetable-scheduled-card{
+  padding-right:45px!important;
+}
+.timetable-drop-zone.compact .timetable-empty-slot{
+  padding-right:23px!important;
+}
