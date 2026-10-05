@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.58";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableDirty:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -6355,7 +6355,7 @@ function timetableNormalizeSelections(){
 async function loadTimetablePage(){
   const school=currentSchool();
   if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
-  const res=await academicReadWithRetry(()=>supabase.rpc("lao_timetable_page",{
+  const res=await academicReadWithRetry(()=>supabase.rpc("lao_timetable_page_v2",{
     p_school_id:school.id,
     p_academic_year_id:state.academicYearId||null,
     p_term_id:state.timetableTermId||state.academicTermId||null,
@@ -6377,6 +6377,7 @@ async function loadTimetablePage(){
   const persisted=(state.timetableData.scope.selected_grade_codes||[]).filter(Boolean);
   state.timetableGradeCodes=persisted.length?persisted:timetableReadyGradeCodes(state.timetableData.scope);
   state.timetableDraft=JSON.parse(JSON.stringify(page.entries||[]));
+  state.timetableBlockedSlots=JSON.parse(JSON.stringify(page.blocked_slots||[]));
   timetableNormalizeSelections();
   timetableSetDirty(false);
   return state.timetableData;
@@ -6455,6 +6456,65 @@ function timetableSourceReadinessHtml(){
 function timetableOfferingCount(o,draft=state.timetableDraft||[]){
   return draft.filter(e=>e.class_section_id===o.class_section_id&&e.course_id===o.course_id&&e.personnel_id===o.personnel_id).length;
 }
+function timetableSlotConstraint(kind,id,day,period){
+  const rows=state.timetableBlockedSlots||[];
+  return rows.find(x=>
+    Number(x.day_no)===Number(day)&&Number(x.period_no)===Number(period)&&
+    (kind==="teacher"?x.personnel_id===id:x.class_section_id===id)
+  )||null;
+}
+function timetableIsClassBlocked(classId,day,period){
+  return Boolean(classId&&timetableSlotConstraint("class",classId,day,period));
+}
+function timetableIsTeacherBlocked(personnelId,day,period){
+  return Boolean(personnelId&&timetableSlotConstraint("teacher",personnelId,day,period));
+}
+function timetableToggleEntryLock(classId,day,period){
+  const entry=(state.timetableDraft||[]).find(e=>
+    e.class_section_id===classId&&Number(e.day_no)===Number(day)&&Number(e.period_no)===Number(period)
+  );
+  if(!entry)return;
+  entry.is_locked=!Boolean(entry.is_locked);
+  state.timetablePickedDrag=null;
+  timetableClearDropHighlights();
+  timetableSetDirty(true);
+  timetableRenderLive();
+  toast(entry.is_locked?"ล็อกคาบแล้ว · ห้ามเคลื่อนย้าย":"ปลดล็อกคาบแล้ว","success");
+}
+function timetableToggleBlockedSlot(kind,id,day,period){
+  if(!id)return;
+  const rows=state.timetableBlockedSlots||[];
+  const existing=timetableSlotConstraint(kind,id,day,period);
+  if(existing){
+    state.timetableBlockedSlots=rows.filter(x=>x!==existing);
+    timetableSetDirty(true);
+    timetableRenderLive();
+    toast("เปิดช่องให้วางกิจกรรมได้แล้ว","success");
+    return;
+  }
+  if(kind==="class"){
+    const occupied=(state.timetableDraft||[]).some(e=>
+      e.class_section_id===id&&Number(e.day_no)===Number(day)&&Number(e.period_no)===Number(period)
+    );
+    if(occupied){toast("ช่องนี้มีคาบเรียนอยู่แล้ว กรุณานำคาบออกก่อนกำหนดห้ามวาง","error");return;}
+  }else{
+    const occupied=(state.timetableDraft||[]).some(e=>
+      e.personnel_id===id&&Number(e.day_no)===Number(day)&&Number(e.period_no)===Number(period)
+    );
+    if(occupied){toast("ครูมีคาบอยู่ในช่วงเวลานี้ กรุณาย้ายคาบก่อนกำหนดห้ามวาง","error");return;}
+  }
+  state.timetableBlockedSlots=rows.concat([{
+    id:null,version_id:(state.timetableData||{}).selected_version_id||null,
+    class_section_id:kind==="class"?id:null,
+    personnel_id:kind==="teacher"?id:null,
+    day_no:Number(day),period_no:Number(period),constraint_type:"no_place",note:null
+  }]);
+  state.timetablePickedDrag=null;
+  timetableClearDropHighlights();
+  timetableSetDirty(true);
+  timetableRenderLive();
+  toast(kind==="teacher"?"กำหนดช่วงเวลาครูเป็นห้ามวางแล้ว":"กำหนดช่องเป็นห้ามวางแล้ว","success");
+}
 function timetableCandidateSlotsForOffering(o,draft=state.timetableDraft||[]){
   const data=state.timetableData||{},cls=(data.classes||[]).find(c=>c.id===o.class_section_id);
   if(!cls)return [];
@@ -6465,6 +6525,8 @@ function timetableCandidateSlotsForOffering(o,draft=state.timetableDraft||[]){
   const out=[];
   for(let day=1;day<=days;day++){
     for(let period=1;period<=periods;period++){
+      if(timetableIsClassBlocked(o.class_section_id,day,period))continue;
+      if(timetableIsTeacherBlocked(o.personnel_id,day,period))continue;
       if(draft.some(e=>e.class_section_id===o.class_section_id&&Number(e.day_no)===day&&Number(e.period_no)===period))continue;
       if(draft.some(e=>e.personnel_id===o.personnel_id&&Number(e.day_no)===day&&Number(e.period_no)===period))continue;
       const sameDay=draft.filter(e=>e.class_section_id===o.class_section_id&&e.course_id===o.course_id&&e.personnel_id===o.personnel_id&&Number(e.day_no)===day).length;
@@ -6539,25 +6601,38 @@ function timetableScheduledCardHtml(entry,{showClass=false,compact=false}={}){
   const o=timetableEntryOffering(entry)||{},cls=(state.timetableData&&state.timetableData.classes||[]).find(c=>c.id===entry.class_section_id);
   const subject=(o.subject_code?o.subject_code+" · ":"")+(o.subject_name||entry.subject_name||"-");
   const tail=[o.teacher_name||entry.teacher_name||"-",showClass?timetableClassLabel(cls):""].filter(Boolean).join(" · ");
-  return '<article class="timetable-scheduled-card '+(compact?"compact":"")+'" draggable="true" data-timetable-drag="entry" data-offering-id="'+esc(o.workload_item_id||"")+'" data-source-class="'+esc(entry.class_section_id)+'" data-source-day="'+Number(entry.day_no)+'" data-source-period="'+Number(entry.period_no)+'" tabindex="0" role="button">'+
+  const locked=Boolean(entry.is_locked);
+  const dragAttrs=locked?"":' draggable="true" data-timetable-drag="entry" data-offering-id="'+esc(o.workload_item_id||"")+'" data-source-class="'+esc(entry.class_section_id)+'" data-source-day="'+Number(entry.day_no)+'" data-source-period="'+Number(entry.period_no)+'" tabindex="0" role="button"';
+  return '<article class="timetable-scheduled-card '+(compact?"compact ":"")+(locked?"locked":"")+'"'+dragAttrs+'>'+
     '<div><strong>'+esc(subject)+'</strong><small>'+esc(tail)+'</small></div>'+
-    '<button type="button" class="timetable-remove-entry" data-timetable-remove-entry data-class-id="'+esc(entry.class_section_id)+'" data-day="'+Number(entry.day_no)+'" data-period="'+Number(entry.period_no)+'" aria-label="นำคาบนี้ออก">×</button>'+
+    '<button type="button" class="timetable-lock-entry '+(locked?"active":"")+'" data-timetable-toggle-lock data-class-id="'+esc(entry.class_section_id)+'" data-day="'+Number(entry.day_no)+'" data-period="'+Number(entry.period_no)+'" aria-pressed="'+(locked?"true":"false")+'" title="'+(locked?"ปลดล็อกคาบ":"ล็อกคาบ ห้ามเคลื่อนย้าย")+'" aria-label="'+(locked?"ปลดล็อกคาบ":"ล็อกคาบ ห้ามเคลื่อนย้าย")+'">'+(locked?"🔒":"🔓")+'</button>'+
+    '<button type="button" class="timetable-remove-entry" data-timetable-remove-entry data-class-id="'+esc(entry.class_section_id)+'" data-day="'+Number(entry.day_no)+'" data-period="'+Number(entry.period_no)+'" aria-label="นำคาบนี้ออก" '+(locked?'disabled title="คาบนี้ถูกล็อก"':"")+'>×</button>'+
   '</article>';
+}
+function timetableEmptySlotHtml(kind,id,day,period,{compact=false,label="ลากมาวาง"}={}){
+  const blocked=timetableSlotConstraint(kind,id,day,period);
+  return '<div class="timetable-empty-slot '+(compact?"compact ":"")+(blocked?"no-place":"")+'">'+
+    '<span>'+(blocked?"ห้ามวาง":(compact?"ว่าง":"คาบ "+period))+'</span>'+
+    '<em>'+(blocked?"ช่องนี้ถูกปิดการวาง":(compact?"":esc(label)))+'</em>'+
+    '<button type="button" class="timetable-no-place-toggle '+(blocked?"active":"")+'" data-timetable-toggle-block data-resource-kind="'+esc(kind)+'" data-resource-id="'+esc(id)+'" data-day="'+Number(day)+'" data-period="'+Number(period)+'" aria-pressed="'+(blocked?"true":"false")+'" title="'+(blocked?"ยกเลิกห้ามวาง":"กำหนดห้ามวาง")+'" aria-label="'+(blocked?"ยกเลิกห้ามวาง":"กำหนดห้ามวาง")+'">'+(blocked?"⛔":"⊘")+'</button>'+
+  '</div>';
 }
 function timetableClassDropHtml(cls,draft,day,period,{compact=false,showClass=false}={}){
   const entry=draft.find(e=>e.class_section_id===cls.id&&Number(e.day_no)===day&&Number(e.period_no)===period)||null;
+  const blocked=timetableIsClassBlocked(cls.id,day,period);
   const content=entry
     ?timetableScheduledCardHtml(entry,{showClass,compact})
-    :'<div class="timetable-empty-slot '+(compact?"compact":"")+'"><span>'+(compact?"ว่าง":"คาบ "+period)+'</span><em>'+(compact?"":"ลากมาวาง")+'</em></div>';
-  return '<div class="timetable-drop-zone '+(entry?"filled":"empty")+' '+(compact?"compact":"")+'" data-timetable-drop data-class-id="'+esc(cls.id)+'" data-day="'+day+'" data-period="'+period+'" aria-label="'+esc((timetableDayLabels[day]||("วัน "+day))+" คาบ "+period+" "+timetableClassLabel(cls))+'">'+content+'</div>';
+    :timetableEmptySlotHtml("class",cls.id,day,period,{compact,label:"ลากมาวาง"});
+  return '<div class="timetable-drop-zone '+(entry?"filled":"empty")+' '+(blocked&&!entry?"no-place ":"")+(compact?"compact":"")+'" data-timetable-drop data-class-id="'+esc(cls.id)+'" data-day="'+day+'" data-period="'+period+'" aria-label="'+esc((timetableDayLabels[day]||("วัน "+day))+" คาบ "+period+" "+timetableClassLabel(cls))+'">'+content+'</div>';
 }
 function timetableTeacherDropHtml(pid,draft,classMap,day,period,{compact=false}={}){
   const entry=draft.find(e=>e.personnel_id===pid&&Number(e.day_no)===day&&Number(e.period_no)===period)||null;
   const targetClass=entry?entry.class_section_id:"auto";
+  const blocked=timetableIsTeacherBlocked(pid,day,period);
   const content=entry
     ?timetableScheduledCardHtml(entry,{showClass:true,compact})
-    :'<div class="timetable-empty-slot '+(compact?"compact":"")+'"><span>'+(compact?"ว่าง":"คาบ "+period)+'</span><em>'+(compact?"":"ลากกิจกรรมของครูมาวาง")+'</em></div>';
-  return '<div class="timetable-drop-zone teacher-target '+(entry?"filled":"empty")+' '+(compact?"compact":"")+'" data-timetable-drop data-class-id="'+esc(targetClass)+'" data-day="'+day+'" data-period="'+period+'">'+content+'</div>';
+    :timetableEmptySlotHtml("teacher",pid,day,period,{compact,label:"ลากกิจกรรมของครูมาวาง"});
+  return '<div class="timetable-drop-zone teacher-target '+(entry?"filled":"empty")+' '+(blocked&&!entry?"no-place ":"")+(compact?"compact":"")+'" data-timetable-drop data-class-id="'+esc(targetClass)+'" data-day="'+day+'" data-period="'+period+'">'+content+'</div>';
 }
 function timetableClassAxisGridHtml(cls,draft,days,periods){
   const axis=state.timetableAxisMode==="period-columns"?"period-columns":"day-columns";
@@ -6934,11 +7009,19 @@ function timetableDraftWithoutDragSource(payload){
 function timetableValidateDrop(payload,classId,day,period){
   const data=state.timetableData||{},o=timetableDragOffering(payload);
   if(!o)return {ok:false,reason:"ไม่พบรายการสอน"};
+  if(payload&&payload.kind==="entry"){
+    const source=(state.timetableDraft||[]).find(e=>
+      e.class_section_id===payload.sourceClassId&&Number(e.day_no)===Number(payload.sourceDay)&&Number(e.period_no)===Number(payload.sourcePeriod)
+    );
+    if(source&&source.is_locked)return {ok:false,reason:"คาบนี้ถูกล็อก ห้ามเคลื่อนย้าย"};
+  }
   const targetClassId=!classId||classId==="auto"?o.class_section_id:classId;
   if(o.class_section_id!==targetClassId)return {ok:false,reason:"กิจกรรมนี้เป็นของห้องอื่น"};
   const cls=(data.classes||[]).find(c=>c.id===targetClassId);
   if(!cls)return {ok:false,reason:"ไม่พบห้องเรียนปลายทาง"};
   if(Number(day)>Number(cls.school_days_per_week||7)||Number(period)>Number(cls.periods_per_day||30))return {ok:false,reason:"อยู่นอกวัน/คาบของห้องนี้"};
+  if(timetableIsClassBlocked(targetClassId,day,period))return {ok:false,reason:"ช่องนี้กำหนดห้ามวาง"};
+  if(timetableIsTeacherBlocked(o.personnel_id,day,period))return {ok:false,reason:"ช่วงเวลานี้ของครูถูกกำหนดห้ามวาง"};
   const base=timetableDraftWithoutDragSource(payload);
   const occupied=base.find(e=>e.class_section_id===targetClassId&&Number(e.day_no)===Number(day)&&Number(e.period_no)===Number(period));
   if(occupied)return {ok:false,reason:"คาบนี้มีรายวิชาแล้ว"};
@@ -6979,7 +7062,8 @@ function timetableApplyDrop(payload,classId,day,period){
     version_id:(state.timetableData||{}).selected_version_id,
     day_no:Number(day),period_no:Number(period),class_section_id:targetClassId,
     course_id:o.course_id,personnel_id:o.personnel_id,
-    room_label:oldEntry&&oldEntry.room_label||null,note:oldEntry&&oldEntry.note||null
+    room_label:oldEntry&&oldEntry.room_label||null,note:oldEntry&&oldEntry.note||null,
+    is_locked:oldEntry&&Boolean(oldEntry.is_locked)||false
   }]);
   state.timetablePickedDrag=null;
   timetableSetDirty(true);
@@ -6988,7 +7072,10 @@ function timetableApplyDrop(payload,classId,day,period){
   return true;
 }
 function timetableRemoveEntry(classId,day,period){
-  const draft=state.timetableDraft||[],next=draft.filter(e=>!(
+  const draft=state.timetableDraft||[];
+  const current=draft.find(e=>e.class_section_id===classId&&Number(e.day_no)===Number(day)&&Number(e.period_no)===Number(period));
+  if(current&&current.is_locked){toast("คาบนี้ถูกล็อก กรุณาปลดล็อกก่อนนำออก","error");return;}
+  const next=draft.filter(e=>!(
     e.class_section_id===classId&&Number(e.day_no)===Number(day)&&Number(e.period_no)===Number(period)
   ));
   if(next.length===draft.length)return;
@@ -7085,7 +7172,7 @@ function bindTimetableSlotControls(){
     });
     el.addEventListener("dragend",()=>{state.timetableNativeDragPayload=null;timetableClearDropHighlights();});
     el.addEventListener("pointerdown",event=>{
-      if(event.pointerType==="mouse"||event.target.closest("[data-timetable-remove-entry]"))return;
+      if(event.pointerType==="mouse"||event.target.closest("[data-timetable-remove-entry],[data-timetable-toggle-lock],[data-timetable-toggle-block]"))return;
       timetableBeginPointerDrag(el,event);
     });
     el.addEventListener("keydown",event=>{
@@ -7120,7 +7207,7 @@ function bindTimetableSlotControls(){
       if(payload)timetableApplyDrop(payload,drop.dataset.classId,Number(drop.dataset.day),Number(drop.dataset.period));
     });
     drop.addEventListener("click",event=>{
-      if(event.target.closest("[data-timetable-drag],[data-timetable-remove-entry]"))return;
+      if(event.target.closest("[data-timetable-drag],[data-timetable-remove-entry],[data-timetable-toggle-lock],[data-timetable-toggle-block]"))return;
       const payload=state.timetablePickedDrag;
       if(!payload)return;
       timetableApplyDrop(payload,drop.dataset.classId,Number(drop.dataset.day),Number(drop.dataset.period));
@@ -7130,6 +7217,14 @@ function bindTimetableSlotControls(){
   qa("[data-timetable-remove-entry]").forEach(btn=>btn.addEventListener("click",event=>{
     event.stopPropagation();
     timetableRemoveEntry(btn.dataset.classId,Number(btn.dataset.day),Number(btn.dataset.period));
+  }));
+  qa("[data-timetable-toggle-lock]").forEach(btn=>btn.addEventListener("click",event=>{
+    event.stopPropagation();
+    timetableToggleEntryLock(btn.dataset.classId,Number(btn.dataset.day),Number(btn.dataset.period));
+  }));
+  qa("[data-timetable-toggle-block]").forEach(btn=>btn.addEventListener("click",event=>{
+    event.stopPropagation();
+    timetableToggleBlockedSlot(btn.dataset.resourceKind,btn.dataset.resourceId,Number(btn.dataset.day),Number(btn.dataset.period));
   }));
 }
 function timetableAutoFillRemaining(){
@@ -7189,7 +7284,13 @@ function timetableGradeCodesFromForm(form){
 }
 function timetableScopeHasOrphanEntries(codes){
   const data=state.timetableData||{},set=new Set(codes),classMap=new Map((data.classes||[]).map(c=>[c.id,c]));
-  return (state.timetableDraft||[]).some(e=>{const cls=classMap.get(e.class_section_id);return cls&&!set.has(cls.grade_code);});
+  const orphanEntry=(state.timetableDraft||[]).some(e=>{const cls=classMap.get(e.class_section_id);return cls&&!set.has(cls.grade_code);});
+  const orphanBlocked=(state.timetableBlockedSlots||[]).some(x=>{
+    if(!x.class_section_id)return false;
+    const cls=classMap.get(x.class_section_id);
+    return cls&&!set.has(cls.grade_code);
+  });
+  return orphanEntry||orphanBlocked;
 }
 function timetableBindGradeScope(scopeEl,{live=false}={}){
   if(!scopeEl)return;
@@ -7266,17 +7367,18 @@ async function timetableSaveCurrent(activate=false){
   if(timetableScopeHasOrphanEntries(gradeCodes)){toast("ยังมีคาบของระดับชั้นที่ถูกนำออก กรุณาลบคาบของระดับนั้นก่อน","error");return false;}
   const button=activate?q("[data-timetable-activate]"):form.querySelector('button[type="submit"]');
   setBusy(button,true,activate?"กำลังบันทึกและเปิดใช้...":"กำลังบันทึก...");
-  const res=await supabase.rpc("lao_save_timetable_version_v2",{
+  const res=await supabase.rpc("lao_save_timetable_version_v3",{
     p_school_id:school.id,p_term_id:page.selected_term_id,p_version_id:version.id,
     p_version_date:String(fd.get("version_date")||version.version_date),
     p_title:String(fd.get("title")||"").trim()||null,
     p_note:String(fd.get("note")||"").trim()||null,
-    p_entries:state.timetableDraft||[],p_activate:Boolean(activate),p_grade_codes:gradeCodes
+    p_entries:state.timetableDraft||[],p_activate:Boolean(activate),p_grade_codes:gradeCodes,
+    p_blocked_slots:state.timetableBlockedSlots||[]
   });
   setBusy(button,false);
   if(res.error){toast(res.error.message,"error");return false;}
   state.timetableVersionId=res.data&&res.data.id||version.id;
-  state.timetableData=null;timetableSetDirty(false);
+  state.timetableData=null;state.timetableBlockedSlots=[];timetableSetDirty(false);
   toast(activate?"บันทึกและกำหนดเป็นเวอร์ชันใช้งานแล้ว":"บันทึกตารางสอนแล้ว","success");
   await renderRoute();
   return true;
@@ -7288,12 +7390,12 @@ function bindTimetableControls(){
   const term=q("[data-timetable-term]");
   if(term)term.addEventListener("change",()=>{
     if(state.timetableDirty&&!confirm("มีการแก้ไขที่ยังไม่ได้บันทึก ต้องการเปลี่ยนภาคเรียนหรือไม่?")){term.value=page.selected_term_id||"";return;}
-    state.timetableTermId=term.value||null;state.timetableVersionId=null;state.timetableData=null;state.timetableDraft=null;state.timetableGradeCodes=[];timetableSetDirty(false);renderRoute();
+    state.timetableTermId=term.value||null;state.timetableVersionId=null;state.timetableData=null;state.timetableDraft=null;state.timetableBlockedSlots=[];state.timetableGradeCodes=[];timetableSetDirty(false);renderRoute();
   });
   const version=q("[data-timetable-version]");
   if(version)version.addEventListener("change",()=>{
     if(state.timetableDirty&&!confirm("มีการแก้ไขที่ยังไม่ได้บันทึก ต้องการเปลี่ยนเวอร์ชันหรือไม่?")){version.value=page.selected_version_id||"";return;}
-    state.timetableVersionId=version.value||null;state.timetableData=null;state.timetableDraft=null;state.timetableGradeCodes=[];timetableSetDirty(false);renderRoute();
+    state.timetableVersionId=version.value||null;state.timetableData=null;state.timetableDraft=null;state.timetableBlockedSlots=[];state.timetableGradeCodes=[];timetableSetDirty(false);renderRoute();
   });
   const newBtn=q("[data-timetable-new-version]"),newForm=q("[data-timetable-new-form]");
   if(newBtn&&newForm)newBtn.addEventListener("click",()=>{newForm.classList.remove("hidden");newForm.querySelector('input[name="version_date"]')?.focus();});
@@ -7304,19 +7406,26 @@ function bindTimetableControls(){
       e.preventDefault();
       const fd=new FormData(newForm),btn=newForm.querySelector('button[type="submit"]'),gradeCodes=timetableGradeCodesFromForm(newForm);
       if(!gradeCodes.length){toast("กรุณาเลือกระดับชั้นอย่างน้อย 1 ระดับ","error");return;}
-      let entries=fd.get("clone_current")==="on"?(state.timetableDraft||[]):[];
+      const cloning=fd.get("clone_current")==="on";
+      let entries=cloning?(state.timetableDraft||[]):[];
+      let blockedSlots=cloning?(state.timetableBlockedSlots||[]):[];
       const classMap=new Map((page.classes||[]).map(c=>[c.id,c])),set=new Set(gradeCodes);
+      const allowedPersonnel=new Set((page.offerings||[]).filter(o=>set.has(o.grade_code)).map(o=>o.personnel_id));
       entries=entries.filter(e=>set.has((classMap.get(e.class_section_id)||{}).grade_code));
+      blockedSlots=blockedSlots.filter(x=>
+        x.class_section_id?set.has((classMap.get(x.class_section_id)||{}).grade_code):
+        x.personnel_id?allowedPersonnel.has(x.personnel_id):false
+      );
       setBusy(btn,true,"กำลังสร้าง...");
-      const res=await supabase.rpc("lao_save_timetable_version_v2",{
+      const res=await supabase.rpc("lao_save_timetable_version_v3",{
         p_school_id:school.id,p_term_id:page.selected_term_id,p_version_id:null,
         p_version_date:String(fd.get("version_date")||timetableTodayIso()),
         p_title:String(fd.get("title")||"").trim()||null,p_note:String(fd.get("note")||"").trim()||null,
-        p_entries:entries,p_activate:false,p_grade_codes:gradeCodes
+        p_entries:entries,p_activate:false,p_grade_codes:gradeCodes,p_blocked_slots:blockedSlots
       });
       setBusy(btn,false);
       if(res.error){toast(res.error.message,"error");return;}
-      state.timetableVersionId=res.data&&res.data.id||null;state.timetableData=null;state.timetableDraft=null;state.timetableGradeCodes=gradeCodes;timetableSetDirty(false);
+      state.timetableVersionId=res.data&&res.data.id||null;state.timetableData=null;state.timetableDraft=null;state.timetableBlockedSlots=[];state.timetableGradeCodes=gradeCodes;timetableSetDirty(false);
       toast("สร้างเวอร์ชันตารางสอนแล้ว","success");renderRoute();
     });
   }
@@ -7336,6 +7445,7 @@ function bindTimetableControls(){
   q("[data-timetable-reset-draft]")?.addEventListener("click",()=>{
     if(!state.timetableDirty||confirm("คืนค่าตารางเป็นฉบับที่บันทึกล่าสุด และยกเลิกการแก้ไขที่ยังไม่บันทึก?")){
       state.timetableDraft=JSON.parse(JSON.stringify(page.entries||[]));
+      state.timetableBlockedSlots=JSON.parse(JSON.stringify(page.blocked_slots||[]));
       const persisted=(timetableScopeData().selected_grade_codes||[]).filter(Boolean);
       state.timetableGradeCodes=persisted.length?persisted:timetableReadyGradeCodes();
       timetableSetDirty(false);renderRoute();
@@ -7352,7 +7462,7 @@ function bindTimetableControls(){
     const res=await supabase.rpc("lao_delete_timetable_version",{p_school_id:school.id,p_version_id:v.id});
     setBusy(btn,false);
     if(res.error){toast(res.error.message,"error");return;}
-    state.timetableVersionId=null;state.timetableData=null;state.timetableDraft=null;state.timetableGradeCodes=[];timetableSetDirty(false);
+    state.timetableVersionId=null;state.timetableData=null;state.timetableDraft=null;state.timetableBlockedSlots=[];state.timetableGradeCodes=[];timetableSetDirty(false);
     toast("ลบเวอร์ชันตารางสอนแล้ว","success");renderRoute();
   });
   qa("[data-timetable-view]").forEach(btn=>btn.addEventListener("click",()=>{
