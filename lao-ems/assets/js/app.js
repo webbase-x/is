@@ -6569,9 +6569,7 @@ function timetableViewOfferings(){
   if(mode==="class")return rows.filter(o=>o.class_section_id===state.timetableClassId);
   if(mode==="teacher")return rows.filter(o=>o.personnel_id===state.timetablePersonnelId);
   if(mode==="grade")return rows.filter(o=>o.grade_code===state.timetableGradeCode);
-  if(mode==="overview"){
-    return rows.filter(o=>o.class_section_id===state.timetableClassId||o.personnel_id===state.timetablePersonnelId);
-  }
+  if(mode==="overview")return rows;
   return rows;
 }
 function timetableCurrentConflicts(){
