@@ -5769,11 +5769,11 @@ function academicSubjectsHtml(data,timeline){
     ?'<section class="subject-parallel-tools '+(state.subjectParallelSelectionMode?"is-selecting":"")+'"><div class="subject-parallel-head"><div><strong>กลุ่มรายวิชาทางเลือก / เรียนเวลาเดียวกัน</strong><small>'+(state.subjectParallelSelectionMode?"เลือกอย่างน้อย 2 รายวิชาที่เรียนในช่วงเวลาเดียวกัน แล้วกดรวมเป็นกลุ่ม":"หลายรหัสที่เรียนในช่วงเดียวกันให้นับเวลาเพียงครั้งเดียว")+'</small></div>'+
       (groupEligibleCourses.length>1
         ?(state.subjectParallelSelectionMode
-          ?'<div class="parallel-selection-actions"><button type="button" class="secondary-btn compact-btn" data-cancel-parallel-selection>ยกเลิกการเลือก</button><button type="button" class="primary-btn compact-btn" data-open-parallel-group disabled>รวมวิชาที่เลือก <span data-parallel-selected-count>0</span></button></div>'
+          ?'<div class="parallel-selection-actions"><button type="button" class="secondary-btn compact-btn" data-cancel-parallel-selection>ยกเลิกจับกลุ่ม</button><button type="button" class="secondary-btn compact-btn" data-open-subject-finder>＋ นำเข้าเพิ่มเติม</button><button type="button" class="primary-btn compact-btn" data-open-parallel-group disabled>รวมวิชาที่เลือก <span data-parallel-selected-count>0</span></button></div>'
           :'<button type="button" class="secondary-btn compact-btn" data-start-parallel-selection>เลือกวิชาเพื่อรวมกลุ่ม</button>')
         :'')+
       '</div>'+
-      (state.subjectParallelSelectionMode?'<div class="parallel-selection-banner"><strong>โหมดเลือกวิชา</strong><span>ช่องสี่เหลี่ยมจะแสดงเฉพาะตอนนี้ และใช้สำหรับ “รวมเวลา” เท่านั้น ไม่ใช่การลบหลายรายการ</span></div>':'')+
+      (state.subjectParallelSelectionMode?'<div class="parallel-selection-banner"><strong>โหมดจับกลุ่ม</strong><span>เลือกวิชาที่เรียนเวลาเดียวกันได้หลายรายการ · หากยังไม่มีวิชาที่ต้องการ ให้กด “นำเข้าเพิ่มเติม” · ยกเลิกได้ทุกเมื่อโดยไม่กระทบข้อมูลเดิม</span></div>':'')+
       (parallelGroupCards?'<div class="parallel-group-list">'+parallelGroupCards+'</div>':'')+
       '<form class="parallel-group-form hidden" data-parallel-group-form><div class="parallel-group-form-grid"><label>ชื่อกลุ่ม<input name="name" required placeholder="เช่น เลือกเสรี ป.6 กลุ่ม 1"></label><label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0.25" max="20" step="0.25" required placeholder="เช่น 2"></label></div><div class="parallel-group-picked" data-parallel-picked-text></div><div class="parallel-group-actions"><button type="button" class="text-btn" data-close-parallel-group>ยกเลิก</button><button type="submit" class="primary-btn">บันทึกกลุ่มเวลาเดียวกัน</button></div></form>'+
     '</section>'
@@ -8179,7 +8179,10 @@ function bindAcademics(){
     if(!subjectFinder)return;
     subjectFinder.classList.remove("hidden");
     customSubjectForm?.classList.add("hidden");
-    subjectFinder.querySelector('input[name="query"]')?.focus();
+    window.requestAnimationFrame(()=>{
+      subjectFinder.scrollIntoView({behavior:"smooth",block:"center"});
+      subjectFinder.querySelector('input[name="query"]')?.focus({preventScroll:true});
+    });
   };
   qa("[data-open-subject-finder]").forEach(btn=>btn.addEventListener("click",openSubjectFinder));
   qa("[data-close-subject-finder]").forEach(btn=>btn.addEventListener("click",()=>subjectFinder?.classList.add("hidden")));
