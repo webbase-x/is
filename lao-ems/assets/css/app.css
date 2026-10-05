@@ -11278,3 +11278,94 @@ html.is-touch-device [data-manual-refresh]{
 @media print{
   .timetable-compact-summary{display:none!important}
 }
+
+
+/* v0.19.59 — locked lessons + no-place timetable cells */
+.timetable-scheduled-card{
+  padding-right:56px;
+}
+.timetable-scheduled-card.locked{
+  cursor:not-allowed;
+  border-color:#fdb022;
+  background:#fffaeb;
+  box-shadow:inset 0 0 0 1px rgba(247,144,9,.08);
+}
+.timetable-scheduled-card.locked:active{cursor:not-allowed}
+.timetable-lock-entry{
+  position:absolute;right:30px;top:5px;width:22px;height:22px;
+  border:0;border-radius:7px;background:rgba(255,255,255,.82);
+  display:grid;place-items:center;cursor:pointer;font-size:12px;line-height:1;
+  filter:grayscale(.85);opacity:.7
+}
+.timetable-lock-entry:hover,.timetable-lock-entry:focus-visible{
+  opacity:1;filter:none;outline:2px solid rgba(247,144,9,.22);outline-offset:1px
+}
+.timetable-lock-entry.active{
+  background:#fef0c7;color:#b54708;filter:none;opacity:1
+}
+.timetable-remove-entry:disabled{
+  cursor:not-allowed;opacity:.28
+}
+.timetable-empty-slot{
+  position:relative;
+  padding-right:31px;
+}
+.timetable-no-place-toggle{
+  position:absolute;right:5px;top:5px;width:21px;height:21px;
+  border:1px solid transparent;border-radius:7px;background:rgba(255,255,255,.76);
+  color:#98a2b3;display:grid;place-items:center;cursor:pointer;
+  font-size:12px;line-height:1;opacity:.34;transition:.12s ease
+}
+.timetable-drop-zone:hover .timetable-no-place-toggle,
+.timetable-no-place-toggle:focus-visible{
+  opacity:1;color:#667085;border-color:#d0d5dd
+}
+.timetable-no-place-toggle.active{
+  opacity:1;color:#b42318;background:#fef3f2;border-color:#fda29b
+}
+.timetable-drop-zone.no-place{
+  border-style:solid;
+  border-color:#fda29b;
+  background:
+    repeating-linear-gradient(135deg,rgba(217,45,32,.045) 0 8px,rgba(217,45,32,.095) 8px 16px),
+    #fffafa;
+}
+.timetable-drop-zone.no-place .timetable-empty-slot{
+  color:#b42318;
+}
+.timetable-drop-zone.no-place .timetable-empty-slot span{
+  color:#b42318;font-weight:900
+}
+.timetable-drop-zone.no-place .timetable-empty-slot em{
+  color:#912018
+}
+.timetable-drop-zone.no-place.drop-invalid{
+  opacity:.78
+}
+.timetable-drop-zone.no-place.drop-valid{
+  border-color:#fda29b!important;
+  background:
+    repeating-linear-gradient(135deg,rgba(217,45,32,.045) 0 8px,rgba(217,45,32,.095) 8px 16px),
+    #fffafa!important;
+}
+.timetable-drop-zone.compact .timetable-scheduled-card{
+  padding-right:43px;
+}
+.timetable-drop-zone.compact .timetable-lock-entry{
+  width:17px;height:17px;right:20px;top:2px;border-radius:5px;font-size:9px
+}
+.timetable-drop-zone.compact .timetable-no-place-toggle{
+  width:17px;height:17px;right:2px;top:2px;border-radius:5px;font-size:9px
+}
+.timetable-drop-zone.compact .timetable-empty-slot{
+  padding-right:20px
+}
+@media(max-width:640px){
+  .timetable-no-place-toggle{opacity:.65}
+  .timetable-lock-entry{opacity:.82}
+}
+@media print{
+  .timetable-lock-entry,.timetable-no-place-toggle{display:none!important}
+  .timetable-scheduled-card{padding-right:8px}
+  .timetable-drop-zone.no-place .timetable-empty-slot{display:flex!important}
+}
