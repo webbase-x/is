@@ -8580,31 +8580,43 @@ function bindAcademics(){
 
   qa("[data-edit-subject-time]").forEach(btn=>btn.addEventListener("click",()=>{
     const form=q('[data-subject-time-form="'+btn.dataset.editSubjectTime+'"]');
-    if(form)form.classList.toggle("hidden");
+    if(form){
+      form.classList.toggle("hidden");
+      if(!form.classList.contains("hidden"))setAutoSaveStatus(form,"idle","เปลี่ยนแล้วบันทึกอัตโนมัติ");
+    }
   }));
-  qa("[data-close-subject-time]").forEach(btn=>btn.addEventListener("click",()=>{
+  qa("[data-subject-time-form]").forEach(form=>{
+    const controller=bindFormAutoSave(form,async()=>{
+      if(!state.subjectEditMode)return {ok:false,state:"error",message:"กรุณาเปิดสวิตช์การแก้ไขก่อน"};
+      const fd=new FormData(form);
+      const numOrNull=v=>String(v??"").trim()===""?null:Number(v);
+      const res=await supabase.rpc("lao_update_course_time_override",{
+        p_school_id:school.id,
+        p_course_id:form.dataset.subjectTimeForm,
+        p_annual_hours:numOrNull(fd.get("annual_hours")),
+        p_term_hours:numOrNull(fd.get("term_hours")),
+        p_weekly_periods:numOrNull(fd.get("weekly_periods")),
+        p_credits:numOrNull(fd.get("credits")),
+        p_note:String(fd.get("note")||"").trim()||null
+      });
+      if(res.error){
+        toast(res.error.message,"error");
+        return {ok:false,state:"error",message:"บันทึกไม่สำเร็จ"};
+      }
+      return {ok:true,message:"บันทึกเวลาเรียนแล้ว"};
+    },{delay:350,enabled:()=>state.subjectEditMode});
+    form._autoSaveController=controller;
+    form.addEventListener("submit",e=>{e.preventDefault();void controller?.run();});
+  });
+  qa("[data-close-subject-time]").forEach(btn=>btn.addEventListener("click",async()=>{
     const form=q('[data-subject-time-form="'+btn.dataset.closeSubjectTime+'"]');
-    if(form)form.classList.add("hidden");
-  }));
-  qa("[data-subject-time-form]").forEach(form=>form.addEventListener("submit",async e=>{
-    e.preventDefault();
-    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
-    const fd=new FormData(form),btn=form.querySelector('button[type="submit"]');
-    const numOrNull=v=>String(v??"").trim()===""?null:Number(v);
-    setBusy(btn,true,"กำลังบันทึก...");
-    const res=await supabase.rpc("lao_update_course_time_override",{
-      p_school_id:school.id,
-      p_course_id:form.dataset.subjectTimeForm,
-      p_annual_hours:numOrNull(fd.get("annual_hours")),
-      p_term_hours:numOrNull(fd.get("term_hours")),
-      p_weekly_periods:numOrNull(fd.get("weekly_periods")),
-      p_credits:numOrNull(fd.get("credits")),
-      p_note:String(fd.get("note")||"").trim()||null
-    });
-    setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    toast("บันทึกเวลาเรียนของโรงเรียนแล้ว · ฐานมาตรฐานกลางไม่เปลี่ยน","success");
-    refreshSubjects(true);
+    if(!form)return;
+    if(form.dataset.autosavePending==="1")await form._autoSaveController?.flush();
+    if(form.dataset.autosaved==="1"){
+      await refreshSubjects(true);
+      return;
+    }
+    form.classList.add("hidden");
   }));
   qa("[data-reset-subject-time-standard]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
