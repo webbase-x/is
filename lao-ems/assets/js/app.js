@@ -5516,7 +5516,6 @@ function academicSubjectsHtml(data,timeline){
   const actualPrograms=programs.filter(p=>classes.some(c=>c.program_id===p.id));
   if(state.subjectProgramId&&!actualPrograms.some(p=>p.id===state.subjectProgramId))state.subjectProgramId="";
   const selectedProgram=actualPrograms.find(p=>p.id===state.subjectProgramId)||null;
-  const programById=new Map(actualPrograms.map(p=>[p.id,p]));
   const programShortName=p=>String(p&&p.code||p&&p.name_th||"โปรแกรมพิเศษ");
   const targetLabel=selectedProgram?programShortName(selectedProgram):"ห้องปกติ";
   const targetClasses=classes.filter(c=>selectedProgram?c.program_id===selectedProgram.id:!c.program_id);
@@ -5539,14 +5538,10 @@ function academicSubjectsHtml(data,timeline){
   state.subjectSetupTab=setupTab;
   const targetRooms=targetClasses.filter(c=>c.grade_label===gradeLabel)
     .sort((a,b)=>String(a.section_label||"").localeCompare(String(b.section_label||""),"th",{numeric:true}));
-  const targetRoomCount=targetRooms.length;
-  const targetRoomLabels=targetRooms.map(c=>shortGrade(c.grade_label)+"/"+String(c.section_label||"").trim()).filter(Boolean);
-  const targetRoomPreview=targetRoomLabels.length<=6?targetRoomLabels.join(" · "):targetRoomLabels.slice(0,5).join(" · ")+" · และอีก "+(targetRoomLabels.length-5)+" ห้อง";
   const copyYears=(data.years||[]).filter(y=>year&&y.id!==year.id&&Number(y.year_be)<Number(year.year_be))
     .sort((a,b)=>Number(b.year_be)-Number(a.year_be));
   if(state.subjectCopyYearId&&!copyYears.some(y=>y.id===state.subjectCopyYearId))state.subjectCopyYearId="";
   if(!state.subjectCopyYearId&&copyYears.length)state.subjectCopyYearId=copyYears[0].id;
-  const earlyChildhoodCount=classes.filter(c=>String(academicGradeCode(c.grade_label)||"").startsWith("K")).length;
   const typeLabel={basic:"รายวิชาพื้นฐาน",additional:"รายวิชาเพิ่มเติม",activity:"กิจกรรมพัฒนาผู้เรียน",other:"อื่น ๆ"};
   const subtypeLabel={
     elective_free:"เลือกเสรี",
@@ -5566,7 +5561,6 @@ function academicSubjectsHtml(data,timeline){
     school_additional_activity:"กิจกรรมเพิ่มเติมของสถานศึกษา",
     other_activity:"กิจกรรมอื่น ๆ"
   };
-  const scopeMatches=type=>(scope==="core"&&type==="basic")||scope===type;
   const logicalKey=x=>{
     const code=String(x.subject_code||"").trim().toLowerCase(),name=String(x.subject_name||x.name_th||"").trim().toLowerCase(),type=x.subject_type||"";
     if(type==="activity"&&code)return "activity|"+code+"|"+name;
@@ -5744,7 +5738,6 @@ function academicSubjectsHtml(data,timeline){
     const h=groupHours(groupFor(code,selectedProgram?selectedProgram.id:""));
     return progressChoice('data-subject-context-grade="'+esc(code)+'"',shortGrade(g),h.progress,code===gradeCode,"",h.over);
   }).join("");
-  const normalRooms=classes.filter(c=>!c.program_id).length;
   const normalTargetProgress=targetProgress("");
   const targetTabs=progressChoice('data-subject-target=""',"ห้องปกติ",normalTargetProgress.progress,!selectedProgram,"",normalTargetProgress.over)+
     actualPrograms.map(p=>{
@@ -5755,23 +5748,8 @@ function academicSubjectsHtml(data,timeline){
     .map(([v,l])=>'<button type="button" class="'+(scope===v?"active":"")+'" data-subject-catalog-scope="'+v+'">'+l+'</button>').join("");
 
   const currentGroup=(readiness.groups||[]).find(g=>g.grade_code===gradeCode&&(g.program_id||"")===(selectedProgram?selectedProgram.id:""))||null;
-  const subjectCompleteness=subjectWorkspace.subject_completeness
-    ||(subjectReadiness.groups||[]).find(g=>g.grade_code===gradeCode&&(g.program_id||"")===(selectedProgram?selectedProgram.id:""))
-    ||null;
-  const activeTimeFrame=currentGroup&&currentGroup.time_frame_name?currentGroup:null;
-  const activeTimeFrameLabel=activeTimeFrame?String(activeTimeFrame.time_frame_name):"กรอบเวลาเริ่มต้นของโรงเรียน";
-  const activeTimeFrameSource=activeTimeFrame&&activeTimeFrame.time_frame_source==="program"?"กรอบเฉพาะโปรแกรม":"กรอบเริ่มต้น";
-
-  const scheduleSettings=readiness.schedule_settings||{configured:false};
-  const totalGroups=Number(readiness.total_groups||0),confirmedGroups=Number(readiness.confirmed_groups||0);
-  const completionPct=totalGroups?Math.round(confirmedGroups*100/totalGroups):0;
-  const issueCount=currentGroup?Number(currentGroup.missing_time_count||0):0;
-  const recommendedMissing=currentGroup?Number(currentGroup.central_core_missing_count||0)+Number(currentGroup.default_activity_missing_count||0):0;
   const weeklyTotal=currentGroup?Number(currentGroup.weekly_periods_total||0):0;
   const weeklyCapacity=currentGroup&&currentGroup.periods_per_week_capacity!=null?Number(currentGroup.periods_per_week_capacity):null;
-  const periodGap=currentGroup&&currentGroup.periods_per_week_gap!=null?Number(currentGroup.periods_per_week_gap):null;
-  const parallelVariants=currentGroup?Number(currentGroup.parallel_variant_count||0):0;
-  const parallelMismatch=currentGroup?Number(currentGroup.parallel_mismatch_count||0):0;
   const currentStatus=currentGroup&&currentGroup.status||"empty";
   const currentStatusLabel={
     confirmed:"ยืนยันครบแล้ว",
@@ -5784,146 +5762,6 @@ function academicSubjectsHtml(data,timeline){
     empty:"ยังไม่มีรายวิชา"
   }[currentStatus]||"รอตรวจ";
   const currentStatusClass=currentStatus==="confirmed"?"success":currentStatus==="ready_to_confirm"?"info":"warning";
-  const timelineSteps=timeline&&timeline.steps||[];
-  const stepChip=code=>{
-    const x=timelineSteps.find(v=>v.step_code===code);
-    if(!x)return "";
-    const icon=x.status==="completed"?"✓":x.status==="reused"?"↻":x.status==="not_applicable"?"–":x.status==="skipped"?"↷":x.status==="current"?"●":"○";
-    return '<span class="subject-timeline-step '+esc(x.status||"queued")+'">'+icon+' '+esc(x.title||"")+'</span>';
-  };
-  const allSchoolGrades=Array.from(new Set(classes.map(c=>c.grade_label).filter(Boolean)));
-  const customDefaultType=scope==="core"?"basic":(["activity","additional","other"].includes(scope)?scope:"additional");
-  const catalogSetupHtml='<section class="subject-catalog-setup">'+
-    '<nav class="subject-setup-menu" aria-label="ตัวกรองรายการรายวิชาจากคลัง">'+
-      '<button type="button" class="'+(setupTab==="target"?"active":"")+'" data-subject-setup-tab="target"><span>กลุ่มห้อง</span><strong>'+esc(targetLabel)+'</strong></button>'+
-      '<button type="button" class="'+(setupTab==="grade"?"active":"")+'" data-subject-setup-tab="grade"><span>ระดับชั้น</span><strong>'+esc(gradeLabel?shortGrade(gradeLabel):"ยังไม่มี")+'</strong></button>'+
-      '<button type="button" class="'+(setupTab==="type"?"active":"")+'" data-subject-setup-tab="type"><span>องค์ประกอบหลักสูตร</span><strong>'+esc(scopeLabel)+'</strong></button>'+
-    '</nav>'+
-    '<div class="subject-setup-panel">'+
-      (setupTab==="target"
-        ?'<div class="subject-setup-panel-head"><strong>เลือกกลุ่มห้อง</strong><small>เลือกบริบทที่จะนำรายวิชาจากคลังไปใช้</small></div><div class="subject-target-tabs">'+targetTabs+'</div>'
-        :setupTab==="grade"
-          ?'<div class="subject-setup-panel-head"><strong>เลือกระดับชั้น</strong><small>แสดงเฉพาะระดับที่มีห้องจริงใน '+esc(targetLabel)+'</small></div><div class="subject-grade-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับชั้นสำหรับโครงสร้างรายวิชาในกลุ่มนี้</span>')+'</div>'
-          :'<div class="subject-setup-panel-head"><strong>เลือกองค์ประกอบหลักสูตรในคลัง</strong><small>เลือก รายวิชาพื้นฐาน รายวิชาเพิ่มเติม หรือกิจกรรมพัฒนาผู้เรียน โดยตัวกรองนี้มีผลเฉพาะรายการจากคลัง ไม่กรองหลักสูตรของโรงเรียน</small></div><div class="subject-scope-tabs">'+scopeTabs+'</div>')+
-    '</div>'+
-    (earlyChildhoodCount?'<div class="subject-early-note">ระดับอนุบาลใช้หลักสูตรการศึกษาปฐมวัย จึงแยกออกจากหน้านี้</div>':'')+
-  '</section>';
-
-  const subjectOverallPct=Number(subjectReadiness.progress_percent||0);
-  const subjectOverallComplete=Boolean(subjectReadiness.is_complete);
-  const subjectGroupsHtml=(subjectReadiness.groups||[]).map(g=>{
-    const key=(g.grade_code||"")+"|"+(g.program_id||"");
-    const currentKey=(gradeCode||"")+"|"+(selectedProgram?selectedProgram.id:"");
-    const label=shortGrade(g.grade_label||academicGradeLabelFromCode(g.grade_code));
-    const program=g.program_id?programShortName(programById.get(g.program_id)):"ห้องปกติ";
-    const primaryTimeIssue=g.primary_time_issue||(g.time_issues||[]).find(x=>["period_capacity","hour_capacity","curriculum_hours","missing_time","parallel_time_mismatch"].includes(x.type))||null;
-    const timeHint=g.time_is_complete
-      ?"เวลา ✓"
-      :!g.schedule_configured
-        ?"ยังไม่ตั้งค่าความจุตาราง"
-        :primaryTimeIssue&&primaryTimeIssue.message
-          ?primaryTimeIssue.message
-          :Number(g.time_issue_count||0)>0
-            ?"เวลา "+Number(g.time_progress_percent||0)+"% · ต้องแก้ "+Number(g.time_issue_count||0)+" จุด"
-            :"เวลา "+Number(g.time_progress_percent||0)+"%";
-    return '<button type="button" class="subject-completeness-group '+(g.is_complete?"complete":"incomplete")+' '+(key===currentKey?"active":"")+'" data-subject-completeness-grade="'+esc(g.grade_code||"")+'" data-subject-completeness-program="'+esc(g.program_id||"")+'">'+
-      '<span class="subject-completeness-group-state">'+(g.is_complete?"✓":"!")+'</span>'+
-      '<span class="subject-completeness-group-copy"><strong>'+esc(label)+' · '+esc(program)+'</strong><small>พื้นฐาน '+Number(g.basic_met_count||0)+'/'+Number(g.basic_required_count||0)+' · กิจกรรม '+Number(g.activity_met_count||0)+'/'+Number(g.activity_required_count||0)+' · '+esc(timeHint)+(Number(g.anomaly_count||0)?' · ผิดปกติ '+Number(g.anomaly_count):'')+'</small></span>'+
-      '<b>'+Number(g.completion_percent||0)+'%</b>'+
-    '</button>';
-  }).join("");
-
-  const replacementOptions=(shownCourses||[]).map(c=>'<option value="'+esc(c.subject_id)+'">'+esc((c.subject_code?c.subject_code+" ":"")+c.subject_name)+'</option>').join("");
-  const missingRequirements=subjectCompleteness&&subjectCompleteness.missing_requirements||[];
-  const missingRequirementsHtml=missingRequirements.map(req=>{
-    const term=req.term_no?'ภาค '+req.term_no+' · ':'';
-    const choice=req.requirement_kind==="activity_choice"&&Array.isArray(req.choice_names)
-      ?'<small class="subject-requirement-choice">กิจกรรมนักเรียน · เลือกอย่างน้อย 1: '+req.choice_names.map(esc).join(' · ')+'</small>'
-      :'';
-    const decision=req.decision==="not_used"
-      ?'<div class="subject-requirement-decision warning"><strong>ระบุว่าไม่นำมาใช้</strong><span>'+esc(req.decision_note||"ยังไม่ระบุเหตุผล")+' · สถานะนี้ยังไม่นับว่าครบ</span></div>'
-      :req.decision==="replaced"
-        ?'<div class="subject-requirement-decision warning"><strong>กำหนดวิชาแทนไว้ แต่ยังตรวจไม่พบวิชาแทน</strong><span>'+esc(req.message||"ตรวจสอบวิชาแทนอีกครั้ง")+'</span></div>'
-        :'';
-    const sourceScope=req.requirement_kind==="core_basic"?"core":"activity";
-    return '<article class="subject-requirement-missing">'+
-      '<div class="subject-requirement-id"><span>'+esc(req.subject_code||"—")+'</span><div><strong>'+esc(term+(req.subject_name||"ข้อกำหนดรายวิชา"))+'</strong>'+choice+'<small>'+esc(req.message||"ยังไม่ครบ")+'</small></div></div>'+
-      decision+
-      (canEdit?'<div class="subject-requirement-actions">'+
-        '<button type="button" class="secondary-btn compact-btn" data-open-required-library="'+sourceScope+'">เพิ่มจากคลัง</button>'+
-        '<label>หรือใช้วิชาในโครงสร้างแทน<select data-subject-replacement-select="'+esc(req.requirement_key)+'"><option value="">เลือกวิชาแทน...</option>'+replacementOptions+'</select></label>'+
-        '<button type="button" class="secondary-btn compact-btn" data-save-subject-replacement="'+esc(req.requirement_key)+'">ใช้วิชาที่เลือกแทน</button>'+
-        '<button type="button" class="text-btn" data-mark-subject-not-used="'+esc(req.requirement_key)+'">ระบุว่าไม่นำมาใช้</button>'+
-        (req.decision?'<button type="button" class="text-btn danger" data-clear-subject-requirement="'+esc(req.requirement_key)+'">ล้างสถานะ</button>':'')+
-      '</div>':'')+
-    '</article>';
-  }).join("");
-
-  const subjectAnomaliesHtml=(subjectCompleteness&&subjectCompleteness.anomalies||[]).map(x=>
-    '<li><strong>'+esc(x.subject_code||"ตรวจพบรายการผิดปกติ")+'</strong><span>'+esc(x.message||"กรุณาตรวจสอบ")+'</span></li>'
-  ).join("");
-
-  const subjectTimeIssues=subjectCompleteness&&subjectCompleteness.time_issues||[];
-  const subjectTimeIssuesHtml=subjectTimeIssues.map(x=>
-    '<li><strong>'+esc(x.type==="schedule_settings"?"กรอบเวลาเรียน":x.type==="period_capacity"?"ความจุคาบ":x.type==="hour_capacity"?"ความจุชั่วโมง":"เวลาเรียน")+'</strong><span>'+esc(x.message||"กรุณาตรวจสอบเวลาเรียน")+'</span></li>'
-  ).join("");
-  const subjectCurrentComplete=Boolean(subjectCompleteness&&subjectCompleteness.is_complete);
-  const subjectContentPct=Number(subjectCompleteness&&subjectCompleteness.content_completion_percent||0);
-  const subjectTimePct=Number(subjectCompleteness&&subjectCompleteness.time_progress_percent||0);
-  const subjectTimeComplete=Boolean(subjectCompleteness&&subjectCompleteness.time_is_complete);
-  const subjectScheduleConfigured=Boolean(subjectCompleteness&&subjectCompleteness.schedule_configured);
-  const subjectTimeNumber=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:2});
-  const subjectWeeklyUsed=Number(subjectCompleteness&&subjectCompleteness.weekly_periods_total||0);
-  const subjectWeeklyCapacity=subjectCompleteness&&subjectCompleteness.periods_per_week_capacity!=null?Number(subjectCompleteness.periods_per_week_capacity):null;
-  const subjectWeeklyGap=subjectCompleteness&&subjectCompleteness.periods_per_week_gap!=null?Number(subjectCompleteness.periods_per_week_gap):null;
-  const scheduledHours=Number(subjectCompleteness&&subjectCompleteness.scheduled_hours_total||0);
-  const capacityHours=subjectCompleteness&&subjectCompleteness.schedule_capacity_hours!=null?Number(subjectCompleteness.schedule_capacity_hours):null;
-  const capacityHoursGap=subjectCompleteness&&subjectCompleteness.schedule_capacity_hours_gap!=null?Number(subjectCompleteness.schedule_capacity_hours_gap):null;
-  const integratedHours=Number(subjectCompleteness&&subjectCompleteness.integrated_activity_hours||0);
-  const weeklyState=!subjectScheduleConfigured
-    ?"รอตั้งค่าตาราง"
-    :subjectWeeklyGap<-.001
-      ?"เกิน "+subjectTimeNumber(Math.abs(subjectWeeklyGap))+" คาบ/สัปดาห์"
-      :subjectWeeklyGap>.001
-        ?"เหลือ "+subjectTimeNumber(subjectWeeklyGap)+" คาบ/สัปดาห์"
-        :"พอดีความจุ";
-  const hourState=!subjectScheduleConfigured
-    ?"รอตั้งค่าตาราง"
-    :capacityHoursGap<-.001
-      ?"เกิน "+subjectTimeNumber(Math.abs(capacityHoursGap))+" ชม./ปี"
-      :capacityHoursGap>.001
-        ?"เหลือ "+subjectTimeNumber(capacityHoursGap)+" ชม./ปี"
-        :"พอดีความจุ";
-  const frameworkParts=[];
-  if(subjectCompleteness&&subjectCompleteness.basic_hours_required!=null)frameworkParts.push("พื้นฐาน "+subjectTimeNumber(subjectCompleteness.basic_hours_actual)+"/"+subjectTimeNumber(subjectCompleteness.basic_hours_required));
-  if(subjectCompleteness&&subjectCompleteness.activity_hours_required!=null)frameworkParts.push("กิจกรรม "+subjectTimeNumber(subjectCompleteness.activity_hours_actual)+"/"+subjectTimeNumber(subjectCompleteness.activity_hours_required));
-  if(subjectCompleteness&&subjectCompleteness.history_hours_required!=null)frameworkParts.push("ประวัติศาสตร์ "+subjectTimeNumber(subjectCompleteness.history_hours_actual)+"/"+subjectTimeNumber(subjectCompleteness.history_hours_required));
-  const subjectTimeSummaryHtml=subjectCompleteness
-    ?'<div class="subject-time-checks">'+
-      '<div class="subject-time-check '+(subjectScheduleConfigured&&subjectWeeklyGap!==null&&Math.abs(subjectWeeklyGap)<=.001?"ok":"attention")+'"><small>คาบที่ใช้จริง</small><strong>'+subjectTimeNumber(subjectWeeklyUsed)+(subjectWeeklyCapacity!=null?' / '+subjectTimeNumber(subjectWeeklyCapacity):'')+' คาบ/สัปดาห์</strong><span>'+esc(weeklyState)+'</span></div>'+
-      '<div class="subject-time-check '+(subjectScheduleConfigured&&capacityHoursGap!==null&&Math.abs(capacityHoursGap)<=.001?"ok":"attention")+'"><small>ชั่วโมงที่ลงตาราง</small><strong>'+subjectTimeNumber(scheduledHours)+(capacityHours!=null?' / '+subjectTimeNumber(capacityHours):'')+' ชม./ปี</strong><span>'+esc(hourState)+' · ไม่รวมบูรณาการ '+subjectTimeNumber(integratedHours)+' ชม.</span></div>'+
-      '<div class="subject-time-check '+(subjectCompleteness.framework_hours_complete?"ok":"attention")+'"><small>ชั่วโมงตามกรอบหลักสูตร</small><strong>'+(subjectCompleteness.framework_hours_complete?"ครบ":"ยังไม่ครบ")+'</strong><span>'+esc(frameworkParts.join(" · ")||(subjectCompleteness.band_framework_deferred?"กรอบช่วงชั้นจะตรวจรวมเมื่อมีระดับครบ":"ไม่มีกรอบที่ต้องตรวจ"))+'</span></div>'+
-      '<div class="subject-time-check '+(subjectTimeComplete?"ok":"attention")+'"><small>ความพร้อมด้านเวลาเรียน</small><strong>'+subjectTimePct+'%</strong><span>'+(subjectTimeComplete?"ผ่านทุกเงื่อนไข":subjectTimeIssues.length?"ต้องแก้ "+subjectTimeIssues.length+" จุดก่อนเป็น 100%":"กำลังตรวจเงื่อนไข")+'</span></div>'+
-    '</div>'
-    :"";
-
-  const subjectCompletenessHtml='<section class="panel subject-completeness-panel subject-completeness-compact '+(subjectOverallComplete?"complete":"")+'">'+
-    '<div class="subject-completeness-overview">'+
-      '<div class="subject-completeness-ring '+(subjectOverallComplete?"complete":"")+'" style="--progress:'+Math.max(0,Math.min(100,subjectOverallPct))+'%"><div>'+(subjectOverallComplete?'<strong>✓</strong><small>100%</small>':'<strong>'+subjectOverallPct+'%</strong><small>รวม</small>')+'</div></div>'+
-      '<div class="subject-completeness-summary"><h3>'+(subjectOverallComplete?'ครบทั้งรายวิชาและเวลาเรียนแล้ว':'ความครบถ้วนรายวิชาและเวลาเรียน')+'</h3><p>'+Number(subjectReadiness.completed_groups||0)+' / '+Number(subjectReadiness.total_groups||0)+' กลุ่มครบ · รายวิชา '+Number(subjectReadiness.content_coverage_percent||0)+'% · เวลา '+Number(subjectReadiness.time_progress_percent||0)+'%</p></div>'+
-      '<div class="subject-current-completeness '+(subjectCurrentComplete?"complete":"warning")+'"><strong>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>'+(subjectCompleteness?Number(subjectCompleteness.completion_percent||0):0)+'%</span><small>รายวิชา '+subjectContentPct+'% · เวลา '+subjectTimePct+'%'+(Number(subjectCompleteness&&subjectCompleteness.time_issue_count||0)?' · ต้องแก้ '+Number(subjectCompleteness.time_issue_count)+' จุด':'')+'</small></div>'+
-    '</div>'+
-    (subjectCompleteness?'<div class="subject-time-status '+(subjectTimeComplete?"ok":"attention")+'"><div><strong>'+(subjectTimeComplete?"✓ เวลาเรียนผ่านเกณฑ์จริง":"เวลาเรียนยังไม่ผ่านเกณฑ์ 100%")+'</strong><span>'+(subjectScheduleConfigured?"ตรวจจาก "+esc(activeTimeFrameLabel)+" · "+esc(activeTimeFrameSource):"ยังไม่ได้กำหนดกรอบเวลาเรียนของปีการศึกษาในขั้นที่ 3")+'</span></div>'+(!subjectScheduleConfigured?'<a class="secondary-btn compact-btn" href="#/academics/time-frames">ไปกำหนดกรอบเวลาเรียน · ขั้น 3</a>':'')+'</div>':'')+
-    (subjectTimeSummaryHtml?'<details class="subject-time-details"><summary>รายละเอียดการตรวจเวลาเรียน</summary>'+subjectTimeSummaryHtml+'</details>':'')+
-    ((missingRequirementsHtml||subjectAnomaliesHtml||subjectTimeIssuesHtml)
-      ?'<div class="subject-completeness-detail">'+
-        (missingRequirementsHtml?'<div><div class="subject-completeness-detail-head"><strong>รายวิชาที่ยังไม่ครบ · '+missingRequirements.length+'</strong><span>เพิ่มจากคลัง หรือระบุวิชาที่โรงเรียนใช้แทน</span></div><div class="subject-requirement-list">'+missingRequirementsHtml+'</div></div>':'')+
-        (subjectAnomaliesHtml?'<div class="subject-anomaly-box"><strong>รายการผิดปกติที่ต้องแก้ก่อนเป็น 100%</strong><ul>'+subjectAnomaliesHtml+'</ul></div>':'')+
-        (subjectTimeIssuesHtml?'<div class="subject-time-issue-list"><strong>เวลาเรียนที่ต้องแก้ก่อนเป็น 100%</strong><ul>'+subjectTimeIssuesHtml+'</ul></div>':'')+
-      '</div>'
-      :(subjectCurrentComplete?'<div class="subject-completeness-done">✓ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ครบทั้งรายวิชาบังคับ ชั่วโมงตามโครงสร้าง และความจุตารางจริงแล้ว</div>':''))+
-  '</section>';
-
   const parallelGroupCards=parallelGroups.map(g=>
     '<article class="parallel-group-card"><div><strong>'+esc(g.name)+'</strong><small>'+(g.members||[]).map(m=>esc(m.subject_name)).join(' · ')+'</small></div><span>'+Number(g.weekly_periods||0).toLocaleString("th-TH")+' คาบ/สัปดาห์</span>'+(canEdit?'<button type="button" class="text-btn danger" data-delete-parallel-group="'+esc(g.id)+'">ยกเลิกกลุ่ม</button>':'')+'</article>'
   ).join("");
@@ -5943,9 +5781,6 @@ function academicSubjectsHtml(data,timeline){
 
   const centralOnlyCount=centralCatalog.length;
   const centralRowsOnly=centralRows;
-  const compactReadiness=currentStatus==="needs_schedule_settings"
-    ?'<section class="subject-readiness-strip warning"><div><strong>รอกำหนดกรอบเวลาเรียน · ขั้นที่ 3</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · ยังไม่สามารถตรวจคาบและชั่วโมงเทียบความจุจริงได้</span></div><a href="#/academics/time-frames">กำหนดกรอบเวลา →</a></section>'
-    :'<section class="subject-readiness-strip '+currentStatusClass+'"><div><strong>รายวิชาและเวลาเรียน · ขั้นเดียวกัน</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · '+esc(currentStatusLabel)+(weeklyCapacity!=null?' · '+weeklyTotal.toLocaleString("th-TH")+' / '+weeklyCapacity.toLocaleString("th-TH")+' คาบ/สัปดาห์':'')+'</span></div><button type="button" class="secondary-btn compact-btn" data-scroll-combined-time>ดูรายละเอียดเวลา ↓</button></section>';
   state.academicFilters={...(state.academicFilters||{}),grade_label:gradeLabel,program_id:selectedProgram?selectedProgram.id:""};
   const curriculumFrameworkHtml=academicCurriculumTimeFrameworkHtml(currentGroup,gradeLabel);
   const confirmationHtml=currentStatus==="confirmed"
@@ -5961,8 +5796,6 @@ function academicSubjectsHtml(data,timeline){
     :"";
 
   const editGuardHtml=canManage?'<section class="subject-edit-toolbar"><div><strong>แก้ไขรายวิชา</strong><small>'+(canEdit?"กำลังเปิดแก้ไข":"ข้อมูลถูกป้องกันการแก้ไข")+'</small></div><label class="academic-edit-switch subject-edit-switch compact"><input type="checkbox" data-subject-edit-switch '+(canEdit?"checked":"")+'><span class="switch-track"><i></i></span><b>'+(canEdit?"เปิด":"ปิด")+'</b></label></section>':'';
-
-  const roomImpactHtml=gradeCode?'<section class="subject-room-impact"><div><strong>ใช้กับห้องใดบ้าง</strong><p>'+(targetRoomCount?esc(targetRoomPreview):"ยังไม่พบห้องจาก LEC ในบริบทนี้")+'</p><small>รายวิชาจะใช้กับทุกห้องในระดับชั้นและกลุ่มห้อง/โปรแกรมที่เลือก หากต้องการหลักสูตรต่างกันให้แยกเป็นโปรแกรม/กลุ่มห้อง ไม่แยกรายวิชาทีละห้อง</small></div><span>'+targetRoomCount+' ห้อง</span></section>':'';
 
   const copyYearHtml=canManage&&year&&gradeCode&&copyYears.length?'<details class="subject-copy-year subject-copy-year-compact"><summary>คัดลอกจากปีการศึกษาก่อน</summary><div class="subject-copy-year-compact-body"><label>ปีต้นทาง<select data-subject-copy-year>'+copyYears.map(y=>'<option value="'+esc(y.id)+'" '+(state.subjectCopyYearId===y.id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><button type="button" class="secondary-btn compact-btn" data-copy-subject-year '+(canEdit?"":"disabled")+'>คัดลอกมาใช้</button></div></details>':'';
 
