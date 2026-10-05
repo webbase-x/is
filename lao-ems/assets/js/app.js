@@ -6247,8 +6247,7 @@ function bindTeachingWorkloadControls(){
 }
 
 
-const timetableDayLabels=["","จันทร์","อังคาร","อังคาร","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"];
-timetableDayLabels[3]="พุธ";
+const timetableDayLabels=["","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"];
 function timetableTodayIso(){
   const d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
   return y+"-"+m+"-"+day;
@@ -6307,7 +6306,8 @@ async function loadTimetablePage(){
 }
 function timetableVersionOptionsHtml(data){
   const rows=data&&data.versions||[];
-  return '<option value="">ยังไม่มีเวอร์ชัน</option>'+rows.map(v=>
+  if(!rows.length)return '<option value="">ยังไม่มีเวอร์ชัน</option>';
+  return rows.map(v=>
     '<option value="'+esc(v.id)+'" '+(v.id===data.selected_version_id?"selected":"")+'>'+esc(timetableVersionLabel(v))+'</option>'
   ).join("");
 }
@@ -6481,6 +6481,11 @@ function bindTimetableSlotControls(){
     if(conflict){
       const otherClass=(data.classes||[]).find(c=>c.id===conflict.class_section_id);
       toast("ครู "+o.teacher_name+" มีคาบสอน "+timetableClassLabel(otherClass)+" ในวัน/คาบเดียวกันแล้ว","error");
+      timetableRenderLive();return;
+    }
+    const sameLoadCount=base.filter(e=>e.class_section_id===clsId&&e.course_id===o.course_id&&e.personnel_id===o.personnel_id).length+1;
+    if(sameLoadCount>Number(o.weekly_periods||0)){
+      toast((o.subject_name||"รายวิชา")+" · "+o.teacher_name+" เกินภาระงาน "+Number(o.weekly_periods||0).toLocaleString("th-TH",{maximumFractionDigits:2})+" คาบ/สัปดาห์","error");
       timetableRenderLive();return;
     }
     state.timetableDraft=base.concat([{
