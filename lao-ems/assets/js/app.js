@@ -6357,7 +6357,7 @@ function timetableNormalizeSelections(){
 async function loadTimetablePage(){
   const school=currentSchool();
   if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
-  const res=await academicReadWithRetry(()=>supabase.rpc("lao_timetable_page_v2",{
+  const res=await academicReadWithRetry(()=>supabase.rpc("lao_timetable_page_v3",{
     p_school_id:school.id,
     p_academic_year_id:state.academicYearId||null,
     p_term_id:state.timetableTermId||state.academicTermId||null,
