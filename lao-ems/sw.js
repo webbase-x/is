@@ -1,13 +1,13 @@
-const CACHE_NAME="lao-ems-shell-v0.19.57";
+const CACHE_NAME="lao-ems-shell-v0.19.58";
 const SHELL=[
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./VERSION",
   "./assets/icon.svg",
-  "./assets/css/app.css?v=0.19.57",
-  "./assets/js/app.js?v=0.19.57",
-  "./assets/js/version.js?v=0.19.57",
+  "./assets/css/app.css?v=0.19.58",
+  "./assets/js/app.js?v=0.19.58",
+  "./assets/js/version.js?v=0.19.58",
   "./assets/js/supabase.js?v=20260927-2",
   "./assets/js/config.js"
 ];
@@ -36,10 +36,12 @@ self.addEventListener("fetch",event=>{
 
   if(request.mode==="navigate"){
     event.respondWith(
-      fetch(request)
+      fetch(request,{cache:"no-store"})
         .then(response=>{
-          const copy=response.clone();
-          caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
+          if(response.ok){
+            const copy=response.clone();
+            caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
+          }
           return response;
         })
         .catch(()=>caches.match("./index.html"))
@@ -48,8 +50,16 @@ self.addEventListener("fetch",event=>{
   }
 
   if(!url.pathname.startsWith(new URL("./",self.location.href).pathname))return;
+
+  const isFreshnessCritical=
+    url.pathname.endsWith("/VERSION")||
+    url.pathname.endsWith("/index.html")||
+    url.pathname.endsWith("/assets/js/app.js")||
+    url.pathname.endsWith("/assets/js/version.js")||
+    url.pathname.endsWith("/assets/css/app.css");
+
   event.respondWith(
-    fetch(request)
+    fetch(request,isFreshnessCritical?{cache:"no-store"}:undefined)
       .then(response=>{
         if(response.ok){
           const copy=response.clone();
@@ -57,6 +67,6 @@ self.addEventListener("fetch",event=>{
         }
         return response;
       })
-      .catch(()=>caches.match(request))
+      .catch(()=>caches.match(request).then(hit=>hit||caches.match(url.pathname.endsWith("/index.html")?"./index.html":request)))
   );
 });

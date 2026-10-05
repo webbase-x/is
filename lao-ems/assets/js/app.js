@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.57";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.58";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableDirty:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -82,31 +82,49 @@ async function academicReadWithRetry(task){
 
 async function checkLatestVersion(){
   try{
-    const res=await fetch("./VERSION?t="+Date.now(),{cache:"no-store"});
-    if(!res.ok)return;
+    const res=await fetch("./VERSION?t="+Date.now(),{
+      cache:"no-store",
+      headers:{"cache-control":"no-cache","pragma":"no-cache"}
+    });
+    if(!res.ok)return false;
     const latest=(await res.text()).trim();
-    if(!/^\d+\.\d+\.\d+$/.test(latest))return;
+    if(!/^\d+\.\d+\.\d+$/.test(latest))return false;
+    const attemptKey="lao_version_refresh_target";
     if(latest===APP_VERSION){
+      sessionStorage.removeItem(attemptKey);
       qa("[data-app-version]").forEach(el=>{
         el.classList.remove("is-outdated");
         el.title="รุ่นปัจจุบัน "+APP_VERSION_LABEL;
       });
-      return;
+      return false;
     }
     qa("[data-app-version]").forEach(el=>{
       el.classList.add("is-outdated");
       el.title="กำลังใช้ "+APP_VERSION_LABEL+" · รุ่นล่าสุด v"+latest;
     });
+
+    if(sessionStorage.getItem(attemptKey)!==latest){
+      sessionStorage.setItem(attemptKey,latest);
+      await forceRefreshCurrentPage();
+      return true;
+    }
+
     if(!q("#version-update-notice")){
       const notice=document.createElement("button");
       notice.id="version-update-notice";
       notice.type="button";
       notice.className="version-update-notice";
-      notice.innerHTML='<strong>มีรุ่นใหม่ v'+esc(latest)+'</strong><span>กำลังใช้ '+esc(APP_VERSION_LABEL)+' · แตะเพื่อโหลดรุ่นล่าสุด</span>';
-      notice.addEventListener("click",()=>location.reload());
+      notice.innerHTML='<strong>มีรุ่นใหม่ v'+esc(latest)+'</strong><span>กำลังใช้ '+esc(APP_VERSION_LABEL)+' · กดเพื่อบังคับโหลดไฟล์ล่าสุด</span>';
+      notice.addEventListener("click",async()=>{
+        sessionStorage.removeItem(attemptKey);
+        await forceRefreshCurrentPage();
+      });
       document.body.appendChild(notice);
     }
-  }catch(_){}
+    return false;
+  }catch(_){
+    return false;
+  }
 }
 
 function ensurePullRefreshIndicator(){
@@ -667,22 +685,22 @@ async function signInWithGoogle(){
 }
 
 function isTouchDevice(){
-  return Boolean(
-    ("ontouchstart" in window)
-    || Number(navigator.maxTouchPoints||0)>0
-    || (window.matchMedia&&window.matchMedia("(any-pointer: coarse)").matches)
-  );
+  const hasTouch=("ontouchstart" in window)||Number(navigator.maxTouchPoints||0)>0;
+  const coarse=Boolean(window.matchMedia&&window.matchMedia("(any-pointer: coarse)").matches);
+  const fine=Boolean(window.matchMedia&&window.matchMedia("(any-pointer: fine)").matches);
+  const compactViewport=Math.min(window.innerWidth||9999,window.innerHeight||9999)<=900;
+  return Boolean(hasTouch&&coarse&&!fine&&compactViewport);
 }
 function applyInputDeviceUi(){
-  const touch=isTouchDevice();
-  document.documentElement.classList.toggle("is-touch-device",touch);
+  const touchOnly=isTouchDevice();
+  document.documentElement.classList.toggle("is-touch-device",touchOnly);
   qa("[data-manual-refresh]").forEach(btn=>{
-    btn.hidden=touch;
-    btn.setAttribute("aria-hidden",touch?"true":"false");
-    if(touch)btn.tabIndex=-1;
+    btn.hidden=touchOnly;
+    btn.setAttribute("aria-hidden",touchOnly?"true":"false");
+    if(touchOnly)btn.tabIndex=-1;
     else btn.removeAttribute("tabindex");
   });
-  return touch;
+  return touchOnly;
 }
 function bindManualRefresh(){
   if(applyInputDeviceUi())return;
@@ -9812,7 +9830,7 @@ document.addEventListener("click",event=>{
 
 async function init(){
   renderAppVersion();
-  void checkLatestVersion();
+  if(await checkLatestVersion())return;
   applyInputDeviceUi();
   bindStaticUI();
   bindManualRefresh();
