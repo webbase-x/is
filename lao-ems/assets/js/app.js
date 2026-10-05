@@ -8433,7 +8433,7 @@ function bindAcademics(){
   if(subjectEditSwitch)subjectEditSwitch.addEventListener("change",()=>{
     state.subjectEditMode=subjectEditSwitch.checked;
     if(!state.subjectEditMode)state.subjectParallelSelectionMode=false;
-    renderRoute();
+    renderAcademicSubjectsCached(true);
   });
 
   const subjectCopyYear=q("[data-subject-copy-year]");
@@ -8870,11 +8870,11 @@ function bindAcademics(){
   qa("[data-start-parallel-selection]").forEach(btn=>btn.addEventListener("click",()=>{
     if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
     state.subjectParallelSelectionMode=true;
-    refreshSubjects(true);
+    renderAcademicSubjectsCached(true);
   }));
   qa("[data-cancel-parallel-selection]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectParallelSelectionMode=false;
-    refreshSubjects(true);
+    renderAcademicSubjectsCached(true);
   }));
 
   const parallelChecks=qa("[data-parallel-course]");
