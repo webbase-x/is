@@ -8246,12 +8246,33 @@ function bindAcademics(){
     setTimeout(()=>renderRoute(),450);
   }));
 
+  const loadSubjectWorkspaceFast=async(gradeCode,programId)=>{
+    if(!gradeCode){state.subjectWorkspaceData=null;return;}
+    const res=await academicReadWithRetry(()=>supabase.rpc("lao_subject_workspace",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:programId||null,
+      p_grade_code:gradeCode
+    }));
+    state.subjectWorkspaceData=res.error?null:(res.data||null);
+  };
+  const targetGradeCodesForProgram=programId=>{
+    const allowed=new Set(academicCurriculumGradeCodes(data));
+    return Array.from(new Set(
+      (data.classes||[])
+        .filter(x=>x.source_type==="lec"&&x.is_active!==false&&(programId?x.program_id===programId:!x.program_id))
+        .map(x=>x.grade_code||academicGradeCode(x.grade_label))
+        .filter(code=>allowed.has(code))
+    )).sort((a,b)=>academicGradeOrder(academicGradeLabelFromCode(a))-academicGradeOrder(academicGradeLabelFromCode(b)));
+  };
+
   qa("[data-subject-setup-tab]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectSetupTab=btn.dataset.subjectSetupTab||"target";
-    renderRoute();
+    renderAcademicSubjectsCached(true);
   }));
-  qa("[data-subject-context-grade]").forEach(btn=>btn.addEventListener("click",()=>{
+  qa("[data-subject-context-grade]").forEach(btn=>btn.addEventListener("click",async()=>{
     const gradeCode=btn.dataset.subjectContextGrade||"";
+    if(!gradeCode||gradeCode===state.academicPresetGrade)return;
     state.academicPresetGrade=gradeCode;
     state.academicFilters={
       grade_label:academicGradeLabelFromCode(gradeCode),
@@ -8260,36 +8281,48 @@ function bindAcademics(){
     state.subjectWorkspaceData=null;
     state.subjectEditMode=false;
     state.subjectParallelSelectionMode=false;
-    renderRoute();
+    setBusy(btn,true,"กำลังโหลด...");
+    await loadSubjectWorkspaceFast(gradeCode,state.subjectProgramId||null);
+    setBusy(btn,false);
+    renderAcademicSubjectsCached();
   }));
-  qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",()=>{
-    state.subjectProgramId=btn.dataset.subjectTarget||"";
+  qa("[data-subject-target]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const programId=btn.dataset.subjectTarget||"";
+    if(programId===state.subjectProgramId)return;
+    state.subjectProgramId=programId;
+    const gradeCodes=targetGradeCodesForProgram(programId);
+    state.academicPresetGrade=gradeCodes[0]||"";
     state.academicFilters={
-      grade_label:"",
-      program_id:state.subjectProgramId||""
+      grade_label:academicGradeLabelFromCode(state.academicPresetGrade),
+      program_id:programId
     };
     state.subjectWorkspaceData=null;
     state.academicPreset=null;
     state.subjectEditMode=false;
     state.subjectParallelSelectionMode=false;
-    renderRoute();
+    setBusy(btn,true,"กำลังโหลด...");
+    const tasks=[loadAcademicCurriculumPreset(data,programId||null)];
+    if(state.academicPresetGrade)tasks.push(loadSubjectWorkspaceFast(state.academicPresetGrade,programId||null));
+    await Promise.all(tasks);
+    setBusy(btn,false);
+    renderAcademicSubjectsCached();
   }));
   qa("[data-subject-catalog-scope]").forEach(btn=>btn.addEventListener("click",()=>{
-    state.subjectCatalogScope=btn.dataset.subjectCatalogScope||"all";
+    state.subjectCatalogScope=btn.dataset.subjectCatalogScope||"core";
     state.subjectSetupTab="type";
     state.subjectWorkspaceView="library";
     state.subjectParallelSelectionMode=false;
-    renderRoute();
+    renderAcademicSubjectsCached(true);
   }));
   qa("[data-subject-workspace-view]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectWorkspaceView=btn.dataset.subjectWorkspaceView||"selected";
     state.subjectParallelSelectionMode=false;
-    renderRoute();
+    renderAcademicSubjectsCached(true);
   }));
   qa("[data-open-subject-library]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectWorkspaceView="library";
     state.subjectParallelSelectionMode=false;
-    renderRoute();
+    renderAcademicSubjectsCached(true);
   }));
   const subjectFinder=q("#subject-finder-panel");
   const customSubjectForm=q("#subject-library-custom-form");
