@@ -11095,3 +11095,153 @@ html.is-touch-device [data-manual-refresh]{
   .timetable-display-switch [data-timetable-fullscreen]{grid-column:auto;width:100%}
   .timetable-teacher-axis-cell{min-height:54px;padding:6px}
 }
+
+
+/* v0.19.56 — Lantiv-style interactive timetable in every view */
+.timetable-lantiv-layout{
+  grid-template-columns:minmax(0,1fr) minmax(230px,285px);
+  align-items:start;
+}
+.timetable-lantiv-layout>.timetable-dnd-board{grid-column:1;grid-row:1;min-width:0}
+.timetable-lantiv-layout>.timetable-drag-source{grid-column:2;grid-row:1}
+.timetable-lantiv-pane{
+  background:#f5f8fc;
+  border-color:#d8e1ec;
+  box-shadow:0 4px 16px rgba(16,24,40,.06);
+}
+.timetable-lantiv-tabs{
+  display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border-radius:10px;background:#eaf0f7
+}
+.timetable-lantiv-tabs button{
+  border:0;border-radius:8px;background:transparent;color:#667085;padding:7px 8px;font-size:10px;font-weight:900;cursor:pointer
+}
+.timetable-lantiv-tabs button b{
+  margin-left:4px;padding:1px 5px;border-radius:999px;background:rgba(52,64,84,.09);font-size:8.5px
+}
+.timetable-lantiv-tabs button.active{background:#fff;color:#175cd3;box-shadow:0 1px 4px rgba(16,24,40,.08)}
+.timetable-conflict-list{display:grid;gap:7px}
+.timetable-conflict-list article{
+  border:1px solid #fecdca;border-radius:10px;background:#fffafa;padding:8px
+}
+.timetable-conflict-list strong{display:block;color:#b42318;font-size:10.5px;line-height:1.35}
+.timetable-conflict-list small{display:block;color:#667085;font-size:9px;margin-top:3px;line-height:1.4}
+.timetable-conflict-legend{
+  border-top:1px solid #dfe5ec;padding-top:8px;display:grid;gap:5px;font-size:9px;font-weight:800
+}
+.timetable-conflict-legend .good{color:#067647}
+.timetable-conflict-legend .bad{color:#b42318}
+.timetable-drag-source-head>span.danger{background:#fef3f2;color:#b42318}
+.timetable-drag-source-head>span.ok{background:#ecfdf3;color:#067647}
+
+.timetable-overview-split{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:start
+}
+.timetable-overview-split>section{
+  min-width:0;border:1px solid #e4e7ec;border-radius:14px;background:#fff;padding:8px;overflow:hidden
+}
+.timetable-overview-split>section.wide{grid-column:1/-1}
+.timetable-mini-pane-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;padding:2px 3px
+}
+.timetable-mini-pane-head strong{font-size:11.5px}
+.timetable-mini-pane-head span{font-size:9px;color:#667085}
+
+.timetable-interactive-matrix{
+  border-collapse:separate;border-spacing:0;table-layout:fixed
+}
+.timetable-interactive-matrix th,
+.timetable-interactive-matrix td{padding:3px;min-width:82px}
+.timetable-interactive-matrix .resource-col{
+  position:sticky!important;left:0!important;z-index:5!important;min-width:105px;width:105px;background:#f8fafc!important
+}
+.timetable-interactive-matrix thead .resource-col{z-index:8!important}
+.timetable-interactive-matrix .timetable-drop-zone{
+  min-height:48px;border-radius:7px;border-width:1px
+}
+.timetable-interactive-matrix .timetable-scheduled-card,
+.timetable-interactive-matrix .timetable-empty-slot{min-height:46px;border-radius:6px}
+.timetable-drop-zone.compact .timetable-scheduled-card{
+  padding:5px 20px 5px 6px
+}
+.timetable-drop-zone.compact .timetable-scheduled-card strong{
+  font-size:8.8px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+}
+.timetable-drop-zone.compact .timetable-scheduled-card small{
+  font-size:7.7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.timetable-drop-zone.compact .timetable-remove-entry{
+  width:17px;height:17px;right:2px;top:2px;font-size:13px;border-radius:5px
+}
+.timetable-empty-slot.compact{padding:4px;justify-content:center}
+.timetable-empty-slot.compact span{font-size:8px;color:#b0b8c4}
+.timetable-empty-slot.compact em{display:none}
+.lantiv-daily .timetable-interactive-matrix{min-width:max(820px,100%)}
+.lantiv-week{max-height:calc(100vh - 245px)}
+.lantiv-week .week-unified{width:max-content;min-width:100%}
+.lantiv-week .week-unified thead tr:first-child th{
+  text-align:center;background:#eef3f9;color:#344054;border-bottom-color:#d0d5dd
+}
+.lantiv-week .week-unified thead tr:nth-child(2) th{
+  top:29px;text-align:center;background:#f8fafc;font-size:8.5px;min-width:68px
+}
+.lantiv-week .week-unified td{min-width:68px;width:68px}
+.lantiv-week .week-unified .resource-col{min-width:108px;width:108px}
+
+/* Lantiv-like conflict prediction stripes while dragging */
+.timetable-drop-zone.drop-valid{
+  border-color:#47cd89!important;
+  background:
+    repeating-linear-gradient(135deg,rgba(18,183,106,.07) 0 7px,rgba(18,183,106,.15) 7px 14px),
+    #f6fef9!important;
+}
+.timetable-drop-zone.drop-invalid{
+  opacity:.74;
+  border-color:#fda29b!important;
+  background:
+    repeating-linear-gradient(135deg,rgba(217,45,32,.055) 0 7px,rgba(217,45,32,.13) 7px 14px),
+    #fffafa!important;
+}
+.timetable-drop-zone.drop-hover{
+  opacity:1!important;
+  border-color:#175cd3!important;
+  background:#eff8ff!important;
+}
+.timetable-drop-zone.teacher-target.empty.drop-valid:after{
+  content:"ครูว่าง";position:absolute;right:4px;bottom:3px;font-size:7px;font-weight:900;color:#067647
+}
+.timetable-workspace-shell.timetable-fullscreen-active .timetable-lantiv-layout{
+  grid-template-columns:minmax(0,1fr) minmax(215px,270px)
+}
+.timetable-workspace-shell.timetable-fullscreen-active .lantiv-week{
+  max-height:calc(100dvh - 205px)
+}
+.timetable-workspace-shell.timetable-fullscreen-active .timetable-overview-split .timetable-axis-wrap{
+  max-height:calc(50dvh - 125px)
+}
+@media(max-width:1100px){
+  .timetable-lantiv-layout{grid-template-columns:minmax(0,1fr) minmax(205px,245px)}
+  .timetable-overview-split{grid-template-columns:1fr}
+  .timetable-overview-split>section.wide{grid-column:auto}
+}
+@media(max-width:900px){
+  .timetable-lantiv-layout{grid-template-columns:1fr}
+  .timetable-lantiv-layout>.timetable-dnd-board,
+  .timetable-lantiv-layout>.timetable-drag-source{grid-column:1;grid-row:auto}
+  .timetable-lantiv-layout>.timetable-drag-source{position:static;max-height:none}
+  .timetable-workspace-shell.timetable-fullscreen-active .timetable-lantiv-layout{grid-template-columns:1fr}
+  .lantiv-week{max-height:none}
+}
+@media(max-width:640px){
+  .timetable-overview-split>section{padding:5px}
+  .timetable-interactive-matrix th,.timetable-interactive-matrix td{padding:2px}
+  .timetable-interactive-matrix .resource-col{min-width:88px;width:88px}
+  .lantiv-week .week-unified td{min-width:62px;width:62px}
+  .timetable-lantiv-tabs button{padding:6px 4px;font-size:9.5px}
+}
+@media print{
+  .timetable-lantiv-layout{display:block}
+  .timetable-lantiv-pane{display:none!important}
+  .timetable-overview-split{display:block}
+  .timetable-overview-split>section{margin-bottom:8px}
+  .lantiv-week{max-height:none;overflow:visible!important}
+}
