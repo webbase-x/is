@@ -6483,16 +6483,38 @@ function timetableProgressRows(){
 function timetableProgressHtml(){
   const data=state.timetableData||{},rows=timetableProgressRows();
   if(!rows.length)return '<div class="timetable-progress-empty">ยังไม่มีภาระงานสอนที่อนุมัติสำหรับบริบทนี้</div>';
-  if(["overview","day","week"].includes(state.timetableViewMode)){
-    const pending=rows.filter(x=>x.diff>0),critical=pending.filter(x=>x.criticality.level==="danger"),remaining=pending.reduce((s,x)=>s+Math.max(0,x.diff),0);
-    return '<div class="timetable-progress-summary"><span><b>'+pending.length.toLocaleString("th-TH")+'</b><small>รายการยังไม่ครบ</small></span><span><b>'+remaining.toLocaleString("th-TH",{maximumFractionDigits:2})+'</b><small>คาบคงเหลือ</small></span><span class="'+(critical.length?"danger":"ok")+'"><b>'+critical.length.toLocaleString("th-TH")+'</b><small>รายการวิกฤติ/ไม่มีช่อง</small></span></div>';
+
+  const scheduled=rows.reduce((sum,x)=>sum+Math.min(Number(x.scheduled||0),Number(x.target||0)),0);
+  const target=rows.reduce((sum,x)=>sum+Number(x.target||0),0);
+  const pending=rows.filter(x=>x.diff>0);
+  const remaining=pending.reduce((sum,x)=>sum+Math.max(0,Number(x.diff||0)),0);
+  const conflicts=timetableCurrentConflicts();
+  const critical=pending.filter(x=>x.criticality.level==="danger").length;
+
+  let context="ภาพรวม";
+  if(state.timetableViewMode==="teacher"){
+    const o=timetableScopedOfferings(data).find(x=>x.personnel_id===state.timetablePersonnelId);
+    context=o&&o.teacher_name?o.teacher_name:"รายครู";
+  }else if(state.timetableViewMode==="class"){
+    const cls=(data.classes||[]).find(c=>c.id===state.timetableClassId);
+    context=cls?timetableClassLabel(cls):"รายห้อง";
+  }else if(state.timetableViewMode==="grade"){
+    const g=(timetableScopeData().grades||[]).find(x=>x.grade_code===state.timetableGradeCode);
+    context="ระดับชั้น "+shortGrade(g&&g.grade_label||state.timetableGradeCode||"");
+  }else if(state.timetableViewMode==="day"){
+    context=timetableDayLabels[Number(state.timetableDayNo||1)]||"รายวัน";
+  }else if(state.timetableViewMode==="week"){
+    context="รายสัปดาห์";
   }
-  return '<div class="timetable-progress-grid">'+rows.map(x=>{
-    const status=x.diff===0?"ok":x.diff<0?"over":"pending";
-    const cls=(data.classes||[]).find(c=>c.id===x.class_section_id);
-    const classTail=state.timetableViewMode==="teacher"?' · '+timetableClassLabel(cls):"";
-    return '<article class="'+status+'"><div><strong>'+esc((x.subject_code?x.subject_code+" · ":"")+x.subject_name)+'</strong><small>'+esc(x.teacher_name+classTail)+'</small></div><span><b>'+Number(x.scheduled).toLocaleString("th-TH")+'</b> / '+Number(x.target).toLocaleString("th-TH",{maximumFractionDigits:2})+' คาบ <i class="criticality '+esc(x.criticality.level)+'">'+esc(x.criticality.label)+(x.criticality.remaining?' · '+x.criticality.slots+' ช่อง':'')+'</i></span></article>';
-  }).join("")+'</div>';
+
+  return '<div class="timetable-compact-summary">'+
+    '<strong class="timetable-summary-context">'+esc(context)+'</strong>'+
+    '<span><b>'+Number(scheduled).toLocaleString("th-TH",{maximumFractionDigits:2})+'/'+Number(target).toLocaleString("th-TH",{maximumFractionDigits:2})+'</b><small>คาบที่จัดแล้ว</small></span>'+
+    '<span><b>'+pending.length.toLocaleString("th-TH")+'</b><small>กิจกรรมที่เหลือ</small></span>'+
+    '<span><b>'+Number(remaining).toLocaleString("th-TH",{maximumFractionDigits:2})+'</b><small>คาบคงเหลือ</small></span>'+
+    '<span class="'+(conflicts.length?"danger":"ok")+'"><b>'+conflicts.length.toLocaleString("th-TH")+'</b><small>ตรวจชน</small></span>'+
+    (critical?'<span class="danger"><b>'+critical.toLocaleString("th-TH")+'</b><small>จัดยาก/ไม่มีช่อง</small></span>':'')+
+  '</div>';
 }
 
 function timetableScheduledCardHtml(entry,{showClass=false,compact=false}={}){
@@ -6635,7 +6657,7 @@ function timetableTeacherGridHtml(){
   const relevantClasses=offerings.map(o=>classMap.get(o.class_section_id)).filter(Boolean);
   const days=Math.max(1,...relevantClasses.map(c=>Number(c.school_days_per_week||5)));
   const periods=Math.max(1,...relevantClasses.map(c=>Number(c.periods_per_day||8)));
-  return '<div class="timetable-grid-heading"><div><strong>'+esc(teacher)+'</strong><span>ตารางรายสัปดาห์ของครู · ช่องว่างรับกิจกรรมของครูคนนี้ได้โดยอัตโนมัติ</span></div><span>'+draft.filter(e=>e.personnel_id===pid).length.toLocaleString("th-TH")+' คาบที่จัดแล้ว</span></div>'+
+  return '<div class="timetable-grid-heading"><div><strong>'+esc(teacher)+'</strong><span>ตารางรายสัปดาห์ของครู · ช่องว่างรับกิจกรรมของครูคนนี้ได้โดยอัตโนมัติ</span></div></div>'+
     timetableTeacherAxisGridHtml(pid,draft,days,periods);
 }
 function timetableDailyUnifiedBoard(classes,day,{title="ตารางรายวัน",subtitle=""}={}){
