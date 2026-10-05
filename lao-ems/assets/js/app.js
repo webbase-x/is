@@ -7686,6 +7686,48 @@ async function academicsHtml(){
   const mode=routeState.mode;
   if(mode==="my-courses")return await courseCurriculumHtml(null);
   if(mode==="course-curriculum")return await courseCurriculumHtml(routeState.courseId);
+  if(mode==="subjects"){
+    const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
+    const usablePrograms=(data.year_programs||[]).filter(p=>p.is_active&&classes.some(c=>c.program_id===p.id));
+    if(state.subjectProgramId&&!usablePrograms.some(p=>p.id===state.subjectProgramId))state.subjectProgramId="";
+    const targetProgram=state.subjectProgramId||null;
+    const targetClasses=classes.filter(c=>targetProgram?c.program_id===targetProgram:!c.program_id);
+    const allowedGrades=new Set(academicCurriculumGradeCodes(data));
+    const gradeCodes=Array.from(new Set(
+      targetClasses
+        .map(c=>c.grade_code||academicGradeCode(c.grade_label))
+        .filter(code=>allowedGrades.has(code))
+    )).sort((a,b)=>academicGradeOrder(academicGradeLabelFromCode(a))-academicGradeOrder(academicGradeLabelFromCode(b)));
+    if(!gradeCodes.includes(state.academicPresetGrade))state.academicPresetGrade=gradeCodes[0]||"";
+
+    const timelinePromise=loadDepartmentSetupTimeline("academics",data.selected_year_id||null)
+      .catch(e=>{console.warn("academic yearly timeline",e);return null;});
+    const readinessPromise=academicReadWithRetry(()=>supabase.rpc("lao_curriculum_readiness",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id
+    }));
+    const workspacePromise=state.academicPresetGrade
+      ?academicReadWithRetry(()=>supabase.rpc("lao_subject_workspace",{
+        p_school_id:school.id,
+        p_academic_year_id:data.selected_year_id,
+        p_program_id:targetProgram,
+        p_grade_code:state.academicPresetGrade
+      }))
+      :Promise.resolve({data:null,error:null});
+
+    const [timelineResult,_presetResult,_timeResult,readyRes,wsRes]=await Promise.all([
+      timelinePromise,
+      loadAcademicCurriculumPreset(data,targetProgram),
+      loadAcademicCourseTimeOverview(data),
+      readinessPromise,
+      workspacePromise
+    ]);
+    state.academicTimeline=timelineResult;
+    state.curriculumReadiness=readyRes.error?null:(readyRes.data||null);
+    state.subjectReadiness=state.academicTimeline&&state.academicTimeline.subject_readiness||null;
+    state.subjectWorkspaceData=wsRes&&wsRes.error?null:(wsRes&&wsRes.data||null);
+    return academicSubjectsHtml(data,state.academicTimeline);
+  }
   if(mode==="timetable")return await academicTimetableHtml(data);
   try{
     state.academicTimeline=await loadDepartmentSetupTimeline("academics",data.selected_year_id||null);
@@ -7699,33 +7741,6 @@ async function academicsHtml(){
   }
   if(mode==="time-frames")return academicTimeFramesHtml(data);
   if(mode==="classes")return academicClassesHtml(data);
-  if(mode==="subjects"){
-    await Promise.all([loadAcademicCurriculumPreset(data,state.subjectProgramId),loadAcademicCourseTimeOverview(data)]);
-    const readyRes=await academicReadWithRetry(()=>supabase.rpc("lao_curriculum_readiness",{
-      p_school_id:school.id,
-      p_academic_year_id:data.selected_year_id
-    }));
-    state.curriculumReadiness=readyRes.error?null:(readyRes.data||null);
-    state.subjectReadiness=state.academicTimeline&&state.academicTimeline.subject_readiness||null;
-    const classes=(data.classes||[]).filter(x=>x.source_type==="lec"&&x.is_active!==false);
-    const targetProgram=state.subjectProgramId||null;
-    const targetClasses=classes.filter(c=>targetProgram?c.program_id===targetProgram:!c.program_id);
-    const supported=new Set((state.academicPreset?.supported_grades||[]).map(g=>g.grade_code));
-    const gradeCodes=Array.from(new Set(targetClasses.map(c=>c.grade_code||academicGradeCode(c.grade_label)).filter(code=>supported.has(code))));
-    if(!gradeCodes.includes(state.academicPresetGrade))state.academicPresetGrade=gradeCodes[0]||"";
-    if(state.academicPresetGrade){
-      const wsRes=await academicReadWithRetry(()=>supabase.rpc("lao_subject_workspace",{
-        p_school_id:school.id,
-        p_academic_year_id:data.selected_year_id,
-        p_program_id:targetProgram,
-        p_grade_code:state.academicPresetGrade
-      }));
-      state.subjectWorkspaceData=wsRes.error?null:(wsRes.data||null);
-    }else{
-      state.subjectWorkspaceData=null;
-    }
-    return academicSubjectsHtml(data,state.academicTimeline);
-  }
   if(mode==="curriculum"){
     const [timeOverview,readyRes]=await Promise.all([
       loadAcademicCourseTimeOverview(data),
