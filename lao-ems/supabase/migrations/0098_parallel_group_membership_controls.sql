@@ -153,13 +153,19 @@ begin
 
   if v_member_count<=2 then
     update public.lao_course_term_plans tp
-    set notes=null,updated_by=v_uid
+    set notes=case
+          when tp.notes=v_marker then null
+          when right(tp.notes,length(' · '||v_marker))=' · '||v_marker
+            then left(tp.notes,length(tp.notes)-length(' · '||v_marker))
+          else tp.notes
+        end,
+        updated_by=v_uid
     where tp.course_id in (
       select gc.course_id
       from public.lao_curriculum_parallel_group_courses gc
       where gc.group_id=p_group_id
     )
-      and tp.notes=v_marker;
+      and (tp.notes=v_marker or right(tp.notes,length(' · '||v_marker))=' · '||v_marker);
 
     delete from public.lao_curriculum_parallel_groups
     where id=p_group_id;
@@ -168,9 +174,16 @@ begin
     delete from public.lao_curriculum_parallel_group_courses
     where group_id=p_group_id and course_id=p_course_id;
 
-    update public.lao_course_term_plans
-    set notes=null,updated_by=v_uid
-    where course_id=p_course_id and notes=v_marker;
+    update public.lao_course_term_plans tp
+    set notes=case
+          when tp.notes=v_marker then null
+          when right(tp.notes,length(' · '||v_marker))=' · '||v_marker
+            then left(tp.notes,length(tp.notes)-length(' · '||v_marker))
+          else tp.notes
+        end,
+        updated_by=v_uid
+    where tp.course_id=p_course_id
+      and (tp.notes=v_marker or right(tp.notes,length(' · '||v_marker))=' · '||v_marker);
   end if;
 
   delete from public.lao_curriculum_structure_confirmations
@@ -241,13 +254,19 @@ begin
 
   v_marker:='อยู่ในกลุ่มรายวิชาทางเลือก/เวลาเดียวกัน: '||v_group.name;
   update public.lao_course_term_plans tp
-  set notes=null,updated_by=v_uid
+  set notes=case
+        when tp.notes=v_marker then null
+        when right(tp.notes,length(' · '||v_marker))=' · '||v_marker
+          then left(tp.notes,length(tp.notes)-length(' · '||v_marker))
+        else tp.notes
+      end,
+      updated_by=v_uid
   where tp.course_id in (
     select gc.course_id
     from public.lao_curriculum_parallel_group_courses gc
     where gc.group_id=p_group_id
   )
-    and tp.notes=v_marker;
+    and (tp.notes=v_marker or right(tp.notes,length(' · '||v_marker))=' · '||v_marker);
 
   delete from public.lao_curriculum_parallel_groups
   where id=p_group_id;
