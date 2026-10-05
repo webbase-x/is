@@ -9080,6 +9080,7 @@ function bindAcademics(){
 
   const courseForm=q("#academic-course-form");
   const selectedYear=academicSelectedYear(data);
+  let courseAutoSave=null;
   const refreshCourseClassification=(subjectId="",typeOverride=null,subtypeOverride=null)=>{
     if(!courseForm)return;
     const subject=(data.subjects||[]).find(x=>x.id===subjectId)||null;
@@ -9102,58 +9103,47 @@ function bindAcademics(){
     subjectSelect.value=selectedId||"";
     refreshCourseClassification(subjectSelect.value||"");
   };
+  const updateCourseFormMode=()=>{
+    if(!courseForm)return;
+    const editing=Boolean(courseForm.dataset.id);
+    const manual=courseForm.querySelector("[data-course-manual-submit]");
+    const status=courseForm.querySelector("[data-autosave-status]");
+    const reset=courseForm.querySelector("[data-reset-course-form]");
+    if(manual)manual.classList.toggle("hidden",editing);
+    if(status)status.classList.toggle("hidden",!editing);
+    if(reset)reset.textContent=editing?"ปิด":"ล้าง";
+    if(editing)setAutoSaveStatus(courseForm,"idle","เปลี่ยนแล้วบันทึกอัตโนมัติ");
+  };
   const resetCourse=()=>{
+    courseAutoSave?.cancel();
     academicResetForm(courseForm,"[data-course-form-title]","เพิ่มรายวิชาในโครงสร้าง");
     if(courseForm){
+      courseForm.dataset.autosaved="";
+      courseForm.dataset.autosavePending="";
       academicSetFormValue(courseForm,"academic_year_id",data.selected_year_id);
       academicSetFormValue(courseForm,"is_active",true);
       refreshCourseSubjectOptions();
+      updateCourseFormMode();
     }
   };
-  if(courseForm){
-    const gradeSelect=courseForm.querySelector('[name="grade_label"]');
-    const subjectSelect=courseForm.querySelector('[name="subject_id"]');
-    const typeSelect=courseForm.querySelector("[data-course-subject-type]");
-    if(gradeSelect)gradeSelect.addEventListener("change",()=>refreshCourseSubjectOptions());
-    if(subjectSelect)subjectSelect.addEventListener("change",()=>refreshCourseClassification(subjectSelect.value||""));
-    if(typeSelect)typeSelect.addEventListener("change",()=>refreshCourseClassification(subjectSelect?.value||"",typeSelect.value,""));
-  }
-  qa("[data-reset-course-form]").forEach(btn=>btn.addEventListener("click",()=>{resetCourse();academicScrollToForm(courseForm);}));
-  qa("[data-reset-course-time-standard]").forEach(btn=>btn.addEventListener("click",async()=>{
-    if(!confirm("คืนเวลาเรียนของรายวิชานี้เป็นมาตรฐานกลางปัจจุบัน?\n\nค่าที่โรงเรียนเคยปรับจะถูกแทนที่เฉพาะรายวิชานี้"))return;
-    setBusy(btn,true,"กำลังคืนค่า...");
-    const res=await supabase.rpc("lao_reset_course_time_to_standard",{p_school_id:school.id,p_course_id:btn.dataset.resetCourseTimeStandard});
-    setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
-    toast("คืนค่าเวลาเรียนตามมาตรฐานกลางแล้ว","success");
-    renderRoute();
-  }));
-  qa("[data-edit-course]").forEach(btn=>btn.addEventListener("click",()=>{
-    const c=(data.courses||[]).find(x=>x.id===btn.dataset.editCourse);if(!c||!courseForm)return;
-    courseForm.dataset.id=c.id;
-    ["academic_year_id","program_id","grade_label","annual_hours","credits","notes"].forEach(k=>academicSetFormValue(courseForm,k,c[k]));
-    refreshCourseSubjectOptions(c.subject_id||"");
-    refreshCourseClassification(c.subject_id||"",c.subject_type||"basic",c.subject_subtype||"");
-    academicSetFormValue(courseForm,"is_active",c.is_active);
-    (selectedYear&&selectedYear.terms||[]).forEach(t=>{
-      const plan=(c.term_plans||[]).find(p=>p.term_id===t.id)||{};
-      academicSetFormValue(courseForm,"weekly_"+t.id,plan.weekly_periods);
-      academicSetFormValue(courseForm,"hours_"+t.id,plan.term_hours);
-    });
-    const h=q("[data-course-form-title]");if(h)h.textContent="แก้ไข "+(c.subject_code?c.subject_code+" ":"")+c.subject_name+" · "+shortGrade(c.grade_label);
-    academicScrollToForm(courseForm);
-  }));
-  if(courseForm)courseForm.addEventListener("submit",async e=>{
-    e.preventDefault();
-    const fd=new FormData(courseForm),btn=courseForm.querySelector('button[type="submit"]'),grade=String(fd.get("grade_label")||"").trim();
+  const saveCourseForm=async({autosave=false}={})=>{
+    if(!courseForm)return {ok:false,state:"error",message:"ไม่พบแบบฟอร์ม"};
+    const fd=new FormData(courseForm);
+    const btn=courseForm.querySelector("[data-course-manual-submit]");
+    const grade=String(fd.get("grade_label")||"").trim();
+    let subjectId=String(fd.get("subject_id")||"")||null;
+    if(!grade||!subjectId){
+      if(!autosave)toast("กรุณาเลือกระดับชั้นและรายวิชา","error");
+      return {ok:false,state:"waiting",message:"เลือกระดับชั้นและรายวิชาให้ครบ"};
+    }
     const termPlans=(selectedYear&&selectedYear.terms||[]).map(t=>({
       term_id:t.id,
       weekly_periods:String(fd.get("weekly_"+t.id)||"").trim(),
       term_hours:String(fd.get("hours_"+t.id)||"").trim()
     }));
     const numOrNull=v=>String(v||"").trim()===""?null:Number(v);
-    let subjectId=String(fd.get("subject_id")||"")||null;
-    const subject=(data.subjects||[]).find(x=>x.id===subjectId)||null;
+    const currentCourse=(data.courses||[]).find(x=>x.id===courseForm.dataset.id)||null;
+    let subject=(data.subjects||[]).find(x=>x.id===subjectId)||null;
     const requestedType=String(fd.get("subject_type")||subject?.subject_type||"basic");
     const requestedSubtype=String(fd.get("subject_subtype")||"")||null;
     const currentSubtype=subject?.subject_subtype||null;
@@ -9161,15 +9151,18 @@ function bindAcademics(){
       requestedType!==String(subject.subject_type||"basic")
       || requestedSubtype!==currentSubtype
     );
-    if(classificationChanged&&requestedType==="activity"&&!requestedSubtype){
-      toast("กรุณาเลือกประเภทย่อยของกิจกรรม เช่น แนะแนว ลูกเสือ หรือชุมนุม","error");
-      return;
+    if(requestedType==="activity"&&!requestedSubtype){
+      if(!autosave)toast("กรุณาเลือกประเภทย่อยของกิจกรรม เช่น แนะแนว ลูกเสือ หรือชุมนุม","error");
+      return {ok:false,state:"waiting",message:"เลือกประเภทกิจกรรมก่อน เช่น ชุมนุม"};
     }
     if(classificationChanged&&subject?.subject_type==="basic"&&requestedType!=="basic"){
       const ok=confirm("เปลี่ยนจากรายวิชาพื้นฐานเป็น “"+academicSubjectTypeLabel(requestedType)+"” ?\n\nระบบจะเปลี่ยนเฉพาะรายการของโรงเรียน ไม่แก้คลังกลาง และการตรวจความครบตามหลักสูตรอาจแจ้งว่ารายวิชาพื้นฐานขาด");
-      if(!ok)return;
+      if(!ok){
+        refreshCourseClassification(subjectId,subject.subject_type||"basic",subject.subject_subtype||"");
+        return {ok:false,state:"saved",message:"ยกเลิกการเปลี่ยนประเภท"};
+      }
     }
-    setBusy(btn,true,"กำลังบันทึก...");
+    if(!autosave)setBusy(btn,true,"กำลังบันทึก...");
     if(classificationChanged){
       const classRes=await supabase.rpc("lao_update_school_subject_library",{
         p_school_id:school.id,
@@ -9181,32 +9174,138 @@ function bindAcademics(){
         p_subject_subtype:requestedSubtype
       });
       if(classRes.error){
-        setBusy(btn,false);
+        if(!autosave)setBusy(btn,false);
         toast(classRes.error.message,"error");
-        return;
+        return {ok:false,state:"error",message:"บันทึกประเภทไม่สำเร็จ"};
       }
-      subjectId=classRes.data?.subject_id||subjectId;
+      const newSubjectId=classRes.data?.subject_id||subjectId;
+      if(subject){
+        subject.subject_type=requestedType;
+        subject.subject_subtype=requestedSubtype;
+        if(newSubjectId!==subjectId){
+          subject.id=newSubjectId;
+          const option=courseForm.querySelector('[name="subject_id"] option[value="'+CSS.escape(subjectId)+'"]');
+          if(option)option.value=newSubjectId;
+        }
+      }
+      subjectId=newSubjectId;
+      const subjectSelect=courseForm.querySelector('[name="subject_id"]');
+      if(subjectSelect)subjectSelect.value=subjectId;
     }
+    const programId=String(fd.get("program_id")||"")||null;
+    const gradeCode=academicGradeCode(grade)||null;
+    const isActive=fd.get("is_active")==="on";
     const res=await supabase.rpc("lao_save_curriculum_course",{
       p_school_id:school.id,p_course_id:courseForm.dataset.id||null,
       p_academic_year_id:String(fd.get("academic_year_id")||"")||null,
-      p_program_id:String(fd.get("program_id")||"")||null,
-      p_grade_code:academicGradeCode(grade)||null,p_grade_label:grade,
+      p_program_id:programId,
+      p_grade_code:gradeCode,p_grade_label:grade,
       p_subject_id:subjectId,
       p_annual_hours:numOrNull(fd.get("annual_hours")),
       p_credits:numOrNull(fd.get("credits")),
       p_notes:String(fd.get("notes")||"").trim()||null,
-      p_is_active:fd.get("is_active")==="on",p_sort_order:0,
+      p_is_active:isActive,p_sort_order:0,
       p_term_plans:termPlans
     });
-    setBusy(btn,false);
-    if(res.error){toast(res.error.message,"error");return;}
+    if(!autosave)setBusy(btn,false);
+    if(res.error){
+      toast(res.error.message,"error");
+      return {ok:false,state:"error",message:"บันทึกไม่สำเร็จ"};
+    }
+    if(currentCourse){
+      currentCourse.program_id=programId;
+      currentCourse.grade_code=gradeCode;
+      currentCourse.grade_label=grade;
+      currentCourse.subject_id=subjectId;
+      currentCourse.subject_type=requestedType;
+      currentCourse.subject_subtype=requestedSubtype;
+      currentCourse.annual_hours=numOrNull(fd.get("annual_hours"));
+      currentCourse.credits=numOrNull(fd.get("credits"));
+      currentCourse.notes=String(fd.get("notes")||"").trim()||null;
+      currentCourse.is_active=isActive;
+      currentCourse.term_plans=(currentCourse.term_plans||[]).map(plan=>{
+        const next=termPlans.find(x=>x.term_id===plan.term_id);
+        return next?{...plan,weekly_periods:numOrNull(next.weekly_periods),term_hours:numOrNull(next.term_hours)}:plan;
+      });
+    }
     state.academicFilters={grade_label:grade,program_id:String(fd.get("program_id")||"")};
-    const gradeCode=academicGradeCode(grade);
     if(academicCurriculumGradeCodes(data).includes(gradeCode))state.academicPresetGrade=gradeCode;
     state.academicPreset=null;
-    toast(classificationChanged?"บันทึกประเภทและโครงสร้างเวลาเรียนแล้ว · จัดลำดับอัตโนมัติ":"บันทึกโครงสร้างเวลาเรียนแล้ว · จัดลำดับอัตโนมัติ","success");renderRoute();
-  });
+    state.curriculumReadiness=null;
+    state.subjectReadiness=null;
+    if(autosave){
+      return {ok:true,message:classificationChanged?"บันทึกประเภทแล้ว · จัดลำดับอัตโนมัติ":"บันทึกแล้ว"};
+    }
+    toast("เพิ่ม/บันทึกโครงสร้างรายวิชาแล้ว · จัดลำดับอัตโนมัติ","success");
+    state.academicData=null;
+    renderRoute();
+    return {ok:true,message:"บันทึกแล้ว"};
+  };
+  if(courseForm){
+    const gradeSelect=courseForm.querySelector('[name="grade_label"]');
+    const subjectSelect=courseForm.querySelector('[name="subject_id"]');
+    const typeSelect=courseForm.querySelector("[data-course-subject-type]");
+    if(gradeSelect)gradeSelect.addEventListener("change",()=>refreshCourseSubjectOptions());
+    if(subjectSelect)subjectSelect.addEventListener("change",()=>refreshCourseClassification(subjectSelect.value||""));
+    if(typeSelect)typeSelect.addEventListener("change",()=>refreshCourseClassification(subjectSelect?.value||"",typeSelect.value,""));
+    courseAutoSave=bindFormAutoSave(courseForm,()=>saveCourseForm({autosave:true}),{
+      delay:350,
+      enabled:()=>Boolean(courseForm.dataset.id)
+    });
+    courseForm._autoSaveController=courseAutoSave;
+    courseForm.addEventListener("submit",async e=>{
+      e.preventDefault();
+      if(courseForm.dataset.id){
+        await courseAutoSave?.flush();
+        return;
+      }
+      await saveCourseForm({autosave:false});
+    });
+    updateCourseFormMode();
+  }
+  qa("[data-reset-course-form]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const editing=Boolean(courseForm?.dataset.id);
+    if(courseForm?.dataset.autosavePending==="1")await courseAutoSave?.flush();
+    if(editing&&courseForm?.dataset.autosaved==="1"){
+      state.academicData=null;
+      state.academicPreset=null;
+      state.curriculumReadiness=null;
+      state.subjectReadiness=null;
+      await renderRoute();
+      return;
+    }
+    resetCourse();
+    academicScrollToForm(courseForm);
+  }));
+  qa("[data-reset-course-time-standard]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("คืนเวลาเรียนของรายวิชานี้เป็นมาตรฐานกลางปัจจุบัน?\n\nค่าที่โรงเรียนเคยปรับจะถูกแทนที่เฉพาะรายวิชานี้"))return;
+    setBusy(btn,true,"กำลังคืนค่า...");
+    const res=await supabase.rpc("lao_reset_course_time_to_standard",{p_school_id:school.id,p_course_id:btn.dataset.resetCourseTimeStandard});
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("คืนค่าเวลาเรียนตามมาตรฐานกลางแล้ว","success");
+    renderRoute();
+  }));
+  qa("[data-edit-course]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(courseForm?.dataset.autosavePending==="1")await courseAutoSave?.flush();
+    const c=(data.courses||[]).find(x=>x.id===btn.dataset.editCourse);if(!c||!courseForm)return;
+    courseAutoSave?.cancel();
+    courseForm.dataset.id=c.id;
+    courseForm.dataset.autosaved="";
+    courseForm.dataset.autosavePending="";
+    ["academic_year_id","program_id","grade_label","annual_hours","credits","notes"].forEach(k=>academicSetFormValue(courseForm,k,c[k]));
+    refreshCourseSubjectOptions(c.subject_id||"");
+    refreshCourseClassification(c.subject_id||"",c.subject_type||"basic",c.subject_subtype||"");
+    academicSetFormValue(courseForm,"is_active",c.is_active);
+    (selectedYear&&selectedYear.terms||[]).forEach(t=>{
+      const plan=(c.term_plans||[]).find(p=>p.term_id===t.id)||{};
+      academicSetFormValue(courseForm,"weekly_"+t.id,plan.weekly_periods);
+      academicSetFormValue(courseForm,"hours_"+t.id,plan.term_hours);
+    });
+    const h=q("[data-course-form-title]");if(h)h.textContent="แก้ไข "+(c.subject_code?c.subject_code+" ":"")+c.subject_name+" · "+shortGrade(c.grade_label)+" · บันทึกอัตโนมัติ";
+    updateCourseFormMode();
+    academicScrollToForm(courseForm);
+  }));
 }
 
 
