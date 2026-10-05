@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.49";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.50";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -1524,6 +1524,22 @@ function subjectGroupWorkspaceHtml(data){
     ).join("")+'</div></section>':'')+
   '</section>';
 }
+function teacherWorkAssignmentContextHtml(items,type){
+  const rows=Array.isArray(items)?items:[];
+  if(!rows.length)return "";
+  if(type==="homeroom"){
+    return '<div class="profile-assignment-chips">'+rows.map(x=>
+      '<span class="important">'+
+        esc(profileAssignmentRoleLabel(x.assignment_role))+' · '+esc(x.class_short)+
+        (x.program_code?' · '+esc(x.program_code):'')+
+        (x.is_primary?' · หลัก':'')+
+      '</span>'
+    ).join("")+'</div>';
+  }
+  return '<div class="profile-assignment-chips">'+rows.map(x=>
+    '<span>'+esc((x.subject_code?x.subject_code+" · ":"")+x.subject_name)+' · '+esc(x.class_short)+' · ภาค '+esc(x.term_no)+'</span>'
+  ).join("")+'</div>';
+}
 async function teacherWorkHtml(){
   if(!hasMyWorkWorkspace()){
     return '<section class="panel"><div class="empty-state"><div class="empty-icon">🔒</div><h3>ยังไม่มีงานส่วนบุคคลในบริบทนี้</h3><p>ระบบจะแสดงงานตามบทบาทและขอบเขตที่ได้รับมอบหมาย</p></div></section>';
@@ -1533,22 +1549,41 @@ async function teacherWorkHtml(){
   try{subjectData=await loadSubjectGroupWorkspace(route.learningArea);}catch(e){console.warn("subject group workspace",e);}
   if(route.mode==="subject-group")return subjectGroupWorkspaceHtml(subjectData||{});
 
-  const teacher=hasTeacherWorkspace();
+  let assignmentData={};
+  try{
+    const res=await supabase.rpc("lao_my_profile_assignments",{p_school_id:school.id});
+    if(res.error)throw res.error;
+    assignmentData=res.data||{};
+  }catch(e){
+    console.warn("my work assignments",e);
+  }
+
+  const homerooms=Array.isArray(assignmentData.homerooms)?assignmentData.homerooms:[];
+  const teaching=Array.isArray(assignmentData.teaching)?assignmentData.teaching:[];
+  const groups=subjectData&&Array.isArray(subjectData.groups)?subjectData.groups:[];
+  const hasHomeroom=homerooms.length>0;
+  const hasTeaching=teaching.length>0;
+  const hasSubjectGroups=groups.length>0;
+  const hasAnyWork=hasHomeroom||hasTeaching||hasSubjectGroups;
+
   return '<section class="teacher-work-page">'+
-    '<section class="teacher-work-hero panel"><div><p class="eyebrow">MY WORK</p><h2>งานของฉัน</h2><p>'+esc(school&&school.name_th||"")+' · ระบบแสดงเฉพาะงานตามบทบาทและขอบเขตที่คุณได้รับ ไม่ปะปนกับข้อมูลพื้นฐานที่กลุ่มงานเป็นผู้กำหนด</p></div><span class="pill success">งานของฉัน</span></section>'+
-    '<section class="teacher-work-principle panel"><div><span>✓</span><div><strong>งานส่วนบุคคลแยกจากงานตั้งค่าของฝ่าย</strong><p>กลุ่มงานกำหนดข้อมูลพื้นฐานและกติกา ส่วนผู้ใช้งานบันทึกข้อมูลที่เกิดจากงานจริง เช่น คะแนน เวลาเรียน ข้อมูลประจำชั้น และงานที่ได้รับมอบหมายจากกลุ่มสาระ</p></div></div></section>'+
-    (teacher?'<section class="teacher-duty-section"><div class="workspace-section-head"><div><p class="eyebrow">TEACHER</p><h2>งานครูผู้สอน</h2><p>ระบบผูกกับภาระงานสอนที่ได้รับอนุมัติ</p></div></div><div class="teacher-duty-grid">'+
-      teacherWorkDutyCard("📘","รายวิชาและโครงสร้างคะแนนของฉัน","จัดทำหลักสูตรรายวิชา หน่วยการเรียนรู้ ตัวชี้วัด และโครงสร้างคะแนน แล้วส่งตรวจ","#/academics/my-courses")+
-      teacherWorkDutyCard("📝","บันทึกคะแนนและผลการเรียน","ดำเนินการวัดผลตั้งแต่กิจกรรม/เครื่องมือ บันทึกคะแนน ตรวจคะแนนขาด จนส่งฝ่ายวิชาการ","#/assessment")+
-      teacherWorkDutyCard("⏱","เวลาเรียนรายวิชา","บันทึกเวลาเรียนตามคาบ/รายวิชา โดยใช้ห้องและนักเรียนจากภาระงานสอน",null,"เตรียมโมดูล")+
-    '</div></section>':'')+
-    (teacher?'<section class="teacher-duty-section"><div class="workspace-section-head"><div><p class="eyebrow">HOMEROOM</p><h2>งานครูประจำชั้น</h2><p>จะแสดงการบันทึกจริงเมื่อโรงเรียนกำหนดครูประจำชั้นให้ห้อง</p></div></div><div class="teacher-duty-grid">'+
-      teacherWorkDutyCard("📅","เวลาเรียนประจำวัน","บันทึกและตรวจภาพรวมมาเรียน ขาด ลา สายของนักเรียนในห้องที่รับผิดชอบ",null,"เตรียมโมดูล")+
-      teacherWorkDutyCard("📏","น้ำหนักและส่วนสูง","บันทึกตามรอบที่โรงเรียนกำหนด เก็บประวัติทุกครั้ง ไม่เขียนทับข้อมูลเดิม",null,"เตรียมโมดูล")+
-      teacherWorkDutyCard("🤝","ข้อมูลดูแลนักเรียน","ข้อมูลประจำชั้น การติดตาม และการช่วยเหลือนักเรียนในห้องที่รับผิดชอบ",null,"เตรียมโมดูล")+
-    '</div></section>':'')+
+    '<section class="teacher-work-hero panel"><div><p class="eyebrow">MY WORK</p><h2>งานของฉัน</h2><p>'+esc(school&&school.name_th||"")+' · แสดงเฉพาะงานที่ได้รับมอบหมายจริงในปีการศึกษาปัจจุบัน</p></div><span class="pill success">งานของฉัน</span></section>'+
+    (hasHomeroom?'<section class="teacher-duty-section"><div class="workspace-section-head"><div><p class="eyebrow">HOMEROOM</p><h2>งานครูประจำชั้น / ครูที่ปรึกษา</h2><p>มาจากการแต่งตั้งของกลุ่มบริหารงานบุคคล</p></div></div>'+
+      teacherWorkAssignmentContextHtml(homerooms,"homeroom")+
+      '<div class="teacher-duty-grid">'+
+        teacherWorkDutyCard("📅","เวลาเรียนประจำวัน","บันทึกและตรวจภาพรวมมาเรียน ขาด ลา สายของนักเรียนในห้องที่รับผิดชอบ",null,"เตรียมโมดูล")+
+        teacherWorkDutyCard("📏","น้ำหนักและส่วนสูง","บันทึกตามรอบที่โรงเรียนกำหนด เก็บประวัติทุกครั้ง ไม่เขียนทับข้อมูลเดิม",null,"เตรียมโมดูล")+
+        teacherWorkDutyCard("🤝","ข้อมูลดูแลนักเรียน","ข้อมูลประจำชั้น การติดตาม และการช่วยเหลือนักเรียนในห้องที่รับผิดชอบ",null,"เตรียมโมดูล")+
+      '</div></section>':'')+
+    (hasTeaching?'<section class="teacher-duty-section"><div class="workspace-section-head"><div><p class="eyebrow">TEACHER</p><h2>งานครูผู้สอน</h2><p>มาจากภาระงานสอนที่ฝ่ายวิชาการอนุมัติแล้ว</p></div></div>'+
+      teacherWorkAssignmentContextHtml(teaching,"teaching")+
+      '<div class="teacher-duty-grid">'+
+        teacherWorkDutyCard("📘","รายวิชาและโครงสร้างคะแนนของฉัน","จัดทำหลักสูตรรายวิชา หน่วยการเรียนรู้ ตัวชี้วัด และโครงสร้างคะแนน แล้วส่งตรวจ","#/academics/my-courses")+
+        teacherWorkDutyCard("📝","บันทึกคะแนนและผลการเรียน","ดำเนินการวัดผลตั้งแต่กิจกรรม/เครื่องมือ บันทึกคะแนน ตรวจคะแนนขาด จนส่งฝ่ายวิชาการ","#/assessment")+
+        teacherWorkDutyCard("⏱","เวลาเรียนรายวิชา","บันทึกเวลาเรียนตามคาบ/รายวิชา โดยใช้ห้องและนักเรียนจากภาระงานสอน",null,"เตรียมโมดูล")+
+      '</div></section>':'')+
     subjectGroupDashboardCardsHtml(subjectData||{})+
-    '<section class="teacher-boundary-note panel"><strong>ข้อมูลที่ผู้ใช้ไม่ต้องสร้างซ้ำ</strong><p>ปีการศึกษา ภาคเรียน ห้องเรียน รายวิชากลาง กรอบเวลาเรียน เกณฑ์วัดผล รอบชั่งน้ำหนัก/วัดส่วนสูง และขอบเขตผู้รับผิดชอบ เป็นข้อมูลกลางที่กลุ่มงานกำหนด แล้วระบบส่งต่อมาให้งานของฉัน</p></section>'+
+    (!hasAnyWork?'<section class="panel"><div class="empty-state compact-empty"><div class="empty-icon">✓</div><h3>ยังไม่มีงานที่ได้รับมอบหมาย</h3><p>เมื่อฝ่ายบุคคลแต่งตั้งครูประจำชั้น ฝ่ายวิชาการอนุมัติภาระงานสอน หรือมีงานกลุ่มสาระ ระบบจะแสดงที่หน้านี้อัตโนมัติ</p></div></section>':'')+
   '</section>';
 }
 function bindTeacherWork(){
