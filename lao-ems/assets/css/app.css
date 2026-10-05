@@ -11604,3 +11604,159 @@ html.is-touch-device [data-manual-refresh]{
 .timetable-drop-zone.compact .timetable-scheduled-card{
   padding-right:43px!important;
 }
+
+
+/* v0.19.63 — top-aligned compact controls + full course identity */
+.timetable-scheduled-card{
+  padding:5px 6px 5px 6px!important;
+  align-items:flex-start!important;
+}
+.timetable-card-copy{
+  min-width:0!important;
+  width:100%!important;
+  display:grid!important;
+  align-content:start!important;
+  gap:1px!important;
+}
+.timetable-card-code{
+  display:block!important;
+  padding-right:38px!important;
+  font-size:9px!important;
+  line-height:1.15!important;
+  font-weight:900!important;
+  color:#175cd3!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.timetable-card-subject{
+  display:block!important;
+  padding-right:0!important;
+  font-size:10.5px!important;
+  line-height:1.22!important;
+  font-weight:900!important;
+  white-space:normal!important;
+  overflow:hidden!important;
+  display:-webkit-box!important;
+  -webkit-line-clamp:2!important;
+  -webkit-box-orient:vertical!important;
+}
+.timetable-card-teacher{
+  display:block!important;
+  padding-right:0!important;
+  margin-top:1px!important;
+  font-size:8.5px!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.timetable-lock-entry{
+  width:15px!important;
+  height:15px!important;
+  min-width:15px!important;
+  min-height:15px!important;
+  right:20px!important;
+  top:1px!important;
+}
+.timetable-lock-entry svg{
+  width:14px!important;
+  height:14px!important;
+}
+.timetable-remove-entry{
+  width:11px!important;
+  height:11px!important;
+  min-width:11px!important;
+  min-height:11px!important;
+  right:3px!important;
+  top:2px!important;
+  font-size:14px!important;
+  line-height:10px!important;
+}
+.timetable-no-place-toggle{
+  width:15px!important;
+  height:15px!important;
+  min-width:15px!important;
+  min-height:15px!important;
+  right:3px!important;
+  top:1px!important;
+}
+.timetable-no-place-toggle svg{
+  width:14px!important;
+  height:14px!important;
+}
+.timetable-empty-slot{
+  padding-right:6px!important;
+  padding-top:18px!important;
+}
+.timetable-drop-zone.compact .timetable-scheduled-card{
+  padding:3px 4px!important;
+}
+.timetable-drop-zone.compact .timetable-card-code{
+  padding-right:34px!important;
+  font-size:7.5px!important;
+}
+.timetable-drop-zone.compact .timetable-card-subject{
+  font-size:8.5px!important;
+  line-height:1.15!important;
+  -webkit-line-clamp:2!important;
+}
+.timetable-drop-zone.compact .timetable-card-teacher{
+  font-size:7.2px!important;
+  line-height:1.15!important;
+}
+.timetable-drop-zone.compact .timetable-lock-entry{
+  width:13px!important;
+  height:13px!important;
+  min-width:13px!important;
+  min-height:13px!important;
+  right:18px!important;
+  top:1px!important;
+}
+.timetable-drop-zone.compact .timetable-lock-entry svg{
+  width:12px!important;
+  height:12px!important;
+}
+.timetable-drop-zone.compact .timetable-remove-entry{
+  width:10px!important;
+  height:10px!important;
+  min-width:10px!important;
+  min-height:10px!important;
+  right:2px!important;
+  top:2px!important;
+  font-size:12px!important;
+  line-height:9px!important;
+}
+.timetable-drop-zone.compact .timetable-no-place-toggle{
+  width:13px!important;
+  height:13px!important;
+  min-width:13px!important;
+  min-height:13px!important;
+  right:2px!important;
+  top:1px!important;
+}
+.timetable-drop-zone.compact .timetable-no-place-toggle svg{
+  width:12px!important;
+  height:12px!important;
+}
+.timetable-drop-zone.compact .timetable-empty-slot{
+  padding:15px 3px 3px!important;
+}
+.timetable-drag-card-copy{
+  min-width:0!important;
+  display:grid!important;
+  gap:1px!important;
+}
+.timetable-drag-card-copy .timetable-card-code{
+  padding-right:0!important;
+  font-size:8.5px!important;
+}
+.timetable-drag-card-copy strong{
+  font-size:10.5px!important;
+  white-space:normal!important;
+  line-height:1.25!important;
+}
+.timetable-drag-card-copy small{
+  margin-top:0!important;
+  line-height:1.25!important;
+}
