@@ -11760,3 +11760,40 @@ html.is-touch-device [data-manual-refresh]{
   margin-top:0!important;
   line-height:1.25!important;
 }
+
+
+/* v0.19.64 — direct course learning-time setup link */
+.subject-time-inline-link{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  margin-top:3px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#175cd3;
+  font:inherit;
+  font-size:9px;
+  font-weight:900;
+  line-height:1.2;
+  cursor:pointer;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.subject-time-inline-link:hover,
+.subject-time-inline-link:focus-visible{
+  color:#004eeb;
+  outline:none;
+  text-decoration-thickness:2px;
+}
+.subject-time-no-standard{
+  margin:8px 0 0;
+  padding:7px 9px;
+  border:1px solid #b2ddff;
+  border-radius:9px;
+  background:#eff8ff;
+  color:#175cd3;
+  font-size:9px;
+  font-weight:700;
+  line-height:1.4;
+}
