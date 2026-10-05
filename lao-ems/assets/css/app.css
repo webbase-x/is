@@ -7341,6 +7341,23 @@ th,td{line-height:1.45}
     radial-gradient(circle at center,#f6fef9 61%,transparent 63%),
     conic-gradient(#12b76a 100%,#12b76a 0);
 }
+.subject-progress-choice.over{
+  background:#fff7f7!important;
+}
+.subject-progress-choice.over .subject-progress-choice-ring{
+  background:
+    radial-gradient(circle at center,#fff5f5 61%,transparent 63%),
+    conic-gradient(#f04438 100%,#f04438 0);
+}
+.subject-progress-choice.over strong{
+  color:#b42318!important;
+}
+.subject-progress-choice.over.active{
+  box-shadow:inset 0 0 0 1px #fecdca!important;
+}
+.subject-progress-choice.over.active .subject-progress-choice-ring{
+  box-shadow:0 0 0 4px #fee4e2;
+}
 .subject-progress-choice.active .subject-progress-choice-ring{
   box-shadow:0 0 0 4px #eaf2ff;
 }
@@ -7814,6 +7831,15 @@ th,td{line-height:1.45}
 .subject-school-hour-summary-grid .gap strong{color:#b54708}
 .subject-school-hour-summary-grid .over strong{color:#b42318}
 .subject-school-hour-summary-grid .done strong{color:#067647}
+.subject-school-hour-summary-note{
+  margin-top:9px;
+  padding:8px 10px;
+  border-radius:10px;
+  background:#f8fafc;
+  color:#475467;
+  font-size:11px;
+  line-height:1.45;
+}
 @media(max-width:560px){
   .subject-school-hour-summary{
     padding:12px;
