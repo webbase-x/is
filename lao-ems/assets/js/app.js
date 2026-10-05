@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.68";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.69";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -5558,13 +5558,15 @@ function academicSubjectsHtml(data,timeline){
   const selectedKeys=new Set(selectedCourses.map(logicalKey));
 
   const allCatalog=(preset.items||[]).filter(x=>x.grade_code===gradeCode);
-  // คลังกลางต้องอ้างอิงเฉพาะข้อมูลส่วนกลางเท่านั้น
-  // วิชาพื้นฐานรับเฉพาะรายการ national core และแสดงครบแม้โรงเรียนจะนำไปใช้แล้ว
+  // คลังกลางแสดงเฉพาะรายการส่วนกลางที่ยังไม่ได้อยู่ในหลักสูตรบริบทนี้
+  // เมื่อเพิ่มแล้วให้ซ่อนทันที เพื่อลดรายการซ้ำระหว่าง “หลักสูตรของโรงเรียน” กับ “คลังกลาง”
   const catalogMatches=x=>
     scope==="core"
       ?x.subject_type==="basic"&&x.is_national_core===true
       :x.subject_type===scope;
-  const centralCatalog=allCatalog.filter(catalogMatches);
+  const centralCatalog=allCatalog
+    .filter(catalogMatches)
+    .filter(x=>!selectedKeys.has(logicalKey(x)));
   const centralItemKeys=new Set(
     allCatalog
       .filter(x=>(x.subject_type==="basic"&&x.is_national_core===true)||x.subject_type==="activity")
@@ -5625,7 +5627,7 @@ function academicSubjectsHtml(data,timeline){
   '</section>';
 
   const centralRows=centralCatalog.map(x=>{
-    const isSelected=selectedKeys.has(logicalKey(x));
+    const isSelected=false;
     const activityCode=String(x.subject_code||"").trim().toLowerCase();
     const isMultiActivity=x.subject_type==="activity"&&activityCode&&(centralActivityCodeCounts.get(activityCode)||0)>1;
     const centralTime=academicStandardTimeSummary(x.standard_time);
@@ -5960,7 +5962,6 @@ function academicSubjectsHtml(data,timeline){
             '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>')+
         '</div>')+
     '</section>'+
-    academicCurriculumHtml(data,true)+
   '</section>';
 }
 function academicCurriculumHtml(data,embedded=false){
