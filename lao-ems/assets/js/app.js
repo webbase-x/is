@@ -6483,6 +6483,10 @@ function timetableProgressRows(){
 function timetableProgressHtml(){
   const data=state.timetableData||{},rows=timetableProgressRows();
   if(!rows.length)return '<div class="timetable-progress-empty">ยังไม่มีภาระงานสอนที่อนุมัติสำหรับบริบทนี้</div>';
+  if(["overview","day","week"].includes(state.timetableViewMode)){
+    const pending=rows.filter(x=>x.diff>0),critical=pending.filter(x=>x.criticality.level==="danger"),remaining=pending.reduce((s,x)=>s+Math.max(0,x.diff),0);
+    return '<div class="timetable-progress-summary"><span><b>'+pending.length.toLocaleString("th-TH")+'</b><small>รายการยังไม่ครบ</small></span><span><b>'+remaining.toLocaleString("th-TH",{maximumFractionDigits:2})+'</b><small>คาบคงเหลือ</small></span><span class="'+(critical.length?"danger":"ok")+'"><b>'+critical.length.toLocaleString("th-TH")+'</b><small>รายการวิกฤติ/ไม่มีช่อง</small></span></div>';
+  }
   return '<div class="timetable-progress-grid">'+rows.map(x=>{
     const status=x.diff===0?"ok":x.diff<0?"over":"pending";
     const cls=(data.classes||[]).find(c=>c.id===x.class_section_id);
@@ -6684,6 +6688,11 @@ function timetableApplyViewMode(mode){
   q("[data-timetable-class-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="class");
   q("[data-timetable-teacher-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="teacher");
   q("[data-timetable-day-filter]")?.classList.toggle("hidden",state.timetableViewMode!=="day");
+  const grade=q("[data-timetable-grade]"),cls=q("[data-timetable-class]"),teacher=q("[data-timetable-teacher]"),day=q("[data-timetable-day]");
+  if(grade&&state.timetableGradeCode)grade.value=state.timetableGradeCode;
+  if(cls&&state.timetableClassId)cls.value=state.timetableClassId;
+  if(teacher&&state.timetablePersonnelId)teacher.value=state.timetablePersonnelId;
+  if(day)day.value=String(state.timetableDayNo||1);
   timetableRenderLive();
 }
 function bindTimetableWorkspaceLinks(){
