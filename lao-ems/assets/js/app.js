@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.67";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.68";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -5644,7 +5644,7 @@ function academicSubjectsHtml(data,timeline){
   const groupHours=g=>{
     const scheduled=Math.max(0,Number(g&&g.scheduled_hours_total||0));
     const integrated=Math.max(0,Number(g&&g.integrated_activity_hours||0));
-    const arranged=Math.max(0,Number(g&&(g.curriculum_recorded_hours_total??g.curriculum_hours_total??g.annual_hours_total??g.scheduled_hours_total)||0));
+    const arranged=scheduled;
     const total=Math.max(0,Number(g&&g.schedule_capacity_hours||0));
     const gap=total-arranged;
     const progress=total>0?Math.max(0,Math.min(100,arranged*100/total)):0;
@@ -5676,8 +5676,8 @@ function academicSubjectsHtml(data,timeline){
   const formatGradePeriods=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:2});
   const currentGradeHours=groupHours(groupFor(gradeCode,selectedProgram?selectedProgram.id:""));
   const currentGradeHourNote=currentGradeHours.integrated>0
-    ?'ลงตาราง '+formatGradeHours(currentGradeHours.scheduled)+' ชม. + กิจกรรมบูรณาการ '+formatGradeHours(currentGradeHours.integrated)+' ชม.'
-    :'ชั่วโมงที่ลงตาราง '+formatGradeHours(currentGradeHours.scheduled)+' ชม.';
+    ?'นับในกรอบเวลา '+formatGradeHours(currentGradeHours.scheduled)+' ชม. · กิจกรรมบูรณาการ '+formatGradeHours(currentGradeHours.integrated)+' ชม. ไม่นำมาคำนวณ'
+    :'นับในกรอบเวลา '+formatGradeHours(currentGradeHours.scheduled)+' ชม.';
   const currentGradePeriodNote=currentGradeHours.weeklyCapacity>0
     ?' · '+formatGradePeriods(currentGradeHours.weeklyUsed)+' / '+formatGradePeriods(currentGradeHours.weeklyCapacity)+' คาบ/สัปดาห์'
     :'';
@@ -5686,7 +5686,7 @@ function academicSubjectsHtml(data,timeline){
       '<div class="subject-school-hour-summary-head"><div><strong>เวลาเรียน '+esc(shortGrade(gradeLabel))+'</strong><small>'+esc(targetLabel)+' · เทียบกรอบเวลาเรียนของระดับชั้นนี้</small></div></div>'+
       '<div class="subject-school-hour-summary-grid">'+
         '<div><small>กรอบเวลา</small><strong>'+formatGradeHours(currentGradeHours.total)+' ชม.</strong></div>'+
-        '<div><small>รวมในหลักสูตร</small><strong>'+formatGradeHours(currentGradeHours.arranged)+' ชม.</strong></div>'+
+        '<div><small>นับในกรอบเวลา</small><strong>'+formatGradeHours(currentGradeHours.arranged)+' ชม.</strong></div>'+
         '<div class="'+(currentGradeHours.gap>0.001?"gap":currentGradeHours.gap<-.001?"over":"done")+'"><small>'+(currentGradeHours.gap>0.001?"ยังขาด":currentGradeHours.gap<-.001?"เกิน":"สถานะ")+'</small><strong>'+(currentGradeHours.gap>0.001?formatGradeHours(currentGradeHours.gap)+' ชม.':currentGradeHours.gap<-.001?formatGradeHours(Math.abs(currentGradeHours.gap))+' ชม.':'ครบแล้ว')+'</strong></div>'+
       '</div>'+
       '<div class="subject-school-hour-summary-note">'+esc(currentGradeHourNote+currentGradePeriodNote)+'</div>'+
