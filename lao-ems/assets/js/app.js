@@ -9050,6 +9050,10 @@ function bindAcademics(){
       requestedType!==String(subject.subject_type||"basic")
       || requestedSubtype!==currentSubtype
     );
+    if(classificationChanged&&requestedType==="activity"&&!requestedSubtype){
+      toast("กรุณาเลือกประเภทย่อยของกิจกรรม เช่น แนะแนว ลูกเสือ หรือชุมนุม","error");
+      return;
+    }
     if(classificationChanged&&subject?.subject_type==="basic"&&requestedType!=="basic"){
       const ok=confirm("เปลี่ยนจากรายวิชาพื้นฐานเป็น “"+academicSubjectTypeLabel(requestedType)+"” ?\n\nระบบจะเปลี่ยนเฉพาะรายการของโรงเรียน ไม่แก้คลังกลาง และการตรวจความครบตามหลักสูตรอาจแจ้งว่ารายวิชาพื้นฐานขาด");
       if(!ok)return;
