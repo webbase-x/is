@@ -4736,6 +4736,8 @@ th,td{line-height:1.45}
 .subject-finder-meta{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
 .subject-finder-meta span{padding:3px 7px;border-radius:999px;background:#f2f4f7;font-size:11px;font-weight:700;color:#475467}
 .subject-finder-meta span.exact{background:#ecfdf3;color:#027a48}
+.subject-finder-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.subject-finder-actions .subject-library-used{display:inline-flex;align-items:center;justify-content:center}
 .subject-finder-create{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #d1e0ff}
 .subject-finder-create span{font-size:12px;color:#667085}
 .subject-origin.shared-catalog{background:#eef4ff;color:#3538cd}
@@ -4756,6 +4758,8 @@ th,td{line-height:1.45}
   .subject-finder-form .primary-btn{grid-column:auto;width:100%}
   .subject-finder-card{grid-template-columns:1fr}
   .subject-finder-card .subject-card-main{grid-column:1}
+  .subject-finder-actions{grid-column:1;width:100%;flex-direction:column;align-items:stretch}
+  .subject-finder-actions .secondary-btn,.subject-finder-actions .subject-add-btn,.subject-finder-actions .subject-library-used{width:100%;justify-content:center}
   .subject-finder-card .subject-add-btn,.subject-finder-card .subject-library-used{width:100%;justify-content:center}
   .subject-finder-create{align-items:stretch;flex-direction:column}
   .subject-finder-create .secondary-btn{width:100%}
