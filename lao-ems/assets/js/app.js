@@ -4992,7 +4992,13 @@ function academicCurriculumTimeFrameworkHtml(group,gradeLabel){
   const n=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:2});
   const annual=f.grade_scope==="annual";
   const statusClass=s=>s==="match"?"ok":(s==="below"||s==="above"?"attention":"neutral");
-  const scheduled=Number(group.scheduled_hours_total||0);
+  const recordedScheduled=Number(group.scheduled_hours_total||0);
+  const weeklyScheduled=Number(group.weekly_periods_total||0);
+  const minutesPerPeriod=Number(group.minutes_per_period||0);
+  const weeksPerYear=Number(group.instructional_weeks_per_year||0);
+  const scheduled=weeklyScheduled>=0&&minutesPerPeriod>0&&weeksPerYear>0
+    ?weeklyScheduled*(minutesPerPeriod/60)*weeksPerYear
+    :recordedScheduled;
   const integrated=Number(group.integrated_activity_hours||0);
   const basic=Number(group.basic_hours_total||0);
   const activity=Number(group.learner_activity_hours_total||0);
@@ -5810,21 +5816,27 @@ function academicSubjectsHtml(data,timeline){
     return "";
   };
   const groupHours=g=>{
-    const scheduled=Math.max(0,Number(g&&g.scheduled_hours_total||0));
+    const recorded=Math.max(0,Number(g&&g.scheduled_hours_total||0));
     const integrated=Math.max(0,Number(g&&g.integrated_activity_hours||0));
     const weeklyUsed=Math.max(0,Number(g&&g.weekly_periods_total||0));
     const weeklyCapacity=Math.max(0,Number(g&&g.periods_per_week_capacity||0));
     const minutesPerPeriod=Math.max(0,Number(g&&g.minutes_per_period||0));
     const weeksPerYear=Math.max(0,Number(g&&g.instructional_weeks_per_year||0));
-    const derivedCapacity=weeklyCapacity&&minutesPerPeriod&&weeksPerYear
+    const hasScheduleBasis=weeklyCapacity>0&&minutesPerPeriod>0&&weeksPerYear>0;
+    const derivedCapacity=hasScheduleBasis
       ?weeklyCapacity*(minutesPerPeriod/60)*weeksPerYear
       :0;
     const total=Math.max(0,Number(g&&(g.schedule_capacity_hours??derivedCapacity)||0));
-    const arranged=scheduled;
+    const arranged=hasScheduleBasis
+      ?weeklyUsed*(minutesPerPeriod/60)*weeksPerYear
+      :recorded;
     const gap=total-arranged;
     const progress=total>0?Math.max(0,Math.min(100,arranged*100/total)):0;
     const weeklyGap=weeklyCapacity-weeklyUsed;
-    return {arranged,total,gap,progress,scheduled,integrated,weeklyUsed,weeklyCapacity,weeklyGap,over:gap<-.001};
+    return {
+      arranged,total,gap,progress,recorded,integrated,weeklyUsed,weeklyCapacity,weeklyGap,
+      minutesPerPeriod,weeksPerYear,recordedMismatch:Math.abs(recorded-arranged)>.001,over:gap<-.001
+    };
   };
   const targetProgress=programId=>{
     const groups=readinessGroups.filter(g=>(g.program_id||"")===(programId||""));
@@ -5862,11 +5874,32 @@ function academicSubjectsHtml(data,timeline){
   const formatGradeHours=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:1});
   const formatGradePeriods=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:2});
   const currentGradeHours=groupHours(groupFor(gradeCode,selectedProgram?selectedProgram.id:""));
-  const currentGradeHourNote=currentGradeHours.integrated>0
-    ?'จัดลงตาราง '+formatGradeHours(currentGradeHours.scheduled)+' ชม. · กิจกรรมเพื่อสังคมฯ '+formatGradeHours(currentGradeHours.integrated)+' ชม. เป็นชั่วโมงบูรณาการภายในกิจกรรมพัฒนาผู้เรียน ไม่บวกเพิ่มและไม่สร้างคาบแยก'
-    :'จัดลงตาราง '+formatGradeHours(currentGradeHours.scheduled)+' ชม.';
-  const currentGradePeriodNote=currentGradeHours.weeklyCapacity>0
-    ?' · '+formatGradePeriods(currentGradeHours.weeklyUsed)+' / '+formatGradePeriods(currentGradeHours.weeklyCapacity)+' คาบ/สัปดาห์'
+  const currentGradeConsistencyIssues=shownCourses.map(c=>{
+    if(c.annual_hours==null||currentGradeHours.minutesPerPeriod<=0||currentGradeHours.weeksPerYear<=0)return null;
+    const timeInfo=courseTimeById.get(c.id)||null;
+    const standard=timeInfo&&(timeInfo.standard_current||timeInfo.standard_snapshot)||null;
+    if(standard&&(standard.time_mode==="integrated"||standard.period_scope==="term"))return null;
+    const weeklyValues=(c.term_plans||[])
+      .map(x=>x.weekly_periods==null?null:Number(x.weekly_periods))
+      .filter(x=>Number.isFinite(x));
+    if(!weeklyValues.length)return null;
+    const uniqueWeekly=[...new Set(weeklyValues.map(x=>Number(x.toFixed(4))))];
+    if(uniqueWeekly.length!==1)return null;
+    const weekly=uniqueWeekly[0];
+    const annual=Number(c.annual_hours);
+    const expected=weekly*(currentGradeHours.minutesPerPeriod/60)*currentGradeHours.weeksPerYear;
+    if(!Number.isFinite(annual)||Math.abs(annual-expected)<.01)return null;
+    return {name:c.subject_name||c.name_th||c.subject_code||"รายวิชา",annual,weekly,expected};
+  }).filter(Boolean);
+  const currentGradeHourNote='คาบจริง '+formatGradePeriods(currentGradeHours.weeklyUsed)+' / '+formatGradePeriods(currentGradeHours.weeklyCapacity)+' คาบ/สัปดาห์ · คิดเป็น '+formatGradeHours(currentGradeHours.arranged)+' ชม./ปี'+
+    (currentGradeHours.recordedMismatch?' · ชั่วโมงรายวิชาที่บันทึกไว้รวม '+formatGradeHours(currentGradeHours.recorded)+' ชม./ปี':'')+
+    (currentGradeHours.integrated>0?' · กิจกรรมเพื่อสังคมฯ '+formatGradeHours(currentGradeHours.integrated)+' ชม. เป็นชั่วโมงบูรณาการและไม่สร้างคาบแยก':'');
+  const currentGradePeriodNote="";
+  const currentGradeConsistencyHtml=currentGradeConsistencyIssues.length
+    ?'<div class="subject-school-hour-consistency-warning"><strong>พบเวลาเรียนรายวิชาไม่สัมพันธ์กับคาบจริง</strong><span>'+
+      currentGradeConsistencyIssues.slice(0,3).map(x=>esc(x.name)+' '+formatGradeHours(x.annual)+' ชม./ปี แต่ '+formatGradePeriods(x.weekly)+' คาบ/สัปดาห์ คิดเป็น '+formatGradeHours(x.expected)+' ชม./ปี').join(' · ')+
+      (currentGradeConsistencyIssues.length>3?' · และอีก '+(currentGradeConsistencyIssues.length-3)+' รายการ':'')+
+      '</span></div>'
     :'';
   const schoolGradeHoursHtml=currentGradeHours.total>0
     ?'<section class="subject-school-hour-summary '+(currentGradeHours.gap>0.001?"has-gap":currentGradeHours.gap<-.001?"has-over":"complete")+'">'+
@@ -5877,6 +5910,7 @@ function academicSubjectsHtml(data,timeline){
         '<div class="'+(currentGradeHours.gap>0.001?"gap":currentGradeHours.gap<-.001?"over":"done")+'"><small>'+(currentGradeHours.gap>0.001?"ยังขาด":currentGradeHours.gap<-.001?"เกิน":"สถานะ")+'</small><strong>'+(currentGradeHours.gap>0.001?formatGradeHours(currentGradeHours.gap)+' ชม.':currentGradeHours.gap<-.001?formatGradeHours(Math.abs(currentGradeHours.gap))+' ชม.':'ครบแล้ว')+'</strong></div>'+
       '</div>'+
       '<div class="subject-school-hour-summary-note">'+esc(currentGradeHourNote+currentGradePeriodNote)+'</div>'+
+      currentGradeConsistencyHtml+
     '</section>'
     :'<section class="subject-school-hour-summary no-frame"><div class="subject-school-hour-summary-head"><div><strong>เวลาเรียน '+esc(shortGrade(gradeLabel))+'</strong><small>'+esc(targetLabel)+'</small></div><span>ยังไม่กำหนดกรอบเวลาเรียน</span></div></section>';
   const gradeTabs=targetGrades.map(g=>{
@@ -5908,6 +5942,16 @@ function academicSubjectsHtml(data,timeline){
     over_periods:"คาบต่อสัปดาห์เกิน",
     empty:"ยังไม่มีรายวิชา"
   }[currentStatus]||"รอตรวจ";
+  const periodGap=weeklyCapacity==null?null:weeklyCapacity-weeklyTotal;
+  const currentStatusDetail=currentStatus==="needs_periods"&&weeklyCapacity!=null
+    ?currentStatusLabel+' · '+formatGradePeriods(weeklyTotal)+' / '+formatGradePeriods(weeklyCapacity)+' คาบ/สัปดาห์ · ขาด '+formatGradePeriods(Math.max(0,periodGap))+' คาบ'
+    :currentStatus==="over_periods"&&weeklyCapacity!=null
+      ?currentStatusLabel+' · '+formatGradePeriods(weeklyTotal)+' / '+formatGradePeriods(weeklyCapacity)+' คาบ/สัปดาห์ · เกิน '+formatGradePeriods(Math.max(0,-periodGap))+' คาบ'
+      :currentStatus==="needs_time"&&Number(currentGroup&&currentGroup.missing_time_count||0)>0
+        ?currentStatusLabel+' · '+Number(currentGroup.missing_time_count||0)+' รายวิชา'
+        :currentStatus==="parallel_time_mismatch"&&Number(currentGroup&&currentGroup.parallel_mismatch_count||0)>0
+          ?currentStatusLabel+' · '+Number(currentGroup.parallel_mismatch_count||0)+' กลุ่ม'
+          :currentStatusLabel;
   const currentStatusClass=currentStatus==="confirmed"?"success":currentStatus==="ready_to_confirm"?"info":"warning";
   const parallelJoinOptions='<option value="">เลือกวิชาเพิ่มเข้ากลุ่ม…</option>'+groupEligibleCourses.map(c=>
     '<option value="'+esc(c.id)+'">'+esc((c.subject_code?c.subject_code+' · ':'')+c.subject_name)+'</option>'
@@ -5950,7 +5994,7 @@ function academicSubjectsHtml(data,timeline){
   const confirmDisabledReason=!canApprove
     ?"บัญชีนี้ไม่มีสิทธิ์ยืนยันโครงสร้าง"
     :currentStatus!=="ready_to_confirm"
-      ?currentStatusLabel
+      ?currentStatusDetail
       :"";
   const confirmationButton=currentStatus!=="confirmed"
     ?'<button type="button" class="primary-btn compact-btn subject-confirm-btn" '+(canConfirmCurrent?'data-confirm-curriculum-structure':'disabled aria-disabled="true"')+(confirmDisabledReason?' title="'+esc(confirmDisabledReason)+'"':'')+'>ยืนยันโครงสร้างนี้</button>'
@@ -5960,7 +6004,7 @@ function academicSubjectsHtml(data,timeline){
       ?'<section class="subject-combined-confirmation confirmed"><div><strong>✓ ยืนยันโครงสร้างแล้ว</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านการตรวจและยืนยันรายวิชา/เวลาเรียนแล้ว</span></div></section>'
       :currentStatus==="ready_to_confirm"
         ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว'+(canApprove?'':' · รอผู้มีสิทธิ์ยืนยัน')+'</span></div>'+confirmationButton+'</section>'
-        :'<section class="subject-combined-confirmation pending"><div><strong>ยังยืนยันไม่ได้</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · '+esc(currentStatusLabel)+'</span></div>'+confirmationButton+'</section>'
+        :'<section class="subject-combined-confirmation pending"><div><strong>ยังยืนยันไม่ได้</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · '+esc(currentStatusDetail)+'</span></div>'+confirmationButton+'</section>'
     :'';
   const schoolGroups=workspaceView==="selected"
     ?selectedGroupHtml("basic","รายวิชาพื้นฐาน","รายวิชาที่ใช้ตามโครงสร้างหลักสูตรของระดับชั้นนี้")+
