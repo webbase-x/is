@@ -12079,105 +12079,163 @@ html.is-touch-device [data-manual-refresh]{
   }
 }
 
-/* Final curriculum ring rendering — v0.19.81
-   This block must remain after all legacy subject ring styles. */
-.subject-progress-choice-ring{
+/* Premium curriculum status tiles — v0.19.83
+   Replaces circular progress rings with compact, readable status cards. */
+.subject-progress-tabs{
+  display:flex!important;
+  align-items:stretch!important;
+  gap:10px!important;
+  padding:3px 4px 6px!important;
+  overflow-x:auto!important;
+  scrollbar-width:none;
+}
+.subject-progress-tabs::-webkit-scrollbar{display:none}
+.subject-progress-choice.subject-status-tile{
+  --tile-accent:#2e90fa;
+  --tile-soft:#eff8ff;
   position:relative!important;
-  isolation:isolate!important;
-  overflow:hidden!important;
-  background:conic-gradient(#2e90fa var(--progress),#e4e7ec 0)!important;
-}
-.subject-progress-choice-ring::after{
-  content:""!important;
-  position:absolute!important;
-  inset:5px!important;
-  z-index:0!important;
-  border-radius:50%!important;
-  background:#fff!important;
-}
-.subject-progress-choice.empty .subject-progress-choice-ring{
-  background:conic-gradient(#d0d5dd 0%,#e4e7ec 0)!important;
-}
-.subject-progress-choice.ready-confirm .subject-progress-choice-ring{
-  background:conic-gradient(#f79009 var(--progress),#f2f4f7 0)!important;
-}
-.subject-progress-choice.ready-confirm .subject-progress-choice-ring::after{
-  background:#fffaeb!important;
-}
-.subject-progress-choice.confirmed.complete .subject-progress-choice-ring{
-  background:conic-gradient(#12b76a 100%,#12b76a 0)!important;
-}
-.subject-progress-choice.confirmed.complete .subject-progress-choice-ring::after{
-  background:#f6fef9!important;
-}
-.subject-progress-choice.active .subject-progress-choice-ring{
-  box-shadow:0 0 0 2px #fff,0 0 0 4px #84adff!important;
-}
-.subject-progress-choice.ready-confirm.active .subject-progress-choice-ring{
-  box-shadow:0 0 0 2px #fff,0 0 0 4px #fdb022!important;
-}
-.subject-progress-choice.confirmed.active .subject-progress-choice-ring{
-  box-shadow:0 0 0 2px #fff,0 0 0 4px #32d583!important;
-}
-.subject-progress-center{
-  position:relative!important;
-  z-index:2!important;
   display:grid!important;
-  grid-template-rows:auto 10px!important;
-  place-items:center!important;
-  align-content:center!important;
-  gap:1px!important;
-  width:44px!important;
-  min-height:28px!important;
-}
-.subject-progress-center>strong{
-  position:relative!important;
-  z-index:2!important;
-  margin:0!important;
-  width:43px!important;
-  color:#344054!important;
-  font-size:10.5px!important;
-  line-height:1.08!important;
-}
-.subject-progress-status{
-  position:relative!important;
-  z-index:3!important;
-  display:block!important;
+  grid-template-rows:1fr 4px!important;
+  flex:0 0 auto!important;
   width:auto!important;
-  min-width:0!important;
-  height:10px!important;
+  min-width:88px!important;
+  min-height:62px!important;
   padding:0!important;
-  border:0!important;
-  border-radius:0!important;
-  box-shadow:none!important;
-  background:transparent!important;
-  font-size:11px!important;
-  font-weight:1000!important;
-  line-height:10px!important;
-  text-align:center!important;
+  overflow:hidden!important;
+  border:1px solid #e4e7ec!important;
+  border-radius:14px!important;
+  background:#fff!important;
+  color:#344054!important;
+  box-shadow:0 1px 2px rgba(16,24,40,.04)!important;
+  text-align:left!important;
+  transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease,background .16s ease!important;
 }
-.subject-progress-status.ready{
-  color:#f79009!important;
+.subject-progress-choice.subject-status-tile.target-tile{
+  min-width:112px!important;
 }
-.subject-progress-status.confirmed{
-  color:#12b76a!important;
+.subject-progress-choice.subject-status-tile:hover{
+  border-color:#b2ccff!important;
+  background:#fcfdff!important;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(16,24,40,.07)!important;
 }
-.subject-progress-choice.ready-confirm .subject-progress-center>strong{
-  color:#b54708!important;
+.subject-progress-choice.subject-status-tile:focus-visible{
+  outline:3px solid rgba(46,144,250,.18)!important;
+  outline-offset:2px!important;
 }
-.subject-progress-choice.confirmed .subject-progress-center>strong{
-  color:#067647!important;
+.subject-progress-choice.subject-status-tile.active{
+  border-color:#84adff!important;
+  background:#f8fbff!important;
+  box-shadow:0 0 0 3px rgba(46,144,250,.12),0 5px 12px rgba(16,24,40,.07)!important;
+}
+.subject-progress-choice.subject-status-tile.ready-confirm{
+  --tile-accent:#f79009;
+  --tile-soft:#fffaeb;
+}
+.subject-progress-choice.subject-status-tile.confirmed{
+  --tile-accent:#12b76a;
+  --tile-soft:#ecfdf3;
+}
+.subject-progress-choice.subject-status-tile.over{
+  --tile-accent:#f04438;
+  --tile-soft:#fef3f2;
+}
+.subject-progress-choice.subject-status-tile.empty{
+  --tile-accent:#98a2b3;
+  --tile-soft:#f2f4f7;
+}
+.subject-progress-choice.subject-status-tile.ready-confirm .subject-status-tile-state{color:#b54708!important}
+.subject-progress-choice.subject-status-tile.confirmed .subject-status-tile-state{color:#067647!important}
+.subject-progress-choice.subject-status-tile.over .subject-status-tile-state{color:#b42318!important}
+.subject-progress-choice.subject-status-tile.empty .subject-status-tile-state{color:#667085!important}
+.subject-status-tile-main{
+  display:grid!important;
+  align-content:center!important;
+  gap:4px!important;
+  min-width:0!important;
+  padding:10px 12px 9px!important;
+}
+.subject-status-tile-label{
+  display:block!important;
+  min-width:0!important;
+  margin:0!important;
+  color:#101828!important;
+  font-size:13px!important;
+  font-weight:900!important;
+  line-height:1.15!important;
+  text-align:left!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.subject-status-tile-state{
+  display:block!important;
+  min-width:0!important;
+  margin:0!important;
+  color:#175cd3!important;
+  font-size:10.5px!important;
+  font-weight:800!important;
+  line-height:1.15!important;
+  text-align:left!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.subject-status-tile-track{
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  height:4px!important;
+  overflow:hidden!important;
+  background:#eaecf0!important;
+}
+.subject-status-tile-track>i{
+  display:block!important;
+  width:var(--progress)!important;
+  height:100%!important;
+  border-radius:0 999px 999px 0!important;
+  background:var(--tile-accent)!important;
+  transition:width .2s ease!important;
+}
+.subject-progress-choice.subject-status-tile.ready-confirm .subject-status-tile-main{
+  background:linear-gradient(180deg,#fff 0%,#fffdfa 100%)!important;
+}
+.subject-progress-choice.subject-status-tile.confirmed .subject-status-tile-main{
+  background:linear-gradient(180deg,#fff 0%,#fbfffd 100%)!important;
+}
+.subject-progress-choice.subject-status-tile.over .subject-status-tile-main{
+  background:linear-gradient(180deg,#fff 0%,#fffafa 100%)!important;
+}
+.subject-progress-choice.subject-status-tile.has-hour-meta{
+  min-width:132px!important;
+  align-self:stretch!important;
+}
+.subject-progress-choice.subject-status-tile.has-hour-meta .subject-progress-choice-meta{
+  padding:0 10px 8px!important;
+  margin-top:0!important;
 }
 @media(max-width:720px){
-  .subject-progress-center{
-    width:42px!important;
+  .subject-progress-tabs{
+    gap:8px!important;
+    padding:3px 2px 7px!important;
   }
-  .subject-progress-center>strong{
-    width:41px!important;
-    font-size:10px!important;
+  .subject-progress-choice.subject-status-tile{
+    min-width:80px!important;
+    min-height:58px!important;
+    border-radius:13px!important;
   }
-  .subject-progress-status{
-    font-size:10.5px!important;
+  .subject-progress-choice.subject-status-tile.target-tile{
+    min-width:104px!important;
+  }
+  .subject-status-tile-main{
+    gap:3px!important;
+    padding:9px 10px 8px!important;
+  }
+  .subject-status-tile-label{
+    font-size:12px!important;
+  }
+  .subject-status-tile-state{
+    font-size:9.8px!important;
   }
 }
 
