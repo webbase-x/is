@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.92";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.93";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectPendingTimeOpenId:null,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectMainView:"manage",subjectParallelSelectionMode:false,subjectPendingTimeOpenId:null,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -5659,6 +5659,8 @@ function academicSubjectsHtml(data,timeline){
   state.subjectWorkspaceView=workspaceView;
   const setupTab=["target","grade","type"].includes(state.subjectSetupTab)?state.subjectSetupTab:"target";
   state.subjectSetupTab=setupTab;
+  const mainView=["manage","overview"].includes(state.subjectMainView)?state.subjectMainView:"manage";
+  state.subjectMainView=mainView;
   const targetRooms=targetClasses.filter(c=>c.grade_label===gradeLabel)
     .sort((a,b)=>String(a.section_label||"").localeCompare(String(b.section_label||""),"th",{numeric:true}));
   const copyYears=(data.years||[]).filter(y=>year&&y.id!==year.id&&Number(y.year_be)<Number(year.year_be))
@@ -6024,6 +6026,118 @@ function academicSubjectsHtml(data,timeline){
       (selectedByType.other.length?selectedGroupHtml("other","อื่น ๆ","รายการเฉพาะที่โรงเรียนกำหนด"):"")
     :"";
 
+
+  const overviewStageMeta={
+    kindergarten:{label:"อนุบาล",short:"อนุบาล"},
+    primary:{label:"ประถม",short:"ประถม"},
+    lower_secondary:{label:"ม.ต้น",short:"ม.ต้น"},
+    upper_secondary:{label:"ม.ปลาย",short:"ม.ปลาย"}
+  };
+  const overviewStageForGrade=code=>{
+    const x=String(code||"").toUpperCase();
+    if(/^K[1-3]$/.test(x))return "kindergarten";
+    if(/^P[1-6]$/.test(x))return "primary";
+    if(/^M[1-3]$/.test(x))return "lower_secondary";
+    if(/^M[4-6]$/.test(x))return "upper_secondary";
+    return "";
+  };
+  const overviewStageOrder=["kindergarten","primary","lower_secondary","upper_secondary"];
+  const overviewGradeCodes=Array.from(new Set(classes.map(c=>c.grade_code||academicGradeCode(c.grade_label)).filter(Boolean)))
+    .sort((a,b)=>academicGradeOrder(academicGradeLabelFromCode(a))-academicGradeOrder(academicGradeLabelFromCode(b)));
+  const overviewTargets=[
+    ...(classes.some(c=>!c.program_id)?[{id:"",label:"ห้องปกติ",name:"ห้องปกติ"}]:[]),
+    ...actualPrograms.map(p=>({id:p.id,label:programShortName(p),name:p.name_th||programShortName(p)}))
+  ];
+  const overviewEffectiveCourses=(programId,code)=>{
+    const direct=activeCourses.filter(c=>(c.grade_code||academicGradeCode(c.grade_label))===code&&(c.program_id||"")===(programId||""));
+    if(!programId)return direct
+      .slice()
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.subject_code||"").localeCompare(String(b.subject_code||""),"th",{numeric:true})||String(a.subject_name||"").localeCompare(String(b.subject_name||""),"th"));
+    const excluded=new Set((readiness.exclusions||[])
+      .filter(x=>x.program_id===programId&&x.grade_code===code)
+      .map(x=>x.subject_id));
+    const inherited=activeCourses.filter(c=>(c.grade_code||academicGradeCode(c.grade_label))===code&&!c.program_id&&(c.subject_type==="basic"||c.subject_type==="activity")&&!excluded.has(c.subject_id));
+    const mergedMap=new Map();
+    inherited.forEach(c=>mergedMap.set(logicalKey(c),{...c,_overviewOrigin:"inherited"}));
+    direct.forEach(c=>mergedMap.set(logicalKey(c),{...c,_overviewOrigin:"direct"}));
+    return Array.from(mergedMap.values())
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.subject_code||"").localeCompare(String(b.subject_code||""),"th",{numeric:true})||String(a.subject_name||"").localeCompare(String(b.subject_name||""),"th"));
+  };
+  const overviewWeekly=c=>{
+    const vals=(c.term_plans||[])
+      .map(t=>t.weekly_periods==null?null:Number(t.weekly_periods))
+      .filter(v=>Number.isFinite(v));
+    return vals.length?Math.max(...vals):null;
+  };
+  const overviewStatusLabel=g=>{
+    if(!g)return "ยังไม่มีข้อมูล";
+    return ({
+      confirmed:"ยืนยันแล้ว",
+      ready_to_confirm:"พร้อมยืนยัน",
+      needs_schedule_settings:"ยังไม่กำหนดกรอบเวลา",
+      needs_time:"ยังขาดเวลาเรียน",
+      parallel_time_mismatch:"กลุ่มเวลาไม่ตรงกัน",
+      needs_periods:"คาบยังไม่ครบ",
+      over_periods:"คาบเกิน",
+      empty:"ยังไม่มีรายวิชา"
+    })[g.status]||"รอตรวจ";
+  };
+  const overviewStatusClass=g=>{
+    const status=g&&g.status||"empty";
+    if(status==="confirmed")return "success";
+    if(status==="ready_to_confirm")return "ready";
+    if(status==="empty")return "neutral";
+    return "warning";
+  };
+  const overviewGradeHtml=(stageKey,target,code)=>{
+    const rows=overviewEffectiveCourses(target.id,code);
+    const g=groupFor(code,target.id);
+    const gradeLabel=academicGradeLabelFromCode(code);
+    const weeklyUsed=Number(g&&g.weekly_periods_total||0);
+    const weeklyCap=Number(g&&g.periods_per_week_capacity||0);
+    const annual=Number(g&&(g.curriculum_recorded_hours_total??g.annual_hours_total)||0);
+    const capacity=Number(g&&g.time_frame&&g.time_frame.capacity_hours_per_year||0);
+    const body=rows.length?rows.map(c=>{
+      const weekly=overviewWeekly(c);
+      const annualHours=c.annual_hours==null?null:Number(c.annual_hours);
+      return '<div class="curriculum-overview-course-row">'+
+        '<span class="curriculum-overview-course-code">'+esc(c.subject_code||"—")+'</span>'+
+        '<div class="curriculum-overview-course-name"><strong>'+esc(c.subject_name||"")+'</strong><small>'+esc(typeLabel[c.subject_type]||"อื่น ๆ")+(c._overviewOrigin==="inherited"?' · ใช้จากห้องปกติ':'')+'</small></div>'+
+        '<span class="curriculum-overview-course-hours">'+(annualHours==null?"—":formatGradeHours(annualHours)+" ชม./ปี")+'</span>'+
+        '<span class="curriculum-overview-course-periods">'+(weekly==null?"บูรณาการ":formatGradePeriods(weekly)+" คาบ/สัปดาห์")+'</span>'+
+      '</div>';
+    }).join(""):'<div class="curriculum-overview-empty">ยังไม่มีรายวิชาในระดับชั้นนี้</div>';
+    return '<article class="curriculum-overview-grade" data-curriculum-overview-printable>'+
+      '<div class="curriculum-overview-grade-head"><div><h4>'+esc(shortGrade(gradeLabel))+'</h4><div class="curriculum-overview-grade-summary">'+
+        '<span>'+rows.length+' รายวิชา</span>'+
+        (weeklyCap>0?'<span>'+formatGradePeriods(weeklyUsed)+' / '+formatGradePeriods(weeklyCap)+' คาบ/สัปดาห์</span>':'')+
+        (capacity>0?'<span>'+formatGradeHours(annual)+' / '+formatGradeHours(capacity)+' ชม./ปี</span>':annual>0?'<span>'+formatGradeHours(annual)+' ชม./ปี</span>':'')+
+      '</div></div><div class="curriculum-overview-grade-tools"><span class="curriculum-overview-status '+overviewStatusClass(g)+'">'+esc(overviewStatusLabel(g))+'</span><button type="button" class="curriculum-pdf-btn" data-print-curriculum-node aria-label="ส่งออก '+esc(shortGrade(gradeLabel))+' เป็น PDF" title="ส่งออก PDF"><span class="curriculum-pdf-icon" aria-hidden="true">PDF</span></button></div></div>'+
+      '<div class="curriculum-overview-course-head"><span>รหัส</span><span>รายวิชา / กิจกรรม</span><span>ชั่วโมง/ปี</span><span>คาบ/สัปดาห์</span></div>'+
+      '<div class="curriculum-overview-course-list">'+body+'</div>'+
+    '</article>';
+  };
+  const overviewStagesHtml=overviewStageOrder.map(stageKey=>{
+    const codes=overviewGradeCodes.filter(code=>overviewStageForGrade(code)===stageKey);
+    if(!codes.length)return "";
+    const targetBlocks=overviewTargets.map(target=>{
+      const targetCodes=codes.filter(code=>classes.some(c=>(c.grade_code||academicGradeCode(c.grade_label))===code&&(c.program_id||"")===(target.id||"")));
+      if(!targetCodes.length)return "";
+      return '<article class="curriculum-overview-program" data-curriculum-overview-printable>'+
+        '<div class="curriculum-overview-program-head"><div><strong>'+esc(target.label)+'</strong><small>'+esc(target.name)+(year?' · ปีการศึกษา '+esc(year.year_be):'')+'</small></div><button type="button" class="curriculum-pdf-btn curriculum-pdf-btn-wide" data-print-curriculum-node aria-label="ส่งออก '+esc(target.label)+' '+esc(overviewStageMeta[stageKey].label)+' เป็น PDF" title="ส่งออก PDF"><span class="curriculum-pdf-icon" aria-hidden="true">PDF</span></button></div>'+
+        '<div class="curriculum-overview-grade-list">'+targetCodes.map(code=>overviewGradeHtml(stageKey,target,code)).join("")+'</div>'+
+      '</article>';
+    }).join("");
+    return '<section class="curriculum-overview-stage" data-curriculum-overview-printable>'+
+      '<div class="curriculum-overview-stage-head"><div><p class="eyebrow">CURRICULUM OVERVIEW</p><h3>'+esc(overviewStageMeta[stageKey].label)+'</h3><p>แสดงเฉพาะระดับชั้นและโปรแกรมที่โรงเรียนเปิดสอนจริง</p></div><button type="button" class="curriculum-pdf-btn curriculum-pdf-btn-wide" data-print-curriculum-node aria-label="ส่งออกโครงสร้าง'+esc(overviewStageMeta[stageKey].label)+' เป็น PDF" title="ส่งออก PDF"><span class="curriculum-pdf-icon" aria-hidden="true">PDF</span></button></div>'+
+      '<div class="curriculum-overview-program-list">'+targetBlocks+'</div>'+
+    '</section>';
+  }).join("");
+  const curriculumOverviewHtml='<section class="curriculum-overview-shell">'+
+    '<div class="curriculum-overview-toolbar"><div><strong>ภาพรวมโครงสร้างหลักสูตร</strong><span>แยกตามช่วงการศึกษาและโปรแกรมของโรงเรียน · ภายในแสดงแต่ละระดับชั้นแยกจากกัน</span></div><button type="button" class="secondary-btn compact-btn curriculum-overview-all-pdf" data-print-curriculum-overview><span class="curriculum-pdf-icon" aria-hidden="true">PDF</span><span>ทั้งหมด</span></button></div>'+
+    '<div class="curriculum-overview-body" data-curriculum-overview-all-printable>'+overviewStagesHtml+'</div>'+
+  '</section>';
+
   const editGuardHtml=canManage?'<section class="subject-edit-toolbar"><div><strong>แก้ไขรายวิชา</strong><small>'+(canEdit?"กำลังเปิดแก้ไข":"ข้อมูลถูกป้องกันการแก้ไข")+'</small></div><label class="academic-edit-switch subject-edit-switch compact"><input type="checkbox" data-subject-edit-switch '+(canEdit?"checked":"")+'><span class="switch-track"><i></i></span></label></section>':'';
 
   const copyYearHtml=canManage&&year&&gradeCode&&copyYears.length?'<details class="subject-copy-year subject-copy-year-compact"><summary>คัดลอกจากปีการศึกษาก่อน</summary><div class="subject-copy-year-compact-body"><label>ปีต้นทาง<select data-subject-copy-year>'+copyYears.map(y=>'<option value="'+esc(y.id)+'" '+(state.subjectCopyYearId===y.id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><button type="button" class="secondary-btn compact-btn" data-copy-subject-year '+(canEdit?"":"disabled")+'>คัดลอกมาใช้</button></div></details>':'';
@@ -6032,6 +6146,11 @@ function academicSubjectsHtml(data,timeline){
     '<section class="panel subjects-v2-head combined-curriculum-head"><div><h2>โครงสร้างหลักสูตรและเวลาเรียน</h2><p class="panel-sub">เลือกห้อง/โปรแกรมและระดับชั้น แล้วจัดรายวิชาให้ครบตามกรอบเวลา</p></div><div class="subjects-context-chips">'+
       (year?'<span>ปี '+esc(year.year_be)+'</span>':'')+'<span>'+classes.length+' ห้อง</span>'+
     '</div></section>'+
+    '<nav class="panel subject-main-tabs" aria-label="มุมมองโครงสร้างหลักสูตร">'+
+      '<button type="button" class="'+(mainView==="manage"?"active":"")+'" data-subject-main-view="manage">จัดโครงสร้าง</button>'+
+      '<button type="button" class="'+(mainView==="overview"?"active":"")+'" data-subject-main-view="overview">ภาพรวมโครงสร้าง</button>'+
+    '</nav>'+
+    '<div class="subject-main-manage '+(mainView==="manage"?"":"hidden")+'">'+
     '<section class="panel subjects-v2-context subject-progress-context">'+
       '<div class="subjects-v2-context-row"><div><strong>ห้อง / โปรแกรม</strong></div><div class="subject-target-tabs subject-progress-tabs">'+targetTabs+'</div></div>'+
       '<div class="subjects-v2-context-row"><div><strong>ระดับชั้น</strong></div><div class="subject-grade-tabs subject-progress-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับชั้น</span>')+'</div></div>'+
@@ -6065,6 +6184,8 @@ function academicSubjectsHtml(data,timeline){
             '</div><div class="subject-library-no-results hidden" data-subject-library-no-results>ไม่พบรายวิชาที่ค้นหา</div>')+
         '</div>')+
     '</section>'+
+    '</div>'+
+    (mainView==="overview"?curriculumOverviewHtml:"")+
   '</section>';
 }
 function renderAcademicSubjectsCached(preservePosition=false){
@@ -8320,6 +8441,41 @@ function bindAcademics(){
         .filter(code=>allowed.has(code))
     )).sort((a,b)=>academicGradeOrder(academicGradeLabelFromCode(a))-academicGradeOrder(academicGradeLabelFromCode(b)));
   };
+
+  qa("[data-subject-main-view]").forEach(btn=>btn.addEventListener("click",()=>{
+    const next=btn.dataset.subjectMainView||"manage";
+    if(next===state.subjectMainView)return;
+    state.subjectMainView=next;
+    state.subjectParallelSelectionMode=false;
+    renderAcademicSubjectsCached(true);
+  }));
+  const printCurriculumNode=(node,title)=>{
+    if(!node)return;
+    const popup=window.open("","_blank","width=1100,height=800");
+    if(!popup){toast("เบราว์เซอร์บล็อกหน้าต่าง PDF กรุณาอนุญาตป๊อปอัปแล้วลองใหม่","error");return;}
+    const clone=node.cloneNode(true);
+    qa("button",clone).forEach(x=>x.remove());
+    qa("[aria-hidden='true']",clone).forEach(x=>{if(x.classList.contains("curriculum-pdf-icon"))x.remove();});
+    const schoolName=String(school&&school.name_th||"สถานศึกษา");
+    const currentAcademicYear=academicSelectedYear(data);
+    const printTitle=title||"โครงสร้างหลักสูตรและเวลาเรียน";
+    popup.document.open();
+    popup.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(printTitle)+'</title><style>'+
+      'body{font-family:Tahoma,Arial,sans-serif;color:#101828;margin:24px;font-size:12px}h1,h2,h3,h4,p{margin:0}.print-head{margin-bottom:18px;border-bottom:2px solid #101828;padding-bottom:10px}.print-head h1{font-size:20px}.print-head p{margin-top:4px;color:#475467}.curriculum-overview-stage{page-break-after:auto;margin-bottom:24px}.curriculum-overview-stage-head,.curriculum-overview-program-head,.curriculum-overview-grade-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.curriculum-overview-stage-head{border-bottom:2px solid #101828;padding-bottom:8px;margin-bottom:12px}.curriculum-overview-stage-head .eyebrow{font-size:9px;color:#667085}.curriculum-overview-stage-head h3{font-size:18px}.curriculum-overview-stage-head p{margin-top:3px;color:#667085}.curriculum-overview-program{border:1px solid #98a2b3;border-radius:10px;padding:12px;margin-bottom:14px;break-inside:avoid}.curriculum-overview-program-head{margin-bottom:10px}.curriculum-overview-program-head strong{font-size:15px}.curriculum-overview-program-head small{display:block;color:#667085;margin-top:2px}.curriculum-overview-grade{border:1px solid #d0d5dd;border-radius:8px;margin:10px 0;overflow:hidden;break-inside:avoid}.curriculum-overview-grade-head{padding:9px 10px;background:#f8fafc}.curriculum-overview-grade-head h4{font-size:14px}.curriculum-overview-grade-summary{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;color:#475467}.curriculum-overview-status{font-weight:bold}.curriculum-overview-course-head,.curriculum-overview-course-row{display:grid;grid-template-columns:90px minmax(220px,1fr) 110px 120px;gap:8px;align-items:center;padding:7px 10px}.curriculum-overview-course-head{background:#f2f4f7;font-weight:bold;border-top:1px solid #d0d5dd;border-bottom:1px solid #d0d5dd}.curriculum-overview-course-row{border-bottom:1px solid #eaecf0}.curriculum-overview-course-row:last-child{border-bottom:0}.curriculum-overview-course-name small{display:block;color:#667085;margin-top:2px}.curriculum-overview-empty{padding:12px;color:#667085}.curriculum-overview-toolbar{display:none}@page{size:A4 landscape;margin:12mm}@media print{body{margin:0}.curriculum-overview-program{break-inside:avoid-page}.curriculum-overview-grade{break-inside:avoid-page}}'+
+      '</style></head><body><header class="print-head"><h1>'+esc(printTitle)+'</h1><p>'+esc(schoolName)+(currentAcademicYear?' · ปีการศึกษา '+esc(currentAcademicYear.year_be):'')+'</p></header>'+clone.outerHTML+'</body></html>');
+    popup.document.close();
+    popup.focus();
+    window.setTimeout(()=>popup.print(),350);
+  };
+  qa("[data-print-curriculum-node]").forEach(btn=>btn.addEventListener("click",e=>{
+    e.stopPropagation();
+    const node=btn.closest("[data-curriculum-overview-printable]");
+    const title=(node&&node.querySelector("h3,h4,strong")&&node.querySelector("h3,h4,strong").textContent||"โครงสร้างหลักสูตร").trim();
+    printCurriculumNode(node,title);
+  }));
+  qa("[data-print-curriculum-overview]").forEach(btn=>btn.addEventListener("click",()=>{
+    printCurriculumNode(q("[data-curriculum-overview-all-printable]"),"ภาพรวมโครงสร้างหลักสูตรและเวลาเรียน");
+  }));
 
   qa("[data-subject-setup-tab]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectSetupTab=btn.dataset.subjectSetupTab||"target";
