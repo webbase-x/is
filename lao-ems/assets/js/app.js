@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.83";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.84";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -5776,7 +5776,7 @@ function academicSubjectsHtml(data,timeline){
     const confirmed=confirmation==="confirmed"&&!over;
     const ready=confirmation==="ready"&&!over;
     const visualProgress=over||confirmed||ready?100:progress;
-    const stateClass=over?"over":confirmed?"confirmed":ready?"ready-confirm":progress<=0?"empty":"working";
+    const stateClass=over?"is-over":confirmed?"is-confirmed":ready?"is-pending":progress<=0?"is-empty":"is-working";
     const stateText=over
       ?"เกินกรอบ"
       :confirmed
@@ -5787,9 +5787,9 @@ function academicSubjectsHtml(data,timeline){
             ?"ยังไม่เริ่ม"
             :"กำลังจัด "+Math.round(progress)+"%";
     const accessible=label+" · "+stateText;
-    return '<button type="button" class="subject-progress-choice subject-status-tile '+(showStatus?"grade-tile ":"target-tile ")+(metaHtml?"has-hour-meta ":"")+(active?"active ":"")+stateClass+'" style="--progress:'+visualProgress+'%" '+attrs+' aria-label="'+esc(accessible)+'" title="'+esc(accessible)+'">'+
-      '<span class="subject-status-tile-main"><strong class="subject-status-tile-label">'+esc(label)+'</strong><small class="subject-status-tile-state">'+esc(stateText)+'</small></span>'+
-      '<span class="subject-status-tile-track" aria-hidden="true"><i></i></span>'+
+    return '<button type="button" class="curriculum-status-tile '+(showStatus?"is-grade ":"is-target ")+(metaHtml?"has-meta ":"")+(active?"is-selected ":"")+stateClass+'" style="--tile-progress:'+visualProgress+'%" '+attrs+' aria-label="'+esc(accessible)+'" title="'+esc(accessible)+'">'+
+      '<span class="curriculum-status-tile__body"><strong class="curriculum-status-tile__label">'+esc(label)+'</strong><small class="curriculum-status-tile__state">'+esc(stateText)+'</small></span>'+
+      '<span class="curriculum-status-tile__track" aria-hidden="true"><i></i></span>'+
       metaHtml+
     '</button>';
   };
