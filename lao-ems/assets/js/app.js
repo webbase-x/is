@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.85";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.86";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -49,6 +49,46 @@ const modules=[
 const q=(s,r=document)=>r.querySelector(s);
 const qa=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+let bootStartedAt=Date.now();
+let bootHeartbeatTimer=null;
+let bootDetailBase="ระบบกำลังทำงาน โปรดรอสักครู่";
+function setBootStatus(message,progress=null,detail=null){
+  const boot=q("#boot-screen");
+  if(!boot||boot.classList.contains("hidden"))return;
+  const status=q("[data-boot-status]",boot);
+  const detailEl=q("[data-boot-detail]",boot);
+  if(status&&message)status.textContent=message;
+  if(typeof progress==="number"){
+    boot.style.setProperty("--boot-progress",Math.max(0,Math.min(100,progress))+"%");
+    boot.dataset.progress=String(Math.round(progress));
+  }
+  if(detail!==null){
+    bootDetailBase=String(detail||"");
+    if(detailEl)detailEl.textContent=bootDetailBase;
+  }
+}
+function startBootHeartbeat(){
+  if(bootHeartbeatTimer)return;
+  bootStartedAt=Date.now();
+  bootHeartbeatTimer=window.setInterval(()=>{
+    const boot=q("#boot-screen");
+    if(!boot||boot.classList.contains("hidden")||boot.classList.contains("is-leaving")){
+      window.clearInterval(bootHeartbeatTimer);
+      bootHeartbeatTimer=null;
+      return;
+    }
+    const elapsed=Math.max(0,Math.floor((Date.now()-bootStartedAt)/1000));
+    if(elapsed<4)return;
+    const detail=q("[data-boot-detail]",boot);
+    if(detail)detail.textContent=(bootDetailBase?bootDetailBase+" · ":"")+"ระบบยังทำงานอยู่ "+elapsed+" วินาที";
+  },1000);
+}
+function stopBootHeartbeat(){
+  if(bootHeartbeatTimer){
+    window.clearInterval(bootHeartbeatTimer);
+    bootHeartbeatTimer=null;
+  }
+}
 function renderAppVersion(){
   qa("[data-app-version]").forEach(el=>{
     el.textContent=APP_VERSION_LABEL;
@@ -102,6 +142,7 @@ async function checkLatestVersion(){
       el.classList.add("is-outdated");
       el.title="กำลังใช้ "+APP_VERSION_LABEL+" · รุ่นล่าสุด v"+latest;
     });
+    setBootStatus("พบรุ่นใหม่ กำลังอัปเดตระบบ...",14,"กำลังเตรียมไฟล์รุ่น v"+latest);
 
     if(sessionStorage.getItem(attemptKey)!==latest){
       sessionStorage.setItem(attemptKey,latest);
@@ -962,6 +1003,7 @@ async function renderPublicPersonnelJoin(token,session=null,forceForm=false){
 async function showPersonnelJoin(session){
   const token=personnelJoinToken();
   if(!token)return;
+  setBootStatus("กำลังตรวจสอบคำเชิญ...",62,"ตรวจสอบข้อมูลสำหรับเข้าร่วมสถานศึกษา");
   state.session=session||null;
   state.user=session&&session.user||null;
   q("#app-shell").classList.add("hidden");
@@ -971,7 +1013,8 @@ async function showPersonnelJoin(session){
   if(adminApp)adminApp.classList.add("hidden");
   if(joinBox)joinBox.classList.remove("hidden");
   await renderPublicPersonnelJoin(token,session||null);
-  dismissBootScreen();
+  setBootStatus("พร้อมใช้งาน",100,"เปิดหน้าคำเชิญเรียบร้อยแล้ว");
+  window.setTimeout(dismissBootScreen,90);
 }
 
 async function renderPublicSchoolAdminApplication(token){
@@ -1125,9 +1168,12 @@ async function loadSchoolSetupStatus(){
   return state.schoolSetup;
 }
 async function loadContext(){
+  setBootStatus("กำลังตรวจสอบสิทธิ์บัญชี...",50,"ตรวจสอบอีเมลและสิทธิ์เข้าใช้งาน");
   const emailGate=await supabase.rpc("lao_email_is_authorized");
   if(emailGate.error)throw emailGate.error;
   if(emailGate.data!==true)throw new Error("LAO_EMAIL_NOT_AUTHORIZED");
+
+  setBootStatus("กำลังตรวจสอบบทบาทผู้ใช้...",58,"ตรวจสอบขอบเขตการบริหารและสิทธิ์ของบัญชี");
   const adminRes=await supabase.rpc("lao_is_platform_admin");
   if(adminRes.error)throw adminRes.error;
   state.isPlatformAdmin=adminRes.data===true;
@@ -1135,10 +1181,14 @@ async function loadContext(){
   if(accessRes.error)throw accessRes.error;
   if(accessRes.data!==true)throw new Error("LAO_ACCESS_REQUIRED");
   localStorage.removeItem("lao_legacy_session_rejected");
+
+  setBootStatus("กำลังโหลดข้อมูลผู้ใช้...",68,"เตรียมโปรไฟล์และข้อมูลบัญชี");
   await ensureProfile();
   const profileRes=await supabase.from("lao_profiles").select("*").eq("user_id",state.user.id).maybeSingle();
   if(profileRes.error)throw profileRes.error;
   state.profile=profileRes.data;
+
+  setBootStatus("กำลังโหลดสิทธิ์และสถานศึกษา...",76,"ตรวจสอบคำเชิญ บทบาท และสถานศึกษาที่เข้าถึงได้");
   const invitationRes=await supabase.rpc("lao_my_pending_invitation");
   if(invitationRes.error)throw invitationRes.error;
   state.pendingInvitation=invitationRes.data||null;
@@ -1147,6 +1197,8 @@ async function loadContext(){
   state.memberships=memRes.data||[];
   const active=state.memberships.filter(m=>m.status==="active"),saved=localStorage.getItem("lao_current_membership");
   state.currentMembership=active.find(m=>m.id===saved)||active[0]||null;
+
+  setBootStatus("กำลังเตรียมข้อมูลสถานศึกษา...",84,"โหลดหน่วยงาน โรงเรียน และการแจ้งเตือน");
   await loadOrganizations();
   await loadAdminSchools();
   await loadNotifications();
@@ -1157,6 +1209,8 @@ async function loadContext(){
   }else{
     state.viewMode="user";
   }
+
+  setBootStatus("กำลังเตรียมพื้นที่ทำงาน...",92,"ตรวจสอบการตั้งค่าและงานที่ต้องดำเนินการ");
   await loadSchoolSetupStatus();
   await Promise.all([loadPersonnelWorkCounts(),loadAcademicWorkCounts(),loadWorkAuthorityAccess()]);
   refreshHeader();
@@ -10139,8 +10193,10 @@ function bindNotifications(){
 function dismissBootScreen(){
   const boot=q("#boot-screen");
   if(!boot||boot.classList.contains("hidden")||boot.classList.contains("is-leaving"))return;
+  stopBootHeartbeat();
+  boot.setAttribute("aria-busy","false");
   boot.classList.add("is-leaving");
-  window.setTimeout(()=>boot.classList.add("hidden"),180);
+  window.setTimeout(()=>boot.classList.add("hidden"),220);
 }
 
 async function renderRoute(){
@@ -10239,6 +10295,7 @@ async function renderRoute(){
 async function showApp(session){
   state.session=session;state.user=session.user;
   try{
+    setBootStatus("กำลังเตรียมแอป...",42,"ตรวจสอบความพร้อมของอุปกรณ์");
     await detectPwaInstalled();
     await loadContext();
     const activeRoleCodes=roleCodes(state.currentMembership);
@@ -10246,10 +10303,12 @@ async function showApp(session){
       throw new Error("LAO_PERSONNEL_PORTAL_ONLY");
     }
     if(!location.hash)location.hash=state.pendingInvitation?"#/activate":"#/overview";
+    setBootStatus("กำลังเปิดพื้นที่ทำงาน...",97,"จัดเตรียมหน้าจอและข้อมูลล่าสุด");
     await renderRoute();
     q("#auth-screen").classList.add("hidden");
     q("#app-shell").classList.remove("hidden");
-    dismissBootScreen();
+    setBootStatus("พร้อมใช้งาน",100,"กำลังเข้าสู่ LAO-EMS");
+    window.setTimeout(dismissBootScreen,90);
     const driveNotice=sessionStorage.getItem("lao_drive_notice");
     if(driveNotice){
       sessionStorage.removeItem("lao_drive_notice");
@@ -10284,7 +10343,8 @@ async function showApp(session){
 }
 function showAuth(){
   q("#app-shell").classList.add("hidden");q("#auth-screen").classList.remove("hidden");
-  dismissBootScreen();
+  setBootStatus("พร้อมเข้าสู่ระบบ",100,"เปิดหน้าเข้าสู่ระบบแล้ว");
+  window.setTimeout(dismissBootScreen,70);
   const joinToken=personnelJoinToken(),token=schoolAdminApplyToken(),signin=q("#signin-form"),application=q("#school-admin-application"),joinBox=q("#personnel-join-screen");
   if(joinToken){
     if(signin)signin.classList.add("hidden");
@@ -10327,7 +10387,10 @@ document.addEventListener("click",event=>{
 
 async function init(){
   renderAppVersion();
+  startBootHeartbeat();
+  setBootStatus("กำลังตรวจสอบรุ่นระบบ...",10,"ตรวจสอบว่าเป็นรุ่นล่าสุด");
   if(await checkLatestVersion())return;
+  setBootStatus("กำลังเตรียมระบบ...",22,"เตรียมส่วนติดต่อและบริการพื้นฐาน");
   applyInputDeviceUi();
   bindStaticUI();
   bindManualRefresh();
@@ -10341,6 +10404,7 @@ async function init(){
     signInForm.elements.email.value=savedEmail||"";
     signInForm.elements.remember_login.checked=remember;
   }
+  setBootStatus("กำลังตรวจสอบการเข้าสู่ระบบ...",34,"ตรวจสอบเซสชันอย่างปลอดภัย");
   const res=await supabase.auth.getSession();
   const query=new URLSearchParams(location.search);
   const refreshToken=query.get("lao_refresh");
