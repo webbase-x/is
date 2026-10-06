@@ -6049,14 +6049,14 @@ function academicSubjectsHtml(data,timeline){
     ...actualPrograms.map(p=>({id:p.id,label:programShortName(p),name:p.name_th||programShortName(p)}))
   ];
   const overviewEffectiveCourses=(programId,code)=>{
-    const direct=activeCourses.filter(c=>c.grade_code===code&&(c.program_id||"")===(programId||""));
+    const direct=activeCourses.filter(c=>(c.grade_code||academicGradeCode(c.grade_label))===code&&(c.program_id||"")===(programId||""));
     if(!programId)return direct
       .slice()
       .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.subject_code||"").localeCompare(String(b.subject_code||""),"th",{numeric:true})||String(a.subject_name||"").localeCompare(String(b.subject_name||""),"th"));
     const excluded=new Set((readiness.exclusions||[])
       .filter(x=>x.program_id===programId&&x.grade_code===code)
       .map(x=>x.subject_id));
-    const inherited=activeCourses.filter(c=>c.grade_code===code&&!c.program_id&&(c.subject_type==="basic"||c.subject_type==="activity")&&!excluded.has(c.subject_id));
+    const inherited=activeCourses.filter(c=>(c.grade_code||academicGradeCode(c.grade_label))===code&&!c.program_id&&(c.subject_type==="basic"||c.subject_type==="activity")&&!excluded.has(c.subject_id));
     const mergedMap=new Map();
     inherited.forEach(c=>mergedMap.set(logicalKey(c),{...c,_overviewOrigin:"inherited"}));
     direct.forEach(c=>mergedMap.set(logicalKey(c),{...c,_overviewOrigin:"direct"}));
@@ -8457,11 +8457,12 @@ function bindAcademics(){
     qa("button",clone).forEach(x=>x.remove());
     qa("[aria-hidden='true']",clone).forEach(x=>{if(x.classList.contains("curriculum-pdf-icon"))x.remove();});
     const schoolName=String(school&&school.name_th||"สถานศึกษา");
+    const currentAcademicYear=academicSelectedYear(data);
     const printTitle=title||"โครงสร้างหลักสูตรและเวลาเรียน";
     popup.document.open();
     popup.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(printTitle)+'</title><style>'+
       'body{font-family:Tahoma,Arial,sans-serif;color:#101828;margin:24px;font-size:12px}h1,h2,h3,h4,p{margin:0}.print-head{margin-bottom:18px;border-bottom:2px solid #101828;padding-bottom:10px}.print-head h1{font-size:20px}.print-head p{margin-top:4px;color:#475467}.curriculum-overview-stage{page-break-after:auto;margin-bottom:24px}.curriculum-overview-stage-head,.curriculum-overview-program-head,.curriculum-overview-grade-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.curriculum-overview-stage-head{border-bottom:2px solid #101828;padding-bottom:8px;margin-bottom:12px}.curriculum-overview-stage-head .eyebrow{font-size:9px;color:#667085}.curriculum-overview-stage-head h3{font-size:18px}.curriculum-overview-stage-head p{margin-top:3px;color:#667085}.curriculum-overview-program{border:1px solid #98a2b3;border-radius:10px;padding:12px;margin-bottom:14px;break-inside:avoid}.curriculum-overview-program-head{margin-bottom:10px}.curriculum-overview-program-head strong{font-size:15px}.curriculum-overview-program-head small{display:block;color:#667085;margin-top:2px}.curriculum-overview-grade{border:1px solid #d0d5dd;border-radius:8px;margin:10px 0;overflow:hidden;break-inside:avoid}.curriculum-overview-grade-head{padding:9px 10px;background:#f8fafc}.curriculum-overview-grade-head h4{font-size:14px}.curriculum-overview-grade-summary{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;color:#475467}.curriculum-overview-status{font-weight:bold}.curriculum-overview-course-head,.curriculum-overview-course-row{display:grid;grid-template-columns:90px minmax(220px,1fr) 110px 120px;gap:8px;align-items:center;padding:7px 10px}.curriculum-overview-course-head{background:#f2f4f7;font-weight:bold;border-top:1px solid #d0d5dd;border-bottom:1px solid #d0d5dd}.curriculum-overview-course-row{border-bottom:1px solid #eaecf0}.curriculum-overview-course-row:last-child{border-bottom:0}.curriculum-overview-course-name small{display:block;color:#667085;margin-top:2px}.curriculum-overview-empty{padding:12px;color:#667085}.curriculum-overview-toolbar{display:none}@page{size:A4 landscape;margin:12mm}@media print{body{margin:0}.curriculum-overview-program{break-inside:avoid-page}.curriculum-overview-grade{break-inside:avoid-page}}'+
-      '</style></head><body><header class="print-head"><h1>'+esc(printTitle)+'</h1><p>'+esc(schoolName)+(year?' · ปีการศึกษา '+esc(year.year_be):'')+'</p></header>'+clone.outerHTML+'</body></html>');
+      '</style></head><body><header class="print-head"><h1>'+esc(printTitle)+'</h1><p>'+esc(schoolName)+(currentAcademicYear?' · ปีการศึกษา '+esc(currentAcademicYear.year_be):'')+'</p></header>'+clone.outerHTML+'</body></html>');
     popup.document.close();
     popup.focus();
     window.setTimeout(()=>popup.print(),350);
