@@ -5037,8 +5037,11 @@ function academicSchoolTimeSummary(course,standard){
   }
   return parts.join(" · ")||"ยังไม่กำหนด";
 }
-function academicTimeEditorHtml(course,info){
+function academicTimeEditorHtml(course,info,frame){
   const safeInfo=info||{};
+  const safeFrame=frame||{};
+  const frameWeeks=Number(safeFrame.instructional_weeks_per_year||0);
+  const frameMinutes=Number(safeFrame.minutes_per_period||0);
   const standard=safeInfo.standard_current||safeInfo.standard_snapshot||null;
   const plan=standard&&standard.period_scope==="term"
     ?(course.term_plans||[]).find(x=>Number(x.term_no)===Number(standard.term_no))||{}
@@ -5046,16 +5049,24 @@ function academicTimeEditorHtml(course,info){
   const standardText=academicStandardTimeSummary(standard);
   const schoolText=academicSchoolTimeSummary(course,standard);
   const flexible=standard&&standard.is_flexible?'<span class="subject-time-flex-note">ปรับตามบริบท/แผนการเรียนได้</span>':'';
-  const fields=standard&&standard.period_scope==="term"
+  const isAnnual=!(standard&&standard.period_scope==="term");
+  const isIntegrated=Boolean(standard&&standard.time_mode==="integrated");
+  const fields=!isAnnual
     ?'<label>ชั่วโมง/ภาค<input name="term_hours" type="number" min="0" step="0.5" value="'+esc(plan.term_hours??"")+'" placeholder="'+esc(standard.term_hours??"")+'"></label>'+
       '<label>หน่วยกิต<input name="credits" type="number" min="0" step="0.5" value="'+esc(course.credits??"")+'" placeholder="'+esc(standard.credits??"")+'"></label>'+
       '<label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25" value="'+esc(plan.weekly_periods??"")+'" placeholder="'+(standard.time_mode==="integrated"?"บูรณาการ":esc(standard.weekly_periods??""))+'"></label>'
     :'<label>ชั่วโมง/ปี<input name="annual_hours" type="number" min="0" step="0.5" value="'+esc(course.annual_hours??"")+'" placeholder="เช่น 40"></label>'+
-      '<label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25" value="'+esc(plan.weekly_periods??"")+'" placeholder="เช่น 1"></label>';
-  return '<form class="subject-time-editor hidden" data-subject-time-form="'+esc(course.id)+'">'+
+      (isIntegrated
+        ?'<label>คาบ/สัปดาห์<input name="weekly_periods" type="number" value="" placeholder="บูรณาการ · ไม่มีคาบแยก" disabled></label>'
+        :'<label>คาบ/สัปดาห์<input name="weekly_periods" type="number" min="0" step="0.25" value="'+esc(plan.weekly_periods??"")+'" placeholder="เช่น 1"></label>');
+  const annualValidationAttrs=isAnnual&&!isIntegrated&&frameWeeks>0&&frameMinutes>0
+    ?' data-time-weeks="'+esc(frameWeeks)+'" data-time-minutes="'+esc(frameMinutes)+'"'
+    :'';
+  return '<form class="subject-time-editor hidden" data-subject-time-form="'+esc(course.id)+'"'+annualValidationAttrs+(isIntegrated?' data-time-integrated="1"':'')+'>'+
     '<div class="subject-time-editor-head"><div><strong>'+(standard?"แก้":"กำหนด")+'เวลาเรียนของโรงเรียน</strong><small>'+(standard?"แก้เฉพาะโครงสร้างของโรงเรียน ไม่แก้ฐานมาตรฐานกลาง":"กำหนดชั่วโมงและคาบที่โรงเรียนใช้จริงสำหรับรายวิชานี้")+'</small></div>'+flexible+'</div>'+
     (standard?'<div class="subject-time-compare compact"><div><small>มาตรฐานกลางขั้นต่ำ</small><strong>'+esc(standardText||"ไม่กำหนด")+'</strong></div><div><small>โรงเรียนใช้</small><strong>'+esc(schoolText)+'</strong></div></div>':'<div class="subject-time-no-standard">ไม่มีมาตรฐานเวลากลางสำหรับรายวิชานี้ · โรงเรียนกำหนดเวลาเรียนได้เอง</div>')+
     '<div class="subject-time-fields">'+fields+'<label class="subject-time-note">หมายเหตุ<input name="note" value="'+esc(safeInfo.time_override_note||"")+'" placeholder="เหตุผล/บริบทของโรงเรียน (ถ้ามี)"></label></div>'+
+    (isAnnual&&!isIntegrated?'<div class="subject-time-consistency" data-subject-time-consistency aria-live="polite"></div>':'')+
     '<div class="subject-time-editor-actions"><button type="button" class="secondary-btn compact-btn" data-close-subject-time="'+esc(course.id)+'">ปิด</button>'+(standard&&standard.standard_kind!=="three_year_band_allocation"?'<button type="button" class="secondary-btn compact-btn" data-reset-subject-time-standard="'+esc(course.id)+'">คืนค่ามาตรฐานกลาง</button>':'')+'<button type="submit" class="primary-btn compact-btn">บันทึกเวลาเรียน</button></div>'+
   '</form>';
 }
@@ -8647,9 +8658,70 @@ function bindAcademics(){
   const bindLazySubjectTimeForm=form=>{
     if(!form||form.dataset.bound==="1")return;
     form.dataset.bound="1";
+    const syncSubjectTimeConsistency=()=>{
+      const annual=form.elements.namedItem("annual_hours");
+      const weekly=form.elements.namedItem("weekly_periods");
+      const status=q("[data-subject-time-consistency]",form);
+      const submit=form.querySelector('button[type="submit"]');
+      if(!annual||!weekly||weekly.disabled||form.dataset.timeIntegrated==="1"){
+        if(submit)submit.disabled=false;
+        return true;
+      }
+      const weeks=Number(form.dataset.timeWeeks||0);
+      const minutes=Number(form.dataset.timeMinutes||0);
+      const annualText=String(annual.value||"").trim();
+      const weeklyText=String(weekly.value||"").trim();
+      annual.setCustomValidity("");
+      weekly.setCustomValidity("");
+      if(!(weeks>0&&minutes>0)||annualText===""){
+        if(status){status.className="subject-time-consistency";status.textContent="";}
+        if(submit)submit.disabled=false;
+        return true;
+      }
+      const annualHours=Number(annualText);
+      if(!Number.isFinite(annualHours)){
+        if(submit)submit.disabled=false;
+        return true;
+      }
+      const expected=annualHours/(weeks*(minutes/60));
+      const expectedText=expected.toLocaleString("th-TH",{maximumFractionDigits:4});
+      if(weeklyText===""){
+        if(status){
+          status.className="subject-time-consistency info";
+          status.innerHTML='<strong>คาบ/สัปดาห์ยังว่าง</strong><span>จาก '+annualHours.toLocaleString("th-TH",{maximumFractionDigits:2})+' ชม./ปี · '+weeks.toLocaleString("th-TH",{maximumFractionDigits:2})+' สัปดาห์ · คาบละ '+minutes.toLocaleString("th-TH",{maximumFractionDigits:2})+' นาที ระบบจะคำนวณเป็น '+expectedText+' คาบ/สัปดาห์เมื่อบันทึก</span>';
+        }
+        if(submit)submit.disabled=false;
+        return true;
+      }
+      const weeklyPeriods=Number(weeklyText);
+      const conflict=!Number.isFinite(weeklyPeriods)||Math.abs(weeklyPeriods-expected)>.001;
+      if(conflict){
+        const message='ชั่วโมง/ปีกับคาบ/สัปดาห์ไม่สัมพันธ์กัน · ควรเป็น '+expectedText+' คาบ/สัปดาห์';
+        weekly.setCustomValidity(message);
+        if(status){
+          status.className="subject-time-consistency error";
+          status.innerHTML='<strong>บันทึกไม่ได้</strong><span>'+esc(message)+' จากกรอบ '+weeks.toLocaleString("th-TH",{maximumFractionDigits:2})+' สัปดาห์ · คาบละ '+minutes.toLocaleString("th-TH",{maximumFractionDigits:2})+' นาที</span>';
+        }
+        if(submit)submit.disabled=true;
+        return false;
+      }
+      if(status){
+        status.className="subject-time-consistency success";
+        status.innerHTML='<strong>ข้อมูลสัมพันธ์กัน</strong><span>'+annualHours.toLocaleString("th-TH",{maximumFractionDigits:2})+' ชม./ปี = '+weeklyPeriods.toLocaleString("th-TH",{maximumFractionDigits:4})+' คาบ/สัปดาห์</span>';
+      }
+      if(submit)submit.disabled=false;
+      return true;
+    };
+    form.addEventListener("input",syncSubjectTimeConsistency);
+    syncSubjectTimeConsistency();
     form.addEventListener("submit",async e=>{
       e.preventDefault();
       if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+      if(!syncSubjectTimeConsistency()){
+        toast("ชั่วโมง/ปีกับคาบ/สัปดาห์ขัดแย้งกัน กรุณาแก้ให้สัมพันธ์ก่อนบันทึก","error");
+        form.elements.namedItem("weekly_periods")?.reportValidity();
+        return;
+      }
       const fd=new FormData(form),btn=form.querySelector('button[type="submit"]');
       const numOrNull=v=>String(v??"").trim()===""?null:Number(v);
       setBusy(btn,true,"กำลังบันทึก...");
@@ -8687,7 +8759,11 @@ function bindAcademics(){
     const slot=q('[data-subject-time-slot="'+courseId+'"]');
     const course=(data.courses||[]).find(x=>x.id===courseId);
     if(!slot||!course)return {form:null,created:false};
-    slot.innerHTML=academicTimeEditorHtml(course,courseTimeInfoById.get(courseId)||null);
+    const currentTimeGroup=(state.subjectReadiness&&state.subjectReadiness.groups||[]).find(g=>
+      g.grade_code===(state.academicPresetGrade||"")&&
+      (g.program_id||"")===(state.subjectProgramId||"")
+    )||null;
+    slot.innerHTML=academicTimeEditorHtml(course,courseTimeInfoById.get(courseId)||null,currentTimeGroup);
     form=q('[data-subject-time-form="'+courseId+'"]');
     bindLazySubjectTimeForm(form);
     return {form,created:true};
