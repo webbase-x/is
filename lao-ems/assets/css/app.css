@@ -7908,6 +7908,25 @@ th,td{line-height:1.45}
   font-size:11px;
   line-height:1.45;
 }
+.subject-school-hour-consistency-warning{
+  display:grid;
+  gap:3px;
+  margin-top:8px;
+  padding:9px 10px;
+  border:1px solid #fedf89;
+  border-radius:10px;
+  background:#fffaeb;
+  color:#7a2e0e;
+  font-size:11px;
+  line-height:1.45;
+}
+.subject-school-hour-consistency-warning strong{
+  color:#93370d;
+  font-size:11px;
+}
+.subject-school-hour-consistency-warning span{
+  color:#7a2e0e;
+}
 @media(max-width:560px){
   .subject-school-hour-summary{
     padding:12px;
