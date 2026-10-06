@@ -12736,3 +12736,127 @@ html.is-touch-device [data-manual-refresh]{
     justify-content:space-between;
   }
 }
+
+
+/* Curriculum stage matrix — v0.19.94 */
+.curriculum-pdf-stage{
+  width:auto;
+  min-width:84px;
+  padding:0 10px;
+  gap:7px;
+}
+.curriculum-matrix-scroll{
+  width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.curriculum-matrix{
+  width:100%;
+  min-width:680px;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:fixed;
+  color:#344054;
+  font-size:11.5px;
+}
+.curriculum-matrix th,
+.curriculum-matrix td{
+  padding:9px 10px;
+  border-right:1px solid #d0d5dd;
+  border-bottom:1px solid #d0d5dd;
+  text-align:center;
+  vertical-align:middle;
+}
+.curriculum-matrix thead th{
+  border-top:1px solid #d0d5dd;
+  background:#f2f4f7;
+  color:#344054;
+  font-weight:900;
+}
+.curriculum-matrix th:first-child,
+.curriculum-matrix td:first-child{
+  border-left:1px solid #d0d5dd;
+}
+.curriculum-matrix thead th:first-child{
+  width:30%;
+  border-top-left-radius:10px;
+  text-align:left;
+}
+.curriculum-matrix thead th:last-child{
+  border-top-right-radius:10px;
+}
+.curriculum-matrix tbody th{
+  background:#fff;
+  color:#344054;
+  font-weight:700;
+  text-align:left;
+}
+.curriculum-matrix tbody td{
+  background:#fff;
+}
+.curriculum-matrix td strong,
+.curriculum-matrix td small{
+  display:block;
+}
+.curriculum-matrix td small{
+  margin-top:2px;
+  color:#667085;
+  font-size:9.5px;
+  font-weight:500;
+}
+.curriculum-matrix-group th{
+  background:#fce7df!important;
+  color:#7a271a!important;
+  font-weight:900!important;
+}
+.curriculum-matrix-subtotal th,
+.curriculum-matrix-subtotal td{
+  background:#fff4e5!important;
+  font-weight:900;
+}
+.curriculum-matrix-activity th,
+.curriculum-matrix-activity td{
+  background:#fef3c7!important;
+  font-weight:800;
+}
+.curriculum-matrix-additional th,
+.curriculum-matrix-additional td{
+  background:#f4f3ff!important;
+  font-weight:800;
+}
+.curriculum-matrix-total th,
+.curriculum-matrix-total td{
+  background:#fde2e2!important;
+  font-weight:900;
+}
+.curriculum-matrix-frame th,
+.curriculum-matrix-frame td{
+  background:#eff8ff!important;
+  font-weight:900;
+}
+.curriculum-matrix-status th,
+.curriculum-matrix-status td{
+  background:#f8fafc!important;
+}
+.curriculum-overview-program{
+  overflow:hidden;
+}
+.curriculum-overview-program-head{
+  padding-bottom:9px;
+}
+@media(max-width:760px){
+  .curriculum-overview-stage-head{
+    flex-direction:column;
+  }
+  .curriculum-pdf-stage{
+    align-self:flex-start;
+  }
+  .curriculum-matrix{
+    min-width:620px;
+    font-size:10.5px;
+  }
+  .curriculum-matrix th,
+  .curriculum-matrix td{
+    padding:8px 7px;
+  }
+}
