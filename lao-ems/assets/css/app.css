@@ -7522,6 +7522,41 @@ th,td{line-height:1.45}
 .subject-progress-choice.complete .subject-progress-choice-ring strong{
   color:#067647;
 }
+.subject-progress-choice.ready-confirm .subject-progress-choice-ring{
+  background:
+    radial-gradient(circle at center,#fffaeb 62%,transparent 64%),
+    conic-gradient(#2e90fa var(--progress),#fdb022 0);
+}
+.subject-progress-status{
+  position:absolute;
+  top:-6px;
+  right:-6px;
+  display:grid;
+  place-items:center;
+  min-width:22px;
+  height:22px;
+  padding:0 4px;
+  border:2px solid #fff;
+  border-radius:999px;
+  box-shadow:0 1px 3px rgba(16,24,40,.18);
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+  line-height:1;
+}
+.subject-progress-status.confirmed{
+  background:#12b76a;
+  font-size:13px;
+}
+.subject-progress-status.ready{
+  background:#f79009;
+}
+.subject-progress-choice.ready-confirm .subject-progress-choice-ring strong{
+  color:#b54708;
+}
+.subject-progress-choice.ready-confirm.active .subject-progress-choice-ring{
+  box-shadow:0 0 0 4px #fffaeb,0 0 0 6px #fdb022;
+}
 .subject-progress-choice>strong,
 .subject-progress-choice>small,
 .subject-progress-choice-ring b{
