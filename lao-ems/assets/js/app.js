@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.76";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.77";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -5677,7 +5677,20 @@ function academicSubjectsHtml(data,timeline){
 
   const subjectReadiness=state.subjectReadiness||{groups:[],total_groups:0,completed_groups:0,progress_percent:0,coverage_percent:0};
   const readinessGroups=subjectReadiness.groups||[];
+  const confirmationGroups=readiness.groups||[];
   const groupFor=(code,programId)=>readinessGroups.find(g=>g.grade_code===code&&(g.program_id||"")===(programId||""))||null;
+  const confirmationGroupFor=(code,programId)=>confirmationGroups.find(g=>g.grade_code===code&&(g.program_id||"")===(programId||""))||null;
+  const confirmationStateFor=(code,programId)=>{
+    const status=confirmationGroupFor(code,programId)?.status||"";
+    return status==="confirmed"?"confirmed":status==="ready_to_confirm"?"ready":"";
+  };
+  const targetConfirmationState=programId=>{
+    const groups=confirmationGroups.filter(g=>(g.program_id||"")===(programId||""));
+    if(!groups.length)return "";
+    if(groups.every(g=>g.status==="confirmed"))return "confirmed";
+    if(groups.every(g=>g.status==="confirmed"||g.status==="ready_to_confirm")&&groups.some(g=>g.status==="ready_to_confirm"))return "ready";
+    return "";
+  };
   const groupHours=g=>{
     const scheduled=Math.max(0,Number(g&&g.scheduled_hours_total||0));
     const integrated=Math.max(0,Number(g&&g.integrated_activity_hours||0));
@@ -5706,11 +5719,15 @@ function academicSubjectsHtml(data,timeline){
     const raw=sums.total>0?sums.arranged*100/sums.total:0;
     return {progress:Math.max(0,Math.min(100,raw)),over:sums.total>0&&sums.arranged>sums.total+.001};
   };
-  const progressChoice=(attrs,label,pct,active,metaHtml="",over=false)=>{
+  const progressChoice=(attrs,label,pct,active,metaHtml="",over=false,confirmation="")=>{
     const progress=Math.max(0,Math.min(100,Number(pct)||0));
-    const accessible=label+" · "+(over?"เกินกรอบ":"ความก้าวหน้า "+Math.round(progress)+"%");
-    return '<button type="button" class="subject-progress-choice '+(metaHtml?"has-hour-meta ":"")+(active?"active ":"")+(over?"over ":(progress>=100?"complete ":""))+(progress<=0?"empty":"")+'" '+attrs+' aria-label="'+esc(accessible)+'" title="'+esc(accessible)+'">'+
-      '<span class="subject-progress-choice-ring" style="--progress:'+progress+'%"><strong>'+esc(label)+'</strong></span>'+
+    const confirmed=confirmation==="confirmed"&&!over;
+    const ready=confirmation==="ready"&&!over;
+    const visualProgress=confirmed?100:(progress>=100&&!over?96:progress);
+    const accessible=label+" · "+(over?"เกินกรอบ":confirmed?"ยืนยันแล้ว":ready?"ข้อมูลครบ รอยืนยัน":"ความก้าวหน้า "+Math.round(progress)+"%");
+    const statusBadge=confirmed?'<span class="subject-progress-status confirmed" aria-hidden="true">✓</span>':ready?'<span class="subject-progress-status ready" aria-hidden="true">รอ</span>':"";
+    return '<button type="button" class="subject-progress-choice '+(metaHtml?"has-hour-meta ":"")+(active?"active ":"")+(over?"over ":(confirmed?"confirmed complete ":(ready?"ready-confirm ":"")))+(visualProgress<=0?"empty":"")+'" '+attrs+' aria-label="'+esc(accessible)+'" title="'+esc(accessible)+'">'+
+      '<span class="subject-progress-choice-ring" style="--progress:'+visualProgress+'%"><strong>'+esc(label)+'</strong>'+statusBadge+'</span>'+
       metaHtml+
     '</button>';
   };
@@ -5736,14 +5753,15 @@ function academicSubjectsHtml(data,timeline){
     :'<section class="subject-school-hour-summary no-frame"><div class="subject-school-hour-summary-head"><div><strong>เวลาเรียน '+esc(shortGrade(gradeLabel))+'</strong><small>'+esc(targetLabel)+'</small></div><span>ยังไม่กำหนดกรอบเวลาเรียน</span></div></section>';
   const gradeTabs=targetGrades.map(g=>{
     const code=academicGradeCode(g)||"";
-    const h=groupHours(groupFor(code,selectedProgram?selectedProgram.id:""));
-    return progressChoice('data-subject-context-grade="'+esc(code)+'"',shortGrade(g),h.progress,code===gradeCode,"",h.over);
+    const programId=selectedProgram?selectedProgram.id:"";
+    const h=groupHours(groupFor(code,programId));
+    return progressChoice('data-subject-context-grade="'+esc(code)+'"',shortGrade(g),h.progress,code===gradeCode,"",h.over,confirmationStateFor(code,programId));
   }).join("");
   const normalTargetProgress=targetProgress("");
-  const targetTabs=progressChoice('data-subject-target=""',"ห้องปกติ",normalTargetProgress.progress,!selectedProgram,"",normalTargetProgress.over)+
+  const targetTabs=progressChoice('data-subject-target=""',"ห้องปกติ",normalTargetProgress.progress,!selectedProgram,"",normalTargetProgress.over,targetConfirmationState(""))+
     actualPrograms.map(p=>{
       const pProgress=targetProgress(p.id);
-      return progressChoice('data-subject-target="'+esc(p.id)+'"',programShortName(p),pProgress.progress,Boolean(selectedProgram&&p.id===selectedProgram.id),"",pProgress.over);
+      return progressChoice('data-subject-target="'+esc(p.id)+'"',programShortName(p),pProgress.progress,Boolean(selectedProgram&&p.id===selectedProgram.id),"",pProgress.over,targetConfirmationState(p.id));
     }).join("");
   const scopeTabs=[["core","รายวิชาพื้นฐาน"],["additional","รายวิชาเพิ่มเติม"],["activity","กิจกรรมพัฒนาผู้เรียน"]]
     .map(([v,l])=>'<button type="button" class="'+(scope===v?"active":"")+'" data-subject-catalog-scope="'+v+'">'+l+'</button>').join("");
