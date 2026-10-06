@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.78";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.79";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -5719,15 +5719,17 @@ function academicSubjectsHtml(data,timeline){
     const raw=sums.total>0?sums.arranged*100/sums.total:0;
     return {progress:Math.max(0,Math.min(100,raw)),over:sums.total>0&&sums.arranged>sums.total+.001};
   };
-  const progressChoice=(attrs,label,pct,active,metaHtml="",over=false,confirmation="")=>{
+  const progressChoice=(attrs,label,pct,active,metaHtml="",over=false,confirmation="",showStatus=false)=>{
     const progress=Math.max(0,Math.min(100,Number(pct)||0));
     const confirmed=confirmation==="confirmed"&&!over;
     const ready=confirmation==="ready"&&!over;
     const visualProgress=confirmed?100:(ready?94:(progress>=100&&!over?94:progress));
     const accessible=label+" · "+(over?"เกินกรอบ":confirmed?"ยืนยันแล้ว":ready?"ข้อมูลครบ รอยืนยัน":"ความก้าวหน้า "+Math.round(progress)+"%");
-    const statusBadge=confirmed?'<span class="subject-progress-status confirmed" aria-hidden="true">✓</span>':ready?'<span class="subject-progress-status ready" aria-hidden="true">!</span>':"";
+    const statusBadge=showStatus
+      ?(confirmed?'<span class="subject-progress-status confirmed" aria-hidden="true">✓</span>':ready?'<span class="subject-progress-status ready" aria-hidden="true">!</span>':"")
+      :"";
     return '<button type="button" class="subject-progress-choice '+(metaHtml?"has-hour-meta ":"")+(active?"active ":"")+(over?"over ":(confirmed?"confirmed complete ":(ready?"ready-confirm ":"")))+(visualProgress<=0?"empty":"")+'" '+attrs+' aria-label="'+esc(accessible)+'" title="'+esc(accessible)+'">'+
-      '<span class="subject-progress-choice-ring" style="--progress:'+visualProgress+'%"><strong>'+esc(label)+'</strong>'+statusBadge+'</span>'+
+      '<span class="subject-progress-choice-ring" style="--progress:'+visualProgress+'%"><span class="subject-progress-center"><strong>'+esc(label)+'</strong>'+statusBadge+'</span></span>'+
       metaHtml+
     '</button>';
   };
@@ -5755,7 +5757,7 @@ function academicSubjectsHtml(data,timeline){
     const code=academicGradeCode(g)||"";
     const programId=selectedProgram?selectedProgram.id:"";
     const h=groupHours(groupFor(code,programId));
-    return progressChoice('data-subject-context-grade="'+esc(code)+'"',shortGrade(g),h.progress,code===gradeCode,"",h.over,confirmationStateFor(code,programId));
+    return progressChoice('data-subject-context-grade="'+esc(code)+'"',shortGrade(g),h.progress,code===gradeCode,"",h.over,confirmationStateFor(code,programId),true);
   }).join("");
   const normalTargetProgress=targetProgress("");
   const targetTabs=progressChoice('data-subject-target=""',"ห้องปกติ",normalTargetProgress.progress,!selectedProgram,"",normalTargetProgress.over,targetConfirmationState(""))+
@@ -5841,11 +5843,7 @@ function academicSubjectsHtml(data,timeline){
     '<section class="panel subjects-v2-context subject-progress-context">'+
       '<div class="subjects-v2-context-row"><div><strong>ห้อง / โปรแกรม</strong></div><div class="subject-target-tabs subject-progress-tabs">'+targetTabs+'</div></div>'+
       '<div class="subjects-v2-context-row"><div><strong>ระดับชั้น</strong></div><div class="subject-grade-tabs subject-progress-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับชั้น</span>')+'</div></div>'+
-      '<div class="subject-progress-legend" aria-label="คำอธิบายสถานะวงแหวน">'+
-        '<span><i class="progress-dot working"></i>กำลังจัดข้อมูล</span>'+
-        '<span><i class="progress-dot waiting">!</i>ข้อมูลครบ · รอยืนยัน</span>'+
-        '<span><i class="progress-dot confirmed">✓</i>ยืนยันแล้ว</span>'+
-      '</div>'+
+
     '</section>'+
     editGuardHtml+
     copyYearHtml+
