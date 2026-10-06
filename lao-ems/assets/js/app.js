@@ -5947,7 +5947,7 @@ function academicSubjectsHtml(data,timeline){
     ?currentStatus==="confirmed"
       ?'<section class="subject-combined-confirmation confirmed"><div><strong>✓ ยืนยันโครงสร้างแล้ว</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านการตรวจและยืนยันรายวิชา/เวลาเรียนแล้ว</span></div></section>'
       :currentStatus==="ready_to_confirm"
-        ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว</span></div>'+confirmationButton+'</section>'
+        ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว'+(canApprove?'':' · รอผู้มีสิทธิ์ยืนยัน')+'</span></div>'+confirmationButton+'</section>'
         :'<section class="subject-combined-confirmation pending"><div><strong>ยังยืนยันไม่ได้</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · '+esc(currentStatusLabel)+'</span></div>'+confirmationButton+'</section>'
     :'';
   const schoolGroups=workspaceView==="selected"
