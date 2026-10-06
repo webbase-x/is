@@ -7665,6 +7665,65 @@ th,td{line-height:1.45}
 .subject-progress-choice.active .subject-progress-choice-ring strong{
   color:#175cd3;
 }
+
+/* Final curriculum ring state overrides — v0.19.80
+   Keep status colors/symbols stable after the compact ring rules above. */
+.subject-progress-choice.ready-confirm .subject-progress-choice-ring{
+  background:
+    radial-gradient(circle at center,#fffaeb 0 80%,transparent 81% 100%),
+    conic-gradient(#f79009 var(--progress),#f2f4f7 0)!important;
+}
+.subject-progress-choice.confirmed.complete .subject-progress-choice-ring{
+  background:
+    radial-gradient(circle at center,#f6fef9 0 80%,transparent 81% 100%),
+    conic-gradient(#12b76a 100%,#12b76a 0)!important;
+}
+.subject-progress-choice.ready-confirm.active .subject-progress-choice-ring{
+  box-shadow:0 0 0 2px #fff,0 0 0 4px #fdb022!important;
+}
+.subject-progress-choice.confirmed.active .subject-progress-choice-ring{
+  box-shadow:0 0 0 2px #fff,0 0 0 4px #32d583!important;
+}
+.subject-progress-center{
+  display:grid!important;
+  grid-template-rows:auto 10px;
+  place-items:center!important;
+  align-content:center!important;
+  gap:1px!important;
+  width:44px!important;
+  min-height:28px;
+}
+.subject-progress-center>strong{
+  margin:0!important;
+}
+.subject-progress-status{
+  position:static!important;
+  display:block!important;
+  width:auto!important;
+  min-width:0!important;
+  height:10px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
+  font-size:11px!important;
+  font-weight:1000!important;
+  line-height:10px!important;
+  text-align:center!important;
+}
+.subject-progress-status.ready{
+  color:#f79009!important;
+}
+.subject-progress-status.confirmed{
+  color:#12b76a!important;
+}
+.subject-progress-choice.ready-confirm .subject-progress-choice-ring strong{
+  color:#b54708!important;
+}
+.subject-progress-choice.confirmed .subject-progress-choice-ring strong{
+  color:#067647!important;
+}
 .subject-edit-toolbar{
   display:flex;
   align-items:center;
