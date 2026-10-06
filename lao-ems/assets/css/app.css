@@ -12251,3 +12251,126 @@ html.is-touch-device [data-manual-refresh]{
   }
 }
 
+/* Premium boot/loading feedback — v0.19.86 */
+.boot-screen{
+  --boot-progress:6%;
+  display:grid!important;
+  place-items:center!important;
+  padding:24px!important;
+  gap:0!important;
+  background:
+    radial-gradient(circle at 50% 30%,rgba(255,255,255,.98) 0,rgba(248,251,255,.96) 38%,rgba(242,246,251,.98) 100%)!important;
+}
+.boot-screen .boot-shell{
+  width:min(88vw,360px);
+  display:grid;
+  justify-items:center;
+  text-align:center;
+}
+.boot-screen .boot-logo{
+  width:64px!important;
+  height:64px!important;
+  border-radius:20px!important;
+  font-size:29px!important;
+  box-shadow:0 14px 34px rgba(15,91,211,.20)!important;
+}
+.boot-screen .boot-brand{
+  margin-top:14px;
+  color:#101828;
+  font-size:25px!important;
+  font-weight:900;
+  line-height:1.15;
+  letter-spacing:-.02em;
+}
+.boot-screen .boot-version{
+  min-height:22px!important;
+  margin-top:6px!important;
+  padding:2px 9px!important;
+  border-color:#d9e2ec!important;
+  background:rgba(255,255,255,.88)!important;
+  color:#667085!important;
+  font-size:11px!important;
+  box-shadow:0 1px 2px rgba(16,24,40,.03)!important;
+}
+.boot-status-card{
+  width:100%;
+  margin-top:24px;
+  padding:16px;
+  border:1px solid #e4eaf1;
+  border-radius:18px;
+  background:rgba(255,255,255,.86);
+  box-shadow:0 12px 32px rgba(16,24,40,.06);
+  backdrop-filter:blur(10px);
+}
+.boot-status-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+}
+.boot-screen .boot-pulse{
+  width:8px;
+  height:8px;
+  flex:0 0 8px;
+  border-radius:50%;
+  background:#2e90fa;
+  box-shadow:0 0 0 0 rgba(46,144,250,.28);
+  animation:boot-premium-pulse 1.5s ease-out infinite;
+}
+.boot-screen .boot-status{
+  color:#344054!important;
+  font-size:13px!important;
+  font-weight:800;
+  line-height:1.45;
+}
+.boot-progress{
+  height:4px;
+  margin-top:13px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#edf1f5;
+}
+.boot-progress>i{
+  display:block;
+  width:var(--boot-progress);
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#2e90fa,#12b76a);
+  box-shadow:0 0 10px rgba(46,144,250,.18);
+  transition:width .28s ease;
+}
+.boot-screen .boot-detail{
+  min-height:18px;
+  margin-top:9px;
+  color:#98a2b3!important;
+  font-size:10.5px!important;
+  line-height:1.45;
+}
+.boot-screen[data-progress="100"] .boot-pulse{
+  background:#12b76a;
+  animation:none;
+  box-shadow:0 0 0 5px rgba(18,183,106,.10);
+}
+.boot-screen.is-leaving{
+  transform:scale(.995);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+@keyframes boot-premium-pulse{
+  0%{box-shadow:0 0 0 0 rgba(46,144,250,.28)}
+  70%{box-shadow:0 0 0 8px rgba(46,144,250,0)}
+  100%{box-shadow:0 0 0 0 rgba(46,144,250,0)}
+}
+@media(max-width:520px){
+  .boot-screen{padding:20px!important}
+  .boot-screen .boot-shell{width:min(92vw,330px)}
+  .boot-status-card{padding:14px}
+  .boot-screen .boot-logo{width:60px!important;height:60px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .boot-screen .boot-pulse{animation:none}
+  .boot-progress>i{transition:none}
+  .boot-screen.is-leaving{transform:none}
+}
+
