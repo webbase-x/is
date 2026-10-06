@@ -5749,8 +5749,8 @@ function academicSubjectsHtml(data,timeline){
         (pg?'<span class="subject-origin grouped">กลุ่ม '+esc(pg.name)+' · นับ '+Number(pg.weekly_periods||0).toLocaleString("th-TH")+' คาบ</span>':'')+
         (pg&&canEdit&&!inherited?'<button type="button" class="text-btn compact-btn parallel-leave-btn" data-remove-parallel-course="'+esc(c.id)+'" data-parallel-group-id="'+esc(pg.id)+'" data-parallel-group-name="'+esc(pg.name)+'" data-parallel-member-count="'+Number((pg.members||[]).length)+'">ออกจากกลุ่ม</button>':'')+
         (!pg&&c.subject_type==="activity"&&c.subject_code&&(activityCodeCounts.get(String(c.subject_code).trim().toLowerCase())||0)>1?'<span class="subject-origin grouped">รหัสเดียวกัน · นับรวม 1 ช่องเวลา</span>':'')+
-        (inherited?'<span class="subject-origin inherited">รับจากห้องปกติ</span>':'')+
-        (canEdit&&!inherited&&standard?'<button type="button" class="secondary-btn compact-btn subject-time-btn" data-edit-subject-time="'+esc(c.id)+'">แก้เวลาเรียน</button>':'')+
+        (inherited?'<span class="subject-origin inherited">รับจากห้องปกติ · เวลาเรียนใช้ร่วมกับห้องปกติ</span>':'')+
+        (canEdit&&!inherited&&!schoolTimeMissing?'<button type="button" class="secondary-btn compact-btn subject-time-btn" data-edit-subject-time="'+esc(c.id)+'">แก้เวลาเรียน</button>':'')+
         (canEdit&&c.subject_type!=="basic"?'<button type="button" class="secondary-btn compact-btn" data-edit-school-library-subject="'+esc(c.subject_id)+'" data-school-subject-code="'+esc(c.subject_code||"")+'" data-school-subject-name="'+esc(c.subject_name||"")+'" data-school-subject-area="'+esc(c.learning_area||"")+'" data-school-subject-type="'+esc(c.subject_type||"")+'" data-school-subject-subtype="'+esc(sourceInfo.subject_subtype||"")+'">แก้ไขในคลัง รร.</button>':'')+
         (canEdit?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+
       '</div>'+
