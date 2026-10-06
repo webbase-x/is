@@ -1013,7 +1013,8 @@ async function showPersonnelJoin(session){
   if(adminApp)adminApp.classList.add("hidden");
   if(joinBox)joinBox.classList.remove("hidden");
   await renderPublicPersonnelJoin(token,session||null);
-  dismissBootScreen();
+  setBootStatus("พร้อมใช้งาน",100,"เปิดหน้าคำเชิญเรียบร้อยแล้ว");
+  window.setTimeout(dismissBootScreen,90);
 }
 
 async function renderPublicSchoolAdminApplication(token){
