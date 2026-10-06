@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.81";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.82";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -5104,23 +5104,71 @@ function academicCourseSubjectOptionsHtml(data,gradeLabel,selectedId=""){
     return '<option value="'+esc(subject.id)+'" '+(subject.id===selectedId?"selected":"")+'>'+esc(label)+'</option>';
   }).join("");
 }
-async function loadAcademicCurriculumPreset(data,programIdOverride){
+function academicSubjectContextCacheKey(data,programId,gradeCode=""){
+  const school=currentSchool(),year=academicSelectedYear(data);
+  return [school&&school.id||"",year&&year.id||data&&data.selected_year_id||"",programId||"",gradeCode||""].join("|");
+}
+function trimAcademicSubjectCache(cache,maxEntries=24){
+  if(!cache||typeof cache.size!=="number")return;
+  while(cache.size>maxEntries){
+    const first=cache.keys().next();
+    if(first.done)break;
+    cache.delete(first.value);
+  }
+}
+async function fetchSubjectWorkspaceCached(data,gradeCode,programId,force=false){
+  const school=currentSchool(),year=academicSelectedYear(data);
+  if(!school||!year||!gradeCode)return {data:null,error:null,cached:false};
+  const key=academicSubjectContextCacheKey(data,programId,gradeCode);
+  if(!force&&state.subjectWorkspaceCache.has(key)){
+    return {data:state.subjectWorkspaceCache.get(key),error:null,cached:true};
+  }
+  const res=await academicReadWithRetry(()=>supabase.rpc("lao_subject_workspace",{
+    p_school_id:school.id,
+    p_academic_year_id:year.id,
+    p_program_id:programId||null,
+    p_grade_code:gradeCode
+  }));
+  if(!res.error){
+    state.subjectWorkspaceCache.set(key,res.data||null);
+    trimAcademicSubjectCache(state.subjectWorkspaceCache);
+  }
+  return {data:res.error?null:(res.data||null),error:res.error||null,cached:false};
+}
+async function loadAcademicCurriculumPreset(data,programIdOverride,force=false){
   const school=currentSchool(),year=academicSelectedYear(data);
   if(!school||!year){
     state.academicPreset=null;
     return null;
   }
+  const programId=programIdOverride!==undefined?(programIdOverride||null):(state.academicFilters&&state.academicFilters.program_id||null);
+  const presetKey=academicSubjectContextCacheKey(data,programId,"__preset__");
+  if(!force&&state.subjectPresetCache.has(presetKey)){
+    state.academicPreset=state.subjectPresetCache.get(presetKey);
+    const cachedGrades=state.academicPreset&&state.academicPreset.supported_grades||[];
+    if(!cachedGrades.some(g=>g.grade_code===state.academicPresetGrade)){
+      state.academicPresetGrade=cachedGrades[0]&&cachedGrades[0].grade_code||"";
+    }
+    return state.academicPreset;
+  }
+  const templatePromise=!force&&state.centralTimeTemplatesCache.has(school.id)
+    ?Promise.resolve({data:state.centralTimeTemplatesCache.get(school.id),error:null})
+    :academicReadWithRetry(()=>supabase.rpc("lao_central_time_templates",{p_school_id:school.id,p_grade_code:null}));
   const [res,timeRes]=await Promise.all([
     academicReadWithRetry(()=>supabase.rpc("lao_curriculum_preset",{
       p_school_id:school.id,
       p_academic_year_id:year.id,
-      p_program_id:programIdOverride!==undefined?(programIdOverride||null):(state.academicFilters&&state.academicFilters.program_id||null)
+      p_program_id:programId
     })),
-    academicReadWithRetry(()=>supabase.rpc("lao_central_time_templates",{p_school_id:school.id,p_grade_code:null}))
+    templatePromise
   ]);
   if(res.error){
     state.academicPreset=null;
     return null;
+  }
+  if(!timeRes.error){
+    state.centralTimeTemplatesCache.set(school.id,timeRes.data||{items:[]});
+    trimAcademicSubjectCache(state.centralTimeTemplatesCache,8);
   }
   const schoolGradeSet=new Set(academicCurriculumGradeCodes(data));
   const preset=res.data||null;
@@ -5134,6 +5182,8 @@ async function loadAcademicCurriculumPreset(data,programIdOverride){
     preset.school_grade_codes=Array.from(schoolGradeSet);
   }
   state.academicPreset=preset;
+  state.subjectPresetCache.set(presetKey,preset);
+  trimAcademicSubjectCache(state.subjectPresetCache,12);
   const grades=state.academicPreset&&state.academicPreset.supported_grades||[];
   if(!grades.some(g=>g.grade_code===state.academicPresetGrade)){
     state.academicPresetGrade=grades[0]&&grades[0].grade_code||"";
@@ -5208,6 +5258,8 @@ async function loadAcademicStructure(){
   const school=currentSchool();
   if(!school)throw new Error("กรุณาเลือกสถานศึกษา");
   if(!canViewAcademic())throw new Error("ไม่มีสิทธิ์ดูข้อมูลงานวิชาการ");
+  state.subjectWorkspaceCache.clear();
+  state.subjectPresetCache.clear();
   const res=await academicReadWithRetry(()=>supabase.rpc("lao_academic_structure",{
     p_school_id:school.id,
     p_academic_year_id:state.academicYearId||null
@@ -7599,13 +7651,8 @@ async function academicsHtml(){
       p_academic_year_id:data.selected_year_id
     }));
     const workspacePromise=state.academicPresetGrade
-      ?academicReadWithRetry(()=>supabase.rpc("lao_subject_workspace",{
-        p_school_id:school.id,
-        p_academic_year_id:data.selected_year_id,
-        p_program_id:targetProgram,
-        p_grade_code:state.academicPresetGrade
-      }))
-      :Promise.resolve({data:null,error:null});
+      ?fetchSubjectWorkspaceCached(data,state.academicPresetGrade,targetProgram)
+      :Promise.resolve({data:null,error:null,cached:false});
 
     const [timelineResult,_presetResult,_timeResult,readyRes,wsRes]=await Promise.all([
       timelinePromise,
@@ -7664,12 +7711,13 @@ function academicScrollToForm(form){
   form.scrollIntoView({behavior:"smooth",block:"center"});
 }
 function bindAcademics(){
+  const academicMode=academicRouteState().mode;
   bindDepartmentSetupTimeline();
-  bindCourseCurriculumControls();
+  if(academicMode==="my-courses"||academicMode==="course-curriculum")bindCourseCurriculumControls();
   const data=state.academicData||{};
   const school=currentSchool();
-  bindTeachingWorkloadControls();
-  bindTimetableControls();
+  if(academicMode==="workload")bindTeachingWorkloadControls();
+  if(academicMode==="timetable")bindTimetableControls();
   const yearSelect=q("[data-academic-year-select]");
   if(yearSelect)yearSelect.addEventListener("change",()=>{
     state.academicYearId=yearSelect.value||null;
@@ -8117,15 +8165,11 @@ function bindAcademics(){
     setTimeout(()=>renderRoute(),450);
   }));
 
-  const loadSubjectWorkspaceFast=async(gradeCode,programId)=>{
-    if(!gradeCode){state.subjectWorkspaceData=null;return;}
-    const res=await academicReadWithRetry(()=>supabase.rpc("lao_subject_workspace",{
-      p_school_id:school.id,
-      p_academic_year_id:data.selected_year_id,
-      p_program_id:programId||null,
-      p_grade_code:gradeCode
-    }));
+  const loadSubjectWorkspaceFast=async(gradeCode,programId,force=false)=>{
+    if(!gradeCode){state.subjectWorkspaceData=null;return null;}
+    const res=await fetchSubjectWorkspaceCached(data,gradeCode,programId,force);
     state.subjectWorkspaceData=res.error?null:(res.data||null);
+    return state.subjectWorkspaceData;
   };
   const targetGradeCodesForProgram=programId=>{
     const allowed=new Set(academicCurriculumGradeCodes(data));
@@ -8231,19 +8275,34 @@ function bindAcademics(){
   }));
   qa("[data-back-to-subject-search]").forEach(btn=>btn.addEventListener("click",openSubjectFinder));
 
-  qa("[data-subject-completeness-grade]").forEach(btn=>btn.addEventListener("click",()=>{
-    state.subjectProgramId=btn.dataset.subjectCompletenessProgram||"";
-    state.academicPresetGrade=btn.dataset.subjectCompletenessGrade||"";
+  qa("[data-subject-completeness-grade]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const programId=btn.dataset.subjectCompletenessProgram||"";
+    const gradeCode=btn.dataset.subjectCompletenessGrade||"";
+    const programChanged=programId!==state.subjectProgramId;
+    const requestId=++state.subjectContextLoadId;
+    state.subjectProgramId=programId;
+    state.academicPresetGrade=gradeCode;
+    state.academicFilters={grade_label:academicGradeLabelFromCode(gradeCode),program_id:programId};
     state.subjectSetupTab="target";
     state.subjectWorkspaceView="selected";
     state.subjectParallelSelectionMode=false;
-    renderRoute();
+    state.subjectEditMode=false;
+    if(programChanged)state.academicPreset=null;
+    setBusy(btn,true,"กำลังโหลด...");
+    const tasks=[];
+    if(programChanged)tasks.push(loadAcademicCurriculumPreset(data,programId||null));
+    if(gradeCode)tasks.push(loadSubjectWorkspaceFast(gradeCode,programId||null));
+    await Promise.all(tasks);
+    setBusy(btn,false);
+    if(requestId!==state.subjectContextLoadId)return;
+    renderAcademicSubjectsCached();
   }));
   qa("[data-open-required-library]").forEach(btn=>btn.addEventListener("click",()=>{
     state.subjectCatalogScope=btn.dataset.openRequiredLibrary||"core";
     state.subjectSetupTab="type";
     state.subjectWorkspaceView="library";
-    renderRoute();
+    state.subjectParallelSelectionMode=false;
+    renderAcademicSubjectsCached(true);
   }));
   qa("[data-save-subject-replacement]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
@@ -8443,6 +8502,8 @@ function bindAcademics(){
     state.curriculumReadiness=null;
     state.subjectReadiness=null;
     state.subjectWorkspaceData=null;
+    state.subjectWorkspaceCache.clear();
+    state.subjectPresetCache.clear();
     state.subjectWorkspaceView=keepView;
     const rendered=renderRoute();
     if(preservePosition&&rendered&&typeof rendered.then==="function"){
