@@ -6099,6 +6099,31 @@ function academicSubjectsHtml(data,timeline){
   const overviewSumHours=(rows,predicate)=>rows.filter(predicate).reduce((sum,c)=>sum+(c.annual_hours==null?0:Number(c.annual_hours||0)),0);
   const overviewProgramMatrixHtml=(target,codes)=>{
     const coursesByGrade=new Map(codes.map(code=>[code,overviewEffectiveCourses(target.id,code)]));
+    const categoryName=c=>String(c.subject_name||c.name_th||c.learning_area||"ไม่ระบุชื่อ").trim();
+    const categoryRows=(type,title,totalTitle,groupClass)=>{
+      const names=new Set();
+      codes.forEach(code=>(coursesByGrade.get(code)||[])
+        .filter(c=>(c.subject_type||"other")===type)
+        .forEach(c=>names.add(categoryName(c))));
+      const rows=Array.from(names).filter(Boolean).sort((a,b)=>a.localeCompare(b,"th"));
+      if(!rows.length)return "";
+      let html='<tr class="curriculum-matrix-group '+groupClass+'"><th colspan="'+(codes.length+1)+'">'+esc(title)+'</th></tr>';
+      rows.forEach(name=>{
+        html+='<tr class="curriculum-matrix-item"><th>'+esc(name)+'</th>';
+        codes.forEach(code=>{
+          const hours=overviewSumHours(coursesByGrade.get(code)||[],c=>(c.subject_type||"other")===type&&categoryName(c)===name);
+          html+='<td>'+formatGradeHours(hours)+'</td>';
+        });
+        html+='</tr>';
+      });
+      html+='<tr class="curriculum-matrix-subtotal '+groupClass+'"><th>'+esc(totalTitle)+'</th>';
+      codes.forEach(code=>{
+        const total=overviewSumHours(coursesByGrade.get(code)||[],c=>(c.subject_type||"other")===type);
+        html+='<td><strong>'+formatGradeHours(total)+'</strong></td>';
+      });
+      html+='</tr>';
+      return html;
+    };
     const areaSet=new Set();
     codes.forEach(code=>(coursesByGrade.get(code)||[]).filter(c=>c.subject_type==="basic").forEach(c=>areaSet.add(overviewAreaKey(c))));
     const areas=Array.from(areaSet).sort((a,b)=>a.localeCompare(b,"th"));
@@ -6112,13 +6137,21 @@ function academicSubjectsHtml(data,timeline){
       body+='</tr>';
     });
     body+='<tr class="curriculum-matrix-subtotal"><th>รวมเวลาเรียน (พื้นฐาน)</th>';
-    codes.forEach(code=>{const g=groupFor(code,target.id);body+='<td>'+formatGradeHours(Number(g&&g.basic_hours_total||0))+'</td>';});
-    body+='</tr><tr class="curriculum-matrix-activity"><th>กิจกรรมพัฒนาผู้เรียน</th>';
-    codes.forEach(code=>{const g=groupFor(code,target.id);body+='<td>'+formatGradeHours(Number(g&&g.learner_activity_hours_total||0))+'</td>';});
-    body+='</tr><tr class="curriculum-matrix-additional"><th>รายวิชา / กิจกรรมที่สถานศึกษาจัดเพิ่มเติม</th>';
-    codes.forEach(code=>{const g=groupFor(code,target.id);body+='<td>'+formatGradeHours(Number(g&&g.additional_hours_total||0))+'</td>';});
-    body+='</tr><tr class="curriculum-matrix-total"><th>รวมเวลาเรียนทั้งหมด</th>';
-    codes.forEach(code=>{const g=groupFor(code,target.id);body+='<td><strong>'+formatGradeHours(Number(g&&(g.curriculum_recorded_hours_total!=null?g.curriculum_recorded_hours_total:g.annual_hours_total)||0))+'</strong><small>'+formatGradePeriods(Number(g&&g.weekly_periods_total||0))+' คาบ/สัปดาห์</small></td>';});
+    codes.forEach(code=>{
+      const total=overviewSumHours(coursesByGrade.get(code)||[],c=>c.subject_type==="basic");
+      body+='<td><strong>'+formatGradeHours(total)+'</strong></td>';
+    });
+    body+='</tr>';
+    body+=categoryRows("additional","รายวิชาเพิ่มเติม","รวมรายวิชาเพิ่มเติม","is-additional");
+    body+=categoryRows("activity","กิจกรรมพัฒนาผู้เรียน","รวมกิจกรรมพัฒนาผู้เรียน","is-activity");
+    const hasOther=codes.some(code=>(coursesByGrade.get(code)||[]).some(c=>!["basic","additional","activity"].includes(c.subject_type||"other")));
+    if(hasOther)body+=categoryRows("other","อื่น ๆ","รวมรายการอื่น ๆ","is-other");
+    body+='<tr class="curriculum-matrix-total"><th>รวมเวลาเรียนทั้งหมด</th>';
+    codes.forEach(code=>{
+      const g=groupFor(code,target.id);
+      const total=overviewSumHours(coursesByGrade.get(code)||[],()=>true);
+      body+='<td><strong>'+formatGradeHours(total)+'</strong><small>'+formatGradePeriods(Number(g&&g.weekly_periods_total||0))+' คาบ/สัปดาห์</small></td>';
+    });
     body+='</tr><tr class="curriculum-matrix-frame"><th>กรอบเวลาเรียนของโรงเรียน</th>';
     codes.forEach(code=>{const g=groupFor(code,target.id);body+='<td><strong>'+formatGradeHours(Number(g&&g.time_frame&&g.time_frame.capacity_hours_per_year||0))+'</strong><small>'+formatGradePeriods(Number(g&&g.periods_per_week_capacity||0))+' คาบ/สัปดาห์</small></td>';});
     body+='</tr><tr class="curriculum-matrix-status"><th>สถานะ</th>';
