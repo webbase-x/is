@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.86";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.87";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectParallelSelectionMode:false,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -5934,11 +5934,22 @@ function academicSubjectsHtml(data,timeline){
   const centralRowsOnly=centralRows;
   state.academicFilters={...(state.academicFilters||{}),grade_label:gradeLabel,program_id:selectedProgram?selectedProgram.id:""};
   const curriculumFrameworkHtml=academicCurriculumTimeFrameworkHtml(currentGroup,gradeLabel);
-  const confirmationHtml=currentStatus==="confirmed"
-    ?'<section class="subject-combined-confirmation confirmed"><div><strong>✓ ยืนยันโครงสร้างแล้ว</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านการตรวจและยืนยันรายวิชา/เวลาเรียนแล้ว</span></div></section>'
-    :currentStatus==="ready_to_confirm"
-      ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว</span></div>'+(canApprove?'<button type="button" class="primary-btn compact-btn" data-confirm-curriculum-structure>ยืนยันโครงสร้างนี้</button>':'')+'</section>'
-      :'';
+  const canConfirmCurrent=currentStatus==="ready_to_confirm"&&canApprove;
+  const confirmDisabledReason=!canApprove
+    ?"บัญชีนี้ไม่มีสิทธิ์ยืนยันโครงสร้าง"
+    :currentStatus!=="ready_to_confirm"
+      ?currentStatusLabel
+      :"";
+  const confirmationButton=currentStatus!=="confirmed"
+    ?'<button type="button" class="primary-btn compact-btn subject-confirm-btn" '+(canConfirmCurrent?'data-confirm-curriculum-structure':'disabled aria-disabled="true"')+(confirmDisabledReason?' title="'+esc(confirmDisabledReason)+'"':'')+'>ยืนยันโครงสร้างนี้</button>'
+    :'';
+  const confirmationHtml=currentGroup
+    ?currentStatus==="confirmed"
+      ?'<section class="subject-combined-confirmation confirmed"><div><strong>✓ ยืนยันโครงสร้างแล้ว</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านการตรวจและยืนยันรายวิชา/เวลาเรียนแล้ว</span></div></section>'
+      :currentStatus==="ready_to_confirm"
+        ?'<section class="subject-combined-confirmation ready"><div><strong>ข้อมูลพร้อมยืนยัน</strong><span>รายวิชา คาบ/สัปดาห์ และเวลาเรียนของ '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' ผ่านเงื่อนไขแล้ว</span></div>'+confirmationButton+'</section>'
+        :'<section class="subject-combined-confirmation pending"><div><strong>ยังยืนยันไม่ได้</strong><span>'+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+' · '+esc(currentStatusLabel)+'</span></div>'+confirmationButton+'</section>'
+    :'';
   const schoolGroups=workspaceView==="selected"
     ?selectedGroupHtml("basic","รายวิชาพื้นฐาน","รายวิชาที่ใช้ตามโครงสร้างหลักสูตรของระดับชั้นนี้")+
       selectedGroupHtml("additional","รายวิชาเพิ่มเติม","รายวิชาที่สถานศึกษากำหนดเพิ่มเติมตามหลักสูตรสถานศึกษา")+
@@ -8854,17 +8865,25 @@ function bindAcademics(){
 
   const confirmStructure=q("[data-confirm-curriculum-structure]");
   if(confirmStructure)confirmStructure.addEventListener("click",async()=>{
-    if(!confirm("ยืนยันว่าโครงสร้างรายวิชาและเวลาเรียนของบริบทที่เลือกครบตามหลักสูตรสถานศึกษาแล้ว?"))return;
+    const gradeCode=state.academicPresetGrade||"";
+    const programId=state.subjectProgramId||null;
+    const contextLabel=shortGrade(academicGradeLabelFromCode(gradeCode))+" · "+((data.year_programs||[]).find(p=>p.id===state.subjectProgramId)?.code||(data.year_programs||[]).find(p=>p.id===state.subjectProgramId)?.name_th||"ห้องปกติ");
+    if(!confirm("ยืนยันโครงสร้างรายวิชาและเวลาเรียนของ "+contextLabel+" ?\n\nหลังยืนยัน หากมีการแก้รายวิชา คาบ หรือเวลาเรียน ระบบจะให้ยืนยันใหม่เฉพาะบริบทนี้"))return;
     setBusy(confirmStructure,true,"กำลังยืนยัน...");
     const res=await supabase.rpc("lao_confirm_curriculum_group",{
       p_school_id:school.id,
       p_academic_year_id:data.selected_year_id,
-      p_program_id:state.subjectProgramId||null,
-      p_grade_code:state.academicPresetGrade||""
+      p_program_id:programId,
+      p_grade_code:gradeCode
     });
     setBusy(confirmStructure,false);
     if(res.error){toast(res.error.message,"error");return;}
-    toast("ยืนยันโครงสร้างเรียบร้อยแล้ว","success");
+    if(res.data&&res.data.status!=="confirmed"){
+      toast("ระบบยังไม่บันทึกการยืนยัน กรุณาลองใหม่หรือตรวจเงื่อนไขอีกครั้ง","error");
+      refreshSubjects();
+      return;
+    }
+    toast("ยืนยันโครงสร้าง "+contextLabel+" เรียบร้อยแล้ว","success");
     refreshSubjects();
   });
 
