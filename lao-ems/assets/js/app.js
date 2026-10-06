@@ -8453,32 +8453,29 @@ function bindAcademics(){
     state.subjectParallelSelectionMode=false;
     renderAcademicSubjectsCached(true);
   }));
-  const printCurriculumNode=(node,title)=>{
+  const printCurriculumStage=(node,stageLabel)=>{
     if(!node)return;
-    const popup=window.open("","_blank","width=1100,height=800");
+    const popup=window.open("","_blank","width=1180,height=840");
     if(!popup){toast("เบราว์เซอร์บล็อกหน้าต่าง PDF กรุณาอนุญาตป๊อปอัปแล้วลองใหม่","error");return;}
     const clone=node.cloneNode(true);
     qa("button",clone).forEach(x=>x.remove());
-    qa("[aria-hidden='true']",clone).forEach(x=>{if(x.classList.contains("curriculum-pdf-icon"))x.remove();});
     const schoolName=String(school&&school.name_th||"สถานศึกษา");
     const currentAcademicYear=academicSelectedYear(data);
-    const printTitle=title||"โครงสร้างหลักสูตรและเวลาเรียน";
+    const yearText=currentAcademicYear?String(currentAcademicYear.year_be):"";
+    const label=String(stageLabel||node.dataset.curriculumStageLabel||"ระดับการศึกษา");
+    const printTitle="โครงสร้างเวลาเรียน"+label;
+    const fileTitle=("โครงสร้างเวลาเรียน_"+label.replace(/^ระดับ/,"")+(yearText?"_ปี"+yearText:"")+"_"+schoolName).replace(/[\\/:*?"<>|]+/g,"_");
+    const printCss='body{font-family:Tahoma,Arial,sans-serif;color:#1d2939;margin:0;font-size:10.5px}h1,h2,h3,h4,p{margin:0}.print-head{text-align:center;margin-bottom:12px}.print-head h1{font-size:18px}.print-head p{margin-top:4px;color:#475467;font-size:11px}.curriculum-overview-stage{padding:0}.curriculum-overview-stage-head{display:none}.curriculum-overview-program{margin:0 0 14px;break-inside:avoid-page}.curriculum-overview-program-head{margin:0 0 6px;padding:7px 9px;border:1px solid #475467;border-bottom:0;background:#f8fafc}.curriculum-overview-program-head strong{font-size:12px}.curriculum-overview-program-head small{display:block;margin-top:2px;color:#475467}.curriculum-matrix-scroll{overflow:visible}.curriculum-matrix{width:100%;border-collapse:collapse;table-layout:fixed}.curriculum-matrix th,.curriculum-matrix td{border:1px solid #475467;padding:5px 6px;vertical-align:middle;text-align:center}.curriculum-matrix thead th{background:#f2f4f7;font-weight:800}.curriculum-matrix thead th:first-child,.curriculum-matrix tbody th{text-align:left}.curriculum-matrix thead th:first-child{width:30%}.curriculum-matrix th strong,.curriculum-matrix td strong{display:block}.curriculum-matrix th small,.curriculum-matrix td small{display:block;margin-top:1px;color:#475467;font-size:8.5px;font-weight:400}.curriculum-matrix-group th{background:#fce7df;font-weight:800}.curriculum-matrix-subtotal th,.curriculum-matrix-subtotal td{background:#fff4e5;font-weight:800}.curriculum-matrix-activity th,.curriculum-matrix-activity td{background:#fef3c7}.curriculum-matrix-additional th,.curriculum-matrix-additional td{background:#f4f3ff}.curriculum-matrix-total th,.curriculum-matrix-total td{background:#fde2e2;font-weight:800}.curriculum-matrix-frame th,.curriculum-matrix-frame td{background:#eff8ff;font-weight:800}.curriculum-matrix-status th,.curriculum-matrix-status td{background:#f8fafc}.curriculum-overview-status{display:inline-block;font-weight:800}.curriculum-overview-status.success{color:#067647}.curriculum-overview-status.ready{color:#175cd3}.curriculum-overview-status.warning{color:#b54708}.curriculum-overview-status.neutral{color:#475467}@page{size:A4 landscape;margin:10mm}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.curriculum-overview-program{break-inside:avoid-page}}';
     popup.document.open();
-    popup.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(printTitle)+'</title><style>'+
-      'body{font-family:Tahoma,Arial,sans-serif;color:#101828;margin:24px;font-size:12px}h1,h2,h3,h4,p{margin:0}.print-head{margin-bottom:18px;border-bottom:2px solid #101828;padding-bottom:10px}.print-head h1{font-size:20px}.print-head p{margin-top:4px;color:#475467}.curriculum-overview-stage{page-break-after:auto;margin-bottom:24px}.curriculum-overview-stage-head,.curriculum-overview-program-head,.curriculum-overview-grade-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.curriculum-overview-stage-head{border-bottom:2px solid #101828;padding-bottom:8px;margin-bottom:12px}.curriculum-overview-stage-head .eyebrow{font-size:9px;color:#667085}.curriculum-overview-stage-head h3{font-size:18px}.curriculum-overview-stage-head p{margin-top:3px;color:#667085}.curriculum-overview-program{border:1px solid #98a2b3;border-radius:10px;padding:12px;margin-bottom:14px;break-inside:avoid}.curriculum-overview-program-head{margin-bottom:10px}.curriculum-overview-program-head strong{font-size:15px}.curriculum-overview-program-head small{display:block;color:#667085;margin-top:2px}.curriculum-overview-grade{border:1px solid #d0d5dd;border-radius:8px;margin:10px 0;overflow:hidden;break-inside:avoid}.curriculum-overview-grade-head{padding:9px 10px;background:#f8fafc}.curriculum-overview-grade-head h4{font-size:14px}.curriculum-overview-grade-summary{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;color:#475467}.curriculum-overview-status{font-weight:bold}.curriculum-overview-course-head,.curriculum-overview-course-row{display:grid;grid-template-columns:90px minmax(220px,1fr) 110px 120px;gap:8px;align-items:center;padding:7px 10px}.curriculum-overview-course-head{background:#f2f4f7;font-weight:bold;border-top:1px solid #d0d5dd;border-bottom:1px solid #d0d5dd}.curriculum-overview-course-row{border-bottom:1px solid #eaecf0}.curriculum-overview-course-row:last-child{border-bottom:0}.curriculum-overview-course-name small{display:block;color:#667085;margin-top:2px}.curriculum-overview-empty{padding:12px;color:#667085}.curriculum-overview-toolbar{display:none}@page{size:A4 landscape;margin:12mm}@media print{body{margin:0}.curriculum-overview-program{break-inside:avoid-page}.curriculum-overview-grade{break-inside:avoid-page}}'+
-      '</style></head><body><header class="print-head"><h1>'+esc(printTitle)+'</h1><p>'+esc(schoolName)+(currentAcademicYear?' · ปีการศึกษา '+esc(currentAcademicYear.year_be):'')+'</p></header>'+clone.outerHTML+'</body></html>');
+    popup.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(fileTitle)+'</title><style>'+printCss+'</style></head><body><header class="print-head"><h1>'+esc(printTitle)+'</h1><p>'+esc(schoolName)+(yearText?' · ปีการศึกษา '+esc(yearText):'')+'</p></header>'+clone.outerHTML+'</body></html>');
     popup.document.close();
     popup.focus();
     window.setTimeout(()=>popup.print(),350);
   };
-  qa("[data-print-curriculum-node]").forEach(btn=>btn.addEventListener("click",e=>{
+  qa("[data-print-curriculum-stage]").forEach(btn=>btn.addEventListener("click",e=>{
     e.stopPropagation();
-    const node=btn.closest("[data-curriculum-overview-printable]");
-    const title=(node&&node.querySelector("h3,h4,strong")&&node.querySelector("h3,h4,strong").textContent||"โครงสร้างหลักสูตร").trim();
-    printCurriculumNode(node,title);
-  }));
-  qa("[data-print-curriculum-overview]").forEach(btn=>btn.addEventListener("click",()=>{
-    printCurriculumNode(q("[data-curriculum-overview-all-printable]"),"ภาพรวมโครงสร้างหลักสูตรและเวลาเรียน");
+    const node=btn.closest("[data-curriculum-stage-printable]");
+    printCurriculumStage(node,btn.dataset.stageLabel||node?.dataset.curriculumStageLabel||"");
   }));
 
   qa("[data-subject-setup-tab]").forEach(btn=>btn.addEventListener("click",()=>{
