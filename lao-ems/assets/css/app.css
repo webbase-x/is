@@ -12374,3 +12374,20 @@ html.is-touch-device [data-manual-refresh]{
   .boot-screen.is-leaving{transform:none}
 }
 
+/* Curriculum confirmation states — v0.19.87 */
+.subject-combined-confirmation.pending{
+  border-color:#fedf89;
+  background:#fffcf5;
+}
+.subject-combined-confirmation.pending strong{
+  color:#93370d;
+}
+.subject-combined-confirmation .subject-confirm-btn:disabled{
+  border-color:#d0d5dd!important;
+  background:#f2f4f7!important;
+  color:#98a2b3!important;
+  box-shadow:none!important;
+  cursor:not-allowed!important;
+  opacity:1!important;
+}
+
