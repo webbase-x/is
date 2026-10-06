@@ -5680,6 +5680,11 @@ function academicSubjectsHtml(data,timeline){
   const baseInherited=selectedProgram
     ?activeCourses.filter(c=>c.grade_code===gradeCode&&!c.program_id&&(c.subject_type==="basic"||c.subject_type==="activity")&&!excludedIds.has(c.subject_id))
     :[];
+  const baseProgramSourceBySubjectId=new Map(
+    activeCourses
+      .filter(c=>c.grade_code===gradeCode&&!c.program_id&&(c.subject_type==="basic"||c.subject_type==="activity"))
+      .map(c=>[c.subject_id,c])
+  );
   const directCourses=activeCourses.filter(c=>c.grade_code===gradeCode&&c.program_id===(selectedProgram?selectedProgram.id:null));
   const merged=new Map();
   baseInherited.forEach(c=>merged.set(logicalKey(c),{...c,_origin:"inherited"}));
@@ -5724,6 +5729,10 @@ function academicSubjectsHtml(data,timeline){
 
   const selectedCardHtml=c=>{
     const inherited=c._origin==="inherited";
+    const baseProgramSource=selectedProgram&&c._origin==="direct"
+      ?baseProgramSourceBySubjectId.get(c.subject_id)||null
+      :null;
+    const isProgramTimeOverride=Boolean(baseProgramSource);
     const pg=parallelByCourseId.get(c.id)||null;
     const canGroup=canEdit&&!inherited&&!pg;
     const isCentralItem=centralItemKeys.has(logicalKey(c));
@@ -5749,10 +5758,13 @@ function academicSubjectsHtml(data,timeline){
         (pg?'<span class="subject-origin grouped">กลุ่ม '+esc(pg.name)+' · นับ '+Number(pg.weekly_periods||0).toLocaleString("th-TH")+' คาบ</span>':'')+
         (pg&&canEdit&&!inherited?'<button type="button" class="text-btn compact-btn parallel-leave-btn" data-remove-parallel-course="'+esc(c.id)+'" data-parallel-group-id="'+esc(pg.id)+'" data-parallel-group-name="'+esc(pg.name)+'" data-parallel-member-count="'+Number((pg.members||[]).length)+'">ออกจากกลุ่ม</button>':'')+
         (!pg&&c.subject_type==="activity"&&c.subject_code&&(activityCodeCounts.get(String(c.subject_code).trim().toLowerCase())||0)>1?'<span class="subject-origin grouped">รหัสเดียวกัน · นับรวม 1 ช่องเวลา</span>':'')+
-        (inherited?'<span class="subject-origin inherited">รับจากห้องปกติ · เวลาเรียนใช้ร่วมกับห้องปกติ</span>':'')+
+        (inherited?'<span class="subject-origin inherited">ใช้เวลาห้องปกติเป็นค่าเริ่มต้น</span>':'')+
+        (inherited&&canEdit&&selectedProgram?'<button type="button" class="secondary-btn compact-btn subject-time-btn" data-create-program-time-override="'+esc(c.id)+'">ปรับเวลาเฉพาะ '+esc(programShortName(selectedProgram))+'</button>':'')+
+        (isProgramTimeOverride?'<span class="subject-origin time-override">เวลาเฉพาะ '+esc(programShortName(selectedProgram))+'</span>':'')+
         (canEdit&&!inherited&&!schoolTimeMissing?'<button type="button" class="secondary-btn compact-btn subject-time-btn" data-edit-subject-time="'+esc(c.id)+'">แก้เวลาเรียน</button>':'')+
+        (isProgramTimeOverride&&canEdit?'<button type="button" class="text-btn compact-btn" data-restore-program-time="'+esc(c.id)+'">กลับไปใช้เวลาห้องปกติ</button>':'')+
         (canEdit&&c.subject_type!=="basic"?'<button type="button" class="secondary-btn compact-btn" data-edit-school-library-subject="'+esc(c.subject_id)+'" data-school-subject-code="'+esc(c.subject_code||"")+'" data-school-subject-name="'+esc(c.subject_name||"")+'" data-school-subject-area="'+esc(c.learning_area||"")+'" data-school-subject-type="'+esc(c.subject_type||"")+'" data-school-subject-subtype="'+esc(sourceInfo.subject_subtype||"")+'">แก้ไขในคลัง รร.</button>':'')+
-        (canEdit?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+
+        (canEdit&&!isProgramTimeOverride?'<button type="button" class="subject-remove-btn" data-remove-curriculum-subject="'+esc(c.id)+'">'+(inherited?"นำออกจากโปรแกรม":"นำออก")+'</button>':'')+
       '</div>'+
       (!inherited?'<div class="subject-time-editor-slot" data-subject-time-slot="'+esc(c.id)+'"></div>':'')+
     '</article>';
@@ -8641,6 +8653,55 @@ function bindAcademics(){
     if(!form)return;
     if(created)form.classList.remove("hidden");
     else form.classList.toggle("hidden");
+  }));
+
+  if(state.subjectPendingTimeOpenId){
+    const pendingCourseId=state.subjectPendingTimeOpenId;
+    const {form}=ensureSubjectTimeForm(pendingCourseId);
+    if(form){
+      state.subjectPendingTimeOpenId=null;
+      form.classList.remove("hidden");
+      window.requestAnimationFrame(()=>form.scrollIntoView({behavior:"smooth",block:"center"}));
+    }
+  }
+
+  qa("[data-create-program-time-override]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+    const program=(data.year_programs||[]).find(p=>p.id===state.subjectProgramId)||null;
+    if(!program){toast("กรุณาเลือกโปรแกรมพิเศษก่อน","error");return;}
+    const label=program.code||program.name_th||"โปรแกรมพิเศษ";
+    setBusy(btn,true,"กำลังแยกเวลา...");
+    const res=await supabase.rpc("lao_create_program_course_override",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:program.id,
+      p_grade_code:state.academicPresetGrade||"",
+      p_source_course_id:btn.dataset.createProgramTimeOverride
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    state.subjectPendingTimeOpenId=res.data&&res.data.course_id||null;
+    toast("สร้างเวลาเรียนเฉพาะ "+label+" แล้ว · ห้องปกติไม่เปลี่ยน","success");
+    refreshSubjects(true);
+  }));
+
+  qa("[data-restore-program-time]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!state.subjectEditMode){toast("กรุณาเปิดสวิตช์การแก้ไขก่อน","error");return;}
+    const program=(data.year_programs||[]).find(p=>p.id===state.subjectProgramId)||null;
+    const label=program&&(program.code||program.name_th)||"โปรแกรมพิเศษ";
+    if(!confirm("กลับไปใช้เวลาเรียนของห้องปกติสำหรับ "+label+" ?\n\nเวลาเรียนที่ปรับเฉพาะโปรแกรมของรายวิชานี้จะถูกยกเลิก แต่ข้อมูลห้องปกติจะไม่เปลี่ยน"))return;
+    setBusy(btn,true,"กำลังคืนค่า...");
+    const res=await supabase.rpc("lao_remove_curriculum_item",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,
+      p_grade_code:state.academicPresetGrade||"",
+      p_course_id:btn.dataset.restoreProgramTime
+    });
+    setBusy(btn,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("กลับไปใช้เวลาเรียนของห้องปกติแล้ว","success");
+    refreshSubjects(true);
   }));
 
   qa("[data-add-central-subject]").forEach(btn=>btn.addEventListener("click",async()=>{
