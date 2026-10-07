@@ -12809,6 +12809,30 @@ html.is-touch-device [data-manual-refresh]{
   color:#7a271a!important;
   font-weight:900!important;
 }
+.curriculum-matrix-group.is-additional th{
+  background:#eeecff!important;
+  color:#5925dc!important;
+}
+.curriculum-matrix-group.is-activity th{
+  background:#fef0c7!important;
+  color:#93370d!important;
+}
+.curriculum-matrix-group.is-other th{
+  background:#f2f4f7!important;
+  color:#475467!important;
+}
+.curriculum-matrix-subtotal.is-additional th,
+.curriculum-matrix-subtotal.is-additional td{
+  background:#f4f3ff!important;
+}
+.curriculum-matrix-subtotal.is-activity th,
+.curriculum-matrix-subtotal.is-activity td{
+  background:#fffaeb!important;
+}
+.curriculum-matrix-subtotal.is-other th,
+.curriculum-matrix-subtotal.is-other td{
+  background:#f8fafc!important;
+}
 .curriculum-matrix-subtotal th,
 .curriculum-matrix-subtotal td{
   background:#fff4e5!important;
