@@ -6098,7 +6098,7 @@ function academicSubjectsHtml(data,timeline){
   const overviewNormalizedCourseName=value=>{
     const original=String(value||"").trim();
     if(!original)return "";
-    const cleaned=original.replace(/\s*(?:[-–—./]\s*)?[0-9๐-๙]+\s*$/u,"").trim();
+    const cleaned=original.replace(/\s*(?:[-–—./]\s*)?(?:\(\s*[0-9๐-๙]+\s*\)|[0-9๐-๙]+)\s*$/u,"").replace(/\s{2,}/g," ").trim();
     return cleaned||original;
   };
   const overviewWorkspaceFor=(programId,code)=>{
