@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.96";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.97";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectMainView:"manage",subjectParallelSelectionMode:false,subjectPendingTimeOpenId:null,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -6098,7 +6098,7 @@ function academicSubjectsHtml(data,timeline){
   const overviewNormalizedCourseName=value=>{
     const original=String(value||"").trim();
     if(!original)return "";
-    const cleaned=original.replace(/\s*(?:[-–—./]\s*)?[0-9๐-๙]+\s*$/u,"").trim();
+    const cleaned=original.replace(/\s*(?:[-–—./]\s*)?(?:\(\s*[0-9๐-๙]+\s*\)|[0-9๐-๙]+)\s*$/u,"").replace(/\s{2,}/g," ").trim();
     return cleaned||original;
   };
   const overviewWorkspaceFor=(programId,code)=>{
@@ -6252,7 +6252,7 @@ function academicSubjectsHtml(data,timeline){
       body+='<td><strong>'+formatGradeHours(total)+'</strong></td>';
     });
     body+='</tr>';
-    body+=categoryRows("additional","รายวิชาเพิ่มเติม","รวมรายวิชาเพิ่มเติม","is-additional");
+    body+=categoryRows("additional","วิชาเพิ่มเติม","รวมวิชาเพิ่มเติม","is-additional");
     body+=categoryRows("activity","กิจกรรมพัฒนาผู้เรียน","รวมกิจกรรมพัฒนาผู้เรียน","is-activity");
     const hasOther=codes.some(code=>(coursesByGrade.get(code)||[]).some(c=>!["basic","additional","activity"].includes(c.subject_type||"other")));
     if(hasOther)body+=categoryRows("other","อื่น ๆ","รวมรายการอื่น ๆ","is-other");
@@ -6260,8 +6260,7 @@ function academicSubjectsHtml(data,timeline){
     codes.forEach(code=>{
       const g=groupFor(code,target.id);
       const calculated=overviewSumHours(coursesByGrade.get(code)||[],()=>true);
-      const readinessTotal=Number(g&&(g.curriculum_recorded_hours_total??g.annual_hours_total));
-      const total=Number.isFinite(readinessTotal)&&readinessTotal>0?readinessTotal:calculated;
+      const total=calculated;
       body+='<td><strong>'+formatGradeHours(total)+'</strong><small>'+formatGradePeriods(Number(g&&g.weekly_periods_total||0))+' คาบ/สัปดาห์</small></td>';
     });
     body+='</tr><tr class="curriculum-matrix-frame"><th>กรอบเวลาเรียนของโรงเรียน</th>';
@@ -6275,7 +6274,7 @@ function academicSubjectsHtml(data,timeline){
       body+='<td><span class="curriculum-overview-status '+overviewStatusClass(g)+'">'+esc(overviewStatusLabel(g))+'</span></td>';
     });
     body+='</tr>';
-    const head='<thead><tr><th>หมวดหมู่ / รายวิชา / กิจกรรม</th>'+codes.map(code=>'<th>'+esc(shortGrade(academicGradeLabelFromCode(code)))+'</th>').join("")+'</tr></thead>';
+    const head='<thead><tr><th>หมวดหมู่ / รายการ</th>'+codes.map(code=>'<th>'+esc(shortGrade(academicGradeLabelFromCode(code)))+'</th>').join("")+'</tr></thead>';
     return '<article class="curriculum-overview-program"><div class="curriculum-overview-program-head"><div><strong>'+esc(target.label)+'</strong><small>'+esc(target.name)+(year?' · ปีการศึกษา '+esc(year.year_be):'')+'</small></div></div><div class="curriculum-matrix-scroll"><table class="curriculum-matrix">'+head+'<tbody>'+body+'</tbody></table></div></article>';
   };
   const overviewStagesHtml=overviewStageOrder.map(stageKey=>{
