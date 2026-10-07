@@ -1,5 +1,5 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
-import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.94";
+import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.95";
 
 const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectMainView:"manage",subjectParallelSelectionMode:false,subjectPendingTimeOpenId:null,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
@@ -6099,6 +6099,31 @@ function academicSubjectsHtml(data,timeline){
   const overviewSumHours=(rows,predicate)=>rows.filter(predicate).reduce((sum,c)=>sum+(c.annual_hours==null?0:Number(c.annual_hours||0)),0);
   const overviewProgramMatrixHtml=(target,codes)=>{
     const coursesByGrade=new Map(codes.map(code=>[code,overviewEffectiveCourses(target.id,code)]));
+    const categoryName=c=>String(c.subject_name||c.name_th||c.learning_area||"ไม่ระบุชื่อ").trim();
+    const categoryRows=(type,title,totalTitle,groupClass)=>{
+      const names=new Set();
+      codes.forEach(code=>(coursesByGrade.get(code)||[])
+        .filter(c=>(c.subject_type||"other")===type)
+        .forEach(c=>names.add(categoryName(c))));
+      const rows=Array.from(names).filter(Boolean).sort((a,b)=>a.localeCompare(b,"th"));
+      if(!rows.length)return "";
+      let html='<tr class="curriculum-matrix-group '+groupClass+'"><th colspan="'+(codes.length+1)+'">'+esc(title)+'</th></tr>';
+      rows.forEach(name=>{
+        html+='<tr class="curriculum-matrix-item"><th>'+esc(name)+'</th>';
+        codes.forEach(code=>{
+          const hours=overviewSumHours(coursesByGrade.get(code)||[],c=>(c.subject_type||"other")===type&&categoryName(c)===name);
+          html+='<td>'+formatGradeHours(hours)+'</td>';
+        });
+        html+='</tr>';
+      });
+      html+='<tr class="curriculum-matrix-subtotal '+groupClass+'"><th>'+esc(totalTitle)+'</th>';
+      codes.forEach(code=>{
+        const total=overviewSumHours(coursesByGrade.get(code)||[],c=>(c.subject_type||"other")===type);
+        html+='<td><strong>'+formatGradeHours(total)+'</strong></td>';
+      });
+      html+='</tr>';
+      return html;
+    };
     const areaSet=new Set();
     codes.forEach(code=>(coursesByGrade.get(code)||[]).filter(c=>c.subject_type==="basic").forEach(c=>areaSet.add(overviewAreaKey(c))));
     const areas=Array.from(areaSet).sort((a,b)=>a.localeCompare(b,"th"));
@@ -6112,13 +6137,21 @@ function academicSubjectsHtml(data,timeline){
       body+='</tr>';
     });
     body+='<tr class="curriculum-matrix-subtotal"><th>รวมเวลาเรียน (พื้นฐาน)</th>';
-    codes.forEach(code=>{const g=groupFor(code,target.id);body+='<td>'+formatGradeHours(Number(g&&g.basic_hours_total||0))+'</td>';});
-    body+='</tr><tr class="curriculum-matrix-activity"><th>กิจกรรมพัฒนาผู้เรียน</th>';
-    codes.forEach(code=>{const g=groupFor(code,target.id);body+='<td>'+formatGradeHours(Number(g&&g.learner_activity_hours_total||0))+'</td>';});
-    body+='</tr><tr class="curriculum-matrix-additional"><th>รายวิชา / กิจกรรมที่สถานศึกษาจัดเพิ่มเติม</th>';
-    codes.forEach(code=>{const g=groupFor(code,target.id);body+='<td>'+formatGradeHours(Number(g&&g.additional_hours_total||0))+'</td>';});
-    body+='</tr><tr class="curriculum-matrix-total"><th>รวมเวลาเรียนทั้งหมด</th>';
-    codes.forEach(code=>{const g=groupFor(code,target.id);body+='<td><strong>'+formatGradeHours(Number(g&&(g.curriculum_recorded_hours_total!=null?g.curriculum_recorded_hours_total:g.annual_hours_total)||0))+'</strong><small>'+formatGradePeriods(Number(g&&g.weekly_periods_total||0))+' คาบ/สัปดาห์</small></td>';});
+    codes.forEach(code=>{
+      const total=overviewSumHours(coursesByGrade.get(code)||[],c=>c.subject_type==="basic");
+      body+='<td><strong>'+formatGradeHours(total)+'</strong></td>';
+    });
+    body+='</tr>';
+    body+=categoryRows("additional","รายวิชาเพิ่มเติม","รวมรายวิชาเพิ่มเติม","is-additional");
+    body+=categoryRows("activity","กิจกรรมพัฒนาผู้เรียน","รวมกิจกรรมพัฒนาผู้เรียน","is-activity");
+    const hasOther=codes.some(code=>(coursesByGrade.get(code)||[]).some(c=>!["basic","additional","activity"].includes(c.subject_type||"other")));
+    if(hasOther)body+=categoryRows("other","อื่น ๆ","รวมรายการอื่น ๆ","is-other");
+    body+='<tr class="curriculum-matrix-total"><th>รวมเวลาเรียนทั้งหมด</th>';
+    codes.forEach(code=>{
+      const g=groupFor(code,target.id);
+      const total=overviewSumHours(coursesByGrade.get(code)||[],()=>true);
+      body+='<td><strong>'+formatGradeHours(total)+'</strong><small>'+formatGradePeriods(Number(g&&g.weekly_periods_total||0))+' คาบ/สัปดาห์</small></td>';
+    });
     body+='</tr><tr class="curriculum-matrix-frame"><th>กรอบเวลาเรียนของโรงเรียน</th>';
     codes.forEach(code=>{const g=groupFor(code,target.id);body+='<td><strong>'+formatGradeHours(Number(g&&g.time_frame&&g.time_frame.capacity_hours_per_year||0))+'</strong><small>'+formatGradePeriods(Number(g&&g.periods_per_week_capacity||0))+' คาบ/สัปดาห์</small></td>';});
     body+='</tr><tr class="curriculum-matrix-status"><th>สถานะ</th>';
@@ -8465,7 +8498,7 @@ function bindAcademics(){
     const label=String(stageLabel||node.dataset.curriculumStageLabel||"ระดับการศึกษา");
     const printTitle="โครงสร้างเวลาเรียน"+label;
     const fileTitle=("โครงสร้างเวลาเรียน_"+label.replace(/^ระดับ/,"")+(yearText?"_ปี"+yearText:"")+"_"+schoolName).replace(/[\\/:*?"<>|]+/g,"_");
-    const printCss='body{font-family:Tahoma,Arial,sans-serif;color:#1d2939;margin:0;font-size:10.5px}h1,h2,h3,h4,p{margin:0}.print-head{text-align:center;margin-bottom:12px}.print-head h1{font-size:18px}.print-head p{margin-top:4px;color:#475467;font-size:11px}.curriculum-overview-stage{padding:0}.curriculum-overview-stage-head{display:none}.curriculum-overview-program{margin:0 0 14px;break-inside:avoid-page}.curriculum-overview-program-head{margin:0 0 6px;padding:7px 9px;border:1px solid #475467;border-bottom:0;background:#f8fafc}.curriculum-overview-program-head strong{font-size:12px}.curriculum-overview-program-head small{display:block;margin-top:2px;color:#475467}.curriculum-matrix-scroll{overflow:visible}.curriculum-matrix{width:100%;border-collapse:collapse;table-layout:fixed}.curriculum-matrix th,.curriculum-matrix td{border:1px solid #475467;padding:5px 6px;vertical-align:middle;text-align:center}.curriculum-matrix thead th{background:#f2f4f7;font-weight:800}.curriculum-matrix thead th:first-child,.curriculum-matrix tbody th{text-align:left}.curriculum-matrix thead th:first-child{width:30%}.curriculum-matrix th strong,.curriculum-matrix td strong{display:block}.curriculum-matrix th small,.curriculum-matrix td small{display:block;margin-top:1px;color:#475467;font-size:8.5px;font-weight:400}.curriculum-matrix-group th{background:#fce7df;font-weight:800}.curriculum-matrix-subtotal th,.curriculum-matrix-subtotal td{background:#fff4e5;font-weight:800}.curriculum-matrix-activity th,.curriculum-matrix-activity td{background:#fef3c7}.curriculum-matrix-additional th,.curriculum-matrix-additional td{background:#f4f3ff}.curriculum-matrix-total th,.curriculum-matrix-total td{background:#fde2e2;font-weight:800}.curriculum-matrix-frame th,.curriculum-matrix-frame td{background:#eff8ff;font-weight:800}.curriculum-matrix-status th,.curriculum-matrix-status td{background:#f8fafc}.curriculum-overview-status{display:inline-block;font-weight:800}.curriculum-overview-status.success{color:#067647}.curriculum-overview-status.ready{color:#175cd3}.curriculum-overview-status.warning{color:#b54708}.curriculum-overview-status.neutral{color:#475467}@page{size:A4 landscape;margin:10mm}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.curriculum-overview-program{break-inside:avoid-page}}';
+    const printCss='body{font-family:Tahoma,Arial,sans-serif;color:#1d2939;margin:0;font-size:10.5px}h1,h2,h3,h4,p{margin:0}.print-head{text-align:center;margin-bottom:12px}.print-head h1{font-size:18px}.print-head p{margin-top:4px;color:#475467;font-size:11px}.curriculum-overview-stage{padding:0}.curriculum-overview-stage-head{display:none}.curriculum-overview-program{margin:0 0 14px;break-inside:avoid-page}.curriculum-overview-program-head{margin:0 0 6px;padding:7px 9px;border:1px solid #475467;border-bottom:0;background:#f8fafc}.curriculum-overview-program-head strong{font-size:12px}.curriculum-overview-program-head small{display:block;margin-top:2px;color:#475467}.curriculum-matrix-scroll{overflow:visible}.curriculum-matrix{width:100%;border-collapse:collapse;table-layout:fixed}.curriculum-matrix th,.curriculum-matrix td{border:1px solid #475467;padding:5px 6px;vertical-align:middle;text-align:center}.curriculum-matrix thead th{background:#f2f4f7;font-weight:800}.curriculum-matrix thead th:first-child,.curriculum-matrix tbody th{text-align:left}.curriculum-matrix thead th:first-child{width:30%}.curriculum-matrix th strong,.curriculum-matrix td strong{display:block}.curriculum-matrix th small,.curriculum-matrix td small{display:block;margin-top:1px;color:#475467;font-size:8.5px;font-weight:400}.curriculum-matrix-group th{background:#fce7df;font-weight:800}.curriculum-matrix-group.is-additional th{background:#eeecff;color:#5925dc}.curriculum-matrix-group.is-activity th{background:#fef0c7;color:#93370d}.curriculum-matrix-group.is-other th{background:#f2f4f7;color:#475467}.curriculum-matrix-subtotal th,.curriculum-matrix-subtotal td{background:#fff4e5;font-weight:800}.curriculum-matrix-subtotal.is-additional th,.curriculum-matrix-subtotal.is-additional td{background:#f4f3ff}.curriculum-matrix-subtotal.is-activity th,.curriculum-matrix-subtotal.is-activity td{background:#fffaeb}.curriculum-matrix-subtotal.is-other th,.curriculum-matrix-subtotal.is-other td{background:#f8fafc}.curriculum-matrix-total th,.curriculum-matrix-total td{background:#fde2e2;font-weight:800}.curriculum-matrix-frame th,.curriculum-matrix-frame td{background:#eff8ff;font-weight:800}.curriculum-matrix-status th,.curriculum-matrix-status td{background:#f8fafc}.curriculum-overview-status{display:inline-block;font-weight:800}.curriculum-overview-status.success{color:#067647}.curriculum-overview-status.ready{color:#175cd3}.curriculum-overview-status.warning{color:#b54708}.curriculum-overview-status.neutral{color:#475467}@page{size:A4 landscape;margin:10mm}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.curriculum-overview-program{break-inside:avoid-page}}';
     popup.document.open();
     popup.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(fileTitle)+'</title><style>'+printCss+'</style></head><body><header class="print-head"><h1>'+esc(printTitle)+'</h1><p>'+esc(schoolName)+(yearText?' · ปีการศึกษา '+esc(yearText):'')+'</p></header>'+clone.outerHTML+'</body></html>');
     popup.document.close();
