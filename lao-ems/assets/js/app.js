@@ -6095,11 +6095,20 @@ function academicSubjectsHtml(data,timeline){
     lower_secondary:"ระดับมัธยมศึกษาตอนต้น",
     upper_secondary:"ระดับมัธยมศึกษาตอนปลาย"
   };
-  const overviewAreaKey=c=>String(c.learning_area||c.subject_name||"ไม่ระบุกลุ่มสาระ").trim();
+  const overviewNormalizeSubjectName=value=>{
+    const raw=String(value||"").trim().replace(/\s+/g," ");
+    if(!raw)return "";
+    let normalized=raw.replace(/(?:\s+|[-–—]\s*)(?:[0-9]+|[๐-๙]+)\s*$/u,"").trim();
+    if(normalized===raw){
+      normalized=raw.replace(/([A-Za-z\u0E00-\u0E7F])(?:[0-9]+|[๐-๙]+)\s*$/u,"$1").trim();
+    }
+    return normalized||raw;
+  };
+  const overviewAreaKey=c=>overviewNormalizeSubjectName(c.learning_area||c.subject_name||"ไม่ระบุกลุ่มสาระ");
   const overviewSumHours=(rows,predicate)=>rows.filter(predicate).reduce((sum,c)=>sum+(c.annual_hours==null?0:Number(c.annual_hours||0)),0);
   const overviewProgramMatrixHtml=(target,codes)=>{
     const coursesByGrade=new Map(codes.map(code=>[code,overviewEffectiveCourses(target.id,code)]));
-    const categoryName=c=>String(c.subject_name||c.name_th||c.learning_area||"ไม่ระบุชื่อ").trim();
+    const categoryName=c=>overviewNormalizeSubjectName(c.subject_name||c.name_th||c.learning_area||"ไม่ระบุชื่อ");
     const categoryRows=(type,title,totalTitle,groupClass)=>{
       const names=new Set();
       codes.forEach(code=>(coursesByGrade.get(code)||[])
