@@ -1,0 +1,24 @@
+name: RT learning classroom
+on:
+  pull_request:
+    paths: ['P1/rt/**', '.github/workflows/rt-classroom.yml']
+  push:
+    branches: [main]
+    paths: ['P1/rt/**', '.github/workflows/rt-classroom.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check classroom JavaScript
+        run: |
+          node --check P1/rt/app.js
+          node --check P1/rt/core.js
+          node --check P1/rt/cloud.js
+      - name: Verify classroom and every exam image
+        run: npm test --prefix P1/rt
