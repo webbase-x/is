@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#0a304b"><title>BOYANG RUN · เส้นทางต่อเนื่องถึงประตูเมือง</title>
+<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#0a304b"><title>BOYANG RUN · Zoom In สู่ประตูเมือง</title>
 <style>
 :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#fff;color-scheme:dark;--glass:rgba(6,27,47,.70);--line:rgba(255,255,255,.26)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none} html,body{height:100%;width:100%;margin:0;overflow:hidden;overscroll-behavior:none;background:#071c2a;touch-action:none} button{font:inherit;cursor:pointer;touch-action:none;color:inherit}#game{position:relative;width:100%;height:100%;overflow:hidden;background:#0c2d48;isolation:isolate}
@@ -105,11 +105,14 @@ function renderScene(){
    $('sceneCounter').textContent=`ช่วง ${idx+1} / ${scenes.length}`;
    if(idx>0)announce('เข้าสู่ '+scenes[idx].name);
  }
- // Zoom OUT more visibly throughout each block, except the final gate approach.
- const zoomA=isFinal?(1.06 + .23*smooth(t)):(1.37 - .33*smooth(t));
- // Last ~22% of the street block crossfades into a new street photograph.
- const blend=isFinal?0:smooth(clamp((t-.77)/.23,0,1));
- const nextZoom=1.37;
+ // Move FORWARD by approaching the street scene (ZOOM IN), never zooming out.
+ // The next street is already at its starting scale behind the crossfade. This
+ // eliminates a scale snap when we switch scene indices, and restart resets the route
+ // instantly rather than animating a reverse zoom to the school.
+ const zoomA=isFinal?(1.06 + .50*smooth(t)):(1.02 + .46*smooth(t));
+ // Begin blending while the outgoing scene is still advancing toward the viewer.
+ const blend=isFinal?0:smooth(clamp((t-.72)/.28,0,1));
+ const nextZoom=1.02;
  const side=-s.laneX*W*.034;
  const speedBob=Math.sin(s.phase*2)*Math.min(s.speed/7,1)*2.3;
  const vertical=H*(.018*smooth(t));
