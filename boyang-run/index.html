@@ -4,9 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
 <meta name="theme-color" content="#0b2342" />
-<title>บ่อยางรัน • ช่วงที่ 1 หน้าโรงเรียน</title>
+<title>บ่อยางรัน | ถนนนครนอกสู่ประตูเมือง</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap');
+
 :root{font-family:Prompt,system-ui,-apple-system,sans-serif;color:#213a4d;--dark:#14283f;--cyan:#13b3b4;--orange:#ffad50;--cream:#fff9ee}
 *{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(circle at 18% 15%,#345b78 0%,#132a45 46%,#07182a 100%);overflow-x:hidden}
 button{font:inherit;cursor:pointer;touch-action:manipulation}button:focus-visible{outline:3px solid #1fd0d6;outline-offset:3px}
@@ -37,37 +37,65 @@ canvas{display:block;width:100%;height:100%;touch-action:none}.vignette{position
 @media(max-width:780px){.shell{padding:7px 6px 12px}.topbar{margin:5px 9px 9px}.brand h1{font-size:16px}.brand p{font-size:9px}.brand-mark{width:39px;height:39px;border-radius:12px;font-size:21px}.tag{display:none}.round-btn{height:34px;width:34px;font-size:18px}.main{padding:5px;border-radius:15px}.play-area{border-radius:11px;aspect-ratio:3/4;min-height:390px;max-height:calc(100dvh - 190px)}.hud{left:8px;right:8px;top:10px;gap:4px}.hud-left,.hud-right{gap:4px}.hud-card{min-width:63px;padding:6px 8px;border-radius:11px;border-width:1px}.hud-card .k{font-size:8px}.hud-card .v{font-size:15px}.chapter{font-size:9px;padding:8px 9px;max-width:145px;line-height:1.4;border-width:1px}.progress-wrap{top:66px;left:8px;width:130px}.zone-label{top:70px;right:8px;font-size:9px;padding:7px 10px}.hint{font-size:10px;padding:7px 9px;bottom:12px}.game-controls{padding:9px 0 4px;gap:7px}.control{min-width:0;flex:1;height:51px;border-radius:12px;font-size:18px;gap:3px}.control small{font-size:9px}.footnote{font-size:9px;padding:0 5px}.modal{padding:18px 18px;max-height:95%}.modal-icon{font-size:32px}.modal h2{font-size:21px}.modal p{font-size:12px}.btn-primary{padding:12px 20px;font-size:15px}.subline{margin-top:12px}}
 @media(max-width:390px){.control small{display:none}.hud-card .k{font-size:8px}.chapter{max-width:132px}.brand h1{font-size:14px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+/* Stage 01 visual refresh: Old Town Nakhon Nok */
+body{background:radial-gradient(circle at 45% 5%,#36778e 0%,#10334b 47%,#051726 100%)}
+.main{background:#fff9e9;border:2px solid #ffe6bd;box-shadow:0 20px 70px #0008}
+.play-area{background:#8fd4f2}
+.chapter{background:#fff9e9f2;border-color:#fff6e3;color:#315470}
+.zone-label{background:#174d65e8;border:1px solid #e7fbfc54}
+.progress-fill{background:linear-gradient(90deg,#15b6c4,#51ce85,#f5bd45)}
+.brand-mark{background:linear-gradient(135deg,#56d5e6,#ffbd63)}
+.modal{background:linear-gradient(160deg,#fffdfa,#fff3dc);border-color:#fff}
+.modal:before{content:"";display:block;width:72px;height:5px;border-radius:99px;margin:0 auto 13px;background:linear-gradient(90deg,#21c6c1,#fdaf54)}
+@media(max-width:780px){.play-area{aspect-ratio:3/4;max-height:calc(100dvh - 183px)}.chapter{max-width:164px}.footnote{line-height:1.5}}
 </style>
 </head>
 <body>
-<noscript><div style="background:#ffebe4;color:#5a281e;text-align:center;padding:16px;font-size:17px">โปรดเปิดเกมใน Safari หรือ Chrome และอนุญาตให้ใช้ JavaScript</div></noscript>
 <div class="shell">
-<header class="topbar"><div class="brand"><span class="brand-mark" aria-hidden="true">🏃</span><div><h1>บ่อยางรัน <span style="color:#fac678">·</span> BOYANG RUN</h1><p>ภาษาไทยผจญภัยในเมืองเก่าสงขลา</p></div></div><div class="top-right"><span class="tag">ต้นแบบ • ช่วงที่ 1</span><button class="round-btn" id="soundBtn" title="เปิดหรือปิดเสียง" aria-label="เปิดหรือปิดเสียง">♫</button><button class="round-btn" id="pauseBtn" title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว">Ⅱ</button></div></header>
+<header class="topbar"><div class="brand"><span class="brand-mark" aria-hidden="true">🏃</span><div><h1>บ่อยางรัน <span style="color:#fac678">·</span> BOYANG RUN</h1><p>จากโรงเรียนสู่ประตูเมืองเก่าสงขลา</p></div></div><div class="top-right"><span class="tag">เส้นทางที่ 1 · ถนนนครนอก</span><button class="round-btn" id="soundBtn" title="เปิดหรือปิดเสียง" aria-label="เปิดหรือปิดเสียง">♫</button><button class="round-btn" id="pauseBtn" title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว">Ⅱ</button></div></header>
 <main class="main">
 <div class="play-area" id="playArea"><canvas id="game" width="1120" height="630" aria-label="เกมบ่อยางรัน ด่านหน้าโรงเรียน"></canvas><div class="vignette"></div>
-<div class="hud"><div class="hud-left"><div class="hud-card"><div class="k">⭐ ดาวที่เก็บ</div><div class="v star" id="starCount">0</div></div><div class="hud-card"><div class="k">❤️ พลังใจ</div><div class="v" id="lifeCount">♥ ♥ ♥</div></div></div><div class="hud-right"><div class="chapter"><span style="font-size:22px">📍</span><span><strong>ช่วงที่ 1</strong><br>หน้าโรงเรียน → ถนนนครนอก</span></div></div></div>
+<div class="hud"><div class="hud-left"><div class="hud-card"><div class="k">⭐ ดาวที่เก็บ</div><div class="v star" id="starCount">0</div></div><div class="hud-card"><div class="k">❤️ พลังใจ</div><div class="v" id="lifeCount">♥ ♥ ♥</div></div></div><div class="hud-right"><div class="chapter"><span style="font-size:22px">🧭</span><span><strong>ช่วงที่ 1</strong><br>หน้าโรงเรียน → ประตูเมือง</span></div></div></div>
 <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="progressFill"></div></div></div><div class="zone-label" id="zoneLabel">🏫 หน้าโรงเรียน</div><div class="hint" id="hint">← → เปลี่ยนช่องทาง · ↑ กระโดด · ↓ สไลด์</div>
-<div class="overlay" id="overlay"><div class="modal" id="modalContent"><div class="modal-icon">🎒🏫</div><div class="eyebrow">BOYANG RUN · STAGE 01</div><h2>ออกเดินทางจากโรงเรียน!</h2><p>สำรวจถนนนครนอก เก็บดาว หลบสิ่งกีดขวาง<br>และผ่านภารกิจภาษาไทยที่ปลายทาง</p><div style="font-size:12px;font-weight:700;color:#3d6576">เลือกระดับชั้นของผู้เล่น</div><div class="grades"><button class="grade selected" data-grade="1">ป.1</button><button class="grade" data-grade="2">ป.2</button><button class="grade" data-grade="3">ป.3</button></div><button class="btn-primary" id="startBtn">▶ เริ่มผจญภัย</button><span class="subline">ฉากจำลองเพื่อทดสอบแนวทางเกม • ยังไม่ใช่แผนที่จริง</span></div></div>
+<div class="overlay" id="overlay"><div class="modal" id="modalContent"><div class="modal-icon">🎒🏫</div><div class="eyebrow">BOYANG RUN · STAGE 01</div><h2>ออกเดินทางจากโรงเรียน!</h2><p>สำรวจถนนนครนอก เก็บดาว หลบสิ่งกีดขวาง<br>และทำภารกิจภาษาไทยระหว่างทางสู่ประตูเมือง</p><div style="font-size:12px;font-weight:700;color:#3d6576">เลือกระดับชั้นของผู้เล่น</div><div class="grades"><button class="grade selected" data-grade="1">ป.1</button><button class="grade" data-grade="2">ป.2</button><button class="grade" data-grade="3">ป.3</button></div><button class="btn-primary" id="startBtn">▶ เริ่มผจญภัย</button><span class="subline">ฉากจำลองเพื่อทดสอบแนวทางเกม • ยังไม่ใช่แผนที่นำทางจริง</span></div></div>
 </div>
 <div class="game-controls" aria-label="ปุ่มควบคุมเกม"><button class="control" id="leftBtn" aria-label="ซ้าย">◀ <small>ซ้าย</small></button><button class="control special" id="jumpBtn" aria-label="กระโดด">↑ <small>กระโดด</small></button><button class="control special" id="slideBtn" aria-label="สไลด์">↓ <small>สไลด์</small></button><button class="control" id="rightBtn" aria-label="ขวา"><small>ขวา</small> ▶</button></div>
 </main>
-<div class="footnote"><span>🎙️ เสียงพากย์นักเรียนและภาพสถานที่จริง จะเพิ่มเติมในขั้นพัฒนาเนื้อหา</span><span><b>เล่นผ่านเว็บได้</b> · รองรับคีย์บอร์ดและจอสัมผัส · ไม่เชื่อมฐานข้อมูล</span></div>
+<div class="footnote"><span>🎙️ เสียงพากย์นักเรียนจะเพิ่มภายหลัง · ฉากการ์ตูนอ้างอิงลักษณะชุมชนจากภาพถ่ายที่ให้มา</span><span><b>เล่นผ่านเว็บได้</b> · รองรับคีย์บอร์ดและจอสัมผัส · ไม่เชื่อมฐานข้อมูล</span></div>
 </div>
 <script>
 (()=>{
 'use strict';
 const cv=document.getElementById('game'),ctx=cv.getContext('2d');
 const ui={overlay:document.getElementById('overlay'),modal:document.getElementById('modalContent'),stars:document.getElementById('starCount'),life:document.getElementById('lifeCount'),progress:document.getElementById('progressFill'),zone:document.getElementById('zoneLabel'),hint:document.getElementById('hint')};
-const W=1120,H=630,HORIZON=235,ROAD_BOTTOM=680,CENTER=560;let game,grade=1,sound=true,last=0,rafT=0,fxTime=0,audioContext=null,swipeStart=null;
+let W=1120,H=630,HORIZON=235,CENTER=560,portrait=false;let game,grade=1,sound=true,last=0,rafT=0,fxTime=0,audioContext=null,swipeStart=null;
 const $=s=>document.querySelector(s);
 const startHTML=ui.modal.innerHTML;
-const questions={
+function resizeGame(){portrait=window.matchMedia('(max-width:780px)').matches;W=portrait?720:1120;H=portrait?960:630;HORIZON=H*(portrait?.36:.355);CENTER=W/2;cv.width=W;cv.height=H}
+window.addEventListener('resize',resizeGame,{passive:true});resizeGame();
+const oldquestions={
 1:{title:'ข้อใดเขียนว่า “ถนน” ได้ถูกต้อง?',options:['ทะนน','ถนน','ถะนน'],correct:1,detail:'ถนน เป็นทางสำหรับเดินทาง'},
 2:{title:'ประโยคใดเขียนได้ถูกต้อง?',options:['เด็ก ๆ เดินไปโรงเรียน','เด็ก ๆ เดินไปโรงเรียน?','เด็ก ๆ เดินไปโรงเรียน ๆ'],correct:0,detail:'ประโยคบอกเล่าใช้ถ้อยคำชัดเจนและมีความหมาย'},
 3:{title:'“ชุมชนบ่อยางมีผู้คนต่างวัฒนธรรมอาศัยอยู่ร่วมกัน” ใจความสำคัญคืออะไร?',options:['ทุกคนต้องมีวัฒนธรรมเดียวกัน','ชุมชนบ่อยางมีวัฒนธรรมหลากหลาย','ทุกคนอาศัยอยู่ในโรงเรียน'],correct:1,detail:'ใจความสำคัญคือความหลากหลายของผู้คนในชุมชน'}
 };
-function init(){game={state:'menu',lane:0,laneVisual:0,stars:0,lives:3,distance:0,objects:[],spawn:0,hitCooldown:0,jump:0,slide:0,invincible:0,quizSolved:false,particles:[],flash:0,elapsed:0};refreshHud();}
-function refreshHud(){ui.stars.textContent=game.stars;ui.life.textContent='♥ '.repeat(Math.max(0,game.lives)).trim()||'—';ui.progress.style.width=Math.min(100,game.distance/145*100)+'%';ui.zone.textContent=game.distance<38?'🏫 หน้าโรงเรียน':'🏘️ ถนนนครนอก';}
+const checkpoints={
+1:[
+ {place:'หน้าโรงเรียน',title:'ข้อใดอ่านว่า “ถะ-หนน”?',options:['ถนน','ขนม','ทะเล'],correct:0,detail:'ถนน คือทางที่เราใช้เดินทาง'},
+ {place:'ชุมชนริมถนน',title:'ข้อใดเป็นคำที่มีความหมายว่า “บ้านหลายหลังอยู่ใกล้กัน”?',options:['ชุมชน','สนาม','ดินสอ'],correct:0,detail:'ชุมชน คือกลุ่มบ้านและผู้คนที่อยู่ร่วมกัน'},
+ {place:'ประตูเมือง',title:'คำใดเขียนถูกต้อง?',options:['ประตูเมือง','ปะตูเมือง','ประตูเมื่อง'],correct:0,detail:'ประตูเมือง เป็นส่วนหนึ่งของเรื่องราวเมืองเก่าสงขลา'}],
+2:[
+ {place:'หน้าโรงเรียน',title:'ประโยคใดใช้คำว่า “ถนน” ได้ถูกต้อง?',options:['ถนนเดินไปเด็ก','เด็กเดินบนทางเท้าริมถนน','เดินเด็กถนนโรงเรียน'],correct:1,detail:'การเรียงประโยคที่ดีต้องสื่อความหมายชัดเจน'},
+ {place:'ชุมชนริมถนน',title:'คำใดมีความหมายใกล้เคียงกับ “ชุมชน”?',options:['หมู่บ้าน','ทะเล','สมุด'],correct:0,detail:'ชุมชนคือสถานที่ที่ผู้คนอาศัยและดำเนินชีวิตร่วมกัน'},
+ {place:'ประตูเมือง',title:'เรียงคำเป็นประโยค: “เมืองเก่า / ผู้คน / ร่วมกัน / ดูแล”',options:['ดูแลเมืองเก่าผู้คนร่วมกัน','ผู้คนร่วมกันดูแลเมืองเก่า','ร่วมกันผู้คนเมืองเก่าดูแล'],correct:1,detail:'ผู้คนร่วมกันดูแลเมืองเก่า'}],
+3:[
+ {place:'หน้าโรงเรียน',title:'ข้อใดเป็นใจความสำคัญของ “นักเรียนออกเดินทางจากโรงเรียนเพื่อเรียนรู้เรื่องราวของชุมชน”?',options:['นักเรียนซื้อของ','นักเรียนไปเรียนรู้ชุมชน','นักเรียนกลับบ้าน'],correct:1,detail:'ใจความสำคัญบอกว่าผู้คนกำลังทำอะไร'},
+ {place:'ชุมชนริมถนน',title:'เมื่อพบผู้คนที่มีวิถีชีวิตต่างจากเรา ควรทำอย่างไร?',options:['ล้อเลียนความแตกต่าง','รับฟังและเคารพกัน','หลีกเลี่ยงการพูดคุยทุกครั้ง'],correct:1,detail:'ภาษาและคำพูดสุภาพช่วยสร้างความเข้าใจระหว่างกัน'},
+ {place:'ประตูเมือง',title:'ข้อความใดสรุปเรื่องเมืองเก่าสงขลาได้ดีที่สุด?',options:['ทุกคนต้องมีวัฒนธรรมเหมือนกัน','ความหลากหลายทำให้อยู่ร่วมกันไม่ได้','ชุมชนมีเรื่องเล่าและวิถีชีวิตหลากหลายที่ควรเรียนรู้'],correct:2,detail:'การรับรู้ความหลากหลายเริ่มจากการฟัง อ่าน และพูดคุยอย่างเคารพกัน'}]
+};
+const stops=[45,95,145];
+function init(){game={state:'menu',lane:0,laneVisual:0,stars:0,lives:3,distance:0,objects:[],spawn:0,hitCooldown:0,jump:0,slide:0,invincible:0,quizSolved:false,checkpoint:0,particles:[],flash:0,elapsed:0};refreshHud();}
+function refreshHud(){ui.stars.textContent=game.stars;ui.life.textContent='♥ '.repeat(Math.max(0,game.lives)).trim()||'—';ui.progress.style.width=Math.min(100,game.distance/145*100)+'%';ui.zone.textContent=game.distance<35?'🏫 หน้าโรงเรียน':game.distance<95?'🏘️ ชุมชนถนนนครนอก':'🏯 สู่ประตูเมือง';}
 function tone(freq=600,duration=.07,type='sine',gain=.05){if(!sound)return;try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const o=audioContext.createOscillator(),g=audioContext.createGain();o.type=type;o.frequency.setValueAtTime(freq,audioContext.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(70,freq*.8),audioContext.currentTime+duration);g.gain.setValueAtTime(gain,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+duration);o.connect(g);g.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+duration+.015)}catch(e){}}
 function enterGame(){init();game.state='playing';ui.overlay.classList.add('hidden');ui.hint.textContent='← → เปลี่ยนช่อง · ↑ กระโดด · ↓ สไลด์';tone(700,.13);setTimeout(()=>{if(game.state==='playing')ui.hint.style.opacity='0'},4700)}
 function chooseGrade(v){grade=v;document.querySelectorAll('.grade').forEach(b=>b.classList.toggle('selected',Number(b.dataset.grade)===grade));}
@@ -88,39 +116,80 @@ if(game.distance<128&&game.spawn>.72){spawnObject();game.spawn=0;}
 for(const o of game.objects){o.z+=dt*.45;if(o.z>=.89&&!o.hit){o.hit=true;if(o.lane===game.lane){if(o.kind==='cone'){if(game.jump<=0&&game.invincible<=0){game.lives=Math.max(0,game.lives-1);game.invincible=1.4;game.flash=.25;tone(160,.16,'sawtooth',.06)}}else{game.stars+=o.kind==='book'?3:1;game.flash=.11;tone(o.kind==='book'?840:650,.07,'sine',.033)}}}}
 game.objects=game.objects.filter(o=>o.z<1.14);game.particles=game.particles.filter(p=>p.life>0);game.particles.forEach(p=>{p.y-=dt*p.v;p.x+=dt*p.vx;p.life-=dt});refreshHud();
 if(game.lives<=0){game.lives=3;game.distance=Math.max(0,game.distance-15);game.objects=[];game.flash=.4;ui.hint.style.opacity='1';ui.hint.textContent='พลังใจหมดแล้ว! กลับมาลองอีกครั้ง 💪';setTimeout(()=>{if(game.state==='playing')ui.hint.style.opacity='0'},2100)}
-if(game.distance>=145){game.state='quiz';showQuiz()}}
-function showQuiz(){const q=questions[grade];modal(`<div class="modal-icon">📖✨</div><div class="eyebrow">ด่านภาษาไทย • ชั้น ป.${grade}</div><h2>ภารกิจป้ายถนน</h2><p>เยี่ยมมาก! คุณเดินทางถึงจุดหมายช่วงแรกแล้ว<br>ตอบคำถามเพื่อรับตรานักสำรวจ</p><div class="quest"><div class="quest-title">${q.title}</div></div><div class="answers" id="answers">${q.options.map((o,i)=>`<button class="answer" data-answer="${i}">${i+1}. ${o}</button>`).join('')}</div><div class="quiz-msg" id="quizMsg">เลือกคำตอบที่ถูกต้อง 1 ข้อ</div>`);$('#answers').addEventListener('click',e=>{const b=e.target.closest('[data-answer]');if(!b)return;if(+b.dataset.answer!==q.correct){b.classList.add('wrong');$('#quizMsg').textContent='ลองอีกครั้งนะ อ่านให้ละเอียดอีกนิด 😊';tone(220,.10,'triangle',.035);return}tone(880,.14);setTimeout(()=>tone(1100,.2),110);win(q)})}
-function win(q){game.state='complete';const key='boyang-run-stage1-best';let best=game.stars;try{best=Math.max(Number(localStorage.getItem(key)||0),game.stars);localStorage.setItem(key,String(best))}catch(e){}modal(`<div class="modal-icon">🏅🎉</div><div class="eyebrow">STAGE 01 · CLEAR!</div><h2>สำเร็จ! นักสำรวจบ่อยาง</h2><p>${q.detail}<br>คุณพิชิตช่วงที่ 1 จากหน้าโรงเรียนสู่ถนนนครนอกแล้ว</p><div class="rewards"><div class="reward">⭐ ${game.stars} ดาว</div><div class="reward">🏆 สถิติ ${best} ดาว</div></div><div style="font-size:13px;font-weight:700;color:#0b9ca0;margin-bottom:17px">🔓 ช่วงที่ 2 จะเปิดหลังออกแบบและทดสอบร่วมกัน</div><button class="btn-primary" id="restartBtn">↻ เล่นช่วงนี้อีกครั้ง</button><span class="subline">ความคืบหน้าบันทึกเฉพาะสถิติดาวบนอุปกรณ์นี้</span>`);$('#restartBtn').onclick=enterGame}
+if(game.checkpoint<stops.length&&game.distance>=stops[game.checkpoint]){game.state='quiz';showQuiz()}}
+function showQuiz(){const q=checkpoints[grade][game.checkpoint];const n=game.checkpoint+1;modal(`<div class="modal-icon">📖✨</div><div class="eyebrow">ภารกิจภาษาไทย ${n}/3 • ชั้น ป.${grade}</div><h2>${q.place}</h2><p>พักอ่านก่อนวิ่งต่อ ตอบคำถามเพื่อเก็บหน้าหนังสือบ่อยาง</p><div class="quest"><div class="quest-title">${q.title}</div></div><div class="answers" id="answers">${q.options.map((o,i)=>`<button class="answer" data-answer="${i}">${i+1}. ${o}</button>`).join('')}</div><div class="quiz-msg" id="quizMsg">เลือกคำตอบที่ถูกต้อง 1 ข้อ</div>`);$('#answers').addEventListener('click',e=>{const b=e.target.closest('[data-answer]');if(!b)return;if(+b.dataset.answer!==q.correct){b.classList.add('wrong');$('#quizMsg').textContent='อ่านอีกครั้งแล้วลองใหม่นะ 😊';tone(220,.10,'triangle',.035);return}tone(880,.14);setTimeout(()=>tone(1100,.2),110);game.stars+=5;game.checkpoint++;refreshHud();if(game.checkpoint===3)win(q);else{modal(`<div class="modal-icon">📚🌟</div><div class="eyebrow">ผ่านภารกิจ ${n}/3</div><h2>ตอบถูกแล้ว!</h2><p>${q.detail}</p><div class="reward">⭐ รับเพิ่ม 5 ดาว · หนังสือเรื่องบ่อยาง 1 หน้า</div><p>เตรียมออกเดินทางต่อบนถนนนครนอก</p><button class="btn-primary" id="continueBtn">▶ วิ่งต่อ</button>`);$('#continueBtn').onclick=()=>{game.state='playing';ui.overlay.classList.add('hidden');ui.hint.style.opacity='1';ui.hint.textContent='เก็บดาวระหว่างทาง แล้วพบกันที่จุดต่อไป';setTimeout(()=>ui.hint.style.opacity='0',2300)}}})}
+function win(q){game.state='complete';const key='boyang-run-stage1-best';let best=game.stars;try{best=Math.max(Number(localStorage.getItem(key)||0),game.stars);localStorage.setItem(key,String(best));localStorage.setItem('boyang-run-nakhonnok-complete','true')}catch(e){}modal(`<div class="modal-icon">🏯🏅🎉</div><div class="eyebrow">NAKHON NOK · ROUTE CLEAR!</div><h2>ถึงประตูเมืองแล้ว!</h2><p>${q.detail}<br>คุณเดินทางจากหน้าโรงเรียนผ่านชุมชนถนนนครนอกถึงประตูเมืองจำลองแล้ว</p><div class="rewards"><div class="reward">⭐ ${game.stars} ดาว</div><div class="reward">📖 3 เรื่องเล่า</div></div><div style="font-size:13px;font-weight:700;color:#0b9ca0;margin-bottom:17px">🏅 ได้รับตรานักสำรวจถนนนครนอก</div><button class="btn-primary" id="restartBtn">↻ เล่นเส้นทางนี้อีกครั้ง</button><span class="subline">เกมจำลองเพื่อเรียนรู้ ไม่ใช่แผนที่นำทางจริง · ข้อมูลบันทึกบนเครื่องนี้</span>`);$('#restartBtn').onclick=enterGame}
 function rr(x,y,w,h,r,fill,stroke,sw=1){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.lineWidth=sw;ctx.strokeStyle=stroke;ctx.stroke()}}
 function poly(pts,fill,stroke,sw=1){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw;ctx.stroke()}}
 function line(x1,y1,x2,y2,color,w=2){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=color;ctx.lineWidth=w;ctx.stroke()}
 function circle(x,y,r,c){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=c;ctx.fill()}
 function txt(t,x,y,size=22,color='#123',weight='700',align='center'){ctx.font=`${weight} ${size}px Prompt,system-ui,sans-serif`;ctx.textAlign=align;ctx.fillStyle=color;ctx.fillText(t,x,y)}
 function cloud(x,y,s){ctx.save();ctx.globalAlpha=.85;circle(x-29*s,y,19*s,'#fffaf0');circle(x,y-9*s,25*s,'#fffaf0');circle(x+23*s,y,18*s,'#fffaf0');rr(x-45*s,y-1*s,88*s,17*s,8*s,'#fffaf0');ctx.restore()}
-function school(){const x=380,y=174;ctx.save();ctx.globalAlpha=Math.max(0,1-Math.max(0,game.distance-23)/36);rr(x,y-59,360,112,7,'#ffeac8','#d5957d',4);rr(x+22,y-39,316,26,4,'#fafcf0','#d0afa0',1);txt('โรงเรียนเทศบาล ๑',x+180,y-19,21,'#285071','800');for(let i=0;i<6;i++){rr(x+18+i*54,y+10,34,35,4,'#86c4d2','#d8a58d',3)}poly([[x-14,y-58],[x+180,y-101],[x+374,y-58]],'#c97163','#ac534c',3);line(x+177,y-101,x+177,y-115,'#f4fbf8',3);rectFlag(x+178,y-125);rr(377,224,25,39,3,'#fff1d1','#ae8e75',2);rr(719,224,25,39,3,'#fff1d1','#ae8e75',2);ctx.restore()}
-function rectFlag(x,y){poly([[x,y],[x+29,y+4],[x+29,y+18],[x,y+14]],'#e5655a');line(x+1,y+5,x+29,y+9,'#fff4d0',4);line(x+1,y+9,x+29,y+13,'#286d9f',3)}
-function backdrop(t){let grd=ctx.createLinearGradient(0,0,0,H);grd.addColorStop(0,'#8ed8ee');grd.addColorStop(.43,'#f1ecbe');grd.addColorStop(1,'#f4d89a');ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);circle(840,104,51,'#fff6bb');circle(840,104,68,'#fff5cb33');cloud(174+(t*4)%110,86,1.07);cloud(944-(t*3)%90,127,.74);cloud(580,56,.58);
-// Songkhla Lake-inspired horizon, stylized instead of geographic map
-let water=ctx.createLinearGradient(0,245,0,575);water.addColorStop(0,'#7ac4c2');water.addColorStop(1,'#2a9bb2');ctx.fillStyle=water;ctx.fillRect(0,242,W,388);
-for(let i=0;i<16;i++){const x=((i*131+t*14)%1200)-90,y=258+(i*37)%245;line(x,y,x+40+(i%4)*12,y,'#cefbdf65',2)}
-poly([[0,230],[180,205],[358,241],[380,304],[0,355]],'#a6d6a6');poly([[900,250],[998,220],[1120,216],[1120,409],[810,290]],'#a2cc9e');
-for(let i=0;i<9;i++){const x=i*118+25,off=Math.sin(i*2)*13;poly([[x,232+off],[x+45,183+off],[x+97,237+off]],i%2?'#cba99a':'#c8b099');rr(x+8,227+off,79,52,2,i%3?'#ecc69f':'#d6b6ac');for(let j=0;j<3;j++)rr(x+18+j*22,240+off,13,17,2,'#78a8b7')}
-school();}
-function streetShop(x,y,s,i,side){const w=103*s,h=(86+(i%3)*23)*s;ctx.save();ctx.translate(x,y);ctx.scale(side*s<0?-1:1,1);const palette=['#f6cfaa','#edb4aa','#ffe1af','#a2c2ac','#e9bb9c','#c7d8d0'];const c=palette[(i+6)%palette.length];rr(-w/2,-h,w,h,3*s,c,'#ae9a82',2*s);poly([[-w*.60,-h],[-w*.53,-h-18*s],[w*.53,-h-18*s],[w*.60,-h]],'#bd6d61');rr(-w*.40,-h*.78,w*.30,h*.38,2*s,'#79a9ad','#eee3b7',2*s);rr(w*.1,-h*.78,w*.29,h*.38,2*s,'#79a9ad','#eee3b7',2*s);rr(-w*.43,-h*.29,w*.86,h*.12,1*s,i%2?'#f6edc1':'#d97860');rr(-w*.4,-h*.17,w*.8,h*.18,1*s,'#7fa5ac');ctx.restore()}
-function road(t){const grd=ctx.createLinearGradient(0,HORIZON,0,H);grd.addColorStop(0,'#858b8b');grd.addColorStop(1,'#586777');poly([[CENTER-117,HORIZON],[CENTER+117,HORIZON],[W+145,H],[-145,H]],grd);
-poly([[CENTER-127,HORIZON],[CENTER-115,HORIZON],[13,H],[-13,H]],'#f1dfbd');poly([[CENTER+115,HORIZON],[CENTER+127,HORIZON],[W+13,H],[W-13,H]],'#f1dfbd');line(CENTER-117,HORIZON,-145,H,'#edf8ea',5);line(CENTER+117,HORIZON,W+145,H,'#edf8ea',5);
-for(let i=0;i<16;i++){let z=((i/16+game.distance*.034)%1);const y=HORIZON+Math.pow(z,1.48)*(H-HORIZON+80),a=111+z*255;let dashLen=9+z*35,dashWidth=1+z*7;line(CENTER-a/3,y,CENTER-a/3,y+dashLen,'#fff6e4b9',dashWidth);line(CENTER+a/3,y,CENTER+a/3,y+dashLen,'#fff6e4b9',dashWidth)}
-for(let i=0;i<10;i++){let z=((i/10+game.distance*.018)%1),y=HORIZON+Math.pow(z,1.34)*(H-HORIZON+120);const sideWidth=145+z*490;const size=.19+z*1.25;let xLeft=CENTER-sideWidth-65*size,xRight=CENTER+sideWidth+65*size;streetShop(xLeft,y,size,i,1);streetShop(xRight,y,size,i+4,-1)}
-for(let i=0;i<7;i++){let z=((i/7+game.distance*.018)%1);let y=HORIZON+Math.pow(z,1.45)*480,spread=145+z*550,r=7+z*26;drawTree(CENTER-spread,y,r);drawTree(CENTER+spread,y,r)}
+
+// Original game illustration inspired by the supplied Nakhon Nok Street View photographs.
+// No Google Maps screenshots or imagery are embedded in the playable game.
+function horizonHalf(){return portrait?90:116}
+function nearHalf(){return portrait?345:520}
+function halfRoad(z){return horizonHalf()+(nearHalf()-horizonHalf())*Math.pow(Math.max(0,z),.85)}
+function worldZ(pos){return 1-(pos-game.distance)/(portrait?73:86)}
+function screenY(z){return HORIZON+Math.pow(Math.max(0,z),1.42)*(H-HORIZON+75)}
+function tintedWindow(x,y,w,h,div=true){rr(x,y,w,h,2,'#78baca','#fff3dc',Math.max(1,w*.07));poly([[x+2,y+2],[x+w*.45,y+2],[x+2,y+h*.72]],'#e4fbf775');if(div){line(x+w*.5,y,x+w*.5,y+h,'#f9f1de',Math.max(1,w*.075));line(x,y+h*.5,x+w,y+h*.5,'#f9f1de',Math.max(1,w*.075))}}
+function homeFacade(x,y,w,h,kind,seed){ctx.save();const wall=['#dbb6a0','#badbd2','#f2d1aa','#d8c5ba','#d8e7d5','#c2b9c9','#b2cfbd','#f6d8b3'][seed%8];const roof=['#b85f49','#915451','#bc765d','#85545a'][seed%4];const isLeft=kind==='left';
+if(seed%6===0)rr(x-w*.53,y-h,w*1.06,h,3,'#6fa3ba','#365e78',2);
+else rr(x-w*.5,y-h,w,h,3,wall,'#af9484',Math.max(1,w*.012));
+poly([[x-w*.6,y-h],[x-w*.51,y-h-h*.13],[x+w*.50,y-h-h*.13],[x+w*.6,y-h]],roof,'#714f46',Math.max(1,w*.015));
+line(x-w*.5,y-h*.55,x+w*.5,y-h*.55,'#e6eff0',Math.max(2,w*.022));
+for(let level=0;level<2;level++)for(let c=0;c<2;c++){const wx=x-w*.38+c*w*.41,wy=y-h*.87+level*h*.38;tintedWindow(wx,wy,w*.32,h*.22,level===0)}
+rr(x-w*.46,y-h*.2,w*.92,h*.19,2,seed%3===0?'#679b90':seed%3===1?'#b66d60':'#39718b','#eed6b3',Math.max(1,w*.015));
+poly([[x-w*.54,y-h*.28],[x+w*.54,y-h*.28],[x+w*.48,y-h*.34],[x-w*.46,y-h*.34]],seed%3?'#d9b77e':'#b66e57');
+for(let i=0;i<2;i++){line(x-w*.3+i*w*.55,y-h*.95,x-w*.3+i*w*.55,y-h*.57,'#6b777b55',Math.max(1,w*.015))}
+if(seed%4===0){for(let j=0;j<3;j++){circle(x+w*(.29+j*.07),y-h*.19,w*.055,j%2?'#368b65':'#4f9e63')}}
+ctx.restore()}
+function schoolFence(x,y,w,h){const post='#f6e8c9',blue='#2b6988';rr(x-w*.5,y-h,w,h,2,'#e6d3b4','#a89c8e',2);rr(x-w*.56,y-h*.24,w*1.12,h*.24,2,blue,'#effbfc',2);for(let j=0;j<7;j++){let px=x-w*.46+j*w*.155;line(px,y-h*.82,px,y-h*.25,blue,Math.max(2,w*.013))}line(x-w*.5,y-h*.82,x+w*.5,y-h*.82,blue,Math.max(2,w*.025));
+rr(x-w*.55,y-h*.9,w*.12,h*.9,4,post,'#b9a486',Math.max(1,w*.017));rr(x+w*.43,y-h*.9,w*.12,h*.9,4,post,'#b9a486',Math.max(1,w*.017));
+rr(x-w*.48,y-h*.74,w*.50,h*.31,5,'#145581','#f1bd57',Math.max(1,w*.025));
+if(w>100){txt('โรงเรียนเทศบาล ๑',x-w*.23,y-h*.60,Math.max(13,w*.058),'#fff1b0','800')}
 }
-function drawTree(x,y,s){line(x,y-2*s,x,y-5*s,'#9b7355',2.6*s);circle(x-1.2*s,y-6*s,2.2*s,'#478d6f');circle(x+1.5*s,y-7.8*s,2.3*s,'#66b37b');circle(x,y-9.5*s,2.6*s,'#62aa7c');circle(x-2.2*s,y-9*s,1.6*s,'#84c694')}
+function nearPalm(x,y,s){line(x,y,x+s*.15,y-s*4.1,'#745b49',Math.max(2,s*.36));for(let i=0;i<8;i++){let angle=i*Math.PI*2/8;let xx=x+s*.15+Math.cos(angle)*s*2.8,yy=y-s*4.3+Math.sin(angle)*s*1.7;poly([[x+s*.15,y-s*4.3],[xx,yy],[x+s*.15+Math.cos(angle+.4)*s*.9,y-s*4.3+Math.sin(angle+.4)*s*.3]],i%2?'#488f66':'#5caf76')}}
+function boulevardObject(side,pos,kind,seed){const z=worldZ(pos);if(z<.02||z>1.15)return;const y=screenY(z),hr=halfRoad(z),sgn=side==='left'?-1:1,w=(portrait?57:66)+Math.pow(z,1.18)*(portrait?245:324),h=w*(1.13+(seed%4)*.11),x=CENTER+sgn*(hr+6+w*.45);
+if(kind==='school'){schoolFence(x,y,w,h*.82);return}
+if(kind==='warehouse'){homeFacade(x,y,w,h,side,seed*6);return}
+if(kind==='tree'){const sz=9+z*(portrait?30:26);drawTree(x-sgn*w*.32,y,sz);return}
+homeFacade(x,y,w,h,side,seed)}
+function utilityPoles(){for(let i=0;i<6;i++){let z=((i/6+game.distance*.015)%1);if(z<.03)continue;const y=screenY(z),s=4+z*22;for(const side of [-1,1]){const x=CENTER+side*(halfRoad(z)+25+12*z);const top=y-12*s;line(x,y,x,top,'#715c4f',Math.max(1,1+z*4));line(x-7*s,top+3*s,x+7*s,top+3*s,'#725b51',Math.max(1,1+z*2));for(let c=-1;c<=1;c++){circle(x+c*5*s,top+2.5*s,Math.max(1,1.5+z*1.2),'#e9edf0');if(i!==5){const nx=x+side*(12+z*80),ny=top+1*s;line(x+c*5*s,top+2*s,nx+c*5*s,ny+s*2,'#494d5866',Math.max(.7,1+z*.8))}}}}}
+function heritageGate(){const close=Math.max(0,(game.distance-107)/38);if(close<=0)return;const sc=.45+close*1.6, y=HORIZON+35+close*(portrait?200:145),w=(portrait?175:230)*sc,h=(portrait?180:186)*sc;const x=CENTER;ctx.save();ctx.globalAlpha=Math.min(1,close*2.6);
+// stylized landmark, not an exact architectural survey
+poly([[x-w*.63,y-h*.70],[x,y-h*1.10],[x+w*.63,y-h*.70]],'#b35c43','#784839',Math.max(2,sc*2));rr(x-w*.56,y-h*.75,w*1.12,h*.18,4,'#f4d6a6','#b77750',Math.max(2,sc*2));rr(x-w*.48,y-h*.59,w*.96,h*.77,3,'#e8c8a1','#a67652',Math.max(2,sc*2));rr(x-w*.25,y-h*.16,w*.50,h*.39,8,'#566e73','#b88a65',Math.max(3,sc*3));rr(x-w*.18,y-h*.26,w*.36,h*.32,8,'#516b76');rr(x-w*.38,y-h*.53,w*.76,h*.18,3,'#efddad','#987854',2);if(sc>1.2)txt('ประตูเมือง',x,y-h*.39,18*sc,'#744a36','800');ctx.restore()}
+function backdrop(t){let sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#64bde7');sky.addColorStop(.41,'#b9ecf3');sky.addColorStop(.66,'#fff0cd');sky.addColorStop(1,'#d0ca96');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);circle(W*.76,H*.11,H*.051,'#fff7bd');circle(W*.76,H*.11,H*.075,'#fff8d14a');cloud(W*.17+(t*3)%60,H*.13,portrait?1.2:.95);cloud(W*.67-t*.4%30,H*.23,.85);cloud(W*.46,H*.08,.66);
+// distant rooftops and silhouette of a dense old town, no fictitious waterfront on road
+poly([[0,HORIZON+16],[W*.11,HORIZON-23],[W*.19,HORIZON+10],[W*.34,HORIZON-11],[W*.52,HORIZON+12],[W*.66,HORIZON-22],[W*.85,HORIZON+9],[W,HORIZON-18],[W,HORIZON+120],[0,HORIZON+120]],'#97afa8');
+for(let i=0;i<23;i++){let x=i*(W/22)-20,y=HORIZON+17-((i*13)%30);rr(x,y-26, W/18,40,2,i%2?'#e4c0a8':'#c1cebe');poly([[x-8,y-26],[x+W/36,y-47],[x+W/18+8,y-26]],i%2?'#b77a61':'#7f7d81');}
+}
+function drawScene(t){backdrop(t);
+// render blocks back-to-front; first actual school/warehouse context, then shopfronts
+const first=Math.floor(game.distance/15);const jobs=[];
+for(let j=first+7;j>=first-2;j--){const at=j*15;const z=worldZ(at);if(z<-.05||z>1.18)continue;const leftKind=at<30?'warehouse':'shop',rightKind=at<32?'school':'shop';jobs.push({side:'left',pos:at,kind:leftKind,seed:j+2,z},{side:'right',pos:at,kind:rightKind,seed:j+4,z})}
+jobs.sort((a,b)=>a.z-b.z);for(const o of jobs)boulevardObject(o.side,o.pos,o.kind,o.seed);
+// side greenery used selectively; original photo shows trees mostly near the school
+for(let j=Math.floor(game.distance/25)-1;j<Math.floor(game.distance/25)+5;j++){let pos=j*25+10,z=worldZ(pos);if(z>.03&&z<1.10&&j%3!==2){let y=screenY(z),r=6+z*(portrait?19:27),off=halfRoad(z)+9;drawTree(CENTER+off+2*r,y,r)}}
+utilityPoles();
+// road and shoulders with realistic subdued texture
+const p=ctx.createLinearGradient(0,HORIZON,0,H);p.addColorStop(0,'#8d9290');p.addColorStop(1,'#5a6b78');poly([[CENTER-horizonHalf(),HORIZON],[CENTER+horizonHalf(),HORIZON],[CENTER+nearHalf(),H], [CENTER-nearHalf(),H]],p);
+poly([[CENTER-horizonHalf()-16,HORIZON],[CENTER-horizonHalf(),HORIZON],[CENTER-nearHalf(),H],[CENTER-nearHalf()-32,H]],'#d2c6ac');poly([[CENTER+horizonHalf(),HORIZON],[CENTER+horizonHalf()+16,HORIZON],[CENTER+nearHalf()+32,H],[CENTER+nearHalf(),H]],'#d2c6ac');
+for(let side of [-1,1]){const x1=CENTER+side*horizonHalf(),x2=CENTER+side*nearHalf();line(x1,HORIZON,x2,H,'#fff6dd',portrait?4:5);line(x1+side*12,HORIZON,x2+side*22,H,'#899caa65',2)}
+for(let i=0;i<17;i++){let z=((i/17+game.distance*.022)%1);const y=screenY(z),rad=halfRoad(z),dash=10+z*(portrait?47:42),width=1+z*7;for(let f of [-1/3,1/3]){const xx=CENTER+f*rad;line(xx,y,xx,y+dash,'#f9f6e6c8',width)}}
+for(let i=0;i<8;i++){let z=((i/8+game.distance*.045)%1),yy=screenY(z);line(CENTER-halfRoad(z)*.66,yy,CENTER+halfRoad(z)*.66,yy,'#e0e6e415',2+3*z)}
+// shadow of overhead wires on the real sunlit road
+for(let j=0;j<4;j++){let z=((j/4+game.distance*.015)%1);const y=screenY(z);line(CENTER-halfRoad(z),y,CENTER+halfRoad(z),y+(j%2?15:-10),'#213c4650',Math.max(1,1+z*6))}
+heritageGate();}
+function drawTree(x,y,s){line(x,y,x-s*.10,y-s*3.8,'#866246',Math.max(2,s*.34));circle(x-1.3*s,y-3.2*s,s*1.7,'#3b8e68');circle(x+s*.5,y-3.2*s,s*1.6,'#4ba973');circle(x-s*.4,y-4.7*s,s*1.6,'#64b87c');circle(x+s*1.4,y-4.5*s,s*1.0,'#80c48c');circle(x-s*1.5,y-4.2*s,s*1.15,'#4f9e67')}
 function drawStar(x,y,r,t){ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(t)*.13);ctx.shadowColor='#ffc85c';ctx.shadowBlur=23;poly(Array.from({length:10},(_,i)=>{let a=-Math.PI/2+i*Math.PI/5,rad=i%2?r*.50:r;return[Math.cos(a)*rad,Math.sin(a)*rad]}),'#ffd65d','#fff6bf',2);ctx.shadowBlur=0;circle(-r*.2,-r*.17,r*.10,'#f4ad32');circle(r*.24,-r*.14,r*.10,'#f4ad32');ctx.restore()}
 function book(x,y,s){ctx.save();ctx.translate(x,y);poly([[-s,0],[-s,-s*.8],[-s*.1,-s*.6],[0,-s*.4]],'#fffbef','#1caaa1',2);poly([[0,-s*.4],[s*.1,-s*.6],[s,-s*.8],[s,0]],'#f7e4a6','#1caaa1',2);line(0,-s*.4,0,0,'#20798b',2);ctx.restore()}
 function cone(x,y,s){ctx.save();ctx.translate(x,y);circle(0,3*s,s*.94,'#31455d34');rr(-s*.85,-s*.04,s*1.7,s*.36,3,'#ef704b');poly([[-s*.45,-s*.1],[0,-s*1.7],[s*.45,-s*.1]],'#ef8456','#fce3ac',2);poly([[-s*.31,-s*.55],[-s*.22,-s*.82],[s*.22,-s*.82],[s*.31,-s*.55]],'#fff9e9');ctx.restore()}
-function projected(o){const z=o.z,y=HORIZON+Math.pow(z,1.34)*425,laneStep=72+z*125,x=CENTER+o.lane*laneStep;return{x,y,s:6+z*24};}
-function items(t){const sorted=[...game.objects].sort((a,b)=>a.z-b.z);for(const o of sorted){const p=projected(o);if(p.y>H+70)continue;ctx.save();ctx.globalAlpha=Math.min(1,.35+o.z*3);if(o.kind==='cone')cone(p.x,p.y,p.s*.92);else if(o.kind==='star')drawStar(p.x,p.y-p.s*.45,p.s*.79,t+o.twinkle);else book(p.x,p.y,p.s*.76);ctx.restore()}}
-function player(t){const x=CENTER+game.laneVisual*196,ground=548,alt=game.jump>0?Math.sin((.7-game.jump)/.7*Math.PI)*117:0,y=ground-alt+(game.slide>0?28:0),s=game.slide>0?.66:1;ctx.save();ctx.globalAlpha=.25;ctx.fillStyle='#183f4d';ctx.beginPath();ctx.ellipse(x,ground+40,58-alt*.21,14-alt*.06,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=game.invincible>0&&Math.sin(t*22)>0?0.42:1;
-ctx.translate(x,y);ctx.scale(s,s);let b=Math.sin(t*15)*5*(game.jump>0?.23:1);ctx.translate(0,b);
+function projected(o){const z=o.z,y=screenY(z),laneStep=(portrait?55:70)+z*(portrait?145:240),x=CENTER+o.lane*laneStep;return{x,y,s:6+z*(portrait?32:25)};}
+function items(t){const sorted=[...game.objects].sort((a,b)=>a.z-b.z);for(const o of sorted){const p=projected(o);if(p.y>H+75)continue;ctx.save();ctx.globalAlpha=Math.min(1,.35+o.z*3);if(o.kind==='cone')cone(p.x,p.y,p.s*.92);else if(o.kind==='star')drawStar(p.x,p.y-p.s*.65,p.s*.85,t+o.twinkle);else book(p.x,p.y,p.s*.86);ctx.restore()}}
+function player(t){const x=CENTER+game.laneVisual*(portrait?177:265),ground=H*(portrait?.855:.87),alt=game.jump>0?Math.sin((.7-game.jump)/.7*Math.PI)*117:0,y=ground-alt+(game.slide>0?28:0),s=game.slide>0?.66:1;ctx.save();ctx.globalAlpha=.25;ctx.fillStyle='#183f4d';ctx.beginPath();ctx.ellipse(x,ground+40,58-alt*.21,14-alt*.06,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=game.invincible>0&&Math.sin(t*22)>0?0.42:1;
+ctx.translate(x,y);ctx.scale(s*(portrait?1.25:1),s*(portrait?1.25:1));let b=Math.sin(t*15)*5*(game.jump>0?.23:1);ctx.translate(0,b);
 // backpack behind shoulders
 rr(-43,-87,27,59,11,'#f39c54','#c57a4b',4);rr(-34,-74,14,30,5,'#f6cc7f');
 // animated legs and sneakers
@@ -132,7 +201,7 @@ line(-31,-74,-43+Math.sin(t*17)*7,-30,'#f5c8a1',14);line(31,-74,43-Math.sin(t*17
 circle(-30,-119,11,'#f5c8a1');circle(30,-119,11,'#f5c8a1');circle(0,-121,43,'#f7cca4');circle(-11,-124,3.5,'#34404a');circle(15,-124,3.5,'#34404a');ctx.beginPath();ctx.arc(3,-110,11,0,Math.PI);ctx.strokeStyle='#c57664';ctx.lineWidth=3;ctx.stroke();
 ctx.beginPath();ctx.moveTo(-42,-133);ctx.quadraticCurveTo(-42,-169,0,-168);ctx.quadraticCurveTo(36,-166,43,-137);ctx.quadraticCurveTo(22,-139,12,-148);ctx.quadraticCurveTo(-8,-135,-42,-133);ctx.fillStyle='#394451';ctx.fill();circle(-31,-113,7,'#f0a8a171');circle(30,-113,7,'#f0a8a171');
 ctx.restore()}
-function drawing(t){ctx.save();backdrop(t);road(t);items(t);player(t);if(game.flash>0){ctx.fillStyle=game.invincible>0?'#ff87852b':'#fff4b530';ctx.fillRect(0,0,W,H)}ctx.restore()}
+function drawing(t){ctx.save();drawScene(t);items(t);player(t);if(game.flash>0){ctx.fillStyle=game.invincible>0?'#ff87852b':'#fff4b530';ctx.fillRect(0,0,W,H)}ctx.restore()}
 function frame(now){const dt=Math.min((now-last)/1000||.016,.043);last=now;rafT=now/1000;update(dt);drawing(rafT);requestAnimationFrame(frame)}
 init();requestAnimationFrame(frame);
 })();
