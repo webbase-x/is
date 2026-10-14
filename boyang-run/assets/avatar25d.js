@@ -27,7 +27,7 @@ let gameCanvas=null,gameContext=null,previewContext=null;
 try{
  gameCanvas=document.createElement('canvas');
  gameCanvas.width=420;gameCanvas.height=680;
- gameCanvas.style.cssText='display:block;width:100%;height:100%;pointer-events:none;object-fit:contain';
+ gameCanvas.style.cssText='display:block;height:100%;width:auto;max-width:100%;margin:0 auto;pointer-events:none';
  gameCanvas.setAttribute('aria-hidden','true');
  gameContext=gameCanvas.getContext('2d',{alpha:true});
  preview.width=420;preview.height=680;
