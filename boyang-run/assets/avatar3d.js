@@ -27,98 +27,233 @@ function box(parent,w,h,d,m,x=0,y=0,z=0){return mesh(parent,new THREE.BoxGeometr
 function sphere(parent,r,m,x=0,y=0,z=0){return mesh(parent,new THREE.SphereGeometry(r,20,14),m,x,y,z)}
 function limb(parent,m,x,y,z,w,h,d){return box(parent,w,h,d,m,x,y,z)}
 function makeAvatar(){
-  const skin=mat('#e4b38d'),hair=mat('#19212c'),eyes=mat('#1c2637'),white=mat('#f8f8f4'),navy=mat('#182d55');
+  /* Smooth semi-realistic primary-school pupil. No box limbs or block-shaped face.
+     All shapes are true 3D geometry, so the same character can be viewed from any angle. */
+  const skin=mat('#efbd9c',{roughness:.76}),skinLight=mat('#ffd0ad',{roughness:.69});
+  const hair=mat('#222027',{roughness:.95}),hairLight=mat('#302a30',{roughness:.88});
+  const whites=mat('#fffdf8',{roughness:.28}),iris=mat('#4b332b',{roughness:.32});
+  const black=mat('#19191f',{roughness:.38}),glint=new THREE.MeshBasicMaterial({color:'#ffffff'});
+  const blush=mat('#ec9fa3',{roughness:1,transparent:true,opacity:.24,depthWrite:false});
+  const lip=mat('#a35760',{roughness:.78}),uniform=mat('#f6f6f1',{roughness:.94});
+  const seam=mat('#d3d8db',{roughness:.93}),navy=mat('#263758',{roughness:.94});
+  const sole=mat('#24252b',{roughness:.87}),lace=mat('#dadada',{roughness:1});
   const root=new THREE.Group(),body=new THREE.Group();
-  root.add(body); scene.add(root);parts={root,body,skin,hair,white,navy};
-  // Positive Z is the front of the student's body; rotate the whole figure for heading.
-  const leftLeg=new THREE.Group(),rightLeg=new THREE.Group();
-  leftLeg.position.set(-.22,1.07,0);rightLeg.position.set(.22,1.07,0);
-  body.add(leftLeg,rightLeg);parts.leftLeg=leftLeg;parts.rightLeg=rightLeg;
-  for(const leg of [leftLeg,rightLeg]){
-    limb(leg,skin,0,-.39,0,.22,.48,.24);
-    const ankle=box(leg,.20,.22,.21,white,0,-.65,0);
-    box(leg,.30,.17,.48,navy,0,-.83,.10);
-    leg.userData.sock=ankle;leg.userData.shoe=leg.children[2];
+  scene.add(root);root.add(body);
+  parts={root,body,skin,hair,white:uniform,navy,shirtPieces:[],bottomPieces:[],hatPieces:[],bagPieces:[],shoePieces:[]};
+  const smoothBall=(p,m,x,y,z,sx,sy,sz)=>{
+    const o=mesh(p,new THREE.SphereGeometry(1,24,16),m,x,y,z);
+    o.scale.set(sx,sy,sz);return o;
+  };
+  const tapered=(p,m,x,y,z,rTop,rBottom,h)=>{
+    const o=mesh(p,new THREE.CylinderGeometry(rTop,rBottom,h,24,1),m,x,y,z);
+    return o;
+  };
+  const stroke=(p,points,thick,m)=>{
+    const curve=new THREE.CatmullRomCurve3(points.map(v=>new THREE.Vector3(...v)));
+    return mesh(p,new THREE.TubeGeometry(curve,Math.max(12,points.length*8),thick,7,false),m);
+  };
+  // Shoes have soft rounded toes, a separate sole and little highlights.
+  const legGroups=[];
+  for(const side of [-1,1]){
+    const leg=new THREE.Group();
+    leg.position.set(side*.225,1.13,0);
+    body.add(leg);legGroups.push(leg);
+    smoothBall(leg,skin,0,-.33,0,.15,.48,.155);
+    smoothBall(leg,skinLight,0,-.72,0,.115,.3,.115);
+    const sock=smoothBall(leg,uniform,0,-.86,0,.121,.14,.125);
+    const shoeGroup=new THREE.Group();leg.add(shoeGroup);
+    shoeGroup.position.set(0,-1.05,.12);
+    smoothBall(shoeGroup,sole,0,-.025,0,.176,.145,.30);
+    smoothBall(shoeGroup,sole,0,.014,.065,.173,.11,.265);
+    smoothBall(shoeGroup,lace,0,-.13,.03,.175,.032,.289);
+    const upper=smoothBall(shoeGroup,sole,0,.062,-.087,.17,.097,.141);
+    const shoeSurface=shoeGroup.children.filter(p=>p.material===sole);
+    parts.shoePieces.push(...shoeSurface);
+    parts['shoe'+(side<0?'Left':'Right')]=shoeGroup;
+    parts['sock'+(side<0?'Left':'Right')]=sock;
+    const trouser=tapered(leg,navy,0,-.355,0,.174,.150,.70);
+    const seamLine=stroke(leg,[[side*.015,-.03,.176],[side*.015,-.30,.165],[side*.015,-.62,.153]],.007,seam);
+    parts.bottomPieces.push(trouser);
+    parts['pants'+(side<0?'Left':'Right')]=[trouser,seamLine];
   }
-  const torso=box(body,.82,1,.42,white,0,1.72,0);parts.shirt=torso;
-  const neck=box(body,.20,.20,.19,skin,0,2.30,0);
-  const collarL=box(body,.32,.11,.04,navy,-.19,2.19,.232),collarR=box(body,.32,.11,.04,navy,.19,2.19,.232);
-  collarL.rotation.z=-.31;collarR.rotation.z=.31;
-  parts.collar=[collarL,collarR];
-  const leftArm=new THREE.Group(),rightArm=new THREE.Group();
-  leftArm.position.set(-.52,2.11,0);rightArm.position.set(.52,2.11,0);
-  body.add(leftArm,rightArm);parts.leftArm=leftArm;parts.rightArm=rightArm;
-  for(const [arm,sign] of [[leftArm,-1],[rightArm,1]]){
-    box(arm,.23,.46,.28,white,sign*.025,-.23,0);
-    box(arm,.19,.43,.20,skin,sign*.037,-.65,0);
+  parts.leftLeg=legGroups[0];parts.rightLeg=legGroups[1];
+  // Body is a soft, tailored shirt silhouette rather than a rectangular torso.
+  const shirtProfile=[
+    [0,1.24],[.34,1.24],[.415,1.29],[.405,1.48],
+    [.395,1.72],[.438,1.99],[.405,2.20],[.28,2.235],[0,2.235]
+  ].map(p=>new THREE.Vector2(p[0],p[1]));
+  const shirt=mesh(body,new THREE.LatheGeometry(shirtProfile,32),uniform);
+  shirt.scale.z=.68;
+  parts.shirt=shirt;parts.shirtPieces.push(shirt);
+  // Subtle hem, breast pocket, buttons and real-shaped collar flaps.
+  const hem=tapered(body,seam,0,1.256,0,.410,.413,.018);
+  hem.scale.z=.70;
+  const pocket=smoothBall(body,uniform,.217,1.87,.281,.116,.122,.024);
+  parts.shirtPieces.push(pocket);
+  stroke(body,[[.129,1.92,.298],[.217,1.89,.309],[.30,1.92,.298]],.008,seam);
+  for(const y of [1.54,1.74,1.94])smoothBall(body,mat('#d4dbe0'),0,y,.280,.018,.018,.012);
+  const collarL=smoothBall(body,uniform,-.175,2.185,.161,.176,.115,.047);
+  const collarR=smoothBall(body,uniform,.175,2.185,.161,.176,.115,.047);
+  collarL.rotation.z=-.37;collarR.rotation.z=.37;
+  for(const side of [-1,1]){
+    stroke(body,[[side*.075,2.235,.23],[side*.20,2.125,.241],[side*.30,2.17,.20]],.014,navy);
   }
-  const head=sphere(body,.36,skin,0,2.67,0);
-  head.scale.set(.90,1.06,.91);parts.head=head;
-  const hairCap=sphere(body,.35,hair,0,2.85,-.028);
-  hairCap.scale.set(1.02,.51,1.0);parts.hairCap=hairCap;
-  for(const side of [-1,1])sphere(body,.078,skin,side*.32,2.64,0);
-  sphere(body,.035,eyes,-.13,2.69,.318);
-  sphere(body,.035,eyes,.13,2.69,.318);
-  sphere(body,.07,skin,0,2.57,.343).scale.set(.70,.62,.75);
-  const smile=mesh(body,new THREE.TorusGeometry(.095,.011,6,20,Math.PI),mat('#934b4b'),0,2.49,.338);
-  smile.rotation.z=Math.PI;
-  // Pants, skirt and gym shorts are swapped as independent uniform pieces.
-  parts.bottomShort=box(body,.79,.42,.43,navy,0,1.10,0);
-  parts.bottomPants=[
-    box(leftLeg,.27,.57,.31,navy,0,-.34,0),
-    box(rightLeg,.27,.57,.31,navy,0,-.34,0)
-  ];
-  parts.skirt=mesh(body,new THREE.CylinderGeometry(.44,.56,.72,20,1),navy,0,1.00,0);
-  parts.hat=new THREE.Group();body.add(parts.hat);
-  const hatCrown=mesh(parts.hat,new THREE.CylinderGeometry(.29,.34,.35,20),white,0,3.05,0);
-  const brim=mesh(parts.hat,new THREE.CylinderGeometry(.43,.43,.035,20),white,0,2.91,.12);
-  parts.hatPieces=[hatCrown,brim];
-  parts.bag=new THREE.Group();body.add(parts.bag);
-  box(parts.bag,.73,.89,.27,navy,0,1.67,-.35);
-  for(const x of [-.27,.27])box(parts.bag,.11,.93,.09,navy,x,1.72,-.22);
-  parts.glasses=new THREE.Group();body.add(parts.glasses);
-  const frameMat=mat('#1e293b',{metalness:.25});
-  for(const x of [-.15,.15]){
-    const ring=mesh(parts.glasses,new THREE.TorusGeometry(.135,.022,8,24),frameMat,x,2.68,.34);
-    ring.scale.y=.84;
+  const neck=tapered(body,skin,0,2.278,0,.115,.120,.25);
+  const neckShade=smoothBall(body,skin,0,2.345,0,.13,.10,.13);
+  // Arm pivots follow the natural shoulders; curved forearms and fingers swing when walking.
+  for(const side of [-1,1]){
+    const arm=new THREE.Group();
+    arm.position.set(side*.437,2.145,0);
+    body.add(arm);
+    const shoulder=smoothBall(arm,uniform,side*.026,-.08,0,.19,.23,.21);
+    const sleeve=tapered(arm,uniform,side*.027,-.233,0,.183,.151,.36);
+    const cuff=tapered(arm,navy,side*.027,-.414,0,.154,.156,.028);
+    const elbow=smoothBall(arm,skinLight,side*.028,-.487,0,.128,.107,.133);
+    const forearm=smoothBall(arm,skin,side*.029,-.675,0,.127,.233,.132);
+    const hand=smoothBall(arm,skinLight,side*.027,-.899,.018,.127,.156,.110);
+    smoothBall(arm,skin,side*.147,-.862,.065,.060,.107,.069).rotation.z=-side*.26;
+    parts.shirtPieces.push(shoulder,sleeve);
+    parts[side<0?'leftArm':'rightArm']=arm;
   }
-  box(parts.glasses,.08,.027,.025,frameMat,0,2.68,.34);
-  parts.frameMat=frameMat;
-  // Independently color outfit pieces (not shared with the collar or skin).
-  const customizable=[torso,leftArm.children[0],rightArm.children[0],parts.bottomShort,
-    ...parts.bottomPants,parts.skirt,leftLeg.userData.shoe,rightLeg.userData.shoe,
-    ...parts.hatPieces,...parts.bag.children];
-  for(const item of customizable)item.material=item.material.clone();
+  // Shorts, tapered trouser legs and a pleated skirt are interchangeable.
+  const shortGroup=new THREE.Group();body.add(shortGroup);
+  tapered(shortGroup,navy,0,1.205,0,.402,.402,.205).scale.z=.75;
+  for(const side of [-1,1]){
+    const piece=smoothBall(shortGroup,navy,side*.208,1.028,0,.213,.256,.241);
+    stroke(shortGroup,[[side*.20,1.22,.237],[side*.205,1.04,.245],[side*.20,.87,.196]],.007,seam);
+    parts.bottomPieces.push(piece);
+  }
+  parts.bottomShort=shortGroup;
+  const skirt=new THREE.Group();body.add(skirt);
+  const skirtGeo=new THREE.CylinderGeometry(.382,.574,.615,32,2,false);
+  const skirtMain=mesh(skirt,skirtGeo,navy,0,1.025,0);
+  skirtMain.scale.z=.78;
+  // Tiny soft pleat ridges read as fabric from both front and rear.
+  for(let i=0;i<18;i++){
+    const angle=i/18*Math.PI*2;
+    const x=Math.sin(angle),z=Math.cos(angle);
+    stroke(skirt,[[x*.378,1.314,z*.295],[x*.463,1.02,z*.352],[x*.56,.729,z*.426]],.012,navy);
+  }
+  tapered(skirt,navy,0,1.326,0,.39,.395,.075).scale.z=.79;
+  parts.skirt=skirt;parts.bottomPieces.push(skirtMain);
+  // Head: soft cheeks, chin, oval face, ears and an expressive but subtle smile.
+  const headGroup=new THREE.Group();headGroup.position.set(0,2.755,.026);body.add(headGroup);
+  parts.headGroup=headGroup;
+  const face=smoothBall(headGroup,skin,0,0,0,.435,.505,.386);
+  smoothBall(headGroup,skinLight,0,-.237,.118,.336,.233,.290);
+  for(const side of [-1,1]){
+    smoothBall(headGroup,skin,side*.419,-.035,-.015,.089,.149,.086);
+    smoothBall(headGroup,skinLight,side*.425,-.046,.040,.033,.064,.032);
+    smoothBall(headGroup,blush,side*.267,-.135,.307,.110,.075,.017);
+    // Almond eye shape with white, iris, pupil and two small catchlights.
+    const eyeGroup=new THREE.Group();
+    eyeGroup.position.set(side*.166,.043,.361);headGroup.add(eyeGroup);
+    smoothBall(eyeGroup,whites,0,0,0,.126,.091,.062);
+    smoothBall(eyeGroup,iris,side*.006,0,.057,.061,.069,.020);
+    smoothBall(eyeGroup,black,side*.006,-.002,.074,.039,.052,.013);
+    smoothBall(eyeGroup,glint,side*.021,.028,.086,.019,.020,.009);
+    smoothBall(eyeGroup,glint,side*-.015,-.024,.087,.008,.009,.008);
+    (parts.eyes||(parts.eyes=[])).push(eyeGroup);
+    stroke(headGroup,[[side*.058,.115,.378],[side*.148,.139,.384],[side*.269,.106,.351]],.016,hair);
+    stroke(headGroup,[[side*.082,.255,.312],[side*.164,.274,.320],[side*.258,.248,.288]],.017,hairLight);
+  }
+  smoothBall(headGroup,skinLight,0,-.102,.399,.064,.103,.065);
+  smoothBall(headGroup,skin,0,-.182,.433,.079,.039,.041);
+  stroke(headGroup,[[-.100,-.253,.348],[-.043,-.278,.379],[0,-.284,.385],[.043,-.278,.379],[.100,-.253,.348]],.012,lip);
+  smoothBall(headGroup,skinLight,0,-.310,.361,.092,.018,.027);
+  // Both hairstyles are modeled separately; choosing gender changes hair and proportions.
+  const hairBase=smoothBall(headGroup,hair,0,.260,-.056,.453,.340,.406);
+  const boyHair=new THREE.Group();headGroup.add(boyHair);
+  for(let i=0;i<7;i++){
+    const x=(i-3)*.111;
+    const lock=smoothBall(boyHair,i%2?hair:hairLight,x,.333,.240,.135,.182,.187);
+    lock.rotation.z=(3-i)*.20;
+  }
+  for(const side of [-1,1]){
+    smoothBall(boyHair,hair,side*.382,.090,-.135,.115,.208,.216);
+  }
+  // Girls have softly layered jaw-length hair and two tied-back strands.
+  const girlHair=new THREE.Group();headGroup.add(girlHair);
+  smoothBall(girlHair,hair,0,-.045,-.185,.449,.490,.326);
+  for(const side of [-1,1]){
+    const lock=smoothBall(girlHair,hair,side*.383,-.144,-.028,.144,.356,.248);
+    lock.rotation.z=side*.10;
+    const tie=smoothBall(girlHair,mat('#28466f'),side*.395,-.256,-.242,.065,.055,.061);
+    const pony=smoothBall(girlHair,hair,side*.418,-.443,-.240,.137,.239,.162);
+    pony.rotation.z=side*.24;
+  }
+  for(let i=0;i<5;i++){
+    const x=(i-2)*.151;
+    const fringe=smoothBall(girlHair,i%2?hairLight:hair,x,.298,.287,.14,.171,.130);
+    fringe.rotation.z=.27;
+  }
+  parts.boyHair=boyHair;parts.girlHair=girlHair;
+  // Optional brimmed hat with fabric crown.
+  const hat=new THREE.Group();headGroup.add(hat);
+  const crown=mesh(hat,new THREE.CylinderGeometry(.327,.355,.275,28),uniform,0,.520,0);
+  const capTop=smoothBall(hat,uniform,0,.660,0,.33,.074,.33);
+  const brim=mesh(hat,new THREE.CylinderGeometry(.475,.475,.033,32),uniform,0,.403,.115);
+  parts.hat=hat;parts.hatPieces.push(crown,capTop,brim);
+  // Rounded fabric backpack behind the pupil.
+  const bag=new THREE.Group();body.add(bag);
+  smoothBall(bag,navy,0,1.782,-.424,.391,.535,.211);
+  smoothBall(bag,navy,0,1.497,-.605,.318,.173,.070);
+  for(const side of [-1,1]){
+    stroke(bag,[[side*.274,2.151,-.226],[side*.362,1.758,-.290],[side*.240,1.359,-.344]],.060,navy);
+  }
+  parts.bag=bag;bag.children.forEach(o=>parts.bagPieces.push(o));
+  // Eyewear follows the face during turn animation.
+  const glasses=new THREE.Group();headGroup.add(glasses);
+  const rim=mat('#303039',{roughness:.45,metalness:.14});
+  const lens=mat('#bbdfeb',{roughness:.15,metalness:.03,transparent:true,opacity:.10,depthWrite:false});
+  for(const side of [-1,1]){
+    const ring=mesh(glasses,new THREE.TorusGeometry(.132,.017,9,32),rim,side*.171,.047,.455);
+    ring.scale.y=.74;
+    smoothBall(glasses,lens,side*.171,.047,.441,.112,.084,.007);
+    stroke(glasses,[[side*.30,.061,.44],[side*.36,.078,.373],[side*.429,.081,.260]],.019,rim);
+  }
+  stroke(glasses,[[-.040,.063,.456],[0,.080,.474],[.04,.063,.456]],.018,rim);
+  parts.glasses=glasses;parts.frameMat=rim;
+  // Unique mutable material per clothing/accessory mesh to prevent the skin,
+  // piping, pocket, hair and soles changing color unintentionally.
+  for(const item of [...parts.shirtPieces,...parts.bottomPieces,...parts.hatPieces,...parts.shoePieces]){
+    item.material=item.material.clone();
+  }
+  // Bag straps are tubes with one material; a copied material enables recoloring.
+  for(const item of parts.bagPieces)item.material=item.material.clone();
   return root;
 }
 function apply(v={}){
   if(v.gender && v.gender!==outfit.gender)outfit={...outfits[v.gender]};
   for(const key of ['shirt','bottom','shoes','hat','bag','glasses'])if(v[key]!==undefined)outfit[key]=v[key];
-  // Keep the selection available after refreshing the page, when storage is permitted.
   try{localStorage.setItem('boyang-avatar-outfit-v1',JSON.stringify(outfit))}catch(_){}
   if(!THREE||!model)return;
-  const shirtColors={uniform:'#f6f7f6',sports:'#3ea0bc',yellow:'#f4cc62',pink:'#ef95bc',blue:'#5286d3'};
-  const shortColors={auto:'#182d55',shorts:'#182d55',trousers:'#263958',skirt:'#1a325d',sports:'#263c64'};
-  parts.shirt.material.color.set(shirtColors[outfit.shirt]||shirtColors.uniform);
-  for(const arm of [parts.leftArm,parts.rightArm])arm.children[0].material.color.set(shirtColors[outfit.shirt]||shirtColors.uniform);
+  const shirtColors={uniform:'#f8f8f5',sports:'#50afd0',yellow:'#f5d772',pink:'#f49dc1',blue:'#669de0'};
+  const bottoms={auto:'#283a5b',shorts:'#283a5b',trousers:'#344663',skirt:'#283b5a',sports:'#385477'};
+  const shirtColor=shirtColors[outfit.shirt]||shirtColors.uniform;
+  for(const piece of parts.shirtPieces)piece.material.color.set(shirtColor);
   const bottom=outfit.bottom==='auto'?(outfit.gender==='female'?'skirt':'shorts'):outfit.bottom;
-  parts.skirt.visible=bottom==='skirt';parts.bottomShort.visible=(bottom==='shorts'||bottom==='sports');
-  for(const o of parts.bottomPants)o.visible=bottom==='trousers';
-  const bottomColor=shortColors[bottom]||shortColors.auto;
-  parts.skirt.material.color.set(bottomColor);parts.bottomShort.material.color.set(bottomColor);
-  for(const p of parts.bottomPants)p.material.color.set(bottomColor);
-  const shoeColor={black:'#19212a',brown:'#66432d',white:'#edf1f6',blue:'#2a62a4'}[outfit.shoes]||'#19212a';
-  for(const leg of [parts.leftLeg,parts.rightLeg])leg.userData.shoe.material.color.set(shoeColor);
+  parts.bottomShort.visible=bottom==='shorts'||bottom==='sports';
+  parts.skirt.visible=bottom==='skirt';
+  for(const leg of [parts.leftLeg,parts.rightLeg]){
+    const pantPieces=leg===parts.leftLeg?parts.pantsLeft:parts.pantsRight;
+    for(const piece of pantPieces)piece.visible=bottom==='trousers';
+  }
+  const bottomColor=bottoms[bottom]||bottoms.auto;
+  for(const piece of parts.bottomPieces)piece.material.color.set(bottomColor);
+  const shoeColor={black:'#20232a',brown:'#784d3c',white:'#f3f5f8',blue:'#346aaf'}[outfit.shoes]||'#20232a';
+  for(const piece of parts.shoePieces)piece.material.color.set(shoeColor);
   parts.hat.visible=outfit.hat!=='none';
-  const hatColor={white:'#f9f7f2',navy:'#264474',yellow:'#edcc6d'}[outfit.hat]||'#f9f7f2';
-  for(const p of parts.hatPieces)p.material.color.set(hatColor);
+  const hatColor={white:'#f8f7f5',navy:'#31537a',yellow:'#f4d370'}[outfit.hat]||'#f8f7f5';
+  for(const piece of parts.hatPieces)piece.material.color.set(hatColor);
   parts.bag.visible=outfit.bag!=='none';
-  const bagColor={navy:'#234a76',pink:'#da70a5',black:'#29313d',green:'#34765c'}[outfit.bag]||'#234a76';
-  for(const p of parts.bag.children)p.material.color.set(bagColor);
+  const bagColor={navy:'#355581',pink:'#e188b9',black:'#343946',green:'#44876e'}[outfit.bag]||'#355581';
+  for(const piece of parts.bagPieces)piece.material.color.set(bagColor);
   parts.glasses.visible=outfit.glasses!=='none';
-  parts.frameMat.color.set(outfit.glasses==='blue'?'#3376c7':'#242930');
-  // Character customization is not tied to either gender: pants and skirts remain selectable for all.
-  parts.hairCap.scale.y=outfit.gender==='female'?.58:.48;
+  parts.frameMat.color.set(outfit.glasses==='blue'?'#397abe':'#272d36');
+  parts.boyHair.visible=outfit.gender==='male';
+  parts.girlHair.visible=outfit.gender==='female';
+  // The head and outfit can be customized independently: skirts/pants for either character.
 }
 function setupRenderers(T){
   THREE=T;
@@ -127,16 +262,22 @@ function setupRenderers(T){
   gameRenderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});
   gameRenderer.setPixelRatio(Math.min(1.6,window.devicePixelRatio||1));
   gameRenderer.setClearColor(0,0);
+  gameRenderer.outputColorSpace=T.SRGBColorSpace;
+  gameRenderer.toneMapping=T.ACESFilmicToneMapping;
+  gameRenderer.toneMappingExposure=1.06;
   gameRenderer.domElement.setAttribute('aria-hidden','true');
   glSlot.appendChild(gameRenderer.domElement);
   previewRenderer=new THREE.WebGLRenderer({canvas:preview,alpha:true,antialias:true,powerPreference:'low-power'});
   previewRenderer.setPixelRatio(Math.min(1.6,window.devicePixelRatio||1));
   previewRenderer.setClearColor(0,0);
+  previewRenderer.outputColorSpace=T.SRGBColorSpace;
+  previewRenderer.toneMapping=T.ACESFilmicToneMapping;
+  previewRenderer.toneMappingExposure=1.06;
   scene=new THREE.Scene();
-  scene.add(new THREE.HemisphereLight('#ffffff','#8c9bb5',2.25));
-  const light=new THREE.DirectionalLight('#ffffff',2.25);
+  scene.add(new THREE.HemisphereLight('#ffffff','#8c9bb5',1.55));
+  const light=new THREE.DirectionalLight('#fff5eb',2.0);
   light.position.set(-3,7,6);scene.add(light);
-  const rim=new THREE.DirectionalLight('#c0eaff',1.05);rim.position.set(5,3,-5);scene.add(rim);
+  const rim=new THREE.DirectionalLight('#cceaf5',.85);rim.position.set(5,3,-5);scene.add(rim);
   model=makeAvatar();
   gameCamera=new THREE.PerspectiveCamera(32,1,.1,50);
   gameCamera.position.set(0,2.0,7.2);gameCamera.lookAt(0,1.52,0);
@@ -171,7 +312,12 @@ function draw(t){
   parts.leftArm.rotation.x=-stride*.65;
   parts.rightArm.rotation.x=stride*.65;
   parts.body.position.y=Math.max(0,state.jump)*.32-Math.max(0,state.slide)*.30+(state.moving?Math.abs(Math.sin(state.phase*2.1))*.045:Math.sin(time*2)*.013);
-  parts.body.scale.y=state.slide? .84:1;
+  parts.body.scale.y=state.slide?.84:1;
+  // Slight face tilt and natural blink instead of a static doll expression.
+  parts.headGroup.rotation.z=Math.sin(time*1.35)*.012+(state.moving?Math.sin(state.phase*1.05)*.014:0);
+  const blinkPhase=(time+1.2)%4.2;
+  const blinking=blinkPhase>.0&&blinkPhase<.17?Math.sin(blinkPhase/.17*Math.PI):0;
+  for(const eye of parts.eyes)eye.scale.y=1-.88*blinking;
   model.rotation.y=Math.PI-state.heading*Math.PI/180;
   // The same mesh is rendered with an independent camera to preview the outfit.
   gameRenderer.render(scene,gameCamera);
