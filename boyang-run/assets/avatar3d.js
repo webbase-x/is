@@ -146,11 +146,14 @@ function makeAvatar(){
     smoothBall(headGroup,skinLight,side*.425,-.046,.040,.033,.064,.032);
     smoothBall(headGroup,blush,side*.267,-.135,.307,.110,.075,.017);
     // Almond eye shape with white, iris, pupil and two small catchlights.
-    const eyeWhite=smoothBall(headGroup,whites,side*.166,.043,.352,.126,.091,.062);
-    const eyeIris=smoothBall(headGroup,iris,side*.160,.043,.409,.061,.069,.020);
-    const pupil=smoothBall(headGroup,black,side*.160,.041,.426,.039,.052,.013);
-    smoothBall(headGroup,glint,side*.145,.071,.438,.019,.020,.009);
-    smoothBall(headGroup,glint,side*.181,.019,.439,.008,.009,.008);
+    const eyeGroup=new THREE.Group();
+    eyeGroup.position.set(side*.166,.043,.361);headGroup.add(eyeGroup);
+    smoothBall(eyeGroup,whites,0,0,0,.126,.091,.062);
+    smoothBall(eyeGroup,iris,side*.006,0,.057,.061,.069,.020);
+    smoothBall(eyeGroup,black,side*.006,-.002,.074,.039,.052,.013);
+    smoothBall(eyeGroup,glint,side*.021,.028,.086,.019,.020,.009);
+    smoothBall(eyeGroup,glint,side*-.015,-.024,.087,.008,.009,.008);
+    (parts.eyes||(parts.eyes=[])).push(eyeGroup);
     stroke(headGroup,[[side*.058,.115,.378],[side*.148,.139,.384],[side*.269,.106,.351]],.016,hair);
     stroke(headGroup,[[side*.082,.255,.312],[side*.164,.274,.320],[side*.258,.248,.288]],.017,hairLight);
   }
@@ -259,16 +262,22 @@ function setupRenderers(T){
   gameRenderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});
   gameRenderer.setPixelRatio(Math.min(1.6,window.devicePixelRatio||1));
   gameRenderer.setClearColor(0,0);
+  gameRenderer.outputColorSpace=T.SRGBColorSpace;
+  gameRenderer.toneMapping=T.ACESFilmicToneMapping;
+  gameRenderer.toneMappingExposure=1.06;
   gameRenderer.domElement.setAttribute('aria-hidden','true');
   glSlot.appendChild(gameRenderer.domElement);
   previewRenderer=new THREE.WebGLRenderer({canvas:preview,alpha:true,antialias:true,powerPreference:'low-power'});
   previewRenderer.setPixelRatio(Math.min(1.6,window.devicePixelRatio||1));
   previewRenderer.setClearColor(0,0);
+  previewRenderer.outputColorSpace=T.SRGBColorSpace;
+  previewRenderer.toneMapping=T.ACESFilmicToneMapping;
+  previewRenderer.toneMappingExposure=1.06;
   scene=new THREE.Scene();
-  scene.add(new THREE.HemisphereLight('#ffffff','#8c9bb5',2.25));
-  const light=new THREE.DirectionalLight('#ffffff',2.25);
+  scene.add(new THREE.HemisphereLight('#ffffff','#8c9bb5',1.55));
+  const light=new THREE.DirectionalLight('#fff5eb',2.0);
   light.position.set(-3,7,6);scene.add(light);
-  const rim=new THREE.DirectionalLight('#c0eaff',1.05);rim.position.set(5,3,-5);scene.add(rim);
+  const rim=new THREE.DirectionalLight('#cceaf5',.85);rim.position.set(5,3,-5);scene.add(rim);
   model=makeAvatar();
   gameCamera=new THREE.PerspectiveCamera(32,1,.1,50);
   gameCamera.position.set(0,2.0,7.2);gameCamera.lookAt(0,1.52,0);
@@ -303,7 +312,12 @@ function draw(t){
   parts.leftArm.rotation.x=-stride*.65;
   parts.rightArm.rotation.x=stride*.65;
   parts.body.position.y=Math.max(0,state.jump)*.32-Math.max(0,state.slide)*.30+(state.moving?Math.abs(Math.sin(state.phase*2.1))*.045:Math.sin(time*2)*.013);
-  parts.body.scale.y=state.slide? .84:1;
+  parts.body.scale.y=state.slide?.84:1;
+  // Slight face tilt and natural blink instead of a static doll expression.
+  parts.headGroup.rotation.z=Math.sin(time*1.35)*.012+(state.moving?Math.sin(state.phase*1.05)*.014:0);
+  const blinkPhase=(time+1.2)%4.2;
+  const blinking=blinkPhase>.0&&blinkPhase<.17?Math.sin(blinkPhase/.17*Math.PI):0;
+  for(const eye of parts.eyes)eye.scale.y=1-.88*blinking;
   model.rotation.y=Math.PI-state.heading*Math.PI/180;
   // The same mesh is rendered with an independent camera to preview the outfit.
   gameRenderer.render(scene,gameCamera);
