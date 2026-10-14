@@ -10,6 +10,23 @@ const defaults={
 let outfit={...defaults.male},previewAngle=180,previewPointer=null;
 const state={heading:0,phase:0,moving:false,run:false,jump:0,slide:0,laneX:0,y:0};
 const stick={active:false,power:0,heading:0};
+const approvedSpritePreview={};
+function drawApprovedSprite(c,angle){
+ const customized=outfit.gender!=='male'||outfit.shirt!=='uniform'||outfit.bottom!=='auto'||outfit.shoes!=='black'||outfit.hat!=='none'||outfit.bag!=='none'||outfit.glasses!=='none';
+ if(customized||!window.BOYANG_SPRITES_25D)return false;
+ const rot=(angle%360+360)%360;
+ const dir=(rot>=45&&rot<135)?'right':(rot>=135&&rot<225)?'front':(rot>=225&&rot<315)?'left':'back';
+ const key='idle_'+(dir==='left'?'right':dir);
+ let im=approvedSpritePreview[key];
+ if(!im){im=new Image();im.src=window.BOYANG_SPRITES_25D[key];approvedSpritePreview[key]=im;}
+ c.clearRect(0,0,420,680);
+ if(!im.complete||!im.naturalWidth)return true;
+ c.save();c.translate(210,340);if(dir==='left')c.scale(-1,1);
+ const hh=580,ww=im.naturalWidth*hh/im.naturalHeight;
+ c.drawImage(im,-ww/2,-hh/2,ww,hh);c.restore();
+ return true;
+}
+
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const TAU=2*Math.PI;
 const api={
@@ -20,9 +37,8 @@ const api={
  closePreview(){ $('wardrobe')?.classList.add('hide') }
 };
 // Preserve existing game interface while replacing the renderer entirely.
-window.Boyang3D=api;
 window.Boyang25D=api;
-const gameSlot=$('avatar3dSlot'),preview=$('avatarPreview'),oldRunner=$('runner');
+const gameSlot=$('avatar25dSlot'),preview=$('avatarPreview'),oldRunner=$('runner');
 let gameCanvas=null,gameContext=null,previewContext=null;
 try{
  gameCanvas=document.createElement('canvas');
@@ -291,7 +307,7 @@ function avatar(c,heading,phase,moving,run,now){
  const blinkTime=(now/1000+1)%4.1;
  const blink=blinkTime<.16?Math.sin(blinkTime/.16*Math.PI):0;
  c.save();c.translate(210,4+bob);
- // Pseudo-3D projection: silhouette narrows in profile and accessories change depth order.
+ // 2.5D view projection: silhouette narrows in profile and accessories change depth order.
  c.scale(.70+.30*Math.abs(Math.cos(rad)),1);
  if(!backFacing)drawBag(c,false);
  leg(c,-1,stride,outfit.bottom,frontness);
@@ -390,7 +406,7 @@ function loop(now){
  if(document.hidden)return;
  if(gameContext)avatar(gameContext,state.heading,state.phase,state.moving,state.run,now);
  if(previewContext && !$('wardrobe').classList.contains('hide')){
-  avatar(previewContext,previewAngle,0,false,false,now);
+  if(!drawApprovedSprite(previewContext,previewAngle))avatar(previewContext,previewAngle,0,false,false,now);
  }
 }
 bindJoystick();wardrobe();
