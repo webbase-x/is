@@ -84,6 +84,11 @@ function makeAvatar(){
   }
   box(parts.glasses,.08,.027,.025,frameMat,0,2.68,.34);
   parts.frameMat=frameMat;
+  // Independently color outfit pieces (not shared with the collar or skin).
+  const customizable=[torso,leftArm.children[0],rightArm.children[0],parts.bottomShort,
+    ...parts.bottomPants,parts.skirt,leftLeg.userData.shoe,rightLeg.userData.shoe,
+    ...parts.hatPieces,...parts.bag.children];
+  for(const item of customizable)item.material=item.material.clone();
   return root;
 }
 function apply(v={}){
@@ -171,7 +176,7 @@ function draw(t){
   // The same mesh is rendered with an independent camera to preview the outfit.
   gameRenderer.render(scene,gameCamera);
   if(!$('wardrobe').classList.contains('hide')){
-    const previous=model.rotation.y;model.rotation.y=Math.sin(time*.7)*.43;
+    const previous=model.rotation.y;model.rotation.y=(time*.45)%(Math.PI*2);
     previewRenderer.render(scene,previewCamera);
     model.rotation.y=previous;
   }
