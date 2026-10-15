@@ -346,11 +346,11 @@ html,body{width:100%;height:100%;height:100dvh}
     <button id="start" type="button" disabled>กำลังโหลดเกม…</button>
   </div>
 </div>
-</div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=20261015-character-sfx"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script>
+</div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=0.1.0-beta.6"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script>
 (()=>{'use strict';
 // Single source for Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH[-prerelease].
 // Start at 0.1.0-beta.1 because gameplay and maps are still in development.
-const GAME_VERSION='0.1.0-beta.5';
+const GAME_VERSION='0.1.0-beta.6';
 const $=(id)=>document.getElementById(id);
 for(const id of ['gameVersion','splashVersion']){
  const element=$(id);
@@ -374,7 +374,14 @@ scenes.unshift(...schoolScenes);
 let selectedRoute=null,junctionHinted=false;
 let ROUTE_TOTAL=SCHOOL_ROUTE_LENGTH+originalStreetScenes.reduce((sum,x)=>sum+x.length,0);
 
-const sfx=window.BoyangSFX25D||{enabled:false,supported:false,unlock(){},stop(){},jump(){},land(){},slide(){},tick(){},setEnabled(){return false;}};
+const sfx=window.BoyangSFX25D||{enabled:false,supported:false,status:'unsupported',unlock(){return Promise.resolve(false)},test(){return Promise.resolve(false)},subscribe(){},stop(){},jump(){},land(){},slide(){},tick(){},setEnabled(){return false;}};
+function playSfx(action){
+ const fn=sfx[action];
+ if(typeof fn!=='function'||!sfx.enabled)return;
+ if(sfx.status==='ready'){fn();return;}
+ const p=sfx.unlock();
+ if(p&&typeof p.then==='function')p.then(ok=>{if(ok&&sfx.enabled)fn();});
+}
 const s={backpedal:false,keyboardReverse:false,stickGesture:-1,stickBase:0,keyboardEngaged:false,keyboardBase:0,active:false,paused:false,run:false,speed:0,dist:0,last:performance.now(),phase:0,lane:0,laneX:0,targetX:0,heading:0,routeHeading:0,cameraHeading:0,worldX:0,worldZ:0,jump:-1,slide:-1,swipe:null,pose:'idle',poseFrame:-1,motion:0};
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));const smooth=(t)=>t*t*(3-2*t);
 const normAngle=d=>((d%360)+360)%360;
@@ -464,8 +471,8 @@ function updateJunction(){
 }
 function togglePause(){if(!s.active)return;s.paused=!s.paused;s.run=false;sfx.stop();if(!s.paused)sfx.unlock();window.Boyang25D?.stop();$('heading').textContent='หยุดพัก';$('description').textContent='พร้อมแล้วกลับไปเดินทางบนถนนนครนอกต่อ';$('start').textContent='▶ เล่นต่อ';$('modal').classList.toggle('hide',!s.paused);$('pause').textContent=s.paused?'▶':'Ⅱ';s.last=performance.now();syncStatus()}
 function lane(k){if(!s.active||s.paused)return;s.heading=(s.heading+k*30+360)%360;window.Boyang25D?.toward(s.heading);}
-function jump(){if(!s.active||s.paused||s.jump>=0||s.slide>=0)return;s.jump=0;sfx.jump();syncStatus();announce('กระโดด')}
-function slide(){if(!s.active||s.paused||s.jump>=0||s.slide>=0)return;s.slide=0;sfx.slide();syncStatus();announce('สไลด์เท้าไปข้างหน้า')}
+function jump(){if(!s.active||s.paused||s.jump>=0||s.slide>=0)return;s.jump=0;playSfx('jump');syncStatus();announce('กระโดด')}
+function slide(){if(!s.active||s.paused||s.jump>=0||s.slide>=0)return;s.slide=0;playSfx('slide');syncStatus();announce('สไลด์เท้าไปข้างหน้า')}
 $('start').addEventListener('click',()=>{if(routeFinished){routeFinished=false;selectedRoute=null;junctionHinted=false;$('junctionGuide').classList.add('hide');
  scenes.splice(schoolScenes.length,scenes.length-schoolScenes.length,...originalStreetScenes);
  recalcRoute();
@@ -474,20 +481,37 @@ $('start').addEventListener('click',()=>{if(routeFinished){routeFinished=false;s
  $('start').textContent='▶ เริ่มสำรวจ';s.dist=0;s.phase=0;s.lane=0;s.laneX=0;s.targetX=0;s.heading=0;s.routeHeading=0;s.cameraHeading=0;s.worldX=0;s.worldZ=0;s.keyboardReverse=false;s.backpedal=false;s.stickGesture=-1;s.stickBase=0;s.keyboardEngaged=false;s.keyboardBase=0;window.Boyang25D?.reset();lastRenderedStage=-1;s.active=false;s.paused=false;begin();renderScene();return;}if(s.active&&s.paused){s.paused=false;$('modal').classList.add('hide');$('pause').textContent='Ⅱ';s.last=performance.now();sfx.unlock();sfx.stop();syncStatus()}else begin()});
 $('pause').addEventListener('click',togglePause);
 function syncSoundControl(){
- const btn=$('sound'),on=Boolean(sfx.enabled&&sfx.supported);
- btn.textContent=on?'🔊':'🔇';
+ const btn=$('sound');
+ const state=sfx.status||(sfx.enabled?'locked':'muted');
+ const ready=state==='ready';
+ btn.textContent=state==='muted'||state==='unsupported'?'🔇':ready?'🔊':'🔈';
  btn.disabled=!sfx.supported;
- btn.setAttribute('aria-label',on?'ปิดเสียงประกอบเกม':'เปิดเสียงประกอบเกม');
- btn.setAttribute('aria-pressed',String(on));
- btn.title=on?'ปิดเสียงประกอบเกม':'เปิดเสียงประกอบเกม';
+ btn.dataset.audioState=state;
+ const label=state==='muted'?'เปิดเสียงและทดสอบ':
+   ready?'ปิดเสียงประกอบเกม':
+   state==='unsupported'?'อุปกรณ์ไม่รองรับระบบเสียง':'แตะเพื่อทดสอบและเปิดเสียงบน iPad';
+ btn.setAttribute('aria-label',label);
+ btn.setAttribute('aria-pressed',String(Boolean(sfx.enabled&&sfx.supported)));
+ btn.title=label;
+}
+function soundTestFeedback(ok){
+ syncSoundControl();
+ announce(ok?'เล่นเสียงทดสอบแล้ว · หากไม่ได้ยินให้เพิ่มระดับเสียง iPad':'Safari ยังไม่พร้อมเล่นเสียง · แตะปุ่ม 🔈 อีกครั้ง');
 }
 $('sound').addEventListener('click',()=>{
  if(!sfx.supported)return;
- sfx.setEnabled(!sfx.enabled);
+ if(sfx.enabled&&sfx.status==='ready'){
+   sfx.setEnabled(false);syncSoundControl();announce('ปิดเสียงประกอบแล้ว');
+   return;
+ }
+ if(!sfx.enabled)sfx.setEnabled(true);
  syncSoundControl();
- announce(sfx.enabled?'เปิดเสียงประกอบแล้ว':'ปิดเสียงประกอบแล้ว');
+ // This is invoked synchronously inside the trusted click event, as iPad
+ // Safari requires a real gesture before resuming Web Audio output.
+ sfx.test().then(soundTestFeedback).catch(()=>soundTestFeedback(false));
 });
-$('joystick').addEventListener('pointerdown',()=>sfx.unlock(),{passive:true});
+$('joystick').addEventListener('pointerdown',()=>{void sfx.unlock();},{passive:true});
+sfx.subscribe?.(syncSoundControl);
 syncSoundControl();
 // Independent touch pointers: left thumb can hold the joystick while the
  // other thumb launches an action. React at pointerdown instead of waiting
