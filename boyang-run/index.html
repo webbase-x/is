@@ -267,7 +267,7 @@
       <span id="splashVersion" class="version-label splash-version" aria-label="เวอร์ชันเกม"></span>
       <span class="school-label">โรงเรียนเทศบาล ๑ (ถนนนครนอก)</span>
     </div>
-    <p id="description" class="welcome-text">ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง · ดันซ้าย–ขวาเพื่อเลี้ยว<br>ดันลงเพื่อหันกลับ · กระโดดหรือสไลด์เพื่อสนุกกับเส้นทาง</p>
+    <p id="description" class="welcome-text">ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง · ดันซ้าย–ขวาเพื่อเลี้ยว<br>ดันลงเพื่อหันกลับและเดินย้อนทางต่อ · กระโดดหรือสไลด์ได้</p>
     <div id="loadPanel" role="status" aria-live="polite">
       <span id="loadState">กำลังเตรียมฉากและตัวละคร…</span>
       <span id="loadTrack"><i id="loadFill"></i></span>
@@ -279,7 +279,7 @@
 (()=>{'use strict';
 // Single source for Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH[-prerelease].
 // Start at 0.1.0-beta.1 because gameplay and maps are still in development.
-const GAME_VERSION='0.1.0-beta.2';
+const GAME_VERSION='0.1.0-beta.3';
 const $=(id)=>document.getElementById(id);
 for(const id of ['gameVersion','splashVersion']){
  const element=$(id);
@@ -356,8 +356,9 @@ function setBranch(which){
  $('junctionGuide').classList.add('hide');
  scenes.splice(schoolScenes.length,scenes.length-schoolScenes.length,...(which==='left'?leftPrototypeScenes:originalStreetScenes));
  recalcRoute();
- // The selected road becomes the new forward axis; keep the child's heading
- // and the following camera so turning never teleports its orientation.
+ // The selected road becomes the next input baseline. Keep the heading and
+ // camera continuous; a joystick currently held during the turn keeps its
+ // captured old road baseline until released.
  s.dist=SCHOOL_ROUTE_LENGTH-0.05;
  preloader.warm(scenes.slice(schoolScenes.length,schoolScenes.length+3).map(scene=>scene.url));
  s.routeHeading=which==='right'?90:270;
@@ -383,7 +384,7 @@ $('start').addEventListener('click',()=>{if(routeFinished){routeFinished=false;s
  scenes.splice(schoolScenes.length,scenes.length-schoolScenes.length,...originalStreetScenes);
  recalcRoute();
  $('heading').textContent='พร้อมออกวิ่ง!';
- $('description').innerHTML='เริ่มในโรงเรียน · ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง<br>ตรงประตูให้ดันจอยซ้ายหรือขวาเพื่อเลี้ยวเข้าถนน';
+ $('description').innerHTML='เริ่มในโรงเรียน · ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง<br>ดันลงเพื่อย้อนทางเดิม · ตรงประตูดันซ้ายหรือขวาเพื่อเลี้ยว';
  $('start').textContent='▶ เริ่มสำรวจ';s.dist=0;s.phase=0;s.lane=0;s.laneX=0;s.targetX=0;s.heading=0;s.routeHeading=0;s.cameraHeading=0;s.worldX=0;s.worldZ=0;s.keyboardReverse=false;s.backpedal=false;s.stickGesture=-1;s.stickBase=0;s.keyboardEngaged=false;s.keyboardBase=0;window.Boyang25D?.reset();lastRenderedStage=-1;s.active=false;s.paused=false;begin();renderScene();return;}if(s.active&&s.paused){s.paused=false;$('modal').classList.add('hide');$('pause').textContent='Ⅱ';s.last=performance.now();sfx.unlock();sfx.stop();syncStatus()}else begin()});
 $('pause').addEventListener('click',togglePause);
 function syncSoundControl(){
@@ -411,7 +412,7 @@ const keys=new Set();window.addEventListener('keydown',e=>{const key=e.key.toLow
  if(['arrowleft','arrowright','arrowup','arrowdown',' ','shift','a','d','w','s','escape'].includes(key))e.preventDefault();
  if(!s.active&&['enter',' '].includes(key)){$('start').click();return;}
  keys.add(key);if(e.repeat)return;
- // Keyboard directions follow the same camera-relative movement as the joystick.
+ // Keyboard movement uses the same fixed road-relative directions as the joystick.
  if(key===' ')jump();else if(key==='escape')togglePause();
 },{passive:false});
 window.addEventListener('keyup',e=>{keys.delete(e.key.toLowerCase())});
@@ -449,8 +450,8 @@ function renderScene(){
  const zoomA=isFinal?(1.06 + .50*smooth(t)):(1.02 + .46*smooth(t));
  // Begin blending while the outgoing scene is still advancing toward the viewer.
  let blend=isFinal?0:smooth(clamp((t-.72)/.28,0,1));
- // The camera keeps chasing the child; the sprite itself stays road-relative
- // so forward, side and reverse movement are visibly distinct in this 2.5D scene.
+ // The camera follows the child visually, but NEVER changes the input axes.
+ // The sprite faces the road-relative direction of true world movement.
  const cameraYaw=signedAngle(s.cameraHeading-s.routeHeading);
  const gaze=clamp(cameraYaw/90,-1,1);
  if(gateView){
@@ -500,23 +501,27 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(
  const keyX=Number(keys.has('arrowright')||keys.has('d'))-Number(keys.has('arrowleft')||keys.has('a'));
  const keyY=Number(keys.has('arrowup')||keys.has('w'))-Number(keys.has('arrowdown')||keys.has('s'));
  const keyboardMoving=!stickMoving&&(keyX!==0||keyY!==0);
- // Freeze the initial camera direction for each joystick gesture. Tracking
- // the changing camera each frame would cause endless spinning on left/back.
+ // ROUTE-relative controls: the joystick's up/down/left/right keep the same
+ // meaning even when the follow camera rotates 180 degrees. Capture the road
+ // orientation only at the start of an input gesture, not every frame.
+ // A turn through the school gate changes routeHeading, but a held gesture
+ // must keep its original basis until the finger is lifted.
  if(stickMoving){
    if(s.stickGesture!==stick.gesture){
      s.stickGesture=stick.gesture;
-     s.stickBase=s.cameraHeading;
+     s.stickBase=s.routeHeading;
    }
    s.heading=normAngle(s.stickBase+stick.heading);
    s.keyboardEngaged=false;
  }else if(keyboardMoving){
-   if(!s.keyboardEngaged){s.keyboardEngaged=true;s.keyboardBase=s.cameraHeading;}
+   if(!s.keyboardEngaged){s.keyboardEngaged=true;s.keyboardBase=s.routeHeading;}
    s.heading=normAngle(s.keyboardBase+Math.atan2(keyX,keyY)*180/Math.PI);
  }else{
    s.keyboardEngaged=false;
  }
- // Forward and reverse both use positive speed; the avatar faces the actual
- // displacement direction. A backward command rotates it 180 degrees.
+ // Never translate backwards while facing forwards. All motion uses the
+ // facing direction and POSITIVE speed: down is a true 180-degree turn,
+ // and a later down gesture continues to go back along the same route.
  const effectivePower=stickMoving?power:(keyboardMoving?(keys.has('shift')?.98:.52):0);
  s.run=effectivePower>=.71;
  const desired=effectivePower<=.12?0:(s.run?3.1+Math.min(1,(effectivePower-.71)/.29)*3.9:.65+Math.min(1,(effectivePower-.12)/.59)*2.05);
