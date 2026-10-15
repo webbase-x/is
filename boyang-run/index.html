@@ -105,11 +105,16 @@ function pickSpriteAction(pose){
  return 'idle';
 }
 function pickSpriteDirection(){
- // A following camera sees the child's back when the student faces ahead.
- // While the camera catches up, show side/front sprites relative to its position.
- const h=normAngle(s.heading-s.cameraHeading);
- let view=h>=38&&h<142?'right':h>=142&&h<218?'front':h>=218&&h<322?'left':'back';
- return view;
+ // The scenery consists of road-aligned 2.5D photographs, not a freely
+ // rotatable 3D environment. Render the student's REAL world-facing direction
+ // against the road shown on screen. Comparing to cameraHeading made every
+ // left/right/reverse turn disappear as soon as the chase camera caught up.
+ // School road = 0°, right branch = 90°, left branch = 270°.
+ const relative=normAngle(s.heading-s.routeHeading);
+ if(relative>=45&&relative<135)return 'right';
+ if(relative>=135&&relative<225)return 'front';
+ if(relative>=225&&relative<315)return 'left';
+ return 'back';
 }
 function selectSprite(){
  const dir=pickSpriteDirection(),facing=dir==='left'?'right':dir;
@@ -212,8 +217,8 @@ function renderScene(){
  const zoomA=isFinal?(1.06 + .50*smooth(t)):(1.02 + .46*smooth(t));
  // Begin blending while the outgoing scene is still advancing toward the viewer.
  let blend=isFinal?0:smooth(clamp((t-.72)/.28,0,1));
- // The scene looks in the same direction as the camera following the child.
- // Relative yaw is measured against the active street rather than global north.
+ // The camera keeps chasing the child; the sprite itself stays road-relative
+ // so forward, side and reverse movement are visibly distinct in this 2.5D scene.
  const cameraYaw=signedAngle(s.cameraHeading-s.routeHeading);
  const gaze=clamp(cameraYaw/90,-1,1);
  if(gateView){
