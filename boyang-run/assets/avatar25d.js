@@ -6,7 +6,7 @@
  const dial=document.getElementById('joyDial');
  const knob=document.getElementById('joyKnob');
  const status=document.getElementById('joyAngle');
- const stick={active:false,power:0,heading:0,run:false};
+ const stick={active:false,power:0,heading:0,run:false,gesture:0};
  const WALK_THRESHOLD=.71,DEAD_ZONE=.12;
  let pointer=null;
  function label(){
@@ -43,6 +43,7 @@
      if(pointer!==null)return;
      e.preventDefault();
      pointer=e.pointerId;
+     stick.gesture++;
      try{joystick.setPointerCapture(pointer)}catch(_){}
      update(e);
    });
