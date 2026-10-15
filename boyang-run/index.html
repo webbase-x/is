@@ -18,11 +18,11 @@
 #runner{z-index:9;display:block;position:absolute;bottom:13%;left:50%;height:37%;width:auto;max-width:68%;object-fit:contain;object-position:50% 100%;pointer-events:none;filter:drop-shadow(0 9px 5px #102c3d55);transform-origin:50% 93%;will-change:transform}
 #hud{position:absolute;left:12px;right:12px;top:max(13px,env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:start;gap:8px;z-index:10;pointer-events:none}
 .glass{background:var(--glass);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 22px #0004;color:#fff;pointer-events:auto}
-#title{padding:10px 13px} #title b{font-size:14px;display:block}#title small{font-size:10px;color:#e4f4ff}#rightHud{display:flex;gap:7px;align-items:center}#speed{padding:10px;font-weight:750;font-size:11px;white-space:nowrap}#pause{width:43px;height:43px;font-size:20px;font-weight:900}
+#title{padding:10px 13px} #title b{font-size:14px;display:block}#title small{font-size:10px;color:#e4f4ff}#rightHud{display:flex;gap:7px;align-items:center}#pause{width:43px;height:43px;font-size:20px;font-weight:900}
 #sound{width:43px;height:43px;font-size:20px;display:grid;place-items:center;flex-shrink:0}
 #sound:focus-visible{outline:2px solid #a5f9ee;outline-offset:2px}
 #sound[disabled]{opacity:.5;cursor:not-allowed}
-@media(max-width:440px){#rightHud{gap:4px;flex-shrink:0}#title{min-width:0;max-width:48%;padding:8px}#title .hud-game-logo{width:82px;height:34px}#title small{font-size:9px;line-height:1.25}#speed{padding:7px 5px;font-size:10px}#sound,#pause{width:40px;height:40px}}
+@media(max-width:440px){#rightHud{gap:4px;flex-shrink:0}#title{min-width:0;max-width:48%;padding:8px}#title .hud-game-logo{width:82px;height:34px}#title small{font-size:9px;line-height:1.25}#sound,#pause{width:40px;height:40px}}
 @media(max-width:350px){#title{max-width:42%}#title small{font-size:8px}#sound,#pause{width:37px;height:40px}#rightHud{gap:3px}}
 #distance{position:absolute;left:12px;top:calc(max(13px,env(safe-area-inset-top)) + 60px);padding:7px 11px;font-size:11px;font-weight:800;z-index:12}
 #notice{position:absolute;top:calc(max(13px,env(safe-area-inset-top)) + 100px);left:50%;transform:translateX(-50%);color:white;background:#08243abf;padding:8px 16px;border:1px solid #ffffff44;border-radius:999px;font-size:12px;font-weight:700;opacity:0;z-index:13;transition:opacity .2s;white-space:nowrap}
@@ -92,7 +92,7 @@
 #title .hud-game-logo{width:93px;height:39px;margin:0;object-fit:contain}
 #title small{display:none}
 #rightHud{gap:6px}
-#speed{height:40px;display:flex;align-items:center;padding:0 10px}
+
 #sound,#pause{height:40px;min-width:40px}
 #routeStatus{left:10px;right:10px;top:calc(max(10px,env(safe-area-inset-top)) + 53px);min-width:0;max-width:none;width:auto;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;padding:9px 11px;gap:3px 10px}
 #routeStatus strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -126,11 +126,30 @@
  #junctionGuide{top:35%}
 }
 @media(max-width:360px){#toolbar{gap:7px;left:6px;right:6px}#joystick{padding:5px 1px}}
+/* BOYANG RUN control declutter: transparent overlays that preserve tap size.
+   The stage remains fully visible through the joystick and action controls. */
+:root{--hud-control-bg:rgba(8,30,48,.18);--hud-control-border:rgba(235,252,255,.48)}
+#title{background:rgba(6,28,49,.26);border-color:rgba(255,255,255,.23);box-shadow:none;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+#routeStatus{background:rgba(6,28,49,.32);border-color:rgba(255,255,255,.28);box-shadow:0 2px 12px rgba(0,0,0,.11);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+#rightHud{gap:8px}
+#rightHud #sound,#rightHud #pause{background:var(--hud-control-bg);border:1px solid var(--hud-control-border);border-radius:50%;box-shadow:0 2px 9px rgba(1,18,31,.13);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);width:44px;height:44px;min-width:44px;min-height:44px;display:grid;place-items:center;color:#fff;text-shadow:0 1px 4px #00243f}
+#rightHud #sound:active,#rightHud #pause:active{background:rgba(5,43,67,.42)}
+#toolbar #joystick{background:rgba(5,24,43,.10);border:1px solid rgba(234,253,255,.25);box-shadow:none;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+#joystick #joyDial{background:radial-gradient(circle at center,rgba(0,120,160,.10) 0 24%,rgba(8,107,149,.19) 25% 63%,rgba(6,48,77,.23) 64% 100%);border-color:rgba(185,249,255,.76);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),0 3px 12px rgba(0,25,39,.12)}
+#joystick #joyKnob{background:linear-gradient(145deg,rgba(39,224,234,.78),rgba(3,119,170,.73));box-shadow:0 4px 11px rgba(0,33,51,.22),inset 0 1px 5px rgba(255,255,255,.24)}
+#toolbar .ctrlgroup{background:transparent;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:0;gap:10px;height:105px}
+#toolbar .action{background:rgba(6,29,48,.18);border:1px solid rgba(237,252,255,.57);border-radius:20px;box-shadow:0 2px 12px rgba(0,18,33,.11);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);color:#fff;text-shadow:0 2px 5px rgba(0,15,31,.8);min-height:96px;min-width:0}
+#toolbar .action.down,#toolbar .action:active{background:rgba(0,129,173,.40);border-color:#c0f8fc;transform:translateY(1px)}
+#toolbar .action:focus-visible,#rightHud button:focus-visible{outline:2px solid #afffff;outline-offset:2px}
+#joystick #joyAngle{min-height:18px;font-size:12px;color:#fff;text-shadow:0 1px 4px #041e2f,0 1px 2px #041e2f}
+@media(max-height:640px){#toolbar .ctrlgroup{height:88px}#toolbar .action{min-height:82px}}
+@media(max-width:380px){#rightHud{gap:6px}#rightHud #sound,#rightHud #pause{width:42px;height:42px;min-width:42px;min-height:42px}#toolbar .ctrlgroup{gap:7px}}
+@media(prefers-reduced-transparency:reduce){#toolbar .action,#rightHud #sound,#rightHud #pause{background:rgba(5,33,56,.42)}#toolbar #joystick{background:rgba(6,30,50,.25)}}
 </style></head><body><main id="game">
 <div id="view"><div id="bg0"></div><div id="bg1"></div><div id="runnerShadow"></div><img id="runner" alt="นักเรียน" draggable="false" />
-<div id="hud"><div id="title" class="glass"><img class="hud-game-logo" src="./assets/logo.png?v=20261015-school-logo" alt="BOYANG RUN" width="105" height="79"><small>กล้องตามทิศตัวละคร · จอยเบาเดิน · จอยสุดวิ่ง</small></div><div id="rightHud"><div id="speed" class="glass">● พร้อมเล่น</div><button id="sound" class="glass" type="button" aria-label="ปิดเสียงประกอบเกม" aria-pressed="true" title="ปิดเสียงประกอบเกม">🔊</button><button id="pause" class="glass" aria-label="หยุดเกม">Ⅱ</button></div></div>
+<div id="hud"><div id="title" class="glass"><img class="hud-game-logo" src="./assets/logo.png?v=20261015-school-logo" alt="BOYANG RUN" width="105" height="79"><small>กล้องตามทิศตัวละคร · จอยเบาเดิน · จอยสุดวิ่ง</small></div><div id="rightHud"><button id="sound" class="glass" type="button" aria-label="ปิดเสียงประกอบเกม" aria-pressed="true" title="ปิดเสียงประกอบเกม">🔊</button><button id="pause" class="glass" aria-label="หยุดเกม">Ⅱ</button></div></div>
 <div id="routeStatus" class="glass"><strong id="sceneLabel">ภายในโรงเรียนเทศบาล ๑</strong><span id="distance">0 ม.</span><div id="progressTrack"><i id="progressFill"></i></div></div><div id="notice"></div>
-<div id="toolbar"><div id="joystick" role="group" aria-label="จอยสติ๊กเดินและวิ่งแบบแอนะล็อก 360 องศา ดันเบาเพื่อเดิน ดันสุดเพื่อวิ่ง และปล่อยเพื่อหยุด"><div id="joyDial"><div id="joyKnob"></div><span class="joyNorth">↑</span></div><small id="joyAngle" aria-live="off">● หยุด · 0°</small></div><div class="ctrlgroup"><button id="jump" class="action" aria-label="กระโดด"><b>↑</b>กระโดด</button><button id="slide" class="action" aria-label="สไลด์"><b>↓</b>สไลด์</button></div></div>
+<div id="toolbar"><div id="joystick" role="group" aria-label="จอยสติ๊กเดินและวิ่งแบบแอนะล็อก 360 องศา ดันเบาเพื่อเดิน ดันสุดเพื่อวิ่ง และปล่อยเพื่อหยุด"><div id="joyDial"><div id="joyKnob"></div><span class="joyNorth">↑</span></div><small id="joyAngle" aria-live="off">● หยุด</small></div><div class="ctrlgroup"><button id="jump" class="action" aria-label="กระโดด"><b>↑</b>กระโดด</button><button id="slide" class="action" aria-label="สไลด์"><b>↓</b>สไลด์</button></div></div>
 <div id="junctionGuide" class="hide" role="status" aria-live="polite">ถึงประตูโรงเรียน · ดันจอยซ้ายหรือขวาเพื่อเลี้ยวเข้าสู่ถนน</div>
 <div id="modal"><div class="card"><div class="tag">EXPLORE · 2.5D</div><img class="splash-game-logo" src="./assets/logo.png?v=20261015-school-logo" alt="BOYANG RUN" width="205" height="154"><h1 id="heading">วิธีเล่น</h1><p id="description">ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง · ดันซ้ายหรือขวาเพื่อเลี้ยว<br>ดันลงเพื่อหันกลับ · ใช้ปุ่มกระโดดและสไลด์</p><div id="loadPanel" role="status" aria-live="polite"><span id="loadState">กำลังเตรียมฉากและตัวละคร…</span><span id="loadTrack"><i id="loadFill"></i></span></div><button id="start" disabled>กำลังโหลดเกม…</button></div></div>
 </div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=20261015-character-sfx"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script>
@@ -191,7 +210,13 @@ function selectSprite(){
 }
 function announce(t){$('notice').textContent=t;$('notice').classList.add('show');clearTimeout(msgT);msgT=setTimeout(()=>$('notice').classList.remove('show'),1200)}
 function mode(){return s.jump>=0?'jump':s.slide>=0?'slide':s.speed>.2?(s.run?'run':'walk'):'idle'}
-function syncStatus(){const m=mode(),text=({idle:'● หยุด',walk:'● เดิน',run:'● วิ่ง',jump:'↑ กระโดด',slide:'↓ สไลด์'})[m]||m;if($('speed').textContent!==text)$('speed').textContent=text;}
+function syncStatus(){
+ // A single motion indicator under the joystick replaces the duplicate top pill.
+ const m=s.paused?'pause':mode();
+ const value=({idle:'● หยุด',walk:'● เดิน',run:'● วิ่ง',jump:'↑ กระโดด',slide:'↓ สไลด์',pause:'Ⅱ พักเกม'})[m]||m;
+ const indicator=$('joyAngle');
+ if(indicator&&indicator.textContent!==value)indicator.textContent=value;
+}
 function begin(){sfx.unlock();sfx.stop();$('loadPanel').hidden=true;s.active=true;s.paused=false;s.speed=0;s.run=false;s.last=performance.now();$('modal').classList.add('hide');syncStatus();announce('เริ่มสำรวจ')}
 function recalcRoute(){stageStarts.length=0;let d=0;for(const scene of scenes){stageStarts.push(d);d+=scene.length;}ROUTE_TOTAL=d;lastRenderedStage=-1;lastPrefetchStage=-1;}
 // Turn through the school gate using the joystick; no route-choice dialog.
@@ -220,7 +245,7 @@ function updateJunction(){
  if(angle>=57&&angle<=123)setBranch('right');
  else if(angle<=-57&&angle>=-123)setBranch('left');
 }
-function togglePause(){if(!s.active)return;s.paused=!s.paused;s.run=false;sfx.stop();if(!s.paused)sfx.unlock();window.Boyang25D?.stop();$('heading').textContent='หยุดพัก';$('description').textContent='พร้อมแล้วกลับไปเดินทางบนถนนนครนอกต่อ';$('start').textContent='▶ เล่นต่อ';$('modal').classList.toggle('hide',!s.paused);$('pause').textContent=s.paused?'▶':'Ⅱ';s.last=performance.now()}
+function togglePause(){if(!s.active)return;s.paused=!s.paused;s.run=false;sfx.stop();if(!s.paused)sfx.unlock();window.Boyang25D?.stop();$('heading').textContent='หยุดพัก';$('description').textContent='พร้อมแล้วกลับไปเดินทางบนถนนนครนอกต่อ';$('start').textContent='▶ เล่นต่อ';$('modal').classList.toggle('hide',!s.paused);$('pause').textContent=s.paused?'▶':'Ⅱ';s.last=performance.now();syncStatus()}
 function lane(k){if(!s.active||s.paused)return;s.heading=(s.heading+k*30+360)%360;window.Boyang25D?.toward(s.heading);}
 function jump(){if(!s.active||s.paused||s.jump>=0||s.slide>=0)return;s.jump=0;sfx.jump();syncStatus();announce('กระโดด')}
 function slide(){if(!s.active||s.paused||s.jump>=0||s.slide>=0)return;s.slide=0;sfx.slide();syncStatus();announce('สไลด์')}
