@@ -77,6 +77,13 @@
 @media(max-width:440px){#title .hud-game-logo{width:82px;height:34px}}
 @media(max-width:350px){#title .hud-game-logo{width:72px;height:31px}}
 
+/* Edge-bleed camera fix: pan can reach 19% of the viewport plus 3.4% lane
+   offset. The previous 1% scene inset exposed cyan (#2582aa) at turns.
+   32% side overscan covers both directions even at initial zoom 1.02 and
+   13-degree perspective yaw; extra vertical bleed covers speed bob. */
+#view{background-color:#163e58;background-size:cover;background-position:center center;background-repeat:no-repeat}
+#bg0,#bg1{inset:-6% -32%;background-size:cover;background-repeat:no-repeat;transform-origin:50% 48%;backface-visibility:hidden}
+#view,#bg0,#bg1{contain:paint}
 /* Streamlined 2.5D stage: HUD and controls live inside the same viewport. */
 #view{width:min(100%,530px);height:100%;margin-inline:auto}
 #roadCanvas{display:none}
@@ -270,6 +277,9 @@ function renderScene(){
  const gateView=!selectedRoute&&s.dist>=schoolScenes[0].length;
  const {idx,t}=stageAt(!selectedRoute?Math.min(s.dist,SCHOOL_ROUTE_LENGTH-.001):s.dist); const isFinal=Boolean(selectedRoute)&&idx===scenes.length-1;
  if(lastRenderedStage!==idx){
+   // A full-viewport copy always covers the fallback, even during rapid turns,
+   // stage changes, and iOS perspective compositing.
+   w.style.backgroundImage=`url("${scenes[idx].url}")`;
    a.style.backgroundImage=`url("${scenes[idx].url}")`;
    b.style.backgroundImage=`url("${scenes[Math.min(idx+1,scenes.length-1)].url}")`;
    lastRenderedStage=idx;
