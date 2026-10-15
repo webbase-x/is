@@ -250,6 +250,77 @@
 @media(max-height:510px){
  .welcome-card .welcome-hero{width:min(90px,29vw);max-width:90px}
 }
+
+/* Responsive 2.5D layout: portrait screens fill edge-to-edge; only extra-wide
+   landscape scenes use a centered camera with a matching blurred background,
+   not empty blue sidebars.  Controls remain inside the playable stage. */
+html,body{width:100%;height:100%;height:100dvh}
+#game{width:100%;height:100%;height:100dvh;overflow:hidden;isolation:isolate}
+#game::before{
+ content:"";position:absolute;inset:-5%;z-index:0;pointer-events:none;
+ background-image:var(--scene-backdrop,none);background-size:cover;
+ background-repeat:no-repeat;background-position:center;
+ filter:blur(25px) brightness(.62);transform:scale(1.055);
+}
+#view{
+ position:relative;z-index:1;width:100%;max-width:none;height:100%;
+ margin-inline:auto;box-shadow:none;
+}
+#runner{height:clamp(130px,37%,440px);max-width:64%}
+#hud{left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top))}
+#routeStatus{
+ left:max(10px,env(safe-area-inset-left));right:auto;
+ top:calc(max(10px,env(safe-area-inset-top)) + 63px);
+ width:min(calc(100% - 20px),620px);max-width:calc(100% - 20px);
+}
+#toolbar{
+ left:max(12px,env(safe-area-inset-left));
+ right:max(12px,env(safe-area-inset-right));
+ bottom:max(12px,env(safe-area-inset-bottom));
+ display:flex;justify-content:space-between;align-items:flex-end;
+ grid-template-columns:none;gap:clamp(8px,2vw,20px);
+}
+#toolbar #joystick{
+ flex:0 1 clamp(145px,27vw,245px);width:clamp(145px,27vw,245px);
+ min-width:0;min-height:clamp(118px,18dvh,172px);
+}
+#joystick #joyDial{width:clamp(80px,13dvh,118px);height:clamp(80px,13dvh,118px)}
+#toolbar .ctrlgroup{
+ flex:0 1 clamp(165px,28vw,272px);width:clamp(165px,28vw,272px);
+ height:clamp(92px,15dvh,122px);align-self:flex-end;
+}
+#toolbar .action{min-height:100%;font-size:clamp(11px,1.35vw,14px);touch-action:none}
+#toolbar .action b{font-size:clamp(20px,2.7vw,29px)}
+#notice{top:calc(max(10px,env(safe-area-inset-top)) + 130px)}
+@media (min-aspect-ratio: 3/2){
+ #view{width:min(100%,108dvh,1100px);box-shadow:0 0 35px rgba(0,12,27,.23)}
+}
+@media (max-width:480px){
+ #toolbar{left:8px;right:8px;gap:8px}
+ #toolbar #joystick{flex:0 1 48%;width:48%;min-height:130px}
+ #toolbar .ctrlgroup{flex:0 1 48%;width:48%;height:103px;gap:7px}
+ #toolbar .action{font-size:12px}
+ #joystick #joyDial{width:clamp(82px,12dvh,108px);height:clamp(82px,12dvh,108px)}
+ #routeStatus{width:calc(100% - 20px)}
+}
+@media (orientation:landscape) and (max-height:560px){
+ #view{width:min(100%,108dvh,700px)}
+ #runner{height:clamp(105px,38%,220px);bottom:17%}
+ #toolbar{bottom:max(5px,env(safe-area-inset-bottom));gap:6px}
+ #toolbar #joystick{min-height:94px;flex-basis:42%;padding:3px}
+ #joystick #joyDial{width:72px;height:72px}
+ #toolbar .ctrlgroup{height:89px;flex-basis:44%;gap:6px}
+ #toolbar .action{font-size:11px}
+ #routeStatus{top:calc(max(5px,env(safe-area-inset-top)) + 50px);padding:6px 8px}
+ #hud{top:max(5px,env(safe-area-inset-top))}
+ #notice{display:none}
+ #title{min-height:42px}
+}
+@media (max-height:490px) and (orientation:portrait){
+ #toolbar #joystick{min-height:101px}
+ #joystick #joyDial{width:70px;height:70px}
+ #toolbar .ctrlgroup{height:86px}
+}
 </style></head><body><main id="game">
 <div id="view"><div id="bg0"></div><div id="bg1"></div><div id="runnerShadow"></div><img id="runner" alt="นักเรียน" draggable="false" />
 <div id="hud"><div id="title" class="glass"><img class="hud-game-logo" src="./assets/logo.png?v=20261015-school-logo" alt="BOYANG RUN" width="105" height="79"><span id="gameVersion" class="version-label" aria-label="เวอร์ชันเกม"></span></div><div id="rightHud"><button id="sound" class="glass" type="button" aria-label="ปิดเสียงประกอบเกม" aria-pressed="true" title="ปิดเสียงประกอบเกม">🔊</button><button id="pause" class="glass" aria-label="หยุดเกม">Ⅱ</button></div></div>
@@ -267,7 +338,7 @@
       <span id="splashVersion" class="version-label splash-version" aria-label="เวอร์ชันเกม"></span>
       <span class="school-label">โรงเรียนเทศบาล ๑ (ถนนนครนอก)</span>
     </div>
-    <p id="description" class="welcome-text">ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง · ดันซ้าย–ขวาเพื่อเลี้ยว<br>ดันลงเพื่อหันกลับและเดินย้อนทางต่อ · กระโดดหรือสไลด์ได้</p>
+    <p id="description" class="welcome-text">ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง · ดันซ้าย–ขวาเพื่อเลี้ยว<br>ดันลงเพื่อย้อนทาง · ใช้จอยพร้อมกระโดดหรือสไลด์ได้</p>
     <div id="loadPanel" role="status" aria-live="polite">
       <span id="loadState">กำลังเตรียมฉากและตัวละคร…</span>
       <span id="loadTrack"><i id="loadFill"></i></span>
@@ -279,7 +350,7 @@
 (()=>{'use strict';
 // Single source for Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH[-prerelease].
 // Start at 0.1.0-beta.1 because gameplay and maps are still in development.
-const GAME_VERSION='0.1.0-beta.3';
+const GAME_VERSION='0.1.0-beta.4';
 const $=(id)=>document.getElementById(id);
 for(const id of ['gameVersion','splashVersion']){
  const element=$(id);
@@ -403,7 +474,25 @@ $('sound').addEventListener('click',()=>{
 });
 $('joystick').addEventListener('pointerdown',()=>sfx.unlock(),{passive:true});
 syncSoundControl();
-$('jump').addEventListener('click',jump);$('slide').addEventListener('click',slide);
+// Independent touch pointers: left thumb can hold the joystick while the
+ // other thumb launches an action. React at pointerdown instead of waiting
+ // for pointerup/click on mobile Safari; keep click for mouse/keyboard.
+ function bindAction(id,perform){
+   const button=$(id);
+   let handledPointerAt=-Infinity;
+   button.addEventListener('pointerdown',event=>{
+     if(event.pointerType==='touch'||event.pointerType==='pen'){
+       event.preventDefault();
+       handledPointerAt=performance.now();
+       perform();
+     }
+   },{passive:false});
+   button.addEventListener('click',()=>{
+     if(performance.now()-handledPointerAt>650)perform();
+   });
+ }
+ bindAction('jump',jump);
+ bindAction('slide',slide);
 window.addEventListener('blur',()=>{s.run=false;sfx.stop();window.Boyang25D?.stop()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){s.run=false;window.Boyang25D?.stop();if(s.active&&!s.paused)togglePause()}});
 w.addEventListener('pointerdown',e=>{if(e.target.closest('#joystick')){s.swipe=null;return;}s.swipe={x:e.clientX,y:e.clientY,id:e.pointerId}});
@@ -436,6 +525,7 @@ function renderScene(){
    // A full-viewport copy always covers the fallback, even during rapid turns,
    // stage changes, and iOS perspective compositing.
    w.style.backgroundImage=`url("${scenes[idx].url}")`;
+   $('game').style.setProperty('--scene-backdrop',`url("${scenes[idx].url}")`);
    a.style.backgroundImage=`url("${scenes[idx].url}")`;
    b.style.backgroundImage=`url("${scenes[Math.min(idx+1,scenes.length-1)].url}")`;
    lastRenderedStage=idx;
@@ -525,7 +615,12 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(
  const effectivePower=stickMoving?power:(keyboardMoving?(keys.has('shift')?.98:.52):0);
  s.run=effectivePower>=.71;
  const desired=effectivePower<=.12?0:(s.run?3.1+Math.min(1,(effectivePower-.71)/.29)*3.9:.65+Math.min(1,(effectivePower-.12)/.59)*2.05);
- s.speed+=(desired-s.speed)*(1-Math.exp(-dt*(desired?9:13)));
+ // A jump/slide by itself stays on the spot. When the player holds a
+ // direction, horizontal motion continues during the action. Releasing
+ // the stick mid-action stops horizontal drift immediately.
+ if(effectivePower<=.12&&(s.jump>=0||s.slide>=0))s.speed=0;
+ else s.speed+=(desired-s.speed)*(1-Math.exp(-dt*(desired?9:13)));
+ if(s.slide>=0&&effectivePower>.12)s.speed*=1-Math.min(.16,dt*.65);
  s.backpedal=false;
  // One authoritative heading drives BOTH real displacement and the 2.5D camera.
  const rad=s.heading*Math.PI/180,step=s.speed*dt;
