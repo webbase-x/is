@@ -338,7 +338,7 @@ html,body{width:100%;height:100%;height:100dvh}
       <span id="splashVersion" class="version-label splash-version" aria-label="เวอร์ชันเกม"></span>
       <span class="school-label">โรงเรียนเทศบาล ๑ (ถนนนครนอก)</span>
     </div>
-    <p id="description" class="welcome-text">ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง · ดันซ้าย–ขวาเพื่อเลี้ยว<br>ดันลงเพื่อย้อนทาง · ใช้จอยพร้อมกระโดดหรือสไลด์ได้</p>
+    <p id="description" class="welcome-text">ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง · ดันซ้าย–ขวาเพื่อเลี้ยว<br>ดันลงเพื่อย้อนทาง · ใช้จอยพร้อมกระโดดหรือสไลด์เท้าไปข้างหน้าได้</p>
     <div id="loadPanel" role="status" aria-live="polite">
       <span id="loadState">กำลังเตรียมฉากและตัวละคร…</span>
       <span id="loadTrack"><i id="loadFill"></i></span>
@@ -350,7 +350,7 @@ html,body{width:100%;height:100%;height:100dvh}
 (()=>{'use strict';
 // Single source for Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH[-prerelease].
 // Start at 0.1.0-beta.1 because gameplay and maps are still in development.
-const GAME_VERSION='0.1.0-beta.4';
+const GAME_VERSION='0.1.0-beta.5';
 const $=(id)=>document.getElementById(id);
 for(const id of ['gameVersion','splashVersion']){
  const element=$(id);
@@ -383,9 +383,24 @@ let msgT=0;
 // 2.5D sprite animation: 6 actions x 3 directions, using the user's schoolchild design.
 const sprite25d=window.BOYANG_SPRITES_25D||null;
 let currentSpritePose='';
+// Four natural phases (0–0.65s): crouch, extend the forward foot,
+// ground slide, stand up. Match poses to the actual direction of travel.
+const SLIDE_DURATION=.65;
+function slideProgress(){return s.slide<0?0:clamp(s.slide/SLIDE_DURATION,0,1);}
+function slideStrength(){
+ if(s.slide<0)return 0;
+ const t=slideProgress();
+ return smooth(clamp(t/.18,0,1))*(1-smooth(clamp((t-.77)/.23,0,1)));
+}
 function pickSpriteAction(pose){
  if(pose==='jump')return 'jump';
- if(pose==='slide')return 'slide';
+ if(pose==='slide'){
+   const t=slideProgress();
+   if(t<.13)return 'sidestep';  // Drop into a supported crouch.
+   if(t<.79)return 'slide';    // Leading shoe extends toward travel.
+   if(t<.94)return 'sidestep';// Pull feet in and stand up.
+   return 'idle';
+ }
  if(pose==='walk')return s.poseFrame%4===0?'idle':'walk';
  if(pose==='run')return s.poseFrame%4===0?'sidestep':'run';
  return 'idle';
@@ -450,7 +465,7 @@ function updateJunction(){
 function togglePause(){if(!s.active)return;s.paused=!s.paused;s.run=false;sfx.stop();if(!s.paused)sfx.unlock();window.Boyang25D?.stop();$('heading').textContent='หยุดพัก';$('description').textContent='พร้อมแล้วกลับไปเดินทางบนถนนนครนอกต่อ';$('start').textContent='▶ เล่นต่อ';$('modal').classList.toggle('hide',!s.paused);$('pause').textContent=s.paused?'▶':'Ⅱ';s.last=performance.now();syncStatus()}
 function lane(k){if(!s.active||s.paused)return;s.heading=(s.heading+k*30+360)%360;window.Boyang25D?.toward(s.heading);}
 function jump(){if(!s.active||s.paused||s.jump>=0||s.slide>=0)return;s.jump=0;sfx.jump();syncStatus();announce('กระโดด')}
-function slide(){if(!s.active||s.paused||s.jump>=0||s.slide>=0)return;s.slide=0;sfx.slide();syncStatus();announce('สไลด์')}
+function slide(){if(!s.active||s.paused||s.jump>=0||s.slide>=0)return;s.slide=0;sfx.slide();syncStatus();announce('สไลด์เท้าไปข้างหน้า')}
 $('start').addEventListener('click',()=>{if(routeFinished){routeFinished=false;selectedRoute=null;junctionHinted=false;$('junctionGuide').classList.add('hide');
  scenes.splice(schoolScenes.length,scenes.length-schoolScenes.length,...originalStreetScenes);
  recalcRoute();
@@ -564,14 +579,27 @@ function renderScene(){
  if($('progressFill').style.width!==progress)$('progressFill').style.width=progress;
  // Character independent of scenery. Landing/jump/slide continue to animate while world moves.
  const jumpHeight=s.jump>=0?Math.sin(Math.PI*clamp(s.jump/.78,0,1)):0;
- const slideT=s.slide>=0?Math.sin(Math.PI*clamp(s.slide/.65,0,1)):0;
- const feetBob=(mode()==='run'?5.8:mode()==='walk'?2.6:0)*Math.abs(Math.sin(s.phase));
+ const slideT=slideStrength();
+ const sliding=s.slide>=0;
+ const feetBob=!sliding?(mode()==='run'?5.8:mode()==='walk'?2.6:0)*Math.abs(Math.sin(s.phase)):0;
  const spriteData=selectSprite();
- const x=s.laneX*W*.17,y=-feetBob-jumpHeight*H*.13+slideT*H*.08;
- const sx=spriteData.flip?-1:1,sy=1-slideT*.08;
- character.style.transform=`translate3d(calc(-50% + ${x}px),${y}px,0) scale(${sx},${sy}) rotate(${s.laneX*1.2}deg)`;
- $('runnerShadow').style.transform=`translateX(calc(-50% + ${x}px)) scale(${1-jumpHeight*.45})`;
- $('runnerShadow').style.opacity=String(1-jumpHeight*.65);
+ const direction=pickSpriteDirection();
+ // The right-view slide artwork's leading shoe points RIGHT; mirror for LEFT.
+ // Front/back slide artworks face along their road-relative heading.
+ // Widen the grounded sliding pose slightly instead of squeezing it vertically.
+ const sideView=direction==='left'||direction==='right';
+ const reach=slideT*(sideView?.12:.035);
+ const x=s.laneX*W*.17;
+ // Anchor the body near its existing foot contact, never let slide lower it
+ // by 8% of viewport height (which used to make feet sink below the street).
+ const y=-feetBob-jumpHeight*H*.13+slideT*H*.012;
+ const sx=(spriteData.flip?-1:1)*(1+reach);
+ const sy=1-slideT*.035;
+ const lean=slideT*(sideView?(direction==='left'?-3:3):0);
+ character.style.transform=`translate3d(calc(-50% + ${x}px),${y}px,0) scale(${sx},${sy}) rotate(${s.laneX*1.2+lean}deg)`;
+ // Ground contact grows with the length of the forward leg and recovers on stand-up.
+ $('runnerShadow').style.transform=`translateX(calc(-50% + ${x}px)) scale(${1-jumpHeight*.45+slideT*.32},${1+slideT*.1})`;
+ $('runnerShadow').style.opacity=String(clamp(1-jumpHeight*.65-slideT*.11,.15,1));
 }
 function finishRoute(){
  if(routeFinished)return;routeFinished=true;
@@ -638,7 +666,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(
  s.motion+=Math.abs(step);s.phase+=dt*s.speed*(s.run?2.35:2.55);
  s.poseFrame=Math.floor(s.phase/1.3);
  if(s.jump>=0){s.jump+=dt;if(s.jump>=.78){s.jump=-1;sfx.land();}}
- if(s.slide>=0){s.slide+=dt;if(s.slide>=.65)s.slide=-1;}
+ if(s.slide>=0){s.slide+=dt;if(s.slide>=SLIDE_DURATION)s.slide=-1;}
  sfx.tick(s.speed,s.run,s.jump>=0||s.slide>=0,dt);
  const meter=Math.floor(s.dist)+' ม.';
  if($('distance').textContent!==meter)$('distance').textContent=meter;
