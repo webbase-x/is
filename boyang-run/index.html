@@ -73,6 +73,9 @@
 #title .hud-game-logo{display:block;width:105px;height:41px;object-fit:contain;object-position:left center;margin:-2px 0 2px}
 .card .splash-game-logo{display:block;max-width:75%;width:205px;height:auto;max-height:135px;object-fit:contain;margin:4px auto 5px;filter:drop-shadow(0 5px 10px #13559a24)}
 @media (max-height:670px){.card .splash-game-logo{max-height:95px;width:152px}.card{padding:17px 18px}}
+/* Narrow iPhone layouts: keep the sound and pause controls visible beside the game logo. */
+@media(max-width:440px){#title .hud-game-logo{width:82px;height:34px}}
+@media(max-width:350px){#title .hud-game-logo{width:72px;height:31px}}
 </style></head><body><main id="game">
 <div id="view"><div id="bg0"></div><div id="bg1"></div><canvas id="roadCanvas"></canvas><div id="runnerShadow"></div><img id="runner" alt="นักเรียน" draggable="false" />
 </div>
