@@ -1,0 +1,18 @@
+{
+  "name": "BOYANG RUN 2.5D — โรงเรียนเทศบาล ๑ (ถนนนครนอก)",
+  "short_name": "BOYANG RUN",
+  "description": "เกมสำรวจโรงเรียนเทศบาล ๑ และถนนนครนอก",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#071c2a",
+  "theme_color": "#0a304b",
+  "icons": [
+    {
+      "src": "./assets/app-icon.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
