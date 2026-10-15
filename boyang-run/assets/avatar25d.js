@@ -12,7 +12,7 @@
  function label(){
    if(!status)return;
    const mode=!stick.active?'● หยุด':stick.run?'● วิ่ง':'● เดิน';
-   status.textContent=mode+' · '+Math.round(stick.heading)+'°';
+   status.textContent=mode;
  }
  function release(){
    pointer=null;stick.active=false;stick.power=0;stick.run=false;
