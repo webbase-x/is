@@ -104,6 +104,7 @@
 .card button{min-height:48px;padding:12px;font-size:16px}
 .card button:disabled{opacity:.6;cursor:wait;box-shadow:none}
 #loadPanel{color:#42677b;font-weight:700;font-size:11px;margin-top:10px;text-align:left}
+#loadPanel[hidden]{display:none!important}
 #loadTrack{display:block;width:100%;height:5px;background:#c8dfe8;border-radius:99px;overflow:hidden;margin-top:5px}
 #loadFill{display:block;height:100%;width:0;background:linear-gradient(90deg,#16b7ae,#0d78ce);border-radius:99px;transition:width .15s}
 @media(max-height:620px){
@@ -183,8 +184,8 @@ function selectSprite(){
 }
 function announce(t){$('notice').textContent=t;$('notice').classList.add('show');clearTimeout(msgT);msgT=setTimeout(()=>$('notice').classList.remove('show'),1200)}
 function mode(){return s.jump>=0?'jump':s.slide>=0?'slide':s.speed>.2?(s.run?'run':'walk'):'idle'}
-function syncStatus(){const m=mode();$('speed').textContent=({idle:'● หยุด',walk:'● เดิน',run:'● วิ่ง',jump:'↑ กระโดด',slide:'↓ สไลด์'})[m]||m;}
-function begin(){sfx.unlock();sfx.stop();s.active=true;s.paused=false;s.speed=0;s.run=false;s.last=performance.now();$('modal').classList.add('hide');syncStatus();announce('เริ่มสำรวจ')}
+function syncStatus(){const m=mode(),text=({idle:'● หยุด',walk:'● เดิน',run:'● วิ่ง',jump:'↑ กระโดด',slide:'↓ สไลด์'})[m]||m;if($('speed').textContent!==text)$('speed').textContent=text;}
+function begin(){sfx.unlock();sfx.stop();$('loadPanel').hidden=true;s.active=true;s.paused=false;s.speed=0;s.run=false;s.last=performance.now();$('modal').classList.add('hide');syncStatus();announce('เริ่มสำรวจ')}
 function recalcRoute(){stageStarts.length=0;let d=0;for(const scene of scenes){stageStarts.push(d);d+=scene.length;}ROUTE_TOTAL=d;lastRenderedStage=-1;lastPrefetchStage=-1;}
 // Turn through the school gate using the joystick; no route-choice dialog.
 function setBranch(which){
@@ -303,7 +304,8 @@ function renderScene(){
  a.style.transform=`translate3d(${side+tracking}px,${vertical+speedBob}px,0) rotateY(${-gaze*13}deg) scale(${zoomA})`;
  b.style.transform=`translate3d(${side*.86+tracking*.7}px,${speedBob*.45}px,0) rotateY(${-gaze*7}deg) scale(${nextZoom})`;
  b.style.opacity=String(blend);
- $('progressFill').style.width=(100*clamp(s.dist/ROUTE_TOTAL,0,1)).toFixed(1)+'%';
+ const progress=(100*clamp(s.dist/ROUTE_TOTAL,0,1)).toFixed(1)+'%';
+ if($('progressFill').style.width!==progress)$('progressFill').style.width=progress;
  // Character independent of scenery. Landing/jump/slide continue to animate while world moves.
  const jumpHeight=s.jump>=0?Math.sin(Math.PI*clamp(s.jump/.78,0,1)):0;
  const slideT=s.slide>=0?Math.sin(Math.PI*clamp(s.slide/.65,0,1)):0;
@@ -373,7 +375,8 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(
  if(s.jump>=0){s.jump+=dt;if(s.jump>=.78){s.jump=-1;sfx.land();}}
  if(s.slide>=0){s.slide+=dt;if(s.slide>=.65)s.slide=-1;}
  sfx.tick(s.speed,s.run,s.jump>=0||s.slide>=0,dt);
- $('distance').textContent=Math.floor(s.dist)+' ม.';
+ const meter=Math.floor(s.dist)+' ม.';
+ if($('distance').textContent!==meter)$('distance').textContent=meter;
  syncStatus();updateJunction();renderScene();
  if(selectedRoute&&s.dist>=ROUTE_TOTAL)finishRoute();
 }
