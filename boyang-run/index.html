@@ -194,6 +194,62 @@
  .welcome-card #start{min-height:47px;margin-top:9px}
 }
 @media(max-height:510px){.welcome-card .welcome-hero{width:min(92px,29%)}}
+
+/* BOYANG RUN v0.1.0-beta.2 — compact HUD: version alongside logo, route below. */
+#hud{
+ left:10px;right:10px;top:max(10px,env(safe-area-inset-top));
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ min-height:48px;pointer-events:none;
+}
+#title{
+ display:flex;flex-direction:row;align-items:center;justify-content:flex-start;
+ width:max-content;min-width:0;max-width:calc(100% - 110px);
+ min-height:46px;gap:7px;padding:5px 9px;
+ background:rgba(6,28,49,.26);overflow:visible;
+}
+#title .hud-game-logo{
+ display:block;flex:0 0 auto;width:74px;height:34px;object-fit:contain;
+ margin:0;
+}
+#title .version-label{
+ display:inline-flex;align-self:center;flex:0 1 auto;width:auto;max-width:none;
+ margin:0;padding:2px 0;border-radius:0;background:none;
+ color:#e8f8ff;text-shadow:0 1px 3px #01253b;
+ font:700 10px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;
+ letter-spacing:0;white-space:nowrap;
+}
+#rightHud{display:flex;gap:7px;flex-shrink:0}
+#routeStatus{
+ top:calc(max(10px,env(safe-area-inset-top)) + 64px);
+ margin:0;left:10px;right:10px;max-width:none;
+}
+#notice{top:calc(max(10px,env(safe-area-inset-top)) + 133px)}
+/* Render the high-density source smaller, so it remains sharp on Retina screens. */
+.welcome-card .welcome-hero{
+ display:block;width:min(146px,43vw);max-width:146px;height:auto;
+ aspect-ratio:1/1;object-fit:cover;image-rendering:auto;
+ border-radius:20px;margin:0 auto 10px;
+ box-shadow:0 8px 18px rgba(0,50,100,.19);
+}
+@media(max-width:420px){
+ #title{max-width:calc(100% - 101px);gap:5px;padding:4px 7px;min-height:44px}
+ #title .hud-game-logo{width:69px;height:33px}
+ #title .version-label{font-size:9px}
+ #rightHud{gap:5px}
+ .welcome-card .welcome-hero{width:min(136px,40vw);max-width:136px}
+}
+@media(max-width:350px){
+ #title{max-width:calc(100% - 92px);gap:4px;padding:4px 6px}
+ #title .hud-game-logo{width:59px;height:29px}
+ #title .version-label{font-size:8px}
+ #rightHud #sound,#rightHud #pause{min-width:40px;width:40px;min-height:40px;height:40px}
+}
+@media(max-height:690px){
+ .welcome-card .welcome-hero{width:min(114px,35vw);max-width:114px;margin-bottom:6px}
+}
+@media(max-height:510px){
+ .welcome-card .welcome-hero{width:min(90px,29vw);max-width:90px}
+}
 </style></head><body><main id="game">
 <div id="view"><div id="bg0"></div><div id="bg1"></div><div id="runnerShadow"></div><img id="runner" alt="นักเรียน" draggable="false" />
 <div id="hud"><div id="title" class="glass"><img class="hud-game-logo" src="./assets/logo.png?v=20261015-school-logo" alt="BOYANG RUN" width="105" height="79"><span id="gameVersion" class="version-label" aria-label="เวอร์ชันเกม"></span></div><div id="rightHud"><button id="sound" class="glass" type="button" aria-label="ปิดเสียงประกอบเกม" aria-pressed="true" title="ปิดเสียงประกอบเกม">🔊</button><button id="pause" class="glass" aria-label="หยุดเกม">Ⅱ</button></div></div>
@@ -203,8 +259,8 @@
 <div id="modal">
   <div class="card welcome-card">
     <span class="tag">EXPLORE · 2.5D</span>
-    <img class="welcome-hero" src="./assets/app-icon.png?v=20261015-school-logo"
-         alt="BOYANG RUN — นักเรียนกำลังวิ่งจากโรงเรียน" width="256" height="256"
+    <img class="welcome-hero" src="./assets/welcome-hero.webp?v=0.1.0-beta.2"
+         alt="BOYANG RUN — นักเรียนวิ่งจากโรงเรียน" width="320" height="320"
          decoding="async" fetchpriority="high">
     <h1 id="heading">พร้อมออกวิ่ง!</h1>
     <div class="welcome-meta">
@@ -223,7 +279,7 @@
 (()=>{'use strict';
 // Single source for Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH[-prerelease].
 // Start at 0.1.0-beta.1 because gameplay and maps are still in development.
-const GAME_VERSION='0.1.0-beta.1';
+const GAME_VERSION='0.1.0-beta.2';
 const $=(id)=>document.getElementById(id);
 for(const id of ['gameVersion','splashVersion']){
  const element=$(id);
