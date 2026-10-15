@@ -149,13 +149,76 @@
 #title .version-label{display:block;width:max-content;max-width:100%;font:600 10px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;color:#e3f4ffde;letter-spacing:.01em;margin:1px 0 0;padding-left:1px;white-space:nowrap}
 .card .splash-version{display:block;font:600 11px/1.3 ui-monospace,SFMono-Regular,Consolas,monospace;color:#516d81;margin:1px auto 6px;text-align:center}
 @media(max-width:380px){#title .version-label{font-size:9px}}
+/* Welcome / splash: image-led, no duplicate game logo. */
+#modal{overflow-y:auto;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));overscroll-behavior:contain}
+#modal .welcome-card{
+ width:min(390px,100%);max-width:390px;max-height:100%;overflow-y:auto;
+ padding:22px 20px 20px;border-radius:29px;
+ background:linear-gradient(155deg,rgba(255,255,255,.98),rgba(234,247,253,.97));
+ box-shadow:0 22px 60px rgba(2,21,37,.30);text-align:center;
+ border:1px solid rgba(255,255,255,.93);
+}
+.welcome-card .tag{display:block;font-size:10px;font-weight:850;letter-spacing:.18em;color:#168da9;margin-bottom:10px}
+.welcome-card .welcome-hero{
+ display:block;width:min(216px,68%);height:auto;aspect-ratio:1/1;object-fit:cover;
+ border-radius:24px;margin:0 auto 12px;box-shadow:0 10px 23px rgba(0,52,102,.21);
+}
+.welcome-card h1{font-size:23px;line-height:1.25;margin:3px 0 6px;color:#17384a}
+.welcome-meta{display:flex;flex-direction:column;align-items:center;gap:3px;margin-bottom:9px}
+.welcome-card .splash-version{display:block;font:600 11px/1.3 ui-monospace,SFMono-Regular,Consolas,monospace;color:#577083;margin:0}
+.welcome-card .school-label{font-size:11px;font-weight:700;color:#60798a}
+.welcome-card .welcome-text{font-size:12px;line-height:1.65;color:#446576;margin:9px 0 12px}
+.welcome-card #loadPanel{margin-top:8px;text-align:left;font-size:11px;color:#42677b}
+.welcome-card #loadTrack{height:6px;margin-top:5px}
+.welcome-card #start{
+ width:100%;min-height:53px;margin-top:12px;padding:11px 12px;border:0;border-radius:16px;
+ color:#fff;font-size:17px;font-weight:850;
+ background:linear-gradient(120deg,#13bbb7,#098cc2);box-shadow:0 5px 0 #087791;
+}
+.welcome-card #start:disabled{opacity:.62;cursor:wait;box-shadow:none}
+.welcome-card #start:focus-visible{outline:3px solid #ffe47b;outline-offset:3px}
+@media(max-width:420px){
+ #modal .welcome-card{width:min(92vw,390px);padding:18px 16px 17px}
+ .welcome-card .welcome-hero{width:min(196px,67%);border-radius:22px}
+ .welcome-card h1{font-size:21px}
+ .welcome-card .welcome-text{font-size:11.5px}
+}
+@media(max-height:690px){
+ #modal .welcome-card{padding:12px 15px}
+ .welcome-card .tag{margin-bottom:5px}
+ .welcome-card .welcome-hero{width:min(132px,40%);margin-bottom:7px;border-radius:17px}
+ .welcome-card h1{font-size:19px;margin:1px 0 3px}
+ .welcome-meta{margin-bottom:4px}
+ .welcome-card .welcome-text{margin:5px 0 7px;line-height:1.5}
+ .welcome-card #loadPanel{margin-top:5px}
+ .welcome-card #start{min-height:47px;margin-top:9px}
+}
+@media(max-height:510px){.welcome-card .welcome-hero{width:min(92px,29%)}}
 </style></head><body><main id="game">
 <div id="view"><div id="bg0"></div><div id="bg1"></div><div id="runnerShadow"></div><img id="runner" alt="นักเรียน" draggable="false" />
 <div id="hud"><div id="title" class="glass"><img class="hud-game-logo" src="./assets/logo.png?v=20261015-school-logo" alt="BOYANG RUN" width="105" height="79"><span id="gameVersion" class="version-label" aria-label="เวอร์ชันเกม"></span></div><div id="rightHud"><button id="sound" class="glass" type="button" aria-label="ปิดเสียงประกอบเกม" aria-pressed="true" title="ปิดเสียงประกอบเกม">🔊</button><button id="pause" class="glass" aria-label="หยุดเกม">Ⅱ</button></div></div>
 <div id="routeStatus" class="glass"><strong id="sceneLabel">ภายในโรงเรียนเทศบาล ๑</strong><span id="distance">0 ม.</span><div id="progressTrack"><i id="progressFill"></i></div></div><div id="notice"></div>
 <div id="toolbar"><div id="joystick" role="group" aria-label="จอยสติ๊กเดินและวิ่งแบบแอนะล็อก 360 องศา ดันเบาเพื่อเดิน ดันสุดเพื่อวิ่ง และปล่อยเพื่อหยุด"><div id="joyDial"><div id="joyKnob"></div><span class="joyNorth">↑</span></div><small id="joyAngle" aria-live="off">● หยุด</small></div><div class="ctrlgroup"><button id="jump" class="action" aria-label="กระโดด"><b>↑</b>กระโดด</button><button id="slide" class="action" aria-label="สไลด์"><b>↓</b>สไลด์</button></div></div>
 <div id="junctionGuide" class="hide" role="status" aria-live="polite">ถึงประตูโรงเรียน · ดันจอยซ้ายหรือขวาเพื่อเลี้ยวเข้าสู่ถนน</div>
-<div id="modal"><div class="card"><div class="tag">EXPLORE · 2.5D</div><img class="splash-game-logo" src="./assets/logo.png?v=20261015-school-logo" alt="BOYANG RUN" width="205" height="154"><span id="splashVersion" class="version-label splash-version" aria-label="เวอร์ชันเกม"></span><h1 id="heading">วิธีเล่น</h1><p id="description">ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง · ดันซ้ายหรือขวาเพื่อเลี้ยว<br>ดันลงเพื่อหันกลับ · ใช้ปุ่มกระโดดและสไลด์</p><div id="loadPanel" role="status" aria-live="polite"><span id="loadState">กำลังเตรียมฉากและตัวละคร…</span><span id="loadTrack"><i id="loadFill"></i></span></div><button id="start" disabled>กำลังโหลดเกม…</button></div></div>
+<div id="modal">
+  <div class="card welcome-card">
+    <span class="tag">EXPLORE · 2.5D</span>
+    <img class="welcome-hero" src="./assets/app-icon.png?v=20261015-school-logo"
+         alt="BOYANG RUN — นักเรียนกำลังวิ่งจากโรงเรียน" width="256" height="256"
+         decoding="async" fetchpriority="high">
+    <h1 id="heading">พร้อมออกวิ่ง!</h1>
+    <div class="welcome-meta">
+      <span id="splashVersion" class="version-label splash-version" aria-label="เวอร์ชันเกม"></span>
+      <span class="school-label">โรงเรียนเทศบาล ๑ (ถนนนครนอก)</span>
+    </div>
+    <p id="description" class="welcome-text">ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง · ดันซ้าย–ขวาเพื่อเลี้ยว<br>ดันลงเพื่อหันกลับ · กระโดดหรือสไลด์เพื่อสนุกกับเส้นทาง</p>
+    <div id="loadPanel" role="status" aria-live="polite">
+      <span id="loadState">กำลังเตรียมฉากและตัวละคร…</span>
+      <span id="loadTrack"><i id="loadFill"></i></span>
+    </div>
+    <button id="start" type="button" disabled>กำลังโหลดเกม…</button>
+  </div>
+</div>
 </div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=20261015-character-sfx"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script>
 (()=>{'use strict';
 // Single source for Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH[-prerelease].
@@ -263,7 +326,7 @@ function slide(){if(!s.active||s.paused||s.jump>=0||s.slide>=0)return;s.slide=0;
 $('start').addEventListener('click',()=>{if(routeFinished){routeFinished=false;selectedRoute=null;junctionHinted=false;$('junctionGuide').classList.add('hide');
  scenes.splice(schoolScenes.length,scenes.length-schoolScenes.length,...originalStreetScenes);
  recalcRoute();
- $('heading').textContent='วิธีเล่น';
+ $('heading').textContent='พร้อมออกวิ่ง!';
  $('description').innerHTML='เริ่มในโรงเรียน · ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง<br>ตรงประตูให้ดันจอยซ้ายหรือขวาเพื่อเลี้ยวเข้าถนน';
  $('start').textContent='▶ เริ่มสำรวจ';s.dist=0;s.phase=0;s.lane=0;s.laneX=0;s.targetX=0;s.heading=0;s.routeHeading=0;s.cameraHeading=0;s.worldX=0;s.worldZ=0;s.keyboardReverse=false;s.backpedal=false;s.stickGesture=-1;s.stickBase=0;s.keyboardEngaged=false;s.keyboardBase=0;window.Boyang25D?.reset();lastRenderedStage=-1;s.active=false;s.paused=false;begin();renderScene();return;}if(s.active&&s.paused){s.paused=false;$('modal').classList.add('hide');$('pause').textContent='Ⅱ';s.last=performance.now();sfx.unlock();sfx.stop();syncStatus()}else begin()});
 $('pause').addEventListener('click',togglePause);
