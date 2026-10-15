@@ -12,3 +12,7 @@
 .service-card.game .game-play{min-width:145px;margin:0;background:#0c667a;color:#fff;justify-content:center;gap:20px;min-height:48px}
 .service-card.game .game-play:hover{background:#085268;transform:translateY(-2px)}
 @media(max-width:650px){.service-card.game{grid-template-columns:52px minmax(0,1fr);gap:12px 14px;padding:23px}.service-card.game .game-icon{width:52px;height:52px;font-size:27px}.service-card.game .game-copy{min-width:0}.service-card.game .game-play{grid-column:1/-1;width:100%}}
+
+/* Real BOYANG RUN app icon on the site home card. */
+.service-card.game .game-icon{padding:0;overflow:hidden}
+.service-card.game .game-icon img{display:block;width:100%;height:100%;object-fit:cover}
