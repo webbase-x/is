@@ -346,11 +346,11 @@ html,body{width:100%;height:100%;height:100dvh}
     <button id="start" type="button" disabled>กำลังโหลดเกม…</button>
   </div>
 </div>
-</div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=0.1.0-beta.6"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script src="./assets/school-reverse25d.js?v=0.1.0-beta.8"></script><script>
+</div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=0.1.0-beta.6"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script src="./assets/school-reverse25d.js?v=0.1.0-beta.9"></script><script>
 (()=>{'use strict';
 // Single source for Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH[-prerelease].
 // Start at 0.1.0-beta.1 because gameplay and maps are still in development.
-const GAME_VERSION='0.1.0-beta.8';
+const GAME_VERSION='0.1.0-beta.9';
 const $=(id)=>document.getElementById(id);
 for(const id of ['gameVersion','splashVersion']){
  const element=$(id);
@@ -578,14 +578,13 @@ window.addEventListener('keyup',e=>{keys.delete(e.key.toLowerCase())});
 const stageStarts=[];let _sum=0;for(const v of scenes){stageStarts.push(_sum);_sum+=v.length;}
 const preloader=window.BoyangPreload25D||{warm(){},ready:async()=>({total:0,successful:0})};
 let lastPrefetchStage=-1;
+let lastReverseLookahead=-1;
 let lastRenderedStage=-1,routeFinished=false;
 window.BOYANG_REVERSE25D?.subscribe(frames=>{
  for(let i=0;i<schoolReverseScenes.length;i++)schoolReverseScenes[i].url=frames[i];
- // The final approach uses a dedicated high-resolution frame of the red MEP sign.
- // The preceding atlas frame already shows the same sign from farther away.
- schoolReverseScenes[schoolReverseScenes.length-1].url='./assets/scenes/school-mep-sign-v8.webp';
- lastRenderedStage=-1;lastPrefetchStage=-1;
- preloader.warm(frames.slice(0,3));
+ // Frame 10 now contains the MEP red sign at native 1448×1086 resolution.
+ lastRenderedStage=-1;lastPrefetchStage=-1;lastReverseLookahead=-1;
+ preloader.warm(frames.slice(0,2));
  if(s.active&&!s.paused)renderScene();
 });
 function stageAt(distance){
@@ -603,6 +602,13 @@ function renderScene(){
  const reverseDist=clamp(SCHOOL_ROUTE_LENGTH-s.dist,0,SCHOOL_ROUTE_LENGTH-.0001);
  const unit=SCHOOL_ROUTE_LENGTH/schoolReverseScenes.length;
  const reverseIndex=Math.floor(reverseDist/unit);
+ // Decode nearby HD frames while turning, before the image becomes visible.
+ const inward=!selectedRoute&&Math.abs(signedAngle(s.heading-s.routeHeading))>90;
+ if(inward&&lastReverseLookahead!==reverseIndex){
+  lastReverseLookahead=reverseIndex;
+  const from=Math.max(0,reverseIndex-1);
+  preloader.warm(schoolReverseScenes.slice(from,Math.min(schoolReverseScenes.length,reverseIndex+3)).map(v=>v.url).filter(Boolean));
+ }
  const viewStage=stageAt(!selectedRoute?Math.min(s.dist,SCHOOL_ROUTE_LENGTH-.001):s.dist);
  const idx=reverse?(-100-reverseIndex):viewStage.idx;
  const t=reverse?clamp((reverseDist-reverseIndex*unit)/unit,0,1):viewStage.t;
@@ -629,7 +635,8 @@ function renderScene(){
  // The next street is already at its starting scale behind the crossfade. This
  // eliminates a scale snap when we switch scene indices, and restart resets the route
  // instantly rather than animating a reverse zoom to the school.
- const zoomA=isFinal?(1.06 + .50*smooth(t)):(1.02 + .46*smooth(t));
+ // Preserve detail on Retina displays: reduce magnification for ALL scenes.
+ const zoomA=reverse?(1.015+.12*smooth(t)):isFinal?(1.045+.26*smooth(t)):(1.02+.22*smooth(t));
  // Begin blending while the outgoing scene is still advancing toward the viewer.
  let blend=isFinal?0:smooth(clamp((t-.72)/.28,0,1));
  // The camera follows the child visually, but NEVER changes the input axes.
@@ -648,7 +655,7 @@ function renderScene(){
    delete b.dataset.scenePreview;
    b.style.backgroundImage='url("'+next.url+'")';
  }
- const nextZoom=1.02;
+ const nextZoom=1.015;
  const side=-s.laneX*W*.034;
  const tracking=-gaze*W*.19;
  const speedBob=Math.sin(s.phase*2)*Math.min(s.speed/7,1)*2.3;
