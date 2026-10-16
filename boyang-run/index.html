@@ -346,11 +346,11 @@ html,body{width:100%;height:100%;height:100dvh}
     <button id="start" type="button" disabled>กำลังโหลดเกม…</button>
   </div>
 </div>
-</div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=0.1.0-beta.6"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script>
+</div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=0.1.0-beta.6"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script src="./assets/school-reverse25d.js?v=0.1.0-beta.7"></script><script>
 (()=>{'use strict';
 // Single source for Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH[-prerelease].
 // Start at 0.1.0-beta.1 because gameplay and maps are still in development.
-const GAME_VERSION='0.1.0-beta.6';
+const GAME_VERSION='0.1.0-beta.7';
 const $=(id)=>document.getElementById(id);
 for(const id of ['gameVersion','splashVersion']){
  const element=$(id);
@@ -366,6 +366,36 @@ const schoolScenes=[
  {name:'ภายในโรงเรียน · จุดสตาร์ท',length:24,url:window.BOYANG_SCENE_ASSETS.school},
  {name:'ประตูโรงเรียน · มองเห็นตึกฝั่งตรงข้าม',length:22,url:window.BOYANG_GATE_FRONT||window.BOYANG_SCENE_ASSETS.gateOpen}
 ];
+// Ten real photos arranged from the school-front junction toward the end
+// of the internal walkway. All frames share the *existing* 46m school length.
+const reverseNames=[
+ 'สามแยกหน้าโรงเรียน · มองเข้า',
+ 'ทางลาดเข้าสู่โรงเรียน',
+ 'ผ่านประตูทางเดินเข้า',
+ 'แนวอาคารด้านใน · จุดที่ 1',
+ 'แนวอาคารด้านใน · จุดที่ 2',
+ 'แนวอาคารด้านใน · จุดที่ 3',
+ 'ทางเดินเลียบอาคาร',
+ 'ทางเดินเข้าใกล้อาคาร MEP',
+ 'หน้าอาคาร MEP · ระยะกลาง',
+ 'สุดทางเดิน · หน้าอาคาร MEP'
+];
+const schoolReverseScenes=reverseNames.map(name=>({
+ name:'มองกลับเข้าโรงเรียน · '+name,
+ length:SCHOOL_ROUTE_LENGTH/reverseNames.length,
+ url:null
+}));
+let schoolReverseMode=false;
+// The camera angle, not the joystick gesture, determines which side of
+// the real walkway is visible. Separate enter/exit thresholds prevent
+// rapid frame swapping around the sideways (90°) orientation.
+function updateSchoolReverseMode(){
+ if(selectedRoute){schoolReverseMode=false;return false;}
+ const angle=Math.abs(signedAngle(s.cameraHeading-s.routeHeading));
+ if(!schoolReverseMode&&angle>=128)schoolReverseMode=true;
+ else if(schoolReverseMode&&angle<=68)schoolReverseMode=false;
+ return schoolReverseMode&&Boolean(window.BOYANG_REVERSE25D?.ready);
+}
 const leftPrototypeScenes=[
  {name:'เลี้ยวซ้าย · ไปทางเตาอิฐ (ฉากจำลอง)',length:43,url:window.BOYANG_SCENE_ASSETS.leftStreet},
  {name:'มุ่งหน้าสามแยก · รอข้อมูลถนนจริง',length:37,url:window.BOYANG_SCENE_ASSETS.leftFurther}
@@ -445,7 +475,7 @@ function recalcRoute(){stageStarts.length=0;let d=0;for(const scene of scenes){s
 // Turn through the school gate using the joystick; no route-choice dialog.
 function setBranch(which){
  if(selectedRoute)return;
- selectedRoute=which;junctionHinted=false;
+ selectedRoute=which;junctionHinted=false;schoolReverseMode=false;
  $('junctionGuide').classList.add('hide');
  scenes.splice(schoolScenes.length,scenes.length-schoolScenes.length,...(which==='left'?leftPrototypeScenes:originalStreetScenes));
  recalcRoute();
@@ -478,7 +508,7 @@ $('start').addEventListener('click',()=>{if(routeFinished){routeFinished=false;s
  recalcRoute();
  $('heading').textContent='พร้อมออกวิ่ง!';
  $('description').innerHTML='เริ่มในโรงเรียน · ดันจอยเบาเพื่อเดิน ดันสุดเพื่อวิ่ง<br>ดันลงเพื่อย้อนทางเดิม · ตรงประตูดันซ้ายหรือขวาเพื่อเลี้ยว';
- $('start').textContent='▶ เริ่มสำรวจ';s.dist=0;s.phase=0;s.lane=0;s.laneX=0;s.targetX=0;s.heading=0;s.routeHeading=0;s.cameraHeading=0;s.worldX=0;s.worldZ=0;s.keyboardReverse=false;s.backpedal=false;s.stickGesture=-1;s.stickBase=0;s.keyboardEngaged=false;s.keyboardBase=0;window.Boyang25D?.reset();lastRenderedStage=-1;s.active=false;s.paused=false;begin();renderScene();return;}if(s.active&&s.paused){s.paused=false;$('modal').classList.add('hide');$('pause').textContent='Ⅱ';s.last=performance.now();sfx.unlock();sfx.stop();syncStatus()}else begin()});
+ $('start').textContent='▶ เริ่มสำรวจ';schoolReverseMode=false;s.cameraSceneAxis=0;s.dist=0;s.phase=0;s.lane=0;s.laneX=0;s.targetX=0;s.heading=0;s.routeHeading=0;s.cameraHeading=0;s.worldX=0;s.worldZ=0;s.keyboardReverse=false;s.backpedal=false;s.stickGesture=-1;s.stickBase=0;s.keyboardEngaged=false;s.keyboardBase=0;window.Boyang25D?.reset();lastRenderedStage=-1;s.active=false;s.paused=false;begin();renderScene();return;}if(s.active&&s.paused){s.paused=false;$('modal').classList.add('hide');$('pause').textContent='Ⅱ';s.last=performance.now();sfx.unlock();sfx.stop();syncStatus()}else begin()});
 $('pause').addEventListener('click',togglePause);
 function syncSoundControl(){
  const btn=$('sound');
@@ -549,6 +579,12 @@ const stageStarts=[];let _sum=0;for(const v of scenes){stageStarts.push(_sum);_s
 const preloader=window.BoyangPreload25D||{warm(){},ready:async()=>({total:0,successful:0})};
 let lastPrefetchStage=-1;
 let lastRenderedStage=-1,routeFinished=false;
+window.BOYANG_REVERSE25D?.subscribe(frames=>{
+ for(let i=0;i<schoolReverseScenes.length;i++)schoolReverseScenes[i].url=frames[i];
+ lastRenderedStage=-1;lastPrefetchStage=-1;
+ preloader.warm(frames.slice(0,3));
+ if(s.active&&!s.paused)renderScene();
+});
 function stageAt(distance){
   const d=clamp(distance,0,ROUTE_TOTAL);
   for(let i=0;i<scenes.length;i++)if(d<stageStarts[i]+scenes[i].length||i===scenes.length-1){
@@ -558,19 +594,33 @@ function stageAt(distance){
 }
 function renderScene(){
  const W=w.clientWidth,H=w.clientHeight;
- const gateView=!selectedRoute&&s.dist>=schoolScenes[0].length;
- const {idx,t}=stageAt(!selectedRoute?Math.min(s.dist,SCHOOL_ROUTE_LENGTH-.001):s.dist); const isFinal=Boolean(selectedRoute)&&idx===scenes.length-1;
+ const reverse=updateSchoolReverseMode();
+ // The forward route's physical distance still determines the real position:
+ // distance 46m (junction) = photo 1; distance 0m (deepest) = photo 10.
+ const reverseDist=clamp(SCHOOL_ROUTE_LENGTH-s.dist,0,SCHOOL_ROUTE_LENGTH-.0001);
+ const unit=SCHOOL_ROUTE_LENGTH/schoolReverseScenes.length;
+ const reverseIndex=Math.floor(reverseDist/unit);
+ const viewStage=stageAt(!selectedRoute?Math.min(s.dist,SCHOOL_ROUTE_LENGTH-.001):s.dist);
+ const idx=reverse?(-100-reverseIndex):viewStage.idx;
+ const t=reverse?clamp((reverseDist-reverseIndex*unit)/unit,0,1):viewStage.t;
+ const scene=reverse?schoolReverseScenes[reverseIndex]:scenes[viewStage.idx];
+ const next=reverse?schoolReverseScenes[Math.min(reverseIndex+1,schoolReverseScenes.length-1)]:scenes[Math.min(viewStage.idx+1,scenes.length-1)];
+ const gateView=!reverse&&!selectedRoute&&s.dist>=schoolScenes[0].length;
+ const isFinal=!reverse&&Boolean(selectedRoute)&&viewStage.idx===scenes.length-1;
  if(lastRenderedStage!==idx){
-   // A full-viewport copy always covers the fallback, even during rapid turns,
-   // stage changes, and iOS perspective compositing.
-   w.style.backgroundImage=`url("${scenes[idx].url}")`;
-   $('game').style.setProperty('--scene-backdrop',`url("${scenes[idx].url}")`);
-   a.style.backgroundImage=`url("${scenes[idx].url}")`;
-   b.style.backgroundImage=`url("${scenes[Math.min(idx+1,scenes.length-1)].url}")`;
+   // One real scene is used for both the rendered layer and the matching
+   // oversized fallback, so neither fast reversals nor stage changes reveal gaps.
+   w.style.backgroundImage=`url("${scene.url}")`;
+   $('game').style.setProperty('--scene-backdrop',`url("${scene.url}")`);
+   a.style.backgroundImage=`url("${scene.url}")`;
+   b.style.backgroundImage=`url("${next.url}")`;
    lastRenderedStage=idx;
-   if(lastPrefetchStage!==idx){lastPrefetchStage=idx;preloader.warm(scenes.slice(idx,idx+3).map(scene=>scene.url));}
-   $('sceneLabel').textContent=scenes[idx].name;
-   if(idx>0)announce('เข้าสู่ '+scenes[idx].name);
+   if(lastPrefetchStage!==idx){
+     lastPrefetchStage=idx;
+     preloader.warm((reverse?schoolReverseScenes.slice(reverseIndex,reverseIndex+3):scenes.slice(viewStage.idx,viewStage.idx+3)).map(v=>v.url).filter(Boolean));
+   }
+   $('sceneLabel').textContent=scene.name;
+   if(reverse||viewStage.idx>0)announce('เข้าสู่ '+scene.name);
  }
  // Move FORWARD by approaching the street scene (ZOOM IN), never zooming out.
  // The next street is already at its starting scale behind the crossfade. This
@@ -581,7 +631,11 @@ function renderScene(){
  let blend=isFinal?0:smooth(clamp((t-.72)/.28,0,1));
  // The camera follows the child visually, but NEVER changes the input axes.
  // The sprite faces the road-relative direction of true world movement.
- const cameraYaw=signedAngle(s.cameraHeading-s.routeHeading);
+ const targetSceneAxis=normAngle(s.routeHeading+(reverse?180:0));
+ if(!Number.isFinite(s.cameraSceneAxis))s.cameraSceneAxis=s.routeHeading;
+ // Smooth visual axis changes independently from the route-relative controls.
+ s.cameraSceneAxis=normAngle(s.cameraSceneAxis+signedAngle(targetSceneAxis-s.cameraSceneAxis)*.18);
+ const cameraYaw=signedAngle(s.cameraHeading-s.cameraSceneAxis);
  const gaze=clamp(cameraYaw/90,-1,1);
  if(gateView){
    const preview=gaze<0?leftPrototypeScenes[0].url:originalStreetScenes[0].url;
@@ -589,7 +643,7 @@ function renderScene(){
    blend=smooth(clamp((Math.abs(gaze)-.23)/.77,0,1))*.97;
  }else if(b.dataset.scenePreview){
    delete b.dataset.scenePreview;
-   b.style.backgroundImage='url("'+scenes[Math.min(idx+1,scenes.length-1)].url+'")';
+   b.style.backgroundImage='url("'+next.url+'")';
  }
  const nextZoom=1.02;
  const side=-s.laneX*W*.034;
@@ -698,7 +752,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(
  if(selectedRoute&&s.dist>=ROUTE_TOTAL)finishRoute();
 }
  character.style.display='block';$('runnerShadow').style.display='block';character.src=sprite25d?.idle_back||"";
-const firstAssets=[schoolScenes[0].url,schoolScenes[1].url,sprite25d?.idle_back,sprite25d?.walk_back];
+const firstAssets=[schoolScenes[0].url,schoolScenes[1].url,window.BOYANG_REVERSE25D?.asset,sprite25d?.idle_back,sprite25d?.walk_back].filter(Boolean);
 function setLoadingProgress(done,total){
  const percent=total?Math.round(100*done/total):100;
  $('loadState').textContent='เตรียมฉากและตัวละคร '+percent+'%';
