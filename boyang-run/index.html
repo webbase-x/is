@@ -346,11 +346,11 @@ html,body{width:100%;height:100%;height:100dvh}
     <button id="start" type="button" disabled>กำลังโหลดเกม…</button>
   </div>
 </div>
-</div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=0.1.0-beta.6"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script src="./assets/school-reverse25d.js?v=0.1.0-beta.7"></script><script>
+</div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=0.1.0-beta.6"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script src="./assets/school-reverse25d.js?v=0.1.0-beta.8"></script><script>
 (()=>{'use strict';
 // Single source for Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH[-prerelease].
 // Start at 0.1.0-beta.1 because gameplay and maps are still in development.
-const GAME_VERSION='0.1.0-beta.7';
+const GAME_VERSION='0.1.0-beta.8';
 const $=(id)=>document.getElementById(id);
 for(const id of ['gameVersion','splashVersion']){
  const element=$(id);
@@ -377,8 +377,8 @@ const reverseNames=[
  'แนวอาคารด้านใน · จุดที่ 3',
  'ทางเดินเลียบอาคาร',
  'ทางเดินเข้าใกล้อาคาร MEP',
- 'หน้าอาคาร MEP · ระยะกลาง',
- 'สุดทางเดิน · หน้าอาคาร MEP'
+ 'ป้ายแดงโครงการ Mini English Program (MEP) · มองเห็นชัด',
+ 'สุดทางเดิน · ป้ายแดงโครงการ MEP'
 ];
 const schoolReverseScenes=reverseNames.map(name=>({
  name:'มองกลับเข้าโรงเรียน · '+name,
@@ -442,20 +442,20 @@ function pickSpriteAction(pose){
  if(pose==='run')return s.poseFrame%4===0?'sidestep':'run';
  return 'idle';
 }
-function pickSpriteDirection(){
- // The scenery consists of road-aligned 2.5D photographs, not a freely
- // rotatable 3D environment. Render the student's REAL world-facing direction
- // against the road shown on screen. Comparing to cameraHeading made every
- // left/right/reverse turn disappear as soon as the chase camera caught up.
- // School road = 0°, right branch = 90°, left branch = 270°.
- const relative=normAngle(s.heading-s.routeHeading);
+function pickSpriteDirection(viewReversed=false){
+ // Always select the sprite RELATIVE TO THE SCENE ON SCREEN, not just the
+ // original school road. On a reverse-view scene, a student walking deeper
+ // into school must show the BACK of the avatar, not its face as though
+ // moonwalking. World heading and physical distance remain unchanged.
+ const visualRoadAxis=normAngle(s.routeHeading+(viewReversed?180:0));
+ const relative=normAngle(s.heading-visualRoadAxis);
  if(relative>=45&&relative<135)return 'right';
  if(relative>=135&&relative<225)return 'front';
  if(relative>=225&&relative<315)return 'left';
  return 'back';
 }
-function selectSprite(){
- const dir=pickSpriteDirection(),facing=dir==='left'?'right':dir;
+function selectSprite(viewReversed=false){
+ const dir=pickSpriteDirection(viewReversed),facing=dir==='left'?'right':dir;
  const key=pickSpriteAction(mode())+'_'+facing;
  if(sprite25d?.[key]&&key!==currentSpritePose){character.src=sprite25d[key];currentSpritePose=key;}
  s.pose=key;
@@ -581,6 +581,9 @@ let lastPrefetchStage=-1;
 let lastRenderedStage=-1,routeFinished=false;
 window.BOYANG_REVERSE25D?.subscribe(frames=>{
  for(let i=0;i<schoolReverseScenes.length;i++)schoolReverseScenes[i].url=frames[i];
+ // The final approach uses a dedicated high-resolution frame of the red MEP sign.
+ // The preceding atlas frame already shows the same sign from farther away.
+ schoolReverseScenes[schoolReverseScenes.length-1].url='./assets/scenes/school-mep-sign-v8.webp';
  lastRenderedStage=-1;lastPrefetchStage=-1;
  preloader.warm(frames.slice(0,3));
  if(s.active&&!s.paused)renderScene();
@@ -660,8 +663,8 @@ function renderScene(){
  const slideT=slideStrength();
  const sliding=s.slide>=0;
  const feetBob=!sliding?(mode()==='run'?5.8:mode()==='walk'?2.6:0)*Math.abs(Math.sin(s.phase)):0;
- const spriteData=selectSprite();
- const direction=pickSpriteDirection();
+ const spriteData=selectSprite(reverse);
+ const direction=pickSpriteDirection(reverse);
  // The right-view slide artwork's leading shoe points RIGHT; mirror for LEFT.
  // Front/back slide artworks face along their road-relative heading.
  // Widen the grounded sliding pose slightly instead of squeezing it vertically.

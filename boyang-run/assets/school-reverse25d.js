@@ -1,10 +1,9 @@
-/* BOYANG RUN · authentic reverse-view photographs, school gate toward MEP.
- * A 2 x 5 AVIF contact atlas keeps the ten real reference frames in one
- * 44 KB transfer. Decode each tile once into a cached photo for CSS scenes.
- * Unsupported codecs fail safely: the normal school scene remains usable. */
+/* BOYANG RUN · illustrated 2.5D reverse-view school route.
+ * A 2 x 5 AVIF atlas holds ten consistent colorful scenes with no vehicles
+ * or people. Each scene is decoded once for responsive iPad/phone play. */
 (()=>{
 'use strict';
-const ASSET='./assets/scenes/school-reverse-atlas.avif?v=0.1.0-beta.7';
+const ASSET='./assets/scenes/school-reverse-graphics-v8.avif?v=0.1.0-beta.8';
 const TILE_WIDTH=400,TILE_HEIGHT=300,COUNT=10;
 const state={frames:Array(COUNT).fill(null),ready:false,error:null};
 const callbacks=[];
