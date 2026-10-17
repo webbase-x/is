@@ -346,11 +346,11 @@ html,body{width:100%;height:100%;height:100dvh}
     <button id="start" type="button" disabled>กำลังโหลดเกม…</button>
   </div>
 </div>
-</div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=0.1.0-beta.6"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script src="./assets/school-reverse25d.js?v=0.1.0-beta.9"></script><script>
+</div></main><script src="./assets/school-scenes.js"></script><script src="./assets/gate-front.js?v=20261015"></script><script src="./assets/avatar25d.js?v=analog-20261015-direction"></script><script src="./assets/sprite25d.js?v=20261015"></script><script src="./assets/sfx25d.js?v=0.1.0-beta.6"></script><script src="./assets/preload25d.js?v=20261015-stream-v1"></script><script src="./assets/school-reverse25d.js?v=0.1.0-beta.9"></script><script src="./assets/mep-sign-hd.js?v=0.1.0-beta.10"></script><script>
 (()=>{'use strict';
 // Single source for Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH[-prerelease].
 // Start at 0.1.0-beta.1 because gameplay and maps are still in development.
-const GAME_VERSION='0.1.0-beta.9';
+const GAME_VERSION='0.1.0-beta.10';
 const $=(id)=>document.getElementById(id);
 for(const id of ['gameVersion','splashVersion']){
  const element=$(id);
@@ -663,6 +663,9 @@ function renderScene(){
  a.style.transform=`translate3d(${side+tracking}px,${vertical+speedBob}px,0) rotateY(${-gaze*13}deg) scale(${zoomA})`;
  b.style.transform=`translate3d(${side*.86+tracking*.7}px,${speedBob*.45}px,0) rotateY(${-gaze*7}deg) scale(${nextZoom})`;
  b.style.opacity=String(blend);
+ // Match crisp MEP lettering to the painted sign and show a readable
+ // inset on portrait screens, where the full sign is cropped by cover mode.
+ window.BoyangMEPSignHD?.sync({view:w,front:a,back:b,reverse,index:reverseIndex});
  const progress=(100*clamp(s.dist/ROUTE_TOTAL,0,1)).toFixed(1)+'%';
  if($('progressFill').style.width!==progress)$('progressFill').style.width=progress;
  // Character independent of scenery. Landing/jump/slide continue to animate while world moves.
