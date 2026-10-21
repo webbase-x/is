@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.20.1";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectMainView:"manage",subjectBoardExpanded:true,subjectBoardLoadingKey:"",subjectBoardLoadFailedKey:"",subjectParallelSelectionMode:false,subjectPendingTimeOpenId:null,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectMainView:"manage",subjectBoardExpanded:true,curriculumMatrixRows:[],curriculumMatrixCells:[],curriculumMatrixError:"",subjectBoardLoadingKey:"",subjectBoardLoadFailedKey:"",subjectParallelSelectionMode:false,subjectPendingTimeOpenId:null,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -5350,6 +5350,25 @@ async function loadAcademicStructure(){
   const nextYear=state.academicData.selected_year_id||null;
   if(state.academicYearId!==nextYear)state.academicTermId=null;
   state.academicYearId=nextYear;
+  state.curriculumMatrixRows=[];
+  state.curriculumMatrixCells=[];
+  state.curriculumMatrixError="";
+  if(nextYear){
+    const [matrixRows,matrixCells]=await Promise.all([
+      supabase.from("lao_curriculum_matrix_rows")
+        .select("id,school_id,academic_year_id,program_id,subject_type,name_th,sort_order,row_kind")
+        .eq("school_id",school.id).eq("academic_year_id",nextYear),
+      supabase.from("lao_curriculum_matrix_cells")
+        .select("id,row_id,grade_code,course_id")
+    ]);
+    if(matrixRows.error||matrixCells.error){
+      state.curriculumMatrixError=(matrixRows.error||matrixCells.error).message||"โหลดรายการในตารางไม่สำเร็จ";
+    }else{
+      state.curriculumMatrixRows=matrixRows.data||[];
+      const rowIds=new Set(state.curriculumMatrixRows.map(x=>x.id));
+      state.curriculumMatrixCells=(matrixCells.data||[]).filter(x=>rowIds.has(x.row_id));
+    }
+  }
   return state.academicData;
 }
 async function academicDashboardHtml(data){
