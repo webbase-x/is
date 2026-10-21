@@ -9036,10 +9036,13 @@ function bindAcademics(){
   qa("[data-subject-matrix-code]").forEach(select=>select.addEventListener("change",async()=>{
     if(!matrixCanEdit()){toast("กรุณาเปิดแก้ไขก่อน","error");return;}
     const subjectId=select.value||"";
-    if(!subjectId)return;
     const grade=select.dataset.subjectMatrixCode||"";
     const rowId=select.dataset.matrixRowId||null;
     const previous=select.dataset.matrixPrevCourse||null;
+    if(!subjectId){
+      select.value=(data.courses||[]).find(c=>c.id===previous)?.subject_id||"";
+      return;
+    }
     const rowType=select.dataset.matrixRowType||"";
     const subject=(data.subjects||[]).find(x=>x.id===subjectId&&x.is_active!==false);
     if(!subject||subject.subject_type!==rowType){toast("รหัสวิชาไม่อยู่ในหมวดที่เลือก","error");select.value="";return;}
