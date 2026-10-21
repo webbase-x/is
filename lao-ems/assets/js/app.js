@@ -6392,6 +6392,7 @@ function academicSubjectsHtml(data,timeline){
   const boardHtml='<section class="panel curriculum-live-board" aria-label="ตารางโครงสร้างหลักสูตรทุกระดับชั้น">'+
     '<div class="curriculum-live-board-header"><div><p class="eyebrow">CURRICULUM WORKSPACE</p><h3>ตารางจัดโครงสร้างทั้งหมด · '+esc(targetLabel)+'</h3>'+
     '<p>เปิดสวิตช์เพื่อจัดรายวิชาและชั่วโมงเรียนในตารางได้ทันที ใช้ลูกศร ↑ ↓ เลื่อนลำดับเฉพาะหมวดและชั้นที่เลือก โดยบันทึกทุกครั้งที่ย้าย</p></div>'+
+    (state.subjectBoardExpanded&&boardReady?'<label class="curriculum-board-filter">ค้นหาวิชา<input type="search" data-subject-board-filter placeholder="ชื่อหรือรหัสวิชา…" autocomplete="off"></label>':"")+
     (canManage?'<label class="curriculum-board-edit-switch" title="เปิดหรือปิดการแก้ไขโครงสร้างหลักสูตร"><span>แก้ไขรายวิชา</span><input type="checkbox" data-subject-board-edit-toggle '+(canEdit?"checked":"")+'><i aria-hidden="true"></i><strong>'+(canEdit?"เปิด":"ปิด")+'</strong></label>':'<span class="curriculum-board-readonly">ดูข้อมูลตามสิทธิ์</span>')+
     '<button type="button" class="secondary-btn compact-btn" data-subject-board-toggle aria-expanded="'+(state.subjectBoardExpanded?"true":"false")+'">'+(state.subjectBoardExpanded?"ซ่อนตาราง":"แสดงตาราง")+'</button></div>'+
     (state.subjectBoardExpanded?
@@ -8732,6 +8733,16 @@ function bindAcademics(){
     state.subjectBoardLoadFailedKey="";
     renderAcademicSubjectsCached(true);
   }));
+  qa("[data-subject-board-filter]").forEach(input=>input.addEventListener("input",()=>{
+    const search=String(input.value||"").trim().toLocaleLowerCase("th");
+    qa(".curriculum-live-board .curriculum-matrix-item").forEach(row=>{
+      const title=String(row.querySelector("th")?.textContent||"").toLocaleLowerCase("th");
+      const codes=Array.from(row.querySelectorAll(".curriculum-board-current-code"))
+        .map(node=>node.textContent||"").join(" ").toLocaleLowerCase("th");
+      row.classList.toggle("hidden",Boolean(search)&&!title.includes(search)&&!codes.includes(search));
+    });
+  }));
+
   qa("[data-subject-board-edit-toggle]").forEach(input=>input.addEventListener("change",()=>{
     if(!data.can_manage_subjects){input.checked=false;return;}
     state.subjectEditMode=input.checked;
