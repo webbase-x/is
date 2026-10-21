@@ -6222,7 +6222,8 @@ function academicSubjectsHtml(data,timeline){
       const fullCategory=(boardEffectiveCache.get(code)||[])
         .filter(c=>c.subject_type===type&&(c.program_id||"")===(target.id||""))
         .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||
-          String(a.subject_name||"").localeCompare(String(b.subject_name||""),"th"));
+          String(a.created_at||"").localeCompare(String(b.created_at||""))||
+          String(a.id||"").localeCompare(String(b.id||"")));
       const position=source?fullCategory.findIndex(c=>c.id===source.id):-1;
       const reorder=canEdit&&direct&&position>=0&&fullCategory.length>1&&source.subject_type!=="other"
         ?'<div class="curriculum-board-order-controls" role="group" aria-label="จัดลำดับ '+esc(rowName)+'">'+
