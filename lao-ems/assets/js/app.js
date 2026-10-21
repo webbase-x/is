@@ -6299,12 +6299,12 @@ function academicSubjectsHtml(data,timeline){
           esc((x.subject_code||"ไม่มีรหัส")+' · '+x.name_th)+'</option>').join("")+'</select>';
       const isDirect=Boolean(current&&(current.program_id||"")===(target.id||""));
       const inherited=Boolean(current&&target.id&&!current.program_id);
-      const annual=current&&current.annual_hours!=null&&isDirect&&
+      const annual=current&&isDirect&&
         !(current.standard_time_snapshot&&current.standard_time_snapshot.period_scope==="term")&&
         !(row.type==="activity"&&/สังคมและสาธารณประโยชน์/.test(row.name));
       const hoursHtml=annual?
         '<form class="curriculum-matrix-hours" data-subject-board-hours-form="'+esc(current.id)+'" data-board-hours-grade="'+esc(code)+'">'+
-          '<input aria-label="ชั่วโมงต่อปี '+esc(row.name)+' '+esc(gradeName(code))+'" type="number" name="annual_hours" min="0" max="4000" step="0.5" required value="'+esc(current.annual_hours)+'">'+
+          '<input aria-label="ชั่วโมงต่อปี '+esc(row.name)+' '+esc(gradeName(code))+'" type="number" name="annual_hours" min="0" max="4000" step="0.5" required value="'+esc(current.annual_hours??"")+'" placeholder="ชม./ปี">'+
           '<span>ชม.</span><button type="submit" title="บันทึกชั่วโมงเรียน">✓</button></form>':
           inherited?'<button type="button" class="curriculum-matrix-override" data-subject-board-override="'+esc(current.id)+'" data-board-override-grade="'+esc(code)+'">แยกเวลา '+esc(target.label)+'</button>':
           '<span class="curriculum-matrix-hours-placeholder">'+(current?num(current.annual_hours)+" ชม.":"— ชม.")+'</span>';
@@ -8924,13 +8924,13 @@ function bindAcademics(){
   qa("[data-subject-board-filter]").forEach(input=>input.addEventListener("input",()=>{
     const search=String(input.value||"").trim().toLocaleLowerCase("th");
     qa(".curriculum-live-board .curriculum-matrix-item").forEach(row=>{
-      const title=String(row.querySelector("th")?.textContent||"").toLocaleLowerCase("th");
-      const codes=Array.from(row.querySelectorAll(".curriculum-board-current-code"))
-        .map(node=>node.textContent||"").join(" ").toLocaleLowerCase("th");
-      row.classList.toggle("hidden",Boolean(search)&&!title.includes(search)&&!codes.includes(search));
+      const left=row.querySelector("th");
+      const name=String((left?.querySelector("input")?.value||left?.textContent||"")+" "+(row.dataset.matrixSearch||"")).toLocaleLowerCase("th");
+      const selectedCodes=Array.from(row.querySelectorAll(".curriculum-matrix-code"))
+        .map(select=>select.options[select.selectedIndex]?.textContent||"").join(" ").toLocaleLowerCase("th");
+      row.classList.toggle("hidden",Boolean(search)&&!name.includes(search)&&!selectedCodes.includes(search));
     });
   }));
-
   qa("[data-subject-board-edit-toggle]").forEach(input=>input.addEventListener("change",()=>{
     if(!data.can_manage_subjects){input.checked=false;return;}
     state.subjectEditMode=input.checked;
