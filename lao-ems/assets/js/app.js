@@ -8673,7 +8673,7 @@ function bindAcademics(){
       if(destination)destination.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
     });
   }));
-  if(state.subjectMainView==="manage"&&state.subjectBoardExpanded){
+  if(academicMode==="subjects"&&state.subjectMainView==="manage"&&state.subjectBoardExpanded){
     const missing=targetGradeCodesForProgram(state.subjectProgramId||"")
       .filter(code=>!state.subjectWorkspaceCache.has(academicSubjectContextCacheKey(data,state.subjectProgramId||null,code)));
     if(missing.length&&state.subjectBoardLoadingKey!==boardContextKey&&state.subjectBoardLoadFailedKey!==boardContextKey){
