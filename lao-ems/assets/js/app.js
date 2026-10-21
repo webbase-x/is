@@ -6233,6 +6233,10 @@ function academicSubjectsHtml(data,timeline){
       const simpleAnnual=direct&&source&&source.annual_hours!=null&&
         !(source.standard_time_snapshot&&source.standard_time_snapshot.period_scope==="term")&&
         !(source.subject_type==="activity"&&/สังคมและสาธารณประโยชน์/.test(rowName));
+      const inherited=Boolean(source&&target.id&&!source.program_id&&(type==="basic"||type==="activity"));
+      const programOverride=canEdit&&inherited&&!/สังคมและสาธารณประโยชน์/.test(rowName)
+        ?'<button type="button" class="curriculum-board-program-override" data-subject-board-override="'+esc(courseId)+'" data-board-override-grade="'+esc(code)+'" title="แยกเวลาเรียนเฉพาะโปรแกรมนี้โดยไม่เปลี่ยนห้องปกติ">แยกเวลาเฉพาะ '+esc(target.label)+'</button>'
+        :"";
       const inlineTime=canEdit&&simpleAnnual?
         '<form class="curriculum-board-hours-form" data-subject-board-hours-form="'+esc(courseId)+'" data-board-hours-grade="'+esc(code)+'">'+
           '<label><span>ชม./ปี</span><input type="number" name="annual_hours" min="0" max="4000" step="0.5" required value="'+esc(source.annual_hours)+'" aria-label="ชั่วโมงต่อปี '+esc(rowName)+' '+esc(code)+'"></label>'+
@@ -6243,7 +6247,7 @@ function academicSubjectsHtml(data,timeline){
           '<b>'+formatGradeHours(hours)+'</b>'+(source?'<small class="curriculum-board-current-code">'+esc(codeLabel)+'</small>':'<small>ยังไม่ได้จัด</small>')+
           '<small>'+(canEdit?"รายละเอียด ↗":"ดูรายละเอียด ↗")+'</small></button>'+
         (canEdit?'<div class="curriculum-board-cell-editor">'+
-          (inlineTime||"")+reorder+selector+
+          (inlineTime||"")+reorder+programOverride+selector+
           (direct&&source.subject_type!=="basic"?
             '<button type="button" class="curriculum-board-code-edit" data-subject-board-edit-code="'+esc(source.subject_id)+'" data-subject-board-edit-grade="'+esc(code)+'" data-subject-board-edit-course="'+esc(courseId)+'" title="แก้ไขรหัสและข้อมูลรายวิชาในคลังโรงเรียน">แก้รหัส</button>':'')+
           '</div>':'')+
@@ -8756,6 +8760,29 @@ function bindAcademics(){
     if(res.error){toast(res.error.message,"error");select.value="";return;}
     toast("เพิ่มรายวิชา "+(subject.subject_code||"ไม่มีรหัส")+" · "+subject.name_th+" ใน "+shortGrade(academicGradeLabelFromCode(grade))+" แล้ว","success");
     // Existing courses are intentionally not replaced or deleted when choosing another code.
+    refreshSubjects(true);
+  }));
+
+  qa("[data-subject-board-override]").forEach(button=>button.addEventListener("click",async()=>{
+    if(!data.can_manage_subjects||!state.subjectEditMode)return;
+    const sourceId=button.dataset.subjectBoardOverride||"";
+    const grade=button.dataset.boardOverrideGrade||"";
+    const program=(data.year_programs||[]).find(p=>p.id===state.subjectProgramId)||null;
+    const source=(data.courses||[]).find(c=>c.id===sourceId);
+    if(!program||!source||source.program_id||source.grade_code!==grade){toast("ไม่พบรายวิชาอ้างอิงของโปรแกรมนี้","error");return;}
+    setBusy(button,true,"กำลังแยกเวลา...");
+    const res=await supabase.rpc("lao_create_program_course_override",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:program.id,
+      p_grade_code:grade,
+      p_source_course_id:sourceId
+    });
+    setBusy(button,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    state.academicPresetGrade=grade;
+    state.academicFilters={grade_label:academicGradeLabelFromCode(grade),program_id:program.id};
+    toast("แยกเวลาเฉพาะ "+(program.code||program.name_th)+" แล้ว · แก้ชั่วโมงจากช่องตารางได้โดยไม่กระทบห้องปกติ","success");
     refreshSubjects(true);
   }));
 
