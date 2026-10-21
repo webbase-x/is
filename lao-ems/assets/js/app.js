@@ -6177,9 +6177,53 @@ function academicSubjectsHtml(data,timeline){
     .filter(predicate)
     .reduce((sum,c)=>sum+Number(c._overviewHours!=null?c._overviewHours:(c.annual_hours||0)),0);
   const overviewProgramMatrixHtml=(target,codes,interactive=false)=>{
-    const matrixCell=(code,hours,courseId="")=>{
+    const boardNormalizedName=value=>overviewNormalizedCourseName(value).toLocaleLowerCase("th");
+    const boardCandidates=(code,name="",type="",all=false)=>{
+      const gradeMatch=String(code).match(/^P([1-6])$/);
+      const present=overviewEffectiveCourses(target.id,code);
+      return (data.subjects||[])
+        .filter(subject=>{
+          if(!subject||subject.is_active===false||!subject.id||!subject.name_th)return false;
+          if(!["basic","additional","activity"].includes(subject.subject_type))return false;
+          if(type&&subject.subject_type!==type)return false;
+          if(!all&&boardNormalizedName(subject.name_th)!==boardNormalizedName(name))return false;
+          if(present.some(c=>c.subject_id===subject.id))return false;
+          const codeText=String(subject.subject_code||"").trim();
+          const codeGrade=codeText.match(/^[^\d]*\d([1-6])/);
+          if(gradeMatch&&codeGrade&&codeGrade[1]!==gradeMatch[1])return false;
+          // A subject without a verifiable grade code is not offered as a new
+          // assignment. The regular school-library finder can resolve it.
+          if(gradeMatch&&!codeGrade)return false;
+          return true;
+        })
+        .sort((a,b)=>String(a.subject_code||"").localeCompare(String(b.subject_code||""),"th",{numeric:true})||
+          String(a.name_th).localeCompare(String(b.name_th),"th"))
+        .slice(0,100);
+    };
+    const boardSelect=(code,rows,caption,searchName="",header=false)=>{
+      if(!canEdit)return "";
+      if(!rows.length)return header?"":'<button type="button" class="curriculum-board-find" data-subject-board-find-grade="'+esc(code)+'" data-subject-board-find-name="'+esc(searchName)+'">＋ ค้นจากคลัง</button>';
+      return '<select class="'+(header?"curriculum-board-header-select":"curriculum-board-code-select")+'" data-subject-board-add-code="'+esc(code)+'" aria-label="'+esc(caption)+'" title="'+esc(caption)+'">'+
+        '<option value="">＋ เลือกรหัสวิชา…</option>'+
+        rows.map(x=>'<option value="'+esc(x.id)+'">'+esc((x.subject_code||"ไม่ระบุรหัส")+' · '+x.name_th)+'</option>').join("")+
+        '</select>';
+    };
+    const matrixCell=(code,hours,courseId="",rowName="",type="")=>{
       if(!interactive)return '<td>'+formatGradeHours(hours)+'</td>';
-      return '<td class="curriculum-board-cell '+(code===gradeCode?"is-current":"")+'"><button type="button" class="curriculum-board-cell-action" data-subject-board-grade="'+esc(code)+'" data-subject-board-course="'+esc(courseId)+'" title="เปิดรายละเอียดรายวิชา '+esc(shortGrade(academicGradeLabelFromCode(code)))+'"><b>'+formatGradeHours(hours)+'</b><small>ดู / จัด ↗</small></button></td>';
+      const source=(data.courses||[]).find(c=>c.id===courseId)||null;
+      const isDirect=source&&(source.program_id||"")===(target.id||"");
+      const codeLabel=source?(source.subject_code||"ยังไม่ระบุรหัส"):"—";
+      const selector=boardSelect(code,boardCandidates(code,rowName,type,false),
+        "เลือกรหัสวิชา "+rowName+" "+shortGrade(academicGradeLabelFromCode(code)),rowName);
+      return '<td class="curriculum-board-cell '+(code===gradeCode?"is-current":"")+'">'+
+        '<button type="button" class="curriculum-board-cell-action" data-subject-board-grade="'+esc(code)+'" data-subject-board-course="'+esc(courseId)+'" title="เปิดรายละเอียดรายวิชา '+esc(shortGrade(academicGradeLabelFromCode(code)))+'">'+
+          '<b>'+formatGradeHours(hours)+'</b>'+(source?'<small class="curriculum-board-current-code">'+esc(codeLabel)+'</small>':'<small>ยังไม่ได้จัด</small>')+
+          '<small>'+(canEdit?"แก้เวลา ↗":"ดูรายละเอียด ↗")+'</small></button>'+
+        (canEdit?'<div class="curriculum-board-cell-editor">'+selector+
+          (isDirect&&source.subject_type!=="basic"?
+            '<button type="button" class="curriculum-board-code-edit" data-subject-board-edit-code="'+esc(source.subject_id)+'" data-subject-board-edit-grade="'+esc(code)+'" data-subject-board-edit-course="'+esc(courseId)+'" title="แก้ไขรหัสและข้อมูลรายวิชาในคลังโรงเรียน">แก้รหัส</button>':'')+
+          '</div>':'')+
+        '</td>';
     };
     const isIntegratedActivity=c=>c.subject_type==="activity"&&/สังคมและสาธารณประโยชน์/.test(c.subject_name||c._overviewDisplayName||"");
     const sumAllocated=(rows,predicate)=>overviewSumHours(rows,c=>predicate(c)&&!isIntegratedActivity(c));
@@ -6216,7 +6260,7 @@ function academicSubjectsHtml(data,timeline){
             c=>(c.subject_type||"other")===type&&categoryName(c).toLocaleLowerCase("th")===row.name.toLocaleLowerCase("th")
           );
           const match=(coursesByGrade.get(code)||[]).find(c=>(c.subject_type||"other")===type&&categoryName(c).toLocaleLowerCase("th")===row.name.toLocaleLowerCase("th"));
-           html+=matrixCell(code,hours,match&&!match._overviewIsGroup?match.id:"");
+           html+=matrixCell(code,hours,match&&!match._overviewIsGroup?match.id:"",row.name,type);
         });
         html+='</tr>';
       });
@@ -6250,7 +6294,7 @@ function academicSubjectsHtml(data,timeline){
           c=>c.subject_type==="basic"&&overviewAreaKey(c).toLocaleLowerCase("th")===area.name.toLocaleLowerCase("th")
         );
         const match=(coursesByGrade.get(code)||[]).find(c=>c.subject_type==="basic"&&overviewAreaKey(c).toLocaleLowerCase("th")===area.name.toLocaleLowerCase("th"));
-         body+=matrixCell(code,hours,match&&!match._overviewIsGroup?match.id:"");
+         body+=matrixCell(code,hours,match&&!match._overviewIsGroup?match.id:"",area.name,"basic");
       });
       body+='</tr>';
     });
@@ -6287,7 +6331,7 @@ function academicSubjectsHtml(data,timeline){
       body+='<td><span class="curriculum-overview-status '+(annualOff?'warning':overviewStatusClass(g))+'">'+esc(annualStatus)+'</span></td>';
     });
     body+='</tr>';
-    const head='<thead><tr><th>หมวดหมู่ / รายการ</th>'+codes.map(code=>'<th class="'+(interactive&&code===gradeCode?"is-current":"")+'">'+(interactive?'<button type="button" data-subject-board-grade="'+esc(code)+'" data-subject-board-course="">'+esc(shortGrade(academicGradeLabelFromCode(code)))+' <small>จัด →</small></button>':esc(shortGrade(academicGradeLabelFromCode(code))))+'</th>').join("")+'</tr></thead>';
+    const head='<thead><tr><th>หมวดหมู่ / รายการ</th>'+codes.map(code=>'<th class="'+(interactive&&code===gradeCode?"is-current":"")+'">'+(interactive?'<button type="button" class="curriculum-board-grade-action" data-subject-board-grade="'+esc(code)+'" data-subject-board-course="">'+esc(shortGrade(academicGradeLabelFromCode(code)))+' <small>จัด →</small></button>'+boardSelect(code,boardCandidates(code,"","",true),"เพิ่มรายวิชาใน "+shortGrade(academicGradeLabelFromCode(code)),"",true):esc(shortGrade(academicGradeLabelFromCode(code))))+'</th>').join("")+'</tr></thead>';
     return '<article class="curriculum-overview-program '+(interactive?'curriculum-board-program':'')+'"><div class="curriculum-overview-program-head"><div><strong>'+esc(target.label)+'</strong><small>'+esc(target.name)+(year?' · ปีการศึกษา '+esc(year.year_be):'')+'</small></div></div><div class="curriculum-matrix-scroll"><table class="curriculum-matrix">'+head+'<tbody>'+body+'</tbody></table></div></article>';
   };
   const overviewStagesHtml=overviewStageOrder.map(stageKey=>{
@@ -6312,7 +6356,8 @@ function academicSubjectsHtml(data,timeline){
     (code===gradeCode&&Boolean(state.subjectWorkspaceData)));
   const boardHtml='<section class="panel curriculum-live-board" aria-label="ตารางโครงสร้างหลักสูตรทุกระดับชั้น">'+
     '<div class="curriculum-live-board-header"><div><p class="eyebrow">CURRICULUM WORKSPACE</p><h3>ตารางจัดโครงสร้างทั้งหมด · '+esc(targetLabel)+'</h3>'+
-    '<p>แสดงทุกชั้นและทุกหมวดในหน้าเดียว คลิกชั่วโมงของวิชาเพื่อเปิดรายละเอียดและแก้ไขด้านล่าง โดยไม่ต้องสลับไปรายงาน</p></div>'+
+    '<p>เปิดสวิตช์เพื่อเลือกรหัสวิชาจากคลังของโรงเรียนในแต่ละชั้น หรือกดแก้เวลา / แก้รหัสของวิชาที่มีอยู่ได้ทันที</p></div>'+
+    (canManage?'<label class="curriculum-board-edit-switch" title="เปิดหรือปิดการแก้ไขโครงสร้างหลักสูตร"><span>แก้ไขรายวิชา</span><input type="checkbox" data-subject-board-edit-toggle '+(canEdit?"checked":"")+'><i aria-hidden="true"></i><strong>'+(canEdit?"เปิด":"ปิด")+'</strong></label>':'<span class="curriculum-board-readonly">ดูข้อมูลตามสิทธิ์</span>')+
     '<button type="button" class="secondary-btn compact-btn" data-subject-board-toggle aria-expanded="'+(state.subjectBoardExpanded?"true":"false")+'">'+(state.subjectBoardExpanded?"ซ่อนตาราง":"แสดงตาราง")+'</button></div>'+
     (state.subjectBoardExpanded?
       (!boardCodes.length?'<p class="curriculum-live-board-loading">ยังไม่มีระดับชั้นในโปรแกรมนี้</p>':
@@ -6323,7 +6368,7 @@ function academicSubjectsHtml(data,timeline){
       '')+
     '</section>';
 
-  const editGuardHtml=canManage?'<section class="subject-edit-toolbar"><div><strong>แก้ไขรายวิชา</strong><small>'+(canEdit?"กำลังเปิดแก้ไข":"ข้อมูลถูกป้องกันการแก้ไข")+'</small></div><label class="academic-edit-switch subject-edit-switch compact"><input type="checkbox" data-subject-edit-switch '+(canEdit?"checked":"")+'><span class="switch-track"><i></i></span></label></section>':'';
+  const editGuardHtml=canManage&&!state.subjectBoardExpanded?'<section class="subject-edit-toolbar"><div><strong>แก้ไขรายวิชา</strong><small>'+(canEdit?"กำลังเปิดแก้ไข":"ข้อมูลถูกป้องกันการแก้ไข")+'</small></div><label class="academic-edit-switch subject-edit-switch compact"><input type="checkbox" data-subject-edit-switch '+(canEdit?"checked":"")+'><span class="switch-track"><i></i></span></label></section>':'';
 
   const copyYearHtml=canManage&&year&&gradeCode&&copyYears.length?'<details class="subject-copy-year subject-copy-year-compact"><summary>คัดลอกจากปีการศึกษาก่อน</summary><div class="subject-copy-year-compact-body"><label>ปีต้นทาง<select data-subject-copy-year>'+copyYears.map(y=>'<option value="'+esc(y.id)+'" '+(state.subjectCopyYearId===y.id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><button type="button" class="secondary-btn compact-btn" data-copy-subject-year '+(canEdit?"":"disabled")+'>คัดลอกมาใช้</button></div></details>':'';
 
@@ -8652,31 +8697,84 @@ function bindAcademics(){
     state.subjectBoardLoadFailedKey="";
     renderAcademicSubjectsCached(true);
   }));
-  qa("[data-subject-board-grade]").forEach(btn=>btn.addEventListener("click",async()=>{
-    const code=btn.dataset.subjectBoardGrade||"";
-    const courseId=btn.dataset.subjectBoardCourse||"";
-    const programId=state.subjectProgramId||"";
+  qa("[data-subject-board-edit-toggle]").forEach(input=>input.addEventListener("change",()=>{
+    if(!data.can_manage_subjects){input.checked=false;return;}
+    state.subjectEditMode=input.checked;
+    if(!state.subjectEditMode)state.subjectParallelSelectionMode=false;
+    renderAcademicSubjectsCached(true);
+  }));
+  qa("[data-subject-board-add-code]").forEach(select=>select.addEventListener("change",async()=>{
+    const grade=select.dataset.subjectBoardAddCode||"";
+    const subjectId=select.value||"";
+    if(!subjectId)return;
+    if(!data.can_manage_subjects||!state.subjectEditMode){
+      toast("กรุณาเปิดสวิตช์แก้ไขก่อน","error");select.value="";return;
+    }
+    const subject=(data.subjects||[]).find(x=>x.id===subjectId&&x.is_active!==false);
+    if(!subject||!grade){toast("ไม่พบรายวิชาที่เลือกในคลังของโรงเรียน","error");select.value="";return;}
+    select.disabled=true;
+    const res=await supabase.rpc("lao_add_curriculum_library_item",{
+      p_school_id:school.id,
+      p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,
+      p_grade_code:grade,
+      p_source_kind:"school",
+      p_source_id:subject.id
+    });
+    select.disabled=false;
+    if(res.error){toast(res.error.message,"error");select.value="";return;}
+    toast("เพิ่มรายวิชา "+(subject.subject_code||"ไม่มีรหัส")+" · "+subject.name_th+" ใน "+shortGrade(academicGradeLabelFromCode(grade))+" แล้ว","success");
+    // Existing courses are intentionally not replaced or deleted when choosing another code.
+    refreshSubjects(true);
+  }));
+  const navigateBoardGrade=async(code,courseId="",action="",searchName="",subjectId="",trigger=null)=>{
     if(!code)return;
+    const programId=state.subjectProgramId||"";
     const requestId=++state.subjectContextLoadId;
     if(code!==state.academicPresetGrade){
       state.academicPresetGrade=code;
       state.academicFilters={grade_label:academicGradeLabelFromCode(code),program_id:programId};
       state.subjectWorkspaceData=null;
       state.subjectParallelSelectionMode=false;
-      setBusy(btn,true,"กำลังเปิด...");
+      if(trigger&&trigger.tagName==="BUTTON")setBusy(trigger,true,"กำลังเปิด...");
       await loadSubjectWorkspaceFast(code,programId||null);
       if(requestId!==state.subjectContextLoadId)return;
     }
     state.subjectWorkspaceView="selected";
     const targetCourse=(data.courses||[]).find(c=>c.id===courseId);
-    state.subjectPendingTimeOpenId=data.can_manage_subjects&&state.subjectEditMode&&targetCourse&&
+    state.subjectPendingTimeOpenId=action===""&&data.can_manage_subjects&&state.subjectEditMode&&targetCourse&&
       (targetCourse.program_id||"")===(programId||"")?courseId:null;
     await renderAcademicSubjectsCached();
     window.requestAnimationFrame(()=>{
+      if(action==="find"){
+        const finderButton=q("[data-open-subject-finder]");
+        if(finderButton&&!finderButton.disabled){
+          finderButton.click();
+          const searchInput=q('#subject-finder-form input[name="query"]');
+          if(searchInput&&searchName){searchInput.value=searchName;const form=q("#subject-finder-form");if(form&&form.requestSubmit)form.requestSubmit();}
+        }else toast("กรุณาเปิดสวิตช์แก้ไขก่อน","error");
+        return;
+      }
+      if(action==="code"&&subjectId){
+        const editButton=Array.from(qa("[data-edit-school-library-subject]")).find(x=>x.dataset.editSchoolLibrarySubject===subjectId);
+        if(editButton){editButton.click();return;}
+        toast("รายวิชานี้แก้รหัสจากช่องตารางไม่ได้ กรุณาตรวจสิทธิ์หรือแหล่งที่มาของรายวิชา","error");
+      }
       const card=courseId?q('[data-subject-course-card="'+courseId+'"]'):null;
       const destination=card||q("#subject-grade-editor-anchor");
       if(destination)destination.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
     });
+  };
+  qa("[data-subject-board-grade]").forEach(btn=>btn.addEventListener("click",()=>navigateBoardGrade(
+    btn.dataset.subjectBoardGrade||"",btn.dataset.subjectBoardCourse||"","","","",btn
+  )));
+  qa("[data-subject-board-find-grade]").forEach(btn=>btn.addEventListener("click",()=>navigateBoardGrade(
+    btn.dataset.subjectBoardFindGrade||"","","find",btn.dataset.subjectBoardFindName||"","",btn
+  )));
+  qa("[data-subject-board-edit-code]").forEach(btn=>btn.addEventListener("click",()=>{
+    if(!data.can_manage_subjects||!state.subjectEditMode){toast("กรุณาเปิดสวิตช์แก้ไขก่อน","error");return;}
+    navigateBoardGrade(btn.dataset.subjectBoardEditGrade||"",btn.dataset.subjectBoardEditCourse||"",
+      "code","",btn.dataset.subjectBoardEditCode||"",btn);
   }));
   if(academicMode==="subjects"&&state.subjectMainView==="manage"&&state.subjectBoardExpanded){
     const missing=targetGradeCodesForProgram(state.subjectProgramId||"")
