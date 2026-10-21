@@ -6178,10 +6178,12 @@ function academicSubjectsHtml(data,timeline){
     .reduce((sum,c)=>sum+Number(c._overviewHours!=null?c._overviewHours:(c.annual_hours||0)),0);
   const overviewProgramMatrixHtml=(target,codes,interactive=false)=>{
     const boardNormalizedName=value=>overviewNormalizedCourseName(value).toLocaleLowerCase("th");
+    const boardEffectiveCache=new Map(codes.map(code=>[code,overviewEffectiveCourses(target.id,code)]));
+    const boardCatalog=(data.subjects||[]).filter(x=>x&&x.is_active!==false&&x.id&&x.name_th);
     const boardCandidates=(code,name="",type="",all=false)=>{
       const gradeMatch=String(code).match(/^P([1-6])$/);
-      const present=overviewEffectiveCourses(target.id,code);
-      return (data.subjects||[])
+      const present=boardEffectiveCache.get(code)||[];
+      return boardCatalog
         .filter(subject=>{
           if(!subject||subject.is_active===false||!subject.id||!subject.name_th)return false;
           if(!["basic","additional","activity"].includes(subject.subject_type))return false;
@@ -6189,11 +6191,12 @@ function academicSubjectsHtml(data,timeline){
           if(!all&&boardNormalizedName(subject.name_th)!==boardNormalizedName(name))return false;
           if(present.some(c=>c.subject_id===subject.id))return false;
           const codeText=String(subject.subject_code||"").trim();
-          const codeGrade=codeText.match(/^[^\d]*\d([1-6])/);
+          const codeGrade=codeText.match(/^[^\d]*1([1-6])/);
           if(gradeMatch&&codeGrade&&codeGrade[1]!==gradeMatch[1])return false;
           // A subject without a verifiable grade code is not offered as a new
           // assignment. The regular school-library finder can resolve it.
           if(gradeMatch&&!codeGrade)return false;
+          if(!gradeMatch&&all)return false;
           return true;
         })
         .sort((a,b)=>String(a.subject_code||"").localeCompare(String(b.subject_code||""),"th",{numeric:true})||
@@ -6213,7 +6216,8 @@ function academicSubjectsHtml(data,timeline){
       const source=(data.courses||[]).find(c=>c.id===courseId)||null;
       const isDirect=source&&(source.program_id||"")===(target.id||"");
       const codeLabel=source?(source.subject_code||"ยังไม่ระบุรหัส"):"—";
-      const selector=boardSelect(code,boardCandidates(code,rowName,type,false),
+      const available=boardCandidates(code,rowName,type,false);
+      const selector=source&&!available.length?"":boardSelect(code,available,
         "เลือกรหัสวิชา "+rowName+" "+shortGrade(academicGradeLabelFromCode(code)),rowName);
       return '<td class="curriculum-board-cell '+(code===gradeCode?"is-current":"")+'">'+
         '<button type="button" class="curriculum-board-cell-action" data-subject-board-grade="'+esc(code)+'" data-subject-board-course="'+esc(courseId)+'" title="เปิดรายละเอียดรายวิชา '+esc(shortGrade(academicGradeLabelFromCode(code)))+'">'+
