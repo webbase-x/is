@@ -6330,6 +6330,9 @@ function academicSubjectsHtml(data,timeline){
         .sort((a,b)=>a.rank-b.rank||a.name.localeCompare(b.name,"th"));
       const tools=canEdit?'<button type="button" class="curriculum-matrix-add-row" data-subject-matrix-add="'+cat.type+'">＋ เพิ่มชื่อวิชา</button>':"";
       body+='<tr class="curriculum-matrix-group '+cat.className+'"><th colspan="'+(codes.length+1)+'"><div class="curriculum-matrix-group-title"><span>'+esc(cat.name)+'</span>'+tools+'</div></th></tr>';
+      if(canEdit)body+='<tr class="curriculum-matrix-create hidden" data-matrix-create-row="'+cat.type+'"><th colspan="'+(codes.length+1)+'">'+
+        '<form data-subject-matrix-create="'+cat.type+'"><label>ชื่อวิชาหรือชื่อรายการใหม่ <input type="text" name="name_th" required maxlength="160" placeholder="พิมพ์ชื่อรายการที่ต้องการเพิ่ม"></label>'+
+        '<button type="submit">เพิ่มแถว</button><button type="button" data-subject-matrix-cancel="'+cat.type+'">ยกเลิก</button></form></th></tr>';
       rows.forEach(row=>{
         body+='<tr class="curriculum-matrix-item" data-matrix-search="'+esc((row.name||"").toLocaleLowerCase("th"))+'">'+leftLabel(row);
         codes.forEach(code=>body+=rowCell(row,code));
@@ -8934,6 +8937,126 @@ function bindAcademics(){
     if(!state.subjectEditMode)state.subjectParallelSelectionMode=false;
     renderAcademicSubjectsCached(true);
   }));
+
+  const matrixCanEdit=()=>Boolean(data.can_manage_subjects&&state.subjectEditMode&&school&&data.selected_year_id);
+  const matrixRowContext=()=>({
+    school_id:school.id,
+    academic_year_id:data.selected_year_id,
+    program_id:state.subjectProgramId||null
+  });
+  qa("[data-subject-matrix-add]").forEach(button=>button.addEventListener("click",()=>{
+    if(!matrixCanEdit()){toast("กรุณาเปิดแก้ไขก่อน","error");return;}
+    const category=button.dataset.subjectMatrixAdd||"";
+    const row=q('[data-matrix-create-row="'+category+'"]');
+    if(!row)return;
+    row.classList.toggle("hidden");
+    if(!row.classList.contains("hidden"))row.querySelector('input[name="name_th"]')?.focus();
+  }));
+  qa("[data-subject-matrix-cancel]").forEach(button=>button.addEventListener("click",()=>{
+    const row=q('[data-matrix-create-row="'+button.dataset.subjectMatrixCancel+'"]');
+    row?.classList.add("hidden");
+  }));
+  qa("[data-subject-matrix-create]").forEach(form=>form.addEventListener("submit",async event=>{
+    event.preventDefault();
+    if(!matrixCanEdit())return;
+    const name=String(form.elements.namedItem("name_th")?.value||"").trim().replace(/\s+/g," ");
+    const type=form.dataset.subjectMatrixCreate||"";
+    if(!name||!["basic","additional","activity","other"].includes(type))return;
+    const duplicate=(state.curriculumMatrixRows||[]).some(r=>(r.program_id||"")===(state.subjectProgramId||"")&&
+      r.subject_type===type&&r.name_th.trim().toLocaleLowerCase("th")===name.toLocaleLowerCase("th")&&r.row_kind==="custom");
+    if(duplicate){toast("มีชื่อรายการนี้ในตารางแล้ว","error");return;}
+    const submit=form.querySelector('button[type="submit"]');
+    setBusy(submit,true,"กำลังเพิ่ม...");
+    const res=await supabase.from("lao_curriculum_matrix_rows").insert({
+      ...matrixRowContext(),subject_type:type,name_th:name,row_kind:"custom",sort_order:1000
+    });
+    setBusy(submit,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("เพิ่มแถว "+name+" แล้ว · เลือกรหัสวิชาได้ในแต่ละระดับชั้น","success");
+    refreshSubjects(true);
+  }));
+  qa("[data-subject-matrix-rename]").forEach(input=>input.addEventListener("change",async()=>{
+    if(!matrixCanEdit())return;
+    const rowId=input.dataset.subjectMatrixRename||"";
+    const original=(state.curriculumMatrixRows||[]).find(r=>r.id===rowId&&r.row_kind==="custom");
+    if(!original)return;
+    const name=String(input.value||"").trim().replace(/\s+/g," ");
+    if(!name){input.value=original.name_th;toast("ชื่อรายการต้องไม่ว่าง","error");return;}
+    if(name===original.name_th)return;
+    input.disabled=true;
+    const res=await supabase.from("lao_curriculum_matrix_rows").update({name_th:name,updated_at:new Date().toISOString()}).eq("id",rowId);
+    input.disabled=false;
+    if(res.error){input.value=original.name_th;toast(res.error.message,"error");return;}
+    toast("เปลี่ยนชื่อแถวแล้ว โดยไม่แก้ชื่อวิชาในคลังโรงเรียน","success");
+    refreshSubjects(true);
+  }));
+  qa("[data-subject-matrix-delete]").forEach(button=>button.addEventListener("click",async()=>{
+    if(!matrixCanEdit())return;
+    const rowId=button.dataset.subjectMatrixDelete||"";
+    const name=button.dataset.matrixDeleteName||"";
+    const type=button.dataset.matrixDeleteType||"";
+    const kind=button.dataset.matrixDeleteKind||"";
+    if(kind==="custom"){
+      if(!confirm('ลบแถว “'+name+'” ออกจากตาราง?\n\nจะไม่ลบรายวิชาที่จัดไว้ในแต่ละชั้น และรายวิชาที่มีอยู่จะกลับไปแสดงตามชื่อเดิม'))return;
+      setBusy(button,true,"กำลังลบ...");
+      const res=await supabase.from("lao_curriculum_matrix_rows").delete().eq("id",rowId);
+      setBusy(button,false);
+      if(res.error){toast(res.error.message,"error");return;}
+      toast("ลบแถวแล้ว · ข้อมูลรายวิชายังคงอยู่","success");
+    }else{
+      if(!confirm('ซ่อนชื่อรายการ “'+name+'” จากตารางนี้?\n\nรายวิชาและชั่วโมงในทุกชั้นจะไม่ถูกลบ และสามารถกู้คืนชื่อรายการที่ซ่อนได้'))return;
+      setBusy(button,true,"กำลังซ่อน...");
+      const res=await supabase.from("lao_curriculum_matrix_rows").insert({
+        ...matrixRowContext(),subject_type:type,name_th:name,row_kind:"hidden",sort_order:1000
+      });
+      setBusy(button,false);
+      if(res.error){toast(res.error.message,"error");return;}
+      toast("ซ่อนชื่อรายการแล้ว · ยังนับชั่วโมงตามเดิม","success");
+    }
+    refreshSubjects(true);
+  }));
+  qa("[data-subject-matrix-restore]").forEach(button=>button.addEventListener("click",async()=>{
+    if(!matrixCanEdit())return;
+    const rowId=button.dataset.subjectMatrixRestore||"";
+    setBusy(button,true,"กำลังกู้คืน...");
+    const res=await supabase.from("lao_curriculum_matrix_rows").delete().eq("id",rowId).eq("row_kind","hidden");
+    setBusy(button,false);
+    if(res.error){toast(res.error.message,"error");return;}
+    toast("แสดงชื่อรายการที่ซ่อนกลับมาแล้ว","success");
+    refreshSubjects(true);
+  }));
+  qa("[data-subject-matrix-code]").forEach(select=>select.addEventListener("change",async()=>{
+    if(!matrixCanEdit()){toast("กรุณาเปิดแก้ไขก่อน","error");return;}
+    const subjectId=select.value||"";
+    if(!subjectId)return;
+    const grade=select.dataset.subjectMatrixCode||"";
+    const rowId=select.dataset.matrixRowId||null;
+    const previous=select.dataset.matrixPrevCourse||null;
+    const rowType=select.dataset.matrixRowType||"";
+    const subject=(data.subjects||[]).find(x=>x.id===subjectId&&x.is_active!==false);
+    if(!subject||subject.subject_type!==rowType){toast("รหัสวิชาไม่อยู่ในหมวดที่เลือก","error");select.value="";return;}
+    const existing=(data.courses||[]).find(x=>x.id===previous);
+    if(existing&&existing.subject_id===subjectId)return;
+    if(previous&&!confirm('เปลี่ยนรหัสรายวิชาใน '+shortGrade(academicGradeLabelFromCode(grade))+' จาก '+
+      (existing?.subject_code||"รายการเดิม")+' เป็น '+(subject.subject_code||"ไม่ระบุรหัส")+'?\n\n'+
+      'หากรายวิชาเดิมมีภาระงานสอนผูกอยู่ ระบบจะไม่อนุญาตให้เปลี่ยนรหัส')){select.value=existing?.subject_id||"";return;}
+    select.disabled=true;
+    const res=await supabase.rpc("lao_curriculum_matrix_assign_code",{
+      p_school_id:school.id,p_academic_year_id:data.selected_year_id,
+      p_program_id:state.subjectProgramId||null,p_grade_code:grade,
+      p_subject_id:subjectId,p_replace_course_id:previous,p_row_id:rowId
+    });
+    select.disabled=false;
+    if(res.error){
+      select.value=existing?.subject_id||"";
+      toast(res.error.message,"error");
+      return;
+    }
+    toast((previous?"เปลี่ยน":"เพิ่ม")+"รหัส "+(subject.subject_code||"ไม่ระบุรหัส")+
+      " ของ "+shortGrade(academicGradeLabelFromCode(grade))+" แล้ว","success");
+    refreshSubjects(true);
+  }));
+
   qa("[data-subject-board-add-code]").forEach(select=>select.addEventListener("change",async()=>{
     const grade=select.dataset.subjectBoardAddCode||"";
     const subjectId=select.value||"";
