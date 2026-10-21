@@ -1,7 +1,7 @@
 import { supabase, clearLaoAuthSession } from "./supabase.js?v=20260927-2";
 import { APP_VERSION, APP_VERSION_LABEL } from "./version.js?v=0.19.97";
 
-const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectMainView:"manage",subjectParallelSelectionMode:false,subjectPendingTimeOpenId:null,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
+const state={session:null,user:null,profile:null,memberships:[],currentMembership:null,organizations:[],schools:[],adminSchools:[],adminSchool:null,orgSchools:[],notifications:[],pendingInvitation:null,schoolSetup:null,lecPreview:null,lecImporting:false,studentDirectory:null,studentFilters:{search:"",year_be:null,term_no:null,grade_level:"",classroom:"",presence:"",offset:0,limit:2000},personnelDirectory:null,personnelFilters:{search:"",personnel_type:"",status:"active"},personnelWork:{can_review:false,can_manage_intake:false,can_assign_authority:false,pending_join_requests:0},academicData:null,academicYearId:null,academicFilters:{grade_label:"",program_id:""},academicPreset:null,academicPresetGrade:"",academicTermId:null,academicWork:{can_manage:false,pending_teaching_workloads:0,my_returned_workloads:0,attention_count:0},teachingWorkloadData:null,teachingWorkloadPersonnelId:null,teachingWorkloadStatus:"",timetableData:null,timetableTermId:null,timetableVersionId:null,timetableViewMode:"overview",timetableAxisMode:"day-columns",timetableSidebarTab:"activities",timetableClassId:null,timetablePersonnelId:null,timetableGradeCodes:[],timetableGradeCode:null,timetableDayNo:1,timetableDraft:null,timetableBlockedSlots:[],timetableDirty:false,timetableEditRevision:0,timetableAutosaveInFlight:false,timetableAutosaveQueued:false,installPrompt:null,pwaInstalled:false,classProgramEditMode:false,classStageFilter:"",subjectEditMode:false,subjectCopyYearId:"",subjectCatalogScope:"core",subjectProgramId:"",subjectSetupTab:"target",subjectWorkspaceView:"selected",subjectMainView:"manage",subjectBoardExpanded:true,subjectBoardLoadingKey:"",subjectBoardLoadFailedKey:"",subjectParallelSelectionMode:false,subjectPendingTimeOpenId:null,subjectWorkspaceData:null,subjectWorkspaceCache:new Map(),subjectPresetCache:new Map(),centralTimeTemplatesCache:new Map(),subjectContextLoadId:0,curriculumReadiness:null,subjectReadiness:null,academicTimeline:null,assessmentData:null,assessmentYearId:null,assessmentTermId:null,courseCurriculumData:null,courseCurriculumYearId:null,subjectGroupData:null,subjectGroupYearId:null,homeroomAssignmentYearId:null,homeroomStageFilter:"",workAuthorityAccess:{can_view:false,can_delegate_any:false,is_school_admin:false},routeRenderId:0,isPlatformAdmin:false,viewMode:"user",reauthenticating:false};
 
 const routeMeta={
   overview:["หน้าหลัก","งานของฉันและแอปที่บัญชีนี้มีสิทธิ์ใช้งาน"],
@@ -5764,7 +5764,7 @@ function academicSubjectsHtml(data,timeline){
     const schoolText=academicSchoolTimeSummary(c,standard);
     const schoolTimeMissing=schoolText==="ยังไม่กำหนด";
     const schoolTimeLink=canEdit&&!inherited&&schoolTimeMissing?'<button type="button" class="subject-time-inline-link" data-edit-subject-time="'+esc(c.id)+'">กำหนดเวลาเรียน →</button>':'';
-    return '<article class="subject-selected-card '+(pg?"in-parallel-group":"")+' '+(timeInfo&&timeInfo.time_customized?"time-customized":"")+'">'+
+    return '<article data-subject-course-card="'+esc(c.id)+'" class="subject-selected-card '+(pg?"in-parallel-group":"")+' '+(timeInfo&&timeInfo.time_customized?"time-customized":"")+'">'+
       (canGroup&&state.subjectParallelSelectionMode?'<label class="subject-group-check" title="เลือกเพื่อรวมเป็นกลุ่มเวลาเดียวกัน"><input type="checkbox" data-parallel-course="'+esc(c.id)+'"><span></span></label>':'')+
       '<div class="subject-card-main"><div class="subject-code-box">'+esc(c.subject_code||"—")+'</div><div class="subject-card-copy"><strong>'+esc(c.subject_name)+'</strong><small>'+(c.learning_area?esc(c.learning_area):esc(typeLabel[c.subject_type]||"อื่น ๆ"))+(subtypeText?' · '+esc(subtypeText):'')+'</small></div></div>'+
       (standard?'<div class="subject-time-compare"><div><small>มาตรฐานกลางขั้นต่ำ</small><strong>'+esc(standardText||"ไม่กำหนด")+'</strong></div><div><small>โรงเรียนใช้</small><strong>'+esc(schoolText)+'</strong>'+schoolTimeLink+'</div></div>':'<div class="subject-time-compare single"><div><small>เวลาเรียนของโรงเรียน</small><strong>'+esc(schoolText)+'</strong>'+schoolTimeLink+'</div></div>')+
@@ -6176,7 +6176,13 @@ function academicSubjectsHtml(data,timeline){
   const overviewSumHours=(rows,predicate)=>rows
     .filter(predicate)
     .reduce((sum,c)=>sum+Number(c._overviewHours!=null?c._overviewHours:(c.annual_hours||0)),0);
-  const overviewProgramMatrixHtml=(target,codes)=>{
+  const overviewProgramMatrixHtml=(target,codes,interactive=false)=>{
+    const matrixCell=(code,hours,courseId="")=>{
+      if(!interactive)return '<td>'+formatGradeHours(hours)+'</td>';
+      return '<td class="curriculum-board-cell '+(code===gradeCode?"is-current":"")+'"><button type="button" class="curriculum-board-cell-action" data-subject-board-grade="'+esc(code)+'" data-subject-board-course="'+esc(courseId)+'" title="เปิดรายละเอียดรายวิชา '+esc(shortGrade(academicGradeLabelFromCode(code)))+'"><b>'+formatGradeHours(hours)+'</b><small>ดู / จัด ↗</small></button></td>';
+    };
+    const isIntegratedActivity=c=>c.subject_type==="activity"&&/สังคมและสาธารณประโยชน์/.test(c.subject_name||c._overviewDisplayName||"");
+    const sumAllocated=(rows,predicate)=>overviewSumHours(rows,c=>predicate(c)&&!isIntegratedActivity(c));
     const coursesByGrade=new Map(codes.map(code=>[code,overviewEffectiveSummaryItems(target.id,code)]));
     const categoryName=c=>overviewDisplayName(c);
     const categoryRows=(type,title,totalTitle,groupClass)=>{
@@ -6209,14 +6215,15 @@ function academicSubjectsHtml(data,timeline){
             coursesByGrade.get(code)||[],
             c=>(c.subject_type||"other")===type&&categoryName(c).toLocaleLowerCase("th")===row.name.toLocaleLowerCase("th")
           );
-          html+='<td>'+formatGradeHours(hours)+'</td>';
+          const match=(coursesByGrade.get(code)||[]).find(c=>(c.subject_type||"other")===type&&categoryName(c).toLocaleLowerCase("th")===row.name.toLocaleLowerCase("th"));
+           html+=matrixCell(code,hours,match&&!match._overviewIsGroup?match.id:"");
         });
         html+='</tr>';
       });
       html+='<tr class="curriculum-matrix-subtotal '+groupClass+'"><th>'+esc(totalTitle)+'</th>';
       codes.forEach(code=>{
         const total=overviewSumHours(coursesByGrade.get(code)||[],c=>(c.subject_type||"other")===type);
-        html+='<td><strong>'+formatGradeHours(total)+'</strong></td>';
+        html+='<td><strong>'+formatGradeHours(type==="activity"?sumAllocated(coursesByGrade.get(code)||[],c=>(c.subject_type||"other")===type):total)+'</strong></td>';
       });
       html+='</tr>';
       return html;
@@ -6242,7 +6249,8 @@ function academicSubjectsHtml(data,timeline){
           coursesByGrade.get(code)||[],
           c=>c.subject_type==="basic"&&overviewAreaKey(c).toLocaleLowerCase("th")===area.name.toLocaleLowerCase("th")
         );
-        body+='<td>'+formatGradeHours(hours)+'</td>';
+        const match=(coursesByGrade.get(code)||[]).find(c=>c.subject_type==="basic"&&overviewAreaKey(c).toLocaleLowerCase("th")===area.name.toLocaleLowerCase("th"));
+         body+=matrixCell(code,hours,match&&!match._overviewIsGroup?match.id:"");
       });
       body+='</tr>';
     });
@@ -6259,7 +6267,7 @@ function academicSubjectsHtml(data,timeline){
     body+='<tr class="curriculum-matrix-total"><th>รวมเวลาเรียนทั้งหมด</th>';
     codes.forEach(code=>{
       const g=groupFor(code,target.id);
-      const calculated=overviewSumHours(coursesByGrade.get(code)||[],()=>true);
+      const calculated=sumAllocated(coursesByGrade.get(code)||[],()=>true);
       const total=calculated;
       body+='<td><strong>'+formatGradeHours(total)+'</strong><small>'+formatGradePeriods(Number(g&&g.weekly_periods_total||0))+' คาบ/สัปดาห์</small></td>';
     });
@@ -6274,8 +6282,8 @@ function academicSubjectsHtml(data,timeline){
       body+='<td><span class="curriculum-overview-status '+overviewStatusClass(g)+'">'+esc(overviewStatusLabel(g))+'</span></td>';
     });
     body+='</tr>';
-    const head='<thead><tr><th>หมวดหมู่ / รายการ</th>'+codes.map(code=>'<th>'+esc(shortGrade(academicGradeLabelFromCode(code)))+'</th>').join("")+'</tr></thead>';
-    return '<article class="curriculum-overview-program"><div class="curriculum-overview-program-head"><div><strong>'+esc(target.label)+'</strong><small>'+esc(target.name)+(year?' · ปีการศึกษา '+esc(year.year_be):'')+'</small></div></div><div class="curriculum-matrix-scroll"><table class="curriculum-matrix">'+head+'<tbody>'+body+'</tbody></table></div></article>';
+    const head='<thead><tr><th>หมวดหมู่ / รายการ</th>'+codes.map(code=>'<th class="'+(interactive&&code===gradeCode?"is-current":"")+'">'+(interactive?'<button type="button" data-subject-board-grade="'+esc(code)+'" data-subject-board-course="">'+esc(shortGrade(academicGradeLabelFromCode(code)))+' <small>จัด →</small></button>':esc(shortGrade(academicGradeLabelFromCode(code))))+'</th>').join("")+'</tr></thead>';
+    return '<article class="curriculum-overview-program '+(interactive?'curriculum-board-program':'')+'"><div class="curriculum-overview-program-head"><div><strong>'+esc(target.label)+'</strong><small>'+esc(target.name)+(year?' · ปีการศึกษา '+esc(year.year_be):'')+'</small></div></div><div class="curriculum-matrix-scroll"><table class="curriculum-matrix">'+head+'<tbody>'+body+'</tbody></table></div></article>';
   };
   const overviewStagesHtml=overviewStageOrder.map(stageKey=>{
     const codes=overviewGradeCodes.filter(code=>overviewStageForGrade(code)===stageKey);
@@ -6292,6 +6300,24 @@ function academicSubjectsHtml(data,timeline){
   }).join("");
   const curriculumOverviewHtml='<section class="curriculum-overview-shell"><div class="curriculum-overview-toolbar"><div><strong>ภาพรวมโครงสร้างหลักสูตร</strong><span>รูปแบบตารางโครงสร้างเวลาเรียน · แยก PDF ตามช่วงการศึกษาที่โรงเรียนเปิดสอนจริง</span></div></div><div class="curriculum-overview-body">'+overviewStagesHtml+'</div></section>';
 
+
+  const boardId=selectedProgram?selectedProgram.id:"";
+  const boardCodes=targetGradeCodes;
+  const boardReady=boardCodes.every(code=>state.subjectWorkspaceCache.has(academicSubjectContextCacheKey(data,boardId||null,code))||
+    (code===gradeCode&&Boolean(state.subjectWorkspaceData)));
+  const boardHtml='<section class="panel curriculum-live-board" aria-label="ตารางโครงสร้างหลักสูตรทุกระดับชั้น">'+
+    '<div class="curriculum-live-board-header"><div><p class="eyebrow">CURRICULUM WORKSPACE</p><h3>ตารางจัดโครงสร้างทั้งหมด · '+esc(targetLabel)+'</h3>'+
+    '<p>แสดงทุกชั้นและทุกหมวดในหน้าเดียว คลิกชั่วโมงของวิชาเพื่อเปิดรายละเอียดและแก้ไขด้านล่าง โดยไม่ต้องสลับไปรายงาน</p></div>'+
+    '<button type="button" class="secondary-btn compact-btn" data-subject-board-toggle aria-expanded="'+(state.subjectBoardExpanded?"true":"false")+'">'+(state.subjectBoardExpanded?"ซ่อนตาราง":"แสดงตาราง")+'</button></div>'+
+    (state.subjectBoardExpanded?
+      (!boardCodes.length?'<p class="curriculum-live-board-loading">ยังไม่มีระดับชั้นในโปรแกรมนี้</p>':
+       boardReady?overviewProgramMatrixHtml({id:boardId,label:targetLabel,name:selectedProgram?selectedProgram.name_th:"ห้องปกติ"},boardCodes,true):
+       '<div class="curriculum-live-board-loading">กำลังรวบรวมรายวิชาและกลุ่มกิจกรรมทุกชั้นให้ยอดรวมไม่ซ้ำซ้อน… '+
+         (state.subjectBoardLoadFailedKey===String(year&&year.id||"")+":"+boardId?'<button type="button" class="secondary-btn compact-btn" data-subject-board-retry>ลองอีกครั้ง</button>':'')+'</div>')+
+      '<p class="curriculum-live-board-note">กิจกรรมเพื่อสังคมและสาธารณประโยชน์แสดง 10 ชม. แบบบูรณาการ แต่ไม่บวกซ้ำในยอดกิจกรรมและยอดรวมทั้งหมด</p>':
+      '')+
+    '</section>';
+
   const editGuardHtml=canManage?'<section class="subject-edit-toolbar"><div><strong>แก้ไขรายวิชา</strong><small>'+(canEdit?"กำลังเปิดแก้ไข":"ข้อมูลถูกป้องกันการแก้ไข")+'</small></div><label class="academic-edit-switch subject-edit-switch compact"><input type="checkbox" data-subject-edit-switch '+(canEdit?"checked":"")+'><span class="switch-track"><i></i></span></label></section>':'';
 
   const copyYearHtml=canManage&&year&&gradeCode&&copyYears.length?'<details class="subject-copy-year subject-copy-year-compact"><summary>คัดลอกจากปีการศึกษาก่อน</summary><div class="subject-copy-year-compact-body"><label>ปีต้นทาง<select data-subject-copy-year>'+copyYears.map(y=>'<option value="'+esc(y.id)+'" '+(state.subjectCopyYearId===y.id?"selected":"")+'>'+esc(y.year_be)+'</option>').join("")+'</select></label><button type="button" class="secondary-btn compact-btn" data-copy-subject-year '+(canEdit?"":"disabled")+'>คัดลอกมาใช้</button></div></details>':'';
@@ -6302,7 +6328,7 @@ function academicSubjectsHtml(data,timeline){
     '</div></section>'+
     '<nav class="panel subject-main-tabs" aria-label="มุมมองโครงสร้างหลักสูตร">'+
       '<button type="button" class="'+(mainView==="manage"?"active":"")+'" data-subject-main-view="manage">จัดโครงสร้าง</button>'+
-      '<button type="button" class="'+(mainView==="overview"?"active":"")+'" data-subject-main-view="overview">ภาพรวมโครงสร้าง</button>'+
+      '<button type="button" class="'+(mainView==="overview"?"active":"")+'" data-subject-main-view="overview">รายงานภาพรวม / PDF</button>'+
     '</nav>'+
     '<div class="subject-main-manage '+(mainView==="manage"?"":"hidden")+'">'+
     '<section class="panel subjects-v2-context subject-progress-context">'+
@@ -6310,6 +6336,8 @@ function academicSubjectsHtml(data,timeline){
       '<div class="subjects-v2-context-row"><div><strong>ระดับชั้น</strong></div><div class="subject-grade-tabs subject-progress-tabs">'+(gradeTabs||'<span class="muted">ยังไม่มีระดับชั้น</span>')+'</div></div>'+
 
     '</section>'+
+    boardHtml+
+    '<div id="subject-grade-editor-anchor" class="curriculum-grade-editor-anchor"><strong>จัดรายละเอียด '+esc(shortGrade(gradeLabel))+' · '+esc(targetLabel)+'</strong><span>เลือกช่องจากตารางด้านบนเพื่อเปลี่ยนชั้น</span></div>'+
     editGuardHtml+
     copyYearHtml+
     curriculumFrameworkHtml+
@@ -8608,6 +8636,59 @@ function bindAcademics(){
     });
     await Promise.all(tasks);
   };
+
+  const subjectBoardYear=academicSelectedYear(data);
+  const boardContextKey=String(subjectBoardYear&&subjectBoardYear.id||"")+":"+(state.subjectProgramId||"");
+  qa("[data-subject-board-toggle]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.subjectBoardExpanded=!state.subjectBoardExpanded;
+    renderAcademicSubjectsCached(true);
+  }));
+  qa("[data-subject-board-retry]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.subjectBoardLoadFailedKey="";
+    renderAcademicSubjectsCached(true);
+  }));
+  qa("[data-subject-board-grade]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const code=btn.dataset.subjectBoardGrade||"";
+    const courseId=btn.dataset.subjectBoardCourse||"";
+    const programId=state.subjectProgramId||"";
+    if(!code)return;
+    const requestId=++state.subjectContextLoadId;
+    if(code!==state.academicPresetGrade){
+      state.academicPresetGrade=code;
+      state.academicFilters={grade_label:academicGradeLabelFromCode(code),program_id:programId};
+      state.subjectWorkspaceData=null;
+      state.subjectParallelSelectionMode=false;
+      setBusy(btn,true,"กำลังเปิด...");
+      await loadSubjectWorkspaceFast(code,programId||null);
+      if(requestId!==state.subjectContextLoadId)return;
+    }
+    state.subjectWorkspaceView="selected";
+    const targetCourse=(data.courses||[]).find(c=>c.id===courseId);
+    state.subjectPendingTimeOpenId=data.can_manage_subjects&&state.subjectEditMode&&targetCourse&&
+      (targetCourse.program_id||"")===(programId||"")?courseId:null;
+    await renderAcademicSubjectsCached();
+    window.requestAnimationFrame(()=>{
+      const card=courseId?q('[data-subject-course-card="'+courseId+'"]'):null;
+      const destination=card||q("#subject-grade-editor-anchor");
+      if(destination)destination.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
+    });
+  }));
+  if(state.subjectMainView==="manage"&&state.subjectBoardExpanded){
+    const missing=targetGradeCodesForProgram(state.subjectProgramId||"")
+      .filter(code=>!state.subjectWorkspaceCache.has(academicSubjectContextCacheKey(data,state.subjectProgramId||null,code)));
+    if(missing.length&&state.subjectBoardLoadingKey!==boardContextKey&&state.subjectBoardLoadFailedKey!==boardContextKey){
+      state.subjectBoardLoadingKey=boardContextKey;
+      Promise.all(missing.map(code=>fetchSubjectWorkspaceCached(data,code,state.subjectProgramId||null,false)))
+        .then(results=>{
+          if(results.some(x=>x.error))state.subjectBoardLoadFailedKey=boardContextKey;
+          if(state.academicData===data&&state.subjectMainView==="manage"&&state.subjectBoardExpanded&&
+             boardContextKey===String(subjectBoardYear&&subjectBoardYear.id||"")+":"+(state.subjectProgramId||""))renderAcademicSubjectsCached(true);
+        })
+        .catch(()=>{state.subjectBoardLoadFailedKey=boardContextKey;})
+        .finally(()=>{if(state.subjectBoardLoadingKey===boardContextKey)state.subjectBoardLoadingKey="";});
+    }
+  }
+
   qa("[data-subject-main-view]").forEach(btn=>btn.addEventListener("click",async()=>{
     const next=btn.dataset.subjectMainView||"manage";
     if(next===state.subjectMainView)return;
