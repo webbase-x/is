@@ -6234,16 +6234,21 @@ function academicSubjectsHtml(data,timeline){
         const name=overviewDisplayName(c);
         const key=type+"|"+norm(name);
         if(hiddenKeys.has(key))return;
-        const rank=(code===gradeCode?-100000:gradeIndex*100000)+Number(c.sort_order||0);
+        const rank=(code===gradeCode?0:100000+gradeIndex*10000)+Number(c.sort_order||0);
         if(!autoRowMap.has(key))autoRowMap.set(key,{key,name,type,rank,custom:false});
         else autoRowMap.get(key).rank=Math.min(autoRowMap.get(key).rank,rank);
       });
     });
     const rowDefinitions=Array.from(autoRowMap.values());
-    customRows.forEach(r=>rowDefinitions.push({
-      key:"custom|"+r.id,id:r.id,name:r.name_th,type:r.subject_type,
-      rank:Number(r.sort_order||1000),custom:true
-    }));
+    customRows.forEach(r=>{
+      const mapped=cellsByRowGrade.get(r.id+"|"+gradeCode);
+      const linked=mapped&&courseIndex.get(mapped.course_id);
+      rowDefinitions.push({
+        key:"custom|"+r.id,id:r.id,name:r.name_th,type:r.subject_type,
+        rank:linked?Number(linked.sort_order||0):900000+Number(r.sort_order||1000),
+        custom:true
+      });
+    });
     const gradeName=c=>shortGrade(academicGradeLabelFromCode(c));
     const catalog=(data.subjects||[]).filter(x=>x&&x.id&&x.is_active!==false&&x.name_th);
     const gradeMatches=(subject,code)=>{
@@ -6280,7 +6285,10 @@ function academicSubjectsHtml(data,timeline){
       const candidates=catalog.filter(subject=>{
         if(subject.subject_type!==row.type)return false;
         if(!gradeMatches(subject,code)){
-          if(!current||current.subject_id!==subject.id)return false;
+          const sameName=norm(subject.name_th)===norm(row.name);
+          if(subject.subject_code||!sameName){
+            if(!current||current.subject_id!==subject.id)return false;
+          }
         }
         if(!row.custom&&norm(subject.name_th)!==norm(row.name))return false;
         const already=(effectiveByGrade.get(code)||[]).find(c=>c.subject_id===subject.id);
@@ -6306,7 +6314,7 @@ function academicSubjectsHtml(data,timeline){
         '<form class="curriculum-matrix-hours" data-subject-board-hours-form="'+esc(current.id)+'" data-board-hours-grade="'+esc(code)+'">'+
           '<input aria-label="ชั่วโมงต่อปี '+esc(row.name)+' '+esc(gradeName(code))+'" type="number" name="annual_hours" min="0" max="4000" step="0.5" required value="'+esc(current.annual_hours??"")+'" placeholder="ชม./ปี">'+
           '<span>ชม.</span><button type="submit" title="บันทึกชั่วโมงเรียน">✓</button></form>':
-          inherited?'<button type="button" class="curriculum-matrix-override" data-subject-board-override="'+esc(current.id)+'" data-board-override-grade="'+esc(code)+'">แยกเวลา '+esc(target.label)+'</button>':
+          inherited?'<button type="button" class="curriculum-matrix-override" data-subject-board-override="'+esc(current.id)+'" data-board-override-grade="'+esc(code)+'" data-matrix-override-row="'+esc(row.custom?row.id:"")+'">แยกเวลา '+esc(target.label)+'</button>':
           '<span class="curriculum-matrix-hours-placeholder">'+(current?num(current.annual_hours)+" ชม.":"— ชม.")+'</span>';
       const detail=current?'<button type="button" class="curriculum-matrix-detail" data-subject-board-grade="'+esc(code)+'" data-subject-board-course="'+esc(current.id)+'" title="รายละเอียดรายวิชา">···</button>':'';
       return '<td class="curriculum-matrix-cell"><div class="curriculum-matrix-inputs">'+select+hoursHtml+
@@ -9099,6 +9107,14 @@ function bindAcademics(){
     });
     setBusy(button,false);
     if(res.error){toast(res.error.message,"error");return;}
+    const linkedRow=button.dataset.matrixOverrideRow||"";
+    const newCourseId=res.data&&res.data.course_id||"";
+    if(linkedRow&&newCourseId){
+      const linked=await supabase.rpc("lao_curriculum_matrix_link_cell",{
+        p_school_id:school.id,p_row_id:linkedRow,p_grade_code:grade,p_course_id:newCourseId
+      });
+      if(linked.error)toast("สร้างเวลาเฉพาะโปรแกรมสำเร็จ แต่ผูกกับชื่อแถวไม่สำเร็จ: "+linked.error.message,"error");
+    }
     state.academicPresetGrade=grade;
     state.academicFilters={grade_label:academicGradeLabelFromCode(grade),program_id:program.id};
     toast("แยกเวลาเฉพาะ "+(program.code||program.name_th)+" แล้ว · แก้ชั่วโมงจากช่องตารางได้โดยไม่กระทบห้องปกติ","success");
