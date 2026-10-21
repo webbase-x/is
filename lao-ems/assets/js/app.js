@@ -5354,19 +5354,20 @@ async function loadAcademicStructure(){
   state.curriculumMatrixCells=[];
   state.curriculumMatrixError="";
   if(nextYear){
-    const [matrixRows,matrixCells]=await Promise.all([
-      supabase.from("lao_curriculum_matrix_rows")
-        .select("id,school_id,academic_year_id,program_id,subject_type,name_th,sort_order,row_kind")
-        .eq("school_id",school.id).eq("academic_year_id",nextYear),
-      supabase.from("lao_curriculum_matrix_cells")
-        .select("id,row_id,grade_code,course_id")
-    ]);
-    if(matrixRows.error||matrixCells.error){
-      state.curriculumMatrixError=(matrixRows.error||matrixCells.error).message||"โหลดรายการในตารางไม่สำเร็จ";
+    const matrixRows=await supabase.from("lao_curriculum_matrix_rows")
+      .select("id,school_id,academic_year_id,program_id,subject_type,name_th,sort_order,row_kind")
+      .eq("school_id",school.id).eq("academic_year_id",nextYear);
+    if(matrixRows.error){
+      state.curriculumMatrixError=matrixRows.error.message||"โหลดรายการในตารางไม่สำเร็จ";
     }else{
       state.curriculumMatrixRows=matrixRows.data||[];
-      const rowIds=new Set(state.curriculumMatrixRows.map(x=>x.id));
-      state.curriculumMatrixCells=(matrixCells.data||[]).filter(x=>rowIds.has(x.row_id));
+      const rowIds=state.curriculumMatrixRows.map(x=>x.id);
+      if(rowIds.length){
+        const matrixCells=await supabase.from("lao_curriculum_matrix_cells")
+          .select("id,row_id,grade_code,course_id").in("row_id",rowIds);
+        if(matrixCells.error)state.curriculumMatrixError=matrixCells.error.message||"โหลดรหัสรายวิชาไม่สำเร็จ";
+        else state.curriculumMatrixCells=matrixCells.data||[];
+      }
     }
   }
   return state.academicData;
