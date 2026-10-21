@@ -6252,6 +6252,9 @@ function academicSubjectsHtml(data,timeline){
     const sumAllocated=(rows,predicate)=>overviewSumHours(rows,c=>predicate(c)&&!isIntegratedActivity(c));
     const coursesByGrade=new Map(codes.map(code=>[code,overviewEffectiveSummaryItems(target.id,code)]));
     const categoryName=c=>overviewDisplayName(c);
+    // In edit mode show each core subject separately (e.g. History vs Social Studies);
+    // keep the existing learning-area grouping in the printed overview.
+    const boardBasicLabel=c=>interactive?overviewDisplayName(c):overviewAreaKey(c);
     const categoryRows=(type,title,totalTitle,groupClass)=>{
       const rowMap=new Map();
       (interactive?[gradeCode,...codes.filter(x=>x!==gradeCode)]:codes).forEach((code,gradePriority)=>(coursesByGrade.get(code)||[])
@@ -6300,7 +6303,7 @@ function academicSubjectsHtml(data,timeline){
     };
     const areaMap=new Map();
     (interactive?[gradeCode,...codes.filter(x=>x!==gradeCode)]:codes).forEach((code,gradePriority)=>(coursesByGrade.get(code)||[]).filter(c=>c.subject_type==="basic").forEach(c=>{
-      const area=overviewAreaKey(c);
+      const area=boardBasicLabel(c);
       if(!area)return;
       const key=area.toLocaleLowerCase("th");
       const current=areaMap.get(key);
@@ -6318,9 +6321,9 @@ function academicSubjectsHtml(data,timeline){
       codes.forEach(code=>{
         const hours=overviewSumHours(
           coursesByGrade.get(code)||[],
-          c=>c.subject_type==="basic"&&overviewAreaKey(c).toLocaleLowerCase("th")===area.name.toLocaleLowerCase("th")
+          c=>c.subject_type==="basic"&&boardBasicLabel(c).toLocaleLowerCase("th")===area.name.toLocaleLowerCase("th")
         );
-        const match=(coursesByGrade.get(code)||[]).find(c=>c.subject_type==="basic"&&overviewAreaKey(c).toLocaleLowerCase("th")===area.name.toLocaleLowerCase("th"));
+        const match=(coursesByGrade.get(code)||[]).find(c=>c.subject_type==="basic"&&boardBasicLabel(c).toLocaleLowerCase("th")===area.name.toLocaleLowerCase("th"));
          body+=matrixCell(code,hours,match&&!match._overviewIsGroup?match.id:"",area.name,"basic");
       });
       body+='</tr>';
