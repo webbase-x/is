@@ -13058,3 +13058,145 @@ html.is-touch-device [data-manual-refresh]{
 @media(prefers-reduced-motion:reduce){
   .curriculum-board-cell-action{scroll-behavior:auto}
 }
+
+
+/* Curriculum grid in-cell code picker + edit lock, v0.19.99 */
+.curriculum-live-board-header{align-items:center}
+.curriculum-board-edit-switch{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  min-height:42px;
+  border:1px solid #ced9e7;
+  padding:5px 10px;
+  border-radius:100px;
+  background:#fff;
+  font-size:12px;
+  font-weight:800;
+  color:#344054;
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+}
+.curriculum-board-edit-switch input{
+  position:absolute;
+  width:1px;height:1px;
+  opacity:0;
+}
+.curriculum-board-edit-switch i{
+  position:relative;
+  display:inline-block;
+  flex:0 0 37px;
+  height:22px;
+  border-radius:30px;
+  background:#c9d2df;
+  transition:background .16s;
+}
+.curriculum-board-edit-switch i::before{
+  content:"";
+  position:absolute;
+  width:16px;height:16px;
+  border-radius:50%;
+  top:3px;left:3px;
+  background:#fff;
+  box-shadow:0 1px 3px rgba(16,24,40,.18);
+  transition:transform .16s;
+}
+.curriculum-board-edit-switch input:checked+i{background:#13836f}
+.curriculum-board-edit-switch input:checked+i::before{transform:translateX(15px)}
+.curriculum-board-edit-switch input:focus-visible+i{outline:3px solid #3b82f6;outline-offset:3px}
+.curriculum-board-edit-switch input:checked~strong{color:#087f65}
+.curriculum-board-readonly{
+  border:1px solid #d0d5dd;
+  background:#f9fafb;
+  color:#667085;
+  font-size:12px;
+  font-weight:750;
+  padding:9px 12px;
+  border-radius:999px;
+}
+.curriculum-live-board .curriculum-matrix thead th:has(.curriculum-board-header-select){
+  padding:5px 4px 8px;
+}
+.curriculum-live-board .curriculum-matrix thead th .curriculum-board-grade-action{
+  min-height:34px;
+  padding:5px;
+  font-weight:850;
+}
+.curriculum-live-board .curriculum-board-header-select,
+.curriculum-live-board .curriculum-board-code-select{
+  display:block;
+  width:calc(100% - 10px);
+  min-width:0;
+  max-width:100%;
+  min-height:31px;
+  margin:4px auto;
+  padding:4px 5px;
+  border:1px solid #a3b7d2;
+  border-radius:8px;
+  background:#fff;
+  color:#1555a1;
+  font-family:inherit;
+  font-size:10.5px;
+  font-weight:650;
+  cursor:pointer;
+  text-overflow:ellipsis;
+}
+.curriculum-live-board .curriculum-board-header-select:hover,
+.curriculum-live-board .curriculum-board-code-select:hover{border-color:#1876ca;background:#f7fbff}
+.curriculum-live-board .curriculum-board-header-select:focus-visible,
+.curriculum-live-board .curriculum-board-code-select:focus-visible{
+  outline:3px solid #93c5fd;outline-offset:1px
+}
+.curriculum-board-cell-editor{
+  display:flex;
+  align-items:stretch;
+  flex-direction:column;
+  gap:1px;
+  padding:0 3px 6px;
+}
+.curriculum-live-board .curriculum-board-code-select{margin:1px auto}
+.curriculum-live-board .curriculum-board-cell-action{
+  min-height:47px;
+  padding-bottom:3px;
+}
+.curriculum-live-board .curriculum-board-current-code{
+  overflow:hidden;
+  max-width:100%;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#475467;
+  font-weight:800;
+  font-size:10px;
+}
+.curriculum-board-code-edit,.curriculum-board-find{
+  display:block;
+  min-height:26px;
+  width:calc(100% - 10px);
+  margin:2px auto;
+  padding:4px;
+  border:1px solid #d2dbea;
+  background:#fff;
+  color:#225b9e;
+  font-size:10px;
+  border-radius:7px;
+  cursor:pointer;
+}
+.curriculum-board-code-edit:hover,.curriculum-board-find:hover{
+  background:#eaf3ff;
+  border-color:#91b4e0;
+}
+.curriculum-board-code-edit:focus-visible,.curriculum-board-find:focus-visible{
+  outline:3px solid #93c5fd;outline-offset:1px
+}
+.curriculum-live-board .curriculum-matrix thead th{vertical-align:top}
+.curriculum-live-board .curriculum-matrix tbody td.curriculum-board-cell:has(.curriculum-board-cell-editor){
+  vertical-align:top;
+  min-width:98px;
+}
+@media(max-width:760px){
+  .curriculum-board-edit-switch{min-height:38px;padding:4px 9px}
+  .curriculum-live-board .curriculum-matrix{min-width:870px}
+  .curriculum-live-board .curriculum-board-header-select,
+  .curriculum-live-board .curriculum-board-code-select{font-size:10px}
+}
