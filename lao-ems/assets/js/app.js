@@ -6274,12 +6274,17 @@ function academicSubjectsHtml(data,timeline){
     body+='</tr><tr class="curriculum-matrix-frame"><th>กรอบเวลาเรียนของโรงเรียน</th>';
     codes.forEach(code=>{
       const g=groupFor(code,target.id);
-      body+='<td><strong>'+formatGradeHours(Number(g&&g.time_frame&&g.time_frame.capacity_hours_per_year||0))+'</strong><small>'+formatGradePeriods(Number(g&&g.periods_per_week_capacity||0))+' คาบ/สัปดาห์</small></td>';
+      body+='<td><strong>'+formatGradeHours(groupHours(g).total)+'</strong><small>'+formatGradePeriods(Number(g&&g.periods_per_week_capacity||0))+' คาบ/สัปดาห์</small></td>';
     });
     body+='</tr><tr class="curriculum-matrix-status"><th>สถานะ</th>';
     codes.forEach(code=>{
       const g=groupFor(code,target.id);
-      body+='<td><span class="curriculum-overview-status '+overviewStatusClass(g)+'">'+esc(overviewStatusLabel(g))+'</span></td>';
+      const annualCapacity=groupHours(g).total;
+      const annualHours=sumAllocated(coursesByGrade.get(code)||[],()=>true);
+      const annualDiff=annualHours-annualCapacity;
+      const annualOff=annualCapacity>0&&Math.abs(annualDiff)>.01;
+      const annualStatus=annualOff?(annualDiff>0?'เกิน '+formatGradeHours(annualDiff)+' ชม.':'ขาด '+formatGradeHours(-annualDiff)+' ชม.'):overviewStatusLabel(g);
+      body+='<td><span class="curriculum-overview-status '+(annualOff?'warning':overviewStatusClass(g))+'">'+esc(annualStatus)+'</span></td>';
     });
     body+='</tr>';
     const head='<thead><tr><th>หมวดหมู่ / รายการ</th>'+codes.map(code=>'<th class="'+(interactive&&code===gradeCode?"is-current":"")+'">'+(interactive?'<button type="button" data-subject-board-grade="'+esc(code)+'" data-subject-board-course="">'+esc(shortGrade(academicGradeLabelFromCode(code)))+' <small>จัด →</small></button>':esc(shortGrade(academicGradeLabelFromCode(code))))+'</th>').join("")+'</tr></thead>';
