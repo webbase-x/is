@@ -6196,7 +6196,172 @@ function academicSubjectsHtml(data,timeline){
   const overviewSumHours=(rows,predicate)=>rows
     .filter(predicate)
     .reduce((sum,c)=>sum+Number(c._overviewHours!=null?c._overviewHours:(c.annual_hours||0)),0);
+
+  // Editable curriculum matrix: row titles belong to the left column, while
+  // each grade column owns only its code selection and annual-hour value.
+  const curriculumMatrixEditHtml=(target,codes)=>{
+    const targetRows=(state.curriculumMatrixRows||[]).filter(r=>
+      r.academic_year_id===(year&&year.id)&&
+      (r.program_id||"")===(target.id||""));
+    const customRows=targetRows.filter(r=>r.row_kind==="custom");
+    const hiddenRows=targetRows.filter(r=>r.row_kind==="hidden");
+    const norm=v=>overviewNormalizedCourseName(v).toLocaleLowerCase("th");
+    const hiddenKeys=new Set(hiddenRows.map(r=>r.subject_type+"|"+norm(r.name_th)));
+    const effectiveByGrade=new Map(codes.map(code=>[code,overviewEffectiveCourses(target.id,code)]));
+    const summaryByGrade=new Map(codes.map(code=>[code,overviewEffectiveSummaryItems(target.id,code)]));
+    const courseIndex=new Map();
+    codes.forEach(code=>(effectiveByGrade.get(code)||[]).forEach(c=>courseIndex.set(c.id,c)));
+    const customCells=(state.curriculumMatrixCells||[]).filter(cell=>
+      customRows.some(r=>r.id===cell.row_id));
+    const cellsByRowGrade=new Map(customCells.map(x=>[x.row_id+"|"+x.grade_code,x]));
+    const customAssigned=new Set(customCells.map(x=>x.course_id));
+    const categories=[
+      {type:"basic",name:"รายวิชาพื้นฐาน",className:""},
+      {type:"additional",name:"รายวิชาเพิ่มเติม",className:"is-additional"},
+      {type:"activity",name:"กิจกรรมพัฒนาผู้เรียน",className:"is-activity"},
+      {type:"other",name:"รายการอื่น ๆ",className:"is-other"}
+    ];
+    const num=v=>Number(v||0).toLocaleString("th-TH",{maximumFractionDigits:2});
+    const integrated=c=>c.subject_type==="activity"&&/สังคมและสาธารณประโยชน์/.test(c.subject_name||c.name_th||"");
+    const allocated=(code,type="")=>(summaryByGrade.get(code)||[])
+      .filter(c=>(!type||c.subject_type===type)&&!integrated(c))
+      .reduce((sum,c)=>sum+Number(c._overviewHours||0),0);
+    const autoRowMap=new Map();
+    codes.forEach((code,gradeIndex)=>{
+      (summaryByGrade.get(code)||[]).forEach(c=>{
+        if(customAssigned.has(c.id))return;
+        const type=c.subject_type||"other";
+        const name=overviewDisplayName(c);
+        const key=type+"|"+norm(name);
+        if(hiddenKeys.has(key))return;
+        const rank=(code===gradeCode?-100000:gradeIndex*100000)+Number(c.sort_order||0);
+        if(!autoRowMap.has(key))autoRowMap.set(key,{key,name,type,rank,custom:false});
+        else autoRowMap.get(key).rank=Math.min(autoRowMap.get(key).rank,rank);
+      });
+    });
+    const rowDefinitions=Array.from(autoRowMap.values());
+    customRows.forEach(r=>rowDefinitions.push({
+      key:"custom|"+r.id,id:r.id,name:r.name_th,type:r.subject_type,
+      rank:Number(r.sort_order||1000),custom:true
+    }));
+    const gradeName=c=>shortGrade(academicGradeLabelFromCode(c));
+    const catalog=(data.subjects||[]).filter(x=>x&&x.id&&x.is_active!==false&&x.name_th);
+    const gradeMatches=(subject,code)=>{
+      const gradeNum=String(code).match(/^P([1-6])$/);
+      if(!gradeNum)return true;
+      const subjectCode=String(subject.subject_code||"").trim();
+      const found=subjectCode.match(/^[^\d]*1([1-6])/);
+      return found?found[1]===gradeNum[1]:false;
+    };
+    const rowCourses=(row,code)=>{
+      const effective=effectiveByGrade.get(code)||[];
+      if(row.custom){
+        const link=cellsByRowGrade.get(row.id+"|"+code);
+        return link?effective.filter(c=>c.id===link.course_id):[];
+      }
+      return effective.filter(c=>
+        c.subject_type===row.type&&!customAssigned.has(c.id)&&norm(c.subject_name||c.name_th)===norm(row.name));
+    };
+    const rowCell=(row,code)=>{
+      const found=rowCourses(row,code);
+      const current=found[0]||null;
+      const many=found.length>1;
+      const group=(summaryByGrade.get(code)||[]).find(c=>
+        c._overviewIsGroup&&c.subject_type===row.type&&norm(c._overviewDisplayName)===norm(row.name));
+      const present=Boolean(current||group);
+      const hours=group?Number(group._overviewHours||0):
+        found.reduce((sum,c)=>sum+Number(c.annual_hours||0),0);
+      const readOnlyHtml='<div class="curriculum-matrix-cell-read">'+
+        '<strong>'+(!present?"—":current?esc(current.subject_code||"ไม่ระบุรหัส"):"กลุ่มกิจกรรม")+'</strong>'+
+        '<small>'+ (present?num(hours)+" ชม./ปี":"ยังไม่จัด") +'</small>'+
+        (many?'<small>หลายรหัส ('+found.length+')</small>':'')+
+        '</div>';
+      if(!canEdit||group)return '<td class="curriculum-matrix-cell">'+readOnlyHtml+'</td>';
+      const candidates=catalog.filter(subject=>{
+        if(subject.subject_type!==row.type)return false;
+        if(!gradeMatches(subject,code)){
+          if(!current||current.subject_id!==subject.id)return false;
+        }
+        if(!row.custom&&norm(subject.name_th)!==norm(row.name))return false;
+        const already=(effectiveByGrade.get(code)||[]).find(c=>c.subject_id===subject.id);
+        if(already&&!row.custom&&(!current||current.subject_id!==subject.id))return false;
+        return true;
+      }).sort((a,b)=>String(a.subject_code||"").localeCompare(String(b.subject_code||""),"th",{numeric:true})||
+        String(a.name_th||"").localeCompare(String(b.name_th||""),"th")).slice(0,160);
+      if(current&&!candidates.some(x=>x.id===current.subject_id)){
+        const curr=catalog.find(x=>x.id===current.subject_id);
+        if(curr)candidates.unshift(curr);
+      }
+      const select='<select class="curriculum-matrix-code" data-subject-matrix-code="'+esc(code)+'" data-matrix-row-id="'+esc(row.id||"")+
+        '" data-matrix-row-name="'+esc(row.name)+'" data-matrix-row-type="'+esc(row.type)+'" data-matrix-prev-course="'+esc(current&&current.id||"")+'" aria-label="รหัสวิชา '+esc(row.name)+' '+esc(gradeName(code))+'">'+
+        '<option value="">— เลือกรหัสวิชา —</option>'+
+        candidates.map(x=>'<option value="'+esc(x.id)+'" '+(current&&current.subject_id===x.id?'selected':'')+'>'+
+          esc((x.subject_code||"ไม่มีรหัส")+' · '+x.name_th)+'</option>').join("")+'</select>';
+      const isDirect=Boolean(current&&(current.program_id||"")===(target.id||""));
+      const inherited=Boolean(current&&target.id&&!current.program_id);
+      const annual=current&&current.annual_hours!=null&&isDirect&&
+        !(current.standard_time_snapshot&&current.standard_time_snapshot.period_scope==="term")&&
+        !(row.type==="activity"&&/สังคมและสาธารณประโยชน์/.test(row.name));
+      const hoursHtml=annual?
+        '<form class="curriculum-matrix-hours" data-subject-board-hours-form="'+esc(current.id)+'" data-board-hours-grade="'+esc(code)+'">'+
+          '<input aria-label="ชั่วโมงต่อปี '+esc(row.name)+' '+esc(gradeName(code))+'" type="number" name="annual_hours" min="0" max="4000" step="0.5" required value="'+esc(current.annual_hours)+'">'+
+          '<span>ชม.</span><button type="submit" title="บันทึกชั่วโมงเรียน">✓</button></form>':
+          inherited?'<button type="button" class="curriculum-matrix-override" data-subject-board-override="'+esc(current.id)+'" data-board-override-grade="'+esc(code)+'">แยกเวลา '+esc(target.label)+'</button>':
+          '<span class="curriculum-matrix-hours-placeholder">'+(current?num(current.annual_hours)+" ชม.":"— ชม.")+'</span>';
+      const detail=current?'<button type="button" class="curriculum-matrix-detail" data-subject-board-grade="'+esc(code)+'" data-subject-board-course="'+esc(current.id)+'" title="รายละเอียดรายวิชา">···</button>':'';
+      return '<td class="curriculum-matrix-cell"><div class="curriculum-matrix-inputs">'+select+hoursHtml+
+        (many?'<small class="curriculum-matrix-multi">มี '+found.length+' รหัสในชั้นนี้</small>':'')+detail+'</div></td>';
+    };
+    const leftLabel=row=>{
+      if(!canEdit)return '<th scope="row"><span>'+esc(row.name)+'</span></th>';
+      const gradeCourse=rowCourses(row,gradeCode).find(c=>(c.program_id||"")===(target.id||""))||null;
+      const label=row.custom
+        ?'<input class="curriculum-matrix-row-name" data-subject-matrix-rename="'+esc(row.id)+'" value="'+esc(row.name)+'" maxlength="160" aria-label="ชื่อแถวรายวิชา">'
+        :'<strong>'+esc(row.name)+'</strong>';
+      const move=gradeCourse?'<span class="curriculum-matrix-row-order">'+
+        '<button type="button" data-subject-board-move="'+esc(gradeCourse.id)+'" data-board-move-direction="up" data-board-move-grade="'+esc(gradeCode)+'" aria-label="เลื่อน '+esc(row.name)+' ขึ้น" title="เลื่อนลำดับขึ้น">↑</button>'+
+        '<button type="button" data-subject-board-move="'+esc(gradeCourse.id)+'" data-board-move-direction="down" data-board-move-grade="'+esc(gradeCode)+'" aria-label="เลื่อน '+esc(row.name)+' ลง" title="เลื่อนลำดับลง">↓</button></span>':'';
+      return '<th scope="row"><div class="curriculum-matrix-row-label"><div>'+label+'</div><div class="curriculum-matrix-row-tools">'+
+        move+'<button type="button" class="curriculum-matrix-row-delete" data-subject-matrix-delete="'+esc(row.id||"")+'" data-matrix-delete-name="'+esc(row.name)+'" data-matrix-delete-type="'+esc(row.type)+'" data-matrix-delete-kind="'+(row.custom?"custom":"hidden")+'" title="'+(row.custom?"ลบแถวรายการ":"ซ่อนชื่อรายการโดยไม่ลบวิชา")+'">×</button></div></div></th>';
+    };
+    let body="";
+    categories.forEach(cat=>{
+      const rows=rowDefinitions.filter(r=>r.type===cat.type)
+        .sort((a,b)=>a.rank-b.rank||a.name.localeCompare(b.name,"th"));
+      const tools=canEdit?'<button type="button" class="curriculum-matrix-add-row" data-subject-matrix-add="'+cat.type+'">＋ เพิ่มชื่อวิชา</button>':"";
+      body+='<tr class="curriculum-matrix-group '+cat.className+'"><th colspan="'+(codes.length+1)+'"><div class="curriculum-matrix-group-title"><span>'+esc(cat.name)+'</span>'+tools+'</div></th></tr>';
+      rows.forEach(row=>{
+        body+='<tr class="curriculum-matrix-item" data-matrix-search="'+esc((row.name||"").toLocaleLowerCase("th"))+'">'+leftLabel(row);
+        codes.forEach(code=>body+=rowCell(row,code));
+        body+='</tr>';
+      });
+      if(!rows.length)body+='<tr class="curriculum-matrix-blank"><th colspan="'+(codes.length+1)+'">ยังไม่มีรายการในหมวดนี้</th></tr>';
+      body+='<tr class="curriculum-matrix-subtotal '+cat.className+'"><th>รวม'+esc(cat.name)+'</th>';
+      codes.forEach(code=>body+='<td><strong>'+num(allocated(code,cat.type))+'</strong></td>');
+      body+='</tr>';
+    });
+    body+='<tr class="curriculum-matrix-total"><th>รวมเวลาเรียนทั้งหมด</th>';
+    codes.forEach(code=>body+='<td><strong>'+num(allocated(code))+'</strong><small>'+num(Number(groupFor(code,target.id)?.weekly_periods_total||0))+' คาบ/สัปดาห์</small></td>');
+    body+='</tr><tr class="curriculum-matrix-frame"><th>กรอบเวลาเรียนของโรงเรียน</th>';
+    codes.forEach(code=>body+='<td><strong>'+num(groupHours(groupFor(code,target.id)).total)+'</strong></td>');
+    body+='</tr><tr class="curriculum-matrix-status"><th>สถานะ</th>';
+    codes.forEach(code=>{
+      const frame=groupHours(groupFor(code,target.id)).total,total=allocated(code),diff=total-frame;
+      const status=frame>0&&Math.abs(diff)>.01?(diff>0?"เกิน "+num(diff)+" ชม.":"ขาด "+num(-diff)+" ชม."):overviewStatusLabel(groupFor(code,target.id));
+      body+='<td><span class="curriculum-overview-status '+(frame>0&&Math.abs(diff)>.01?"warning":overviewStatusClass(groupFor(code,target.id)))+'">'+esc(status)+'</span></td>';
+    });
+    body+='</tr>';
+    const head='<thead><tr><th scope="col">หมวดหมู่ / รายการ</th>'+
+      codes.map(code=>'<th scope="col" class="'+(code===gradeCode?"is-current":"")+'">'+esc(gradeName(code))+'</th>').join("")+'</tr></thead>';
+    const hidden=hiddenRows.length?'<details class="curriculum-matrix-hidden"><summary>ซ่อนชื่อรายการ '+hiddenRows.length+' รายการ (วิชายังนับชั่วโมงตามเดิม)</summary>'+
+      hiddenRows.map(r=>'<button type="button" data-subject-matrix-restore="'+esc(r.id)+'">↶ แสดง '+esc(r.name_th)+' · '+esc(typeLabel[r.subject_type]||r.subject_type)+'</button>').join("")+'</details>':"";
+    return '<article class="curriculum-overview-program curriculum-board-program curriculum-matrix-editor">'+
+      '<div class="curriculum-matrix-scroll"><table class="curriculum-matrix">'+head+'<tbody>'+body+'</tbody></table></div>'+
+      (hidden||"")+'</article>';
+  };
+
   const overviewProgramMatrixHtml=(target,codes,interactive=false)=>{
+    if(interactive)return curriculumMatrixEditHtml(target,codes);
     const boardNormalizedName=value=>overviewNormalizedCourseName(value).toLocaleLowerCase("th");
     const boardEffectiveCache=new Map(codes.map(code=>[code,overviewEffectiveCourses(target.id,code)]));
     const boardCatalog=(data.subjects||[]).filter(x=>x&&x.is_active!==false&&x.id&&x.name_th);
