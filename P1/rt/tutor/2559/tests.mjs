@@ -242,3 +242,28 @@ assert.ok(!coverScript.includes('const coverText=add(coverFront'));
 assert.ok(!coverScript.includes('const credit=add(coverFront'));
 assert.ok(coverScript.includes('ครูไพรัช  อินควรชุม'));
 console.log("PASS: revised cover and no duplicate overlaid title or credit");
+
+
+// Volume 1 includes both real RT 2559 chapters, not just picture matching.
+import {bookVocabularyCards} from "./picture-book-core.js";
+const fullVolume=bookVocabularyCards(vocab);
+assert.equal(fullVolume.length,30);
+assert.equal(fullVolume.filter(card=>card.group==="picture").length,10);
+assert.equal(fullVolume.filter(card=>card.group==="oral").length,20);
+assert.deepEqual(fullVolume.slice(0,10).map(card=>card.word),data.comprehension.pictureMatching.words);
+assert.deepEqual(fullVolume.slice(10).map(card=>card.word),data.oral.words);
+assert.deepEqual(fullVolume.slice(10).map(card=>card.sourceNo),Array.from({length:20},(_,i)=>i+1));
+assert.deepEqual(bookVocabularyCards(vocab.filter(card=>card.group==="oral")).map(card=>card.word),data.oral.words);
+assert.deepEqual(bookVocabularyCards(vocab.filter(card=>card.group==="picture")).map(card=>card.word),data.comprehension.pictureMatching.words);
+const bookChapterJS=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const chapterUI=await readFile(new URL("./vocabulary-ui.js",import.meta.url),"utf8");
+const chapterCSS=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
+assert.ok(bookChapterJS.includes("book-oral-word")&&bookChapterJS.includes("book-chapter-nav"));
+assert.ok(bookChapterJS.includes('onPracticed(current,status)'));
+assert.ok(bookChapterJS.includes('getOralProgress(current)'));
+assert.ok(bookChapterJS.includes("bookVocabularyCards(subset)"));
+assert.ok(chapterUI.includes('const listed=visible.filter(card=>card.group==="meaning")'));
+assert.ok(chapterUI.includes("pictureBook.setCards(bookCards)"));
+assert.ok(chapterCSS.includes(".book-oral-word")&&chapterCSS.includes(".book-oral-panel"));
+assert.ok(chapterCSS.includes("@media(max-width:780px)"));
+console.log("PASS: 10 picture + 20 original oral words in the 30-page book; chapter switching, self-recording and reading layout");
