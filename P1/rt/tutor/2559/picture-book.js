@@ -1,4 +1,5 @@
 import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint} from "./picture-book-core.js";
+import {installBookFullscreen} from "./fullscreen-book.js";
 
 const BOOK_STORAGE="rt-tutor-2559-picture-book-v1";
 const digit=n=>String(n).replace(/[0-9]/g,c=>"๐๑๒๓๔๕๖๗๘๙"[Number(c)]);
@@ -92,6 +93,9 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  add(title,"h2","","หนังสือภาพทายคำ");
  add(title,"p","","พลิกหน้ากระดาษเหมือนหนังสือจริง · หน้าซ้ายดูภาพ หน้าขวาทายคำศัพท์ที่ซ่อนอยู่");
  const tools=add(header,"div","picture-book-tools");
+ const expandButton=add(tools,"button","book-small-btn book-expand-btn","⛶ เต็มจอ");
+ expandButton.type="button";expandButton.setAttribute("aria-pressed","false");
+ const fullscreen=installBookFullscreen(host,expandButton);
  const sound=add(tools,"button","book-small-btn","เสียง: เปิด");
  sound.type="button";sound.setAttribute("aria-pressed","true");sound.title="เปิดหรือปิดเสียงแสดงความยินดี";
  const reset=add(tools,"button","book-small-btn","เริ่มใหม่");reset.type="button";

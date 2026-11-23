@@ -130,3 +130,65 @@ assert.ok(hintsScript.includes('clearHint.addEventListener("click",()=>'));
 assert.ok(hintsScript.includes("hints.hidden=complete")&&hintsScript.includes("hints.hidden=true"));
 assert.ok(hintsCSS.includes(".book-hint-tile")&&hintsCSS.includes("@media print{.book-hints{display:none!important}}"));
 console.log("PASS: 10 shuffled Thai picture-word hints, initial concealment, tile insertion, undo, clear and page reset");
+
+
+// Full-screen book mode with a browser-native path, fixed-overlay fallback,
+// Escape, restoration of scroll position, and state labels.
+import {installBookFullscreen} from "./fullscreen-book.js";
+function makeFullscreenMock(native){
+ const listeners=new Map(), classes=new Set(), bodyClasses=new Set(), props=new Map();
+ const eventTarget=()=>({
+  addEventListener(name,fn){listeners.set(name,fn)},
+  removeEventListener(name,fn){if(listeners.get(name)===fn)listeners.delete(name)}
+ });
+ const body={classList:{add:c=>bodyClasses.add(c),remove:c=>bodyClasses.delete(c),contains:c=>bodyClasses.has(c)},
+  style:{setProperty:(key,value)=>props.set(key,value),removeProperty:key=>props.delete(key)}};
+ const doc={...eventTarget(),fullscreenElement:null,body,async exitFullscreen(){doc.fullscreenElement=null;listeners.get("fullscreenchange")?.()}};
+ const win={...eventTarget(),scrollY:240,scrollTo(x,y){win.restored=[x,y]}};
+ const host={classList:{toggle:(key,on)=>on?classes.add(key):classes.delete(key),contains:key=>classes.has(key)}};
+ if(native)host.requestFullscreen=async()=>{doc.fullscreenElement=host;listeners.get("fullscreenchange")?.()};
+ const button={...eventTarget(),type:"",textContent:"",attrs:{},
+  setAttribute(key,value){this.attrs[key]=String(value)}};
+ return {host,button,doc,win,listeners,classes,bodyClasses,props};
+}
+const fsNative=makeFullscreenMock(true);
+const nativeController=installBookFullscreen(fsNative.host,fsNative.button,{doc:fsNative.doc,win:fsNative.win});
+assert.equal(nativeController.isExpanded(),false);
+assert.equal(fsNative.button.attrs["aria-pressed"],"false");
+await nativeController.toggle();
+assert.equal(nativeController.isExpanded(),true);
+assert.equal(fsNative.button.attrs["aria-pressed"],"true");
+assert.ok(fsNative.classes.has("is-book-expanded"));
+assert.equal(fsNative.bodyClasses.size,0);
+await nativeController.toggle();
+assert.equal(nativeController.isExpanded(),false);
+assert.ok(!fsNative.classes.has("is-book-expanded"));
+nativeController.dispose();
+const fsFallback=makeFullscreenMock(false);
+const fallbackController=installBookFullscreen(fsFallback.host,fsFallback.button,{doc:fsFallback.doc,win:fsFallback.win});
+await fallbackController.toggle();
+assert.equal(fallbackController.isExpanded(),true);
+assert.equal(fsFallback.props.get("--book-fallback-scroll"),"-240px");
+assert.ok(fsFallback.bodyClasses.has("book-fallback-lock"));
+fsFallback.listeners.get("keydown")({key:"Escape",preventDefault(){}});
+assert.equal(fallbackController.isExpanded(),false);
+assert.deepEqual(fsFallback.win.restored,[0,240]);
+assert.ok(!fsFallback.bodyClasses.has("book-fallback-lock"));
+fallbackController.dispose();
+const fsDenied=makeFullscreenMock(false);
+fsDenied.host.requestFullscreen=async()=>{throw new Error("NotAllowedError")};
+const deniedController=installBookFullscreen(fsDenied.host,fsDenied.button,{doc:fsDenied.doc,win:fsDenied.win});
+await deniedController.toggle();
+assert.equal(deniedController.isExpanded(),true);
+assert.ok(fsDenied.bodyClasses.has("book-fallback-lock"));
+await deniedController.close();
+assert.equal(deniedController.isExpanded(),false);
+deniedController.dispose();
+const fsHTML=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const fsCSS=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
+assert.ok(fsHTML.includes("installBookFullscreen(host,expandButton)"));
+assert.ok(fsCSS.includes(".picture-book.is-book-expanded"));
+assert.ok(fsCSS.includes("height:100dvh"));
+assert.ok(fsCSS.includes("@media(max-width:780px)"));
+assert.ok(fsCSS.includes("safe-area-inset-bottom"));
+console.log("PASS: native fullscreen, iOS fallback, Escape, state labels and scroll restoration");
