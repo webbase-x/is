@@ -228,3 +228,11 @@ assert.ok(coverStyle.includes("@media(max-width:600px)"));
 assert.ok(coverMeta.includes("พ.ศ. ๒๕๕๙"));
 assert.ok(thaiVocab.includes("thaiNumber(vocab.length)"));
 console.log("PASS: closed cover on first visit, opening/closing, Thai volume, Thai years, producer credit and cover artwork");
+
+const allThaiPage=await readFile(new URL("./index.html",import.meta.url),"utf8");
+const allThaiVocab=await readFile(new URL("./vocabulary-ui.js",import.meta.url),"utf8");
+const allThaiExam=await readFile(new URL("./app.js",import.meta.url),"utf8");
+assert.ok(allThaiPage.includes("RT ป.๑")&&allThaiPage.includes("ปี ๒๕๕๙"));
+assert.ok(allThaiVocab.includes('thaiNumber(card.source)'));
+assert.ok(allThaiExam.includes('nThai(points)')&&allThaiExam.includes('answers.map(nThai)'));
+console.log("PASS: Thai numerals in RT Tutor book, vocabulary, teacher key and page labels");

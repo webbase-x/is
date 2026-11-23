@@ -204,7 +204,7 @@ export function mountVocabulary(app,exam,sprite){
   }else{
    add(flashContent,"span","flash-eyebrow","คำตอบ / คำสำหรับทบทวน");
    add(flashContent,"strong","flash-answer",card.word);
-   add(flashContent,"span","flash-source",card.source);
+   add(flashContent,"span","flash-source",thaiNumber(card.source));
    if(card.group==="oral")add(flashContent,"span","flash-side-note","อ่านออกเสียงให้ครูฟังและตรวจจากข้อสอบต้นฉบับ");
    else if(card.group==="meaning"&&!card.definition)add(flashContent,"span","flash-side-note","คำตัวเลือกเสริม ไม่มีความหมายยืนยันในข้อนี้");
   }

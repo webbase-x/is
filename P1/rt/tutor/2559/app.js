@@ -44,7 +44,7 @@ function createMatching(board,group,leftItems,rightItems,visual=false){
   const row=add(left,"div","match-word");
   add(row,"span","",nThai((visual?1:11)+i)+". "+word);
   const btn=add(row,"button","anchor","");btn.type="button";btn.dataset.side="left";btn.dataset.match=String(i+1);
-  btn.setAttribute("aria-label","เลือกข้อ "+(i+1));btn.title="คลิกแล้วเลือกคู่ทางขวา";
+  btn.setAttribute("aria-label","เลือกข้อ "+nThai(i+1));btn.title="คลิกแล้วเลือกคู่ทางขวา";
  });
  const right=add(board,"div","match-right");
 
@@ -64,7 +64,7 @@ function createMatching(board,group,leftItems,rightItems,visual=false){
      img.addEventListener("error",()=>{illustration.textContent="ไม่สามารถเปิดภาพได้"});
    }
    const btn=add(row,"button","anchor","");btn.type="button";btn.dataset.side="right";btn.dataset.match=String(i+1);
-   btn.setAttribute("aria-label",visual?"เลือกรูปภาพลำดับที่ "+(i+1):"เลือกคำ "+word);btn.title=visual?"รูปภาพที่ "+(i+1):word;
+   btn.setAttribute("aria-label",visual?"เลือกรูปภาพลำดับที่ "+nThai(i+1):"เลือกคำ "+word);btn.title=visual?"รูปภาพที่ "+nThai(i+1):word;
    if(!visual)add(row,"span","",word);
    else row.addEventListener("click",evt=>{if(!evt.target.closest(".anchor"))btn.click()});
  });
@@ -120,7 +120,7 @@ function renderComp(){
  heading(p,"ตอนที่ ๑ การอ่านรู้เรื่องคำ","ข้อที่ ๑ – ๑๐ ให้นักเรียนอ่านคำที่กำหนด แล้วลากเส้นโยงคำให้ตรงกับรูปภาพที่มีความสัมพันธ์กัน ๑ คำ ต่อ ๑ ภาพ");
  const scroll=add(p,"div","board-scroll");const board=add(scroll,"div");
  createMatching(board,"picture",exam.comprehension.pictureMatching.words,Array.from({length:12},()=>""),true);
- add(p,"p","teacher-key","เฉลยลำดับภาพจากบนลงล่าง: "+exam.comprehension.pictureMatching.answers.join(" · "));
+ add(p,"p","teacher-key","เฉลยลำดับภาพจากบนลงล่าง: "+exam.comprehension.pictureMatching.answers.map(nThai).join(" · "));
  p=makePage(2,"comp");
  heading(p,"ตอนที่ ๑ การอ่านรู้เรื่องคำ","ข้อที่ ๑๑ – ๑๕ ให้นักเรียนอ่านกลุ่มคำที่กำหนด แล้วลากเส้นโยงกลุ่มคำที่เป็นความหมายของคำกับคำให้สัมพันธ์กัน");
  const scroll2=add(p,"div","board-scroll");const board2=add(scroll2,"div");
@@ -177,7 +177,7 @@ function showAnswerStyles(){
   if(Number(answerState.multiple[q.no])===q.answer)points+=2;
  });
  const result=document.getElementById("comp-score");
- if(result)result.textContent="ผลตรวจสำหรับครู (คำตอบที่บันทึกในเครื่องนี้): "+points+" / ๓๕ คะแนน · ตอบแล้ว "+attempted+" / ๒๕ ข้อ";
+ if(result)result.textContent="ผลตรวจสำหรับครู (คำตอบที่บันทึกในเครื่องนี้): "+nThai(points)+" / ๓๕ คะแนน · ตอบแล้ว "+nThai(attempted)+" / ๒๕ ข้อ";
 }
 function applyMode(){
  document.body.classList.toggle("show-key",isTeacher);
