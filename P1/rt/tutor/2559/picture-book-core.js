@@ -61,3 +61,17 @@ export function makeScrambledHint(word,seed=""){
  }
  return tiles;
 }
+
+
+// Printed oral-reading prompts in chapter two of volume one.
+export function bookVocabularyCards(items){
+ if(!Array.isArray(items))throw Error("ไม่พบคำศัพท์ในหนังสือ");
+ const pictures=pictureBookCards(items),oral=items.filter(card=>card?.group==="oral");
+ const seen=new Set(pictures.map(c=>c.id));
+ for(const c of oral){
+  if(typeof c.id!=="string"||seen.has(c.id)||typeof c.word!=="string"||!c.word.trim()||
+   !Number.isInteger(c.sourceNo)||c.sourceNo<1||c.sourceNo>20)throw Error("ข้อมูลคำอ่านออกเสียงผิดพลาด");
+  seen.add(c.id);
+ }
+ return [...pictures,...oral];
+}
