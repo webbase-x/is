@@ -379,14 +379,14 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  }
 
  function peek(){
-  if(!current||solved[current.id])return;
+  if(!current||current.group!=="picture"||solved[current.id])return;
   showAnswer(!revealed);
   feedback.classList.remove("is-error");
   feedback.textContent=revealed?"เปิดดูคำศัพท์แล้ว ลองพิมพ์เพื่อตรวจความจำ":"ปิดป้ายแล้ว ลองเขียนคำตอบ";
  }
  function submit(event){
   event.preventDefault();
-  if(!current||solved[current.id])return;
+  if(!current||current.group!=="picture"||solved[current.id])return;
   if(!input.value.trim()){feedback.textContent="กรุณาพิมพ์คำตอบก่อนตรวจ";feedback.classList.add("is-error");input.focus();return}
   if(!isCorrectPictureAnswer(current.word,input.value)){
    incorrectAttempts++;
@@ -406,7 +406,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   fireworks(host);playSuccessSound(soundOn);
  }
  showHints.addEventListener("click",()=>{
-  if(!current||solved[current.id]===true)return;
+  if(!current||current.group!=="picture"||solved[current.id]===true)return;
   const showing=hintPanel.hidden;
   hintPanel.hidden=!showing;
   showHints.setAttribute("aria-expanded",String(showing));
@@ -425,6 +425,18 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  answerForm.addEventListener("submit",submit);
  plaque.addEventListener("click",peek);
  hideWord.addEventListener("click",peek);
+ function recordOral(status){
+  if(!current||current.group!=="oral")return;
+  onPracticed(current,status);render();
+ }
+ oralKnown.addEventListener("click",()=>recordOral("known"));
+ oralRetry.addEventListener("click",()=>recordOral("retry"));
+ function jumpChapter(group){
+  const index=cards.findIndex(card=>card.group===group);
+  if(index>=0&&index!==position)turnTo(index,index>position?"forward":"backward");
+ }
+ jumpPicture.addEventListener("click",()=>jumpChapter("picture"));
+ jumpOral.addEventListener("click",()=>jumpChapter("oral"));
  previous.addEventListener("click",()=>turnTo(position-1,"backward"));
  next.addEventListener("click",()=>turnTo(position<cards.length-1?position+1:0,"forward"));
  sound.addEventListener("click",()=>{
@@ -432,8 +444,9 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   sound.setAttribute("aria-pressed",String(soundOn));
  });
  reset.addEventListener("click",()=>{
-  if(!confirm("เริ่มเกมหนังสือคำจับคู่ภาพใหม่ทั้งหมด และล้างคำตอบถูกที่บันทึกไว้หรือไม่?"))return;
+  if(!confirm("เริ่มหนังสือใหม่และล้างสถานะฝึกอ่านทั้งหมดหรือไม่?"))return;
   Object.keys(solved).forEach(key=>delete solved[key]);
+  onResetOral();
   store();stopTurning();position=0;render();
  });
  function finishCoverOpen(){
@@ -466,10 +479,10 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  function setCards(subset){
   stopTurning();
   const allowed=new Set(original.map(c=>c.id));
-  cards=pictureBookCards(subset).filter(card=>allowed.has(card.id));
+  cards=bookVocabularyCards(subset).filter(card=>allowed.has(card.id));
   position=0;render();
   host.hidden=false;
  }
  setCards(original);
- return {root:host,setCards,openBook,closeBook,isCoverClosed:()=>coverClosed,getProgress:()=>pictureBookStats(original,solved)};
+ return {root:host,setCards,openBook,closeBook,isCoverClosed:()=>coverClosed,getProgress:()=>pictureBookStats(pictures,solved)};
 }
