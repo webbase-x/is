@@ -436,3 +436,71 @@ body.book-fallback-lock{
  .book-cover-chapters .book-cover-open{flex-basis:100%;min-width:0;min-height:46px;font-size:15px}
 }
 @media print{.book-cover-chapters{display:none!important}}
+
+
+/* Two visible, horizontally scrollable chapter indexes: ๑–๑๐ and ๑๑–๓๐. */
+.picture-book .book-page-dots{
+ display:flex;
+ flex:1 1 100%;
+ flex-direction:column;
+ flex-wrap:nowrap;
+ align-items:stretch;
+ justify-content:stretch;
+ gap:10px;
+ min-width:0;
+ max-width:100%;
+}
+.picture-book .book-page-index-chapter{
+ display:flex;
+ min-width:0;
+ align-items:center;
+ gap:12px;
+ padding:7px 10px;
+ border:1px solid #d1e1d3;
+ border-radius:12px;
+ background:#fffcf6;
+}
+.picture-book .book-page-index-title{
+ flex:0 0 auto;
+ min-width:180px;
+ font-weight:800;
+ font-size:13px;
+ color:#436a53;
+}
+.picture-book .book-page-index-rail{
+ position:relative;
+ display:flex;
+ align-items:center;
+ justify-content:flex-start;
+ gap:7px;
+ flex:1 1 auto;
+ min-width:0;
+ overflow-x:auto;
+ overflow-y:hidden;
+ padding:4px 3px 7px;
+ scroll-snap-type:x proximity;
+ scrollbar-width:thin;
+ scrollbar-color:#aac9b4 transparent;
+ overscroll-behavior-x:contain;
+ -webkit-overflow-scrolling:touch;
+ touch-action:pan-x;
+}
+.picture-book .book-page-index-rail .book-dot{
+ flex:0 0 39px;
+ min-width:39px;
+ min-height:42px;
+ scroll-snap-align:center;
+}
+@media(max-width:780px){
+ .picture-book .book-page-dots{order:3;flex-basis:100%;gap:8px}
+ .picture-book .book-page-index-chapter{
+  flex-direction:column;
+  align-items:stretch;
+  gap:2px;
+  padding:8px 9px;
+ }
+ .picture-book .book-page-index-title{min-width:0;font-size:13px}
+ .picture-book .book-page-index-rail{width:100%}
+ .picture-book .book-page-index-rail .book-dot{flex-basis:44px;min-width:44px}
+}
+@media print{.picture-book .book-page-dots{display:none!important}}

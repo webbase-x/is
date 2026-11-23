@@ -1,5 +1,5 @@
-import {VOCAB_GROUPS,buildVocabulary,filterVocabulary,countProgress,shuffleDeck} from "./vocabulary.js?v=vol1-sequential-20261123r3";
-import {mountPictureBook} from "./picture-book.js?v=vol1-sequential-20261123r3";
+import {VOCAB_GROUPS,buildVocabulary,filterVocabulary,countProgress,shuffleDeck} from "./vocabulary.js?v=book-30-pages-20261123r4";
+import {mountPictureBook} from "./picture-book.js?v=book-30-pages-20261123r4";
 
 const STORAGE_KEY="rt-tutor-2559-vocabulary-v1";
 const LABEL={picture:"คำจับคู่ภาพ",oral:"คำอ่านออกเสียง",meaning:"คำจับคู่ความหมาย"};
@@ -145,7 +145,7 @@ export function mountVocabulary(app,exam,sprite){
  function renderList(){
   const listed=visible.filter(card=>card.group==="meaning");
   const inBook=visible.filter(card=>card.group==="picture"||card.group==="oral");
-  currentCount.textContent=thaiNumber(visible.length)+" คำ"+(inBook.length?" · อยู่ในหนังสือ "+thaiNumber(inBook.length)+" คำ":"");
+  currentCount.textContent=thaiNumber(visible.length)+" คำ"+(inBook.length?" · หนังสือเล่ม ๑ มี ๓๐ คำ":"");
   reference.hidden=!!query.trim()||!(group==="all"||group==="meaning");
   const showList=listed.length>0||visible.length===0;
   listTop.hidden=!showList;wordList.hidden=!showList;note.hidden=!showList;
@@ -183,9 +183,15 @@ export function mountVocabulary(app,exam,sprite){
  function renderFiltered(){
   query=search.value;
   visible=filterVocabulary(vocab,group,query);
-  const bookCards=visible.filter(card=>card.group==="picture"||card.group==="oral");
+  // Category chips select a chapter, NOT a smaller book. Keep all ๓๐
+  // pages available so "next" on page ๑๐ always turns to page ๑๑.
+  // Only an explicit text search temporarily narrows the page set.
+  const fullBook=vocab.filter(card=>card.group==="picture"||card.group==="oral");
+  const bookCards=query.trim()
+   ?visible.filter(card=>card.group==="picture"||card.group==="oral")
+   :fullBook;
   pictureBook.setCards(bookCards);
-  pictureBook.root.hidden=bookCards.length===0;
+  pictureBook.root.hidden=group==="meaning"||bookCards.length===0;
   renderList();newDeck(visible);
  }
  function renderFlash(){

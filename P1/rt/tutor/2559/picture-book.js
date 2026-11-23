@@ -1,5 +1,5 @@
-import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards,bookPageNumber} from "./picture-book-core.js?v=vol1-sequential-20261123r3";
-import {installBookFullscreen} from "./fullscreen-book.js?v=vol1-sequential-20261123r3";
+import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards,bookPageNumber} from "./picture-book-core.js?v=book-30-pages-20261123r4";
+import {installBookFullscreen} from "./fullscreen-book.js?v=book-30-pages-20261123r4";
 
 const BOOK_STORAGE="rt-tutor-2559-picture-book-v1";
 const digit=n=>String(n).replace(/[0-9]/g,c=>"๐๑๒๓๔๕๖๗๘๙"[Number(c)]);
@@ -195,6 +195,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  nav.setAttribute("aria-label","เปลี่ยนหน้าหนังสือ");
  const previous=add(nav,"button","book-nav-btn","← หน้าก่อน");previous.type="button";
  const dots=add(nav,"div","book-page-dots");
+ dots.setAttribute("aria-label","สารบัญทั้งเล่ม · เลื่อนแนวนอนเพื่อเลือกหน้า");
  const next=add(nav,"button","book-nav-btn book-nav-primary","หน้าถัดไป →");next.type="button";
  const footer=add(host,"p","book-footer","เล่ม ๑ · คำศัพท์และภาพอ้างอิงจากแบบทดสอบ RT ปี ๒๕๕๙ · ผู้ผลิตหนังสือ ครูไพรัช อินควรชุม");
  const empty=add(host,"p","book-empty","ไม่พบคำศัพท์ในหนังสือตามตัวกรอง");
@@ -248,18 +249,37 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  }}
  function renderDots(){
   dots.replaceChildren();
-  cards.forEach((card,index)=>{
-   if(card.group!==current?.group)return;
-   const state=card.group==="picture"?(solved[card.id]?"known":null):getOralProgress(card);
-   const dot=add(dots,"button","book-dot",digit(bookPageNumber(card)));
-   dot.type="button";
-   dot.title="คำลำดับ "+digit(bookPageNumber(card))+(card.group==="oral"?" · ข้อสอบเดิม "+digit(card.sourceNo):" · จับคู่ภาพ");
-   dot.setAttribute("aria-label",dot.title);
-   dot.setAttribute("aria-current",String(position===index));
-   if(state==="known")dot.classList.add("is-complete");
-   if(state==="retry")dot.classList.add("is-retry");
-   dot.addEventListener("click",()=>turnTo(index,index>=position?"forward":"backward"));
-  });
+  dots.setAttribute("aria-label","สารบัญคำศัพท์ทั้งเล่ม ลำดับ ๑–๓๐");
+  const sections=[
+   {group:"picture",label:"ตอนที่ ๑ · ภาพ ๑–๑๐"},
+   {group:"oral",label:"ตอนที่ ๒ · อ่านออกเสียง ๑๑–๓๐"}
+  ];
+  for(const section of sections){
+   const entries=cards.map((card,index)=>({card,index})).filter(item=>item.card.group===section.group);
+   if(!entries.length)continue;
+   const chapter=add(dots,"div","book-page-index-chapter");
+   add(chapter,"span","book-page-index-title",section.label);
+   const rail=add(chapter,"div","book-page-index-rail");
+   rail.setAttribute("role","group");
+   rail.setAttribute("aria-label",section.label);
+   let activeDot=null;
+   for(const {card,index} of entries){
+    const state=card.group==="picture"?(solved[card.id]?"known":null):getOralProgress(card);
+    const no=bookPageNumber(card);
+    const dot=add(rail,"button","book-dot",digit(no));
+    dot.type="button";
+    dot.title="คำลำดับ "+digit(no)+(card.group==="oral"?" · ข้อสอบเดิม "+digit(card.sourceNo):" · จับคู่ภาพ");
+    dot.setAttribute("aria-label",dot.title);
+    dot.setAttribute("aria-current",String(position===index));
+    if(position===index)activeDot=dot;
+    if(state==="known")dot.classList.add("is-complete");
+    if(state==="retry")dot.classList.add("is-retry");
+    dot.addEventListener("click",()=>turnTo(index,index>=position?"forward":"backward"));
+   }
+   if(activeDot&&Number.isFinite(rail.clientWidth)&&rail.clientWidth>0){
+    rail.scrollLeft=Math.max(0,activeDot.offsetLeft-rail.offsetLeft-rail.clientWidth/2+activeDot.offsetWidth/2);
+   }
+  }
  }
  function updateProgress(){
   const count=pictureBookStats(pictures,solved);

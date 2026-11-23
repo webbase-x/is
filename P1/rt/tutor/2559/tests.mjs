@@ -282,8 +282,8 @@ assert.ok(entryBook.includes("openChapter,closeBook"));
 assert.ok(entryUI.includes('pictureBook.openChapter(entry.id)'));
 assert.ok(entryUI.includes('get("book")==="oral"'));
 assert.ok(entryUI.includes('listed=visible.filter(card=>card.group==="meaning")'));
-assert.ok(entryHTML.includes('app.js?v=vol1-sequential-20261123r3'));
-assert.ok(entryUI.includes('picture-book.js?v=vol1-sequential-20261123r3'));
+assert.ok(entryHTML.includes('app.js?v=book-30-pages-20261123r4'));
+assert.ok(entryUI.includes('picture-book.js?v=book-30-pages-20261123r4'));
 console.log("PASS: closed-cover chapter-two entry, oral chip navigation, oral deep link and cache-busted module graph");
 
 
@@ -298,3 +298,21 @@ assert.ok(continuousBook.includes('"คำลำดับ "+digit(bookPageNumber
 assert.ok(continuousBook.includes('counter.textContent="เปิดหน้า "+digit(bookPageNumber(current))+" / ๓๐'));
 assert.ok(continuousBook.includes('ตอนที่ ๒ · คำ ๑๑–๓๐'));
 console.log("PASS: consecutive Thai-numbered volume pages ๑–๓๐ with original oral question labels intact");
+
+
+// Regression: a picture/oral category chip must not truncate volume one
+// to ๑๐ or ๒๐ pages. All ๓๐ selectable indexes remain visible.
+const navigationScript=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const navigationUI=await readFile(new URL("./vocabulary-ui.js",import.meta.url),"utf8");
+const navigationCSS=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
+assert.ok(navigationUI.includes('const fullBook=vocab.filter(card=>card.group==="picture"||card.group==="oral")'));
+assert.ok(navigationUI.includes(':fullBook;'));
+assert.ok(navigationUI.includes('pictureBook.root.hidden=group==="meaning"||bookCards.length===0;'));
+assert.ok(navigationScript.includes('label:"ตอนที่ ๑ · ภาพ ๑–๑๐"'));
+assert.ok(navigationScript.includes('label:"ตอนที่ ๒ · อ่านออกเสียง ๑๑–๓๐"'));
+assert.ok(navigationScript.includes('const entries=cards.map((card,index)=>({card,index}))'));
+assert.ok(!navigationScript.includes('if(card.group!==current?.group)return;'));
+assert.ok(navigationScript.includes('const no=bookPageNumber(card)'));
+assert.ok(navigationCSS.includes(".book-page-index-rail"));
+assert.ok(navigationCSS.includes("overflow-x:auto"));
+console.log("PASS: continuous 30-page picture book, two chapter page strips and category-independent navigation");
