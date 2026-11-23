@@ -42,7 +42,7 @@ export function mountVocabulary(app,exam,sprite){
  const heading=add(section,"header","vocab-header");
  add(heading,"span","vocab-kicker","พ.ศ. ๒๕๕๙ · ฝึกอ่านและจดจำ");
  add(heading,"h1","","คลังคำศัพท์");
- add(heading,"p","","ฝึกคำจับคู่ภาพ ๑๐ คำด้วยหนังสือสองหน้า พลิกป้ายและพิมพ์คำตอบให้ถูกต้อง จากนั้นทบทวนคำหมวดอื่นและเล่นเกมแฟลชการ์ดท้ายคลัง");
+ add(heading,"p","","หนังสือเล่ม ๑ รวมคำจับคู่ภาพ ๑๐ คำและคำอ่านออกเสียง ๒๐ คำ พลิกหน้าเรียนรู้ทีละคำ พร้อมเกมแฟลชการ์ดท้ายคลัง");
  const stats=add(heading,"div","vocab-summary");
  add(stats,"strong","",thaiNumber(vocab.length)+" คำ");
  const statsDetail=add(stats,"span","","—");
@@ -53,9 +53,15 @@ export function mountVocabulary(app,exam,sprite){
  search.type="search";search.placeholder="พิมพ์คำที่ต้องการค้นหา";search.autocomplete="off";
  const chips=add(controls,"div","vocab-groups");
  chips.setAttribute("role","group");chips.setAttribute("aria-label","เลือกหมวดคำศัพท์");
- const pictureBook=mountPictureBook(section,vocab,sprite,{onSolved:(card)=>{
-  progress[card.id]="known";save();updateStats();renderList();renderFlash();
- }});
+ const pictureBook=mountPictureBook(section,vocab,sprite,{
+  onSolved:(card)=>{progress[card.id]="known";save();updateStats();renderList();renderFlash()},
+  onPracticed:(card,status)=>{progress[card.id]=status;save();updateStats();renderList();renderFlash()},
+  getOralProgress:(card)=>progress[card.id]||null,
+  onResetOral:()=>{
+   vocab.filter(card=>card.group==="oral").forEach(card=>delete progress[card.id]);
+   save();updateStats();renderList();renderFlash();
+  }
+ });
  const reference=add(section,"section","vocab-matching-reference");
  add(reference,"h2","","ตอนที่ ๑ การอ่านรู้เรื่องคำ · ข้อที่ ๑๑–๑๕");
  add(reference,"p","","ข้อความและคำตัวเลือกจากต้นฉบับที่ผู้ใช้ระบุ คงหมายเลขข้อและลำดับเดิม");
@@ -133,9 +139,9 @@ export function mountVocabulary(app,exam,sprite){
   });
  }
  function renderList(){
-  const listed=visible.filter(card=>card.group!=="picture");
-  currentCount.textContent=thaiNumber(visible.length)+" คำ"+
-   (visible.some(card=>card.group==="picture")?" · หนังสือภาพ "+thaiNumber(visible.filter(card=>card.group==="picture").length)+" คำ":"");
+  const listed=visible.filter(card=>card.group==="meaning");
+  const inBook=visible.filter(card=>card.group==="picture"||card.group==="oral");
+  currentCount.textContent=thaiNumber(visible.length)+" คำ"+(inBook.length?" · อยู่ในหนังสือ "+thaiNumber(inBook.length)+" คำ":"");
   reference.hidden=!!query.trim()||!(group==="all"||group==="meaning");
   const showList=listed.length>0||visible.length===0;
   listTop.hidden=!showList;wordList.hidden=!showList;note.hidden=!showList;
@@ -173,9 +179,9 @@ export function mountVocabulary(app,exam,sprite){
  function renderFiltered(){
   query=search.value;
   visible=filterVocabulary(vocab,group,query);
-  const pictureCards=visible.filter(card=>card.group==="picture");
-  pictureBook.setCards(pictureCards);
-  pictureBook.root.hidden=pictureCards.length===0;
+  const bookCards=visible.filter(card=>card.group==="picture"||card.group==="oral");
+  pictureBook.setCards(bookCards);
+  pictureBook.root.hidden=bookCards.length===0;
   renderList();newDeck(visible);
  }
  function renderFlash(){
