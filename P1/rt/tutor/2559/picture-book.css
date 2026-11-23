@@ -143,3 +143,20 @@
  .book-turn-layer{display:none!important}
  .book-spread{perspective:none}
 }
+
+
+/* Hidden-on-open Thai scrambled word hints inside the book's right-hand page. */
+.book-hints{margin:13px 0 2px;display:flex;flex-direction:column;gap:10px}
+.book-hint-toggle{align-self:flex-start;min-height:43px;padding:8px 16px;border:1px solid #c3a56e;border-radius:12px;background:linear-gradient(110deg,#fff8e7,#ffedcc);font:inherit;font-weight:800;color:#805522;cursor:pointer}
+.book-hint-toggle[aria-expanded="true"]{background:#f0e1c0}
+.book-hint-panel{border:1px dashed #d6b37b;background:#fffaf0;border-radius:12px;padding:14px}
+.book-hint-instruction{font-size:13px;line-height:1.6;color:#856039;margin:0 0 12px}
+.book-hint-tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.book-hint-tile{min-width:44px;min-height:52px;padding:7px 12px;border:1px solid #d6a64d;border-bottom:4px solid #b57e3f;border-radius:10px;background:linear-gradient(#fff,#ffedcd);box-shadow:0 3px 7px #75451d18;color:#60411f;font:inherit;font-size:26px;font-weight:750;cursor:pointer}
+.book-hint-tile:not(:disabled):active{transform:translateY(2px);border-bottom-width:2px}
+.book-hint-tile:disabled{background:#e5e9e3;border-color:#d0d4ca;color:#9da99f;cursor:default;box-shadow:none;opacity:.7}
+.book-hint-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:12px}
+.book-hint-action{min-height:39px;padding:7px 13px;border:1px solid #d3c19c;border-radius:9px;background:#fff;color:#765c31;font:inherit;font-size:13px;font-weight:750;cursor:pointer}
+.picture-book .book-hint-toggle:focus-visible,.picture-book .book-hint-tile:focus-visible,.picture-book .book-hint-action:focus-visible{outline:3px solid #dfaa46;outline-offset:3px}
+@media(max-width:780px){.book-hint-tile{min-width:40px;min-height:48px;font-size:24px}.book-hints{margin-top:14px}}
+@media print{.book-hints{display:none!important}}

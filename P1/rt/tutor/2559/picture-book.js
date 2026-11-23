@@ -1,4 +1,4 @@
-import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats} from "./picture-book-core.js";
+import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint} from "./picture-book-core.js";
 
 const BOOK_STORAGE="rt-tutor-2559-picture-book-v1";
 const digit=n=>String(n).replace(/[0-9]/g,c=>"๐๑๒๓๔๕๖๗๘๙"[Number(c)]);
@@ -129,6 +129,20 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  input.autocomplete="off";input.spellcheck=false;input.enterKeyHint="done";input.maxLength=80;
  const check=add(answerForm,"button","book-check","ตรวจคำตอบ");
  check.type="submit";
+ const hints=add(right,"div","book-hints");
+ const showHints=add(hints,"button","book-hint-toggle","คำใบ้ · เรียงตัวอักษร");
+ showHints.type="button";showHints.setAttribute("aria-expanded","false");
+ showHints.setAttribute("aria-controls","book-hint-panel");
+ const hintPanel=add(hints,"div","book-hint-panel");
+ hintPanel.id="book-hint-panel";hintPanel.hidden=true;
+ add(hintPanel,"p","book-hint-instruction","ตัวอักษรสลับตำแหน่งอยู่! แตะทีละแผ่นตามลำดับที่ถูกต้องเพื่อเติมช่องคำตอบ");
+ const hintTiles=add(hintPanel,"div","book-hint-tiles");
+ hintTiles.setAttribute("role","group");hintTiles.setAttribute("aria-label","ตัวอักษรคำใบ้ที่สลับลำดับ");
+ const hintActions=add(hintPanel,"div","book-hint-actions");
+ const undoHint=add(hintActions,"button","book-hint-action","ย้อนตัวล่าสุด");
+ undoHint.type="button";
+ const clearHint=add(hintActions,"button","book-hint-action","ล้างคำตอบ");
+ clearHint.type="button";
  const feedback=add(right,"p","book-feedback","");
  feedback.id="book-answer-feedback";feedback.setAttribute("role","status");feedback.setAttribute("aria-live","polite");
  input.setAttribute("aria-describedby","book-answer-feedback");
@@ -140,7 +154,50 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  const footer=add(host,"p","book-footer","คำศัพท์และภาพอ้างอิงจากแบบทดสอบ RT ปี 2559 · ความคืบหน้าบันทึกในเบราว์เซอร์");
  const empty=add(host,"p","book-empty","ไม่พบคำจับคู่ภาพตามตัวกรอง");
  empty.hidden=true;
- let current=null;
+ let current=null,hintPieces=[],insertedPieces=[];
+ function resetHints(){
+  hintPanel.hidden=true;
+  showHints.textContent="คำใบ้ · เรียงตัวอักษร";
+  showHints.setAttribute("aria-expanded","false");
+  hintTiles.replaceChildren();
+  hintPieces=[];insertedPieces=[];
+ }
+ function fillHintTiles(){
+  hintTiles.replaceChildren();
+  if(!current)return;
+  hintPieces=makeScrambledHint(current.word,current.id).map(item=>({...item,used:false}));
+  insertedPieces=[];
+  for(const tile of hintPieces){
+   const button=add(hintTiles,"button","book-hint-tile",tile.text);
+   button.type="button";
+   button.setAttribute("aria-label","เติมตัวอักษร "+tile.text+" ลงในช่องคำตอบ");
+   button.dataset.tileId=tile.id;
+   button.addEventListener("click",()=>{
+    if(tile.used||solved[current?.id]===true)return;
+    tile.used=true;insertedPieces.push({id:tile.id,text:tile.text});
+    button.disabled=true;button.setAttribute("aria-pressed","true");
+    // Append to current answer, retaining what the pupil has typed.
+    input.value+=tile.text;
+    feedback.classList.remove("is-error");
+    feedback.textContent="จัดเรียงตัวอักษรแล้ว กดตรวจคำตอบเมื่อพร้อม";
+    input.focus();
+   });
+  }
+ }
+ function undoLastHint(){
+  const last=insertedPieces.pop();if(!last)return;
+  const tile=hintPieces.find(item=>item.id===last.id);
+  if(tile)tile.used=false;
+  const button=Array.from(hintTiles.children).find(el=>el.dataset.tileId===last.id);
+  if(button){button.disabled=false;button.setAttribute("aria-pressed","false")}
+  const currentValue=input.value;
+  if(currentValue.endsWith(last.text))input.value=currentValue.slice(0,-last.text.length);
+  else {
+   const i=currentValue.lastIndexOf(last.text);
+   if(i>=0)input.value=currentValue.slice(0,i)+currentValue.slice(i+last.text.length);
+  }
+  input.focus();
+ }
  function store(){try{localStorage.setItem(BOOK_STORAGE,JSON.stringify(solved))}catch{
   feedback.textContent="ตอบถูกแล้ว แต่เบราว์เซอร์ไม่อนุญาตให้บันทึกความคืบหน้า";
  }}
@@ -180,9 +237,11 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
   word.textContent=current.word;
   counter.textContent="เปิดหน้า "+digit(position+1)+" / "+digit(cards.length)+" · ข้อ "+digit(current.sourceNo);
   input.value="";incorrectAttempts=0;
+  resetHints();
   const complete=solved[current.id]===true;
   showAnswer(complete);
   answerForm.hidden=complete;
+  hints.hidden=complete;
   feedback.textContent=complete?"ตอบถูกแล้ว เปิดดูคำศัพท์ได้": "ลองพิมพ์คำตอบ หรือแตะป้ายเพื่อเปิดดูคำศัพท์";
   feedback.classList.toggle("is-success",complete);
   feedback.classList.remove("is-error");
@@ -266,12 +325,30 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
   solved[current.id]=true;
   showAnswer(true);
   answerForm.hidden=true;
+  hints.hidden=true;
   feedback.classList.remove("is-error");feedback.classList.add("is-success");
   feedback.textContent="ถูกต้อง! "+current.word+" · เก่งมาก!";
   store();renderDots();updateProgress();
   onSolved(current);
   fireworks(host);playSuccessSound(soundOn);
  }
+ showHints.addEventListener("click",()=>{
+  if(!current||solved[current.id]===true)return;
+  const showing=hintPanel.hidden;
+  hintPanel.hidden=!showing;
+  showHints.setAttribute("aria-expanded",String(showing));
+  showHints.textContent=showing?"ซ่อนคำใบ้":"คำใบ้ · เรียงตัวอักษร";
+  if(showing&&!hintPieces.length)fillHintTiles();
+ });
+ undoHint.addEventListener("click",undoLastHint);
+ clearHint.addEventListener("click",()=>{
+  input.value="";insertedPieces=[];
+  hintPieces.forEach(tile=>tile.used=false);
+  Array.from(hintTiles.children).forEach(el=>{
+   el.disabled=false;el.setAttribute("aria-pressed","false");
+  });
+  input.focus();
+ });
  answerForm.addEventListener("submit",submit);
  plaque.addEventListener("click",peek);
  hideWord.addEventListener("click",peek);

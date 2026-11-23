@@ -103,3 +103,30 @@ assert.ok(turningStyles.includes("rotateY(-180deg)")&&turningStyles.includes("ro
 assert.ok(turningStyles.includes("backface-visibility:hidden"));
 assert.ok(turningStyles.includes(".book-turn-layer.is-mobile"));
 console.log("PASS: 3D paper leaf turns in both directions, spine, backing pages and reduced-motion fallback");
+
+
+// New scrambled-letter hint: hidden by default, Thai grapheme-safe tiles,
+// correct insertion and reset semantics tied to each page of the book.
+import {splitThaiHintUnits,makeScrambledHint} from "./picture-book-core.js";
+for(const card of pictureCards){
+ const units=splitThaiHintUnits(card.word);
+ const scrambled=makeScrambledHint(card.word,card.id);
+ assert.equal(scrambled.length,units.length);
+ assert.equal(new Set(scrambled.map(t=>t.id)).size,scrambled.length);
+ assert.equal(scrambled.map(t=>t.text).join("").normalize("NFC")===card.word,false);
+ assert.deepEqual(scrambled.map(t=>t.text).sort(),[...units].sort());
+ assert.equal(makeScrambledHint(card.word,card.id).map(t=>t.text).join(""),scrambled.map(t=>t.text).join(""));
+ assert.ok(isCorrectPictureAnswer(card.word,units.join("")));
+}
+assert.deepEqual(splitThaiHintUnits(""),[]);
+assert.ok(splitThaiHintUnits("เลี้ยงแพะ").some(item=>item.includes("ี้")));
+assert.ok(turningScript.includes("hintPanel.hidden=true")||turningScript.includes("resetHints()"));
+const hintsScript=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const hintsCSS=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
+assert.ok(hintsScript.includes("showHints.addEventListener")&&hintsScript.includes("hintPanel.hidden=!showing"));
+assert.ok(hintsScript.includes("input.value+=tile.text")&&hintsScript.includes("button.disabled=true"));
+assert.ok(hintsScript.includes('undoHint.addEventListener("click",undoLastHint)'));
+assert.ok(hintsScript.includes('clearHint.addEventListener("click",()=>'));
+assert.ok(hintsScript.includes("hints.hidden=complete")&&hintsScript.includes("hints.hidden=true"));
+assert.ok(hintsCSS.includes(".book-hint-tile")&&hintsCSS.includes("@media print{.book-hints{display:none!important}}"));
+console.log("PASS: 10 shuffled Thai picture-word hints, initial concealment, tile insertion, undo, clear and page reset");
