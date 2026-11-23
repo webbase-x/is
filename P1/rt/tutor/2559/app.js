@@ -1,6 +1,7 @@
 import {PICTURE_LABELS,PICTURE_SPRITE,verifyPictureOrder} from "./color-pictures.js";
+import {mountVocabulary} from "./vocabulary-ui.js";
 const app=document.querySelector("#app");
-let exam=null,assets=null,mode="comp",isTeacher=false;
+let exam=null,assets=null,mode=location.hash==="#vocab"?"vocab":location.hash==="#oral"?"oral":"comp",isTeacher=false;
 const SAVED="rt-tutor-exam-2559-v1";
 let answerState={picture:{},meaning:{},multiple:{}};
 try {const data=JSON.parse(localStorage.getItem(SAVED)||"null");if(data&&typeof data==="object"&&!Array.isArray(data))answerState={picture:data.picture||{},meaning:data.meaning||{},multiple:data.multiple||{}}}catch{}
@@ -180,13 +181,16 @@ function showAnswerStyles(){
 }
 function applyMode(){
  document.body.classList.toggle("show-key",isTeacher);
+ document.body.classList.toggle("vocab-active",mode==="vocab");
+ document.querySelector("#teacher").hidden=mode==="vocab";
  document.querySelector("#teacher").setAttribute("aria-pressed",String(isTeacher));
  document.querySelectorAll(".tab").forEach(btn=>btn.classList.toggle("selected",btn.dataset.tab===mode));
  document.querySelectorAll("[data-section]").forEach(node=>node.hidden=node.dataset.section!==mode);
  showAnswerStyles();
  requestAnimationFrame(()=>document.querySelectorAll(".matching-board").forEach(drawLines));
 }
-document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{mode=btn.dataset.tab;applyMode();scrollTo({top:0,behavior:"smooth"})}));
+document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{mode=btn.dataset.tab;history.replaceState(null,"",location.pathname+location.search+"#"+mode);applyMode();scrollTo({top:0,behavior:"smooth"})}));
+window.addEventListener("hashchange",()=>{const current=location.hash.slice(1);if(["comp","oral","vocab"].includes(current)){mode=current;applyMode()}});
 document.querySelector("#teacher").addEventListener("click",()=>{isTeacher=!isTeacher;applyMode()});
 document.querySelector("#print").addEventListener("click",()=>window.print());
 window.addEventListener("resize",()=>document.querySelectorAll(".matching-board").forEach(drawLines));
@@ -198,7 +202,7 @@ async function start(){
   if(exam.year!==2559||exam.comprehension.choices.length!==10||bank.id!=="2559-1"||!bank.assets?.grid)throw Error("ไฟล์ข้อสอบไม่ถูกต้อง");
   verifyPictureOrder(exam.comprehension.pictureMatching.answers);
   assets=bank.assets;app.replaceChildren();
-  renderComp();renderOral();app.setAttribute("aria-busy","false");applyMode();
+  renderComp();renderOral();mountVocabulary(app,exam,PICTURE_SPRITE);app.setAttribute("aria-busy","false");applyMode();
  }catch(err){app.setAttribute("aria-busy","false");app.replaceChildren();add(app,"p","empty","ไม่สามารถแสดงข้อสอบได้: "+err.message)}
 }
 start();

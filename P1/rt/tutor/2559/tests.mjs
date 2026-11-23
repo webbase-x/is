@@ -33,3 +33,25 @@ assert.deepEqual(CORRECT_PICTURE_POSITIONS,data.comprehension.pictureMatching.an
 assert.equal(verifyPictureOrder(data.comprehension.pictureMatching.answers),true);
 assert.throws(()=>verifyPictureOrder(Array(10).fill(1)));
 console.log("PASS: 12 semirealistic colored raster pictures, original positions and answer-key mapping");
+
+import {buildVocabulary,filterVocabulary,countProgress,shuffleDeck} from "./vocabulary.js";
+const vocab=buildVocabulary(data);
+assert.equal(vocab.length,37);
+assert.equal(filterVocabulary(vocab,"picture").length,10);
+assert.equal(filterVocabulary(vocab,"oral").length,20);
+assert.equal(filterVocabulary(vocab,"meaning").length,7);
+assert.equal(vocab.filter(card=>card.group==="meaning"&&card.definition!==null).length,5);
+assert.equal(vocab.filter(card=>card.group==="meaning"&&card.definition===null).length,2);
+assert.equal(filterVocabulary(vocab,"all","ทะเล").length,1);
+assert.equal(new Set(vocab.map(card=>card.id)).size,37);
+assert.ok(vocab.filter(card=>card.group==="picture").every((card,i)=>card.position===data.comprehension.pictureMatching.answers[i]-1));
+assert.ok(vocab.filter(card=>card.group==="oral").every((card,i)=>card.word===data.oral.words[i]));
+assert.deepEqual(countProgress(vocab,{[vocab[0].id]:"known",[vocab[1].id]:"retry"}),{total:37,known:1,retry:1,unrated:35});
+const shuffled=shuffleDeck(vocab,()=>0.3);
+assert.equal(shuffled.length,37);
+assert.deepEqual(new Set(shuffled.map(card=>card.id)),new Set(vocab.map(card=>card.id)));
+const vocabUI=await readFile(new URL("./vocabulary-ui.js",import.meta.url),"utf8");
+assert.ok(vocabUI.includes("mountVocabulary")&&vocabUI.includes("flash-card")&&vocabUI.includes("flash-known"));
+const vocabularyHTML=await readFile(new URL("./index.html",import.meta.url),"utf8");
+assert.ok(vocabularyHTML.includes('data-tab="vocab"')&&vocabularyHTML.includes("vocabulary.css"));
+console.log("PASS: 37 source-derived vocabulary cards, grouped search, picture indices, game progress and flashcard UI contracts");

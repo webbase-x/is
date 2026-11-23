@@ -1,0 +1,50 @@
+/* Word bank and end-of-list flashcard game. Exam print styles remain isolated. */
+.vocab-wrapper{width:min(100% - 28px,1060px);margin:26px auto 56px}
+.vocab-header{background:linear-gradient(125deg,#e7f7ee,#f5faf6 66%,#f6f0dd);border:1px solid #d3e9da;border-radius:23px;padding:30px 34px}
+.vocab-kicker{display:block;color:#177054;font-size:13px;letter-spacing:.04em;font-weight:700}
+.vocab-header h1{font-size:clamp(30px,5vw,46px);line-height:1.3;margin:6px 0}
+.vocab-header p{font-size:16px;line-height:1.7;color:#526d5c;margin:5px 0 18px;max-width:750px}
+.vocab-summary{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;color:#397455}
+.vocab-summary strong{font-size:24px}.vocab-summary span{font-size:14px}
+.vocab-controls{display:flex;align-items:end;gap:18px;flex-wrap:wrap;margin:24px 0 16px}
+.vocab-search-label{display:flex;flex-direction:column;gap:7px;color:#2d5946;font-weight:700;font-size:14px;flex:1;min-width:220px}
+.vocab-search{width:100%;min-height:44px;background:#fff;border:1px solid #b4d5bf;padding:9px 13px;border-radius:11px;font-size:16px}
+.vocab-groups{display:flex;flex-wrap:wrap;gap:7px}
+.vocab-chip{border:1px solid #c5dccd;background:#fff;border-radius:999px;padding:10px 13px;min-height:44px;color:#32634b;font-weight:700}
+.vocab-chip[aria-pressed=true]{background:#17634f;color:#fff;border-color:#17634f}
+.vocab-list-heading{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:24px 0 10px}.vocab-list-heading h2{margin:0;font-size:24px}.vocab-count{font-size:14px;color:#547061}
+.vocab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,295px),1fr));gap:13px}
+.vocab-entry{position:relative;display:flex;align-items:center;gap:15px;min-height:120px;border:1px solid #dde8de;border-radius:16px;background:#fff;padding:16px;box-shadow:0 3px 14px #133c250b}
+.vocab-entry-body{min-width:0;flex:1}.vocab-entry-index{font-size:12px;color:#487d62;font-weight:700}.vocab-entry h3{font-size:23px;line-height:1.4;margin:1px 0}.vocab-definition{font-size:13px;color:#496553;margin:4px 0;line-height:1.5}.vocab-source{font-size:11px;color:#7a897d}
+.vocab-status{position:absolute;right:13px;top:12px;font-size:11px;color:#6d7d71;background:#f0f3ee;padding:3px 7px;border-radius:99px}
+.vocab-status.is-known{background:#dbf1e1;color:#24683e}
+.vocab-thumb{position:relative;display:block;flex-shrink:0;width:155px;height:75px;overflow:hidden;background:#fff;border:1px solid #dbe9df;border-radius:11px}
+.vocab-thumb .picture-sprite{display:block;position:absolute;left:50%;transform:translateX(-50%);width:180px!important;height:900px!important;max-width:none;object-fit:fill}
+.vocab-entry .vocab-thumb{width:115px;height:75px}
+.vocab-source-note{margin:16px 0 36px;font-size:13px;line-height:1.75;color:#617a68}
+.vocab-empty{grid-column:1/-1;text-align:center;padding:25px;background:#fff;border:1px dashed #b6d4bf;border-radius:12px;color:#6f836f}
+.flash-game{border:1px solid #d5e7da;border-radius:23px;background:#fff;padding:30px 32px 35px;box-shadow:0 12px 36px #20462b11}
+.flash-header h2{font-size:29px;margin:4px 0}.flash-header p{margin:7px 0 18px;color:#566e5c;line-height:1.7}
+.flash-tools{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:24px}.flash-tool{border:1px solid #c3d8c7;background:#f5faf6;padding:10px 15px;min-height:44px;border-radius:11px;color:#215f46;font-weight:700}
+.flash-count{font-size:14px;text-align:center;font-weight:700;color:#426f51;margin:0 0 12px}
+.flash-card{display:flex;align-items:stretch;justify-content:center;width:min(100%,620px);min-height:300px;margin:auto;border:1px solid #bddfcb;border-radius:22px;background:linear-gradient(140deg,#f7fdf7,#e8f5ed);box-shadow:0 9px 28px #1b47321b;color:#154f3c;padding:26px;cursor:pointer}
+.flash-card[aria-pressed=true]{background:linear-gradient(140deg,#fffdf5,#e8f6f0)}
+.flash-content{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;max-width:100%;width:100%;min-width:0}
+.flash-eyebrow{color:#4f8061;font-size:15px;font-weight:700;text-align:center}.flash-word,.flash-answer{font-size:clamp(31px,6vw,54px);line-height:1.5;text-align:center;overflow-wrap:anywhere}
+.flash-answer{color:#14654c}.flash-source,.flash-side-note{color:#537465;font-size:13px;text-align:center;line-height:1.6}.flash-card .vocab-thumb{transform:scale(1.4);margin:16px 0}
+.flash-hint{text-align:center;color:#567662;font-size:13px;min-height:20px;margin:12px auto 18px}
+.flash-actions,.flash-rate{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.flash-actions{margin-bottom:14px}.flash-actions button,.flash-rate button,.flash-finished button{min-height:46px;border-radius:11px;padding:10px 18px;font-weight:700}
+.flash-secondary{background:#fff;border:1px solid #b9d5c0;color:#235d45}
+.flash-known{background:#176d50;border:1px solid #176d50;color:#fff}.flash-again{background:#fdf3dc;border:1px solid #e6c57d;color:#745316}
+.flash-rate{border-top:1px solid #e7eee8;padding-top:17px}.flash-rate button{min-width:160px}
+.flash-game button:disabled{opacity:.42;cursor:not-allowed}
+.flash-finished{text-align:center;padding:32px 18px;background:#eff8f0;border-radius:16px}.flash-finished h3{font-size:25px;margin:0}.flash-finished p{color:#52735b}
+.vocab-wrapper button:focus-visible,.vocab-wrapper input:focus-visible{outline:3px solid #e3aa41;outline-offset:3px}
+@media(max-width:700px){.vocab-wrapper{width:calc(100% - 18px);margin:15px auto 42px}.vocab-header,.flash-game{padding:22px 17px;border-radius:17px}.vocab-controls{gap:12px}.vocab-search-label{width:100%;flex:auto}.vocab-groups{width:100%}.vocab-chip{flex:1;min-width:120px}.vocab-entry{min-height:105px}.flash-card{min-height:270px;padding:20px}.flash-card .vocab-thumb{transform:scale(1.25)}.flash-rate button{flex:1;min-width:120px}}
+@media print{body:not(.vocab-active) .vocab-wrapper{display:none!important}body.vocab-active .sheet,body.vocab-active .scorebox{display:none!important}
+body.vocab-active .vocab-wrapper{width:100%;margin:0;background:#fff}body.vocab-active .vocab-header{background:#fff;border:0;padding:10px 0 15px}
+body.vocab-active .vocab-controls,body.vocab-active .flash-game,body.vocab-active .vocab-status{display:none!important}
+body.vocab-active .vocab-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+body.vocab-active .vocab-entry{box-shadow:none;border-radius:5px;break-inside:avoid;min-height:90px}
+body.vocab-active .vocab-entry h3{font-size:19px}}
