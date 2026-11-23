@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#176457">
+  <meta name="description" content="แบบทดสอบ RT ป.1 รูปแบบที่ 1 ฉบับข้อความ แยกตามหมวดอ่านคำ ประโยค และเรื่อง">
+  <title>RT Tutor · แบบทดสอบรูปแบบที่ 1 (ข้อความ)</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../" aria-label="กลับไปยังห้องเรียน RT เดิม"><span class="brand-icon">RT</span><span>RT Tutor<small>แบบทดสอบฉบับข้อความ · ป.1</small></span></a>
+    <a class="back-link" href="../">← กลับไปหน้า RT เดิม</a>
+  </header>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div><p class="eyebrow">แบบทดสอบแยกตามประเภท</p><h1 id="page-title">ประเภทที่ <span>1</span></h1>
+        <p class="subtitle">รูปแบบที่ 1 · ฝึกอ่านออกเสียงจากข้อความในคลังข้อสอบ RT เดิม เลือกปีและหมวดเพื่อเริ่มได้ทันที</p>
+        <p class="source-warning">แสดงเฉพาะโจทย์ที่มีข้อความครบและไม่ต้องพึ่งภาพต้นฉบับ ข้ออ่านรู้เรื่อง/เขียนจากภาพยังคงอยู่ในระบบเดิม ไม่ได้ถูกลบหรือแปลงเป็นโจทย์ใหม่</p>
+      </div>
+      <div class="intro-badge"><strong>01</strong><span>TEXT EDITION</span></div>
+    </section>
+    <section class="workspace" aria-label="แบบทดสอบประเภทที่ 1">
+      <div class="controls">
+        <label for="year">เลือกปี พ.ศ.<select id="year"></select></label>
+        <div class="grouping"><span>หมวดแบบทดสอบ</span><div id="groups" class="group-buttons" role="group" aria-label="หมวดแบบทดสอบ"></div></div>
+        <div class="control-tail"><button type="button" class="button ghost" id="reset">เริ่มใหม่</button><button type="button" class="button ghost" id="export" disabled>ส่งออกคะแนน CSV</button></div>
+      </div>
+      <div id="loading" class="loading" role="status">กำลังอ่านข้อสอบรูปแบบที่ 1…</div>
+      <section id="stage" hidden aria-label="พื้นที่ทำแบบทดสอบ">
+        <div class="status-row"><div><span id="question-kind" class="kind">อ่านคำ</span><span id="question-source" class="question-source"></span></div><span id="question-count" class="question-count">ข้อ 1/1</span></div>
+        <div class="progress-track" aria-hidden="true"><div id="progress-bar"></div></div>
+        <article class="question">
+          <p class="question-label">อ่านออกเสียงข้อความต่อไปนี้</p>
+          <div id="question-text" class="reading-text" tabindex="0"></div>
+          <p id="question-hint" class="question-hint"></p>
+        </article>
+        <div class="assessment">
+          <div><h2>ประเมินโดยครู</h2><p>ครูฟังนักเรียนอ่านแล้วเลือกคะแนนตามเกณฑ์ของชุดต้นฉบับ ระบบไม่ตรวจการอ่านอัตโนมัติ</p></div>
+          <label for="score">คะแนนข้อนี้ <span id="score-max"></span><select id="score" aria-label="คะแนนสำหรับข้อปัจจุบัน"></select></label>
+          <button type="button" class="button primary" id="save-score">บันทึกคะแนน</button>
+        </div>
+        <p id="feedback" class="feedback" aria-live="polite"></p>
+        <div class="navigation"><button type="button" class="button secondary" id="previous">← ก่อนหน้า</button><button type="button" class="button secondary" id="summary-button">สรุปคะแนน</button><button type="button" class="button primary" id="next">ข้อต่อไป →</button></div>
+      </section>
+      <section id="summary" class="summary" hidden aria-labelledby="summary-heading">
+        <h2 id="summary-heading">ผลการฝึกอ่าน</h2>
+        <p id="summary-context"></p>
+        <div class="summary-metrics"><div><b id="summary-completed">—</b><span>ข้อที่ประเมิน</span></div><div><b id="summary-score">—</b><span>คะแนนสะสม</span></div><div><b id="summary-percent">—</b><span>คิดเป็นร้อยละของคะแนนเต็มทั้งชุด</span></div></div>
+        <p class="summary-note">คะแนนนี้เป็นข้อมูลฝึกอ่านที่ครูประเมิน ไม่ใช่คะแนน RT ทางการ ข้อที่ยังไม่ประเมินจะไม่นับเป็นคะแนนที่ได้</p>
+        <div id="summary-items" class="summary-items"></div>
+        <button type="button" class="button primary" id="return-question">กลับไปทำแบบทดสอบ</button>
+      </section>
+    </section>
+  </main>
+  <footer><span>RT Tutor · ประเภทที่ 1 ฉบับข้อความ</span><a href="../">เปิด RT ห้องเรียนอ่านสนุกฉบับเดิม</a></footer>
+</body>
+</html>
