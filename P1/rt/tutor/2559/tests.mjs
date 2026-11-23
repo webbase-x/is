@@ -192,3 +192,14 @@ assert.ok(fsCSS.includes("height:100dvh"));
 assert.ok(fsCSS.includes("@media(max-width:780px)"));
 assert.ok(fsCSS.includes("safe-area-inset-bottom"));
 console.log("PASS: native fullscreen, iOS fallback, Escape, state labels and scroll restoration");
+
+
+// Source sprite upgraded to a sharp high-DPI image without changing logical
+// positions used by the original test and the book's cropped image strips.
+assert.equal(PICTURE_SPRITE.sourceWidth,576);
+assert.equal(PICTURE_SPRITE.sourceHeight,2880);
+assert.equal(PICTURE_SPRITE.path,"./assets/pictures-2559-vivid-hd.webp");
+assert.equal(PICTURE_SPRITE.sourceHeight/PICTURE_SPRITE.rows,240);
+assert.deepEqual(data.comprehension.pictureMatching.answers,[3,6,5,1,4,10,8,9,12,11]);
+assert.ok(!vocabularyHTML.includes("pictures-2559-cartoon.webp"));
+console.log("PASS: upgraded HD colorful sprite with preserved 12-picture order and original key");
