@@ -1,3 +1,4 @@
+import {COLOR_PICTURES,CORRECT_PICTURE_POSITIONS,verifyPictureOrder} from "./color-pictures.js";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 const data=JSON.parse(await readFile(new URL("./data.json",import.meta.url),"utf8"));
@@ -17,3 +18,10 @@ assert.ok(data.oral.sentences.every((t,i)=>t===bank.questions.find(q=>q.id==="25
 for(const q of data.comprehension.choices){assert.ok(q.passage&&q.question&&q.choices.length===3);const source=bank.questions.find(x=>x.id==="2559-1-c-"+q.no);assert.equal(q.answer,Number(source.answer))}
 assert.equal(data.comprehension.pictureMatching.answers.filter(x=>Number.isInteger(x)).length,10);
 console.log("PASS: 2559 full text exam: 25 comprehension and 20 words + 6 sentences + passage, image preservation, original keys");
+
+assert.equal(COLOR_PICTURES.length,12);
+assert.ok(COLOR_PICTURES.every(x=>x.svg.includes("<svg")&&x.label&&x.tone));
+assert.deepEqual(CORRECT_PICTURE_POSITIONS,data.comprehension.pictureMatching.answers);
+assert.equal(verifyPictureOrder(data.comprehension.pictureMatching.answers),true);
+assert.throws(()=>verifyPictureOrder(Array(10).fill(1)));
+console.log("PASS: 12 full-color picture meanings, original picture positions and answer-key mapping");

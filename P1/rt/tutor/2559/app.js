@@ -1,3 +1,4 @@
+import {COLOR_PICTURES,verifyPictureOrder} from "./color-pictures.js";
 const app=document.querySelector("#app");
 let exam=null,assets=null,mode="comp",isTeacher=false;
 const SAVED="rt-tutor-exam-2559-v1";
@@ -45,13 +46,17 @@ function createMatching(board,group,leftItems,rightItems,visual=false){
   btn.setAttribute("aria-label","เลือกข้อ "+(i+1));btn.title="คลิกแล้วเลือกคู่ทางขวา";
  });
  const right=add(board,"div","match-right");
- if(visual){
-   const clip=add(right,"div","pictures-clip");
-   const img=add(clip,"img");img.src=assets.grid;img.alt="ภาพต้นฉบับสำหรับจับคู่ ๑๒ ภาพ";img.loading="eager";
-   img.addEventListener("load",()=>drawLines(board));
- }
+
  rightItems.forEach((word,i)=>{
    const row=add(right,"div",visual?"picture-slot":"meaning-right-row");
+   if(visual){
+     const picture=COLOR_PICTURES[i];
+     const illustration=add(row,"div","picture-card");
+     illustration.style.setProperty("--picture-tone",picture.tone);
+     illustration.setAttribute("role","img");
+     illustration.setAttribute("aria-label",picture.label);
+     illustration.innerHTML=picture.svg;
+   }
    const btn=add(row,"button","anchor","");btn.type="button";btn.dataset.side="right";btn.dataset.match=String(i+1);
    btn.setAttribute("aria-label",visual?"เลือกรูปภาพลำดับที่ "+(i+1):"เลือกคำ "+word);btn.title=visual?"รูปภาพที่ "+(i+1):word;
    if(!visual)add(row,"span","",word);
@@ -185,6 +190,7 @@ async function start(){
   if(!j.ok||!b.ok)throw Error("ไม่พบข้อมูลข้อสอบต้นฉบับ");
   exam=await j.json();const bank=await b.json();
   if(exam.year!==2559||exam.comprehension.choices.length!==10||bank.id!=="2559-1"||!bank.assets?.grid)throw Error("ไฟล์ข้อสอบไม่ถูกต้อง");
+  verifyPictureOrder(exam.comprehension.pictureMatching.answers);
   assets=bank.assets;app.replaceChildren();
   renderComp();renderOral();app.setAttribute("aria-busy","false");applyMode();
  }catch(err){app.setAttribute("aria-busy","false");app.replaceChildren();add(app,"p","empty","ไม่สามารถแสดงข้อสอบได้: "+err.message)}
