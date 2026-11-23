@@ -1,4 +1,5 @@
 import {VOCAB_GROUPS,buildVocabulary,filterVocabulary,countProgress,shuffleDeck} from "./vocabulary.js";
+import {mountPictureBook} from "./picture-book.js";
 
 const STORAGE_KEY="rt-tutor-2559-vocabulary-v1";
 const LABEL={picture:"คำจับคู่ภาพ",oral:"คำอ่านออกเสียง",meaning:"คำจับคู่ความหมาย"};
@@ -41,7 +42,7 @@ export function mountVocabulary(app,exam,sprite){
  const heading=add(section,"header","vocab-header");
  add(heading,"span","vocab-kicker","พ.ศ. ๒๕๕๙ · ฝึกอ่านและจดจำ");
  add(heading,"h1","","คลังคำศัพท์");
- add(heading,"p","","คำจากข้อสอบการอ่านรู้เรื่องและการอ่านออกเสียงจริง จัดเป็นหมวดหมู่และมีเกมแฟลชการ์ดอยู่ท้ายรายการ");
+ add(heading,"p","","ฝึกคำจับคู่ภาพ 10 คำด้วยหนังสือสองหน้า พลิกป้ายและพิมพ์คำตอบให้ถูกต้อง จากนั้นทบทวนคำหมวดอื่นและเล่นเกมแฟลชการ์ดท้ายคลัง");
  const stats=add(heading,"div","vocab-summary");
  add(stats,"strong","",vocab.length+" คำ");
  const statsDetail=add(stats,"span","","—");
@@ -52,6 +53,9 @@ export function mountVocabulary(app,exam,sprite){
  search.type="search";search.placeholder="พิมพ์คำที่ต้องการค้นหา";search.autocomplete="off";
  const chips=add(controls,"div","vocab-groups");
  chips.setAttribute("role","group");chips.setAttribute("aria-label","เลือกหมวดคำศัพท์");
+ const pictureBook=mountPictureBook(section,vocab,sprite,{onSolved:(card)=>{
+  progress[card.id]="known";save();updateStats();renderList();renderFlash();
+ }});
  const reference=add(section,"section","vocab-matching-reference");
  add(reference,"h2","","ตอนที่ ๑ การอ่านรู้เรื่องคำ · ข้อที่ ๑๑–๑๕");
  add(reference,"p","","ข้อความและคำตัวเลือกจากต้นฉบับที่ผู้ใช้ระบุ คงหมายเลขข้อและลำดับเดิม");
@@ -129,11 +133,15 @@ export function mountVocabulary(app,exam,sprite){
   });
  }
  function renderList(){
-  currentCount.textContent=visible.length+" คำ";
+  const listed=visible.filter(card=>card.group!=="picture");
+  currentCount.textContent=visible.length+" คำ"+
+   (visible.some(card=>card.group==="picture")?" · หนังสือภาพ "+visible.filter(card=>card.group==="picture").length+" คำ":"");
   reference.hidden=!!query.trim()||!(group==="all"||group==="meaning");
+  const showList=listed.length>0||visible.length===0;
+  listTop.hidden=!showList;wordList.hidden=!showList;note.hidden=!showList;
   const fragment=document.createDocumentFragment();
   let lastGroup=null;
-  visible.forEach((card,index)=>{
+  listed.forEach((card,index)=>{
    if(card.group!==lastGroup){
     const groupHeading=add(fragment,"h3","vocab-group-label",
       card.group==="picture"?"ตอนที่ ๑ การอ่านรู้เรื่องคำ · ข้อ ๑–๑๐":
@@ -165,6 +173,9 @@ export function mountVocabulary(app,exam,sprite){
  function renderFiltered(){
   query=search.value;
   visible=filterVocabulary(vocab,group,query);
+  const pictureCards=visible.filter(card=>card.group==="picture");
+  pictureBook.setCards(pictureCards);
+  pictureBook.root.hidden=pictureCards.length===0;
   renderList();newDeck(visible);
  }
  function renderFlash(){

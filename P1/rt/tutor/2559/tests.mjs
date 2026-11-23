@@ -60,3 +60,27 @@ assert.ok(vocabUI.includes("mountVocabulary")&&vocabUI.includes("flash-card")&&v
 const vocabularyHTML=await readFile(new URL("./index.html",import.meta.url),"utf8");
 assert.ok(vocabularyHTML.includes('data-tab="vocab"')&&vocabularyHTML.includes("vocabulary.css"));
 console.log("PASS: 37 source-derived vocabulary cards, grouped search, picture indices, game progress and flashcard UI contracts");
+
+
+import {normalizeThaiAnswer,isCorrectPictureAnswer,pictureBookCards,pictureBookStats} from "./picture-book-core.js";
+const pictureCards=pictureBookCards(vocab);
+assert.equal(pictureCards.length,10);
+assert.deepEqual(pictureCards.map(card=>card.word),data.comprehension.pictureMatching.words);
+assert.deepEqual(pictureCards.map(card=>card.position+1),data.comprehension.pictureMatching.answers);
+assert.deepEqual(pictureBookStats(pictureCards,{}),{total:10,solved:0,remaining:10});
+assert.deepEqual(pictureBookStats(pictureCards,{"pic-1":true,"pic-2":true}),{total:10,solved:2,remaining:8});
+assert.ok(isCorrectPictureAnswer("เลี้ยงแพะ"," เลี้ยง แพะ "));
+assert.ok(isCorrectPictureAnswer("กระดุมเสื้อ","กระดุมเสื้อ"));
+assert.ok(isCorrectPictureAnswer("กระโปรง","กระ\u200bโปรง"));
+assert.ok(!isCorrectPictureAnswer("กระโปรง","กระเป๋า"));
+assert.ok(!isCorrectPictureAnswer("แตงโม"," "));
+assert.equal(normalizeThaiAnswer("  ผูก เชือก  "),"ผูกเชือก");
+const pictureBookJS=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const pictureBookCSS=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
+const linkedUI=await readFile(new URL("./vocabulary-ui.js",import.meta.url),"utf8");
+assert.ok(pictureBookJS.includes("book-spread")&&pictureBookJS.includes("book-plaque")&&pictureBookJS.includes("book-answer-form"));
+assert.ok(pictureBookJS.includes("isCorrectPictureAnswer")&&pictureBookJS.includes("fireworks(host)")&&pictureBookJS.includes("playSuccessSound(soundOn)"));
+assert.ok(pictureBookCSS.includes("@media(max-width:780px)")&&pictureBookCSS.includes("rotateX(180deg)"));
+assert.ok(linkedUI.includes("mountPictureBook")&&linkedUI.includes("pictureBook.setCards"));
+assert.ok(vocabularyHTML.includes('href="picture-book.css"'));
+console.log("PASS: interactive picture book, exact Thai spelling, 10 original image matches, navigation and success effects");
