@@ -1,0 +1,82 @@
+/* Interactive open-book picture vocabulary: illustration / hidden word pages. */
+.picture-book{position:relative;margin:18px 0 30px;padding:25px 23px 26px;border-radius:20px;border:1px solid #d7e5d9;background:linear-gradient(155deg,#fffaf0,#edf7ed);overflow:hidden}
+.picture-book-heading{display:flex;justify-content:space-between;align-items:end;flex-wrap:wrap;gap:14px;margin-bottom:16px}
+.picture-book-kicker{color:#2a8064;font-size:13px;font-weight:800}
+.picture-book-heading h2{font-size:clamp(23px,3vw,32px);margin:3px 0;color:#254b39}
+.picture-book-heading p{font-size:14px;color:#657a69;margin:5px 0 0;line-height:1.6}
+.picture-book-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.book-small-btn,.book-nav-btn{background:#fff;border:1px solid #c5d9c9;border-radius:11px;min-height:44px;padding:9px 13px;color:#285b44;font-weight:800}
+.book-small-btn[aria-pressed=true]{background:#e2f3e6}
+.book-topline{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 3px 9px;color:#355e46;font-size:14px;font-weight:700}
+.book-progress-track{height:7px;background:#dce9de;border-radius:20px;overflow:hidden;margin:0 3px 16px}
+.book-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#31a873,#e5b44d);transition:width .3s}
+.book-spread{position:relative;display:grid;grid-template-columns:1fr 1fr;min-height:385px;border:1px solid #dacdb3;background:#fff;box-shadow:0 18px 37px #58433124,0 3px 2px #58433115;border-radius:13px;overflow:visible;isolation:isolate}
+.book-spread::after{content:"";position:absolute;z-index:3;pointer-events:none;top:0;bottom:0;left:50%;width:20px;transform:translateX(-50%);background:linear-gradient(90deg,#64502a20,#eee5cf80 30%,#fff7e300 60%,#64492a15)}
+.book-page{position:relative;min-width:0;min-height:385px;padding:24px 24px 22px;display:flex;flex-direction:column;background:repeating-linear-gradient(0deg,#fefcf7,#fefcf7 36px,#f8f2e9 37px)}
+.book-page-picture{border-radius:12px 0 0 12px;background:linear-gradient(100deg,#fffdf7 0%,#f9f4e8 95%)}
+.book-page-word{border-radius:0 12px 12px 0;background:linear-gradient(95deg,#fbf7ec 1%,#fffdf8 23%,#fffdf8 100%)}
+.book-page-kicker{display:block;font-weight:750;font-size:13px;color:#9b7343;letter-spacing:.02em}
+.book-picture-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:16px 4px}
+.picture-book-illustration{width:min(100%,390px);aspect-ratio:12 / 5;background-position:center 0;background-size:100% 1200%;background-repeat:no-repeat;background-color:#fff;border-radius:18px;border:1px solid #eee5d5;box-shadow:0 4px 17px #68543818}
+.book-picture-caption{font-size:14px;color:#637e6e;margin:4px 0;text-align:center}
+.book-corner{position:absolute;bottom:12px;right:21px;color:#c5a873;font-size:26px}
+.book-reveal-area{position:relative;display:flex;align-items:center;justify-content:center;min-height:175px;margin:16px 0 5px;perspective:1000px}
+.book-hidden-word{font-size:clamp(27px,4.1vw,49px);line-height:1.35;text-align:center;opacity:.05;transform:scale(.92);transition:opacity .35s,transform .35s;color:#205f47;overflow-wrap:anywhere}
+.book-reveal-area.is-revealed .book-hidden-word{opacity:1;transform:scale(1)}
+.book-plaque{position:absolute;inset:auto 0;width:100%;height:100px;border:0;border-radius:13px;background:none;padding:0;cursor:pointer;transform:translateZ(0);transition:opacity .35s .3s;z-index:1}
+.book-plaque-inner{display:block;position:relative;height:100%;width:100%;transform-style:preserve-3d;transition:transform .66s cubic-bezier(.2,.7,.15,1)}
+.book-plaque-front,.book-plaque-back{display:flex;align-items:center;justify-content:center;gap:10px;position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;box-shadow:0 7px 0 #6b4b22,0 13px 20px #62421b2a;font-size:clamp(17px,2.7vw,23px);font-weight:850;letter-spacing:.01em}
+.book-plaque-front{background:linear-gradient(115deg,#ae783a,#e3b86b 48%,#a56d35);border:3px solid #8c5927;color:#fff9dc;text-shadow:0 2px 2px #714a34}
+.book-plaque-symbol{font-size:31px;font-weight:900;min-width:35px;display:grid;place-items:center;border-radius:50%;border:2px solid #fff7e3}
+.book-plaque-back{transform:rotateX(180deg);background:linear-gradient(100deg,#c7edcf,#e8f7df);color:#28694e;border:3px solid #7fc79a}
+.book-reveal-area.is-revealed .book-plaque-inner{transform:rotateX(180deg)}
+.book-reveal-area.is-revealed .book-plaque{opacity:0;pointer-events:none}
+.book-plaque-tip{font-size:12px;color:#728470;margin:0 0 12px;text-align:center}
+.book-answer-form{margin-top:auto;display:flex;align-items:end;flex-wrap:wrap;gap:8px}
+.book-answer-label{display:flex;flex-direction:column;gap:5px;flex:1;min-width:150px;font-size:13px;color:#44644d;font-weight:800}
+.book-answer{min-width:0;width:100%;font:inherit;font-size:20px;background:#fff;border:2px solid #bfd8c6;border-radius:10px;min-height:47px;padding:9px 12px;color:#244c3b}
+.book-check{min-height:47px;white-space:nowrap;border:0;border-radius:10px;padding:8px 14px;background:#1a805f;color:white;font-weight:850}
+.book-feedback{font-size:13px;font-weight:600;line-height:1.6;min-height:21px;margin:12px 0 0;color:#637967}
+.book-feedback.is-success{color:#136b47;font-weight:850;font-size:17px}
+.book-feedback.is-error{color:#b5423f}
+.book-navigation{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-top:20px}
+.book-page-dots{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;flex:1}
+.book-dot{min-width:32px;height:34px;border:1px solid #c3d7c4;border-radius:9px;background:#fff;color:#42664c;font-weight:800}
+.book-dot.is-complete{background:#d4eedc;color:#1e6f4e}
+.book-dot[aria-current=true]{background:#236d51;border-color:#236d51;color:white}
+.book-nav-primary{background:#237153;color:white;border-color:#237153}
+.book-nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.book-footer{font-size:12px;color:#677b6b;margin:16px 2px 0;line-height:1.6}
+.book-empty{text-align:center;padding:28px;border:1px dashed #bed4c0;border-radius:12px;color:#5d7864}
+.picture-book-fireworks{position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden}
+.picture-book-spark{position:absolute;left:var(--x);top:var(--y);height:12px;width:5px;background:var(--hue);border-radius:100%;box-shadow:0 0 13px var(--hue);opacity:0;animation:pictureFirework 1.3s ease-out var(--delay) forwards}
+@keyframes pictureFirework{0%{transform:translate(-50%,-50%) scale(.1);opacity:0}12%{opacity:1}75%{opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(125deg) scale(.3);opacity:0}}
+@keyframes pictureShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+@keyframes picturePageTurn{0%{opacity:.75;transform:perspective(900px) rotateY(-4deg)}100%{opacity:1;transform:perspective(900px) rotateY(0)}}
+.book-shake{animation:pictureShake .34s linear}
+.page-turn{animation:picturePageTurn .32s ease}
+.picture-book button:focus-visible,.picture-book input:focus-visible{outline:3px solid #d99a33;outline-offset:3px}
+@media(max-width:780px){
+ .picture-book{padding:17px 13px}
+ .book-spread{grid-template-columns:1fr;overflow:hidden}
+ .book-page{min-height:270px;padding:20px 18px}
+ .book-page-picture{border-radius:12px 12px 0 0;border-bottom:3px double #d8c4a3}
+ .book-page-word{border-radius:0 0 12px 12px}
+ .book-spread::after{left:0;right:0;top:50%;bottom:auto;transform:none;width:100%;height:10px;background:linear-gradient(#b3a27d22,transparent)}
+ .book-reveal-area{min-height:160px;margin-top:9px}
+ .book-picture-area{padding:12px 0}
+ .picture-book-illustration{max-width:390px}
+ .book-navigation{gap:10px}
+ .book-page-dots{order:3;flex-basis:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ .picture-book *, .picture-book *::before,.picture-book *::after{animation:none!important;transition:none!important}
+ .picture-book-fireworks{display:none!important}
+}
+@media print{
+ body.vocab-active .picture-book{background:#fff;border:1px solid #ccc;box-shadow:none;break-inside:avoid}
+ .picture-book-tools,.book-navigation,.book-answer-form,.book-feedback,.book-footer,.book-plaque-tip,.book-topline,.book-progress-track{display:none!important}
+ .book-spread{box-shadow:none}
+ .book-hidden-word{opacity:1!important;transform:none!important}
+ .book-plaque{display:none!important}
+}
