@@ -84,3 +84,22 @@ assert.ok(pictureBookCSS.includes("@media(max-width:780px)")&&pictureBookCSS.inc
 assert.ok(linkedUI.includes("mountPictureBook")&&linkedUI.includes("pictureBook.setCards"));
 assert.ok(vocabularyHTML.includes('href="picture-book.css"'));
 console.log("PASS: interactive picture book, exact Thai spelling, 10 original image matches, navigation and success effects");
+
+
+// Physical leaf turning rather than rotating/repainting the entire spread.
+const turningScript=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const turningStyles=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
+assert.ok(turningScript.includes("function turnTo(nextIndex,direction)"));
+assert.ok(turningScript.includes("cleanSnapshot(left)")&&turningScript.includes("cleanSnapshot(right)"));
+assert.ok(turningScript.includes("front.appendChild(")&&turningScript.includes("back.appendChild("));
+assert.ok(turningScript.includes('turnTo(position-1,"backward")'));
+assert.ok(turningScript.includes('turnTo(position<cards.length-1?position+1:0,"forward")'));
+assert.ok(turningScript.includes("if(turning||!cards.length"));
+assert.ok(turningScript.includes("if(reducedMotion())"));
+assert.ok(turningScript.includes("turnTimer=window.setTimeout(finish,1150)"));
+assert.ok(turningStyles.includes("@keyframes bookTurnForward"));
+assert.ok(turningStyles.includes("@keyframes bookTurnBackward"));
+assert.ok(turningStyles.includes("rotateY(-180deg)")&&turningStyles.includes("rotateY(180deg)"));
+assert.ok(turningStyles.includes("backface-visibility:hidden"));
+assert.ok(turningStyles.includes(".book-turn-layer.is-mobile"));
+console.log("PASS: 3D paper leaf turns in both directions, spine, backing pages and reduced-motion fallback");

@@ -83,23 +83,26 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  if(original.length!==10)throw Error("หนังสือคำจับคู่ภาพต้องมี 10 คำ");
  const solved=readSolved(original);
  let cards=[...original],position=0,revealed=false,soundOn=true,incorrectAttempts=0;
+ let turning=false,activeTurn=null,turnTimer=null;
  const host=add(parent,"section","picture-book");
  host.id="picture-book";host.setAttribute("aria-label","หนังสือคำจับคู่ภาพ");
  const header=add(host,"header","picture-book-heading");
  const title=add(header,"div");
  add(title,"span","picture-book-kicker","ตอนที่ ๑ · คำจับคู่ภาพ");
  add(title,"h2","","หนังสือภาพทายคำ");
- add(title,"p","","เปิดทีละหน้า ดูภาพด้านซ้าย แล้วพิมพ์คำศัพท์ด้านขวาให้ถูกต้อง");
+ add(title,"p","","พลิกหน้ากระดาษเหมือนหนังสือจริง · หน้าซ้ายดูภาพ หน้าขวาทายคำศัพท์ที่ซ่อนอยู่");
  const tools=add(header,"div","picture-book-tools");
  const sound=add(tools,"button","book-small-btn","เสียง: เปิด");
  sound.type="button";sound.setAttribute("aria-pressed","true");sound.title="เปิดหรือปิดเสียงแสดงความยินดี";
  const reset=add(tools,"button","book-small-btn","เริ่มใหม่");reset.type="button";
  const stats=add(host,"div","book-topline");
  const counter=add(stats,"span","book-counter","");
+ counter.setAttribute("aria-live","polite");
  const progress=add(stats,"span","book-progress","");
  const progressTrack=add(host,"div","book-progress-track");
  const bar=add(progressTrack,"div","book-progress-bar");
  const spread=add(host,"div","book-spread");
+ spread.setAttribute("aria-label","หนังสือภาพเปิดสองหน้า");
  const left=add(spread,"div","book-page book-page-picture");
  add(left,"span","book-page-kicker","หน้าซ้าย • ภาพ");
  const visualArea=add(left,"div","book-picture-area");
@@ -149,7 +152,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
    dot.setAttribute("aria-label","เปิดข้อ "+digit(card.sourceNo)+(solved[card.id]?" ตอบถูกแล้ว":""));
    dot.setAttribute("aria-current",String(position===index));
    if(solved[card.id])dot.classList.add("is-complete");
-   dot.addEventListener("click",()=>{position=index;render(true)});
+   dot.addEventListener("click",()=>turnTo(index,index>=position?"forward":"backward"));
   });
  }
  function updateProgress(){
@@ -165,15 +168,12 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
   word.setAttribute("aria-hidden",String(!isRevealed));
   hideWord.hidden=!isRevealed||solved[current?.id]===true;
  }
- function render(animate=false){
+ function render(){
   const noCards=!cards.length;
   spread.hidden=noCards;nav.hidden=noCards;counter.hidden=noCards;progressTrack.hidden=noCards;empty.hidden=!noCards;
   updateProgress();
   if(noCards){counter.textContent="ไม่มีหน้าหนังสือในชุดนี้";return}
   current=cards[position];
-  if(animate&&!reducedMotion()){
-   spread.classList.remove("page-turn");void spread.offsetWidth;spread.classList.add("page-turn");
-  }
   visualArea.replaceChildren();
   attachPicture(visualArea,current,sprite);
   add(visualArea,"p","book-picture-caption","ดูภาพแล้วตอบว่าเป็นคำใด");
@@ -190,6 +190,62 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
   next.textContent=position===cards.length-1?"กลับหน้าแรก ↻":"หน้าถัดไป →";
   renderDots();
  }
+
+ // The stationary leaf holds the currently visible page while an actual
+ // paper leaf turns on the book spine. The opposite face is the destination.
+ function cleanSnapshot(node){
+  const clone=node.cloneNode(true);
+  clone.removeAttribute?.("id");
+  clone.querySelectorAll?.("[id]").forEach(el=>el.removeAttribute("id"));
+  clone.querySelectorAll?.("input,button,textarea,select").forEach(el=>{
+   el.disabled=true;el.setAttribute("tabindex","-1");
+  });
+  return clone;
+ }
+ function stopTurning(){
+  if(turnTimer!==null){window.clearTimeout(turnTimer);turnTimer=null}
+  activeTurn?.remove();
+  activeTurn=null;turning=false;host.classList.remove("is-turning");
+ }
+ function turnTo(nextIndex,direction){
+  if(turning||!cards.length||nextIndex<0||nextIndex>=cards.length||nextIndex===position)return;
+  if(reducedMotion()){
+   position=nextIndex;render();return;
+  }
+  const mobile=window.matchMedia?.("(max-width: 780px)")?.matches===true;
+  // Snapshots are noninteractive. Old forms cannot steal focus or submit.
+  const oldLeft=cleanSnapshot(left),oldRight=cleanSnapshot(right);
+  const oldSpread=mobile?cleanSnapshot(spread):null;
+  position=nextIndex;
+  render();
+  const newLeft=cleanSnapshot(left),newRight=cleanSnapshot(right);
+  const newSpread=mobile?cleanSnapshot(spread):null;
+
+  const forward=direction!=="backward";
+  const layer=add(spread,"div","book-turn-layer"+(mobile?" is-mobile":""));
+  layer.setAttribute("aria-hidden","true");
+  layer.inert=true;
+  if(!mobile){
+   const stationary=add(layer,"div","book-turn-stationary "+(forward?"is-left":"is-right"));
+   stationary.appendChild(forward?oldLeft:oldRight);
+  }
+  const leaf=add(layer,"div","book-turn-leaf "+(forward?"go-forward":"go-backward"));
+  const front=add(leaf,"div","book-turn-face book-turn-front");
+  const back=add(leaf,"div","book-turn-face book-turn-back");
+  front.appendChild(mobile?oldSpread:(forward?oldRight:oldLeft));
+  back.appendChild(mobile?newSpread:(forward?newLeft:newRight));
+  turning=true;activeTurn=layer;host.classList.add("is-turning");
+  // Complete even when the browser suppresses animationend (background tab).
+  const finish=()=>{
+   if(activeTurn!==layer)return;
+   stopTurning();
+  };
+  leaf.addEventListener("animationend",event=>{
+   if(event.target===leaf)finish();
+  });
+  turnTimer=window.setTimeout(finish,1150);
+ }
+
  function peek(){
   if(!current||solved[current.id])return;
   showAnswer(!revealed);
@@ -219,8 +275,8 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  answerForm.addEventListener("submit",submit);
  plaque.addEventListener("click",peek);
  hideWord.addEventListener("click",peek);
- previous.addEventListener("click",()=>{if(position>0){position--;render(true)}});
- next.addEventListener("click",()=>{position=position<cards.length-1?position+1:0;render(true)});
+ previous.addEventListener("click",()=>turnTo(position-1,"backward"));
+ next.addEventListener("click",()=>turnTo(position<cards.length-1?position+1:0,"forward"));
  sound.addEventListener("click",()=>{
   soundOn=!soundOn;sound.textContent="เสียง: "+(soundOn?"เปิด":"ปิด");
   sound.setAttribute("aria-pressed",String(soundOn));
@@ -228,9 +284,10 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  reset.addEventListener("click",()=>{
   if(!confirm("เริ่มเกมหนังสือคำจับคู่ภาพใหม่ทั้งหมด และล้างคำตอบถูกที่บันทึกไว้หรือไม่?"))return;
   Object.keys(solved).forEach(key=>delete solved[key]);
-  store();position=0;render(true);
+  store();stopTurning();position=0;render();
  });
  function setCards(subset){
+  stopTurning();
   const allowed=new Set(original.map(c=>c.id));
   cards=pictureBookCards(subset).filter(card=>allowed.has(card.id));
   position=0;render();
