@@ -1,4 +1,4 @@
-import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint} from "./picture-book-core.js";
+import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards} from "./picture-book-core.js";
 import {installBookFullscreen} from "./fullscreen-book.js";
 
 const BOOK_STORAGE="rt-tutor-2559-picture-book-v1";
@@ -79,10 +79,12 @@ function attachPicture(parent,card,sprite){
  frame.style.backgroundPosition="center "+(card.position/11*100)+"%";
  return frame;
 }
-export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
- const original=pictureBookCards(allCards);
- if(original.length!==10)throw Error("หนังสือคำจับคู่ภาพต้องมี 10 คำ");
- const solved=readSolved(original);
+export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPracticed=()=>{},getOralProgress=()=>null,onResetOral=()=>{}}={}){
+ const original=bookVocabularyCards(allCards);
+ const pictures=original.filter(card=>card.group==="picture");
+ const oral=original.filter(card=>card.group==="oral");
+ if(pictures.length!==10||oral.length!==20)throw Error("ข้อมูลหนังสือเล่ม ๑ ไม่ครบ");
+ const solved=readSolved(pictures);
  let cards=[...original],position=0,revealed=false,soundOn=true,incorrectAttempts=0;
  let turning=false,activeTurn=null,turnTimer=null;
  let coverClosed=true,coverOpening=false,coverTimer=null;
@@ -102,11 +104,12 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  coverArt.loading="eager";coverArt.decoding="async";
  const coverOpen=add(coverStage,"button","book-cover-open","เปิดหนังสือ →");
  coverOpen.type="button";
+ add(coverStage,"p","book-cover-index","ภายในเล่ม · จับคู่ภาพ ๑๐ คำ · ฝึกอ่านออกเสียง ๒๐ คำ");
  const header=add(host,"header","picture-book-heading");
  const title=add(header,"div");
- add(title,"span","picture-book-kicker","ตอนที่ ๑ · คำจับคู่ภาพ");
+ const chapterHeading=add(title,"span","picture-book-kicker","ตอนที่ ๑ · คำจับคู่ภาพ");
  add(title,"h2","","หนังสือภาพทายคำ · เล่ม ๑");
- add(title,"p","","พลิกหน้ากระดาษเหมือนหนังสือจริง · หน้าซ้ายดูภาพ หน้าขวาทายคำศัพท์ที่ซ่อนอยู่");
+ const chapterDesc=add(title,"p","","พลิกหน้าอ่านทั้งคำจับคู่ภาพและคำอ่านออกเสียง");
  const tools=add(header,"div","picture-book-tools");
  const expandButton=add(tools,"button","book-small-btn book-expand-btn","⛶ เต็มจอ");
  expandButton.type="button";expandButton.setAttribute("aria-pressed","false");
@@ -121,15 +124,21 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  const progress=add(stats,"span","book-progress","");
  const progressTrack=add(host,"div","book-progress-track");
  const bar=add(progressTrack,"div","book-progress-bar");
+ const chapters=add(host,"nav","book-chapter-nav");
+ chapters.setAttribute("aria-label","เลือกตอนในหนังสือ");
+ const jumpPicture=add(chapters,"button","book-chapter-btn","ตอนที่ ๑ · จับคู่ภาพ");
+ jumpPicture.type="button";
+ const jumpOral=add(chapters,"button","book-chapter-btn","ตอนที่ ๒ · อ่านออกเสียง");
+ jumpOral.type="button";
  const spread=add(host,"div","book-spread");
  spread.setAttribute("aria-label","หนังสือภาพเปิดสองหน้า");
  const left=add(spread,"div","book-page book-page-picture");
- add(left,"span","book-page-kicker","หน้าซ้าย • ภาพ");
+ const leftHeading=add(left,"span","book-page-kicker","หน้าซ้าย • ภาพ");
  const visualArea=add(left,"div","book-picture-area");
  add(left,"p","book-picture-caption","ดูภาพแล้วตอบว่าเป็นคำใด");
  add(left,"span","book-corner","✦");
  const right=add(spread,"div","book-page book-page-word");
- add(right,"span","book-page-kicker","หน้าขวา • คำศัพท์");
+ const rightHeading=add(right,"span","book-page-kicker","หน้าขวา • คำศัพท์");
  const revealArea=add(right,"div","book-reveal-area");
  const word=add(revealArea,"strong","book-hidden-word");
  const plaque=add(revealArea,"button","book-plaque");
@@ -166,13 +175,25 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  const feedback=add(right,"p","book-feedback","");
  feedback.id="book-answer-feedback";feedback.setAttribute("role","status");feedback.setAttribute("aria-live","polite");
  input.setAttribute("aria-describedby","book-answer-feedback");
+ const oralPanel=add(right,"section","book-oral-panel");
+ oralPanel.hidden=true;
+ add(oralPanel,"h3","","ฝึกอ่านออกเสียง");
+ add(oralPanel,"p","book-oral-instructions","อ่านคำบนหน้าซ้ายให้ชัดเจน แล้วให้ครูหรือผู้ปกครองฟัง");
+ const oralStatus=add(oralPanel,"p","book-oral-state","ยังไม่ฝึก");
+ oralStatus.setAttribute("role","status");oralStatus.setAttribute("aria-live","polite");
+ const oralActions=add(oralPanel,"div","book-oral-actions");
+ const oralKnown=add(oralActions,"button","book-oral-known","อ่านได้แล้ว");
+ oralKnown.type="button";
+ const oralRetry=add(oralActions,"button","book-oral-retry","ฝึกอีกครั้ง");
+ oralRetry.type="button";
+ add(oralPanel,"p","book-oral-footnote","บันทึกผลการฝึกด้วยตนเอง ไม่ใช่การตรวจเสียงอัตโนมัติ");
  const nav=add(host,"nav","book-navigation");
  nav.setAttribute("aria-label","เปลี่ยนหน้าหนังสือ");
  const previous=add(nav,"button","book-nav-btn","← หน้าก่อน");previous.type="button";
  const dots=add(nav,"div","book-page-dots");
  const next=add(nav,"button","book-nav-btn book-nav-primary","หน้าถัดไป →");next.type="button";
  const footer=add(host,"p","book-footer","เล่ม ๑ · คำศัพท์และภาพอ้างอิงจากแบบทดสอบ RT ปี ๒๕๕๙ · ผู้ผลิตหนังสือ ครูไพรัช อินควรชุม");
- const empty=add(host,"p","book-empty","ไม่พบคำจับคู่ภาพตามตัวกรอง");
+ const empty=add(host,"p","book-empty","ไม่พบคำศัพท์ในหนังสือตามตัวกรอง");
  empty.hidden=true;
  let current=null,hintPieces=[],insertedPieces=[];
  function resetHints(){
