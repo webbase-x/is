@@ -245,18 +245,24 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  function renderDots(){
   dots.replaceChildren();
   cards.forEach((card,index)=>{
+   if(card.group!==current?.group)return;
+   const state=card.group==="picture"?(solved[card.id]?"known":null):getOralProgress(card);
    const dot=add(dots,"button","book-dot",digit(card.sourceNo));
-   dot.type="button";dot.title="เปิดข้อ "+digit(card.sourceNo);
-   dot.setAttribute("aria-label","เปิดข้อ "+digit(card.sourceNo)+(solved[card.id]?" ตอบถูกแล้ว":""));
+   dot.type="button";
+   dot.title=(card.group==="oral"?"อ่านออกเสียง":"จับคู่ภาพ")+" ข้อ "+digit(card.sourceNo);
+   dot.setAttribute("aria-label",dot.title);
    dot.setAttribute("aria-current",String(position===index));
-   if(solved[card.id])dot.classList.add("is-complete");
+   if(state==="known")dot.classList.add("is-complete");
+   if(state==="retry")dot.classList.add("is-retry");
    dot.addEventListener("click",()=>turnTo(index,index>=position?"forward":"backward"));
   });
  }
  function updateProgress(){
-  const counts=pictureBookStats(original,solved);
-  progress.textContent="ตอบถูก "+digit(counts.solved)+" / "+digit(counts.total)+" คำ";
-  bar.style.width=(counts.total?counts.solved/counts.total*100:0)+"%";
+  const count=pictureBookStats(pictures,solved);
+  const oralKnownCount=oral.filter(card=>getOralProgress(card)==="known").length;
+  const retryCount=oral.filter(card=>getOralProgress(card)==="retry").length;
+  progress.textContent="จับคู่ภาพถูก "+digit(count.solved)+"/๑๐ · อ่านได้แล้ว "+digit(oralKnownCount)+"/๒๐ · ฝึกเพิ่ม "+digit(retryCount);
+  bar.style.width=((count.solved+oralKnownCount)/30*100)+"%";
  }
  function showAnswer(isRevealed){
   revealed=isRevealed;
@@ -268,29 +274,55 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  }
  function render(){
   const noCards=!cards.length;
-  spread.hidden=noCards;nav.hidden=noCards;counter.hidden=noCards;progressTrack.hidden=noCards;empty.hidden=!noCards;
+  spread.hidden=noCards;nav.hidden=noCards;counter.hidden=noCards;progressTrack.hidden=noCards;
+  chapters.hidden=noCards;empty.hidden=!noCards;
   updateProgress();
-  if(noCards){counter.textContent="ไม่มีหน้าหนังสือในชุดนี้";return}
+  if(noCards){current=null;counter.textContent="ไม่มีหน้าหนังสือในชุดนี้";return}
   current=cards[position];
+  const isOral=current.group==="oral";
+  const complete=!isOral&&solved[current.id]===true;
+  left.classList.toggle("is-oral-page",isOral);
+  right.classList.toggle("is-oral-page",isOral);
+  chapterHeading.textContent=isOral?"ตอนที่ ๒ · การอ่านออกเสียงคำ":"ตอนที่ ๑ · คำจับคู่ภาพ";
+  chapterDesc.textContent=isOral?"อ่านออกเสียงคำที่กำหนดให้ถูกต้อง · ข้อ ๑–๒๐":"ดูภาพทางซ้ายแล้วพิมพ์คำที่ถูกต้องทางขวา";
+  leftHeading.textContent=isOral?"หน้าซ้าย • อ่านออกเสียง":"หน้าซ้าย • ภาพ";
+  rightHeading.textContent=isOral?"หน้าขวา • ฝึกอ่าน":"หน้าขวา • ทายคำ";
+  jumpPicture.setAttribute("aria-current",String(!isOral));
+  jumpOral.setAttribute("aria-current",String(isOral));
+  jumpPicture.disabled=!cards.some(card=>card.group==="picture");
+  jumpOral.disabled=!cards.some(card=>card.group==="oral");
   visualArea.replaceChildren();
-  attachPicture(visualArea,current,sprite);
-  add(visualArea,"p","book-picture-caption","ดูภาพแล้วตอบว่าเป็นคำใด");
+  if(isOral){
+   add(visualArea,"span","book-oral-question","ข้อ "+digit(current.sourceNo));
+   add(visualArea,"strong","book-oral-word",current.word);
+   add(visualArea,"p","book-oral-prompt","อ่านออกเสียงคำที่กำหนดให้ถูกต้อง");
+  }else{
+   attachPicture(visualArea,current,sprite);
+   add(visualArea,"p","book-picture-caption","ดูภาพแล้วตอบว่าเป็นคำใด");
+  }
   word.textContent=current.word;
-  counter.textContent="เปิดหน้า "+digit(position+1)+" / "+digit(cards.length)+" · ข้อ "+digit(current.sourceNo);
+  counter.textContent="เปิดหน้า "+digit(position+1)+" / "+digit(cards.length)+" · "+(isOral?"อ่านออกเสียง":"จับคู่ภาพ")+" ข้อ "+digit(current.sourceNo);
   input.value="";incorrectAttempts=0;
-  resetHints();
-  const complete=solved[current.id]===true;
-  showAnswer(complete);
-  answerForm.hidden=complete;
-  hints.hidden=complete;
-  feedback.textContent=complete?"ตอบถูกแล้ว เปิดดูคำศัพท์ได้": "ลองพิมพ์คำตอบ หรือแตะป้ายเพื่อเปิดดูคำศัพท์";
+  resetHints();showAnswer(complete);
+  revealArea.hidden=isOral;
+  answerForm.hidden=isOral||complete;
+  hints.hidden=isOral||complete;
+  hideWord.hidden=isOral||hideWord.hidden;
+  oralPanel.hidden=!isOral;
+  feedback.hidden=isOral;
+  if(isOral){
+   const state=getOralProgress(current);
+   oralStatus.textContent=state==="known"?"อ่านได้แล้ว (บันทึกด้วยตนเอง)":state==="retry"?"ฝึกอีกครั้ง":"ยังไม่ฝึก";
+   oralKnown.setAttribute("aria-pressed",String(state==="known"));
+   oralRetry.setAttribute("aria-pressed",String(state==="retry"));
+  }
+  feedback.textContent=complete?"ตอบถูกแล้ว เปิดดูคำศัพท์ได้":"ลองพิมพ์คำตอบ หรือแตะป้ายเพื่อเปิดดูคำศัพท์";
   feedback.classList.toggle("is-success",complete);
   feedback.classList.remove("is-error");
   previous.disabled=position===0;
   next.textContent=position===cards.length-1?"กลับหน้าแรก ↻":"หน้าถัดไป →";
   renderDots();
  }
-
  // The stationary leaf holds the currently visible page while an actual
  // paper leaf turns on the book spine. The opposite face is the destination.
  function cleanSnapshot(node){
