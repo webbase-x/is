@@ -389,3 +389,38 @@ body.book-fallback-lock{
 .book-cover-front .book-cover-ribbon,
 .book-cover-front .book-cover-credit{display:none!important}
 .book-cover-art{object-position:center center;image-rendering:auto}
+
+
+/* Volume 1, chapter 2: oral-reading pages with large, legible Thai words. */
+.book-cover-index{font-size:13px;font-weight:800;text-align:center;color:#276448;line-height:1.5;margin:4px auto 0}
+.book-chapter-nav{display:flex;flex-wrap:wrap;gap:10px;margin:0 4px 12px}
+.book-chapter-btn{border:1px solid #c6d9c8;background:#fffdf8;color:#37674c;border-radius:12px;min-height:44px;padding:9px 15px;font:inherit;font-weight:800;cursor:pointer}
+.book-chapter-btn[aria-current="true"]{background:#227655;color:#fff;border-color:#227655}
+.book-chapter-btn:disabled{opacity:.38;cursor:not-allowed}
+.book-page.is-oral-page{background:linear-gradient(120deg,#fffaf0,#f7f1de)}
+.book-page-word.is-oral-page{background:linear-gradient(115deg,#fff8ed,#f0f9eb)}
+.book-oral-question{font-size:clamp(20px,2.7vw,28px);font-weight:900;color:#a1753c}
+.book-oral-word{font-size:clamp(42px,5.5vw,76px);line-height:1.65;font-weight:900;color:#14528a;text-align:center;max-width:100%;overflow-wrap:anywhere;text-shadow:0 2px 1px #fff,0 3px 8px #b8d5df}
+.book-oral-prompt{font-size:15px;line-height:1.7;color:#647a69;text-align:center}
+.book-oral-panel{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;padding:14px 6px;text-align:center}
+.book-oral-panel h3{font-size:clamp(25px,3vw,38px);color:#225a45;margin:0}
+.book-oral-instructions{font-size:clamp(15px,1.7vw,21px);line-height:1.8;color:#4d6a58;max-width:420px;margin:0}
+.book-oral-state{padding:8px 17px;border:1px solid #d7c18d;background:#f9f0d2;color:#725524;border-radius:30px;font-weight:850;margin:0}
+.book-oral-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:11px}
+.book-oral-actions button{min-height:48px;border-radius:12px;padding:10px 18px;font:inherit;font-weight:850;cursor:pointer}
+.book-oral-known{background:#20815d;border:1px solid #20815d;color:#fff}
+.book-oral-retry{background:#fff5de;border:1px solid #d2b36c;color:#7d581c}
+.book-oral-actions button[aria-pressed="true"]{outline:3px solid #e9b74e;outline-offset:3px}
+.book-oral-footnote{font-size:12px;color:#69806d;line-height:1.6;margin:0}
+.book-dot.is-retry{background:#fff0da;color:#885923;border-color:#daba74}
+.picture-book.is-book-expanded .book-oral-word{font-size:clamp(48px,6vw,102px)}
+@media(max-width:780px){
+ .book-chapter-nav{gap:7px}
+ .book-chapter-btn{flex:1;min-width:136px;font-size:13px;padding:8px 7px}
+ .book-oral-word{font-size:clamp(37px,9vw,66px)}
+ .book-oral-panel{gap:10px}
+ .book-oral-panel h3{font-size:25px}
+ .book-oral-instructions{font-size:15px}
+ .book-oral-actions button{min-width:130px}
+}
+@media print{.book-chapter-nav,.book-oral-actions,.book-oral-state{display:none!important}}
