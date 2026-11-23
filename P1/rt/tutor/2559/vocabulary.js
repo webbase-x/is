@@ -19,18 +19,19 @@ export function buildVocabulary(exam){
  picture.words.forEach((word,i)=>{
   const position=picture.answers[i];
   if(!Number.isInteger(position)||position<1||position>12)throw Error("ตำแหน่งภาพไม่ถูกต้อง");
-  cards.push({id:"pic-"+(i+1),group:"picture",word,position:position-1,
+  cards.push({id:"pic-"+(i+1),group:"picture",word,position:position-1,sourceNo:i+1,
    source:"การอ่านรู้เรื่อง ข้อ "+(i+1)});
- });
- words.forEach((word,i)=>{
-  cards.push({id:"oral-"+(i+1),group:"oral",word,
-   source:"การอ่านออกเสียง ข้อ "+(i+1)});
  });
  meanings.terms.forEach((word,i)=>{
   const matchingIndex=meanings.answers.indexOf(i+1);
-  cards.push({id:"meaning-"+(i+1),group:"meaning",word,
+  cards.push({id:"meaning-"+(i+1),group:"meaning",word,choiceIndex:i+1,
+   questionNo:matchingIndex>=0?11+matchingIndex:null,
    definition:matchingIndex>=0?meanings.definitions[matchingIndex]:null,
    source:"การอ่านรู้เรื่อง ข้อ 11–15"});
+ });
+ words.forEach((word,i)=>{
+  cards.push({id:"oral-"+(i+1),group:"oral",word,sourceNo:i+1,
+   source:"การอ่านออกเสียง ข้อ "+(i+1)});
  });
  if(cards.some(c=>typeof c.word!=="string"||!c.word.trim()))throw Error("พบคำศัพท์ว่าง");
  return cards;

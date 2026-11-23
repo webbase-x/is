@@ -2,6 +2,8 @@ import {VOCAB_GROUPS,buildVocabulary,filterVocabulary,countProgress,shuffleDeck}
 
 const STORAGE_KEY="rt-tutor-2559-vocabulary-v1";
 const LABEL={picture:"คำจับคู่ภาพ",oral:"คำอ่านออกเสียง",meaning:"คำจับคู่ความหมาย"};
+const THAI_DIGITS="๐๑๒๓๔๕๖๗๘๙";
+const thaiNumber=value=>String(value).replace(/[0-9]/g,digit=>THAI_DIGITS[Number(digit)]);
 const make=(tag,className,txt)=>{
  const element=document.createElement(tag);
  if(className)element.className=className;
@@ -50,7 +52,22 @@ export function mountVocabulary(app,exam,sprite){
  search.type="search";search.placeholder="พิมพ์คำที่ต้องการค้นหา";search.autocomplete="off";
  const chips=add(controls,"div","vocab-groups");
  chips.setAttribute("role","group");chips.setAttribute("aria-label","เลือกหมวดคำศัพท์");
- const listTop=add(section,"div","vocab-list-heading");
+ const reference=add(section,"section","vocab-matching-reference");
+ add(reference,"h2","","ตอนที่ ๑ การอ่านรู้เรื่องคำ · ข้อที่ ๑๑–๑๕");
+ add(reference,"p","","ข้อความและคำตัวเลือกจากต้นฉบับที่ผู้ใช้ระบุ คงหมายเลขข้อและลำดับเดิม");
+ const referenceColumns=add(reference,"div","vocab-meaning-columns");
+ const definitionsColumn=add(referenceColumns,"div");
+ add(definitionsColumn,"h3","","กลุ่มคำบอกความหมาย");
+ const definitions=add(definitionsColumn,"ol");
+ definitions.start=11;
+ exam.comprehension.meaningMatching.definitions.forEach((definition,index)=>{
+  add(definitions,"li","",definition).value=11+index;
+ });
+ const choicesColumn=add(referenceColumns,"div");
+ add(choicesColumn,"h3","","คำตัวเลือกตามลำดับต้นฉบับ");
+ const choicesBox=add(choicesColumn,"div","meaning-choices");
+ exam.comprehension.meaningMatching.terms.forEach(word=>add(choicesBox,"span","",word));
+  const listTop=add(section,"div","vocab-list-heading");
  add(listTop,"h2","","รายการคำศัพท์");
  const currentCount=add(listTop,"span","vocab-count","");
  const wordList=add(section,"div","vocab-grid");
@@ -113,12 +130,24 @@ export function mountVocabulary(app,exam,sprite){
  }
  function renderList(){
   currentCount.textContent=visible.length+" คำ";
+  reference.hidden=!!query.trim()||!(group==="all"||group==="meaning");
   const fragment=document.createDocumentFragment();
+  let lastGroup=null;
   visible.forEach((card,index)=>{
+   if(card.group!==lastGroup){
+    const groupHeading=add(fragment,"h3","vocab-group-label",
+      card.group==="picture"?"ตอนที่ ๑ การอ่านรู้เรื่องคำ · ข้อ ๑–๑๐":
+      card.group==="meaning"?"ตอนที่ ๑ การอ่านรู้เรื่องคำ · คำตัวเลือกข้อ ๑๑–๑๕":
+      "ตอนที่ ๑ การอ่านออกเสียงคำ · ข้อ ๑–๒๐");
+    lastGroup=card.group;
+   }
    const item=add(fragment,"article","vocab-entry");
    if(card.group==="picture")sourceImage(item,card,sprite);
    const body=add(item,"div","vocab-entry-body");
-   add(body,"span","vocab-entry-index","คำที่ "+(index+1)+" · "+LABEL[card.group]);
+   const questionRef=card.group==="meaning"?
+    "ตัวเลือก "+thaiNumber(card.choiceIndex)+(card.questionNo?" · ข้อ "+thaiNumber(card.questionNo):" · คำตัวเลือกเสริม"):
+    "ข้อ "+thaiNumber(card.sourceNo);
+   add(body,"span","vocab-entry-index",questionRef+" · "+LABEL[card.group]);
    add(body,"h3","",card.word);
    if(card.definition)add(body,"p","vocab-definition","ความหมายตามแบบทดสอบ: "+card.definition);
    else if(card.group==="meaning")add(body,"p","vocab-definition","คำตัวเลือกเสริม · ไม่มีนิยามจับคู่ในข้อสอบ");

@@ -48,3 +48,17 @@ body.vocab-active .vocab-controls,body.vocab-active .flash-game,body.vocab-activ
 body.vocab-active .vocab-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 body.vocab-active .vocab-entry{box-shadow:none;border-radius:5px;break-inside:avoid;min-height:90px}
 body.vocab-active .vocab-entry h3{font-size:19px}}
+
+/* Keep original exam section order (picture words, definitions/options, oral words). */
+.vocab-group-label{grid-column:1/-1;color:#245e47;font-size:19px;margin:18px 0 0;padding:12px 4px 5px;border-bottom:2px solid #dceadf}
+.vocab-matching-reference{margin:18px 0 20px;background:#fff;border:1px solid #d9e8dc;border-radius:16px;padding:20px 23px}
+.vocab-matching-reference[hidden]{display:none!important}
+.vocab-matching-reference h2{font-size:20px;margin:0 0 5px}
+.vocab-matching-reference>p{font-size:13px;color:#55705f;margin:0 0 14px}
+.vocab-meaning-columns{display:grid;grid-template-columns:1.25fr 1fr;gap:20px}
+.vocab-meaning-columns h3{font-size:15px;color:#245e47;margin:0 0 8px}
+.vocab-meaning-columns ol{margin:0;padding-left:28px;line-height:1.95}
+.vocab-meaning-columns .meaning-choices{display:flex;flex-wrap:wrap;gap:8px}
+.vocab-meaning-columns .meaning-choices span{border:1px solid #dae9dd;border-radius:9px;padding:6px 9px;background:#f8faf7;font-size:15px}
+@media(max-width:650px){.vocab-meaning-columns{grid-template-columns:1fr}.vocab-matching-reference{padding:16px}}
+@media print{.vocab-matching-reference{break-inside:avoid}.vocab-group-label{break-after:avoid}}
