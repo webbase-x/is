@@ -1,4 +1,4 @@
-import {COLOR_PICTURES,CORRECT_PICTURE_POSITIONS,verifyPictureOrder} from "./color-pictures.js";
+import {PICTURE_LABELS,PICTURE_SPRITE,CORRECT_PICTURE_POSITIONS,verifyPictureOrder} from "./color-pictures.js";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 const data=JSON.parse(await readFile(new URL("./data.json",import.meta.url),"utf8"));
@@ -19,9 +19,17 @@ for(const q of data.comprehension.choices){assert.ok(q.passage&&q.question&&q.ch
 assert.equal(data.comprehension.pictureMatching.answers.filter(x=>Number.isInteger(x)).length,10);
 console.log("PASS: 2559 full text exam: 25 comprehension and 20 words + 6 sentences + passage, image preservation, original keys");
 
-assert.equal(COLOR_PICTURES.length,12);
-assert.ok(COLOR_PICTURES.every(x=>x.svg.includes("<svg")&&x.label&&x.tone));
+assert.equal(PICTURE_LABELS.length,12);
+assert.equal(PICTURE_SPRITE.rows,12);
+assert.equal(PICTURE_SPRITE.rowHeight*PICTURE_SPRITE.rows,PICTURE_SPRITE.height);
+const image=await readFile(new URL(PICTURE_SPRITE.path,import.meta.url));
+assert.equal(image.toString("ascii",0,4),"RIFF");
+assert.equal(image.toString("ascii",8,12),"WEBP");
+assert.ok(image.length>5000);
+const appSource=await readFile(new URL("./app.js",import.meta.url),"utf8");
+assert.ok(appSource.includes("picture-sprite"));
+assert.ok(!appSource.includes("picture.svg"));
 assert.deepEqual(CORRECT_PICTURE_POSITIONS,data.comprehension.pictureMatching.answers);
 assert.equal(verifyPictureOrder(data.comprehension.pictureMatching.answers),true);
 assert.throws(()=>verifyPictureOrder(Array(10).fill(1)));
-console.log("PASS: 12 full-color picture meanings, original picture positions and answer-key mapping");
+console.log("PASS: 12 semirealistic colored raster pictures, original positions and answer-key mapping");
