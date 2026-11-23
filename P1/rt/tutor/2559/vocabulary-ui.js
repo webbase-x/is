@@ -1,5 +1,5 @@
-import {VOCAB_GROUPS,buildVocabulary,filterVocabulary,countProgress,shuffleDeck} from "./vocabulary.js?v=vol1-oral-20261123r2";
-import {mountPictureBook} from "./picture-book.js?v=vol1-oral-20261123r2";
+import {VOCAB_GROUPS,buildVocabulary,filterVocabulary,countProgress,shuffleDeck} from "./vocabulary.js?v=vol1-sequential-20261123r3";
+import {mountPictureBook} from "./picture-book.js?v=vol1-sequential-20261123r3";
 
 const STORAGE_KEY="rt-tutor-2559-vocabulary-v1";
 const LABEL={picture:"คำจับคู่ภาพ",oral:"คำอ่านออกเสียง",meaning:"คำจับคู่ความหมาย"};

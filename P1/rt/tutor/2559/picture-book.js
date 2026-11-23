@@ -1,5 +1,5 @@
-import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards} from "./picture-book-core.js?v=vol1-oral-20261123r2";
-import {installBookFullscreen} from "./fullscreen-book.js?v=vol1-oral-20261123r2";
+import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards,bookPageNumber} from "./picture-book-core.js?v=vol1-sequential-20261123r3";
+import {installBookFullscreen} from "./fullscreen-book.js?v=vol1-sequential-20261123r3";
 
 const BOOK_STORAGE="rt-tutor-2559-picture-book-v1";
 const digit=n=>String(n).replace(/[0-9]/g,c=>"๐๑๒๓๔๕๖๗๘๙"[Number(c)]);
@@ -106,9 +106,9 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  coverChapters.setAttribute("aria-label","เปิดบทเรียนจากหน้าปก");
  const coverOpen=add(coverChapters,"button","book-cover-open","เปิดตอนที่ ๑ · จับคู่ภาพ");
  coverOpen.type="button";
- const coverOpenOral=add(coverChapters,"button","book-cover-open book-cover-oral","เปิดตอนที่ ๒ · อ่านออกเสียง");
+ const coverOpenOral=add(coverChapters,"button","book-cover-open book-cover-oral","เปิดตอนที่ ๒ · คำ ๑๑–๓๐");
  coverOpenOral.type="button";
- add(coverStage,"p","book-cover-index","เล่ม ๑ · ตอนที่ ๑ จำนวน ๑๐ คำ · ตอนที่ ๒ จำนวน ๒๐ คำ");
+ add(coverStage,"p","book-cover-index","เล่ม ๑ · ตอนที่ ๑ คำ ๑–๑๐ · ตอนที่ ๒ คำ ๑๑–๓๐");
  const header=add(host,"header","picture-book-heading");
  const title=add(header,"div");
  const chapterHeading=add(title,"span","picture-book-kicker","ตอนที่ ๑ · คำจับคู่ภาพ");
@@ -132,7 +132,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  chapters.setAttribute("aria-label","เลือกตอนในหนังสือ");
  const jumpPicture=add(chapters,"button","book-chapter-btn","ตอนที่ ๑ · จับคู่ภาพ");
  jumpPicture.type="button";
- const jumpOral=add(chapters,"button","book-chapter-btn","ตอนที่ ๒ · อ่านออกเสียง");
+ const jumpOral=add(chapters,"button","book-chapter-btn","ตอนที่ ๒ · คำ ๑๑–๓๐");
  jumpOral.type="button";
  const spread=add(host,"div","book-spread");
  spread.setAttribute("aria-label","หนังสือภาพเปิดสองหน้า");
@@ -251,9 +251,9 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   cards.forEach((card,index)=>{
    if(card.group!==current?.group)return;
    const state=card.group==="picture"?(solved[card.id]?"known":null):getOralProgress(card);
-   const dot=add(dots,"button","book-dot",digit(card.sourceNo));
+   const dot=add(dots,"button","book-dot",digit(bookPageNumber(card)));
    dot.type="button";
-   dot.title=(card.group==="oral"?"อ่านออกเสียง":"จับคู่ภาพ")+" ข้อ "+digit(card.sourceNo);
+   dot.title="คำลำดับ "+digit(bookPageNumber(card))+(card.group==="oral"?" · ข้อสอบเดิม "+digit(card.sourceNo):" · จับคู่ภาพ");
    dot.setAttribute("aria-label",dot.title);
    dot.setAttribute("aria-current",String(position===index));
    if(state==="known")dot.classList.add("is-complete");
@@ -288,7 +288,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   left.classList.toggle("is-oral-page",isOral);
   right.classList.toggle("is-oral-page",isOral);
   chapterHeading.textContent=isOral?"ตอนที่ ๒ · การอ่านออกเสียงคำ":"ตอนที่ ๑ · คำจับคู่ภาพ";
-  chapterDesc.textContent=isOral?"อ่านออกเสียงคำที่กำหนดให้ถูกต้อง · ข้อ ๑–๒๐":"ดูภาพทางซ้ายแล้วพิมพ์คำที่ถูกต้องทางขวา";
+  chapterDesc.textContent=isOral?"คำลำดับ ๑๑–๓๐ · ข้อสอบอ่านออกเสียงเดิม ข้อ ๑–๒๐":"ดูภาพทางซ้ายแล้วพิมพ์คำที่ถูกต้องทางขวา";
   leftHeading.textContent=isOral?"หน้าซ้าย • อ่านออกเสียง":"หน้าซ้าย • ภาพ";
   rightHeading.textContent=isOral?"หน้าขวา • ฝึกอ่าน":"หน้าขวา • ทายคำ";
   jumpPicture.setAttribute("aria-current",String(!isOral));
@@ -297,7 +297,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   jumpOral.disabled=!cards.some(card=>card.group==="oral");
   visualArea.replaceChildren();
   if(isOral){
-   add(visualArea,"span","book-oral-question","ข้อ "+digit(current.sourceNo));
+   add(visualArea,"span","book-oral-question","คำลำดับ "+digit(bookPageNumber(current))+" · ข้อสอบเดิม "+digit(current.sourceNo));
    add(visualArea,"strong","book-oral-word",current.word);
    add(visualArea,"p","book-oral-prompt","อ่านออกเสียงคำที่กำหนดให้ถูกต้อง");
   }else{
@@ -305,7 +305,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
    add(visualArea,"p","book-picture-caption","ดูภาพแล้วตอบว่าเป็นคำใด");
   }
   word.textContent=current.word;
-  counter.textContent="เปิดหน้า "+digit(position+1)+" / "+digit(cards.length)+" · "+(isOral?"อ่านออกเสียง":"จับคู่ภาพ")+" ข้อ "+digit(current.sourceNo);
+  counter.textContent="เปิดหน้า "+digit(bookPageNumber(current))+" / ๓๐ · "+(isOral?"อ่านออกเสียง":"จับคู่ภาพ")+" · คำลำดับ "+digit(bookPageNumber(current));
   input.value="";incorrectAttempts=0;
   resetHints();showAnswer(complete);
   revealArea.hidden=isOral;

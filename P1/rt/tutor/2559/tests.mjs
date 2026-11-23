@@ -282,6 +282,19 @@ assert.ok(entryBook.includes("openChapter,closeBook"));
 assert.ok(entryUI.includes('pictureBook.openChapter(entry.id)'));
 assert.ok(entryUI.includes('get("book")==="oral"'));
 assert.ok(entryUI.includes('listed=visible.filter(card=>card.group==="meaning")'));
-assert.ok(entryHTML.includes('app.js?v=vol1-oral-20261123r2'));
-assert.ok(entryUI.includes('picture-book.js?v=vol1-oral-20261123r2'));
+assert.ok(entryHTML.includes('app.js?v=vol1-sequential-20261123r3'));
+assert.ok(entryUI.includes('picture-book.js?v=vol1-sequential-20261123r3'));
 console.log("PASS: closed-cover chapter-two entry, oral chip navigation, oral deep link and cache-busted module graph");
+
+
+// Number in-volume vocabulary pages sequentially, but preserve original
+// oral-exam question labels (sourceNo ๑–๒๐) as source metadata.
+import {bookPageNumber} from "./picture-book-core.js";
+assert.deepEqual(fullVolume.map(bookPageNumber),Array.from({length:30},(_,i)=>i+1));
+assert.deepEqual(fullVolume.slice(10).map(card=>card.sourceNo),Array.from({length:20},(_,i)=>i+1));
+const continuousBook=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+assert.ok(continuousBook.includes('digit(bookPageNumber(card))'));
+assert.ok(continuousBook.includes('"คำลำดับ "+digit(bookPageNumber(current))'));
+assert.ok(continuousBook.includes('counter.textContent="เปิดหน้า "+digit(bookPageNumber(current))+" / ๓๐'));
+assert.ok(continuousBook.includes('ตอนที่ ๒ · คำ ๑๑–๓๐'));
+console.log("PASS: consecutive Thai-numbered volume pages ๑–๓๐ with original oral question labels intact");

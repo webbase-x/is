@@ -75,3 +75,12 @@ export function bookVocabularyCards(items){
  }
  return [...pictures,...oral];
 }
+
+
+// Book-wide sequence ๑–๓๐, independent of original exam item numbering.
+export function bookPageNumber(card){
+ if(!card||!Number.isInteger(card.sourceNo))throw Error("เลขข้อไม่ถูกต้อง");
+ if(card.group==="picture"&&card.sourceNo>=1&&card.sourceNo<=10)return card.sourceNo;
+ if(card.group==="oral"&&card.sourceNo>=1&&card.sourceNo<=20)return card.sourceNo+10;
+ throw Error("คำศัพท์ไม่อยู่ในเล่ม ๑");
+}
