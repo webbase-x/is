@@ -94,18 +94,12 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  coverPages.setAttribute("aria-hidden","true");
  const coverFront=add(coverStage,"button","book-cover-front");
  coverFront.type="button";
- coverFront.setAttribute("aria-label","เปิดหนังสือภาพทายคำ เล่ม ๑");
+ coverFront.setAttribute("aria-label","เปิดหนังสือภาพทายคำ เล่ม ๑ · RT ปี ๒๕๕๙ · ผู้ผลิตหนังสือ ครูไพรัช  อินควรชุม");
  const coverArt=add(coverFront,"img","book-cover-art");
- coverArt.src="./assets/rt2559-book-cover-volume-1.webp";
+ // The artwork already contains the complete title and producer credit.
+ coverArt.src="./assets/rt2559-book-cover-volume-1-revised.webp";
  coverArt.alt="";coverArt.setAttribute("aria-hidden","true");
  coverArt.loading="eager";coverArt.decoding="async";
- const coverText=add(coverFront,"span","book-cover-title");
- add(coverText,"span","book-cover-volume","เล่ม ๑");
- add(coverText,"strong","book-cover-bookname","หนังสือภาพทายคำ");
- const coverRibbon=add(coverFront,"span","book-cover-ribbon","แบบฝึกคำจับคู่ภาพ · RT ปี ๒๕๕๙");
- const credit=add(coverFront,"span","book-cover-credit");
- add(credit,"small","","ผู้ผลิตหนังสือ");
- add(credit,"strong","","ครูไพรัช อินควรชุม");
  const coverOpen=add(coverStage,"button","book-cover-open","เปิดหนังสือ →");
  coverOpen.type="button";
  const header=add(host,"header","picture-book-heading");

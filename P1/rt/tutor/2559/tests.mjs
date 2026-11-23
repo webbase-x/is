@@ -211,7 +211,7 @@ const coverScript=await readFile(new URL("./picture-book.js",import.meta.url),"u
 const coverStyle=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
 const thaiVocab=await readFile(new URL("./vocabulary-ui.js",import.meta.url),"utf8");
 const coverMeta=await readFile(new URL("./index.html",import.meta.url),"utf8");
-const coverImage=await readFile(new URL("./assets/rt2559-book-cover-volume-1.webp",import.meta.url));
+const coverImage=await readFile(new URL("./assets/rt2559-book-cover-volume-1-revised.webp",import.meta.url));
 assert.equal(coverImage.toString("ascii",0,4),"RIFF");
 assert.equal(coverImage.toString("ascii",8,12),"WEBP");
 assert.ok(coverImage.length>50000);
@@ -236,3 +236,9 @@ assert.ok(allThaiPage.includes("RT ป.๑")&&allThaiPage.includes("ปี ๒�
 assert.ok(allThaiVocab.includes('thaiNumber(card.source)'));
 assert.ok(allThaiExam.includes('nThai(points)')&&allThaiExam.includes('answers.map(nThai)'));
 console.log("PASS: Thai numerals in RT Tutor book, vocabulary, teacher key and page labels");
+
+assert.ok(coverScript.includes('rt2559-book-cover-volume-1-revised.webp'));
+assert.ok(!coverScript.includes('const coverText=add(coverFront'));
+assert.ok(!coverScript.includes('const credit=add(coverFront'));
+assert.ok(coverScript.includes('ครูไพรัช  อินควรชุม'));
+console.log("PASS: revised cover and no duplicate overlaid title or credit");

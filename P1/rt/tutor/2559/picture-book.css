@@ -383,3 +383,9 @@ body.book-fallback-lock{
  .book-cover-open{display:none!important}
  .book-cover-stage.is-opening .book-cover-front{transform:none!important}
 }
+
+/* Corrected cover art contains all text, so remove duplicate HTML overlays. */
+.book-cover-front .book-cover-title,
+.book-cover-front .book-cover-ribbon,
+.book-cover-front .book-cover-credit{display:none!important}
+.book-cover-art{object-position:center center;image-rendering:auto}
