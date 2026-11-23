@@ -85,12 +85,33 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  const solved=readSolved(original);
  let cards=[...original],position=0,revealed=false,soundOn=true,incorrectAttempts=0;
  let turning=false,activeTurn=null,turnTimer=null;
+ let coverClosed=true,coverOpening=false,coverTimer=null;
  const host=add(parent,"section","picture-book");
- host.id="picture-book";host.setAttribute("aria-label","หนังสือคำจับคู่ภาพ");
+ host.id="picture-book";host.setAttribute("aria-label","หนังสือภาพทายคำ เล่ม ๑");
+ host.classList.add("is-cover-closed");
+ const coverStage=add(host,"div","book-cover-stage");
+ const coverPages=add(coverStage,"div","book-cover-page-stack");
+ coverPages.setAttribute("aria-hidden","true");
+ const coverFront=add(coverStage,"button","book-cover-front");
+ coverFront.type="button";
+ coverFront.setAttribute("aria-label","เปิดหนังสือภาพทายคำ เล่ม ๑");
+ const coverArt=add(coverFront,"img","book-cover-art");
+ coverArt.src="./assets/rt2559-book-cover-volume-1.webp";
+ coverArt.alt="";coverArt.setAttribute("aria-hidden","true");
+ coverArt.loading="eager";coverArt.decoding="async";
+ const coverText=add(coverFront,"span","book-cover-title");
+ add(coverText,"span","book-cover-volume","เล่ม ๑");
+ add(coverText,"strong","book-cover-bookname","หนังสือภาพทายคำ");
+ const coverRibbon=add(coverFront,"span","book-cover-ribbon","แบบฝึกคำจับคู่ภาพ · RT ปี ๒๕๕๙");
+ const credit=add(coverFront,"span","book-cover-credit");
+ add(credit,"small","","ผู้ผลิตหนังสือ");
+ add(credit,"strong","","ครูไพรัช อินควรชุม");
+ const coverOpen=add(coverStage,"button","book-cover-open","เปิดหนังสือ →");
+ coverOpen.type="button";
  const header=add(host,"header","picture-book-heading");
  const title=add(header,"div");
  add(title,"span","picture-book-kicker","ตอนที่ ๑ · คำจับคู่ภาพ");
- add(title,"h2","","หนังสือภาพทายคำ");
+ add(title,"h2","","หนังสือภาพทายคำ · เล่ม ๑");
  add(title,"p","","พลิกหน้ากระดาษเหมือนหนังสือจริง · หน้าซ้ายดูภาพ หน้าขวาทายคำศัพท์ที่ซ่อนอยู่");
  const tools=add(header,"div","picture-book-tools");
  const expandButton=add(tools,"button","book-small-btn book-expand-btn","⛶ เต็มจอ");
@@ -99,6 +120,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  const sound=add(tools,"button","book-small-btn","เสียง: เปิด");
  sound.type="button";sound.setAttribute("aria-pressed","true");sound.title="เปิดหรือปิดเสียงแสดงความยินดี";
  const reset=add(tools,"button","book-small-btn","เริ่มใหม่");reset.type="button";
+ const closeCover=add(tools,"button","book-small-btn book-close-cover","ปิดหนังสือ");closeCover.type="button";
  const stats=add(host,"div","book-topline");
  const counter=add(stats,"span","book-counter","");
  counter.setAttribute("aria-live","polite");
@@ -155,7 +177,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  const previous=add(nav,"button","book-nav-btn","← หน้าก่อน");previous.type="button";
  const dots=add(nav,"div","book-page-dots");
  const next=add(nav,"button","book-nav-btn book-nav-primary","หน้าถัดไป →");next.type="button";
- const footer=add(host,"p","book-footer","คำศัพท์และภาพอ้างอิงจากแบบทดสอบ RT ปี 2559 · ความคืบหน้าบันทึกในเบราว์เซอร์");
+ const footer=add(host,"p","book-footer","เล่ม ๑ · คำศัพท์และภาพอ้างอิงจากแบบทดสอบ RT ปี ๒๕๕๙ · ผู้ผลิตหนังสือ ครูไพรัช อินควรชุม");
  const empty=add(host,"p","book-empty","ไม่พบคำจับคู่ภาพตามตัวกรอง");
  empty.hidden=true;
  let current=null,hintPieces=[],insertedPieces=[];
@@ -367,6 +389,33 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
   Object.keys(solved).forEach(key=>delete solved[key]);
   store();stopTurning();position=0;render();
  });
+ function finishCoverOpen(){
+  if(coverTimer!==null){window.clearTimeout(coverTimer);coverTimer=null}
+  coverOpening=false;coverClosed=false;
+  coverStage.classList.remove("is-opening");
+  coverStage.hidden=true;
+  host.classList.remove("is-cover-closed");
+  host.classList.add("is-cover-opened");
+ }
+ function openBook(){
+  if(!coverClosed||coverOpening||!cards.length)return;
+  coverOpening=true;
+  coverStage.classList.add("is-opening");
+  if(reducedMotion()){finishCoverOpen();return}
+  coverTimer=window.setTimeout(finishCoverOpen,980);
+ }
+ function closeBook(){
+  if(coverTimer!==null){window.clearTimeout(coverTimer);coverTimer=null}
+  stopTurning();
+  coverOpening=false;coverClosed=true;
+  coverStage.classList.remove("is-opening");
+  coverStage.hidden=false;
+  host.classList.remove("is-cover-opened");
+  host.classList.add("is-cover-closed");
+ }
+ coverFront.addEventListener("click",openBook);
+ coverOpen.addEventListener("click",openBook);
+ closeCover.addEventListener("click",closeBook);
  function setCards(subset){
   stopTurning();
   const allowed=new Set(original.map(c=>c.id));
@@ -375,5 +424,5 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
   host.hidden=false;
  }
  setCards(original);
- return {root:host,setCards,getProgress:()=>pictureBookStats(original,solved)};
+ return {root:host,setCards,openBook,closeBook,isCoverClosed:()=>coverClosed,getProgress:()=>pictureBookStats(original,solved)};
 }

@@ -203,3 +203,28 @@ assert.equal(PICTURE_SPRITE.sourceHeight/PICTURE_SPRITE.rows,240);
 assert.deepEqual(data.comprehension.pictureMatching.answers,[3,6,5,1,4,10,8,9,12,11]);
 assert.ok(!vocabularyHTML.includes("pictures-2559-cartoon.webp"));
 console.log("PASS: upgraded HD colorful sprite with preserved 12-picture order and original key");
+
+
+// Real closed-cover first-launch contract; all cover numerals and producer credits
+// are HTML overlays, so their Thai glyphs remain crisp at every zoom level.
+const coverScript=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const coverStyle=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
+const thaiVocab=await readFile(new URL("./vocabulary-ui.js",import.meta.url),"utf8");
+const coverMeta=await readFile(new URL("./index.html",import.meta.url),"utf8");
+const coverImage=await readFile(new URL("./assets/rt2559-book-cover-volume-1.webp",import.meta.url));
+assert.equal(coverImage.toString("ascii",0,4),"RIFF");
+assert.equal(coverImage.toString("ascii",8,12),"WEBP");
+assert.ok(coverImage.length>50000);
+assert.ok(coverScript.includes('host.classList.add("is-cover-closed")'));
+assert.ok(coverScript.includes('coverStage.hidden=true'));
+assert.ok(coverScript.includes('coverStage.hidden=false'));
+assert.ok(coverScript.includes('coverOpen.addEventListener("click",openBook)'));
+assert.ok(coverScript.includes('closeCover.addEventListener("click",closeBook)'));
+assert.ok(coverScript.includes('const coverArt=add(coverFront,"img","book-cover-art")'));
+assert.ok(coverScript.includes('เล่ม ๑')&&coverScript.includes('๒๕๕๙')&&coverScript.includes('ครูไพรัช อินควรชุม'));
+assert.ok(coverStyle.includes(".book-cover-stage.is-opening .book-cover-front"));
+assert.ok(coverStyle.includes("rotateY(-170deg)"));
+assert.ok(coverStyle.includes("@media(max-width:600px)"));
+assert.ok(coverMeta.includes("พ.ศ. ๒๕๕๙"));
+assert.ok(thaiVocab.includes("thaiNumber(vocab.length)"));
+console.log("PASS: closed cover on first visit, opening/closing, Thai volume, Thai years, producer credit and cover artwork");

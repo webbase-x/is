@@ -42,9 +42,9 @@ export function mountVocabulary(app,exam,sprite){
  const heading=add(section,"header","vocab-header");
  add(heading,"span","vocab-kicker","พ.ศ. ๒๕๕๙ · ฝึกอ่านและจดจำ");
  add(heading,"h1","","คลังคำศัพท์");
- add(heading,"p","","ฝึกคำจับคู่ภาพ 10 คำด้วยหนังสือสองหน้า พลิกป้ายและพิมพ์คำตอบให้ถูกต้อง จากนั้นทบทวนคำหมวดอื่นและเล่นเกมแฟลชการ์ดท้ายคลัง");
+ add(heading,"p","","ฝึกคำจับคู่ภาพ ๑๐ คำด้วยหนังสือสองหน้า พลิกป้ายและพิมพ์คำตอบให้ถูกต้อง จากนั้นทบทวนคำหมวดอื่นและเล่นเกมแฟลชการ์ดท้ายคลัง");
  const stats=add(heading,"div","vocab-summary");
- add(stats,"strong","",vocab.length+" คำ");
+ add(stats,"strong","",thaiNumber(vocab.length)+" คำ");
  const statsDetail=add(stats,"span","","—");
 
  const controls=add(section,"div","vocab-controls");
@@ -76,7 +76,7 @@ export function mountVocabulary(app,exam,sprite){
  const currentCount=add(listTop,"span","vocab-count","");
  const wordList=add(section,"div","vocab-grid");
  const note=add(section,"p","vocab-source-note",
-  "ที่มา: ข้อสอบ RT พ.ศ. 2559 รูปแบบที่ 1 · คำในตัวเลือก 2 คำไม่มีนิยามจับคู่ในข้อสอบ จึงแสดงเป็นคำฝึกอ่านโดยไม่สร้างความหมายขึ้นใหม่");
+  "ที่มา: ข้อสอบ RT พ.ศ. ๒๕๕๙ รูปแบบที่ ๑ · คำในตัวเลือก ๒ คำไม่มีนิยามจับคู่ในข้อสอบ จึงแสดงเป็นคำฝึกอ่านโดยไม่สร้างความหมายขึ้นใหม่");
 
  const game=add(section,"section","flash-game");
  game.id="flashcards";game.setAttribute("aria-label","เกมแฟลชการ์ดฝึกคำศัพท์");
@@ -119,13 +119,13 @@ export function mountVocabulary(app,exam,sprite){
  }};
  const updateStats=()=>{
   const state=countProgress(vocab,progress);
-  statsDetail.textContent="จำได้ "+state.known+" · ฝึกอีกครั้ง "+state.retry+" · ยังไม่ทบทวน "+state.unrated;
+  statsDetail.textContent="จำได้ "+thaiNumber(state.known)+" · ฝึกอีกครั้ง "+thaiNumber(state.retry)+" · ยังไม่ทบทวน "+thaiNumber(state.unrated);
  };
  function renderChips(){
   chips.replaceChildren();
   VOCAB_GROUPS.forEach(entry=>{
    const size=filterVocabulary(vocab,entry.id).length;
-   const btn=add(chips,"button","vocab-chip",entry.label+" ("+size+")");
+   const btn=add(chips,"button","vocab-chip",entry.label+" ("+thaiNumber(size)+")");
    btn.type="button";btn.setAttribute("aria-pressed",String(entry.id===group));
    btn.addEventListener("click",()=>{
     group=entry.id;renderChips();renderFiltered();
@@ -134,8 +134,8 @@ export function mountVocabulary(app,exam,sprite){
  }
  function renderList(){
   const listed=visible.filter(card=>card.group!=="picture");
-  currentCount.textContent=visible.length+" คำ"+
-   (visible.some(card=>card.group==="picture")?" · หนังสือภาพ "+visible.filter(card=>card.group==="picture").length+" คำ":"");
+  currentCount.textContent=thaiNumber(visible.length)+" คำ"+
+   (visible.some(card=>card.group==="picture")?" · หนังสือภาพ "+thaiNumber(visible.filter(card=>card.group==="picture").length)+" คำ":"");
   reference.hidden=!!query.trim()||!(group==="all"||group==="meaning");
   const showList=listed.length>0||visible.length===0;
   listTop.hidden=!showList;wordList.hidden=!showList;note.hidden=!showList;
@@ -155,11 +155,11 @@ export function mountVocabulary(app,exam,sprite){
    const questionRef=card.group==="meaning"?
     "ตัวเลือก "+thaiNumber(card.choiceIndex)+(card.questionNo?" · ข้อ "+thaiNumber(card.questionNo):" · คำตัวเลือกเสริม"):
     "ข้อ "+thaiNumber(card.sourceNo);
-   add(body,"span","vocab-entry-index",questionRef+" · "+LABEL[card.group]);
+   add(body,"span","vocab-entry-index",thaiNumber(questionRef)+" · "+LABEL[card.group]);
    add(body,"h3","",card.word);
    if(card.definition)add(body,"p","vocab-definition","ความหมายตามแบบทดสอบ: "+card.definition);
    else if(card.group==="meaning")add(body,"p","vocab-definition","คำตัวเลือกเสริม · ไม่มีนิยามจับคู่ในข้อสอบ");
-   add(body,"small","vocab-source",card.source);
+   add(body,"small","vocab-source",thaiNumber(card.source));
    const tag=add(item,"span","vocab-status");
    tag.textContent=progress[card.id]==="known"?"จำได้":progress[card.id]==="retry"?"ฝึกซ้ำ":"ยังไม่ฝึก";
    tag.classList.toggle("is-known",progress[card.id]==="known");
@@ -184,14 +184,14 @@ export function mountVocabulary(app,exam,sprite){
   finishedView.hidden=!finished;
   if(finished){
    const result=countProgress(deck,progress);
-   finishTitle.textContent="ทบทวนครบ "+deck.length+" ใบแล้ว";
-   finishDetail.textContent="จำได้ "+result.known+" คำ · ฝึกอีกครั้ง "+result.retry+" คำ · ยังไม่ประเมิน "+result.unrated+" คำ";
+   finishTitle.textContent="ทบทวนครบ "+thaiNumber(deck.length)+" ใบแล้ว";
+   finishDetail.textContent="จำได้ "+thaiNumber(result.known)+" คำ · ฝึกอีกครั้ง "+thaiNumber(result.retry)+" คำ · ยังไม่ประเมิน "+thaiNumber(result.unrated)+" คำ";
    updateStats();renderList();return;
   }
   if(empty){finishedView.hidden=false;finishTitle.textContent="ไม่มีแฟลชการ์ดในชุดนี้";
    finishDetail.textContent="ลองเลือกหมวดใหม่หรือล้างคำค้นหา";return}
   const card=deck[at];
-  count.textContent="บัตร "+(at+1)+" / "+deck.length+" · "+LABEL[card.group]+
+  count.textContent="บัตร "+thaiNumber(at+1)+" / "+thaiNumber(deck.length)+" · "+LABEL[card.group]+
    " · "+(progress[card.id]==="known"?"จำได้แล้ว":progress[card.id]==="retry"?"ควรฝึกอีกครั้ง":"ยังไม่ประเมิน");
   flashButton.setAttribute("aria-pressed",String(flipped));
   flashContent.replaceChildren();
