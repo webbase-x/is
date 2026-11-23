@@ -80,3 +80,10 @@
  .book-hidden-word{opacity:1!important;transform:none!important}
  .book-plaque{display:none!important}
 }
+
+/* Ensure hidden answer controls and empty states remain hidden regardless of display rules. */
+.picture-book [hidden]{display:none!important}
+.book-hidden-word{opacity:0}
+.book-peek-toggle{align-self:center;border:1px solid #c7dccb;border-radius:9px;background:#fff;padding:6px 12px;font:inherit;color:#2a6850;font-size:13px;min-height:36px;cursor:pointer;margin:0 auto 12px}
+.book-peek-toggle:hover{background:#e6f4ea}
+@media print{.book-peek-toggle{display:none!important}}

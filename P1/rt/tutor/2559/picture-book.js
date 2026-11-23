@@ -118,6 +118,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  add(front,"span","","แตะป้ายเพื่อเปิดคำศัพท์");
  const back=add(plaqueInside,"span","book-plaque-back","กำลังเปิดเผยคำศัพท์");
  add(right,"p","book-plaque-tip","แตะป้ายเพื่อพลิกดูคำศัพท์ที่ซ่อนอยู่");
+ const hideWord=add(right,"button","book-peek-toggle","พลิกป้ายกลับ / ซ่อนคำ");hideWord.type="button";hideWord.hidden=true;
  const answerForm=add(right,"form","book-answer-form");
  const answerLabel=add(answerForm,"label","book-answer-label","เขียนคำตอบจากภาพ");
  const input=add(answerLabel,"input","book-answer");
@@ -161,6 +162,8 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
   revealArea.classList.toggle("is-revealed",isRevealed);
   plaque.setAttribute("aria-pressed",String(isRevealed));
   plaque.setAttribute("aria-label",isRevealed?"พลิกป้ายเพื่อปิดคำศัพท์":"พลิกป้ายเพื่อเปิดดูคำศัพท์");
+  word.setAttribute("aria-hidden",String(!isRevealed));
+  hideWord.hidden=!isRevealed||solved[current?.id]===true;
  }
  function render(animate=false){
   const noCards=!cards.length;
@@ -215,6 +218,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{}}={}){
  }
  answerForm.addEventListener("submit",submit);
  plaque.addEventListener("click",peek);
+ hideWord.addEventListener("click",peek);
  previous.addEventListener("click",()=>{if(position>0){position--;render(true)}});
  next.addEventListener("click",()=>{position=position<cards.length-1?position+1:0;render(true)});
  sound.addEventListener("click",()=>{
