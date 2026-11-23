@@ -267,3 +267,21 @@ assert.ok(chapterUI.includes("pictureBook.setCards(bookCards)"));
 assert.ok(chapterCSS.includes(".book-oral-word")&&chapterCSS.includes(".book-oral-panel"));
 assert.ok(chapterCSS.includes("@media(max-width:780px)"));
 console.log("PASS: 10 picture + 20 original oral words in the 30-page book; chapter switching, self-recording and reading layout");
+
+
+// Book entry point regression: child can open directly to oral reading page
+// 11 (the first of 20 prompts) from the closed cover or vocabulary chip.
+const entryBook=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const entryUI=await readFile(new URL("./vocabulary-ui.js",import.meta.url),"utf8");
+const entryHTML=await readFile(new URL("./index.html",import.meta.url),"utf8");
+assert.ok(entryBook.includes('const coverOpenOral=add(coverChapters,"button"'));
+assert.ok(entryBook.includes('coverOpenOral.addEventListener("click",()=>openChapter("oral"))'));
+assert.ok(entryBook.includes("function openChapter(group)"));
+assert.ok(entryBook.includes('if(coverClosed||coverOpening)'));
+assert.ok(entryBook.includes("openChapter,closeBook"));
+assert.ok(entryUI.includes('pictureBook.openChapter(entry.id)'));
+assert.ok(entryUI.includes('get("book")==="oral"'));
+assert.ok(entryUI.includes('listed=visible.filter(card=>card.group==="meaning")'));
+assert.ok(entryHTML.includes('app.js?v=vol1-oral-20261123r2'));
+assert.ok(entryUI.includes('picture-book.js?v=vol1-oral-20261123r2'));
+console.log("PASS: closed-cover chapter-two entry, oral chip navigation, oral deep link and cache-busted module graph");

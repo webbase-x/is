@@ -1,5 +1,5 @@
-import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards} from "./picture-book-core.js";
-import {installBookFullscreen} from "./fullscreen-book.js";
+import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards} from "./picture-book-core.js?v=vol1-oral-20261123r2";
+import {installBookFullscreen} from "./fullscreen-book.js?v=vol1-oral-20261123r2";
 
 const BOOK_STORAGE="rt-tutor-2559-picture-book-v1";
 const digit=n=>String(n).replace(/[0-9]/g,c=>"๐๑๒๓๔๕๖๗๘๙"[Number(c)]);
@@ -102,9 +102,13 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  coverArt.src="./assets/rt2559-book-cover-volume-1-revised.webp";
  coverArt.alt="";coverArt.setAttribute("aria-hidden","true");
  coverArt.loading="eager";coverArt.decoding="async";
- const coverOpen=add(coverStage,"button","book-cover-open","เปิดหนังสือ →");
+ const coverChapters=add(coverStage,"nav","book-cover-chapters");
+ coverChapters.setAttribute("aria-label","เปิดบทเรียนจากหน้าปก");
+ const coverOpen=add(coverChapters,"button","book-cover-open","เปิดตอนที่ ๑ · จับคู่ภาพ");
  coverOpen.type="button";
- add(coverStage,"p","book-cover-index","ภายในเล่ม · จับคู่ภาพ ๑๐ คำ · ฝึกอ่านออกเสียง ๒๐ คำ");
+ const coverOpenOral=add(coverChapters,"button","book-cover-open book-cover-oral","เปิดตอนที่ ๒ · อ่านออกเสียง");
+ coverOpenOral.type="button";
+ add(coverStage,"p","book-cover-index","เล่ม ๑ · ตอนที่ ๑ จำนวน ๑๐ คำ · ตอนที่ ๒ จำนวน ๒๐ คำ");
  const header=add(host,"header","picture-book-heading");
  const title=add(header,"div");
  const chapterHeading=add(title,"span","picture-book-kicker","ตอนที่ ๑ · คำจับคู่ภาพ");
@@ -431,12 +435,20 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  }
  oralKnown.addEventListener("click",()=>recordOral("known"));
  oralRetry.addEventListener("click",()=>recordOral("retry"));
- function jumpChapter(group){
+ function openChapter(group){
+  if(!["picture","oral"].includes(group))return false;
   const index=cards.findIndex(card=>card.group===group);
-  if(index>=0&&index!==position)turnTo(index,index>position?"forward":"backward");
+  if(index<0)return false;
+  if(coverClosed||coverOpening){
+   stopTurning();position=index;render();
+   if(coverClosed&&!coverOpening)openBook();
+  }else if(index!==position){
+   turnTo(index,index>position?"forward":"backward");
+  }
+  return true;
  }
- jumpPicture.addEventListener("click",()=>jumpChapter("picture"));
- jumpOral.addEventListener("click",()=>jumpChapter("oral"));
+ jumpPicture.addEventListener("click",()=>openChapter("picture"));
+ jumpOral.addEventListener("click",()=>openChapter("oral"));
  previous.addEventListener("click",()=>turnTo(position-1,"backward"));
  next.addEventListener("click",()=>turnTo(position<cards.length-1?position+1:0,"forward"));
  sound.addEventListener("click",()=>{
@@ -473,8 +485,9 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   host.classList.remove("is-cover-opened");
   host.classList.add("is-cover-closed");
  }
- coverFront.addEventListener("click",openBook);
- coverOpen.addEventListener("click",openBook);
+ coverFront.addEventListener("click",()=>openChapter("picture"));
+ coverOpen.addEventListener("click",()=>openChapter("picture"));
+ coverOpenOral.addEventListener("click",()=>openChapter("oral"));
  closeCover.addEventListener("click",closeBook);
  function setCards(subset){
   stopTurning();
@@ -484,5 +497,5 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   host.hidden=false;
  }
  setCards(original);
- return {root:host,setCards,openBook,closeBook,isCoverClosed:()=>coverClosed,getProgress:()=>pictureBookStats(pictures,solved)};
+ return {root:host,setCards,openBook,openChapter,closeBook,isCoverClosed:()=>coverClosed,getProgress:()=>pictureBookStats(pictures,solved)};
 }

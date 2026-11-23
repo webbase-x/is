@@ -1,5 +1,5 @@
-import {VOCAB_GROUPS,buildVocabulary,filterVocabulary,countProgress,shuffleDeck} from "./vocabulary.js";
-import {mountPictureBook} from "./picture-book.js";
+import {VOCAB_GROUPS,buildVocabulary,filterVocabulary,countProgress,shuffleDeck} from "./vocabulary.js?v=vol1-oral-20261123r2";
+import {mountPictureBook} from "./picture-book.js?v=vol1-oral-20261123r2";
 
 const STORAGE_KEY="rt-tutor-2559-vocabulary-v1";
 const LABEL={picture:"คำจับคู่ภาพ",oral:"คำอ่านออกเสียง",meaning:"คำจับคู่ความหมาย"};
@@ -135,6 +135,10 @@ export function mountVocabulary(app,exam,sprite){
    btn.type="button";btn.setAttribute("aria-pressed",String(entry.id===group));
    btn.addEventListener("click",()=>{
     group=entry.id;renderChips();renderFiltered();
+    if((entry.id==="picture"||entry.id==="oral")&&!pictureBook.root.hidden){
+     pictureBook.openChapter(entry.id);
+     pictureBook.root.scrollIntoView?.({behavior:"smooth",block:"start"});
+    }
    });
   });
  }
@@ -236,5 +240,8 @@ export function mountVocabulary(app,exam,sprite){
  known.addEventListener("click",()=>mark("known"));
  finishAgain.addEventListener("click",()=>newDeck(visible));
  renderChips();renderFiltered();updateStats();
+ if(typeof location!=="undefined"&&new URLSearchParams(location.search).get("book")==="oral"&&!pictureBook.root.hidden){
+  pictureBook.openChapter("oral");
+ }
  return section;
 }
