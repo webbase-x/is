@@ -1,5 +1,6 @@
-import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards,bookPageNumber} from "./picture-book-core.js?v=book-30-pages-20261123r4";
-import {installBookFullscreen} from "./fullscreen-book.js?v=book-30-pages-20261123r4";
+import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards,bookPageNumber} from "./picture-book-core.js?v=book-quiz30-20261124r1";
+import {installBookFullscreen} from "./fullscreen-book.js?v=book-quiz30-20261124r1";
+import {ORAL_SCENES} from "./oral-pictures.js?v=book-quiz30-20261124r1";
 
 const BOOK_STORAGE="rt-tutor-2559-picture-book-v1";
 const digit=n=>String(n).replace(/[0-9]/g,c=>"๐๑๒๓๔๕๖๗๘๙"[Number(c)]);
@@ -73,10 +74,19 @@ function fireworks(host){
 function attachPicture(parent,card,sprite){
  const frame=add(parent,"div","picture-book-illustration");
  frame.setAttribute("role","img");
- // Do not reveal the answer in the accessible label before submitting.
- frame.setAttribute("aria-label","ภาพคำศัพท์ ข้อที่ "+digit(card.sourceNo));
- frame.style.backgroundImage='url("'+sprite.path.replace(/"/g,"")+'")';
- frame.style.backgroundPosition="center "+(card.position/11*100)+"%";
+ if(card.group==="oral"){
+  const scene=ORAL_SCENES[card.sourceNo-1];
+  if(!scene)throw Error("ไม่พบภาพคำศัพท์ลำดับ "+digit(bookPageNumber(card)));
+  frame.classList.add("is-oral-illustration");
+  frame.setAttribute("aria-label",scene.description);
+  frame.style.setProperty("--oral-color",scene.color);
+  const icon=add(frame,"span","book-oral-emoji",scene.symbol);
+  icon.setAttribute("aria-hidden","true");
+ }else{
+  frame.setAttribute("aria-label","ภาพคำศัพท์ ข้อที่ "+digit(card.sourceNo));
+  frame.style.backgroundImage='url("'+sprite.path.replace(/"/g,"")+'")';
+  frame.style.backgroundPosition="center "+(card.position/11*100)+"%";
+ }
  return frame;
 }
 export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPracticed=()=>{},getOralProgress=()=>null,onResetOral=()=>{}}={}){
@@ -84,7 +94,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  const pictures=original.filter(card=>card.group==="picture");
  const oral=original.filter(card=>card.group==="oral");
  if(pictures.length!==10||oral.length!==20)throw Error("ข้อมูลหนังสือเล่ม ๑ ไม่ครบ");
- const solved=readSolved(pictures);
+ const solved=readSolved(original);
  let cards=[...original],position=0,revealed=false,soundOn=true,incorrectAttempts=0;
  let turning=false,activeTurn=null,turnTimer=null;
  let coverClosed=true,coverOpening=false,coverTimer=null;
@@ -264,7 +274,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
    rail.setAttribute("aria-label",section.label);
    let activeDot=null;
    for(const {card,index} of entries){
-    const state=card.group==="picture"?(solved[card.id]?"known":null):getOralProgress(card);
+    const state=solved[card.id]?"known":getOralProgress(card);
     const no=bookPageNumber(card);
     const dot=add(rail,"button","book-dot",digit(no));
     dot.type="button";
@@ -282,11 +292,11 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   }
  }
  function updateProgress(){
-  const count=pictureBookStats(pictures,solved);
-  const oralKnownCount=oral.filter(card=>getOralProgress(card)==="known").length;
-  const retryCount=oral.filter(card=>getOralProgress(card)==="retry").length;
-  progress.textContent="จับคู่ภาพถูก "+digit(count.solved)+"/๑๐ · อ่านได้แล้ว "+digit(oralKnownCount)+"/๒๐ · ฝึกเพิ่ม "+digit(retryCount);
-  bar.style.width=((count.solved+oralKnownCount)/30*100)+"%";
+  const count=pictureBookStats(original,solved);
+  const pictureRight=pictures.filter(card=>solved[card.id]).length;
+  const oralRight=oral.filter(card=>solved[card.id]).length;
+  progress.textContent="ตอบถูก "+digit(count.solved)+"/๓๐ · ภาพ "+digit(pictureRight)+"/๑๐ · คำอ่าน "+digit(oralRight)+"/๒๐";
+  bar.style.width=(count.solved/30*100)+"%";
  }
  function showAnswer(isRevealed){
   revealed=isRevealed;
@@ -304,36 +314,31 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   if(noCards){current=null;counter.textContent="ไม่มีหน้าหนังสือในชุดนี้";return}
   current=cards[position];
   const isOral=current.group==="oral";
-  const complete=!isOral&&solved[current.id]===true;
+  const complete=solved[current.id]===true;
   left.classList.toggle("is-oral-page",isOral);
   right.classList.toggle("is-oral-page",isOral);
   chapterHeading.textContent=isOral?"ตอนที่ ๒ · การอ่านออกเสียงคำ":"ตอนที่ ๑ · คำจับคู่ภาพ";
-  chapterDesc.textContent=isOral?"คำลำดับ ๑๑–๓๐ · ข้อสอบอ่านออกเสียงเดิม ข้อ ๑–๒๐":"ดูภาพทางซ้ายแล้วพิมพ์คำที่ถูกต้องทางขวา";
-  leftHeading.textContent=isOral?"หน้าซ้าย • อ่านออกเสียง":"หน้าซ้าย • ภาพ";
-  rightHeading.textContent=isOral?"หน้าขวา • ฝึกอ่าน":"หน้าขวา • ทายคำ";
+  chapterDesc.textContent=isOral?"คำลำดับ ๑๑–๓๐ · ทายคำจากภาพและฝึกสะกด":"ดูภาพทางซ้ายแล้วพิมพ์คำที่ถูกต้องทางขวา";
+  leftHeading.textContent="หน้าซ้าย • ภาพ";
+  rightHeading.textContent="หน้าขวา • คำศัพท์";
   jumpPicture.setAttribute("aria-current",String(!isOral));
   jumpOral.setAttribute("aria-current",String(isOral));
   jumpPicture.disabled=!cards.some(card=>card.group==="picture");
   jumpOral.disabled=!cards.some(card=>card.group==="oral");
   visualArea.replaceChildren();
-  if(isOral){
-   add(visualArea,"span","book-oral-question","คำลำดับ "+digit(bookPageNumber(current))+" · ข้อสอบเดิม "+digit(current.sourceNo));
-   add(visualArea,"strong","book-oral-word",current.word);
-   add(visualArea,"p","book-oral-prompt","อ่านออกเสียงคำที่กำหนดให้ถูกต้อง");
-  }else{
-   attachPicture(visualArea,current,sprite);
-   add(visualArea,"p","book-picture-caption","ดูภาพแล้วตอบว่าเป็นคำใด");
-  }
+  attachPicture(visualArea,current,sprite);
+  add(visualArea,"p","book-picture-caption","ดูภาพแล้วตอบว่าเป็นคำใด");
+  if(isOral)add(visualArea,"span","book-source-label","แบบทดสอบอ่านออกเสียงเดิม ข้อ "+digit(current.sourceNo));
   word.textContent=current.word;
   counter.textContent="เปิดหน้า "+digit(bookPageNumber(current))+" / ๓๐ · "+(isOral?"อ่านออกเสียง":"จับคู่ภาพ")+" · คำลำดับ "+digit(bookPageNumber(current));
   input.value="";incorrectAttempts=0;
   resetHints();showAnswer(complete);
-  revealArea.hidden=isOral;
-  answerForm.hidden=isOral||complete;
-  hints.hidden=isOral||complete;
-  hideWord.hidden=isOral||hideWord.hidden;
-  oralPanel.hidden=!isOral;
-  feedback.hidden=isOral;
+  revealArea.hidden=false;
+  answerForm.hidden=complete;
+  hints.hidden=complete;
+  hideWord.hidden=hideWord.hidden||complete;
+  oralPanel.hidden=true;
+  feedback.hidden=false;
   if(isOral){
    const state=getOralProgress(current);
    oralStatus.textContent=state==="known"?"อ่านได้แล้ว (บันทึกด้วยตนเอง)":state==="retry"?"ฝึกอีกครั้ง":"ยังไม่ฝึก";
@@ -403,14 +408,14 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  }
 
  function peek(){
-  if(!current||current.group!=="picture"||solved[current.id])return;
+  if(!current||solved[current.id])return;
   showAnswer(!revealed);
   feedback.classList.remove("is-error");
   feedback.textContent=revealed?"เปิดดูคำศัพท์แล้ว ลองพิมพ์เพื่อตรวจความจำ":"ปิดป้ายแล้ว ลองเขียนคำตอบ";
  }
  function submit(event){
   event.preventDefault();
-  if(!current||current.group!=="picture"||solved[current.id])return;
+  if(!current||solved[current.id])return;
   if(!input.value.trim()){feedback.textContent="กรุณาพิมพ์คำตอบก่อนตรวจ";feedback.classList.add("is-error");input.focus();return}
   if(!isCorrectPictureAnswer(current.word,input.value)){
    incorrectAttempts++;
@@ -430,7 +435,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   fireworks(host);playSuccessSound(soundOn);
  }
  showHints.addEventListener("click",()=>{
-  if(!current||current.group!=="picture"||solved[current.id]===true)return;
+  if(!current||solved[current.id]===true)return;
   const showing=hintPanel.hidden;
   hintPanel.hidden=!showing;
   showHints.setAttribute("aria-expanded",String(showing));
@@ -476,7 +481,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   sound.setAttribute("aria-pressed",String(soundOn));
  });
  reset.addEventListener("click",()=>{
-  if(!confirm("เริ่มหนังสือใหม่และล้างสถานะฝึกอ่านทั้งหมดหรือไม่?"))return;
+  if(!confirm("เริ่มหนังสือใหม่และล้างคำตอบถูกทั้ง ๓๐ คำหรือไม่?"))return;
   Object.keys(solved).forEach(key=>delete solved[key]);
   onResetOral();
   store();stopTurning();position=0;render();
@@ -517,5 +522,5 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
   host.hidden=false;
  }
  setCards(original);
- return {root:host,setCards,openBook,openChapter,closeBook,isCoverClosed:()=>coverClosed,getProgress:()=>pictureBookStats(pictures,solved)};
+ return {root:host,setCards,openBook,openChapter,closeBook,isCoverClosed:()=>coverClosed,getProgress:()=>pictureBookStats(original,solved)};
 }

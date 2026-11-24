@@ -282,8 +282,8 @@ assert.ok(entryBook.includes("openChapter,closeBook"));
 assert.ok(entryUI.includes('pictureBook.openChapter(entry.id)'));
 assert.ok(entryUI.includes('get("book")==="oral"'));
 assert.ok(entryUI.includes('listed=visible.filter(card=>card.group==="meaning")'));
-assert.ok(entryHTML.includes('app.js?v=book-30-pages-20261123r4'));
-assert.ok(entryUI.includes('picture-book.js?v=book-30-pages-20261123r4'));
+assert.ok(entryHTML.includes('app.js?v=book-quiz30-20261124r1'));
+assert.ok(entryUI.includes('picture-book.js?v=book-quiz30-20261124r1'));
 console.log("PASS: closed-cover chapter-two entry, oral chip navigation, oral deep link and cache-busted module graph");
 
 
@@ -316,3 +316,23 @@ assert.ok(navigationScript.includes('const no=bookPageNumber(card)'));
 assert.ok(navigationCSS.includes(".book-page-index-rail"));
 assert.ok(navigationCSS.includes("overflow-x:auto"));
 console.log("PASS: continuous 30-page picture book, two chapter page strips and category-independent navigation");
+
+
+// Every word, including original oral-reading words (book pages 11-30),
+// uses image / covered answer / typed answer / hints / success effects.
+import {ORAL_SCENES} from "./oral-pictures.js";
+assert.equal(ORAL_SCENES.length,20);
+assert.ok(ORAL_SCENES.every(x=>x.symbol.trim()&&x.description.trim()));
+const uniformGame=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+assert.ok(uniformGame.includes("const solved=readSolved(original)"));
+assert.ok(uniformGame.includes("attachPicture(visualArea,current,sprite)"));
+assert.ok(uniformGame.includes("revealArea.hidden=false"));
+assert.ok(uniformGame.includes("answerForm.hidden=complete"));
+assert.ok(uniformGame.includes("hints.hidden=complete"));
+assert.ok(uniformGame.includes("oralPanel.hidden=true"));
+assert.ok(uniformGame.includes("feedback.hidden=false"));
+assert.ok(!uniformGame.includes('current.group!=="picture"||solved[current.id]'));
+assert.ok(uniformGame.includes("onSolved(current)"));
+assert.ok(uniformGame.includes("fireworks(host);playSuccessSound(soundOn)"));
+assert.ok(uniformGame.includes("getProgress:()=>pictureBookStats(original,solved)"));
+console.log("PASS: identical hidden-word picture quiz for all 30 vocabulary pages");
