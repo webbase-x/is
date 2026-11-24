@@ -258,13 +258,13 @@ assert.deepEqual(bookVocabularyCards(vocab.filter(card=>card.group==="picture"))
 const bookChapterJS=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
 const chapterUI=await readFile(new URL("./vocabulary-ui.js",import.meta.url),"utf8");
 const chapterCSS=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
-assert.ok(bookChapterJS.includes("book-oral-word")&&bookChapterJS.includes("book-chapter-nav"));
+assert.ok(bookChapterJS.includes("attachPicture(visualArea,current,sprite)")&&bookChapterJS.includes("book-chapter-nav"));
 assert.ok(bookChapterJS.includes('onPracticed(current,status)'));
-assert.ok(bookChapterJS.includes('getOralProgress(current)'));
+assert.ok(bookChapterJS.includes('const solved=readSolved(original)'));
 assert.ok(bookChapterJS.includes("bookVocabularyCards(subset)"));
 assert.ok(chapterUI.includes('const listed=visible.filter(card=>card.group==="meaning")'));
 assert.ok(chapterUI.includes("pictureBook.setCards(bookCards)"));
-assert.ok(chapterCSS.includes(".book-oral-word")&&chapterCSS.includes(".book-oral-panel"));
+assert.ok(chapterCSS.includes(".is-oral-illustration")&&chapterCSS.includes(".book-oral-emoji"));
 assert.ok(chapterCSS.includes("@media(max-width:780px)"));
 console.log("PASS: 10 picture + 20 original oral words in the 30-page book; chapter switching, self-recording and reading layout");
 
@@ -335,4 +335,8 @@ assert.ok(!uniformGame.includes('current.group!=="picture"||solved[current.id]')
 assert.ok(uniformGame.includes("onSolved(current)"));
 assert.ok(uniformGame.includes("fireworks(host);playSuccessSound(soundOn)"));
 assert.ok(uniformGame.includes("getProgress:()=>pictureBookStats(original,solved)"));
+assert.ok(uniformGame.includes("const solved=readSolved(original)"));
+assert.ok(uniformGame.includes("const complete=solved[current.id]===true"));
+assert.ok(!uniformGame.includes('if(!current||current.group!=="picture"'));
+for(const word of data.oral.words)assert.ok(word.length>0);
 console.log("PASS: identical hidden-word picture quiz for all 30 vocabulary pages");
