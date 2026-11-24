@@ -1,6 +1,5 @@
-import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards,bookPageNumber} from "./picture-book-core.js?v=book-quiz30-20261124r1";
-import {installBookFullscreen} from "./fullscreen-book.js?v=book-quiz30-20261124r1";
-import {ORAL_SCENES} from "./oral-pictures.js?v=book-quiz30-20261124r1";
+import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards,bookPageNumber} from "./picture-book-core.js?v=oral-user-image-20261124r2";
+import {installBookFullscreen} from "./fullscreen-book.js?v=oral-user-image-20261124r2";
 
 const BOOK_STORAGE="rt-tutor-2559-picture-book-v1";
 const digit=n=>String(n).replace(/[0-9]/g,c=>"๐๑๒๓๔๕๖๗๘๙"[Number(c)]);
@@ -75,13 +74,16 @@ function attachPicture(parent,card,sprite){
  const frame=add(parent,"div","picture-book-illustration");
  frame.setAttribute("role","img");
  if(card.group==="oral"){
-  const scene=ORAL_SCENES[card.sourceNo-1];
-  if(!scene)throw Error("ไม่พบภาพคำศัพท์ลำดับ "+digit(bookPageNumber(card)));
+  // Use the exact 4×5 photographic-illustration grid supplied by the user,
+  // not generated emoji pictograms or a reconstructed drawing.
+  const idx=card.sourceNo-1;
+  if(!Number.isInteger(idx)||idx<0||idx>=20)
+   throw Error("ไม่พบภาพคำศัพท์ลำดับ "+digit(bookPageNumber(card)));
+  const col=idx%4,row=Math.floor(idx/4);
   frame.classList.add("is-oral-illustration");
-  frame.setAttribute("aria-label",scene.description);
-  frame.style.setProperty("--oral-color",scene.color);
-  const icon=add(frame,"span","book-oral-emoji",scene.symbol);
-  icon.setAttribute("aria-hidden","true");
+  frame.setAttribute("aria-label","ภาพประกอบคำลำดับ "+digit(bookPageNumber(card)));
+  frame.style.backgroundImage='url("./assets/pictures-2559-oral20-user.jpeg")';
+  frame.style.backgroundPosition=(col/3*100)+"% "+(row/4*100)+"%";
  }else{
   frame.setAttribute("aria-label","ภาพคำศัพท์ ข้อที่ "+digit(card.sourceNo));
   frame.style.backgroundImage='url("'+sprite.path.replace(/"/g,"")+'")';

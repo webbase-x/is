@@ -543,3 +543,47 @@ body.book-fallback-lock{
  .picture-book .book-oral-emoji{font-size:clamp(57px,15vw,94px);padding:10px 3px}
 }
 @media print{.picture-book .book-oral-emoji{filter:none}}
+
+
+/* User-supplied original 4×5 illustrated grid (book words ๑๑–๓๐).
+   Each numbered panel maps to one cell; no emoji stand-ins. */
+.picture-book .picture-book-illustration.is-oral-illustration{
+ display:block;
+ position:relative;
+ flex:none;
+ width:min(100%,480px);
+ height:auto;
+ aspect-ratio:1 / 1;
+ background-color:#fffaf2;
+ background-repeat:no-repeat;
+ background-size:400% 500%;
+ border-radius:17px;
+ border:1px solid #e4d8c4;
+ box-shadow:0 5px 19px #5a452624;
+ padding:0;
+ overflow:hidden;
+}
+.picture-book.is-book-expanded .picture-book-illustration.is-oral-illustration{
+ width:min(100%,620px,58dvh);
+ max-height:58dvh;
+}
+@media(max-width:780px){
+ .picture-book .picture-book-illustration.is-oral-illustration{
+  display:block;
+  width:min(100%,390px);
+  max-width:100%;
+  aspect-ratio:1 / 1;
+  height:auto;
+ }
+ .picture-book.is-book-expanded .picture-book-illustration.is-oral-illustration{
+  width:min(100%,480px);
+  max-height:none;
+ }
+}
+@media print{
+ .picture-book .picture-book-illustration.is-oral-illustration{
+  background-size:400% 500%!important;
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
+ }
+}

@@ -282,8 +282,8 @@ assert.ok(entryBook.includes("openChapter,closeBook"));
 assert.ok(entryUI.includes('pictureBook.openChapter(entry.id)'));
 assert.ok(entryUI.includes('get("book")==="oral"'));
 assert.ok(entryUI.includes('listed=visible.filter(card=>card.group==="meaning")'));
-assert.ok(entryHTML.includes('app.js?v=book-quiz30-20261124r1'));
-assert.ok(entryUI.includes('picture-book.js?v=book-quiz30-20261124r1'));
+assert.ok(entryHTML.includes('app.js?v=oral-user-image-20261124r2'));
+assert.ok(entryUI.includes('picture-book.js?v=oral-user-image-20261124r2'));
 console.log("PASS: closed-cover chapter-two entry, oral chip navigation, oral deep link and cache-busted module graph");
 
 
@@ -350,3 +350,19 @@ assert.ok(bookMarkSource.includes('const state=solved[card.id]?"known":null;'));
 assert.ok(bookMarkSource.includes("onResetBook();"));
 assert.ok(bookResetUI.includes('vocab.filter(card=>card.group==="oral"||card.group==="picture")'));
 console.log("PASS: only verified correct answers mark book pages complete; reset clears all 30 words");
+
+
+import {createHash} from "node:crypto";
+// Source image is the exact uploaded 4×5 layout, not recreated icon drawings.
+const oralArtwork=await readFile(new URL("./assets/pictures-2559-oral20-user.jpeg",import.meta.url));
+assert.equal(createHash("sha256").update(oralArtwork).digest("hex"),
+ "cf6fa73e104b09a3bf110bd3f0b3183549748eca1bba9345c57c54345522b1d6");
+const userOralBook=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const userOralStyles=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
+assert.ok(userOralBook.includes('backgroundImage=\'url("./assets/pictures-2559-oral20-user.jpeg")\''));
+assert.ok(userOralBook.includes('const col=idx%4,row=Math.floor(idx/4)'));
+assert.ok(userOralBook.includes('frame.style.backgroundPosition=(col/3*100)+"% "+(row/4*100)+"%"'));
+assert.ok(!userOralBook.includes('book-oral-emoji'));
+assert.ok(userOralStyles.includes('background-size:400% 500%'));
+assert.equal(data.oral.words.length,20);
+console.log("PASS: original user-supplied picture grid, SHA-256 integrity, 20 aligned entries, no emoji placeholders");
