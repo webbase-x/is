@@ -340,3 +340,13 @@ assert.ok(uniformGame.includes("const complete=solved[current.id]===true"));
 assert.ok(!uniformGame.includes('if(!current||current.group!=="picture"'));
 for(const word of data.oral.words)assert.ok(word.length>0);
 console.log("PASS: identical hidden-word picture quiz for all 30 vocabulary pages");
+
+
+// A green page marker means the answer was actually checked, not merely
+// an earlier self-reported reading status. Reset clears both book chapters.
+const bookMarkSource=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const bookResetUI=await readFile(new URL("./vocabulary-ui.js",import.meta.url),"utf8");
+assert.ok(bookMarkSource.includes('const state=solved[card.id]?"known":null;'));
+assert.ok(bookMarkSource.includes("onResetBook();"));
+assert.ok(bookResetUI.includes('vocab.filter(card=>card.group==="oral"||card.group==="picture")'));
+console.log("PASS: only verified correct answers mark book pages complete; reset clears all 30 words");

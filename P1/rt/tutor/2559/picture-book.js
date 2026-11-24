@@ -89,7 +89,7 @@ function attachPicture(parent,card,sprite){
  }
  return frame;
 }
-export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPracticed=()=>{},getOralProgress=()=>null,onResetOral=()=>{}}={}){
+export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPracticed=()=>{},getOralProgress=()=>null,onResetBook=()=>{}}={}){
  const original=bookVocabularyCards(allCards);
  const pictures=original.filter(card=>card.group==="picture");
  const oral=original.filter(card=>card.group==="oral");
@@ -274,7 +274,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
    rail.setAttribute("aria-label",section.label);
    let activeDot=null;
    for(const {card,index} of entries){
-    const state=solved[card.id]?"known":getOralProgress(card);
+    const state=solved[card.id]?"known":null;
     const no=bookPageNumber(card);
     const dot=add(rail,"button","book-dot",digit(no));
     dot.type="button";
@@ -483,7 +483,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  reset.addEventListener("click",()=>{
   if(!confirm("เริ่มหนังสือใหม่และล้างคำตอบถูกทั้ง ๓๐ คำหรือไม่?"))return;
   Object.keys(solved).forEach(key=>delete solved[key]);
-  onResetOral();
+  onResetBook();
   store();stopTurning();position=0;render();
  });
  function finishCoverOpen(){

@@ -57,8 +57,8 @@ export function mountVocabulary(app,exam,sprite){
   onSolved:(card)=>{progress[card.id]="known";save();updateStats();renderList();renderFlash()},
   onPracticed:(card,status)=>{progress[card.id]=status;save();updateStats();renderList();renderFlash()},
   getOralProgress:(card)=>progress[card.id]||null,
-  onResetOral:()=>{
-   vocab.filter(card=>card.group==="oral").forEach(card=>delete progress[card.id]);
+  onResetBook:()=>{
+   vocab.filter(card=>card.group==="oral"||card.group==="picture").forEach(card=>delete progress[card.id]);
    save();updateStats();renderList();renderFlash();
   }
  });
