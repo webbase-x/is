@@ -1,5 +1,5 @@
-import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards,bookPageNumber} from "./picture-book-core.js?v=oral-user-image-20261124r2";
-import {installBookFullscreen} from "./fullscreen-book.js?v=oral-user-image-20261124r2";
+import {isCorrectPictureAnswer,pictureBookCards,pictureBookStats,makeScrambledHint,bookVocabularyCards,bookPageNumber} from "./picture-book-core.js?v=mobile-book-layout-20261124r5";
+import {installBookFullscreen} from "./fullscreen-book.js?v=mobile-book-layout-20261124r5";
 
 const BOOK_STORAGE="rt-tutor-2559-picture-book-v1";
 const digit=n=>String(n).replace(/[0-9]/g,c=>"๐๑๒๓๔๕๖๗๘๙"[Number(c)]);
@@ -151,7 +151,7 @@ export function mountPictureBook(parent,allCards,sprite,{onSolved=()=>{},onPract
  const left=add(spread,"div","book-page book-page-picture");
  const leftHeading=add(left,"span","book-page-kicker","หน้าซ้าย • ภาพ");
  const visualArea=add(left,"div","book-picture-area");
- add(left,"p","book-picture-caption","ดูภาพแล้วตอบว่าเป็นคำใด");
+ // Instructions are rendered once below the current illustration.
  add(left,"span","book-corner","✦");
  const right=add(spread,"div","book-page book-page-word");
  const rightHeading=add(right,"span","book-page-kicker","หน้าขวา • คำศัพท์");

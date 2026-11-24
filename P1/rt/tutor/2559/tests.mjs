@@ -366,3 +366,21 @@ assert.ok(!userOralBook.includes('book-oral-emoji'));
 assert.ok(userOralStyles.includes('background-size:400% 500%'));
 assert.equal(data.oral.words.length,20);
 console.log("PASS: original user-supplied picture grid, SHA-256 integrity, 20 aligned entries, no emoji placeholders");
+
+
+// Mobile screenshot regression: spine must not overlap vertically stacked
+// pages, picture/prompt must not duplicate, and answer must fit in a phone.
+const mobileBookJS=await readFile(new URL("./picture-book.js",import.meta.url),"utf8");
+const mobileBookCSS=await readFile(new URL("./picture-book.css",import.meta.url),"utf8");
+const mobileBookHTML=await readFile(new URL("./index.html",import.meta.url),"utf8");
+assert.equal((mobileBookJS.match(/add\(visualArea,"p","book-picture-caption"/g)||[]).length,1);
+assert.equal((mobileBookJS.match(/add\(left,"p","book-picture-caption"/g)||[]).length,0);
+assert.ok(mobileBookCSS.includes(".picture-book .book-spread::before,"));
+assert.ok(mobileBookCSS.includes(".picture-book .book-spread::after{"));
+assert.ok(mobileBookCSS.includes("content:none!important"));
+assert.ok(mobileBookCSS.includes("background-size:160% 1200%!important"));
+assert.ok(mobileBookCSS.includes(".picture-book .book-answer-form{"));
+assert.ok(mobileBookCSS.includes("grid-template-columns:minmax(0,1fr)"));
+assert.ok(mobileBookCSS.includes(".picture-book.is-book-expanded .book-spread{"));
+assert.ok(mobileBookHTML.includes("mobile-book-layout-20261124r5"));
+console.log("PASS: mobile book has no overlaid spine, one caption, cropped sharp image, and full-width input/check button");

@@ -587,3 +587,176 @@ body.book-fallback-lock{
   print-color-adjust:exact;
  }
 }
+
+
+/* Mobile book layout correction — do not let a desktop spine cross a
+   vertically stacked picture and answer. Desktop 2-page layout remains. */
+.picture-book .picture-book-illustration:not(.is-oral-illustration){
+  width:min(100%,520px);
+  aspect-ratio:5 / 3;
+  background-size:160% 1200%;
+  background-position-x:center!important;
+  border-radius:15px;
+}
+@media(max-width:780px){
+  .picture-book .book-spread{
+    display:flex;
+    flex-direction:column;
+    grid-template-columns:none;
+    min-height:0;
+    width:100%;
+    border-radius:16px;
+    perspective:none;
+    overflow:hidden;
+    box-shadow:0 7px 24px #5243291c;
+    background:#fffdf8;
+  }
+  /* The 3D desktop gutter otherwise draws a vertical stripe through
+     BOTH mobile pages (including the artwork and hidden answer). */
+  .picture-book .book-spread::before,
+  .picture-book .book-spread::after{
+    display:none!important;
+    content:none!important;
+    background:none!important;
+  }
+  .picture-book .book-page,
+  .picture-book.is-book-expanded .book-page{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    min-height:0!important;
+    height:auto;
+    padding:13px 15px;
+    border-radius:0;
+    flex:0 0 auto;
+  }
+  .picture-book .book-page-picture{
+    background:#fffdf8;
+    padding-bottom:12px;
+    border-bottom:2px solid #d8c6a7;
+  }
+  .picture-book .book-page-word{
+    background:#fffdf8;
+    padding-top:14px;
+    padding-bottom:19px;
+  }
+  .picture-book .book-page-kicker{
+    font-size:13px;
+    line-height:1.5;
+  }
+  .picture-book .book-picture-area{
+    flex:0 0 auto;
+    justify-content:flex-start;
+    gap:8px;
+    padding:10px 0 2px;
+  }
+  .picture-book .picture-book-illustration:not(.is-oral-illustration){
+    width:100%;
+    max-width:440px;
+    aspect-ratio:5 / 3;
+    background-size:160% 1200%!important;
+  }
+  .picture-book .picture-book-illustration.is-oral-illustration{
+    width:min(100%,390px);
+    max-width:100%;
+    aspect-ratio:1;
+    height:auto;
+    background-size:400% 500%!important;
+  }
+  .picture-book .book-picture-caption{
+    font-size:14px;
+    line-height:1.5;
+    margin:4px 0 0;
+    text-align:center;
+  }
+  .picture-book .book-corner{display:none}
+  .picture-book .book-source-label{
+    text-align:center;
+    font-size:12px;
+    line-height:1.5;
+  }
+  .picture-book .book-reveal-area{
+    flex:0 0 auto;
+    min-height:126px;
+    height:auto;
+    margin:6px 0 0;
+  }
+  .picture-book .book-plaque{
+    height:84px;
+    max-width:100%;
+  }
+  .picture-book .book-plaque-front,
+  .picture-book .book-plaque-back{
+    gap:9px;
+    font-size:clamp(15px,4vw,19px);
+  }
+  .picture-book .book-plaque-symbol{
+    min-width:31px;
+    font-size:24px;
+  }
+  .picture-book .book-hidden-word{
+    font-size:clamp(29px,7vw,40px);
+  }
+  .picture-book .book-plaque-tip{
+    margin:4px 0 8px;
+    text-align:center;
+    font-size:12px;
+  }
+  .picture-book .book-peek-toggle{
+    margin:4px auto 10px;
+  }
+  .picture-book .book-answer-form{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    width:100%;
+    align-items:stretch;
+    gap:9px;
+    margin-top:8px;
+  }
+  .picture-book .book-answer-label{
+    flex:none;
+    min-width:0;
+    width:100%;
+    font-size:14px;
+  }
+  .picture-book .book-answer{
+    min-width:0;
+    width:100%;
+    box-sizing:border-box;
+    min-height:48px;
+    font-size:18px;
+    padding:10px 12px;
+  }
+  .picture-book .book-check{
+    width:100%;
+    min-height:45px;
+    box-sizing:border-box;
+    font-size:16px;
+  }
+  .picture-book .book-hints{margin-top:11px}
+  .picture-book .book-hint-toggle{max-width:100%}
+  .picture-book .book-feedback{
+    min-height:0;
+    margin:9px 0 0;
+    line-height:1.55;
+  }
+  .picture-book.is-book-expanded .book-spread{
+    min-height:0!important;
+    flex:0 0 auto!important;
+  }
+  .picture-book.is-book-expanded .picture-book-illustration:not(.is-oral-illustration){
+    width:100%;
+    max-width:480px;
+    max-height:none;
+  }
+  .picture-book.is-book-expanded .picture-book-illustration.is-oral-illustration{
+    width:min(100%,390px);
+    max-height:none;
+  }
+}
+@media(max-width:400px){
+  .picture-book .book-page,
+  .picture-book.is-book-expanded .book-page{padding-inline:12px}
+  .picture-book .book-plaque-front,
+  .picture-book .book-plaque-back{font-size:15px}
+}

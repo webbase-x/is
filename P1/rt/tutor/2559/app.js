@@ -1,5 +1,5 @@
-import {PICTURE_LABELS,PICTURE_SPRITE,verifyPictureOrder} from "./color-pictures.js?v=oral-user-image-20261124r2";
-import {mountVocabulary} from "./vocabulary-ui.js?v=oral-user-image-20261124r2";
+import {PICTURE_LABELS,PICTURE_SPRITE,verifyPictureOrder} from "./color-pictures.js?v=mobile-book-layout-20261124r5";
+import {mountVocabulary} from "./vocabulary-ui.js?v=mobile-book-layout-20261124r5";
 const app=document.querySelector("#app");
 let exam=null,assets=null,mode=location.hash==="#vocab"?"vocab":location.hash==="#oral"?"oral":"comp",isTeacher=false;
 const SAVED="rt-tutor-exam-2559-v1";
