@@ -1,0 +1,73 @@
+name: SmileCare responsive regression
+on:
+  push:
+    paths:
+      - 'dentist/**'
+      - '.github/workflows/smilecare-responsive.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  responsive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.51.0
+      - run: python -m playwright install --with-deps chromium
+      - name: Check responsive layout and existing features
+        run: |
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from pathlib import Path
+          from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+          from threading import Thread
+          server = ThreadingHTTPServer(('127.0.0.1', 0), SimpleHTTPRequestHandler)
+          Thread(target=server.serve_forever, daemon=True).start()
+          url = f'http://127.0.0.1:{server.server_port}/dentist/'
+          with sync_playwright() as p:
+              browser = p.chromium.launch()
+              for width, height in [(320,568),(360,800),(375,667),(390,844),(430,932),(568,320),(667,375),(768,1024),(820,1180),(1024,768),(1280,800),(1366,768),(1920,1080),(2560,1440)]:
+                  page = browser.new_page(viewport={'width':width,'height':height})
+                  errors = []
+                  page.on('pageerror', lambda err: errors.append(str(err)))
+                  page.goto(url)
+                  page.locator('#question').wait_for()
+                  assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), f'overflow {width}x{height}'
+                  if width <= 1350:
+                      page.locator('#menuToggle').click()
+                      assert page.locator('#siteLinks').is_visible()
+                      assert page.locator('#menuToggle').get_attribute('aria-expanded') == 'true'
+                      page.keyboard.press('Escape')
+                      assert not page.locator('#siteLinks').is_visible()
+                      page.locator('#menuToggle').click()
+                      page.locator('#siteLinks a[href="#track"]').click()
+                      assert not page.locator('#siteLinks').is_visible()
+                  else:
+                      assert page.locator('#siteLinks').is_visible()
+                  page.locator('#morning').check()
+                  assert '1 / 2' in page.locator('#count').inner_text()
+                  page.reload()
+                  assert page.locator('#morning').is_checked()
+                  page.locator('#night').check()
+                  assert '2 / 2' in page.locator('#count').inner_text()
+                  page.locator('#start').click()
+                  page.locator('#pause').click()
+                  page.locator('#reset').click()
+                  assert page.locator('#clock').inner_text() == '02:00'
+                  for _ in range(10):
+                      page.locator('#choices button').first.click()
+                      page.locator('#next').click()
+                  assert '/ 10' in page.locator('#question').inner_text()
+                  page.locator('#restart').click()
+                  assert '1 / 10' in page.locator('#qprogress').inner_text()
+                  assert not errors, errors
+                  assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), f'overflow after interactions {width}x{height}'
+                  print(f'PASS {width}x{height}')
+                  page.close()
+              browser.close()
+          server.shutdown()
+          PY
